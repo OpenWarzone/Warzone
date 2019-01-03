@@ -1,0 +1,12 @@
+[submodule "ccall"]
+	path = ccall
+	url = https://github.com/kungfooman/ccall
+[submodule "Utils.cpp"]
+	path = Utils.cpp
+	url = https://github.com/kungfooman/Utils.cpp
+[submodule "MagicFile.cpp"]
+	path = MagicFile.cpp
+	url = https://github.com/kungfooman/MagicFile.cpp
+[submodule "WebGL.cpp"]
+	path = WebGL.cpp
+	url = https://github.com/kungfooman/WebGL.cpp

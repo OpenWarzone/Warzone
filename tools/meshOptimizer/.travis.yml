@@ -1,0 +1,19 @@
+language: cpp
+os:
+  - linux
+  - osx
+compiler:
+  - clang
+  - gcc
+
+matrix:
+  exclude:
+    - os: osx
+      compiler: gcc
+
+script:
+  - make config=release
+  - make config=coverage test
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)

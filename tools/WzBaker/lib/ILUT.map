@@ -1,0 +1,262 @@
+ ILUT
+
+ Timestamp is 546754ba (Sat Nov 15 14:27:22 2014)
+
+ Preferred load address is 10000000
+
+ Start         Length     Name                   Class
+ 0001:00000000 0000276eH .text                   CODE
+ 0001:00002770 0000003eH .text$x                 CODE
+ 0002:00000000 00000160H .idata$5                DATA
+ 0002:00000160 00000004H .CRT$XCA                DATA
+ 0002:00000164 00000004H .CRT$XCZ                DATA
+ 0002:00000168 00000004H .CRT$XIA                DATA
+ 0002:0000016c 00000004H .CRT$XIAA               DATA
+ 0002:00000170 00000004H .CRT$XIZ                DATA
+ 0002:00000180 00000148H .rdata                  DATA
+ 0002:000002c8 0000004eH .rdata$debug            DATA
+ 0002:00000318 00000090H .rdata$r                DATA
+ 0002:000003b0 00000008H .rdata$sxdata           DATA
+ 0002:000003b8 00000004H .rtc$IAA                DATA
+ 0002:000003bc 00000004H .rtc$IZZ                DATA
+ 0002:000003c0 00000004H .rtc$TAA                DATA
+ 0002:000003c4 00000004H .rtc$TZZ                DATA
+ 0002:000003c8 000000d8H .xdata$x                DATA
+ 0002:000004a0 00000078H .idata$2                DATA
+ 0002:00000518 00000014H .idata$3                DATA
+ 0002:0000052c 00000160H .idata$4                DATA
+ 0002:0000068c 000005e2H .idata$6                DATA
+ 0002:00000c70 00000558H .edata                  DATA
+ 0003:00000000 00000050H .data                   DATA
+ 0003:00000050 000007d4H .bss                    DATA
+
+  Address         Publics by Value              Rva+Base       Lib:Object
+
+ 0000:00000002       ___safe_se_handler_count   00000002     <absolute>
+ 0000:00000000       ___ImageBase               10000000     <linker-defined>
+ 0001:00000000       _DllMain@12                10001000 f   ilut_main.obj
+ 0001:00000010       ?ilutInit@@YGXXZ           10001010 f   ilut_main.obj
+ 0001:00000010       ?ilut2Init@@YGXXZ          10001010 f   ilut_main.obj
+ 0001:00000080       ?ilutGetString@@YGPA_WI@Z  10001080 f   ilut_states.obj
+ 0001:000000c0       ?ilutEnable@@YGEI@Z        100010c0 f   ilut_states.obj
+ 0001:000000e0       ?ilutDisable@@YGEI@Z       100010e0 f   ilut_states.obj
+ 0001:00000100       ?ilutAble@@YAEIE@Z         10001100 f   ilut_states.obj
+ 0001:000001b0       ?ilutIsEnabled@@YGEI@Z     100011b0 f   ilut_states.obj
+ 0001:00000270       ?ilutIsDisabled@@YGEI@Z    10001270 f   ilut_states.obj
+ 0001:00000290       ?ilutGetBooleanv@@YGXIPAE@Z 10001290 f   ilut_states.obj
+ 0001:00000360       ?ilutGetBoolean@@YGEI@Z    10001360 f   ilut_states.obj
+ 0001:00000380       ?ilutGetIntegerv@@YGXIPAH@Z 10001380 f   ilut_states.obj
+ 0001:00000630       ?ilutGetInteger@@YGHI@Z    10001630 f   ilut_states.obj
+ 0001:00000660       ?ilutSetInteger@@YGXIH@Z   10001660 f   ilut_states.obj
+ 0001:00000820       ?ilutPushAttrib@@YGXI@Z    10001820 f   ilut_states.obj
+ 0001:000008b0       ?ilutPopAttrib@@YGXXZ      100018b0 f   ilut_states.obj
+ 0001:000008e0       ?ilutRenderer@@YGEI@Z      100018e0 f   ilut_states.obj
+ 0001:00000920       ??1ILpal@@UAE@XZ           10001920 f i ilut_win32.obj
+ 0001:00000940       ?use@ILpal@@QAEEHPAEI@Z    10001940 f i ilut_win32.obj
+ 0001:00000a40       ??4ILpal@@QAEXABV0@@Z      10001a40 f i ilut_win32.obj
+ 0001:00000a90       ??_GILpal@@UAEPAXI@Z       10001a90 f i ilut_win32.obj
+ 0001:00000a90       ??_EILpal@@UAEPAXI@Z       10001a90 f i  CIL library: CIL module
+ 0001:00000ad0       ?ilutWin32Init@@YAEXZ      10001ad0 f   ilut_win32.obj
+ 0001:00000ae0       ?ilut2ConvertSliceToHBitmap@@YGPAUHBITMAP__@@PAUILimage@@PAUHDC__@@I@Z 10001ae0 f   ilut_win32.obj
+ 0001:00001090       ?ilutConvertSliceToHBitmap@@YGPAUHBITMAP__@@PAUHDC__@@I@Z 10002090 f   ilut_win32.obj
+ 0001:000010c0       ?ilutConvertToHBitmap@@YGPAUHBITMAP__@@PAUHDC__@@@Z 100020c0 f   ilut_win32.obj
+ 0001:000010f0       ?ilut2ConvertToHBitmap@@YGPAUHBITMAP__@@PAUILimage@@PAUHDC__@@@Z 100020f0 f   ilut_win32.obj
+ 0001:00001110       ?iGetPaddedData@@YGPAEPAUILimage@@@Z 10002110 f   ilut_win32.obj
+ 0001:00001260       ?ilutFreePaddedData@@YGXPAE@Z 10002260 f   ilut_win32.obj
+ 0001:00001270       ?ilutGetPaddedData@@YGPAEXZ 10002270 f   ilut_win32.obj
+ 0001:00001280       ?ilutGetBmpInfo@@YGXPAUtagBITMAPINFO@@@Z 10002280 f   ilut_win32.obj
+ 0001:00001320       ?ilutWinLoadImage@@YGPAUHBITMAP__@@PA_WPAUHDC__@@@Z 10002320 f   ilut_win32.obj
+ 0001:00001370       ?ilutWinSaveImage@@YGEPA_WPAUHBITMAP__@@@Z 10002370 f   ilut_win32.obj
+ 0001:000013c0       ?ilutGetHPal@@YGPAUHPALETTE__@@XZ 100023c0 f   ilut_win32.obj
+ 0001:000014f0       ?ilutSetHBitmap@@YGEPAUHBITMAP__@@@Z 100024f0 f   ilut_win32.obj
+ 0001:000016c0       ?ilutSetHPal@@YGEPAUHPALETTE__@@@Z 100026c0 f   ilut_win32.obj
+ 0001:00001800       ?ilutSetWinClipboard@@YGEXZ 10002800 f   ilut_win32.obj
+ 0001:00001940       ?ilutGetWinClipboard@@YGEXZ 10002940 f   ilut_win32.obj
+ 0001:00001a40       ?ilutWinPrint@@YGEIIIIPAUHDC__@@@Z 10002a40 f   ilut_win32.obj
+ 0001:00001ab0       ?ilutLoadResource@@YGEPAUHINSTANCE__@@HPA_WI@Z 10002ab0 f   ilut_win32.obj
+ 0001:00001b10       ?ilutWinLoadUrl@@YGEPA_W@Z 10002b10 f   ilut_win32.obj
+ 0001:00001da1       @__security_check_cookie@4 10002da1 f   msvcrt:secchk.obj
+ 0001:00001db0       ??3@YAXPAX@Z               10002db0 f   msvcrt:MSVCR100.dll
+ 0001:00001db6       ??_Etype_info@@UAEPAXI@Z   10002db6 f i msvcrt:ti_inst.obj
+ 0001:00001e51       __CRT_INIT@12              10002e51 f   msvcrt:crtdll.obj
+ 0001:00002171       __DllMainCRTStartup@12     10003171 f   msvcrt:crtdll.obj
+ 0001:00002194       ___report_gsfailure        10003194 f   msvcrt:gs_report.obj
+ 0001:0000229a       ?__ArrayUnwind@@YGXPAXIHP6EX0@Z@Z 1000329a f   msvcrt:ehvecdtr.obj
+ 0001:000022f8       ??_M@YGXPAXIHP6EX0@Z@Z     100032f8 f   msvcrt:ehvecdtr.obj
+ 0001:0000235b       ___clean_type_info_names   1000335b f   msvcrt:tncleanup.obj
+ 0001:00002367       __onexit                   10003367 f   msvcrt:atonexit.obj
+ 0001:00002408       _atexit                    10003408 f   msvcrt:atonexit.obj
+ 0001:0000241f       __RTC_Initialize           1000341f f   msvcrt:_initsect_.obj
+ 0001:00002445       __RTC_Terminate            10003445 f   msvcrt:_initsect_.obj
+ 0001:00002470       __ValidateImageBase        10003470 f   msvcrt:pesect.obj
+ 0001:000024b0       __FindPESection            100034b0 f   msvcrt:pesect.obj
+ 0001:00002500       __IsNonwritableInCurrentImage 10003500 f   msvcrt:pesect.obj
+ 0001:000025bc       __initterm                 100035bc f   msvcrt:MSVCR100.dll
+ 0001:000025c2       __initterm_e               100035c2 f   msvcrt:MSVCR100.dll
+ 0001:000025c8       __amsg_exit                100035c8 f   msvcrt:MSVCR100.dll
+ 0001:000025ce       ___CppXcptFilter           100035ce f   msvcrt:MSVCR100.dll
+ 0001:000025e0       __SEH_prolog4              100035e0 f   msvcrt:sehprolg4.obj
+ 0001:00002625       __SEH_epilog4              10003625 f   msvcrt:sehprolg4.obj
+ 0001:00002639       __except_handler4          10003639 f   msvcrt:chandler4gs.obj
+ 0001:0000265e       ___security_init_cookie    1000365e f   msvcrt:gs_support.obj
+ 0001:000026fa       __crt_debugger_hook        100036fa f   msvcrt:MSVCR100.dll
+ 0001:00002700       ?terminate@@YAXXZ          10003700 f   msvcrt:MSVCR100.dll
+ 0001:00002706       ??1type_info@@UAE@XZ       10003706 f   msvcrt:MSVCR100.dll
+ 0001:00002706       ?_type_info_dtor_internal_method@type_info@@QAEXXZ 10003706 f   msvcrt:MSVCR100.dll
+ 0001:0000270c       ___clean_type_info_names_internal 1000370c f   msvcrt:MSVCR100.dll
+ 0001:00002712       __unlock                   10003712 f   msvcrt:MSVCR100.dll
+ 0001:00002718       ___dllonexit               10003718 f   msvcrt:MSVCR100.dll
+ 0001:0000271e       __lock                     1000371e f   msvcrt:MSVCR100.dll
+ 0001:00002724       __except_handler4_common   10003724 f   msvcrt:MSVCR100.dll
+ 0001:00002730       __chkstk                   10003730 f   msvcrt:chkstk.obj
+ 0001:00002730       __alloca_probe             10003730     msvcrt:chkstk.obj
+ 0001:0000275c       _memcpy                    1000375c f   msvcrt:MSVCR100.dll
+ 0001:00002762       _memset                    10003762 f   msvcrt:MSVCR100.dll
+ 0001:00002768       ___CxxFrameHandler3        10003768 f   msvcrt:MSVCR100.dll
+ 0002:00000000       __imp__CreatePalette@4     10004000     Gdi32:GDI32.dll
+ 0002:00000004       __imp__SetDIBits@28        10004004     Gdi32:GDI32.dll
+ 0002:00000008       __imp__GetDIBits@28        10004008     Gdi32:GDI32.dll
+ 0002:0000000c       __imp__DeleteObject@4      1000400c     Gdi32:GDI32.dll
+ 0002:00000010       __imp__SelectObject@8      10004010     Gdi32:GDI32.dll
+ 0002:00000014       __imp__GetPaletteEntries@16 10004014     Gdi32:GDI32.dll
+ 0002:00000018       __imp__CreateCompatibleDC@4 10004018     Gdi32:GDI32.dll
+ 0002:0000001c       __imp__CreateCompatibleBitmap@12 1000401c     Gdi32:GDI32.dll
+ 0002:00000020       \177GDI32_NULL_THUNK_DATA  10004020     Gdi32:GDI32.dll
+ 0002:00000024       __imp__DecodePointer@4     10004024     kernel32:KERNEL32.dll
+ 0002:00000028       __imp__InterlockedExchange@8 10004028     kernel32:KERNEL32.dll
+ 0002:0000002c       __imp__EncodePointer@4     1000402c     kernel32:KERNEL32.dll
+ 0002:00000030       __imp__Sleep@4             10004030     kernel32:KERNEL32.dll
+ 0002:00000034       __imp__FindResourceW@12    10004034     kernel32:KERNEL32.dll
+ 0002:00000038       __imp__LoadResource@8      10004038     kernel32:KERNEL32.dll
+ 0002:0000003c       __imp__GlobalSize@4        1000403c     kernel32:KERNEL32.dll
+ 0002:00000040       __imp__GlobalLock@4        10004040     kernel32:KERNEL32.dll
+ 0002:00000044       __imp__SizeofResource@8    10004044     kernel32:KERNEL32.dll
+ 0002:00000048       __imp__GlobalUnlock@4      10004048     kernel32:KERNEL32.dll
+ 0002:0000004c       __imp__LockResource@4      1000404c     kernel32:KERNEL32.dll
+ 0002:00000050       __imp__GetCurrentProcess@0 10004050     kernel32:KERNEL32.dll
+ 0002:00000054       __imp__UnhandledExceptionFilter@4 10004054     kernel32:KERNEL32.dll
+ 0002:00000058       __imp__TerminateProcess@8  10004058     kernel32:KERNEL32.dll
+ 0002:0000005c       __imp__SetUnhandledExceptionFilter@4 1000405c     kernel32:KERNEL32.dll
+ 0002:00000060       __imp__IsDebuggerPresent@0 10004060     kernel32:KERNEL32.dll
+ 0002:00000064       __imp__QueryPerformanceCounter@4 10004064     kernel32:KERNEL32.dll
+ 0002:00000068       __imp__GetTickCount@0      10004068     kernel32:KERNEL32.dll
+ 0002:0000006c       __imp__GetCurrentThreadId@0 1000406c     kernel32:KERNEL32.dll
+ 0002:00000070       __imp__GetCurrentProcessId@0 10004070     kernel32:KERNEL32.dll
+ 0002:00000074       __imp__GetSystemTimeAsFileTime@4 10004074     kernel32:KERNEL32.dll
+ 0002:00000078       __imp__InterlockedCompareExchange@12 10004078     kernel32:KERNEL32.dll
+ 0002:0000007c       \177KERNEL32_NULL_THUNK_DATA 1000407c     kernel32:KERNEL32.dll
+ 0002:00000080       __imp_?terminate@@YAXXZ    10004080     msvcrt:MSVCR100.dll
+ 0002:00000084       __imp_?_type_info_dtor_internal_method@type_info@@QAEXXZ 10004084     msvcrt:MSVCR100.dll
+ 0002:00000088       __imp____clean_type_info_names_internal 10004088     msvcrt:MSVCR100.dll
+ 0002:0000008c       __imp___unlock             1000408c     msvcrt:MSVCR100.dll
+ 0002:00000090       __imp____dllonexit         10004090     msvcrt:MSVCR100.dll
+ 0002:00000094       __imp___lock               10004094     msvcrt:MSVCR100.dll
+ 0002:00000098       __imp___onexit             10004098     msvcrt:MSVCR100.dll
+ 0002:0000009c       __imp___except_handler4_common 1000409c     msvcrt:MSVCR100.dll
+ 0002:000000a0       __imp__memset              100040a0     msvcrt:MSVCR100.dll
+ 0002:000000a4       __imp__memcpy              100040a4     msvcrt:MSVCR100.dll
+ 0002:000000a8       __imp___crt_debugger_hook  100040a8     msvcrt:MSVCR100.dll
+ 0002:000000ac       __imp____CppXcptFilter     100040ac     msvcrt:MSVCR100.dll
+ 0002:000000b0       __imp___amsg_exit          100040b0     msvcrt:MSVCR100.dll
+ 0002:000000b4       __imp___initterm_e         100040b4     msvcrt:MSVCR100.dll
+ 0002:000000b8       __imp___initterm           100040b8     msvcrt:MSVCR100.dll
+ 0002:000000bc       __imp___encoded_null       100040bc     msvcrt:MSVCR100.dll
+ 0002:000000c0       __imp__free                100040c0     msvcrt:MSVCR100.dll
+ 0002:000000c4       __imp_??3@YAXPAX@Z         100040c4     msvcrt:MSVCR100.dll
+ 0002:000000c8       __imp__tolower             100040c8     msvcrt:MSVCR100.dll
+ 0002:000000cc       __imp___malloc_crt         100040cc     msvcrt:MSVCR100.dll
+ 0002:000000d0       __imp____CxxFrameHandler3  100040d0     msvcrt:MSVCR100.dll
+ 0002:000000d4       \177MSVCR100_NULL_THUNK_DATA 100040d4     msvcrt:MSVCR100.dll
+ 0002:000000d8       __imp_?ilTexImage@@YGEIIIEIIPAX@Z 100040d8     resil:ResIL.dll
+ 0002:000000dc       __imp_?iConvertPal@@YG?AVILpal@@PAV1@I@Z 100040dc     resil:ResIL.dll
+ 0002:000000e0       __imp_?iBindImageTemp@@YGXXZ 100040e0     resil:ResIL.dll
+ 0002:000000e4       __imp_?ilSetCurImage@@YGXPAUILimage@@@Z 100040e4     resil:ResIL.dll
+ 0002:000000e8       __imp_?ialloc@@YGPAXI@Z    100040e8     resil:ResIL.dll
+ 0002:000000ec       __imp_?ilTypeFromExt@@YGIPB_W@Z 100040ec     resil:ResIL.dll
+ 0002:000000f0       __imp_?ilCloseImage@@YGXPAX@Z 100040f0     resil:ResIL.dll
+ 0002:000000f4       __imp_?ifree@@YGXPBX@Z     100040f4     resil:ResIL.dll
+ 0002:000000f8       __imp_?ilGetCurImage@@YGPAUILimage@@XZ 100040f8     resil:ResIL.dll
+ 0002:000000fc       __imp_?ilLoadL@@YGEIPBXI@Z 100040fc     resil:ResIL.dll
+ 0002:00000100       __imp_?ilLoadImage@@YGEPB_W@Z 10004100     resil:ResIL.dll
+ 0002:00000104       __imp_?iGetFlipped@@YGPAEPAUILimage@@@Z 10004104     resil:ResIL.dll
+ 0002:00000108       __imp_?iConvertImage@@YGPAUILimage@@PAU1@II@Z 10004108     resil:ResIL.dll
+ 0002:0000010c       __imp_?ilConvertPal@@YGEI@Z 1000410c     resil:ResIL.dll
+ 0002:00000110       __imp_?ilGetCurName@@YGIXZ 10004110     resil:ResIL.dll
+ 0002:00000114       __imp_?ilBindImage@@YGXI@Z 10004114     resil:ResIL.dll
+ 0002:00000118       __imp_?ilSaveImage@@YGEPB_W@Z 10004118     resil:ResIL.dll
+ 0002:0000011c       __imp_?il2SetError@@YGXI@Z 1000411c     resil:ResIL.dll
+ 0002:00000120       \177ResIL_NULL_THUNK_DATA  10004120     resil:ResIL.dll
+ 0002:00000124       __imp__IsClipboardFormatAvailable@4 10004124     User32:USER32.dll
+ 0002:00000128       __imp__SetClipboardData@8  10004128     User32:USER32.dll
+ 0002:0000012c       __imp__EmptyClipboard@0    1000412c     User32:USER32.dll
+ 0002:00000130       __imp__ReleaseDC@8         10004130     User32:USER32.dll
+ 0002:00000134       __imp__GetClipboardData@4  10004134     User32:USER32.dll
+ 0002:00000138       __imp__CloseClipboard@0    10004138     User32:USER32.dll
+ 0002:0000013c       __imp__OpenClipboard@4     1000413c     User32:USER32.dll
+ 0002:00000140       __imp__GetDC@4             10004140     User32:USER32.dll
+ 0002:00000144       __imp__GetForegroundWindow@0 10004144     User32:USER32.dll
+ 0002:00000148       \177USER32_NULL_THUNK_DATA 10004148     User32:USER32.dll
+ 0002:0000014c       __imp__InternetOpenUrlW@24 1000414c     Wininet:WININET.dll
+ 0002:00000150       __imp__InternetReadFile@16 10004150     Wininet:WININET.dll
+ 0002:00000154       __imp__InternetCloseHandle@4 10004154     Wininet:WININET.dll
+ 0002:00000158       __imp__InternetOpenW@20    10004158     Wininet:WININET.dll
+ 0002:0000015c       \177WININET_NULL_THUNK_DATA 1000415c     Wininet:WININET.dll
+ 0002:00000160       ___xc_a                    10004160     msvcrt:cinitexe.obj
+ 0002:00000164       ___xc_z                    10004164     msvcrt:cinitexe.obj
+ 0002:00000168       ___xi_a                    10004168     msvcrt:cinitexe.obj
+ 0002:00000170       ___xi_z                    10004170     msvcrt:cinitexe.obj
+ 0002:000001a0       ??_7type_info@@6B@         100041a0     msvcrt:ti_inst.obj
+ 0002:000001a4       __pDefaultRawDllMain       100041a4     msvcrt:crtdll.obj
+ 0002:000001a4       __pRawDllMain              100041a4     msvcrt:crtdll.obj
+ 0002:000001b0       ??_C@_1GO@EKIKNOBL@?$AAD?$AAe?$AAv?$AAe?$AAl?$AAo?$AAp?$AAe?$AAr?$AA?8?$AAs?$AA?5?$AAI?$AAm?$AAa?$AAg?$AAe?$AA?5?$AAL?$AAi?$AAb?$AAr?$AAa?$AAr?$AAy?$AA?5?$AAU?$AAt?$AAi?$AAl?$AAi?$AAt@ 100041b0     ilut_states.obj
+ 0002:00000220       ??_C@_1CC@FLLNLNFB@?$AAA?$AAb?$AAy?$AAs?$AAm?$AAa?$AAl?$AA?5?$AAS?$AAo?$AAf?$AAt?$AAw?$AAa?$AAr?$AAe?$AA?$AA@ 10004220     ilut_states.obj
+ 0002:00000244       ??_C@_1DE@LHOEMOEC@?$AAD?$AAe?$AAv?$AAe?$AAl?$AAo?$AAp?$AAe?$AAr?$AA?8?$AAs?$AA?5?$AAI?$AAm?$AAa?$AAg?$AAe?$AA?5?$AAL?$AAi?$AAb?$AAr?$AAa?$AAr?$AAy?$AA?$AA@ 10004244     ilut_win32.obj
+ 0002:0000027c       ??_7ILpal@@6B@             1000427c     ilut_win32.obj
+ 0002:00000280       __load_config_used         10004280     msvcrt:loadcfg.obj
+ 0002:00000318       ??_R4type_info@@6B@        10004318     msvcrt:ti_inst.obj
+ 0002:0000032c       ??_R3type_info@@8          1000432c     msvcrt:ti_inst.obj
+ 0002:0000033c       ??_R2type_info@@8          1000433c     msvcrt:ti_inst.obj
+ 0002:00000344       ??_R1A@?0A@EA@type_info@@8 10004344     msvcrt:ti_inst.obj
+ 0002:00000360       ??_R4ILpal@@6B@            10004360     ilut_win32.obj
+ 0002:00000374       ??_R3ILpal@@8              10004374     ilut_win32.obj
+ 0002:00000384       ??_R2ILpal@@8              10004384     ilut_win32.obj
+ 0002:0000038c       ??_R1A@?0A@EA@ILpal@@8     1000438c     ilut_win32.obj
+ 0002:000003b0       ___safe_se_handler_table   100043b0     <linker-defined>
+ 0002:000003b8       ___rtc_iaa                 100043b8     msvcrt:_initsect_.obj
+ 0002:000003bc       ___rtc_izz                 100043bc     msvcrt:_initsect_.obj
+ 0002:000003c0       ___rtc_taa                 100043c0     msvcrt:_initsect_.obj
+ 0002:000003c4       ___rtc_tzz                 100043c4     msvcrt:_initsect_.obj
+ 0002:000004a0       __IMPORT_DESCRIPTOR_ResIL  100044a0     resil:ResIL.dll
+ 0002:000004b4       __IMPORT_DESCRIPTOR_KERNEL32 100044b4     kernel32:KERNEL32.dll
+ 0002:000004c8       __IMPORT_DESCRIPTOR_MSVCR100 100044c8     msvcrt:MSVCR100.dll
+ 0002:000004dc       __IMPORT_DESCRIPTOR_USER32 100044dc     User32:USER32.dll
+ 0002:000004f0       __IMPORT_DESCRIPTOR_WININET 100044f0     Wininet:WININET.dll
+ 0002:00000504       __IMPORT_DESCRIPTOR_GDI32  10004504     Gdi32:GDI32.dll
+ 0002:00000518       __NULL_IMPORT_DESCRIPTOR   10004518     resil:ResIL.dll
+ 0003:00000000       ??_R0?AVtype_info@@@8      10006000     msvcrt:ti_inst.obj
+ 0003:00000018       ___security_cookie         10006018     msvcrt:gs_cookie.obj
+ 0003:0000001c       ___security_cookie_complement 1000601c     msvcrt:gs_cookie.obj
+ 0003:00000020       ___native_dllmain_reason   10006020     msvcrt:natstart.obj
+ 0003:00000024       ___native_vcclrit_reason   10006024     msvcrt:natstart.obj
+ 0003:00000030       ?_ilutVendor@@3PB_WB       10006030     ilut_states.obj
+ 0003:00000034       ?_ilutVersion@@3PB_WB      10006034     ilut_states.obj
+ 0003:00000038       ??_R0?AVILpal@@@8          10006038     ilut_win32.obj
+ 0003:0000037c       ?__type_info_root_node@@3U__type_info_node@@A 1000637c     msvcrt:tncleanup.obj
+ 0003:00000388       ?ilutStates@@3PAUILUT_STATES@@A 10006388     ilut_states.obj
+ 0003:00000808       ?ilutCurImage@@3PAUILimage@@A 10006808     ilut_internal.obj
+ 0003:0000080c       ?ilutCurrentPos@@3IA       1000680c     ilut_states.obj
+ 0003:00000810       ___native_startup_state    10006810     <common>
+ 0003:00000814       ___native_startup_lock     10006814     <common>
+ 0003:00000818       ___onexitend               10006818     <common>
+ 0003:0000081c       ___onexitbegin             1000681c     <common>
+ 0003:00000820       ___dyn_tls_init_callback   10006820     <common>
+
+ entry point at        0001:00002171
+
+ Static symbols
+
+ 0001:00001e02       _pre_c_init                10002e02 f   msvcrt:crtdll.obj
+ 0001:0000205b       ___DllMainCRTStartup       1000305b f   msvcrt:crtdll.obj
+ 0001:00002770       __unwindfunclet$?ilut2ConvertSliceToHBitmap@@YGPAUHBITMAP__@@PAUILimage@@PAUHDC__@@I@Z$3 10003770 f    CIL library: CIL module
+ 0001:0000277b       __unwindfunclet$?ilut2ConvertSliceToHBitmap@@YGPAUHBITMAP__@@PAUILimage@@PAUHDC__@@I@Z$4 1000377b f    CIL library: CIL module
+ 0001:00002786       __ehhandler$?ilut2ConvertSliceToHBitmap@@YGPAUHBITMAP__@@PAUILimage@@PAUHDC__@@I@Z 10003786 f    CIL library: CIL module
