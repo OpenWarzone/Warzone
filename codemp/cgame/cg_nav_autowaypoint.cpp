@@ -3801,6 +3801,8 @@ qboolean MaterialIsValidForWP(int materialType)
 	case MATERIAL_FLESH:			// 16			// hung meat, corpses in the world
 	case MATERIAL_COMPUTER:			// 31			// computers/electronic equipment
 		break;
+	case MATERIAL_SKYSCRAPER:
+		break;
 	default:
 		//return qtrue; // no material.. just accept...
 		break;
@@ -4207,6 +4209,9 @@ void DebugSurfaceType( int materialType)
 		break;
 	case MATERIAL_TREEBARK:
 		trap->Print("Surface material is MATERIAL_TREEBARK.\n");
+		break;
+	case MATERIAL_SKYSCRAPER:
+		trap->Print("Surface material is MATERIAL_SKYSCRAPER.\n");
 		break;
 	default:
 		trap->Print("Surface material is MATERIAL_NONE.\n");

@@ -126,7 +126,8 @@
 #define MATERIAL_MAGIC_PARTICLES_TREE			42			// magic tree particle fx
 #define MATERIAL_MAGIC_PARTICLES				43			// magic particles (small particle fx)
 #define MATERIAL_PORTAL							44			// area transition portal
-#define MATERIAL_LAST							45			// number of materials
+#define MATERIAL_SKYSCRAPER						45			// warzone sky scrapers
+#define MATERIAL_LAST							46			// number of materials
 
 // Defined as a macro here so one change will affect all the relevant files
 
@@ -175,4 +176,5 @@
 	"fireflies",						\
 	"magicparticlestree",				\
 	"magicparticles",					\
-	"portal",
+	"portal",							\
+	"skyscraper"

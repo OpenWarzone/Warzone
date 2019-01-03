@@ -112,7 +112,7 @@ void main(void)
 	float material = texture(u_PositionMap, var_TexCoords).a - 1.0;
 	float materialMultiplier = 1.0;
 
-	if (material == MATERIAL_ROCK || material == MATERIAL_STONE)
+	if (material == MATERIAL_ROCK || material == MATERIAL_STONE || material == MATERIAL_SKYSCRAPER)
 	{// Rock gets more displacement...
 		materialMultiplier = 3.0;
 	}

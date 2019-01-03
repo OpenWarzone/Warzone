@@ -5,7 +5,6 @@
 #define __ENHANCED_AO__
 #define __SCREEN_SPACE_REFLECTIONS__
 //#define __CLOUD_SHADOWS__
-#define __LENS_FLARE__
 
 #ifdef USE_CUBEMAPS
 	#define __CUBEMAPS__
@@ -37,13 +36,13 @@ uniform vec2								u_Dimensions;
 uniform vec4								u_Local1; // r_blinnPhong, SUN_PHONG_SCALE, r_ao, SSDM_ENABLED
 uniform vec4								u_Local2; // 0.0, SHADOWS_ENABLED, SHADOW_MINBRIGHT, SHADOW_MAXBRIGHT
 uniform vec4								u_Local3; // r_testShaderValue1, r_testShaderValue2, r_testShaderValue3, r_testShaderValue4
-uniform vec4								u_Local4; // haveConeAngles, 0.0, 0.0, MAP_EMISSIVE_COLOR_SCALE
+uniform vec4								u_Local4; // haveConeAngles, PROCEDURAL_SNOW_LUMINOSITY_CURVE, PROCEDURAL_SNOW_BRIGHTNESS, MAP_EMISSIVE_COLOR_SCALE
 uniform vec4								u_Local5; // CONTRAST, SATURATION, BRIGHTNESS, TRUEHDR_ENABLED
 uniform vec4								u_Local6; // AO_MINBRIGHT, AO_MULTBRIGHT, VIBRANCY, NightScale
 uniform vec4								u_Local7; // cubemapEnabled, r_cubemapCullRange, r_cubeMapSize, r_skyLightContribution
 uniform vec4								u_Local8; // enableReflections, MAP_HDR_MIN, MAP_HDR_MAX, MAP_INFO_PLAYABLE_MAXS[2]
 uniform vec4								u_Local9; // PROCEDURAL_SNOW_HEIGHT_CURVE, MAP_USE_PALETTE_ON_SKY, SNOW_ENABLED, PROCEDURAL_SNOW_LOWEST_ELEVATION
-uniform vec4								u_Local10; // PROCEDURAL_SNOW_LUMINOSITY_CURVE, PROCEDURAL_SNOW_BRIGHTNESS, 0.0, 0.0
+//uniform vec4								u_Local10; // PROCEDURAL_SNOW_LUMINOSITY_CURVE, PROCEDURAL_SNOW_BRIGHTNESS, 0.0, 0.0
 uniform vec4								u_Local11; // PROCEDURAL_CLOUDS_ENABLED, PROCEDURAL_CLOUDS_CLOUDSCALE, PROCEDURAL_CLOUDS_SPEED, PROCEDURAL_CLOUDS_DARK
 uniform vec4								u_Local12; // PROCEDURAL_CLOUDS_LIGHT, PROCEDURAL_CLOUDS_CLOUDCOVER, PROCEDURAL_CLOUDS_CLOUDALPHA, PROCEDURAL_CLOUDS_SKYTINT
 
@@ -86,8 +85,8 @@ varying vec2								var_TexCoords;
 #define SHADOW_MAXBRIGHT					u_Local2.a
 
 #define HAVE_CONE_ANGLES					u_Local4.r
-//#define MAP_WATER_LEVEL						u_Local4.g // UNUSED
-//#define FLOAT_TIME							u_Local4.b // UNUSED
+#define PROCEDURAL_SNOW_LUMINOSITY_CURVE	u_Local4.g
+#define PROCEDURAL_SNOW_BRIGHTNESS			u_Local4.b
 #define MAP_EMISSIVE_COLOR_SCALE			u_Local4.a
 
 #define CONTRAST_STRENGTH					u_Local5.r
@@ -115,10 +114,10 @@ varying vec2								var_TexCoords;
 #define SNOW_ENABLED						u_Local9.b
 #define PROCEDURAL_SNOW_LOWEST_ELEVATION	u_Local9.a
 
-#define PROCEDURAL_SNOW_LUMINOSITY_CURVE	u_Local10.r
-#define PROCEDURAL_SNOW_BRIGHTNESS			u_Local10.g
+//#define PROCEDURAL_SNOW_LUMINOSITY_CURVE	u_Local10.r
+//#define PROCEDURAL_SNOW_BRIGHTNESS			u_Local10.g
 
-#define CLOUDS_ENABLED						u_Local11.r
+/*#define CLOUDS_ENABLED						u_Local11.r
 #define CLOUDS_CLOUDSCALE					u_Local11.g
 #define CLOUDS_SPEED						u_Local11.b
 #define CLOUDS_DARK							u_Local11.a
@@ -126,7 +125,7 @@ varying vec2								var_TexCoords;
 #define CLOUDS_LIGHT						u_Local12.r
 #define CLOUDS_CLOUDCOVER					u_Local12.g
 #define CLOUDS_CLOUDALPHA					u_Local12.b
-#define CLOUDS_SKYTINT						u_Local12.a
+#define CLOUDS_SKYTINT						u_Local12.a*/
 
 #define SHADER_DAY_NIGHT_ENABLED			u_Local5.r
 #define SHADER_NIGHT_SCALE					u_Local5.g
@@ -398,6 +397,10 @@ vec2 RB_PBR_DefaultsForMaterial(float MATERIAL_TYPE)
 	case MATERIAL_PORTAL:
 		specularReflectionScale = 0.0;
 		cubeReflectionScale = 0.0;
+		break;
+	case MATERIAL_SKYSCRAPER:
+		specularReflectionScale = 0.055;
+		cubeReflectionScale = 0.66;
 		break;
 	default:
 		specularReflectionScale = 0.0075;
@@ -880,6 +883,7 @@ vec3 blinn_phong(vec3 pos, vec3 color, vec3 normal, vec3 view, vec3 light, vec3 
 #endif //defined(__LQ_MODE__) || defined(__FAST_LIGHTING__)
 
 #ifdef __CLOUD_SHADOWS__
+/*
 const mat2 mc = mat2(1.6, 1.2, -1.2, 1.6);
 
 vec2 hash(vec2 p) {
@@ -970,7 +974,7 @@ vec4 Clouds(in vec2 fragCoord)
 
 	c += c1;
 
-	vec3 cloudcolour = /*vec3(1.1, 1.1, 0.9)*/vec3(1.0, 1.0, 1.0) * clamp((CLOUDS_DARK + CLOUDS_LIGHT*c), 0.0, 1.0);
+	vec3 cloudcolour = vec3(1.0, 1.0, 1.0) * clamp((CLOUDS_DARK + CLOUDS_LIGHT*c), 0.0, 1.0);
 
 	f = CLOUDS_CLOUDCOVER + CLOUDS_CLOUDALPHA*f*r;
 
@@ -1003,6 +1007,7 @@ float CloudShadows(vec3 position)
 
 	return 1.0 - cloudColor.a;
 }
+*/
 #endif //__CLOUD_SHADOWS__
 
 /*
@@ -1663,14 +1668,14 @@ void main(void)
 		float finalShadow = clamp(shadowValue + SHADOW_MINBRIGHT, SHADOW_MINBRIGHT, SHADOW_MAXBRIGHT);
 		finalShadow = mix(finalShadow, 1.0, clamp(NIGHT_SCALE, 0.0, 1.0)); // Dampen out shadows at sunrise/sunset...
 
-#ifdef __CLOUD_SHADOWS__
+/*#ifdef __CLOUD_SHADOWS__
 		if (CLOUDS_ENABLED > 0.0)
 		{
 			float cShadow = CloudShadows(position.xyz);
 			outColor.rgb *= min(cShadow, finalShadow);
 		}
 		else
-	#endif //__CLOUD_SHADOWS__
+	#endif //__CLOUD_SHADOWS__*/
 		outColor.rgb *= finalShadow;
 	}
 #endif //defined(USE_SHADOWMAP) && !defined(__LQ_MODE__)

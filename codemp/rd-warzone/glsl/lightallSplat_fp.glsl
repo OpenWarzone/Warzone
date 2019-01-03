@@ -1071,7 +1071,7 @@ void main()
 	float maxColor = max(gl_FragColor.r, max(gl_FragColor.g, gl_FragColor.b));
 
 	if (/*USE_GLOW_BUFFER > 1.0 
-		&&*/ (SHADER_MATERIAL_TYPE == MATERIAL_ROCK || SHADER_MATERIAL_TYPE == MATERIAL_STONE)
+		&&*/ (SHADER_MATERIAL_TYPE == MATERIAL_SKYSCRAPER)
 		&& var_Slope > 0 
 		&& SHADER_HAS_SPLATMAP1 <= 0 
 		&& SHADER_HAS_SPLATMAP2 <= 0 

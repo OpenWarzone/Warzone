@@ -4152,6 +4152,9 @@ qboolean R_MaterialUsesCubemap ( int materialType)
 	case MATERIAL_PORTAL:
 		return qfalse;
 		break;
+	case MATERIAL_SKYSCRAPER:
+		return qtrue;
+		break;
 	default:
 		return qfalse;
 		break;
@@ -4357,7 +4360,7 @@ static void R_SetupMapGlowsAndWaterPlane( void )
 
 			for ( int stage = 0; stage < MAX_SHADER_STAGES; stage++ )
 			{
-				qboolean isBuilding = ((surf->shader->materialType) == MATERIAL_CONCRETE && surf->shader->stages[stage] && surf->shader->stages[stage]->bundle[TB_STEEPMAP].image[0]) ? qtrue : qfalse;
+				qboolean isBuilding = ((surf->shader->materialType) == MATERIAL_SKYSCRAPER && surf->shader->stages[stage] && surf->shader->stages[stage]->bundle[TB_STEEPMAP].image[0]) ? qtrue : qfalse;
 				
 				if (surf->shader->stages[stage] && (surf->shader->stages[stage]->glow || surf->shader->stages[stage]->glowMapped || isBuilding))
 				{

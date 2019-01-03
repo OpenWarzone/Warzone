@@ -616,6 +616,7 @@ void R_CreateBspMapImage(void)
 					break;
 				case MATERIAL_ROCK:				// 23			//
 				case MATERIAL_STONE:
+				case MATERIAL_SKYSCRAPER:
 					red[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0.6 * 255 * HEIGHT_COLOR_MULT;
 					green[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0.6 * 255 * HEIGHT_COLOR_MULT;
 					blue[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0.3 * 255 * HEIGHT_COLOR_MULT;

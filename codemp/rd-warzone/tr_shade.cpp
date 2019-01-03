@@ -1539,6 +1539,11 @@ void RB_PBR_DefaultsForMaterial(float *settings, int MATERIAL_TYPE)
 		cubemapScale = 0.0;
 		parallaxScale = 0.0;
 		break;
+	case MATERIAL_SKYSCRAPER:
+		specularScale = 0.5;
+		cubemapScale = 0.46;
+		parallaxScale = 1.5;
+		break;
 	default:
 		specularScale = 0.15;
 		cubemapScale = 0.0;
@@ -2987,7 +2992,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 
 			if (r_splatMapping->integer
 				//&& !r_lowVram->integer
-				&& (tess.shader->materialType == MATERIAL_ROCK || tess.shader->materialType == MATERIAL_STONE)
+				&& (tess.shader->materialType == MATERIAL_SKYSCRAPER)
 				&& pStage->bundle[TB_STEEPMAP].image[0]
 				&& !pStage->bundle[TB_WATER_EDGE_MAP].image[0]
 				&& !pStage->bundle[TB_SPLATMAP1].image[0]

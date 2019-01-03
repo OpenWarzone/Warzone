@@ -2577,6 +2577,7 @@ static void _PlayerFootStep( const vec3_t origin,
 			break;
 		case MATERIAL_SHORTGRASS:
 		case MATERIAL_LONGGRASS:
+		case MATERIAL_SKYSCRAPER:
 			if ( footStepType == FOOTSTEP_HEAVY_R || footStepType == FOOTSTEP_HEAVY_L) {
 				soundType = FOOTSTEP_GRASSRUN;
 			} else {
@@ -2646,6 +2647,7 @@ static void _PlayerFootStep( const vec3_t origin,
 		case MATERIAL_STONE:
 		case MATERIAL_ICE:
 		case MATERIAL_MARBLE:
+		//case MATERIAL_SKYSCRAPER:
 			if ( footStepType == FOOTSTEP_HEAVY_R || footStepType == FOOTSTEP_HEAVY_L) {
 				soundType = FOOTSTEP_STONERUN;
 			} else {

@@ -1626,7 +1626,8 @@ const char glslMaterialsList[] =
 "#define MATERIAL_MAGIC_PARTICLES_TREE			42\n"\
 "#define MATERIAL_MAGIC_PARTICLES				43\n"\
 "#define MATERIAL_PORTAL						44\n"\
-"#define MATERIAL_LAST							45\n"\
+"#define MATERIAL_SKYSCRAPER					45\n"\
+"#define MATERIAL_LAST							46\n"\
 "#define MATERIAL_SKY							1024\n"\
 "#define MATERIAL_SUN							1025\n"\
 "\n";

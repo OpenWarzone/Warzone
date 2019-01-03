@@ -627,13 +627,13 @@ void RB_Bloom(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 	color[3] = 1.0f;
 
 	//
-	// Darken to VBO...
+	// Copy to FBO...
 	//
 	
 	FBO_BlitFromTexture(tr.glowFboScaled[0]->colorImage[0], NULL, NULL, tr.bloomRenderFBO[0], NULL, NULL, color, 0);
 
 	//
-	// Blur the new darken'ed VBO...
+	// Blur the new FBO...
 	//
 
 	FBO_t *currentIN = tr.bloomRenderFBO[0];
@@ -642,7 +642,7 @@ void RB_Bloom(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 	for ( int i = 0; i < r_bloomPasses->integer; i++ ) 
 	{
 		//
-		// Bloom X and Y axis... (to VBO 1)
+		// Bloom X and Y axis... (to FBO 1)
 		//
 
 		GLSL_BindProgram(&tr.bloomBlurShader);
@@ -671,7 +671,6 @@ void RB_Bloom(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 	//
 	// Combine the screen with the bloom'ed VBO...
 	//
-	
 	
 	GLSL_BindProgram(&tr.bloomCombineShader);
 	
@@ -2742,7 +2741,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 	float dayNightGlowFactor = mix(MAP_EMISSIVE_COLOR_SCALE, MAP_EMISSIVE_COLOR_SCALE_NIGHT, RB_NightScale());
 
 	vec4_t local4;
-	VectorSet4(local4, haveConeAngles ? 1.0 : 0.0, 0.0 /* UNUSED */, 0.0 /* UNUSED */, dayNightGlowFactor);
+	VectorSet4(local4, haveConeAngles ? 1.0 : 0.0, PROCEDURAL_SNOW_LUMINOSITY_CURVE, PROCEDURAL_SNOW_BRIGHTNESS, dayNightGlowFactor);
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL4, local4);
 
 	vec4_t local5;
@@ -2768,12 +2767,12 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 	VectorSet4(local9, PROCEDURAL_SNOW_HEIGHT_CURVE * 0.1, MAP_USE_PALETTE_ON_SKY ? 1.0 : 0.0, PROCEDURAL_SNOW_ENABLED ? 1.0 : 0.0, PROCEDURAL_SNOW_LOWEST_ELEVATION);
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL9, local9);
 
-	vec4_t local10;
-	VectorSet4(local10, PROCEDURAL_SNOW_LUMINOSITY_CURVE, PROCEDURAL_SNOW_BRIGHTNESS, 0.0 /* UNUSED */, 0.0 /* UNUSED */);
-	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL10, local10);
+	//vec4_t local10;
+	//VectorSet4(local10, 0.0 /* UNUSED */, 0.0 /* UNUSED */, 0.0 /* UNUSED */, 0.0 /* UNUSED */);
+	//GLSL_SetUniformVec4(shader, UNIFORM_LOCAL10, local10);
 
 
-	extern qboolean		PROCEDURAL_CLOUDS_LAYER;
+	/*extern qboolean		PROCEDURAL_CLOUDS_LAYER;
 	extern qboolean		PROCEDURAL_CLOUDS_ENABLED;
 	extern qboolean		PROCEDURAL_CLOUDS_LAYER;
 	extern float		PROCEDURAL_CLOUDS_CLOUDSCALE;
@@ -2789,7 +2788,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL11, vector);
 
 	VectorSet4(vector, PROCEDURAL_CLOUDS_LIGHT, PROCEDURAL_CLOUDS_CLOUDCOVER, PROCEDURAL_CLOUDS_CLOUDALPHA, PROCEDURAL_CLOUDS_SKYTINT);
-	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL12, vector);
+	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL12, vector);*/
 
 	GLSL_SetUniformFloat(shader, UNIFORM_TIME, backEnd.refdef.floatTime);
 	

@@ -362,7 +362,7 @@ void main(void)
 	
 	float materialMultiplier = 1.0;
 
-	if (material == MATERIAL_ROCK || material == MATERIAL_STONE)
+	if (material == MATERIAL_ROCK || material == MATERIAL_STONE || material == MATERIAL_SKYSCRAPER)
 	{// Rock gets more displacement...
 		materialMultiplier = 3.0;
 	}

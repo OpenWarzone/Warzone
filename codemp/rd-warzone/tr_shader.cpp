@@ -1733,6 +1733,9 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 	stage->glowVibrancy = 1.0;
 	stage->glowNoMerge = qfalse;
 
+	stage->emissiveRadiusScale = 1.0;
+	stage->emissiveColorScale = 1.5;
+
 	while ( 1 )
 	{
 		token = COM_ParseExt( text, qtrue );
@@ -3942,6 +3945,7 @@ qboolean HaveSurfaceType( int materialType)
 	case MATERIAL_MAGIC_PARTICLES_TREE:
 	case MATERIAL_FIREFLIES:
 	case MATERIAL_PORTAL:
+	case MATERIAL_SKYSCRAPER:
 		return qtrue;
 		break;
 	default:
@@ -4097,6 +4101,9 @@ void DebugSurfaceTypeSelection( const char *name, int materialType)
 		break;
 	case MATERIAL_PORTAL:
 		ri->Printf(PRINT_WARNING, "Surface %s was set to MATERIAL_PORTAL.\n", name);
+		break;
+	case MATERIAL_SKYSCRAPER:
+		ri->Printf(PRINT_WARNING, "Surface %s was set to MATERIAL_SKYSCRAPER.\n", name);
 		break;
 	default:
 		ri->Printf(PRINT_WARNING, "Surface %s was set to MATERIAL_NONE.\n", name);
