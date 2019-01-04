@@ -1425,6 +1425,7 @@ float		PROCEDURAL_CLOUDS_LIGHT = 0.3;
 float		PROCEDURAL_CLOUDS_CLOUDCOVER = 0.2;
 float		PROCEDURAL_CLOUDS_CLOUDALPHA = 2.0;
 float		PROCEDURAL_CLOUDS_SKYTINT = 0.5;
+qboolean	PROCEDURAL_MOSS_ENABLED = qfalse;
 qboolean	PROCEDURAL_SNOW_ENABLED = qfalse;
 float		PROCEDURAL_SNOW_LOWEST_ELEVATION = -999999.9;
 float		PROCEDURAL_SNOW_HEIGHT_CURVE = 1.0;
@@ -1754,6 +1755,11 @@ void MAPPING_LoadMapInfo(void)
 	AURORA_COLOR[0] = atof(IniRead(mapname, "AURORA", "AURORA_COLOR_R", "1.0"));
 	AURORA_COLOR[1] = atof(IniRead(mapname, "AURORA", "AURORA_COLOR_G", "1.0"));
 	AURORA_COLOR[2] = atof(IniRead(mapname, "AURORA", "AURORA_COLOR_B", "1.0"));
+
+	//
+	// Procedural Moss...
+	//
+	PROCEDURAL_MOSS_ENABLED = (atoi(IniRead(mapname, "MOSS", "PROCEDURAL_MOSS_ENABLED", "0")) > 0) ? qtrue : qfalse;
 
 	//
 	// Procedural Snow...

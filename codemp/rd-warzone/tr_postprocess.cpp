@@ -2484,6 +2484,7 @@ extern float		MAP_HDR_MIN;
 extern float		MAP_HDR_MAX;
 extern vec3_t		MAP_INFO_PLAYABLE_SIZE;
 extern vec3_t		MAP_INFO_PLAYABLE_MAXS;
+extern qboolean		PROCEDURAL_MOSS_ENABLED;
 extern qboolean		PROCEDURAL_SNOW_ENABLED;
 extern float		PROCEDURAL_SNOW_HEIGHT_CURVE;
 extern float		PROCEDURAL_SNOW_LUMINOSITY_CURVE;
@@ -2731,7 +2732,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 		shadowsEnabled = qtrue;
 
 	vec4_t local2;
-	VectorSet4(local2, 0.0 /* UNUSED */, shadowsEnabled ? 1.0 : 0.0, SHADOW_MINBRIGHT, SHADOW_MAXBRIGHT);
+	VectorSet4(local2, PROCEDURAL_MOSS_ENABLED ? 1.0 : 0.0, shadowsEnabled ? 1.0 : 0.0, SHADOW_MINBRIGHT, SHADOW_MAXBRIGHT);
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL2,  local2);
 
 	vec4_t local3;

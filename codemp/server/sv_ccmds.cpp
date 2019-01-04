@@ -165,7 +165,7 @@ static void SV_Map_f( void ) {
 	}
 
 	// force latched values to get set
-	Cvar_Get ("g_gametype", "0", CVAR_SERVERINFO | CVAR_LATCH );
+	Cvar_Get ("g_gametype", "11", CVAR_SERVERINFO | CVAR_LATCH );
 
 	cmd = Cmd_Argv(0);
 	if ( !Q_stricmpn( cmd, "devmap", 6 ) ) {

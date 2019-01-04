@@ -34,7 +34,7 @@ uniform mat4								u_ModelViewProjectionMatrix;
 uniform vec2								u_Dimensions;
 
 uniform vec4								u_Local1; // r_blinnPhong, SUN_PHONG_SCALE, r_ao, SSDM_ENABLED
-uniform vec4								u_Local2; // 0.0, SHADOWS_ENABLED, SHADOW_MINBRIGHT, SHADOW_MAXBRIGHT
+uniform vec4								u_Local2; // PROCEDURAL_MOSS_ENABLED, SHADOWS_ENABLED, SHADOW_MINBRIGHT, SHADOW_MAXBRIGHT
 uniform vec4								u_Local3; // r_testShaderValue1, r_testShaderValue2, r_testShaderValue3, r_testShaderValue4
 uniform vec4								u_Local4; // haveConeAngles, PROCEDURAL_SNOW_LUMINOSITY_CURVE, PROCEDURAL_SNOW_BRIGHTNESS, MAP_EMISSIVE_COLOR_SCALE
 uniform vec4								u_Local5; // CONTRAST, SATURATION, BRIGHTNESS, TRUEHDR_ENABLED
@@ -79,7 +79,7 @@ varying vec2								var_TexCoords;
 #define AO_TYPE								u_Local1.b
 #define SSDM_ENABLED						u_Local1.a
 
-//#define USE_SSDO							u_Local2.r
+#define PROCEDURAL_MOSS_ENABLED				u_Local2.r
 #define SHADOWS_ENABLED						u_Local2.g
 #define SHADOW_MINBRIGHT					u_Local2.b
 #define SHADOW_MAXBRIGHT					u_Local2.a
@@ -1050,10 +1050,11 @@ vec3 splatblend(vec3 color1, float a1, vec3 color2, float a2)
 //
 void AddProceduralMoss(inout vec4 outColor, in vec4 position, in bool changedToWater, in vec3 originalPosition)
 {
-	if (position.a - 1.0 == MATERIAL_TREEBARK
-		|| position.a - 1.0 == MATERIAL_SHORTGRASS
-		|| position.a - 1.0 == MATERIAL_LONGGRASS
-		|| position.a - 1.0 == MATERIAL_ROCK)
+	if (PROCEDURAL_MOSS_ENABLED > 0.0
+		&& (position.a - 1.0 == MATERIAL_TREEBARK
+			|| position.a - 1.0 == MATERIAL_SHORTGRASS
+			|| position.a - 1.0 == MATERIAL_LONGGRASS
+			|| position.a - 1.0 == MATERIAL_ROCK))
 	{// add procedural moss...
 		vec3 usePos = changedToWater ? originalPosition.xyz : position.xyz;
 		vec3 pos = usePos.xyz * 0.005;
@@ -1266,7 +1267,7 @@ void main(void)
 	float origColorStrength = clamp(max(color.r, max(color.g, color.b)), 0.0, 1.0) * 0.75 + 0.25;
 
 #ifdef SSDM_PROCEDURAL_MOSS
-	if (SSDM_ENABLED <= 0.0)
+	if (SSDM_ENABLED <= 0.0 && PROCEDURAL_MOSS_ENABLED > 0.0)
 #endif //SSDM_PROCEDURAL_MOSS
 	{// Add any procedural moss...
 		AddProceduralMoss(outColor, position, changedToWater, originalPosition);
@@ -1284,6 +1285,22 @@ void main(void)
 	//
 	// Now all the hard work...
 	//
+
+	float finalShadow = 1.0;
+
+#if defined(USE_SHADOWMAP) && !defined(__LQ_MODE__)
+	if (SHADOWS_ENABLED > 0.0 && NIGHT_SCALE < 1.0)
+	{
+		float shadowValue = texture(u_ShadowMap, texCoords).r;
+
+		shadowValue = pow(shadowValue, 1.5);
+
+#define sm_cont_1 ( 64.0 / 255.0)
+#define sm_cont_2 (255.0 / 200.0)
+		shadowValue = clamp((clamp(shadowValue - sm_cont_1, 0.0, 1.0)) * sm_cont_2, 0.0, 1.0);
+		finalShadow = clamp(shadowValue + SHADOW_MINBRIGHT, SHADOW_MINBRIGHT, SHADOW_MAXBRIGHT);
+	}
+#endif //defined(USE_SHADOWMAP) && !defined(__LQ_MODE__)
 
 	vec3 specularColor = vec3(0.0);
 	vec3 skyColor = vec3(0.0);
@@ -1476,7 +1493,7 @@ void main(void)
 
 #define LIGHT_COLOR_POWER			4.0
 
-		if (phongFactor > 0.0 && NIGHT_SCALE < 1.0)
+		if (phongFactor > 0.0 && NIGHT_SCALE < 1.0 && finalShadow > 0.0)
 		{// this is blinn phong
 			float maxBright = clamp(max(outColor.r, max(outColor.g, outColor.b)), 0.0, 1.0);
 			float power = clamp(pow(maxBright * 0.75, LIGHT_COLOR_POWER) + 0.333, 0.0, 1.0);
@@ -1510,7 +1527,7 @@ void main(void)
 				vec3 blinn = blinn_phong(position.xyz, outColor.rgb, N, E, normalize(-sunDir), lightColor * 0.06, lightColor, 1.0, u_PrimaryLightOrigin.xyz);
 				lightColor.rgb += blinn;
 
-				outColor.rgb = outColor.rgb + max(lightColor * PshadowValue, vec3(0.0));
+				outColor.rgb = outColor.rgb + max(lightColor * PshadowValue * finalShadow, vec3(0.0));
 			}
 		}
 
@@ -1658,14 +1675,6 @@ void main(void)
 #if defined(USE_SHADOWMAP) && !defined(__LQ_MODE__)
 	if (SHADOWS_ENABLED > 0.0 && NIGHT_SCALE < 1.0)
 	{
-		float shadowValue = texture(u_ShadowMap, texCoords).r;
-
-		shadowValue = pow(shadowValue, 1.5);
-
-#define sm_cont_1 ( 64.0 / 255.0)
-#define sm_cont_2 (255.0 / 200.0)
-		shadowValue = clamp((clamp(shadowValue - sm_cont_1, 0.0, 1.0)) * sm_cont_2, 0.0, 1.0);
-		float finalShadow = clamp(shadowValue + SHADOW_MINBRIGHT, SHADOW_MINBRIGHT, SHADOW_MAXBRIGHT);
 		finalShadow = mix(finalShadow, 1.0, clamp(NIGHT_SCALE, 0.0, 1.0)); // Dampen out shadows at sunrise/sunset...
 
 /*#ifdef __CLOUD_SHADOWS__
