@@ -18,6 +18,9 @@
 
 #define BOT_SPAWN_QUEUE_DEPTH	16
 
+extern int villageWaypointsNum;
+extern int villageWaypoints[MAX_WPARRAY_SIZE];
+
 static struct botSpawnQueue_s {
 	int		clientNum;
 	int		spawnTime;
@@ -913,6 +916,9 @@ qboolean Warzone_CheckRoutingFrom( int wp )
 	return qfalse;
 }
 
+extern int G_SelectVillageSpawnpoint(void);
+extern int G_SelectWildernessSpawnpoint(void);
+
 void G_CheckVendorNPCs( void )
 {
 #if 0
@@ -947,7 +953,7 @@ void G_CheckVendorNPCs( void )
 	if (botplayers < minplayers)
 	{
 		gentity_t	*npc = NULL;
-		int			waypoint = irand_big(0, gWPNum-1);
+		int			waypoint = G_SelectVillageSpawnpoint();
 		int			random = irand(0,36);
 		int			tries = 0;
 
@@ -965,7 +971,7 @@ void G_CheckVendorNPCs( void )
 			}
 
 			// Find a new one... This is probably a bad waypoint...
-			waypoint = irand_big(0, gWPNum-1);
+			waypoint = G_SelectVillageSpawnpoint();
 			tries++;
 		}
 
@@ -1027,7 +1033,7 @@ void G_CheckCivilianNPCs( void )
 	if (botplayers < minplayers)
 	{
 		gentity_t	*npc = NULL;
-		int			waypoint = irand_big(0, gWPNum-1);
+		int			waypoint = G_SelectVillageSpawnpoint();
 		int			random = irand(0,36);
 		int			tries = 0;
 
@@ -1045,7 +1051,8 @@ void G_CheckCivilianNPCs( void )
 			}
 
 			// Find a new one... This is probably a bad waypoint...
-			waypoint = irand_big(0, gWPNum-1);
+			waypoint = G_SelectVillageSpawnpoint();
+
 			tries++;
 		}
 
@@ -1324,7 +1331,7 @@ void G_CheckMinimumNpcs(void)
 	//
 	if (num_imperial_npcs < min_imperials)
 	{
-		int			waypoint = irand_big(0, gWPNum - 1);
+		int			waypoint = G_SelectWildernessSpawnpoint();
 		int			random = irand(0, 22);
 		int			tries = 0;
 		vec3_t		position;
@@ -1385,7 +1392,8 @@ void G_CheckMinimumNpcs(void)
 				}
 
 				// Find a new one... This is probably a bad waypoint...
-				waypoint = irand_big(0, gWPNum - 1);
+				waypoint = G_SelectWildernessSpawnpoint();
+
 				tries++;
 			}
 
@@ -1401,7 +1409,7 @@ void G_CheckMinimumNpcs(void)
 	//
 	if (num_rebel_npcs < min_rebels)
 	{
-		int			waypoint = irand_big(0, gWPNum - 1);
+		int			waypoint = G_SelectWildernessSpawnpoint();
 		int			random = irand(0, 22);
 		int			tries = 0;
 		vec3_t		position;
@@ -1462,7 +1470,7 @@ void G_CheckMinimumNpcs(void)
 				}
 
 				// Find a new one... This is probably a bad waypoint...
-				waypoint = irand_big(0, gWPNum - 1);
+				waypoint = G_SelectWildernessSpawnpoint();
 				tries++;
 			}
 
@@ -1480,7 +1488,7 @@ void G_CheckMinimumNpcs(void)
 	{
 		if (num_mandalorian_npcs < min_mandalorians)
 		{
-			int			waypoint = irand_big(0, gWPNum - 1);
+			int			waypoint = G_SelectWildernessSpawnpoint();
 			int			random = irand(0, 22);
 			int			tries = 0;
 			vec3_t		position;
@@ -1533,7 +1541,7 @@ void G_CheckMinimumNpcs(void)
 				}
 
 				// Find a new one... This is probably a bad waypoint...
-				waypoint = irand_big(0, gWPNum - 1);
+				waypoint = G_SelectWildernessSpawnpoint();
 				tries++;
 			}
 
@@ -1551,7 +1559,7 @@ void G_CheckMinimumNpcs(void)
 	{
 		if (num_merc_npcs < min_mercs)
 		{
-			int			waypoint = irand_big(0, gWPNum - 1);
+			int			waypoint = G_SelectWildernessSpawnpoint();
 			int			random = irand(0, 22);
 			int			tries = 0;
 			vec3_t		position;
@@ -1604,7 +1612,7 @@ void G_CheckMinimumNpcs(void)
 				}
 
 				// Find a new one... This is probably a bad waypoint...
-				waypoint = irand_big(0, gWPNum - 1);
+				waypoint = G_SelectWildernessSpawnpoint();
 				tries++;
 			}
 
@@ -1622,7 +1630,7 @@ void G_CheckMinimumNpcs(void)
 	{
 		if (num_wildlife_npcs < min_wildlife)
 		{
-			int			waypoint = irand_big(0, gWPNum - 1);
+			int			waypoint = G_SelectWildernessSpawnpoint();
 			int			random = irand(0, 22);
 			int			tries = 0;
 			vec3_t		position;
@@ -1675,7 +1683,7 @@ void G_CheckMinimumNpcs(void)
 				}
 
 				// Find a new one... This is probably a bad waypoint...
-				waypoint = irand_big(0, gWPNum - 1);
+				waypoint = G_SelectWildernessSpawnpoint();
 				tries++;
 			}
 
@@ -2255,6 +2263,8 @@ char *G_GetBotInfoByName( const char *name ) {
 void LoadPath_ThisLevel(void);
 //end rww
 
+extern void G_LoadVillageData(void);
+
 /*
 ===============
 G_InitBots
@@ -2277,6 +2287,9 @@ void G_InitBots( void ) {
 #endif //__NPC_MINPLAYERS__
 	trap->Cvar_Register(&npc_pathing, "npc_pathing", "0", CVAR_ARCHIVE);
 	trap->Cvar_Register(&npc_wptonav, "npc_wptonav", "0", CVAR_ARCHIVE);
+
+	// Load village/town/city location info...
+	G_LoadVillageData();
 
 	//rww - new bot route stuff
 	LoadPath_ThisLevel();

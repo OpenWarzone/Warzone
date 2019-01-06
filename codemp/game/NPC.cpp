@@ -4000,6 +4000,53 @@ qboolean NPC_CheckNearbyPlayers(gentity_t *NPC)
 	return qfalse;
 }
 
+qboolean NPC_EscapeWater ( gentity_t *aiEnt )
+{
+	vec3_t dest;
+	VectorCopy(aiEnt->spawn_pos, dest);
+
+	NPC_FacePosition(aiEnt, dest, qfalse);
+	VectorSubtract(dest, aiEnt->r.currentOrigin, aiEnt->movedir);
+
+	if (UQ1_UcmdMoveForDir(aiEnt, &aiEnt->client->pers.cmd, aiEnt->movedir, qfalse, dest))
+	{// See if we can simply move normally to the exit location...
+		if (aiEnt->waterlevel && aiEnt->watertype == CONTENTS_WATER)
+			aiEnt->water_escape_time = level.time + 500;
+
+		return qtrue;
+	}
+
+	if (NPC_Jump(aiEnt, dest))
+	{// See if we can jump to the exit location...
+		VectorCopy(aiEnt->movedir, aiEnt->client->ps.moveDir);
+		
+		if (aiEnt->waterlevel && aiEnt->watertype == CONTENTS_WATER)
+			aiEnt->water_escape_time = level.time + 500;
+
+		return qtrue;
+	}
+
+	if (UQ1_UcmdMoveForDir_NoAvoidance(aiEnt, &aiEnt->client->pers.cmd, aiEnt->movedir, qfalse, dest))
+	{// Force move toward the exit location...
+		if (aiEnt->waterlevel && aiEnt->watertype == CONTENTS_WATER)
+			aiEnt->water_escape_time = level.time + 500;
+
+		return qtrue;
+	}
+
+	return qfalse;
+	/*
+	aiEnt->client->pers.cmd.forwardmove = 127;
+	aiEnt->client->pers.cmd.rightmove = 0;
+	aiEnt->client->pers.cmd.upmove = 127;
+
+	if (aiEnt->waterlevel && aiEnt->watertype == CONTENTS_WATER)
+		aiEnt->water_escape_time = level.time + 500;
+
+	return qtrue;
+	*/
+}
+
 #if	AI_TIMERS
 extern int AITime;
 #endif//	AI_TIMERS
@@ -4164,10 +4211,55 @@ void NPC_Think ( gentity_t *self )//, int msec )
 		memcpy( &aiEnt->client->pers.cmd, &aiEnt->NPC->last_ucmd, sizeof( usercmd_t ) );
 		aiEnt->client->pers.cmd.buttons = 0; // init buttons...
 
+		//
+		// Escaping water...
+		//
+		if (((self->waterlevel && self->watertype == CONTENTS_WATER) || self->water_escape_time > level.time) && NPC_EscapeWater(self))
+		{
+			// UQ1: Check any jetpack stuff...
+			NPC_CheckFlying(aiEnt);
+
+			if (aiEnt->client->ps.weaponstate == WEAPON_READY)
+			{
+				aiEnt->client->ps.weaponstate = WEAPON_IDLE;
+			}
+
+			NPC_CheckAttackHold(aiEnt);
+
+			// run the bot through the server like it was a real client
+			//=== Save the ucmd for the second no-think Pmove ============================
+			aiEnt->client->pers.cmd.serverTime = level.time - 50;
+
+			memcpy(&aiEnt->NPC->last_ucmd, &aiEnt->client->pers.cmd, sizeof(usercmd_t));
+
+			if (!aiEnt->NPC->attackHoldTime)
+			{
+				aiEnt->NPC->last_ucmd.buttons &= ~(BUTTON_ATTACK | BUTTON_ALT_ATTACK);//so we don't fire twice in one think
+			}
+
+			NPC_KeepCurrentFacing(aiEnt);
+
+			if (NPC_IsCivilianHumanoid(aiEnt) && !aiEnt->npc_cower_runaway && !self->NPC->conversationPartner)
+			{// Set better torso anims when not holding a weapon.
+				NPC_SetAnim(aiEnt, SETANIM_TORSO, BOTH_STAND9IDLE1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
+				aiEnt->client->ps.torsoTimer = 200;
+			}
+
+			ClientThink(aiEnt->s.number, &aiEnt->client->pers.cmd);
+
+			// end of thinking cleanup
+			aiEnt->NPC->touchedByPlayer = NULL;
+
+			NPC_CheckPlayerAim(aiEnt);
+			NPC_CheckAllClear(aiEnt);
+			return;
+		}
+
 		//nextthink is set before this so something in here can override it
 		if (self->s.NPC_class != CLASS_VEHICLE && !self->m_pVehicle)
 		{ //ok, let's not do this at all for vehicles.
 			qboolean is_civilian = NPC_IsCivilian(self);
+			qboolean is_vendor = NPC_IsVendor(self);
 			qboolean is_jedi = NPC_IsJedi(self);
 			qboolean is_bot = (qboolean)(self->s.eType == ET_PLAYER);
 			qboolean use_pathing = qfalse;
@@ -4175,17 +4267,18 @@ void NPC_Think ( gentity_t *self )//, int msec )
 			//if (!is_jedi && self->isPadawan) is_jedi = qtrue;
 			if (self->isPadawan) is_jedi = qfalse;
 
-			if (npc_pathing.integer > 0)
+			if (is_civilian || is_vendor)
 			{
-				//if (is_civilian || is_jedi || is_bot || self->client->NPC_class == CLASS_SABER_DROID) use_pathing = qtrue;
-				if (is_civilian || is_bot) use_pathing = qtrue;
-
+				use_pathing = qfalse;
+			}
+			else if (npc_pathing.integer > 0)
+			{
+				if (is_bot) use_pathing = qtrue;
 				if (g_gametype.integer >= GT_TEAM) use_pathing = qtrue;
 			}
 			else
 			{
-				//if (is_civilian || is_jedi || is_bot || self->client->NPC_class == CLASS_SABER_DROID) use_pathing = qtrue;
-				if (is_civilian || is_bot) use_pathing = qtrue;
+				if (is_bot) use_pathing = qtrue;
 			}
 
 			NPC_DoPadawanStuff(aiEnt); // check any padawan stuff we might need to do...

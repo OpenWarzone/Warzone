@@ -509,11 +509,12 @@ struct gentity_s {
 	vec3_t					npc_jump_start;
 	vec3_t					npc_jump_dest;
 
+	int						nextJediJumpThink;
+
 	qboolean				isPadawan;
 	gentity_t				*padawan;
 	int						nextPadawanThink;
 	int						nextPadawanWaypointThink;
-	int						nextPadawanJumpThink;
 	int						nextPadawanTeleportThink;
 
 	qboolean				padawan_reply_waiting;
@@ -527,6 +528,8 @@ struct gentity_s {
 	int                     next_flamer_time;
 	int                     next_kick_time;
 	int						next_pathfind_time;
+
+	int						water_escape_time;
 
 	int						blockToggleTime;
 

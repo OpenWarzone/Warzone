@@ -53,6 +53,12 @@ void NPC_Patrol_MakeBadList(void)
 
 #define MAX_BEST_PATROL_WAYPOINT_LIST 1024
 
+extern int villageWaypointsNum;
+extern int villageWaypoints[MAX_WPARRAY_SIZE];
+
+extern int wildernessWaypointsNum;
+extern int wildernessWaypoints[MAX_WPARRAY_SIZE];
+
 int NPC_FindPatrolGoal(gentity_t *NPC)
 {
 	int bestWaypointsNum = 0;
@@ -60,25 +66,89 @@ int NPC_FindPatrolGoal(gentity_t *NPC)
 
 	NPC_Patrol_MakeBadList(); // Init if it hasn't been checked yet...
 
-	for (int i = 0; i < gWPNum && bestWaypointsNum < MAX_BEST_PATROL_WAYPOINT_LIST; i++)
-	{
-		if (WAYPOINT_PARTOL_BAD_LIST[i]) continue;
+	if (villageWaypointsNum > 0)
+	{// Have village/town/city waypoints...
+		if (NPC_IsCivilian(NPC) || NPC_IsVendor(NPC))
+		{// Civilians stay in the village/town/city...
+			for (int i = 0; i < villageWaypointsNum && bestWaypointsNum < MAX_BEST_PATROL_WAYPOINT_LIST; i++)
+			{
+				if (WAYPOINT_PARTOL_BAD_LIST[villageWaypoints[i]]) continue;
 
-		float spawnDist = Distance(gWPArray[i]->origin, NPC->spawn_pos);
-		float spawnDistHeight = DistanceVertical(gWPArray[i]->origin, NPC->spawn_pos);
-		
-		if (spawnDist < 2048.0 && spawnDist > 1024.0)
-		{// If this spot is close to me, but not too close, then maybe add it to the best list...
-			if (spawnDistHeight < spawnDist * 0.15)
-			{// This point is at a height close to the original spawn position... Looks good...
-				bestWaypoints[bestWaypointsNum] = i;
-				bestWaypointsNum++;
+				float spawnDist = Distance(gWPArray[villageWaypoints[i]]->origin, NPC->spawn_pos);
+				float spawnDistHeight = DistanceVertical(gWPArray[villageWaypoints[i]]->origin, NPC->spawn_pos);
+
+				if (spawnDist < 2048.0 && spawnDist > 1024.0)
+				{// If this spot is close to me, but not too close, then maybe add it to the best list...
+					if (spawnDistHeight < spawnDist * 0.15)
+					{// This point is at a height close to the original spawn position... Looks good...
+						bestWaypoints[bestWaypointsNum] = villageWaypoints[i];
+						bestWaypointsNum++;
+					}
+				}
+			}
+
+			if (bestWaypointsNum <= 0)
+			{// Failed to find any, try a second method, allowing more options...
+				for (int i = 0; i < villageWaypointsNum && bestWaypointsNum < MAX_BEST_PATROL_WAYPOINT_LIST; i++)
+				{
+					if (WAYPOINT_PARTOL_BAD_LIST[villageWaypoints[i]]) continue;
+
+					float spawnDist = Distance(gWPArray[villageWaypoints[i]]->origin, NPC->spawn_pos);
+					float spawnDistHeight = DistanceVertical(gWPArray[villageWaypoints[i]]->origin, NPC->spawn_pos);
+
+					if (spawnDist < 1024.0 && spawnDist > 256.0)
+					{// If this spot is close to me, but not too close, then maybe add it to the best list...
+						if (spawnDistHeight < spawnDist * 0.15)
+						{// This point is at a height close to the original spawn position... Looks good...
+							bestWaypoints[bestWaypointsNum] = villageWaypoints[i];
+							bestWaypointsNum++;
+						}
+					}
+				}
+			}
+		}
+		else
+		{// Normal NPCs stay out of the village/town/city... Mostly...
+			for (int i = 0; i < wildernessWaypointsNum && bestWaypointsNum < MAX_BEST_PATROL_WAYPOINT_LIST; i++)
+			{
+				if (WAYPOINT_PARTOL_BAD_LIST[wildernessWaypoints[i]]) continue;
+
+				float spawnDist = Distance(gWPArray[wildernessWaypoints[i]]->origin, NPC->spawn_pos);
+				float spawnDistHeight = DistanceVertical(gWPArray[wildernessWaypoints[i]]->origin, NPC->spawn_pos);
+
+				if (spawnDist < 2048.0 && spawnDist > 1024.0)
+				{// If this spot is close to me, but not too close, then maybe add it to the best list...
+					if (spawnDistHeight < spawnDist * 0.15)
+					{// This point is at a height close to the original spawn position... Looks good...
+						bestWaypoints[bestWaypointsNum] = wildernessWaypoints[i];
+						bestWaypointsNum++;
+					}
+				}
+			}
+
+			if (bestWaypointsNum <= 0)
+			{// Failed to find any, try a second method, allowing more options...
+				for (int i = 0; i < wildernessWaypointsNum && bestWaypointsNum < MAX_BEST_PATROL_WAYPOINT_LIST; i++)
+				{
+					if (WAYPOINT_PARTOL_BAD_LIST[wildernessWaypoints[i]]) continue;
+
+					float spawnDist = Distance(gWPArray[wildernessWaypoints[i]]->origin, NPC->spawn_pos);
+					float spawnDistHeight = DistanceVertical(gWPArray[wildernessWaypoints[i]]->origin, NPC->spawn_pos);
+
+					if (spawnDist < 1024.0 && spawnDist > 256.0)
+					{// If this spot is close to me, but not too close, then maybe add it to the best list...
+						if (spawnDistHeight < spawnDist * 0.15)
+						{// This point is at a height close to the original spawn position... Looks good...
+							bestWaypoints[bestWaypointsNum] = wildernessWaypoints[i];
+							bestWaypointsNum++;
+						}
+					}
+				}
 			}
 		}
 	}
-
-	if (bestWaypointsNum <= 0)
-	{// Failed to find any, try a second method, allowing more options...
+	else
+	{// No village/town/city waypoints...
 		for (int i = 0; i < gWPNum && bestWaypointsNum < MAX_BEST_PATROL_WAYPOINT_LIST; i++)
 		{
 			if (WAYPOINT_PARTOL_BAD_LIST[i]) continue;
@@ -86,12 +156,32 @@ int NPC_FindPatrolGoal(gentity_t *NPC)
 			float spawnDist = Distance(gWPArray[i]->origin, NPC->spawn_pos);
 			float spawnDistHeight = DistanceVertical(gWPArray[i]->origin, NPC->spawn_pos);
 
-			if (spawnDist < 1024.0 && spawnDist > 256.0)
+			if (spawnDist < 2048.0 && spawnDist > 1024.0)
 			{// If this spot is close to me, but not too close, then maybe add it to the best list...
 				if (spawnDistHeight < spawnDist * 0.15)
 				{// This point is at a height close to the original spawn position... Looks good...
 					bestWaypoints[bestWaypointsNum] = i;
 					bestWaypointsNum++;
+				}
+			}
+		}
+
+		if (bestWaypointsNum <= 0)
+		{// Failed to find any, try a second method, allowing more options...
+			for (int i = 0; i < gWPNum && bestWaypointsNum < MAX_BEST_PATROL_WAYPOINT_LIST; i++)
+			{
+				if (WAYPOINT_PARTOL_BAD_LIST[i]) continue;
+
+				float spawnDist = Distance(gWPArray[i]->origin, NPC->spawn_pos);
+				float spawnDistHeight = DistanceVertical(gWPArray[i]->origin, NPC->spawn_pos);
+
+				if (spawnDist < 1024.0 && spawnDist > 256.0)
+				{// If this spot is close to me, but not too close, then maybe add it to the best list...
+					if (spawnDistHeight < spawnDist * 0.15)
+					{// This point is at a height close to the original spawn position... Looks good...
+						bestWaypoints[bestWaypointsNum] = i;
+						bestWaypointsNum++;
+					}
 				}
 			}
 		}
@@ -469,6 +559,18 @@ qboolean NPC_PatrolArea(gentity_t *aiEnt)
 		}
 		else
 		{// Civilian non-humanoid... let bg_ set anim...
+			if (NPC_PointIsMoverLocation(gWPArray[NPC->wpCurrent]->origin))
+			{// When nearby a mover, run!
+				if (!UQ1_UcmdMoveForDir(NPC, ucmd, NPC->movedir, qfalse, gWPArray[NPC->wpCurrent]->origin))
+				{
+					return qtrue;
+				}
+			}
+			else if (!UQ1_UcmdMoveForDir(NPC, ucmd, NPC->movedir, qtrue, gWPArray[NPC->wpCurrent]->origin))
+			{
+				return qtrue;
+			}
+
 			return qtrue;
 		}
 	}

@@ -9,6 +9,116 @@
 int gWPNum = 0;
 wpobject_t *gWPArray[MAX_WPARRAY_SIZE];
 
+//
+// Village/Town/City Stuff...
+//
+int villageWaypointsNum = 0;
+int villageWaypoints[MAX_WPARRAY_SIZE] = { -1 };
+
+int wildernessWaypointsNum = 0;
+int wildernessWaypoints[MAX_WPARRAY_SIZE] = { -1 };
+
+int		MAP_NUM_VILLAGES = 0;
+float	MAP_VILLAGE_RADIUSES[4] = { 0.0 };
+vec3_t	MAP_VILLAGE_ORIGINS[4] = { 0.0 };
+float	MAP_VILLAGE_BUFFER = 1024.0;
+
+void G_LoadVillageData(void)
+{
+	vmCvar_t	mapname;
+	float		radius = 0.0;
+
+	trap->Cvar_Register(&mapname, "mapname", "", CVAR_ROM | CVAR_SERVERINFO);
+
+	radius = atof(IniRead(va("maps/%s.climate", mapname.string), "CITY", "cityRadius", "0.0"));
+
+	if (radius > 0.0)
+	{
+		MAP_VILLAGE_RADIUSES[0] = radius;
+		MAP_VILLAGE_ORIGINS[0][0] = atof(IniRead(va("maps/%s.climate", mapname.string), "CITY", "cityLocationX", "0.0"));
+		MAP_VILLAGE_ORIGINS[0][1] = atof(IniRead(va("maps/%s.climate", mapname.string), "CITY", "cityLocationY", "0.0"));
+		MAP_VILLAGE_ORIGINS[0][2] = atof(IniRead(va("maps/%s.climate", mapname.string), "CITY", "cityLocationZ", "0.0"));
+		MAP_NUM_VILLAGES++;
+	}
+	
+	radius = atof(IniRead(va("maps/%s.climate", mapname.string), "CITY", "city2Radius", "0.0"));
+
+	if (radius > 0.0)
+	{
+		MAP_VILLAGE_RADIUSES[MAP_NUM_VILLAGES] = radius;
+		MAP_VILLAGE_ORIGINS[MAP_NUM_VILLAGES][0] = atof(IniRead(va("maps/%s.climate", mapname.string), "CITY", "city2LocationX", "0.0"));
+		MAP_VILLAGE_ORIGINS[MAP_NUM_VILLAGES][1] = atof(IniRead(va("maps/%s.climate", mapname.string), "CITY", "city2LocationY", "0.0"));
+		MAP_VILLAGE_ORIGINS[MAP_NUM_VILLAGES][2] = atof(IniRead(va("maps/%s.climate", mapname.string), "CITY", "city2LocationZ", "0.0"));
+		MAP_NUM_VILLAGES++;
+	}
+
+	radius = atof(IniRead(va("maps/%s.climate", mapname.string), "CITY", "city3Radius", "0.0"));
+
+	if (radius > 0.0)
+	{
+		MAP_VILLAGE_RADIUSES[MAP_NUM_VILLAGES] = radius;
+		MAP_VILLAGE_ORIGINS[MAP_NUM_VILLAGES][0] = atof(IniRead(va("maps/%s.climate", mapname.string), "CITY", "city3LocationX", "0.0"));
+		MAP_VILLAGE_ORIGINS[MAP_NUM_VILLAGES][1] = atof(IniRead(va("maps/%s.climate", mapname.string), "CITY", "city3LocationY", "0.0"));
+		MAP_VILLAGE_ORIGINS[MAP_NUM_VILLAGES][2] = atof(IniRead(va("maps/%s.climate", mapname.string), "CITY", "city3LocationZ", "0.0"));
+		MAP_NUM_VILLAGES++;
+	}
+
+	MAP_VILLAGE_BUFFER = atof(IniRead(va("maps/%s.climate", mapname.string), "CITY", "cityBuffer", "1024.0"));
+}
+
+qboolean G_PointIsInVillage (vec3_t point, qboolean addBuffer)
+{
+	for (int i = 0; i < MAP_NUM_VILLAGES; i++)
+	{
+		float maxDist = MAP_VILLAGE_RADIUSES[i];
+
+		if (addBuffer) maxDist += MAP_VILLAGE_BUFFER;
+
+		if (Distance(point, MAP_VILLAGE_ORIGINS[i]) <= maxDist)
+			return qtrue;
+	}
+
+	return qfalse;
+}
+
+int G_SelectVillageSpawnpoint(void)
+{
+	int			waypoint;
+
+	if (villageWaypointsNum > 0)
+	{// Find a village waypoint...
+		waypoint = irand_big(0, villageWaypointsNum - 1);
+		waypoint = villageWaypoints[waypoint];
+	}
+	else
+	{// No villages/towns/cities, select any wp...
+		waypoint = irand_big(0, gWPNum - 1);
+	}
+
+	return waypoint;
+}
+
+int G_SelectWildernessSpawnpoint(void)
+{
+	int			waypoint;
+
+	if (wildernessWaypointsNum > 0)
+	{// Find a wilderness waypoint...
+		waypoint = irand_big(0, wildernessWaypointsNum - 1);
+		waypoint = wildernessWaypoints[waypoint];
+	}
+	else
+	{// No villages/towns/cities, select any wp...
+		waypoint = irand_big(0, gWPNum - 1);
+	}
+
+	return waypoint;
+}
+
+//
+// Waypointing stuff...
+//
+
 void G_TestLine(vec3_t start, vec3_t end, int color, int time)
 {
 	gentity_t *te;
@@ -91,6 +201,24 @@ void CreateNewWP_FromAWPNode(int index, vec3_t origin, int flags, int weight, in
 
 	//trap->Print("Added WP %i at %f %f %f. It has %i links.\n", gWPNum, gWPArray[gWPNum]->origin[0], gWPArray[gWPNum]->origin[1], 
 	//	gWPArray[gWPNum]->origin[2], gWPArray[gWPNum]->neighbornum);
+
+	if (G_PointIsInVillage(gWPArray[gWPNum]->origin, qfalse))
+	{// Mark any waypoints within the village/town/city area... Ignore the buffer so that villagers stay within the shield...
+		gWPArray[gWPNum]->wpIsInVillage = true;
+
+		villageWaypoints[villageWaypointsNum] = gWPNum;
+		villageWaypointsNum++;
+	}
+	else
+	{
+		gWPArray[gWPNum]->wpIsInVillage = false;
+
+		if (!G_PointIsInVillage(gWPArray[gWPNum]->origin, qtrue))
+		{// Only add the waypoints not in the village outer buffer range to the wilderness list...
+			wildernessWaypoints[wildernessWaypointsNum] = gWPNum;
+			wildernessWaypointsNum++;
+		}
+	}
 
 	gWPNum++;
 }
@@ -502,6 +630,8 @@ void Warzone_WaypointCheck ( void )
 	trap->Print( "^1*** ^3WAYPOINT REACHABILITY CHECK^5: Total %i waypoints. %i waypoints marked GOOD and %i waypoints marked BAD.\n", 
 			  gWPNum, NUM_GOOD, NUM_BAD );
 */
+
+	trap->Print("^1*** ^3%s^5: Map has ^7%i^5 village waypoints (in ^7%i^5 villages) and ^7%i^5 wilderness waypoints.\n", "NAVIGATION", villageWaypointsNum, MAP_NUM_VILLAGES, wildernessWaypointsNum);
 }
 
 int num_nav_waypoints = 0;

@@ -5170,12 +5170,22 @@ qboolean Jedi_Jump( gentity_t *aiEnt, vec3_t dest, int goalEntNum )
 	// First type of jump...
 	//
 
+	if (aiEnt->client->ps.groundEntityNum == ENTITYNUM_NONE)
+	{// Already in the air... Wait...
+		return qfalse;
+	}
+
 	if (!NPC_IsJedi(aiEnt) && Distance(dest, aiEnt->r.currentOrigin) > 256.0 && TIMER_Done( aiEnt, "emergencyJump" ))
 	{// Too far for a non-jedi to jump...
 		return qfalse;
 	}
 
-	aiEnt->nextPadawanJumpThink = level.time + 5000;
+	if (aiEnt->nextJediJumpThink > level.time)
+	{// Need to wait...
+		return qfalse;
+	}
+
+	aiEnt->nextJediJumpThink = level.time + 5000;
 
 	if (goalEntNum != ENTITYNUM_NONE)
 	{

@@ -441,6 +441,8 @@ void GetLava( out vec4 fragColor, in vec2 uv )
 
 void main()
 {
+	float dist = distance(m_vertPos.xyz, u_ViewOrigin.xyz);
+
 	if (USE_IS2D <= 0.0 && distance(m_vertPos, u_ViewOrigin) > u_zFar)
 	{// Skip it all...
 		gl_FragColor = vec4(0.0);
@@ -820,7 +822,12 @@ void main()
 		}
 
 		glowColor.rgb = clamp((clamp(glowColor.rgb - glow_const_1, 0.0, 1.0)) * glow_const_2, 0.0, 1.0);
-		glowColor.rgb *= pow(distance(m_vertPos.xyz, u_ViewOrigin.xyz) / 2000.0, 3.0) + 1.0; // bost glow strength as the object gets further away from the camera...
+		//glowColor.rgb *= pow(distance(m_vertPos.xyz, u_ViewOrigin.xyz) / 2000.0, 3.0) + 1.0; // bost glow strength as the object gets further away from the camera...
+		//glowColor.rgb *= pow(distance(m_vertPos.xyz, u_ViewOrigin.xyz) / 8.0, 2.0) + 1.0; // bost glow strength as the object gets further away from the camera...
+
+		float glowRamp = ((min(dist, 16384.0) / 16384.0) * 32.0) + 1.0;
+		glowColor.rgb *= glowRamp;
+
 		glowColor.rgb *= SHADER_GLOW_STRENGTH;
 
 		if (SHADER_MATERIAL_TYPE != MATERIAL_GLASS && SHADER_MATERIAL_TYPE != MATERIAL_BLASTERBOLT && length(glowColor.rgb) <= 0.0)
@@ -832,6 +839,8 @@ void main()
 
 		glowColor.a = clamp(glowColor.a, 0.0, 1.0);
 		out_Glow = glowColor;
+		
+		//out_Glow.rgb = clamp(out_Glow.rgb, 0.0, 2.0); // cap stregnth for the sake of the buffer
 
 		gl_FragColor.rgb = mix(gl_FragColor.rgb, glowColor.rgb, glowColor.a);
 		gl_FragColor.a = max(gl_FragColor.a, glowColor.a);
@@ -882,7 +891,12 @@ void main()
 		}
 
 		glowColor.rgb = clamp((clamp(glowColor.rgb - glow_const_1, 0.0, 1.0)) * glow_const_2, 0.0, 1.0);
-		glowColor.rgb *= pow(distance(m_vertPos.xyz, u_ViewOrigin.xyz) / 2000.0, 3.0) + 1.0; // bost glow strength as the object gets further away from the camera...
+		//glowColor.rgb *= pow(distance(m_vertPos.xyz, u_ViewOrigin.xyz) / 2000.0, 3.0) + 1.0; // bost glow strength as the object gets further away from the camera...
+		//glowColor.rgb *= pow(distance(m_vertPos.xyz, u_ViewOrigin.xyz) / 8.0, 2.0) + 1.0; // bost glow strength as the object gets further away from the camera...
+
+		float glowRamp = ((min(dist, 16384.0) / 16384.0) * 32.0) + 1.0;
+		glowColor.rgb *= glowRamp;
+
 		glowColor.rgb *= SHADER_GLOW_STRENGTH;
 
 		if (SHADER_MATERIAL_TYPE != MATERIAL_GLASS && SHADER_MATERIAL_TYPE != MATERIAL_BLASTERBOLT && length(glowColor.rgb) <= 0.0)
@@ -890,6 +904,8 @@ void main()
 
 		glowColor.a = clamp(glowColor.a, 0.0, 1.0);
 		out_Glow = glowColor;
+
+		//out_Glow.rgb = clamp(out_Glow.rgb, 0.0, 2.0); // cap stregnth for the sake of the buffer
 
 		gl_FragColor.rgb = glowColor.rgb;
 		gl_FragColor.a = max(gl_FragColor.a, glowColor.a);

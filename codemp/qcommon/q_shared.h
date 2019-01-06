@@ -685,6 +685,8 @@ typedef struct wpobject_s
 	bool wpIsBadChecked;
 	bool wpIsBad;
 
+	bool wpIsInVillage;
+
 	int neighbornum;
 	wpneighbor_t neighbors[MAX_NEIGHBOR_SIZE];
 } wpobject_t;
