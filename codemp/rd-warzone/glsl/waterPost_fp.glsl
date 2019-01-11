@@ -820,21 +820,9 @@ void main ( void )
 
 	vec3 color = color2;
 
+#if 0
 	if (waterMapUpper.a == 1.5)
 	{// Actually glass...
-	/*
-		vec3 vDir = normalize(ViewOrigin.xyz - waterMapLower.xyz);
-		vec3 nDir = normalize(ViewOrigin.xyz + waterMapLower.xyz); // just need a secondary value...
-		float ref = reflect(vDir, nDir).y;
-		float gstr = (ref * 0.5 + 0.5) * 0.25;
-		gstr += max(dot(vDir, nDir), 0.0) * 0.25;
-		gstr /= 2.0;
-		color.rgb = mix(color.rgb, vec3(1.0), gstr);
-#if defined(USE_REFLECTION) && !defined(__LQ_MODE__)
-		color2 = AddReflection(var_TexCoords, position, waterMapLower.xyz, color.rgb, 0.0, waterMapLower.xyz);
-		color.rgb = mix(color.rgb, color2.rgb, u_Local0.r);
-#endif //defined(USE_REFLECTION) && !defined(__LQ_MODE__)
-*/
 		const vec3 keyColor = vec3(0.051,0.639,0.149);
 
 		vec2 uv = var_TexCoords;
@@ -848,6 +836,7 @@ void main ( void )
 		gl_FragColor = vec4(color, 1.0);
 		return;
 	}
+#endif
 
 	if (waterMapLower.a > 0.0)
 	{
