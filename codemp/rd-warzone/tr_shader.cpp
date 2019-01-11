@@ -1730,7 +1730,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 	stage->portalImageAlpha = 1.0;
 
 	stage->glowStrength = 1.0;
-	stage->glowVibrancy = 1.0;
+	stage->glowVibrancy = 0.0;
 	stage->glowNoMerge = qfalse;
 
 	stage->emissiveRadiusScale = 1.0;
@@ -1776,6 +1776,8 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 
 					if (stage->emissiveColorScale <= 0.0)
 						stage->emissiveColorScale = 1.5;
+
+					stage->glowStrength = 0.5;
 				}
 				//UQ1: END - Testing - Force glow to obvious glow components...
 				continue;
@@ -2896,7 +2898,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 			if (!token[0])
 			{
 				ri->Printf(PRINT_WARNING, "WARNING: missing parm for 'glowVibrancy' keyword in shader '%s'\n", shader.name);
-				stage->glowVibrancy = 1.0;
+				stage->glowVibrancy = 0.0;
 				continue;
 			}
 			stage->glowVibrancy = atof(token);
@@ -6501,15 +6503,15 @@ static int CollapseStagesToGLSL(void)
 				if (ForceGlow(pStage->bundle[TB_DIFFUSEMAP].image[0]->imgName))
 				{
 					pStage->glow = qtrue;
-					pStage->glowStrength = 1.0;
-					shader.glowStrength = max(pStage->glowStrength, shader.glowStrength);
+					pStage->glowStrength = 0.17142857142857142857142857142857;// 0.15;// 1.0;
+					if (shader.glowStrength <= 0.0) shader.glowStrength = 1.0;// max(pStage->glowStrength, shader.glowStrength);
 					shader.hasGlow = qtrue;
 
-					if (StringContains(pStage->bundle[TB_DIFFUSEMAP].image[0]->imgName, "_blend", 0) && StringContains(pStage->bundle[TB_DIFFUSEMAP].image[0]->imgName, "strip", 0))
+					/*if (StringContains(pStage->bundle[TB_DIFFUSEMAP].image[0]->imgName, "_blend", 0) && StringContains(pStage->bundle[TB_DIFFUSEMAP].image[0]->imgName, "strip", 0))
 					{
 						pStage->glowStrength = 2.0;
 						shader.glowStrength = max(pStage->glowStrength, shader.glowStrength);
-					}
+					}*/
 				}
 			}
 		}

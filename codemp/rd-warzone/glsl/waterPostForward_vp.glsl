@@ -22,6 +22,7 @@ flat varying float	var_IsWater;
 
 // Maximum waves amplitude
 #define maxAmplitude u_Local10.g
+#define isGlass u_Local10.b
 
 #if 0
 vec3 DeformPosition(const vec3 pos, const vec3 normal, const vec2 st)
@@ -147,19 +148,26 @@ void main()
 
 	var_IsWater = 1.0;
 
-#if 1
-	float pitch = normalToSlope( normal.xyz );
-	if (pitch < 0.0) pitch = -pitch;
-	//if (pitch > 16.0) var_IsWater = 2.0;
-	if (pitch > 4.0) var_IsWater = 2.0 + (pitch / 90.0);
-#else // FIXME: use normals instead of vectoangles
-	/*if (normal.z <= 0.73 && normal.z >= -0.73)
+	if (isGlass > 0.0)
 	{
-		var_Slope = 1.0;
+		var_IsWater = 1.5;
 	}
 	else
 	{
-		var_Slope = 0.0;
-	}*/
+#if 1
+		float pitch = normalToSlope( normal.xyz );
+		if (pitch < 0.0) pitch = -pitch;
+		//if (pitch > 16.0) var_IsWater = 2.0;
+		if (pitch > 4.0) var_IsWater = 2.0 + (pitch / 90.0);
+#else // FIXME: use normals instead of vectoangles
+		/*if (normal.z <= 0.73 && normal.z >= -0.73)
+		{
+			var_Slope = 1.0;
+		}
+		else
+		{
+			var_Slope = 0.0;
+		}*/
 #endif
+	}
 }

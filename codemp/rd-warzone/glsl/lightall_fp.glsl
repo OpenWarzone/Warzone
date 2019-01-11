@@ -1,5 +1,7 @@
 #define __HIGH_PASS_SHARPEN__
 #define __CHRISTMAS_LIGHTS__
+//#define __GLASS_TEST__
+#define __GLASS_TEST2__
 
 #define SCREEN_MAPS_ALPHA_THRESHOLD 0.666
 #define SCREEN_MAPS_LEAFS_THRESHOLD 0.001
@@ -7,12 +9,11 @@
 
 
 uniform sampler2D					u_DiffuseMap;
-
 uniform sampler2D					u_GlowMap;
-
 uniform sampler2D					u_LightMap;
-
 uniform sampler2D					u_NormalMap;
+uniform sampler2D					u_DeluxeMap;
+
 
 uniform vec4						u_MapAmbient; // a basic light/color addition across the whole map...
 
@@ -439,11 +440,43 @@ void GetLava( out vec4 fragColor, in vec2 uv )
 }
 #endif //defined(__LAVA__)
 
+#ifdef __GLASS_TEST__
+#define SPECULAR_EXPONENT 10.
+#define GLASS_COL vec3(1.)
+#define GLASS_ALPHA .8
+
+vec3 phong(vec3 n, vec3 l, vec3 eye) {
+    vec3 r = -reflect(l, n);
+    return vec3(pow(max(0., dot(r, eye)), SPECULAR_EXPONENT));
+}
+
+vec3 get_highlights(vec3 n, vec3 iXPos, vec3 rd) {
+    vec3 topl = normalize(u_PrimaryLightOrigin.xyz - iXPos);
+    return phong(n, topl, -rd);
+}
+float get_highlight_alpha(vec3 n, vec3 iXPos, vec3 rd) {
+    return length(get_highlights(n, iXPos, rd));
+}
+
+vec3 env_map(vec3 n, vec3 eye) {
+    vec3 r = -reflect(eye, n);
+    return r * 0.5 + 0.5;
+}
+
+vec4 calc_glass_color(vec3 ro, vec3 rd, float dist, vec3 n, vec3 iXPos) {
+    vec3 col = GLASS_COL;
+    float alpha = GLASS_ALPHA;
+    vec3 highlights = get_highlights(n, iXPos, rd);
+    col *= highlights + env_map(n, -rd);
+    return vec4(col, alpha);
+}
+#endif //__GLASS_TEST__
+
 void main()
 {
 	float dist = distance(m_vertPos.xyz, u_ViewOrigin.xyz);
 
-	if (USE_IS2D <= 0.0 && distance(m_vertPos, u_ViewOrigin) > u_zFar)
+	if (USE_IS2D <= 0.0 && dist > u_zFar)
 	{// Skip it all...
 		gl_FragColor = vec4(0.0);
 		out_Glow = vec4(0.0);
@@ -465,12 +498,39 @@ void main()
 	}
 
 
-	vec4 diffuse = texture(u_DiffuseMap, texCoords);
+	vec3 N = normalize(m_Normal.xyz);
+	vec4 diffuse = vec4(0.0);
 
 #if defined(__LAVA__)
 	GetLava( diffuse, texCoords );
 #else //!defined(__LAVA__)
-	diffuse = texture(u_DiffuseMap, texCoords);
+#ifdef __GLASS_TEST__
+	if (SHADER_MATERIAL_TYPE == MATERIAL_GLASS)
+	{
+		vec3 v = normalize(m_ViewDir);
+		diffuse = calc_glass_color(normalize(u_ViewOrigin), v * u_Local9.r, length(v) * u_Local9.g, (u_Local9.a == 1.0) ? normalize(v * m_Normal.xyz) : normalize(m_Normal.xyz), normalize(m_vertPos) * u_Local9.b);
+	}
+	else
+#endif //__GLASS_TEST__
+#ifdef __GLASS_TEST2__
+	if (SHADER_MATERIAL_TYPE == MATERIAL_GLASS)
+	{
+		vec3 E = normalize(m_ViewDir);
+		//float dt = 1.0 - max(dot(N, E), 0.05);
+		float _IntersectPower = 1.25;//0.18;
+		float _RimStrength = 1.25;//1.69;
+		float ramp = clamp(min(dist, 16384.0) / 16384.0, 0.0, 1.0);
+		float intersect = (1.0 - ramp) * _IntersectPower;
+		float rim = 1.0 - /*abs(dot(N, E))*/max(dot(N, E), 0.0) * _RimStrength;
+		float glow = max(intersect, rim);
+		vec4 glass = ((vec4(0.3, 0.7, 1.0, 1.0) * glow) + (vec4(0.3, 1.0, 0.6, 1.0) * rim));
+		diffuse = glass * 0.175;
+		diffuse = (diffuse + texture(u_DiffuseMap, texCoords)) / 2.0;
+	}
+	else
+#endif //__GLASS_TEST2__
+	{
+		diffuse = texture(u_DiffuseMap, texCoords);
 
 	#if defined(__HIGH_PASS_SHARPEN__)
 		if (USE_IS2D > 0.0 || USE_TEXTURECLAMP > 0.0)
@@ -482,14 +542,13 @@ void main()
 			diffuse.rgb = Enhance(u_DiffuseMap, texCoords, diffuse.rgb, 8.0 + (gl_FragCoord.z * 8.0));
 		}
 	#endif //defined(__HIGH_PASS_SHARPEN__)
+	}
 #endif //defined(__LAVA__)
 
 
 	// Set alpha early so that we can cull early...
 	gl_FragColor.a = clamp(diffuse.a * var_Color.a, 0.0, 1.0);
 
-
-	vec3 N = normalize(m_Normal.xyz);
 
 #ifdef __USE_REAL_NORMALMAPS__
 	vec4 norm = vec4(0.0);
@@ -766,9 +825,20 @@ void main()
 			out_NormalDetail = vec4(0.0);
 	#endif //__USE_REAL_NORMALMAPS__
 	}
-	else if (USE_GLOW_BUFFER >= 2.0)
+	else if (USE_GLOW_BUFFER >= 2.0 && USE_IS2D <= 0.0)
 	{// Merged diffuse+glow stage...
 		vec4 glowColor = max(texture(u_GlowMap, texCoords), 0.0);
+
+	#if defined(__HIGH_PASS_SHARPEN__)
+		if (USE_IS2D > 0.0 || USE_TEXTURECLAMP > 0.0)
+		{
+			glowColor.rgb = Enhance(u_GlowMap, texCoords, glowColor.rgb, 16.0);
+		}
+		else
+		{
+			glowColor.rgb = Enhance(u_GlowMap, texCoords, glowColor.rgb, 8.0 + (gl_FragCoord.z * 8.0));
+		}
+	#endif //defined(__HIGH_PASS_SHARPEN__)
 
 		if (SHADER_MATERIAL_TYPE != MATERIAL_GLASS && length(glowColor.rgb) <= 0.0)
 			glowColor.a = 0.0;
@@ -822,10 +892,7 @@ void main()
 		}
 
 		glowColor.rgb = clamp((clamp(glowColor.rgb - glow_const_1, 0.0, 1.0)) * glow_const_2, 0.0, 1.0);
-		//glowColor.rgb *= pow(distance(m_vertPos.xyz, u_ViewOrigin.xyz) / 2000.0, 3.0) + 1.0; // bost glow strength as the object gets further away from the camera...
-		//glowColor.rgb *= pow(distance(m_vertPos.xyz, u_ViewOrigin.xyz) / 8.0, 2.0) + 1.0; // bost glow strength as the object gets further away from the camera...
-
-		float glowRamp = ((min(dist, 16384.0) / 16384.0) * 32.0) + 1.0;
+		float glowRamp = ((min(dist, 16384.0) / 16384.0) * 8.0) + 1.0;
 		glowColor.rgb *= glowRamp;
 
 		glowColor.rgb *= SHADER_GLOW_STRENGTH;
@@ -878,7 +945,7 @@ void main()
 	#endif //__USE_REAL_NORMALMAPS__
 		}
 	}
-	else if (USE_GLOW_BUFFER > 0.0)
+	else if (USE_GLOW_BUFFER > 0.0 && USE_IS2D <= 0.0)
 	{
 		vec4 glowColor = max(gl_FragColor, 0.0);
 
@@ -891,10 +958,7 @@ void main()
 		}
 
 		glowColor.rgb = clamp((clamp(glowColor.rgb - glow_const_1, 0.0, 1.0)) * glow_const_2, 0.0, 1.0);
-		//glowColor.rgb *= pow(distance(m_vertPos.xyz, u_ViewOrigin.xyz) / 2000.0, 3.0) + 1.0; // bost glow strength as the object gets further away from the camera...
-		//glowColor.rgb *= pow(distance(m_vertPos.xyz, u_ViewOrigin.xyz) / 8.0, 2.0) + 1.0; // bost glow strength as the object gets further away from the camera...
-
-		float glowRamp = ((min(dist, 16384.0) / 16384.0) * 32.0) + 1.0;
+		float glowRamp = ((min(dist, 16384.0) / 16384.0) * 8.0) + 1.0;
 		glowColor.rgb *= glowRamp;
 
 		glowColor.rgb *= SHADER_GLOW_STRENGTH;

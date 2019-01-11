@@ -1668,7 +1668,7 @@ void RB_SetMaterialBasedProperties(shaderProgram_t *sp, shaderStage_t *pStage, i
 		vec4_t local4;
 		float dayNightGlowFactor = mix(MAP_GLOW_MULTIPLIER, MAP_GLOW_MULTIPLIER_NIGHT, RB_NightScale());
 		float glowPower = (backEnd.currentEntity == &tr.worldEntity) ? r_glowStrength->value * tess.shader->glowStrength * 2.858 * dayNightGlowFactor * pStage->glowStrength : r_glowStrength->value * tess.shader->glowStrength * pStage->glowStrength * 2.0;
-		VectorSet4(local4, (float)stageNum, glowPower, r_showsplat->value, tess.shader->glowVibrancy * pStage->glowVibrancy * r_glowVibrancy->value);
+		VectorSet4(local4, (float)stageNum, glowPower, r_showsplat->value, max(tess.shader->glowVibrancy, pStage->glowVibrancy) * r_glowVibrancy->value);
 		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL4, local4);
 
 		vec4_t local5;
@@ -2225,6 +2225,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	qboolean isVines = qfalse;
 	qboolean isGroundFoliage = qfalse;
 	qboolean isFur = qfalse;
+	qboolean isGlass = qfalse;
 	qboolean isEmissiveBlack = qfalse;
 
 	float tessInner = 0.0;
@@ -2690,6 +2691,29 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 
 			GLSL_BindProgram(sp);
 		}
+		/*else if ((tess.shader->materialType) == MATERIAL_GLASS && r_glslWater->integer && r_glslWater->integer <= 3 && WATER_ENABLED && MAP_WATER_LEVEL < 131000.0 && MAP_WATER_LEVEL > -131000.0)
+		{
+			if (IS_DEPTH_PASS == 1)
+			{
+				break;
+			}
+			else if (stage <= 0)
+			{
+				sp = &tr.waterPostForwardShader;
+				pStage->glslShaderGroup = &tr.waterPostForwardShader;
+				isWater = qtrue;
+				isGlass = qtrue;
+				isGrass = qfalse;
+				isGroundFoliage = qfalse;
+				multiPass = qfalse;
+			}
+			else
+			{// Only do one stage on GLSL water...
+				break;
+			}
+
+			GLSL_BindProgram(sp);
+		}*/
 #ifdef __WATER_STUFF__
 		else if (pStage->isWater && r_glslWater->integer && r_glslWater->integer > 3 /*&& WATER_ENABLED*/)
 		{
@@ -3884,6 +3908,19 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 #endif
 			}
 
+#ifdef __SCREEN_SPACE_GLASS_REFLECTIONS__
+			if (r_txaa->integer)
+			{// Reflections only work if we have a previous screen to use...
+				GLSL_SetUniformInt(sp, UNIFORM_DELUXEMAP, TB_DELUXEMAP);
+				GL_BindToTMU(tr.txaaPreviousImage, TB_DELUXEMAP);
+			}
+			else
+			{
+				GLSL_SetUniformInt(sp, UNIFORM_DELUXEMAP, TB_DELUXEMAP);
+				GL_BindToTMU(tr.blackImage, TB_DELUXEMAP);
+			}
+#endif //__SCREEN_SPACE_GLASS_REFLECTIONS__
+
 			if (r_sunlightMode->integer && (r_sunlightSpecular->integer || (backEnd.viewParms.flags & VPF_USESUNLIGHT)))
 			{
 				GLSL_SetUniformVec3(sp, UNIFORM_PRIMARYLIGHTAMBIENT, backEnd.refdef.sunAmbCol);
@@ -4601,7 +4638,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			VectorSet4(l9, r_testshaderValue1->value, r_testshaderValue2->value, r_testshaderValue3->value, r_testshaderValue4->value);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL9, l9);
 
-			if (isWater && r_glslWater->integer && r_glslWater->integer <= 3 && WATER_ENABLED && MAP_WATER_LEVEL < 131000.0 && MAP_WATER_LEVEL > -131000.0)
+			if ((isWater || isGlass) && r_glslWater->integer && r_glslWater->integer <= 3 && WATER_ENABLED && MAP_WATER_LEVEL < 131000.0 && MAP_WATER_LEVEL > -131000.0)
 			{// Attach dummy water output textures...
 				if (glState.currentFBO == tr.renderFbo)
 				{// Only attach textures when doing a render pass...
@@ -4611,7 +4648,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					FBO_Bind(tr.renderWaterFbo);
 
 					vec4_t passInfo;
-					VectorSet4(passInfo, /*passNum*/0.0, WATER_WAVE_HEIGHT, 0.0, 0.0);
+					VectorSet4(passInfo, /*passNum*/0.0, WATER_WAVE_HEIGHT, isGlass ? 1.0 : 0.0, 0.0);
 					GLSL_SetUniformVec4(sp, UNIFORM_LOCAL10, passInfo);
 				}
 				else
