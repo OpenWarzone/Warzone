@@ -2226,6 +2226,9 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	qboolean isGroundFoliage = qfalse;
 	qboolean isFur = qfalse;
 	qboolean isGlass = qfalse;
+	qboolean isPush = qfalse;
+	qboolean isPull = qfalse;
+	qboolean isCloak = qfalse;
 	qboolean isEmissiveBlack = qfalse;
 
 	float tessInner = 0.0;
@@ -2680,8 +2683,6 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				sp = &tr.waterPostForwardShader;
 				pStage->glslShaderGroup = &tr.waterPostForwardShader;
 				isWater = qtrue;
-				isGrass = qfalse;
-				isGroundFoliage = qfalse;
 				multiPass = qfalse;
 			}
 			else
@@ -2691,7 +2692,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 
 			GLSL_BindProgram(sp);
 		}
-		/*else if ((tess.shader->materialType) == MATERIAL_GLASS && r_glslWater->integer && r_glslWater->integer <= 3 && WATER_ENABLED && MAP_WATER_LEVEL < 131000.0 && MAP_WATER_LEVEL > -131000.0)
+		else if ((tess.shader->materialType) == MATERIAL_DISTORTEDGLASS)
 		{
 			if (IS_DEPTH_PASS == 1)
 			{
@@ -2701,10 +2702,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			{
 				sp = &tr.waterPostForwardShader;
 				pStage->glslShaderGroup = &tr.waterPostForwardShader;
-				isWater = qtrue;
 				isGlass = qtrue;
-				isGrass = qfalse;
-				isGroundFoliage = qfalse;
 				multiPass = qfalse;
 			}
 			else
@@ -2713,7 +2711,68 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			}
 
 			GLSL_BindProgram(sp);
-		}*/
+		}
+		else if (tess.shader->materialType == MATERIAL_DISTORTEDPUSH)
+		{
+			if (IS_DEPTH_PASS == 1)
+			{
+				break;
+			}
+			else if (stage <= 0)
+			{
+				sp = &tr.waterPostForwardShader;
+				pStage->glslShaderGroup = &tr.waterPostForwardShader;
+				isPush = qtrue;
+				multiPass = qfalse;
+				//ri->Printf(PRINT_ALL, "Doing force push shader.\n");
+			}
+			else
+			{// Only do one stage on GLSL water...
+				break;
+			}
+
+			GLSL_BindProgram(sp);
+		}
+		else if (tess.shader->materialType == MATERIAL_DISTORTEDPULL)
+		{
+			if (IS_DEPTH_PASS == 1)
+			{
+				break;
+			}
+			else if (stage <= 0)
+			{
+				sp = &tr.waterPostForwardShader;
+				pStage->glslShaderGroup = &tr.waterPostForwardShader;
+				isPull = qtrue;
+				multiPass = qfalse;
+			}
+			else
+			{// Only do one stage on GLSL water...
+				break;
+			}
+
+			GLSL_BindProgram(sp);
+		}
+		else if (tess.shader->materialType == MATERIAL_CLOAK)
+		{
+			if (IS_DEPTH_PASS == 1)
+			{
+				break;
+			}
+			else if (stage <= 0)
+			{
+				sp = &tr.waterPostForwardShader;
+				pStage->glslShaderGroup = &tr.waterPostForwardShader;
+				isCloak = qtrue;
+				multiPass = qfalse;
+			}
+			else
+			{// Only do one stage on GLSL water...
+				break;
+			}
+
+			GLSL_BindProgram(sp);
+		}
 #ifdef __WATER_STUFF__
 		else if (pStage->isWater && r_glslWater->integer && r_glslWater->integer > 3 /*&& WATER_ENABLED*/)
 		{
@@ -4638,17 +4697,92 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			VectorSet4(l9, r_testshaderValue1->value, r_testshaderValue2->value, r_testshaderValue3->value, r_testshaderValue4->value);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL9, l9);
 
-			if ((isWater || isGlass) && r_glslWater->integer && r_glslWater->integer <= 3 && WATER_ENABLED && MAP_WATER_LEVEL < 131000.0 && MAP_WATER_LEVEL > -131000.0)
+			if (isWater && r_glslWater->integer && r_glslWater->integer <= 3 && WATER_ENABLED && MAP_WATER_LEVEL < 131000.0 && MAP_WATER_LEVEL > -131000.0)
 			{// Attach dummy water output textures...
 				if (glState.currentFBO == tr.renderFbo)
 				{// Only attach textures when doing a render pass...
-					//stateBits = GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
 					stateBits = GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_ATEST_GT_0;
 					tess.shader->cullType = CT_TWO_SIDED; // Always...
 					FBO_Bind(tr.renderWaterFbo);
 
+					float material = 0.0;
+
+					if (isGlass)
+					{
+						material = 2.0;
+					}
+					else if (isPush)
+					{
+						material = 3.0;
+					}
+					else if (isPull)
+					{
+						material = 4.0;
+					}
+					else if (isCloak)
+					{
+						material = 5.0;
+					}
+
 					vec4_t passInfo;
-					VectorSet4(passInfo, /*passNum*/0.0, WATER_WAVE_HEIGHT, isGlass ? 1.0 : 0.0, 0.0);
+					VectorSet4(passInfo, 0.0, WATER_WAVE_HEIGHT, material, 0.0);
+					GLSL_SetUniformVec4(sp, UNIFORM_LOCAL10, passInfo);
+				}
+				else
+				{
+					break;
+				}
+			}
+			else if (isGlass || isPush || isPull || isCloak)
+			{// Attach dummy water output textures...
+				if (glState.currentFBO == tr.renderFbo)
+				{// Only attach textures when doing a render pass...
+					if (isPush)
+					{
+						GLSL_SetUniformInt(sp, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+						R_BindAnimatedImageToTMU(&pStage->bundle[TB_DIFFUSEMAP], TB_DIFFUSEMAP);
+						stateBits = GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_ATEST_GT_0;
+					}
+					else if (isPull)
+					{
+						GLSL_SetUniformInt(sp, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+						R_BindAnimatedImageToTMU(&pStage->bundle[TB_DIFFUSEMAP], TB_DIFFUSEMAP);
+						stateBits = GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_ATEST_GT_0;
+					}
+					else if (isCloak)
+					{
+						GLSL_SetUniformInt(sp, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+						R_BindAnimatedImageToTMU(&pStage->bundle[TB_DIFFUSEMAP], TB_DIFFUSEMAP);
+						stateBits = GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_ATEST_GT_0;
+					}
+					else // distorted glass
+					{
+						stateBits = GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_ATEST_GT_0;
+					}
+					tess.shader->cullType = CT_TWO_SIDED; // Always...
+					FBO_Bind(tr.renderTransparancyFbo);
+
+					float material = 0.0;
+
+					if (isGlass)
+					{
+						material = 2.0;
+					}
+					else if (isPush)
+					{
+						material = 3.0;
+					}
+					else if (isPull)
+					{
+						material = 4.0;
+					}
+					else if (isCloak)
+					{
+						material = 5.0;
+					}
+
+					vec4_t passInfo;
+					VectorSet4(passInfo, 0.0, WATER_WAVE_HEIGHT, material, 0.0);
 					GLSL_SetUniformVec4(sp, UNIFORM_LOCAL10, passInfo);
 				}
 				else
@@ -4658,7 +4792,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			}
 			else
 			{
-				if (glState.currentFBO == tr.renderGlowFbo || glState.currentFBO == tr.renderDetailFbo || glState.currentFBO == tr.renderWaterFbo)
+				if (glState.currentFBO == tr.renderGlowFbo || glState.currentFBO == tr.renderDetailFbo || glState.currentFBO == tr.renderWaterFbo || glState.currentFBO == tr.renderTransparancyFbo)
 				{// Only attach textures when doing a render pass...
 					FBO_Bind(tr.renderFbo);
 				}
@@ -4778,7 +4912,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			}
 
 
-			if (glState.currentFBO == tr.renderGlowFbo || glState.currentFBO == tr.renderDetailFbo || glState.currentFBO == tr.renderWaterFbo)
+			if (glState.currentFBO == tr.renderGlowFbo || glState.currentFBO == tr.renderDetailFbo || glState.currentFBO == tr.renderWaterFbo || glState.currentFBO == tr.renderTransparancyFbo)
 			{// Change back to standard render FBO...
 				FBO_Bind(tr.renderFbo);
 			}

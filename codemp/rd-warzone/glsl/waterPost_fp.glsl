@@ -820,24 +820,6 @@ void main ( void )
 
 	vec3 color = color2;
 
-#if 0
-	if (waterMapUpper.a == 1.5)
-	{// Actually glass...
-		const vec3 keyColor = vec3(0.051,0.639,0.149);
-
-		vec2 uv = var_TexCoords;
-		vec3 colorDelta = texture(u_DetailMap, uv).rgb - keyColor.rgb;
-    
-		float factor = length(colorDelta); 
-        
-		uv += (factor * colorDelta.rb) / 8.0;    
-		color.rgb = texture(u_DiffuseMap, uv, factor * 1.5).rgb;
-
-		gl_FragColor = vec4(color, 1.0);
-		return;
-	}
-#endif
-
 	if (waterMapLower.a > 0.0)
 	{
 		position.xz = waterMapLower.xz; // test
@@ -913,14 +895,14 @@ void main ( void )
 	float hitType = 0.0;
 	float edgeFactor = 0.0;
 	
-	if (waterMapLower.a < 2.0)
+	if (waterMapLower.a < 1024.0)
 	{
 		edgeFactor = WaterFallNearby( var_TexCoords, hitType );
 	}
 
-	if ((waterMapLower.a >= 2.0 || hitType >= 2.0) /*&& positionMap.a-1.0 < 1024.0*/)
+	if ((waterMapLower.a >= 1024.0 || hitType >= 1024.0) /*&& positionMap.a-1.0 < 1024.0*/)
 	{// Low horizontal normal, this is a waterfall...
-		if (waterMapLower.a >= 2.0 /*&& positionMap.a-1.0 < 1024.0*/)
+		if (waterMapLower.a >= 1024.0 /*&& positionMap.a-1.0 < 1024.0*/)
 		{// Actual waterfall pixel...
 			gl_FragColor = WaterFall(color.rgb, color2.rgb, waterMapUpper.xyz, position.xyz, timer, waterMapLower.a - 2.0, 0.0, waterMapLower.a);
 			return;
@@ -937,7 +919,7 @@ void main ( void )
 		}
 	}
 #else //!EXPERIMENTAL_WATERFALL
-	if (waterMapLower.a >= 2.0 /*&& positionMap.a-1.0 < 1024.0*/)
+	if (waterMapLower.a >= 1024.0 /*&& positionMap.a-1.0 < 1024.0*/)
 	{// Actual waterfall pixel...
 		gl_FragColor = WaterFall(color.rgb, color2.rgb, waterMapUpper.xyz, position.xyz, timer, waterMapLower.a - 2.0, 0.0, waterMapLower.a);
 		return;

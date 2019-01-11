@@ -746,6 +746,17 @@ void RB_ClearRenderBuffers ( void )
 			qglColorMask(!backEnd.colorMask[0], !backEnd.colorMask[1], !backEnd.colorMask[2], !backEnd.colorMask[3]);
 		}
 
+		{// Also clear the transparancy map...
+			FBO_t *oldFbo = glState.currentFBO;
+			FBO_Bind(tr.transparancyFbo);
+			qglColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+			qglClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+			qglClear(GL_COLOR_BUFFER_BIT);
+
+			FBO_Bind(oldFbo);
+			qglColorMask(!backEnd.colorMask[0], !backEnd.colorMask[1], !backEnd.colorMask[2], !backEnd.colorMask[3]);
+		}
+
 		{// Also clear the render pshadow map...
 			FBO_t *oldFbo = glState.currentFBO;
 			FBO_Bind(tr.renderPshadowsFbo);
@@ -3790,6 +3801,14 @@ const void *RB_PostProcess(const void *data)
 				RB_SwapFBOs(&currentFbo, &currentOutFbo);
 				DEBUG_EndTimer(qtrue);
 			}
+		}
+
+		if (!SCREEN_BLUR)
+		{
+			DEBUG_StartTimer("Transparancy Post", qtrue);
+			RB_TransparancyPost(currentFbo, srcBox, currentOutFbo, dstBox);
+			RB_SwapFBOs(&currentFbo, &currentOutFbo);
+			DEBUG_EndTimer(qtrue);
 		}
 
 		if (!SCREEN_BLUR && r_fxaa->integer)

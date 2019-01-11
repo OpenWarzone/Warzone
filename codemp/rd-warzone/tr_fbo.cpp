@@ -428,6 +428,7 @@ extern void GLSL_AttachRenderDepthTextures(void);
 extern void GLSL_AttachGlowTextures(void);
 extern void GLSL_AttachGenericTextures(void);
 extern void GLSL_AttachWaterTextures(void);
+extern void GLSL_AttachTransparancyTextures(void);
 extern void GLSL_AttachRenderGUITextures(void);
 
 void FBO_Init(void)
@@ -489,6 +490,16 @@ void FBO_Init(void)
 		FBO_Bind(tr.waterFbo);
 		FBO_AttachTextureImage(tr.waterPositionMapImage, 0);
 		R_CheckFBO(tr.waterFbo);
+	}
+
+	//
+	// UQ1's waterPosition FBO...
+	//
+	{
+		tr.transparancyFbo = FBO_Create("_transparancy", tr.transparancyMapImage->width, tr.transparancyMapImage->height);
+		FBO_Bind(tr.transparancyFbo);
+		FBO_AttachTextureImage(tr.transparancyMapImage, 0);
+		R_CheckFBO(tr.transparancyFbo);
 	}
 
 	//
@@ -973,6 +984,20 @@ void FBO_Init(void)
 		R_CheckFBO(tr.renderWaterFbo);
 
 		FBO_Bind(tr.renderWaterFbo);
+		qglClearColor(1, 1, 1, 1);
+		qglClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		//FBO_Bind(NULL);
+
+
+		tr.renderTransparancyFbo = FBO_Create("_renderTransparancy", tr.renderDepthImage->width, tr.renderDepthImage->height);
+		FBO_Bind(tr.renderTransparancyFbo);
+
+		GLSL_AttachTransparancyTextures();
+		R_AttachFBOTextureDepth(tr.renderDepthImage->texnum);
+		FBO_SetupDrawBuffers();
+		R_CheckFBO(tr.renderTransparancyFbo);
+
+		FBO_Bind(tr.renderTransparancyFbo);
 		qglClearColor(1, 1, 1, 1);
 		qglClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		//FBO_Bind(NULL);

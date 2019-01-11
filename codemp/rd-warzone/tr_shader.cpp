@@ -3948,6 +3948,10 @@ qboolean HaveSurfaceType( int materialType)
 	case MATERIAL_FIREFLIES:
 	case MATERIAL_PORTAL:
 	case MATERIAL_SKYSCRAPER:
+	case MATERIAL_DISTORTEDGLASS:
+	case MATERIAL_DISTORTEDPUSH:
+	case MATERIAL_DISTORTEDPULL:
+	case MATERIAL_CLOAK:
 		return qtrue;
 		break;
 	default:
@@ -4107,6 +4111,18 @@ void DebugSurfaceTypeSelection( const char *name, int materialType)
 	case MATERIAL_SKYSCRAPER:
 		ri->Printf(PRINT_WARNING, "Surface %s was set to MATERIAL_SKYSCRAPER.\n", name);
 		break;
+	case MATERIAL_DISTORTEDGLASS:
+		ri->Printf(PRINT_WARNING, "Surface %s was set to MATERIAL_DISTORTEDGLASS.\n", name);
+		break;
+	case MATERIAL_DISTORTEDPUSH:
+		ri->Printf(PRINT_WARNING, "Surface %s was set to MATERIAL_DISTORTEDPUSH.\n", name);
+		break;
+	case MATERIAL_DISTORTEDPULL:
+		ri->Printf(PRINT_WARNING, "Surface %s was set to MATERIAL_DISTORTEDPULL.\n", name);
+		break;
+	case MATERIAL_CLOAK:
+		ri->Printf(PRINT_WARNING, "Surface %s was set to MATERIAL_CLOAK.\n", name);
+		break;
 	default:
 		ri->Printf(PRINT_WARNING, "Surface %s was set to MATERIAL_NONE.\n", name);
 		break;
@@ -4261,6 +4277,26 @@ int DetectMaterialType ( const char *name )
 {
 	if (IsNonDetectionMap()) return MATERIAL_NONE;
 
+	/*switch (sh->materialType)
+	{
+	case MATERIAL_DISTORTEDGLASS:
+		break;
+	case MATERIAL_DISTORTEDPUSH:
+		break;
+	case MATERIAL_DISTORTEDPULL:
+		break;
+	case MATERIAL_CLOAK:
+		break;
+	default:
+		if (isEfxShader) sh->materialType = MATERIAL_EFX;
+		if (sh->materialType == MATERIAL_NONE) sh->materialType = material;
+		break;
+	}*/
+
+	if (StringContainsWord(name, "gfx/effects/force_push"))
+		return MATERIAL_DISTORTEDPUSH;
+	if (StringContainsWord(name, "gfx/effects/forcePush"))
+		return MATERIAL_DISTORTEDPUSH;
 	if (StringContainsWord(name, "gfx/water"))
 		return MATERIAL_NONE;
 	if (StringContainsWord(name, "gfx/atmospheric"))
@@ -8937,8 +8973,21 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 			{// It's a proper warzone shader, use it...
 				sh = FinishShader();
 
-				if (isEfxShader) sh->materialType = MATERIAL_EFX;
-				if (sh->materialType == MATERIAL_NONE) sh->materialType = material;
+				switch (sh->materialType)
+				{
+				case MATERIAL_DISTORTEDGLASS:
+					break;
+				case MATERIAL_DISTORTEDPUSH:
+					break;
+				case MATERIAL_DISTORTEDPULL:
+					break;
+				case MATERIAL_CLOAK:
+					break;
+				default:
+					if (isEfxShader) sh->materialType = MATERIAL_EFX;
+					if (sh->materialType == MATERIAL_NONE) sh->materialType = material;
+					break;
+				}
 
 				if (r_genericShaderDebug->integer && allowGeneric && !StringContainsWord(name, "models/player") && !StringContainsWord(name, "models/weapon")) // skip this spam for now...
 				{
@@ -8952,8 +9001,21 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 			{
 				sh = FinishShader();
 
-				if (isEfxShader) sh->materialType = MATERIAL_EFX;
-				if (sh->materialType == MATERIAL_NONE) sh->materialType = material;
+				switch (sh->materialType)
+				{
+				case MATERIAL_DISTORTEDGLASS:
+					break;
+				case MATERIAL_DISTORTEDPUSH:
+					break;
+				case MATERIAL_DISTORTEDPULL:
+					break;
+				case MATERIAL_CLOAK:
+					break;
+				default:
+					if (isEfxShader) sh->materialType = MATERIAL_EFX;
+					if (sh->materialType == MATERIAL_NONE) sh->materialType = material;
+					break;
+				}
 
 				if (r_genericShaderDebug->integer && allowGeneric && !StringContainsWord(name, "models/player") && !StringContainsWord(name, "models/weapon")) // skip this spam for now...
 				{
@@ -8966,8 +9028,21 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 			{
 				sh = FinishShader();
 
-				if (isEfxShader) sh->materialType = MATERIAL_EFX;
-				if (sh->materialType == MATERIAL_NONE) sh->materialType = material;
+				switch (sh->materialType)
+				{
+				case MATERIAL_DISTORTEDGLASS:
+					break;
+				case MATERIAL_DISTORTEDPUSH:
+					break;
+				case MATERIAL_DISTORTEDPULL:
+					break;
+				case MATERIAL_CLOAK:
+					break;
+				default:
+					if (isEfxShader) sh->materialType = MATERIAL_EFX;
+					if (sh->materialType == MATERIAL_NONE) sh->materialType = material;
+					break;
+				}
 
 				if (r_genericShaderDebug->integer && allowGeneric && !StringContainsWord(name, "models/player") && !StringContainsWord(name, "models/weapon")) // skip this spam for now...
 				{
@@ -8980,8 +9055,21 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 			{// Todo, store diffuse tex name from this shader and try below?
 				sh = FinishShader();
 
-				if (isEfxShader) sh->materialType = MATERIAL_EFX;
-				if (sh->materialType == MATERIAL_NONE) sh->materialType = material;
+				switch (sh->materialType)
+				{
+				case MATERIAL_DISTORTEDGLASS:
+					break;
+				case MATERIAL_DISTORTEDPUSH:
+					break;
+				case MATERIAL_DISTORTEDPULL:
+					break;
+				case MATERIAL_CLOAK:
+					break;
+				default:
+					if (isEfxShader) sh->materialType = MATERIAL_EFX;
+					if (sh->materialType == MATERIAL_NONE) sh->materialType = material;
+					break;
+				}
 
 				if (r_genericShaderDebug->integer && allowGeneric && !StringContainsWord(name, "models/player") && !StringContainsWord(name, "models/weapon")) // skip this spam for now...
 				{
@@ -8994,8 +9082,21 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 			{
 				sh = FinishShader();
 
-				if (isEfxShader) sh->materialType = MATERIAL_EFX;
-				if (sh->materialType == MATERIAL_NONE) sh->materialType = material;
+				switch (sh->materialType)
+				{
+				case MATERIAL_DISTORTEDGLASS:
+					break;
+				case MATERIAL_DISTORTEDPUSH:
+					break;
+				case MATERIAL_DISTORTEDPULL:
+					break;
+				case MATERIAL_CLOAK:
+					break;
+				default:
+					if (isEfxShader) sh->materialType = MATERIAL_EFX;
+					if (sh->materialType == MATERIAL_NONE) sh->materialType = material;
+					break;
+				}
 
 				if (r_genericShaderDebug->integer && allowGeneric && !StringContainsWord(name, "models/player") && !StringContainsWord(name, "models/weapon")) // skip this spam for now...
 				{
@@ -9271,7 +9372,20 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 		{
 			sh = FinishShader();
 
-			if (isEfxShader) sh->materialType = MATERIAL_EFX;
+			switch (sh->materialType)
+			{
+			case MATERIAL_DISTORTEDGLASS:
+				break;
+			case MATERIAL_DISTORTEDPUSH:
+				break;
+			case MATERIAL_DISTORTEDPULL:
+				break;
+			case MATERIAL_CLOAK:
+				break;
+			default:
+				if (isEfxShader) sh->materialType = MATERIAL_EFX;
+				break;
+			}
 
 			if (sh->materialType == MATERIAL_NONE)
 			{

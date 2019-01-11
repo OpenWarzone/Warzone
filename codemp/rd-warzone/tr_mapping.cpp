@@ -726,6 +726,10 @@ void R_CreateBspMapImage(void)
 				case MATERIAL_SHATTERGLASS:		// 29			// glass with the Crisis Zone style shattering
 				case MATERIAL_GLASS:			// 10			//
 				case MATERIAL_BPGLASS:			// 18			// bulletproof glass
+				case MATERIAL_DISTORTEDGLASS:
+				case MATERIAL_DISTORTEDPUSH:
+				case MATERIAL_DISTORTEDPULL:
+				case MATERIAL_CLOAK:
 					red[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0.9 * 255 * HEIGHT_COLOR_MULT;
 					green[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0.9 * 255 * HEIGHT_COLOR_MULT;
 					blue[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0.9 * 255 * HEIGHT_COLOR_MULT;

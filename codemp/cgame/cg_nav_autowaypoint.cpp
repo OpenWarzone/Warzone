@@ -3788,6 +3788,10 @@ qboolean MaterialIsValidForWP(int materialType)
 	case MATERIAL_BPGLASS:			// 18			// bulletproof glass
 	case MATERIAL_TREEBARK:
 	case MATERIAL_STONE:
+	case MATERIAL_DISTORTEDGLASS:
+	case MATERIAL_DISTORTEDPUSH:
+	case MATERIAL_DISTORTEDPULL:
+	case MATERIAL_CLOAK:
 		return qtrue;
 		break;
 	case MATERIAL_ROCK:				// 23			//
@@ -4212,6 +4216,18 @@ void DebugSurfaceType( int materialType)
 		break;
 	case MATERIAL_SKYSCRAPER:
 		trap->Print("Surface material is MATERIAL_SKYSCRAPER.\n");
+		break;
+	case MATERIAL_DISTORTEDGLASS:
+		trap->Print("Surface material is MATERIAL_DISTORTEDGLASS.\n");
+		break;
+	case MATERIAL_DISTORTEDPUSH:
+		trap->Print("Surface material is MATERIAL_DISTORTEDPUSH.\n");
+		break;
+	case MATERIAL_DISTORTEDPULL:
+		trap->Print("Surface material is MATERIAL_DISTORTEDPULL.\n");
+		break;
+	case MATERIAL_CLOAK:
+		trap->Print("Surface material is MATERIAL_CLOAK.\n");
 		break;
 	default:
 		trap->Print("Surface material is MATERIAL_NONE.\n");

@@ -368,6 +368,10 @@ vec2 RB_PBR_DefaultsForMaterial(float MATERIAL_TYPE)
 		cubeReflectionScale = 0.78;
 		break;
 	case MATERIAL_GLASS:			// 10			//
+	case MATERIAL_DISTORTEDGLASS:
+	case MATERIAL_DISTORTEDPUSH:
+	case MATERIAL_DISTORTEDPULL:
+	case MATERIAL_CLOAK:
 		specularReflectionScale = 0.035;
 		cubeReflectionScale = 0.70;
 		break;
@@ -1104,6 +1108,10 @@ void main(void)
 	if (position.a - 1.0 >= MATERIAL_SKY
 		|| position.a - 1.0 == MATERIAL_SUN
 		|| position.a - 1.0 == MATERIAL_GLASS
+		|| position.a - 1.0 == MATERIAL_DISTORTEDGLASS
+		|| position.a - 1.0 == MATERIAL_DISTORTEDPUSH
+		|| position.a - 1.0 == MATERIAL_DISTORTEDPULL
+		|| position.a - 1.0 == MATERIAL_CLOAK
 		|| position.a - 1.0 == MATERIAL_EFX
 		|| position.a - 1.0 == MATERIAL_BLASTERBOLT
 		|| position.a - 1.0 == MATERIAL_FIRE

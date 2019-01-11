@@ -1,6 +1,8 @@
 uniform vec4		u_Local9;
 uniform vec4		u_Local10;
 
+uniform sampler2D	u_DiffuseMap;
+
 varying vec2		var_TexCoords;
 varying vec3		var_vertPos;
 varying vec3		var_Normal;
@@ -90,6 +92,33 @@ void main()
 #ifdef __USE_REAL_NORMALMAPS__
 	out_NormalDetail = vec4(0.0);
 #endif //__USE_REAL_NORMALMAPS__
-	out_Color = vec4(0.0059, 0.3096, 0.445, 0.5);
-	out_Position = vec4(var_vertPos.xyz, var_IsWater);
+	//if (var_IsWater >= 2.0 && var_IsWater <= 5.0)
+	//	out_Color = vec4(texture(u_DiffuseMap, var_TexCoords).rgb, 1.0);
+	//else
+	//	out_Color = vec4(0.0059, 0.3096, 0.445, 1.0);
+
+	if (var_IsWater == 3.0 || var_IsWater == 4.0)
+	{
+		float dist = (0.5 - distance(var_TexCoords, vec2(0.5))) * 2.0;
+		if (dist > 0.0)
+		{
+			out_Position = vec4(dist, var_TexCoords.x - 0.5, var_TexCoords.y - 0.5, var_IsWater);
+			out_Color = vec4(0.0059, 0.3096, 0.445, 1.0);
+		}
+		else
+		{
+			out_Position = vec4(0.0);
+			out_Color = vec4(0.0);
+		}
+	}
+	else if (var_IsWater >= 2.0 && var_IsWater <= 5.0)
+	{
+		out_Position = vec4(texture(u_DiffuseMap, var_TexCoords).rgb, var_IsWater);
+		out_Color = vec4(0.0059, 0.3096, 0.445, 1.0);
+	}
+	else
+	{
+		out_Position = vec4(var_vertPos.xyz, var_IsWater);
+		out_Color = vec4(0.0059, 0.3096, 0.445, 1.0);
+	}
 }

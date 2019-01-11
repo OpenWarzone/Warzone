@@ -2631,6 +2631,10 @@ static void _PlayerFootStep( const vec3_t origin,
 		default:
 		//fall through
 		case MATERIAL_GLASS:
+		case MATERIAL_DISTORTEDGLASS:
+		case MATERIAL_DISTORTEDPUSH:
+		case MATERIAL_DISTORTEDPULL:
+		case MATERIAL_CLOAK:
 		case MATERIAL_WATER:
 		case MATERIAL_FLESH:
 		case MATERIAL_BPGLASS:
@@ -5208,6 +5212,7 @@ static void CG_PlayerSplash( centity_t *cent ) {
 #define REFRACT_EFFECT_DURATION		500
 static void CG_ForcePushBlur( vec3_t org, centity_t *cent )
 {
+#if 0
 	if (!cent || !cg_renderToTextureFX.integer)
 	{
 		localEntity_t	*ex;
@@ -5351,6 +5356,21 @@ static void CG_ForcePushBlur( vec3_t org, centity_t *cent )
 
 		AddRefEntityToScene( &ent );
 	}
+#else
+	//if (cent->currentState.forcePowersActive & (1 << FP_PUSH))
+	if (cent)
+	{
+		vec3_t forward, fxOrg;
+		AngleVectors(cent->lerpAngles, forward, NULL, NULL);
+		VectorMA(cent->lerpOrigin, 32.0f, forward, fxOrg);// forward
+		VectorScale(forward, 2.0, forward); // enough so it stays ahead of a moving player...
+		PlayEffectID(trap->FX_RegisterEffect("force/forcepush.efx"), fxOrg, forward, -1, -1, qfalse);
+	}
+	else
+	{
+		PlayEffectID(trap->FX_RegisterEffect("force/forcepush.efx"), org, cg.refdef.viewaxis[0], -1, -1, qfalse);
+	}
+#endif
 }
 
 static const char *cg_pushBoneNames[] =

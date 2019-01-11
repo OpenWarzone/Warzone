@@ -127,6 +127,8 @@ extern const char *fallbackShader_waterForward_vp;
 extern const char *fallbackShader_waterForward_gs;
 extern const char *fallbackShader_waterForwardFast_fp;
 extern const char *fallbackShader_waterForwardFast_vp;
+extern const char *fallbackShader_transparancyPost_fp;
+extern const char *fallbackShader_transparancyPost_vp;
 extern const char *fallbackShader_clouds_fp;
 extern const char *fallbackShader_clouds_vp;
 extern const char *fallbackShader_foliage_fp;
@@ -1627,7 +1629,11 @@ const char glslMaterialsList[] =
 "#define MATERIAL_MAGIC_PARTICLES				43\n"\
 "#define MATERIAL_PORTAL						44\n"\
 "#define MATERIAL_SKYSCRAPER					45\n"\
-"#define MATERIAL_LAST							46\n"\
+"#define MATERIAL_DISTORTEDGLASS				46\n"\
+"#define MATERIAL_DISTORTEDPUSH					47\n"\
+"#define MATERIAL_DISTORTEDPULL					48\n"\
+"#define MATERIAL_CLOAK							49\n"\
+"#define MATERIAL_LAST							50\n"\
 "#define MATERIAL_SKY							1024\n"\
 "#define MATERIAL_SUN							1025\n"\
 "\n";
@@ -2187,6 +2193,18 @@ void GLSL_AttachWaterTextures(void)
 	FBO_AttachTextureImage(tr.dummyImage2, 1); // dummy
 	FBO_AttachTextureImage(tr.dummyImage3, 2); // dummy
 	FBO_AttachTextureImage(tr.waterPositionMapImage, 3); // water positions
+	if (r_normalMappingReal->integer)
+	{
+		FBO_AttachTextureImage(tr.dummyImage4, 4);
+	}
+}
+
+void GLSL_AttachTransparancyTextures(void)
+{// To output dummy textures on waters in RB_IterateStagesGeneric...
+	FBO_AttachTextureImage(tr.dummyImage, 0); // dummy
+	FBO_AttachTextureImage(tr.dummyImage2, 1); // dummy
+	FBO_AttachTextureImage(tr.dummyImage3, 2); // dummy
+	FBO_AttachTextureImage(tr.transparancyMapImage, 3); // transparancy info
 	if (r_normalMappingReal->integer)
 	{
 		FBO_AttachTextureImage(tr.dummyImage4, 4);
@@ -4118,6 +4136,16 @@ int GLSL_BeginLoadGPUShaders(void)
 		ri->Error(ERR_FATAL, "Could not load waterReflection shader!");
 	}
 
+
+	attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL;
+	extradefines[0] = '\0';
+
+	if(!GLSL_BeginLoadGPUShader(&tr.transparancyPostShader, "transparancyPost", attribs, qtrue, qfalse, qfalse, extradefines, qtrue, NULL, fallbackShader_transparancyPost_vp, fallbackShader_transparancyPost_fp, NULL, NULL, NULL))
+	{
+		ri->Error(ERR_FATAL, "Could not load transparancyPost shader!");
+	}
+	
+
 	attribs = ATTR_POSITION | ATTR_TEXCOORD0;
 	extradefines[0] = '\0';
 
@@ -5797,6 +5825,34 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 	numEtcShaders++;
 
+	
+
+	if (!GLSL_EndLoadGPUShader(&tr.transparancyPostShader))
+	{
+		ri->Error(ERR_FATAL, "Could not load transparancyPost shader!");
+	}
+
+	GLSL_InitUniforms(&tr.transparancyPostShader);
+
+	GLSL_BindProgram(&tr.transparancyPostShader);
+
+	GLSL_SetUniformInt(&tr.transparancyPostShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+	GLSL_SetUniformInt(&tr.transparancyPostShader, UNIFORM_WATERPOSITIONMAP, TB_WATERPOSITIONMAP);
+	GLSL_SetUniformInt(&tr.transparancyPostShader, UNIFORM_POSITIONMAP, TB_POSITIONMAP);
+
+	{
+		vec2_t screensize;
+		screensize[0] = glConfig.vidWidth * r_superSampleMultiplier->value;
+		screensize[1] = glConfig.vidHeight * r_superSampleMultiplier->value;
+
+		GLSL_SetUniformVec2(&tr.transparancyPostShader, UNIFORM_DIMENSIONS, screensize);
+	}
+
+#if defined(_DEBUG)
+	GLSL_FinishGPUShader(&tr.transparancyPostShader);
+#endif
+
+	numEtcShaders++;
 
 
 	for (int num = 0; num < 3; num++)
@@ -6961,6 +7017,7 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.waterPostShader[1]);
 	GLSL_DeleteGPUShader(&tr.waterPostShader[2]);
 	GLSL_DeleteGPUShader(&tr.waterReflectionShader);
+	GLSL_DeleteGPUShader(&tr.transparancyPostShader);
 	GLSL_DeleteGPUShader(&tr.cloudsShader);
 	GLSL_DeleteGPUShader(&tr.furShader);
 	GLSL_DeleteGPUShader(&tr.foliageShader);

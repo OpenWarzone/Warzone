@@ -2885,6 +2885,7 @@ typedef struct trGlobals_s {
 	image_t					*renderNormalDetailedImage;
 	image_t					*renderPositionMapImage;
 	image_t					*waterPositionMapImage;
+	image_t					*transparancyMapImage;
 	image_t					*renderPshadowsImage;
 #if 0
 	image_t					*glowImageScaled[4];
@@ -2930,10 +2931,12 @@ typedef struct trGlobals_s {
 	FBO_t					*renderGlowFbo;
 	FBO_t					*renderDetailFbo;
 	FBO_t					*renderWaterFbo;
+	FBO_t					*renderTransparancyFbo;
 	FBO_t					*renderPshadowsFbo;
 	FBO_t					*renderNoDepthFbo;
 	FBO_t					*renderGUIFbo;
 	FBO_t					*waterFbo;
+	FBO_t					*transparancyFbo;
 #if 0
 	FBO_t					*glowFboScaled[4];
 #else
@@ -3058,6 +3061,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t waterPostForwardShader;
 	shaderProgram_t waterPostShader[3];
 	shaderProgram_t waterReflectionShader;
+	shaderProgram_t transparancyPostShader;
 	shaderProgram_t cloudsShader;
 	shaderProgram_t furShader;
 	shaderProgram_t foliageShader;

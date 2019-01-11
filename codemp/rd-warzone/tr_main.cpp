@@ -1906,6 +1906,8 @@ static void R_AddEntitySurface (int entityNum)
 		{
 			shader = R_GetShaderByHandle( ent->e.customShader );
 
+			//ri->Printf(PRINT_ALL, "Drawing sprite %s.\n", shader->name);
+
 			/*
 			// stencil shadows can't do personal models unless I polyhedron clip
 			if (r_shadows->integer == 2

@@ -288,6 +288,10 @@ qboolean HaveSurfaceType( int materialType)
 	case MATERIAL_FIREFLIES:
 	case MATERIAL_PORTAL:
 	case MATERIAL_SKYSCRAPER:
+	case MATERIAL_DISTORTEDGLASS:
+	case MATERIAL_DISTORTEDPUSH:
+	case MATERIAL_DISTORTEDPULL:
+	case MATERIAL_CLOAK:
 		return qtrue;
 		break;
 	default:

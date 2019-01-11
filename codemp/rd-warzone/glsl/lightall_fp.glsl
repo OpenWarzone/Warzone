@@ -505,7 +505,7 @@ void main()
 	GetLava( diffuse, texCoords );
 #else //!defined(__LAVA__)
 #ifdef __GLASS_TEST__
-	if (SHADER_MATERIAL_TYPE == MATERIAL_GLASS)
+	if (SHADER_MATERIAL_TYPE == MATERIAL_DISTORTEDGLASS)
 	{
 		vec3 v = normalize(m_ViewDir);
 		diffuse = calc_glass_color(normalize(u_ViewOrigin), v * u_Local9.r, length(v) * u_Local9.g, (u_Local9.a == 1.0) ? normalize(v * m_Normal.xyz) : normalize(m_Normal.xyz), normalize(m_vertPos) * u_Local9.b);
@@ -513,7 +513,7 @@ void main()
 	else
 #endif //__GLASS_TEST__
 #ifdef __GLASS_TEST2__
-	if (SHADER_MATERIAL_TYPE == MATERIAL_GLASS)
+	if (SHADER_MATERIAL_TYPE == MATERIAL_DISTORTEDGLASS)
 	{
 		vec3 E = normalize(m_ViewDir);
 		//float dt = 1.0 - max(dot(N, E), 0.05);
@@ -665,6 +665,7 @@ void main()
 		&& SHADER_MATERIAL_TYPE != MATERIAL_MAGIC_PARTICLES_TREE
 		&& SHADER_MATERIAL_TYPE != MATERIAL_FIREFLIES
 		&& SHADER_MATERIAL_TYPE != MATERIAL_GLASS
+		&& SHADER_MATERIAL_TYPE != MATERIAL_DISTORTEDGLASS
 		&& SHADER_MATERIAL_TYPE != MATERIAL_PORTAL)
 	{
 		gl_FragColor.rgb = gl_FragColor.rgb * u_MapAmbient.rgb;
@@ -687,6 +688,10 @@ void main()
 	else if (SHADER_MATERIAL_TYPE == MATERIAL_GLASS)
 	{
 		//gl_FragColor.a *= u_Local9.r;
+	}
+	else if (SHADER_MATERIAL_TYPE == MATERIAL_DISTORTEDGLASS)
+	{
+
 	}
 	else
 	{
@@ -740,6 +745,7 @@ void main()
 		&& SHADER_MATERIAL_TYPE != MATERIAL_BPGLASS
 		&& SHADER_MATERIAL_TYPE != MATERIAL_ICE
 		&& SHADER_MATERIAL_TYPE != MATERIAL_GLASS
+		&& SHADER_MATERIAL_TYPE != MATERIAL_DISTORTEDGLASS
 		&& SHADER_MATERIAL_TYPE != MATERIAL_EFX
 		&& SHADER_MATERIAL_TYPE != MATERIAL_BLASTERBOLT
 		&& SHADER_MATERIAL_TYPE != MATERIAL_FIRE
