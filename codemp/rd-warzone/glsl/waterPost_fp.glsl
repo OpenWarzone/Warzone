@@ -5,6 +5,7 @@
 //#define __DEBUG__
 //#define USE_LIGHTING				// Use lighting in this shader? trying to handle the lighting in deferredlight now instead.
 //#define USE_DETAILED_UNDERWATER		// Experimenting...
+#define USE_NEW_LIGHTING
 
 /*
 heightMap – height-map used for waves generation as described in the section “Modifying existing geometry”
@@ -430,6 +431,77 @@ float getdiffuse(vec3 n, vec3 l, float p) {
 float dosun(vec3 ray, vec3 lightDir) {
 	return pow(max(0.0, dot(ray, lightDir)), 528.0);
 }
+
+#ifdef USE_NEW_LIGHTING
+// bteitler: diffuse lighting calculation - could be tweaked to taste
+// lighting
+float diffuse(vec3 n,vec3 l,float p) {
+    return pow(dot(n,l) * 0.4 + 0.6,p);
+}
+
+// bteitler: specular lighting calculation - could be tweaked taste
+float specular(vec3 n,vec3 l,vec3 e,float s) {    
+    float nrm = (s + 8.0) / (3.1415 * 8.0);
+    return pow(max(dot(reflect(e,n),l),0.0),s) * nrm;
+}
+
+// bteitler: Generate a smooth sky gradient color based on ray direction's Y value
+// sky
+vec3 getSkyColor(vec3 e) {
+    e.y = max(e.y,0.0);
+    vec3 ret;
+    ret.x = pow(1.0-e.y,2.0);
+    ret.y = 1.0-e.y;
+    ret.z = 0.6+(1.0-e.y)*0.4;
+    return ret;
+}
+
+// bteitler:
+// p: point on ocean surface to get color for
+// n: normal on ocean surface at <p>
+// l: light (sun) direction
+// eye: ray direction from camera position for this pixel
+// dist: distance from camera to point <p> on ocean surface
+vec3 getSeaColor(vec3 p, vec3 n, vec3 l, vec3 eye, vec3 dist, vec3 lightColor, vec3 SEA_BASE, vec3 SEA_WATER_COLOR, float height) {  
+    // bteitler: Fresnel is an exponential that gets bigger when the angle between ocean
+    // surface normal and eye ray is smaller
+    float fresnel = 1.0 - max(dot(n,-eye),0.0);
+    fresnel = pow(fresnel,3.0) * 0.05;//0.45;
+        
+    // bteitler: Bounce eye ray off ocean towards sky, and get the color of the sky
+    vec3 reflected = getSkyColor(reflect(eye, n))*0.99;
+
+	float DAY_FACTOR_DIFFUSE = pow(1.0 - SHADER_NIGHT_SCALE, 8.0);
+	float DAY_FACTOR_SPECULAR = pow(1.0 - SHADER_NIGHT_SCALE, 6.0);
+    
+    // bteitler: refraction effect based on angle between light surface normal
+	float dif = diffuse(n, l, 3.0);
+	float dif1 = diffuse(n, l, 1.0);
+	float dif2 = diffuse(-n, l, 1.0);
+	float d = max(dif, max(dif1, dif2));
+    //vec3 refracted = SEA_BASE + pow(d, 60.0) * SEA_WATER_COLOR * 0.27 * lightColor; 
+	vec3 refracted = SEA_BASE + pow(d, 60.0) * 0.15 * SEA_WATER_COLOR * lightColor;
+	refracted += clamp(pow(1.0 - dif2, 10.0) * 60.0, 0.0, 1.0) * lightColor * DAY_FACTOR_DIFFUSE;
+	refracted += clamp(pow(dif1, 80.0) * 2048.0, 0.0, 1.0) * lightColor * DAY_FACTOR_DIFFUSE;
+    
+    // bteitler: blend the refracted color with the reflected color based on our fresnel term
+    vec3 color = mix(refracted, reflected, fresnel);
+    
+    // bteitler: Apply a distance based attenuation factor which is stronger
+    // at peaks
+//    float atten = max(1.0 - dot(dist, dist) * 0.001, 0.0);
+//#define SEA_HEIGHT 0.5
+//    color += SEA_WATER_COLOR * (p.y - SEA_HEIGHT) * 0.15 * atten;
+//    color += SEA_WATER_COLOR * height * atten;
+    
+    // bteitler: Apply specular highlight
+	float spec1 = specular(n, l, eye, 30.0/*90.0*/);
+	float spec2 = specular(n, l, eye, 4.0);
+    color += vec3(max(spec1, spec2)) * 0.5 * lightColor * DAY_FACTOR_SPECULAR;
+    
+    return color;
+}
+#endif //USE_NEW_LIGHTING
 
 #define iTime (1.0-u_Time)
 #define EULER 2.7182818284590452353602874
@@ -1080,6 +1152,52 @@ void main ( void )
 		}
 #endif //!defined(__LQ_MODE__)
 		
+#ifdef USE_NEW_LIGHTING
+		vec3 finalSunColor = u_PrimaryLightColor;
+
+		if (SUN_VISIBILITY > 0.0)
+		{
+			vec3 sunsetSun = vec3(1.0, 0.8, 0.625);
+			finalSunColor = mix(u_PrimaryLightColor, sunsetSun, SHADER_NIGHT_SCALE);
+		}
+
+		float refractionFresnel = pow(fresnelTerm(lightingNormal, eyeVecNorm), 0.5);
+		vec3 refractedDeepColor = mix(refraction, waterColorDeep, refractionFresnel * 0.001);
+
+		// bteitler:
+		// p: point on ocean surface to get color for
+		// n: normal on ocean surface at <p>
+		// l: light (sun) direction
+		// eye: ray direction from camera position for this pixel
+		// dist: distance from camera to point <p> on ocean surface
+		color = getSeaColor(surfacePoint, lightingNormal, normalize(ViewOrigin.xyz - u_PrimaryLightOrigin.xzy), eyeVecNorm, surfacePoint - ViewOrigin.xyz, finalSunColor, refractedDeepColor.rgb/*waterColorDeep.rgb*/, waterColorShallow.rgb, height);
+
+#if defined(USE_REFLECTION) && !defined(__LQ_MODE__)
+		if (!pixelIsUnderWater && u_Local1.g >= 2.0)
+		{
+			color = AddReflection(var_TexCoords, position, vec3(surfacePoint.x/*waterMapLower3.x*/, level, surfacePoint.z/*waterMapLower3.z*/), color.rgb, height, surfacePoint.xyz);
+		}
+#endif //defined(USE_REFLECTION) && !defined(__LQ_MODE__)
+
+		//float refractionFresnel = pow(fresnelTerm(lightingNormal, eyeVecNorm), 0.5);
+		//color = mix(refraction, waterColorDeep, refractionFresnel * 0.001);
+		
+		vec3 caustic = color * GetCausicMap(vec3(origWaterMapUpper.x, level, origWaterMapUpper.z));
+		color = clamp(color + (caustic * causicStrength), 0.0, 1.0);
+
+		#if !defined(__LQ_MODE__)
+		if (USE_OCEAN > 0.0)
+		{
+			//color = clamp(color + max(specular, foam.rgb * sunColor), 0.0, 1.0);
+			color += foam.rgb * u_PrimaryLightColor;
+		}
+#endif //!defined(__LQ_MODE__)
+
+		color = mix(refraction, color, clamp(depth * shoreHardness, 0.0, 1.0));
+		color = mix(color, color2, 1.0 - clamp(waterClarity2 * depth, 0.8, 1.0));
+
+
+#else //!USE_NEW_LIGHTING
 		causicStrength *= 0.15 - clamp(max(foam.r, max(foam.g, foam.b)) * foam.a * 32.0, 0.0, 0.15);
 
 		vec3 specular = vec3(0.0);
@@ -1151,6 +1269,8 @@ void main ( void )
 
 		color = mix(refraction, color, clamp(depth * shoreHardness, 0.0, 1.0));
 		color = mix(color, color2, 1.0 - clamp(waterClarity2 * depth, 0.8, 1.0));
+
+#endif //USE_NEW_LIGHTING
 
 		// add white caps...
 		float whiteCaps = pow(clamp(chopheight, 0.0, 1.0), 16.0);

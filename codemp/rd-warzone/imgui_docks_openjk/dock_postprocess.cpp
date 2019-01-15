@@ -170,7 +170,7 @@ void DockPostProcess::MakeCvarList() {
 	//AddCvar(r_sse, 1);
 	AddCvar(r_magicdetail, 1);
 	//AddCvar(r_hbao, 1);
-	AddCvar(r_glslWater, 4);
+	AddCvar(r_glslWater, 5);
 	AddCvar(r_fogPost, 1);
 	AddCvar(r_multipost, 1);
 	AddCvar(r_dof, 3);

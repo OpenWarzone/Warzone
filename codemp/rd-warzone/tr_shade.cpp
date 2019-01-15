@@ -2672,7 +2672,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 #define __USE_DETAIL_DEPTH_SKIP__		// Skip drawing detail crap at all in shadow and depth prepasses - they should never be needed...
 #define __LIGHTMAP_IS_DETAIL__			// Lightmap stages are considered detail...
 
-		if (pStage->isWater && r_glslWater->integer && r_glslWater->integer <= 3 && WATER_ENABLED && MAP_WATER_LEVEL < 131000.0 && MAP_WATER_LEVEL > -131000.0)
+		if (pStage->isWater && r_glslWater->integer && WATER_ENABLED && MAP_WATER_LEVEL < 131000.0 && MAP_WATER_LEVEL > -131000.0)
 		{
 			if (IS_DEPTH_PASS == 1)
 			{
@@ -2773,35 +2773,6 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 
 			GLSL_BindProgram(sp);
 		}
-#ifdef __WATER_STUFF__
-		else if (pStage->isWater && r_glslWater->integer && r_glslWater->integer > 3 /*&& WATER_ENABLED*/)
-		{
-			/*if (IS_DEPTH_PASS == 1)
-			{
-				break;
-			}
-			else if (stage <= 0)
-			{*/
-				sp = &tr.waterPostForwardShader;
-				pStage->glslShaderGroup = &tr.waterPostForwardShader;
-				isWater = qtrue;
-				isGrass = qfalse;
-				isGroundFoliage = qfalse;
-				multiPass = qfalse;
-			/*}
-			else
-			{// Only do one stage on GLSL water...
-				break;
-			}*/
-
-			GLSL_BindProgram(sp);
-		}
-#else
-		else if (pStage->isWater && r_glslWater->integer && r_glslWater->integer > 3 /*&& WATER_ENABLED*/)
-		{
-			break;
-		}
-#endif //__WATER_STUFF__
 		else if (r_proceduralSun->integer && tess.shader == tr.sunShader)
 		{// Special case for procedural sun...
 			if (IS_DEPTH_PASS) return;
@@ -4048,15 +4019,6 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			{// Don't need any textures... Procedural...
 				//GL_BindToTMU(tr.random2KImage[0], TB_DIFFUSEMAP);
 			}
-#ifdef __WATER_STUFF__
-			else if (pStage->isWater && r_glslWater->integer && r_glslWater->integer > 3 /*&& WATER_ENABLED*/)
-			{
-				if (!(pStage->stateBits & GLS_ATEST_BITS))
-					GL_BindToTMU(tr.whiteImage, 0);
-				else if (pStage->bundle[TB_COLORMAP].image[0] != 0)
-					R_BindAnimatedImageToTMU(&pStage->bundle[TB_COLORMAP], TB_COLORMAP);
-			}
-#endif //__WATER_STUFF__
 			else if (pStage->useSkyImage && tr.skyImageShader)
 			{// This stage wants sky up image for it's diffuse... TODO: sky cubemap...
 #ifdef __DAY_NIGHT__
@@ -4591,14 +4553,6 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 
 				GL_Cull(CT_TWO_SIDED);
 			}
-#ifdef __WATER_STUFF__
-			else if (pStage->isWater && r_glslWater->integer && r_glslWater->integer > 3 /*&& WATER_ENABLED*/)
-			{
-				//GL_BindToTMU(tr.waterNormalImage, TB_NORMALMAP);
-				GLSL_SetUniformFloat(sp, UNIFORM_TIME, tess.shaderTime*10.0);
-			}
-#endif //__WATER_STUFF__
-			
 			
 			if (useTesselation)
 			{
@@ -4697,11 +4651,11 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			VectorSet4(l9, r_testshaderValue1->value, r_testshaderValue2->value, r_testshaderValue3->value, r_testshaderValue4->value);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL9, l9);
 
-			if (isWater && r_glslWater->integer && r_glslWater->integer <= 3 && WATER_ENABLED && MAP_WATER_LEVEL < 131000.0 && MAP_WATER_LEVEL > -131000.0)
+			if (isWater && r_glslWater->integer && WATER_ENABLED && MAP_WATER_LEVEL < 131000.0 && MAP_WATER_LEVEL > -131000.0)
 			{// Attach dummy water output textures...
 				if (glState.currentFBO == tr.renderFbo)
 				{// Only attach textures when doing a render pass...
-					stateBits = GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_ATEST_GT_0;
+					stateBits = GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO /*| GLS_ATEST_GT_0*/;
 					tess.shader->cullType = CT_TWO_SIDED; // Always...
 					FBO_Bind(tr.renderWaterFbo);
 

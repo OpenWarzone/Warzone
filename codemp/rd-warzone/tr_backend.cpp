@@ -734,7 +734,7 @@ void RB_ClearRenderBuffers ( void )
 		&& !(tr.renderCubeFbo != NULL && backEnd.viewParms.targetFbo == tr.renderCubeFbo)
 		&& !(tr.renderSkyFbo != NULL && backEnd.viewParms.targetFbo == tr.renderSkyFbo))
 	{
-		if (r_glslWater->integer && r_glslWater->integer <= 3 && WATER_ENABLED && MAP_WATER_LEVEL < 131000.0 && MAP_WATER_LEVEL > -131000.0)
+		if (r_glslWater->integer && WATER_ENABLED && MAP_WATER_LEVEL < 131000.0 && MAP_WATER_LEVEL > -131000.0)
 		{
 			FBO_t *oldFbo = glState.currentFBO;
 			FBO_Bind(tr.waterFbo);
@@ -3572,7 +3572,7 @@ const void *RB_PostProcess(const void *data)
 			}
 		}
 
-		if (!SCREEN_BLUR && r_glslWater->integer && r_glslWater->integer <= 3 && WATER_ENABLED)
+		if (!SCREEN_BLUR && r_glslWater->integer && WATER_ENABLED)
 		{
 			DEBUG_StartTimer("Water Post", qtrue);
 			RB_WaterPost(currentFbo, srcBox, currentOutFbo, dstBox);

@@ -34,7 +34,7 @@ void DockControlFlow::imgui() {
 		showCvar("Screen RB_FastBlur()"                                        , r_screenBlurFast  );
 		//showCvar("RB_HBAO"                                                     , r_hbao            );
 		showCvar("RB_SSDM (ENABLE_DISPLACEMENT_MAPPING)"                       , r_ssdm            );
-		showCvar("RB_WaterPost (r_glslWater->integer <= 3 && WATER_ENABLED)"   , r_glslWater       );
+		showCvar("RB_WaterPost"                                                , r_glslWater       );
 		showCvar("RB_FogPostShader (FOG_POST_ENABLED && LATE_LIGHTING_ENABLED)", r_fogPost         );
 		showCvar("RB_MultiPost"                                                , r_multipost       );
 		showCvar("RB_DOF"                                                      , r_dof             );

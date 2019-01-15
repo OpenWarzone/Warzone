@@ -118,6 +118,8 @@ extern const char *fallbackShader_skyDome_fp;
 extern const char *fallbackShader_skyDome_vp;
 extern const char *fallbackShader_waterPost_fp;
 extern const char *fallbackShader_waterPost_vp;
+extern const char *fallbackShader_waterPost2_fp;
+extern const char *fallbackShader_waterPost2_vp;
 extern const char *fallbackShader_waterReflection_fp;
 extern const char *fallbackShader_waterReflection_vp;
 extern const char *fallbackShader_waterPostForward_fp;
@@ -4131,6 +4133,35 @@ int GLSL_BeginLoadGPUShaders(void)
 	attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL;
 	extradefines[0] = '\0';
 
+	if (!GLSL_BeginLoadGPUShader(&tr.waterPostShader[3], "waterPost3", attribs, qtrue, qfalse, qfalse, extradefines, qtrue, NULL, fallbackShader_waterPost2_vp, fallbackShader_waterPost2_fp, NULL, NULL, NULL))
+	{
+		ri->Error(ERR_FATAL, "Could not load waterPost[3] shader!");
+	}
+
+	attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL;
+	extradefines[0] = '\0';
+
+	Q_strcat(extradefines, 1024, "#define USE_REFLECTION\n");
+
+	if (!GLSL_BeginLoadGPUShader(&tr.waterPostShader[4], "waterPost4", attribs, qtrue, qfalse, qfalse, extradefines, qtrue, NULL, fallbackShader_waterPost2_vp, fallbackShader_waterPost2_fp, NULL, NULL, NULL))
+	{
+		ri->Error(ERR_FATAL, "Could not load waterPost[4] shader!");
+	}
+
+	attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL;
+	extradefines[0] = '\0';
+
+	Q_strcat(extradefines, 1024, "#define USE_REFLECTION\n");
+	Q_strcat(extradefines, 1024, "#define USE_RAYTRACE\n");
+
+	if (!GLSL_BeginLoadGPUShader(&tr.waterPostShader[5], "waterPost5", attribs, qtrue, qfalse, qfalse, extradefines, qtrue, NULL, fallbackShader_waterPost2_vp, fallbackShader_waterPost2_fp, NULL, NULL, NULL))
+	{
+		ri->Error(ERR_FATAL, "Could not load waterPost[5] shader!");
+	}
+
+	attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL;
+	extradefines[0] = '\0';
+
 	if (!GLSL_BeginLoadGPUShader(&tr.waterReflectionShader, "waterReflection", attribs, qtrue, qfalse, qfalse, extradefines, qtrue, NULL, fallbackShader_waterReflection_vp, fallbackShader_waterReflection_fp, NULL, NULL, NULL))
 	{
 		ri->Error(ERR_FATAL, "Could not load waterReflection shader!");
@@ -5720,7 +5751,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 	numEtcShaders++;
 
 
-	for (int i = 0; i < 3; i++)
+	for (int i = 0; i < 6; i++)
 	{
 		if (!GLSL_EndLoadGPUShader(&tr.waterPostShader[i]))
 		{
@@ -6916,11 +6947,6 @@ void GLSL_EndLoadGPUShaders(int startTime)
 	ri->Printf(PRINT_ALL, "loaded %i GLSL shaders (%i gen %i light %i etc) in %5.2f seconds\n",
 		numGenShaders + numLightShaders + numEtcShaders, numGenShaders, numLightShaders,
 		numEtcShaders, (ri->Milliseconds() - startTime) / 1000.0);
-
-#ifdef __OCEAN__
-	extern void OCEAN_InitOcean();
-	OCEAN_InitOcean();
-#endif //__OCEAN__
 }
 
 void GLSL_ShutdownGPUShaders(void)
@@ -7016,6 +7042,9 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.waterPostShader[0]);
 	GLSL_DeleteGPUShader(&tr.waterPostShader[1]);
 	GLSL_DeleteGPUShader(&tr.waterPostShader[2]);
+	GLSL_DeleteGPUShader(&tr.waterPostShader[3]);
+	GLSL_DeleteGPUShader(&tr.waterPostShader[4]);
+	GLSL_DeleteGPUShader(&tr.waterPostShader[5]);
 	GLSL_DeleteGPUShader(&tr.waterReflectionShader);
 	GLSL_DeleteGPUShader(&tr.transparancyPostShader);
 	GLSL_DeleteGPUShader(&tr.cloudsShader);

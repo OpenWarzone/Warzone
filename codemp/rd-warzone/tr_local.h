@@ -3059,7 +3059,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t waterForwardShader;
 	shaderProgram_t waterForwardFastShader;
 	shaderProgram_t waterPostForwardShader;
-	shaderProgram_t waterPostShader[3];
+	shaderProgram_t waterPostShader[6];
 	shaderProgram_t waterReflectionShader;
 	shaderProgram_t transparancyPostShader;
 	shaderProgram_t cloudsShader;

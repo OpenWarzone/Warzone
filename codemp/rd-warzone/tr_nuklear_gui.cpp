@@ -1238,7 +1238,7 @@ void GUI_PostProcessMakeCvarList() {
 	//GUI_PostProcessAddCvar(r_sse, 1);
 	GUI_PostProcessAddCvar(r_magicdetail, 1);
 	//GUI_PostProcessAddCvar(r_hbao, 1);
-	GUI_PostProcessAddCvar(r_glslWater, 4);
+	GUI_PostProcessAddCvar(r_glslWater, 5);
 	GUI_PostProcessAddCvar(r_fogPost, 1);
 	GUI_PostProcessAddCvar(r_multipost, 1);
 	GUI_PostProcessAddCvar(r_dof, 3);

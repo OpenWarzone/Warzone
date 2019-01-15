@@ -2092,7 +2092,7 @@ void RB_WaterPost(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 	}
 
 	{// Actual water draw...
-		shaderProgram_t *shader = &tr.waterPostShader[Q_clampi(0, r_glslWater->integer - 1, 2)];
+		shaderProgram_t *shader = &tr.waterPostShader[Q_clampi(0, r_glslWater->integer - 1, 5)];
 
 		GLSL_BindProgram(shader);
 

@@ -2270,12 +2270,6 @@ void MAPPING_LoadMapInfo(void)
 		tr.waterFoamImage[1] = R_FindImageFile("textures/water/waterFoamGrey02.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
 		tr.waterFoamImage[2] = R_FindImageFile("textures/water/waterFoamGrey03.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
 		tr.waterFoamImage[3] = R_FindImageFile("textures/water/waterFoamGrey04.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
-
-		if (WATER_ENABLED && WATER_FARPLANE_ENABLED && r_glslWater->integer >= 4)
-		{
-			tr.waterNormalImage = R_FindImageFile("textures/water/waves.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE);
-		}
-
 		tr.waterCausicsImage = R_FindImageFile("textures/water/waterCausicsMap.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
 
 		{
