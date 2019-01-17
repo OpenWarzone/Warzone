@@ -563,7 +563,7 @@ float map(vec3 p) {
         // the "waves within waves" have different looking shapes, not just frequency and offset
         choppy = mix(choppy,1.0,0.2);
     }
-    return (p.y-0.5) - h; // -0.5 to lower to the warzone water edge effect...
+    return p.y - h;
 }
 
 // bteitler: Compute the distance along Y axis of a point to the surface of the ocean
@@ -601,7 +601,7 @@ float map_detailed(vec3 p) {
         // the "waves within waves" have different looking shapes, not just frequency and offset
         choppy = mix(choppy,1.0,0.2);
     }
-    return (p.y-0.5) - h; // -0.5 to lower to the warzone water edge effect...
+    return p.y - h;
 }
 
 // bteitler:
@@ -729,7 +729,16 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
 	vec3 inColor = fragColor.rgb;
 
 	vec3 ori = u_ViewOrigin.xzy;
-	vec3 dir = normalize(waterMap.xyz - u_ViewOrigin.xzy);
+	
+	if (length(ori.y - u_ViewOrigin.z) < waveHeight*2.0)
+	{// Correct low angles...
+		if (pixelIsUnderWater)
+			ori.y -= waveHeight*2.0;
+		else
+			ori.y += waveHeight*2.0;
+	}
+
+	vec3 dir = normalize(waterMap.xyz - ori);
 
 	// bteitler: direction of the infinitely far away directional light.  Changing this will change
     // the sunlight direction.
@@ -812,8 +821,8 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
 		hMap = positionMap.y;
 	}
 
-	float depth2 = length(mapLevel - hMap) * 0.95;
-	float depth = length(length(positionMap.xyz - finalPos) / (waveHeight * -2.0)) * waterClarity;
+	float depth2 = length(mapLevel - hMap) * 1.25;
+	float depth = length(length(positionMap.xyz - finalPos) / (waveHeight * -1.25));
 	float depthN = length(depth * fadeSpeed);
 
 	float timer = systemtimer * (waveHeight / 16.0);
@@ -823,8 +832,10 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
 
     // CaliCoastReplay:  Get the sky and sea colors
 	//vec3 skyColor = getSkyColor(dir);
-	float refStr = (1.0 - clamp(depthN / visibility, 0.0, 1.0)) * waterClarity;
-    vec3 seaColor = getSeaColor(p,n,light,dir,dist,lightColor,refStr,refraction);
+	float refStr = (1.0 - clamp((depthN * pow(1.0-waterClarity, 5.0)) / visibility, 0.0, 1.0));
+    vec3 seaColor = getSeaColor(p,n,light,dir,dist,lightColor,refStr*0.5,refraction);
+	if (pixelIsUnderWater) refStr = 0.5;
+	seaColor = mix(seaColor, refraction, refStr);
     
     //Sea/sky preprocessing
     
@@ -965,7 +976,7 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
 	bool whitecapAdded = false;
 	vec4 foam = vec4(0.0);
 	float foamLength = 0.0;
-	float foamPower = clamp(pow(1.0 - height, 0.25) * 4.0, 0.0, 1.0);
+	float foamPower = clamp(pow(1.0 - height, 1.25), 0.0, 1.0);
 	foamPower *= depthN / 48.0;
 
 	if (depth2 < foamExistence.x)
@@ -993,7 +1004,7 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
 
 	if (foamAdded || whitecapAdded)
 	{
-		fragColor.rgb = clamp(fragColor.rgb + (foam.rgb * foamPower * 4.0), 0.0, 1.0);
+		fragColor.rgb = clamp(fragColor.rgb + (foam.rgb * foamPower), 0.0, 1.0);
 	}
 
 	/*foamLength = clamp(length(foam.rgb * foamPower), 0.0, 1.0);
@@ -1135,6 +1146,10 @@ void main ( void )
 
 	if (pixelIsInWaterRange || pixelIsUnderWater || position.y <= waterMapLower.y + waveHeight)
 	{
+		position.y += 72.0;
+		positionMap.y += 72.0;
+		waterMapLower.y += 72.0;
+		waterMapUpper.y += 72.0;
 		vec4 fragColor = vec4(color.rgb, 1.0);
 		Water( fragColor, vec4(position.xyz, positionMap.a), waterMapLower, waterMapUpper, pixelIsUnderWater );
 		color.rgb = fragColor.rgb;

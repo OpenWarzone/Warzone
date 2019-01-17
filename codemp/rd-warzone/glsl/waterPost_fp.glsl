@@ -631,7 +631,14 @@ void GetHeightAndNormal(in vec2 pos, in float e, in float depth, inout float hei
 		vec3 dnormal = cross(normalize(da - db), normalize(da - dc));
 		dnormal = normalize(dnormal);
 
-		lightingNormal = normalize(mix(waveNormal, dnormal, 0.6));
+		//lightingNormal = normalize(mix(waveNormal, dnormal, 0.6));
+
+		lightingNormal = normalize(vec3( mix(dnormal.x, waveNormal.x, 0.5), mix(dnormal.y, waveNormal.y, 0.333), mix(dnormal.z, waveNormal.z, 0.5) ));
+		
+		//vec3 n = waveNormal * dnormal;
+		//lightingNormal = normalize(vec3(n.x, n.y * 0.5/*1.15*/, n.z));
+
+		//lightingNormal = normalize(mix(waveNormal, dnormal, 0.95));
 
 		//height *= u_Local0.g;//1.4;
 		chopheight = max(height, dheight) * 0.95;//* 0.25;
