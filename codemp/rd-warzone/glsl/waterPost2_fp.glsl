@@ -610,17 +610,19 @@ float map_detailed(vec3 p) {
 // l: light (sun) direction
 // eye: ray direction from camera position for this pixel
 // dist: distance from camera to point <p> on ocean surface
-vec3 getSeaColor(vec3 p, vec3 n, vec3 l, vec3 eye, vec3 dist, vec3 lightColor) {  
+vec3 getSeaColor(vec3 p, vec3 n, vec3 l, vec3 eye, vec3 dist, vec3 lightColor, float refrStr, vec3 refr) {  
     // bteitler: Fresnel is an exponential that gets bigger when the angle between ocean
     // surface normal and eye ray is smaller
     float fresnel = 1.0 - max(dot(n,-eye),0.0);
     fresnel = pow(fresnel,3.0) * 0.45;
         
     // bteitler: Bounce eye ray off ocean towards sky, and get the color of the sky
-    vec3 reflected = getSkyColor(reflect(eye, n))*0.99;    
+    vec3 reflected = mix(getSkyColor(reflect(eye, n))*0.99, refr, refrStr);    
     
     // bteitler: refraction effect based on angle between light surface normal
-    vec3 refracted = SEA_BASE + diffuse(n, l, 80.0) * SEA_WATER_COLOR * 0.27 * lightColor; 
+	vec3 refCol = mix(SEA_BASE, refr, refrStr*waterClarity);
+	vec3 swCol = mix(SEA_WATER_COLOR, refr, refrStr*waterClarity);
+    vec3 refracted = refCol + diffuse(n, l, 80.0) * swCol * 0.27 * lightColor; 
     
     // bteitler: blend the refracted color with the reflected color based on our fresnel term
     vec3 color = mix(refracted, reflected, fresnel);
@@ -628,7 +630,7 @@ vec3 getSeaColor(vec3 p, vec3 n, vec3 l, vec3 eye, vec3 dist, vec3 lightColor) {
     // bteitler: Apply a distance based attenuation factor which is stronger
     // at peaks
     float atten = max(1.0 - dot(dist, dist) * 0.001, 0.0);
-    color += SEA_WATER_COLOR * (p.y - SEA_HEIGHT) * 0.15 * atten;
+    color += SEA_WATER_COLOR * clamp(p.y - SEA_HEIGHT, 0.0, 1.0) * 0.15 * atten;
     
     // bteitler: Apply specular highlight
     color += vec3(specular(n, l, eye, 90.0)) * 0.5 * lightColor;
@@ -750,12 +752,12 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
 	{
 		dir *= -1.0;
 		light *= -1.0;
-		mapLevel = positionMap.y / (waveHeight * 2.0);
+		mapLevel = positionMap.y / (waveHeight * 1.25/*2.0*/);
 		adjustedWMUHeight = waterMapUpper.y / (waveHeight * 2.0);
 	}
 	else
 	{
-		mapLevel = positionMap.y / (waveHeight * -2.0);
+		mapLevel = positionMap.y / (waveHeight * -1.25/*-2.0*/);
 		adjustedWMUHeight = waterMapUpper.y / (waveHeight * -2.0);
 	}
 
@@ -787,9 +789,42 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
                 * EPSILON_NRM // bteitler: Just a resolution constant.. could easily be tweaked to artistic content
            );
 
+	vec3 finalPos = p.xyz;
+
+	if (pixelIsUnderWater)
+	{
+		finalPos = p.xyz * waveHeight;
+	}
+	else
+	{
+		finalPos = p.xyz * -waveHeight;
+	}
+
+	float hMap;
+
+	/*if (HAVE_HEIGHTMAP > 0.0)
+	{
+		hMap = GetHeightMap(waterMap.xzy);
+		//hMap = GetHeightMap(finalPos.xzy);
+	}
+	else*/
+	{
+		hMap = positionMap.y;
+	}
+
+	float depth2 = length(mapLevel - hMap) * 0.95;
+	float depth = length(length(positionMap.xyz - finalPos) / (waveHeight * -2.0)) * waterClarity;
+	float depthN = length(depth * fadeSpeed);
+
+	float timer = systemtimer * (waveHeight / 16.0);
+	vec2 texCoord = var_TexCoords.xy;
+	texCoord.x += sin(timer * 0.002 + 3.0 * abs(positionMap.y)) * (refractionScale * min(depth2, 1.0));
+	vec3 refraction = textureLod(u_DiffuseMap, texCoord, 0.0).rgb;
+
     // CaliCoastReplay:  Get the sky and sea colors
-	vec3 skyColor = getSkyColor(dir);
-    vec3 seaColor = getSeaColor(p,n,light,dir,dist,lightColor);
+	//vec3 skyColor = getSkyColor(dir);
+	float refStr = (1.0 - clamp(depthN / visibility, 0.0, 1.0)) * waterClarity;
+    vec3 seaColor = getSeaColor(p,n,light,dir,dist,lightColor,refStr,refraction);
     
     //Sea/sky preprocessing
     
@@ -800,30 +835,30 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
     
     //CaliCoastReplay:  Day/night mode
 	vec3 seaColorDay = seaColor;
-	vec3 skyColorDay = skyColor;
+	//vec3 skyColorDay = skyColor;
 	vec3 seaColorNight = seaColor;
-	vec3 skyColorNight = skyColor;
+	//vec3 skyColorNight = skyColor;
     
         
 	//Brighten the sea up again, but not too bright at night
     seaColorNight *= seaColorNight * 8.5;
         
     //Turn down the sky 
-    skyColorNight /= 1.69;
+    //skyColorNight /= 1.69;
     
     //Brighten the sea up again - bright and beautiful blue at day
     seaColorDay *= sqrt(sqrt(seaColorDay)) * 4.0;
-    skyColorDay *= 1.05;
-    skyColorDay -= 0.03;
+    //skyColorDay *= 1.05;
+    //skyColorDay -= 0.03;
     
 
-	float skyDayNightFactor = clamp(SHADER_NIGHT_SCALE - 0.75, 0.0, 1.0) * 4.0;
+	float skyDayNightFactor = clamp(clamp(SHADER_NIGHT_SCALE - 0.75, 0.0, 1.0) * 4.0, 0.0, 1.0);
 
 	seaColor = mix(seaColorDay, seaColorNight, skyDayNightFactor);
-	skyColor = mix(skyColorDay, skyColorNight, skyDayNightFactor);
+	//skyColor = mix(skyColorDay, skyColorNight, skyDayNightFactor);
     
     //CaliCoastReplay:  A slight "constrasting" for the sky to match the more contrasted ocean
-    skyColor *= skyColor;
+    //skyColor *= skyColor;
     
     
     //CaliCoastReplay:  A rather hacky manipulation of the high-value regions in the image that seems
@@ -839,13 +874,13 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
     // in the distance in an exponential manner.
     
 #if 0
-	float seaAlpha = pow(smoothstep(0.0,-0.05,dir.y), 0.3);
+	/*float seaAlpha = pow(smoothstep(0.0,-0.05,dir.y), 0.3);
 
 	vec3 color = mix(
         skyColor,
         seaColor,
     	seaAlpha // bteitler: Can be thought of as "fog" that gets thicker in the distance
-    );
+    );*/
 #else
     vec3 color = seaColor;
 #endif
@@ -856,6 +891,7 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
     // tweaked artistically.
     fragColor = vec4(pow(color,vec3(0.75)), 1.0);
     
+#if 1
     // CaliCoastReplay:  Adjust hue, saturation, and value adjustment for an even more processed look
     // hsv.x is hue, hsv.y is saturation, and hsv.z is value
     vec3 hsv = rgb2hsv(fragColor.xyz);    
@@ -894,8 +930,9 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
     dayHsv.z *= 0.9;
         
     //CaliCoastReplay:  Hue alteration 
-    dayHsv.x -= dayHsv.z/10.0;
-    dayHsv.x += 0.02 + dayHsv.z/50.0;
+    //dayHsv.x -= dayHsv.z/10.0;
+    //dayHsv.x += 0.02 + dayHsv.z/50.0;
+
     //Final brightening
     dayHsv.z *= 1.01;
     //This really "cinemafies" it for the day -
@@ -911,39 +948,9 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
     //CaliCoastReplay:    
     //Replace the final color with the adjusted, translated HSV values
     fragColor.xyz = clamp(hsv2rgb(hsv), 0.0, 1.0);
+#endif
 
-	vec3 finalPos = p.xyz;
-
-	if (pixelIsUnderWater)
-	{
-		finalPos = p.xyz * waveHeight;
-	}
-	else
-	{
-		finalPos = p.xyz * -waveHeight;
-	}
-
-	float hMap;
-
-	/*if (HAVE_HEIGHTMAP > 0.0)
-	{
-		hMap = GetHeightMap(waterMap.xzy);
-		//hMap = GetHeightMap(finalPos.xzy);
-	}
-	else*/
-	{
-		hMap = positionMap.y;
-	}
-
-	float depth2 = length(mapLevel - hMap) * 0.25;
-	float depth = length(length(positionMap.xyz - finalPos) / (waveHeight * -2.0)) * waterClarity;
-	float depthN = depth * fadeSpeed;
-
-	float timer = systemtimer * (waveHeight / 16.0);
-	vec2 texCoord = var_TexCoords.xy;
-	texCoord.x += sin(timer * 0.002 + 3.0 * abs(positionMap.y)) * (refractionScale * min(depth2, 1.0));
-	vec3 refraction = textureLod(u_DiffuseMap, texCoord, 0.0).rgb;
-	vec3 refraction1 = mix(refraction, fragColor.rgb, clamp(vec3(depthN) / vec3(visibility), 0.0, 1.0));
+	vec3 refraction1 = mix(refraction, fragColor.rgb, clamp(depthN / visibility, 0.0, 1.0));
 	fragColor.rgb = mix(refraction1, fragColor.rgb, clamp((vec3(depth2) / vec3(extinction)), 0.0, 1.0));
 
 
@@ -954,26 +961,51 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
 	}
 #endif //defined(USE_REFLECTION) && !defined(__LQ_MODE__)
 
+	bool foamAdded = false;
+	bool whitecapAdded = false;
 	vec4 foam = vec4(0.0);
+	float foamLength = 0.0;
+	float foamPower = clamp(pow(1.0 - height, 0.25) * 4.0, 0.0, 1.0);
+	foamPower *= depthN / 48.0;
 
 	if (depth2 < foamExistence.x)
 	{
 		foam = GetFoamMap(waterMap.xzy);
+		foamAdded = true;
 	}
 	else if (depth2 < foamExistence.y)
 	{
 		foam = mix(GetFoamMap(waterMap.xzy), vec4(0.0), (depth2 - foamExistence.x) / (foamExistence.y - foamExistence.x));
+		foamAdded = true;
 	}
 
 	if (waveHeight - foamExistence.z > 0.0001)
 	{
-		foam += GetFoamMap(waterMap.xzy + foamExistence.z) * clamp((finalPos.y - (waterMapUpper.y + foamExistence.z)) / (waveHeight - foamExistence.z), 0.0, 1.0);
+		float fPow = clamp((finalPos.y - (waterMapUpper.y + foamExistence.z)) / (waveHeight - foamExistence.z), 0.0, 1.0);
+		foam += GetFoamMap(waterMap.xzy + foamExistence.z) * fPow;
+		if (fPow > 0.0)
+		{
+			whitecapAdded = true;
+		}
 	}
 
 	if (foam.a <= 0.0) foam = vec4(0.0);
-	//foam *= foam.a;
 
-	fragColor.rgb = clamp(fragColor.rgb + (foam.rgb /** lightColor*/), 0.0, 1.0);
+	if (foamAdded || whitecapAdded)
+	{
+		fragColor.rgb = clamp(fragColor.rgb + (foam.rgb * foamPower * 4.0), 0.0, 1.0);
+	}
+
+	/*foamLength = clamp(length(foam.rgb * foamPower), 0.0, 1.0);
+	foamLength = pow(foamLength, 1.5);
+
+	if (foamAdded || depth2 < foamExistence.y)
+	{
+		float ff = 1.0 - clamp(depth2 / foamExistence.y, 0.0, 1.0);
+		ff = clamp(pow(ff, 0.75), 0.0, 1.0);
+		if (foamAdded) ff *= foamLength;
+		fragColor.rgb = mix(fragColor.rgb, refraction.rgb, ff);
+	}*/
 
 	/*
 	// add white caps...

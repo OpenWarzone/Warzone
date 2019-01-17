@@ -5,7 +5,6 @@
 //#define __DEBUG__
 //#define USE_LIGHTING				// Use lighting in this shader? trying to handle the lighting in deferredlight now instead.
 //#define USE_DETAILED_UNDERWATER		// Experimenting...
-#define USE_NEW_LIGHTING
 
 /*
 heightMap – height-map used for waves generation as described in the section “Modifying existing geometry”
@@ -432,7 +431,6 @@ float dosun(vec3 ray, vec3 lightDir) {
 	return pow(max(0.0, dot(ray, lightDir)), 528.0);
 }
 
-#ifdef USE_NEW_LIGHTING
 // bteitler: diffuse lighting calculation - could be tweaked to taste
 // lighting
 float diffuse(vec3 n,vec3 l,float p) {
@@ -497,11 +495,23 @@ vec3 getSeaColor(vec3 p, vec3 n, vec3 l, vec3 eye, vec3 dist, vec3 lightColor, v
     // bteitler: Apply specular highlight
 	float spec1 = specular(n, l, eye, 30.0/*90.0*/);
 	float spec2 = specular(n, l, eye, 4.0);
-    color += vec3(max(spec1, spec2)) * 0.5 * lightColor * DAY_FACTOR_SPECULAR;
+	
+	// Mad scientist uniqueone waterness-looking craziness, adds general water looks across the board... Completely fake, but looks nice :)
+	float wness = clamp(n.y, 0.0, 1.0);
+	float wness1 = pow(pow(wness, 80.0) * 0.5, 4.0);
+	float wness2 = pow(wness, 8.0) * 0.333;
+	float wness3 = pow(wness, 2.0) * 0.2;
+
+	// It's not specular, it's not diffuse, it's "speckles"! :)
+	float speckles = clamp(pow(1.0 - clamp(n.y * 2.0 - 1.0, 0.0, 1.0), 8.0) * 2.0, 0.0, 1.0);
+
+	// Use the maximum from above for final specular...
+	float spec3 = max(wness1, max(wness2, max(wness3, speckles)));
+
+    color += vec3(max(spec1, max(spec2, spec3))) * 0.5 * lightColor * DAY_FACTOR_SPECULAR;
     
     return color;
 }
-#endif //USE_NEW_LIGHTING
 
 #define iTime (1.0-u_Time)
 #define EULER 2.7182818284590452353602874
@@ -1131,7 +1141,7 @@ void main ( void )
 		float causicStrength = 1.0; // Scale back causics where there's foam, and over distance...
 
 		float pixDist = distance(surfacePoint.xyz, ViewOrigin.xyz);
-		causicStrength *= 1.0 - clamp(pixDist / 1024.0, 0.0, 1.0);
+		causicStrength *= 1.0 - clamp(pixDist / 1024.0, 0.0, 1.0) * (1.0 - clamp(depth2 / extinction.y, 0.0, 1.0));
 
 #if !defined(__LQ_MODE__)
 		if (USE_OCEAN > 0.0)
@@ -1152,7 +1162,6 @@ void main ( void )
 		}
 #endif //!defined(__LQ_MODE__)
 		
-#ifdef USE_NEW_LIGHTING
 		vec3 finalSunColor = u_PrimaryLightColor;
 
 		if (SUN_VISIBILITY > 0.0)
@@ -1179,16 +1188,14 @@ void main ( void )
 		}
 #endif //defined(USE_REFLECTION) && !defined(__LQ_MODE__)
 
-		//float refractionFresnel = pow(fresnelTerm(lightingNormal, eyeVecNorm), 0.5);
-		//color = mix(refraction, waterColorDeep, refractionFresnel * 0.001);
-		
-		vec3 caustic = color * GetCausicMap(vec3(origWaterMapUpper.x, level, origWaterMapUpper.z));
-		color = clamp(color + (caustic * causicStrength), 0.0, 1.0);
+		vec3 caustic = color * GetCausicMap(vec3(positionMap.x, positionMap.z, (positionMap.z + level) / 16.0) / 3.0);
+		causicStrength *= 1.0 - clamp(length(foam.rgb * 3.0), 0.0, 1.0); // deduct roam strength from causics...
+		causicStrength *= 1.0 - clamp(height * 4.0, 0.0, 1.0); // deduct height from causics...
+		color = clamp(color + (caustic * causicStrength * 0.5), 0.0, 1.0);
 
-		#if !defined(__LQ_MODE__)
+#if !defined(__LQ_MODE__)
 		if (USE_OCEAN > 0.0)
 		{
-			//color = clamp(color + max(specular, foam.rgb * sunColor), 0.0, 1.0);
 			color += foam.rgb * u_PrimaryLightColor;
 		}
 #endif //!defined(__LQ_MODE__)
@@ -1196,81 +1203,6 @@ void main ( void )
 		color = mix(refraction, color, clamp(depth * shoreHardness, 0.0, 1.0));
 		color = mix(color, color2, 1.0 - clamp(waterClarity2 * depth, 0.8, 1.0));
 
-
-#else //!USE_NEW_LIGHTING
-		causicStrength *= 0.15 - clamp(max(foam.r, max(foam.g, foam.b)) * foam.a * 32.0, 0.0, 0.15);
-
-		vec3 specular = vec3(0.0);
-		vec3 lightDir = normalize(ViewOrigin.xyz - u_PrimaryLightOrigin.xzy);
-
-		float fresnel = fresnelTerm(lightingNormal, eyeVecNorm);
-		float refractionFresnel = pow(fresnel, 0.5);
-
-		vec3 dist = -eyeVecNorm;
-
-		color = mix(refraction, waterColorDeep, refractionFresnel * 0.001);
-
-		float atten = max(1.0 - dot(dist, dist) * 0.001, 0.0);
-		color += waterColorShallow.rgb * height * 0.18 * atten;
-
-#if defined(USE_REFLECTION) && !defined(__LQ_MODE__)
-		if (!pixelIsUnderWater && u_Local1.g >= 2.0)
-		{
-			color = AddReflection(var_TexCoords, position, vec3(surfacePoint.x/*waterMapLower3.x*/, level, surfacePoint.z/*waterMapLower3.z*/), color.rgb, height, surfacePoint.xyz);
-		}
-#endif //defined(USE_REFLECTION) && !defined(__LQ_MODE__)
-
-		//
-		// Crytek style lighting... Done before final wave colors...
-		//
-		vec3 mirrorEye = (2.0f * dot(eyeVecNorm, lightingNormal) * lightingNormal - eyeVecNorm);
-		float dotSpec = saturate(dot(mirrorEye.xyz, -lightDir) * 0.5f + 0.5f);
-		specular = (1.0f - fresnel) * saturate(-lightDir.y) * ((pow(dotSpec, 8.0f/*512.0f*/)) * (shininess * 1.8f + 0.2f)) * sunColor * 0.15;
-		specular += specular * 1.5 * (pixelIsUnderWater ? 8.0 : 1.0) * saturate(shininess - 0.05f) * sunColor;
-
-		// Also add some diffuse lighting to see variation on backfaces as well.
-		//float diffuse = getdiffuse(lightingNormal, -lightDir, 6.0);
-		float diffuse = getdiffuse(lightingNormal, normalize(lightDir * vec3(-1.0, -2.0, -1.0)), 6.0) * (clamp(dot(eyeVecNorm, -lightDir), 0.0, 1.0));
-		specular += diffuse * 0.5 * (pixelIsUnderWater ? 24.0 : 1.0) * saturate(shininess - 0.05f) * sunColor;
-
-		// Special enhancement of sunset lighting...
-		if (SUN_VISIBILITY > 0.0)
-		{
-			vec3 sunsetSun = vec3(1.0, 0.8, 0.625);
-			vec3 finalSunColor = mix(u_PrimaryLightColor, sunsetSun, SHADER_NIGHT_SCALE);
-
-			float sundot = clamp(dot(eyeVecNorm, mix(lightDir, eyeVecNorm, vec3(0.1, 0.575, 0.1))), 0.0, 1.0);
-			float wsunrefl = 0.9/*0.75*/*(0.5*pow( sundot, 10.0 )+0.25*pow( sundot, 3.5)+0.75*pow( sundot, 300.0));
-			color += finalSunColor*wsunrefl*SUN_VISIBILITY*clamp(pow(getdiffuse(mix(lightingNormal, lightDir, vec3(1.0, 3.0, 8.0)), lightDir, 3.0) * 0.55, 1.25), 0.0, 1.0); // sun reflection
-		}
-
-		// Add a little fake ao to make the top of the waves brighter and the lowers a little darker.
-		const float aoMaxDist = 1.0;
-		float aoDist = height;
-		aoDist = max(0.0,aoDist);
-		float ao = pow(clamp(aoDist/aoMaxDist, 0.0, 1.0), 0.7)*0.25+0.75;//*0.15+0.85;
-		color.rgb *= ao;
-
-
-		vec3 caustic = color * GetCausicMap(surfacePoint.xzy/*origWaterMapUpper.xzy*/);
-		color = clamp(color + (caustic * causicStrength), 0.0, 1.0);
-
-
-#if !defined(__LQ_MODE__)
-		if (USE_OCEAN > 0.0)
-		{
-			color = clamp(color + max(specular, foam.rgb * sunColor), 0.0, 1.0);
-		}
-		else
-#endif //!defined(__LQ_MODE__)
-		{
-			color = clamp(color + specular, 0.0, 1.0);
-		}
-
-		color = mix(refraction, color, clamp(depth * shoreHardness, 0.0, 1.0));
-		color = mix(color, color2, 1.0 - clamp(waterClarity2 * depth, 0.8, 1.0));
-
-#endif //USE_NEW_LIGHTING
 
 		// add white caps...
 		float whiteCaps = pow(clamp(chopheight, 0.0, 1.0), 16.0);
