@@ -2,6 +2,7 @@
 //#define USE_REFLECTION				// Enable reflections on water. Define moved to renderer code.
 #define FIX_WATER_DEPTH_ISSUES		// Use basic depth value for sky hits...
 //#define EXPERIMENTAL_WATERFALL	// Experimental waterfalls...
+#define EXPERIMENTAL_WATERFALL2	// Experimental waterfalls...
 //#define __DEBUG__
 //#define USE_LIGHTING				// Use lighting in this shader? trying to handle the lighting in deferredlight now instead.
 //#define USE_DETAILED_UNDERWATER		// Experimenting...
@@ -769,7 +770,15 @@ float WaterFallNearby ( vec2 uv, out float hit )
 
 vec4 WaterFall(vec3 color, vec3 color2, vec3 waterMapUpper, vec3 position, float timer, float slope, float wfEdgeFactor, float wfHitType)
 {
-#ifdef EXPERIMENTAL_WATERFALL
+#ifdef EXPERIMENTAL_WATERFALL2
+	float wf = clamp(pow(SmoothNoise((waterMapUpper.xyz * vec3(0.1, 0.03, 0.1)) + vec3(0.0, u_Time*4.0, 0.0)), 1.5), 0.0, 1.0);
+	//return vec4(wf, wf, wf, wf);
+	wf = clamp(wf * 2.0, 0.0, 1.0) * 0.666;
+	float wf2 = SmoothNoise(waterMapUpper.xyz * vec3(0.3, 0.1, 0.3) + vec3(0.0, u_Time*4.0, 0.0));
+	wf = (wf + wf2) / 2.0;
+	vec3 wfc = mix(color, vec3(wf), wf);
+	return vec4(wfc, 1.0);
+#elif defined(EXPERIMENTAL_WATERFALL)
 	//return vec4(0.5 + (0.5 * (1.0 - wfEdgeFactor)), 0.0, 0.0, 1.0);
 
 	vec3 n = normalize(position);
@@ -853,26 +862,6 @@ vec3 DoUnderwater(vec3 position, bool isSky)
 }
 #endif //USE_DETAILED_UNDERWATER
 
-float GodRay(vec2 uv, float scale, float threshold, float speed, float angle){
-	float value = pow(sin((uv.x + uv.y * angle + iTime * speed) * scale), 6.0);
-    value += float(threshold < value);
-    return clamp(value, 0.0, 1.0); 
-}
-
-float GodRays( in vec2 uv )
-{
-    float light = GodRay(uv, 22.0,0.5,-0.003,0.0) * 0.3;
-    light += GodRay(uv, 47.0, 0.99, 0.02, 0.0) * 0.1;
-    light += GodRay(uv, 25.0, 0.9, -0.01, 0.0) * 0.2;
-    light += GodRay(uv, 52.0, 0.4, 0.0001, 0.0) * 0.1;
-    light += GodRay(uv, 49.0, 0.4, 0.0003, 0.0) * 0.1;
-    light += GodRay(uv, 57.0, 0.4, -0.0001, 0.0) * 0.1;
-    light += GodRay(uv, 200.0,0.8, -0.0001, 0.0) * 0.05;
-    light -= pow((1.0 - uv.y) * 0.7, 0.8);
-    light = max(light, 0.0);
-	return light;
-}
-
 void main ( void )
 {
 	vec4 waterMapUpper = waterMapUpperAtCoord(var_TexCoords);
@@ -897,13 +886,6 @@ void main ( void )
 
 	vec3 color2;
 	vec2 uv = var_TexCoords;
-
-#if 0 // Hmm deferred lighting etc that run after this cause the above water geometry shadows to still show, etc, so, meh...
-	if (IS_UNDERWATER && waterMapLower.a > 0.0)
-	{// When underwater, and looking through the surface, distort the above ground view...
-		GetUnderwaterUV(uv);
-	}
-#endif
 	
 	color2 = textureLod(u_DiffuseMap, uv, 0.0).rgb;
 
@@ -953,18 +935,6 @@ void main ( void )
 		}
 #endif //USE_DETAILED_UNDERWATER
 
-#if 0
-		if (IS_UNDERWATER)
-		{
-			vec3 dir = normalize(ViewOrigin - position);
-			dir = dir * 0.5 + 0.5;
-			//float gr = GodRays( vec2((dir.x + dir.z) / 2.0, dir.y) ) * u_Local7.r;
-			float gr = GodRays( vec2(dir.x, dir.y) ) * u_Local7.r;
-			color.rgb += gr * u_PrimaryLightColor;
-			color2.rgb += gr * u_PrimaryLightColor;
-		}
-#endif
-
 #if defined(FIX_WATER_DEPTH_ISSUES)
 		if (isSky)
 		{
@@ -993,24 +963,24 @@ void main ( void )
 	{// Low horizontal normal, this is a waterfall...
 		if (waterMapLower.a >= 1024.0 /*&& positionMap.a-1.0 < 1024.0*/)
 		{// Actual waterfall pixel...
-			gl_FragColor = WaterFall(color.rgb, color2.rgb, waterMapUpper.xyz, position.xyz, timer, waterMapLower.a - 2.0, 0.0, waterMapLower.a);
+			gl_FragColor = WaterFall(color.rgb, color2.rgb, waterMapUpper.xyz, position.xyz, timer, waterMapLower.a - 1024.0, 0.0, waterMapLower.a);
 			return;
 		}
 		else if (waterMapUpper.a <= 0.0)
 		{// near a waterfall, but this is not water.
-			gl_FragColor = WaterFall(color.rgb, color2.rgb, waterMapUpper.xyz, position.xyz, timer, hitType - 2.0, edgeFactor, hitType);
+			gl_FragColor = WaterFall(color.rgb, color2.rgb, waterMapUpper.xyz, position.xyz, timer, hitType - 1024.0, edgeFactor, hitType);
 			return;
 		}
 		else
 		{// Blend with water...
-			color = WaterFall(color.rgb, color2.rgb, waterMapUpper.xyz, position.xyz, timer, waterMapLower.a - 2.0, edgeFactor, hitType).rgb;
+			color = WaterFall(color.rgb, color2.rgb, waterMapUpper.xyz, position.xyz, timer, waterMapLower.a - 1024.0, edgeFactor, hitType).rgb;
 			color2 = color;
 		}
 	}
 #else //!EXPERIMENTAL_WATERFALL
-	if (waterMapLower.a >= 1024.0 /*&& positionMap.a-1.0 < 1024.0*/)
+	if (waterMapLower.a >= 1024.0)
 	{// Actual waterfall pixel...
-		gl_FragColor = WaterFall(color.rgb, color2.rgb, waterMapUpper.xyz, position.xyz, timer, waterMapLower.a - 2.0, 0.0, waterMapLower.a);
+		gl_FragColor = WaterFall(color.rgb, color2.rgb, waterMapUpper.xyz, position.xyz, timer, waterMapLower.a - 1024.0, 0.0, waterMapLower.a);
 		return;
 	}
 #endif //EXPERIMENTAL_WATERFALL
