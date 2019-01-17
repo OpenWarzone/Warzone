@@ -4660,7 +4660,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					FBO_Bind(tr.renderWaterFbo);
 
 					float material = 0.0;
-
+					/*
 					if (isGlass)
 					{
 						material = 2.0;
@@ -4677,7 +4677,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					{
 						material = 5.0;
 					}
-
+					*/
 					vec4_t passInfo;
 					VectorSet4(passInfo, 0.0, WATER_WAVE_HEIGHT, material, 0.0);
 					GLSL_SetUniformVec4(sp, UNIFORM_LOCAL10, passInfo);
