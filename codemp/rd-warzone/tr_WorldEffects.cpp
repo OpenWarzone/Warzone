@@ -921,6 +921,53 @@ public:
 
 		f = NULL;
 
+		/*qboolean outsideSeen = qfalse;
+
+		// Iterate Over All Weather Zones
+		//--------------------------------
+		for (int zone = 0; zone < mWeatherZones.size(); zone++)
+		{
+			SWeatherZone	wz = mWeatherZones[zone];
+			uint32_t		thisPointCahceSize = sizeof(uint32_t) * (wz.mWidth * wz.mHeight * wz.mDepth);
+
+			// Make Sure Point Contents Checks Occur At The CENTER Of The Cell
+			//-----------------------------------------------------------------
+			Mins = wz.mExtents.mMins;
+			for (x = 0; x < 3; x++)
+			{
+				Mins[x] += (POINTCACHE_CELL_SIZE / 2);
+			}
+
+			// Start Scanning
+			//----------------
+			for (z = 0; z < wz.mDepth; z++)
+			{
+				for (q = 0; q < 32; q++)
+				{
+					bit = (1 << q);
+					zbase = (z << 5);
+
+					for (x = 0; x < wz.mWidth; x++)
+					{
+						for (y = 0; y < wz.mHeight; y++)
+						{
+							CurPos[0] = x			* POINTCACHE_CELL_SIZE;
+							CurPos[1] = y			* POINTCACHE_CELL_SIZE;
+							CurPos[2] = (zbase + q)	* POINTCACHE_CELL_SIZE;
+							CurPos += Mins;
+
+							contents = ri->CM_PointContents(CurPos.v, 0);
+
+							if (contents&CONTENTS_OUTSIDE)
+							{
+								outsideSeen = qtrue;
+							}
+						}
+					}
+				}
+			}
+		}*/
+
 		ri->Printf(PRINT_ALL, "Weather zones cache file does not exist, generating...\n");
 
 		// Iterate Over All Weather Zones
@@ -956,27 +1003,66 @@ public:
 							CurPos[2] = (zbase + q)	* POINTCACHE_CELL_SIZE;
 							CurPos	  += Mins;
 
-							contents = ri->CM_PointContents(CurPos.v, 0);
-
-							if (/*contents&CONTENTS_INSIDE ||*/ contents&CONTENTS_OUTSIDE)
+#if 0
+							/*if (!outsideSeen)
 							{
-								curPosOutside = ((contents&CONTENTS_OUTSIDE) != 0);
-								if (!mCacheInit)
+								trace_t tr;
+								vec3_t end;
+								VectorSet(end, CurPos.v[0], CurPos.v[1], CurPos.v[2]+65536.0);
+								ri->CM_BoxTrace(&tr, CurPos.v, end, NULL, NULL, 0, CONTENTS_SOLID | CONTENTS_TERRAIN, 0);
+
+								if (tr.fraction == 1.0 || tr.surfaceFlags & SURF_SKY)
 								{
-									mCacheInit = true;
+									curPosOutside = true;
+
+									if (!mCacheInit)
+									{
+										mCacheInit = true;
+									}
+
+									// Mark The Point
+									//----------------
+									wz.mPointCache[((z * wz.mWidth * wz.mHeight) + (y * wz.mWidth) + x)] |= bit;
 									SWeatherZone::mMarkedOutside = curPosOutside;
 								}
-								/*else if (SWeatherZone::mMarkedOutside!=curPosOutside)
-								{
-									assert(0);
-									Com_Error (ERR_DROP, "Weather Effect: Both Indoor and Outdoor brushs encountered in map.\n" );
-									return;
-								}*/ // Why?!?!?!?!?!?!? FFS...
-
-								// Mark The Point
-								//----------------
-								wz.mPointCache[((z * wz.mWidth * wz.mHeight) + (y * wz.mWidth) + x)] |= bit;
 							}
+							else*/
+							{
+								contents = ri->CM_PointContents(CurPos.v, 0);
+
+								if (/*contents&CONTENTS_INSIDE ||*/ contents&CONTENTS_OUTSIDE)
+								{
+									curPosOutside = ((contents&CONTENTS_OUTSIDE) != 0);
+									if (!mCacheInit)
+									{
+										mCacheInit = true;
+										SWeatherZone::mMarkedOutside = curPosOutside;
+									}
+									/*else if (SWeatherZone::mMarkedOutside!=curPosOutside)
+									{
+										assert(0);
+										Com_Error (ERR_DROP, "Weather Effect: Both Indoor and Outdoor brushs encountered in map.\n" );
+										return;
+									}*/ // Why?!?!?!?!?!?!? FFS...
+
+									// Mark The Point
+									//----------------
+									wz.mPointCache[((z * wz.mWidth * wz.mHeight) + (y * wz.mWidth) + x)] |= bit;
+								}
+							}
+#else
+							curPosOutside = true;
+
+							if (!mCacheInit)
+							{
+								mCacheInit = true;
+								SWeatherZone::mMarkedOutside = curPosOutside;
+							}
+
+							// Mark The Point
+							//----------------
+							wz.mPointCache[((z * wz.mWidth * wz.mHeight) + (y * wz.mWidth) + x)] |= bit;
+#endif
 						}// for (y)
 					}// for (x)
 				}// for (q)
@@ -1639,6 +1725,21 @@ public:
 		GLSL_SetUniformInt(shader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
 		GL_BindToTMU(mImage, TB_DIFFUSEMAP);
 
+		GLSL_SetUniformInt(shader, UNIFORM_HEIGHTMAP, TB_HEIGHTMAP);
+		GL_BindToTMU(tr.waterHeightMapImage, TB_HEIGHTMAP);
+
+		{
+			extern vec3_t MAP_INFO_MINS;
+			extern vec3_t MAP_INFO_MAXS;
+
+			vec4_t loc;
+			VectorSet4(loc, MAP_INFO_MINS[0], MAP_INFO_MINS[1], MAP_INFO_MINS[2], 0.0);
+			GLSL_SetUniformVec4(shader, UNIFORM_MINS, loc);
+
+			VectorSet4(loc, MAP_INFO_MAXS[0], MAP_INFO_MAXS[1], MAP_INFO_MAXS[2], 0.0);
+			GLSL_SetUniformVec4(shader, UNIFORM_MAXS, loc);
+		}
+
 		vec3_t norm;
 		VectorSubtract(vec3_origin, backEnd.viewParms.ori.axis[0], norm);
 		VectorNormalize(norm);
@@ -2045,8 +2146,11 @@ qboolean WEATHER_KLUDGE_DONE = qfalse;
 
 void RB_SetupGlobalWeatherZone(void)
 {
-	mOutside.AddWeatherZone(MAP_INFO_MINS, MAP_INFO_MAXS);
-	WEATHER_KLUDGE_DONE = qtrue;
+	if (!WEATHER_KLUDGE_DONE)
+	{
+		mOutside.AddWeatherZone(MAP_INFO_MINS, MAP_INFO_MAXS);
+		WEATHER_KLUDGE_DONE = qtrue;
+	}
 }
 
 qboolean RB_WeatherEnabled(void)
@@ -2056,7 +2160,14 @@ qboolean RB_WeatherEnabled(void)
 		|| (tr.refdef.rdflags & RDF_NOWORLDMODEL)
 		|| (backEnd.refdef.rdflags & RDF_SKYBOXPORTAL)
 		|| !mParticleClouds.size())
-	{	//  no world rendering or no world or no particle clouds
+	{//  no world rendering or no world or no particle clouds
+		extern qboolean PROCEDURAL_CLOUDS_DYNAMIC;
+
+		if (PROCEDURAL_CLOUDS_DYNAMIC)
+		{
+			return qtrue;
+		}
+
 		return qfalse;
 	}
 
@@ -2068,6 +2179,13 @@ qboolean RB_WeatherEnabled(void)
 ////////////////////////////////////////////////////////////////////////////////////////
 void RB_RenderWorldEffects(void)
 {
+	extern qboolean PROCEDURAL_CLOUDS_DYNAMIC;
+	if (!mOutside.Initialized() && PROCEDURAL_CLOUDS_DYNAMIC)
+	{
+		RB_SetupGlobalWeatherZone();
+		mOutside.Cache();
+	}
+
 	if (!WEATHER_KLUDGE_DONE)
 	{
 		if (r_weather->integer >= 2 && !(JKA_WEATHER_ENABLED && !CONTENTS_INSIDE_OUTSIDE_FOUND))

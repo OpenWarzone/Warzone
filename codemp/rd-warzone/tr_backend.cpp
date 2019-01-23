@@ -3002,6 +3002,9 @@ const void	*RB_WorldEffects( const void *data )
 		RB_EndSurface();
 	}
 
+	extern void DynamicWeather_Update(void);
+	DynamicWeather_Update();
+
 #ifdef __INSTANCED_MODELS__
 	if (tr.world
 		&& !(tr.viewParms.flags & VPF_NOPOSTPROCESS)
@@ -3077,11 +3080,11 @@ const void	*RB_WorldEffects( const void *data )
 	uint32_t previousState = glState.glStateBits;
 	int previousCull = glState.faceCulling;
 
-	if (doProceduralClouds)
+	/*if (doProceduralClouds)
 	{
 		void CLOUD_LAYER_Render();
 		CLOUD_LAYER_Render();
-	}
+	}*/
 
 	if (RB_WeatherEnabled())
 	{

@@ -267,7 +267,7 @@ void main()
 	}
 
 	var_Color = CalcColor(position, normal);
-	var_Position = position;
-	var_Normal = normal;
+	var_Position = attr_Position;//position;
+	var_Normal = attr_Normal * 2.0 - 1.0;//normal
 	var_TexCoords = texCoords;
 }

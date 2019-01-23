@@ -4,7 +4,8 @@
 #define __AMBIENT_OCCLUSION__
 #define __ENHANCED_AO__
 #define __SCREEN_SPACE_REFLECTIONS__
-//#define __CLOUD_SHADOWS__
+#define __CLOUD_SHADOWS__
+//#define __LIGHTNING__
 
 #ifdef USE_CUBEMAPS
 	#define __CUBEMAPS__
@@ -43,8 +44,8 @@ uniform vec4								u_Local7; // cubemapEnabled, r_cubemapCullRange, r_cubeMapSi
 uniform vec4								u_Local8; // enableReflections, MAP_HDR_MIN, MAP_HDR_MAX, MAP_INFO_PLAYABLE_MAXS[2]
 uniform vec4								u_Local9; // PROCEDURAL_SNOW_HEIGHT_CURVE, MAP_USE_PALETTE_ON_SKY, SNOW_ENABLED, PROCEDURAL_SNOW_LOWEST_ELEVATION
 //uniform vec4								u_Local10; // PROCEDURAL_SNOW_LUMINOSITY_CURVE, PROCEDURAL_SNOW_BRIGHTNESS, 0.0, 0.0
-uniform vec4								u_Local11; // PROCEDURAL_CLOUDS_ENABLED, PROCEDURAL_CLOUDS_CLOUDSCALE, PROCEDURAL_CLOUDS_SPEED, PROCEDURAL_CLOUDS_DARK
-uniform vec4								u_Local12; // PROCEDURAL_CLOUDS_LIGHT, PROCEDURAL_CLOUDS_CLOUDCOVER, PROCEDURAL_CLOUDS_CLOUDALPHA, PROCEDURAL_CLOUDS_SKYTINT
+uniform vec4								u_Local11; // PROCEDURAL_CLOUDS_ENABLED, PROCEDURAL_CLOUDS_CLOUDSCALE, PROCEDURAL_CLOUDS_CLOUDCOVER, 0.0
+//uniform vec4								u_Local12; // 0.0, 0.0, 0.0, 0.0
 
 //uniform vec4								u_ViewInfo; // znear, zfar, zfar / znear, fov
 uniform vec3								u_ViewOrigin;
@@ -117,15 +118,17 @@ varying vec2								var_TexCoords;
 //#define PROCEDURAL_SNOW_LUMINOSITY_CURVE	u_Local10.r
 //#define PROCEDURAL_SNOW_BRIGHTNESS			u_Local10.g
 
-/*#define CLOUDS_ENABLED						u_Local11.r
+// CLOUDS
+#define CLOUDS_ENABLED						u_Local11.r
 #define CLOUDS_CLOUDSCALE					u_Local11.g
-#define CLOUDS_SPEED						u_Local11.b
-#define CLOUDS_DARK							u_Local11.a
+#define CLOUDS_CLOUDCOVER					u_Local11.b
+//#define CLOUDS_DARK						u_Local11.a
 
-#define CLOUDS_LIGHT						u_Local12.r
-#define CLOUDS_CLOUDCOVER					u_Local12.g
-#define CLOUDS_CLOUDALPHA					u_Local12.b
-#define CLOUDS_SKYTINT						u_Local12.a*/
+//#define CLOUDS_LIGHT						u_Local12.r
+//#define CLOUDS_CLOUDCOVER					u_Local12.g
+//#define CLOUDS_CLOUDALPHA					u_Local12.b
+//#define CLOUDS_SKYTINT					u_Local12.a
+//
 
 #define SHADER_DAY_NIGHT_ENABLED			u_Local5.r
 #define SHADER_NIGHT_SCALE					u_Local5.g
@@ -887,132 +890,259 @@ vec3 blinn_phong(vec3 pos, vec3 color, vec3 normal, vec3 view, vec3 light, vec3 
 #endif //defined(__LQ_MODE__) || defined(__FAST_LIGHTING__)
 
 #ifdef __CLOUD_SHADOWS__
-/*
-const mat2 mc = mat2(1.6, 1.2, -1.2, 1.6);
 
-vec2 hash(vec2 p) {
-	p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
-	return -1.0 + 2.0*fract(sin(p)*43758.5453123);
-}
+#define RAY_TRACE_STEPS 2 //55
 
-float noise(in vec2 p) {
-	const float K1 = 0.366025404; // (sqrt(3)-1)/2;
-	const float K2 = 0.211324865; // (3-sqrt(3))/6;
-	vec2 i = floor(p + (p.x + p.y)*K1);
-	vec2 a = p - i + (i.x + i.y)*K2;
-	vec2 o = (a.x>a.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0); //vec2 of = 0.5 + 0.5*vec2(sign(a.x-a.y), sign(a.y-a.x));
-	vec2 b = a - o + K2;
-	vec2 c = a - 1.0 + 2.0*K2;
-	vec3 h = max(0.5 - vec3(dot(a, a), dot(b, b), dot(c, c)), 0.0);
-	vec3 n = h*h*h*h*vec3(dot(a, hash(i + 0.0)), dot(b, hash(i + o)), dot(c, hash(i + 1.0)));
-	return dot(n, vec3(70.0));
-}
+//float gTime;
+float cloudy = 0.0;
+float cloudShadeFactor = 0.6;
 
-float fbm(vec2 n) {
-	float total = 0.0, amplitude = 0.1;
-	for (int i = 0; i < 7; i++) {
-		total += noise(n) * amplitude;
-		n = mc * n;
-		amplitude *= 0.4;
-	}
-	return total;
-}
+#define CLOUD_LOWER 2800.0
+#define CLOUD_UPPER 6800.0
 
-vec4 Clouds(in vec2 fragCoord)
+#define MOD2 vec2(.16632,.17369)
+#define MOD3 vec3(.16532,.17369,.15787)
+
+
+//--------------------------------------------------------------------------
+
+//--------------------------------------------------------------------------
+float Hash( float p )
 {
-	vec2 p = fragCoord.xy;
-	vec2 uv = p;
-	float time = u_Time * CLOUDS_SPEED;
-	float q = fbm(uv * CLOUDS_CLOUDSCALE * 0.5);
+	vec2 p2 = fract(vec2(p) * MOD2);
+	p2 += dot(p2.yx, p2.xy+19.19);
+	return fract(p2.x * p2.y);
+}
+float Hash(vec3 p)
+{
+	p  = fract(p * MOD3);
+	p += dot(p.xyz, p.yzx + 19.19);
+	return fract(p.x * p.y * p.z);
+}
 
-	//ridged noise shape
-	float r = 0.0;
-	uv *= CLOUDS_CLOUDSCALE;
-	uv -= q - time;
-	float weight = 0.8;
-	for (int i = 0; i<8; i++) {
-		r += abs(weight*noise(uv));
-		uv = mc*uv + time;
-		weight *= 0.7;
+//--------------------------------------------------------------------------
+
+float Noise( in vec2 x )
+{
+	vec2 p = floor(x);
+	vec2 f = fract(x);
+	f = f*f*(3.0-2.0*f);
+	float n = p.x + p.y*57.0;
+	float res = mix(mix( Hash(n+  0.0), Hash(n+  1.0),f.x),
+					mix( Hash(n+ 57.0), Hash(n+ 58.0),f.x),f.y);
+	return res;
+}
+float Noise(in vec3 p)
+{
+    vec3 i = floor(p);
+	vec3 f = fract(p); 
+	f *= f * (3.0-2.0*f);
+
+	return mix(
+		mix(mix(Hash(i + vec3(0.,0.,0.)), Hash(i + vec3(1.,0.,0.)),f.x),
+			mix(Hash(i + vec3(0.,1.,0.)), Hash(i + vec3(1.,1.,0.)),f.x),
+			f.y),
+		mix(mix(Hash(i + vec3(0.,0.,1.)), Hash(i + vec3(1.,0.,1.)),f.x),
+			mix(Hash(i + vec3(0.,1.,1.)), Hash(i + vec3(1.,1.,1.)),f.x),
+			f.y),
+		f.z);
+}
+
+
+const mat3 cm = mat3( 0.00,  0.80,  0.60,
+                    -0.80,  0.36, -0.48,
+                    -0.60, -0.48,  0.64 ) * 1.7;
+//--------------------------------------------------------------------------
+float FBM( vec3 p )
+{
+	p *= .0005;
+	p *= CLOUDS_CLOUDSCALE;
+
+	float f;
+	
+	f = 0.5000 * Noise(p); p = cm*p; //p.y -= gTime*.2;
+	f += 0.2500 * Noise(p); p = cm*p; //p.y += gTime*.06;
+	f += 0.1250 * Noise(p); p = cm*p;
+	f += 0.0625   * Noise(p); p = cm*p;
+	f += 0.03125  * Noise(p); p = cm*p;
+	f += 0.015625 * Noise(p);
+	return f;
+}
+
+//--------------------------------------------------------------------------
+
+float Map(vec3 p)
+{
+	//float h = -(FBM((p*vec3(0.3, 3.0, 0.3))+(u_Time*128.0))-cloudy-.6);
+	//float h = -(FBM((p*vec3(0.3, 3.0, 0.3))+(u_Time*128.0))-pow(cloudy, 0.3));
+	float h = -(FBM((p*vec3(0.3, 3.0, 0.3))+(u_Time*128.0))-cloudy-cloudShadeFactor);
+	return h;
+}
+
+//--------------------------------------------------------------------------
+// Grab all sky information for a given ray from camera
+float GetCloudAlpha(in vec3 pos,in vec3 rd, out vec2 outPos)
+{
+	// Find the start and end of the cloud layer...
+	float beg = ((CLOUD_LOWER-pos.y) / rd.y);
+	float end = ((CLOUD_UPPER-pos.y) / rd.y);
+	
+	// Start position...
+	vec3 p = vec3(pos.x + rd.x * beg, 0.0, pos.z + rd.z * beg);
+	outPos = p.xz;
+    beg +=  Hash(p)*150.0;
+
+	// Trace clouds through that layer...
+	float d = 0.0;
+	vec3 add = rd * ((end-beg) / float(RAY_TRACE_STEPS));
+	float shadeSum = 0.0;
+	
+	// I think this is as small as the loop can be
+	// for a reasonable cloud density illusion.
+	for (int i = 0; i < RAY_TRACE_STEPS; i++)
+	{
+		if (shadeSum >= 1.0) break;
+
+		float h = clamp(Map(p)*2.0, 0.0, 1.0);
+		shadeSum += max(h, 0.0) * (1.0 - shadeSum);
+		p += add;
 	}
 
-	//noise shape
-	float f = 0.0;
-	uv = p;
-	uv *= CLOUDS_CLOUDSCALE;
-	uv -= q - time;
-	weight = 0.7;
-	for (int i = 0; i<8; i++) {
-		f += weight*noise(uv);
-		uv = mc*uv + time;
-		weight *= 0.6;
-	}
-
-	f *= r + f;
-
-	//noise colour
-	float c = 0.0;
-	time = u_Time * CLOUDS_SPEED * 2.0;
-	uv = p;
-	uv *= CLOUDS_CLOUDSCALE*2.0;
-	uv -= q - time;
-	weight = 0.4;
-	for (int i = 0; i<7; i++) {
-		c += weight*noise(uv);
-		uv = mc*uv + time;
-		weight *= 0.6;
-	}
-
-	//noise ridge colour
-	float c1 = 0.0;
-	time = u_Time * CLOUDS_SPEED * 3.0;
-	uv = p;
-	uv *= CLOUDS_CLOUDSCALE*3.0;
-	uv -= q - time;
-	weight = 0.4;
-	for (int i = 0; i<7; i++) {
-		c1 += abs(weight*noise(uv));
-		uv = mc*uv + time;
-		weight *= 0.6;
-	}
-
-	c += c1;
-
-	vec3 cloudcolour = vec3(1.0, 1.0, 1.0) * clamp((CLOUDS_DARK + CLOUDS_LIGHT*c), 0.0, 1.0);
-
-	f = CLOUDS_CLOUDCOVER + CLOUDS_CLOUDALPHA*f*r;
-
-	//vec3 result = mix(skycolour, clamp(CLOUDS_SKYTINT * skycolour + cloudcolour, 0.0, 1.0), clamp(f + c, 0.0, 1.0));
-	vec3 result = cloudcolour;
-
-	return vec4(result.rgb, clamp(f + c, 0.0, 1.0));
+	return clamp(shadeSum, 0.0, 1.0);
 }
 
 float CloudShadows(vec3 position)
 {
-	//vec3 cViewDir = normalize((u_PrimaryLightOrigin.xyz - position.xyz) + u_ViewOrigin.xyz);
-	//vec3 cViewDir = normalize(((u_PrimaryLightOrigin.xyz - u_ViewOrigin.xyz) - (position.xyz - u_ViewOrigin.xyz)));
+	cloudy = clamp(CLOUDS_CLOUDCOVER*0.3, 0.0, 0.3);
+	cloudShadeFactor = 0.5+(cloudy*0.333);
 	
-	//vec3 cViewDir = normalize(position.xyz - u_PrimaryLightOrigin.xyz);
-	//cViewDir.xyz += normalize(u_ViewOrigin.xyz);
-	//cViewDir.xyz = normalize(cViewDir.xyz);
-	//cViewDir.xy *= -1.0;
-	vec3 cViewDir = -normalize(position.xyz);
+	vec3 cameraPos = vec3(0.0);
+    vec3 dir = normalize(u_PrimaryLightOrigin.xzy - position.xzy*0.25);
+	dir.y *= -1.0;
 
-	vec4 cloudColor = Clouds(cViewDir.xy * 0.5 + 0.5);
-	cloudColor.a *= clamp(pow(-cViewDir.z, 1.75), 0.0, 1.0);
-	cloudColor.a *= 0.75;
+	vec2 pos;
+	float alpha = GetCloudAlpha(cameraPos, dir, pos);
+	//alpha *= clamp(-dir.y, 0.0, 0.75);
 
-	if (NIGHT_SCALE > 0.0)
-	{// Adjust cloud color at night...
-		float nMult = clamp(1.25 - NIGHT_SCALE, 0.0, 1.0);
-		cloudColor *= nMult;
-	}
-
-	return 1.0 - cloudColor.a;
+	return (1.0 - alpha) * 0.75 + 0.25;
 }
-*/
 #endif //__CLOUD_SHADOWS__
+
+#ifdef __LIGHTNING__
+#define pi 3.1415926535897932384626433832795
+
+vec2 rotate(vec2 p, float a)
+{
+	return vec2(p.x * cos(a) - p.y * sin(a), p.x * sin(a) + p.y * cos(a));
+}
+
+float hash1(float p)
+{
+	return fract(sin(p * 172.435) * 29572.683) - 0.5;
+}
+
+float hash2(vec2 p)
+{
+	vec2 r = (456.789 * sin(789.123 * p.xy));
+	return fract(r.x * r.y * (1.0 + p.x));
+}
+
+float ns(float p)
+{
+	float fr = fract(p);
+	float fl = floor(p);
+	return mix(hash1(fl), hash1(fl + 1.0), fr);
+}
+
+float fbm(float p)
+{
+	return (ns(p) * 0.4 + ns(p * 2.0 - 10.0) * 0.125 + ns(p * 8.0 + 10.0) * 0.025);
+}
+
+float fbmd(float p)
+{
+	float h = 0.01;
+	return atan(fbm(p + h) - fbm(p - h), h);
+}
+
+float arcsmp(float x, float seed)
+{
+	return fbm(x * 3.0 + seed * 1111.111) * (1.0 - exp(-x * 5.0));
+}
+
+float arc(vec2 p, float seed, float len)
+{
+	p *= len;
+	//p = rotate(p, iTime);
+	float v = abs(p.y - arcsmp(p.x, seed));
+	v += exp((2.0 - p.x) * -4.0);
+	v = exp(v * -60.0) + exp(v * -10.0) * 0.6;
+	//v += exp(p.x * -2.0);
+	v *= smoothstep(0.0, 0.05, p.x);
+	return v;
+}
+
+float arcc(vec2 p, float sd)
+{
+	float v = 0.0;
+	float rnd = fract(sd);
+	float sp = 0.0;
+	v += arc(p, sd, 1.0);
+	for(int i = 0; i < 4; i ++)
+	{
+		sp = rnd + 0.01;
+		vec2 mrk = vec2(sp, arcsmp(sp, sd));
+		v += arc(rotate(p - mrk, fbmd(sp)), mrk.x, mrk.x * 0.4 + 1.5);
+		rnd = fract(sin(rnd * 195.2837) * 1720.938);
+	}
+	return v;
+}
+
+vec4 GetLightning( in vec3 position )
+{
+	float rnd2 = u_Time*hash1(float(int(u_Time*0.75)));
+	vec3 ro = u_ViewOrigin.xzy;
+	vec3 rd = normalize(u_ViewOrigin.xzy - position.xzy) * mix(16.0, 32.0, clamp(rnd2, 0.0, 1.0));
+    
+    vec3 col;
+    
+    vec4 rnd = vec4(0.1, 0.2, 0.3, 0.4);
+    float arcv = 0.0, arclight = 0.0;
+    
+    {
+        float v = 0.0;
+        rnd = fract(sin(rnd * 1.111111) * 298729.258972);
+        float ts = rnd.z * 4.0 * 1.61803398875 + 1.0;
+        float arcfl = floor(u_Time / ts + rnd.y) * ts;
+        float arcfr = fract(u_Time / ts + rnd.y) * ts;
+        
+        float arcseed = floor(u_Time * 17.0 + rnd.y);
+        vec2 uv = rd.xy;
+		//uv.y = 1.0 - uv.y;
+		uv.x += rnd2 * 0.02;
+		//uv.y -= 1.5;
+		uv.y += 1.5;
+        v = arcc(uv.yx, arcseed*0.0033333);
+
+		float arcdur = rnd.x * 0.2 + 0.05;
+        float arcint = smoothstep(0.1 + arcdur, arcdur, arcfr);
+        v *= arcint;
+        arcv += v;
+
+		//float arcz = ro.z + rnd.x + 6.0;//ro.z + 1.0 + rnd.x * 6.0;
+        //arclight += exp(abs(arcz - position.z) * -0.3) * fract(sin(arcseed) * 198721.6231) * arcint;
+    }
+    
+    vec3 arccol = vec3(0.9, 0.7, 0.7);
+    //col += arclight * arccol * 0.5;
+    col = mix(col, arccol, clamp(arcv, 0.0, 1.0));
+    col = pow(col, vec3(1.0, 0.8, 0.5) * 1.5) * 1.5;
+    col = pow(col, vec3(1.0 / 2.2));
+
+	float alpha = max(col.r, max(col.g, col.b));
+	return vec4(col, alpha);
+}
+#endif //__LIGHTNING__
 
 /*
 ** Contrast, saturation, brightness
@@ -1104,6 +1234,18 @@ void main(void)
 	vec4 outColor = vec4(color.rgb, 1.0);
 	vec3 originalPosition;
 	vec4 position = positionMapAtCoord(var_TexCoords, changedToWater, originalPosition);
+
+#ifdef __LIGHTNING__
+	if (position.a - 1.0 >= MATERIAL_SKY && CLOUDS_ENABLED > 0.0)
+	{// Distant lightning strikes...
+		float cloudy = clamp(CLOUDS_CLOUDCOVER*0.3, 0.0, 0.3);
+		if (cloudy >= 0.285)
+		{
+			vec4 lightning = GetLightning(position.xyz);
+			outColor.rgb += lightning.rgb * lightning.a;
+		}
+	}
+#endif //__LIGHTNING__
 
 	if (position.a - 1.0 >= MATERIAL_SKY
 		|| position.a - 1.0 == MATERIAL_SUN
@@ -1685,14 +1827,14 @@ void main(void)
 	{
 		finalShadow = mix(finalShadow, 1.0, clamp(NIGHT_SCALE, 0.0, 1.0)); // Dampen out shadows at sunrise/sunset...
 
-/*#ifdef __CLOUD_SHADOWS__
+#ifdef __CLOUD_SHADOWS__
 		if (CLOUDS_ENABLED > 0.0)
 		{
 			float cShadow = CloudShadows(position.xyz);
 			outColor.rgb *= min(cShadow, finalShadow);
 		}
 		else
-	#endif //__CLOUD_SHADOWS__*/
+	#endif //__CLOUD_SHADOWS__
 		outColor.rgb *= finalShadow;
 	}
 #endif //defined(USE_SHADOWMAP) && !defined(__LQ_MODE__)

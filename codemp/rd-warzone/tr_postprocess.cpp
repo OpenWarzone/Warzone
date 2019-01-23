@@ -2809,9 +2809,12 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 	//GLSL_SetUniformVec4(shader, UNIFORM_LOCAL10, local10);
 
 
-	/*extern qboolean		PROCEDURAL_CLOUDS_LAYER;
-	extern qboolean		PROCEDURAL_CLOUDS_ENABLED;
+	//
+	// PCLOUDS
+	//
 	extern qboolean		PROCEDURAL_CLOUDS_LAYER;
+	extern qboolean		PROCEDURAL_CLOUDS_ENABLED;
+	extern qboolean		PROCEDURAL_CLOUDS_DYNAMIC;
 	extern float		PROCEDURAL_CLOUDS_CLOUDSCALE;
 	extern float		PROCEDURAL_CLOUDS_SPEED;
 	extern float		PROCEDURAL_CLOUDS_DARK;
@@ -2820,12 +2823,19 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 	extern float		PROCEDURAL_CLOUDS_CLOUDALPHA;
 	extern float		PROCEDURAL_CLOUDS_SKYTINT;
 
+	extern float		DYNAMIC_WEATHER_CLOUDCOVER;
+	extern float		DYNAMIC_WEATHER_CLOUDSCALE;
+
 	vec4_t vector;
-	VectorSet4(vector, PROCEDURAL_CLOUDS_LAYER ? 1.0 : 0.0, PROCEDURAL_CLOUDS_CLOUDSCALE, PROCEDURAL_CLOUDS_SPEED, PROCEDURAL_CLOUDS_DARK);
+	VectorSet4(vector, PROCEDURAL_CLOUDS_ENABLED ? 1.0 : 0.0, DYNAMIC_WEATHER_CLOUDSCALE, DYNAMIC_WEATHER_CLOUDCOVER, 0.0);
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL11, vector);
 
-	VectorSet4(vector, PROCEDURAL_CLOUDS_LIGHT, PROCEDURAL_CLOUDS_CLOUDCOVER, PROCEDURAL_CLOUDS_CLOUDALPHA, PROCEDURAL_CLOUDS_SKYTINT);
-	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL12, vector);*/
+	//VectorSet4(vector, 0.0, 0.0, 0.0, 0.0);
+	//GLSL_SetUniformVec4(shader, UNIFORM_LOCAL12, vector);
+
+	//
+	//
+	//
 
 	GLSL_SetUniformFloat(shader, UNIFORM_TIME, backEnd.refdef.floatTime);
 	

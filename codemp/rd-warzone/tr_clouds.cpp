@@ -3,6 +3,7 @@
 extern qboolean		PROCEDURAL_CLOUDS_LAYER;
 extern qboolean		PROCEDURAL_CLOUDS_ENABLED;
 extern qboolean		PROCEDURAL_CLOUDS_LAYER;
+extern qboolean		PROCEDURAL_CLOUDS_DYNAMIC;
 extern float		PROCEDURAL_CLOUDS_CLOUDSCALE;
 extern float		PROCEDURAL_CLOUDS_SPEED;
 extern float		PROCEDURAL_CLOUDS_DARK;
@@ -126,6 +127,221 @@ void CLOUD_LAYER_InitCloudLayer()
 	//ri->Printf(PRINT_WARNING, "Initialized procedural cloud layer.\n");
 }
 
+int		DYNAMIC_WEATHER_NEXT_CHANGE = 0;
+int		DYNAMIC_WEATHER_CURRENT_WEATHER = 0;
+float	DYNAMIC_WEATHER_CLOUDCOVER = PROCEDURAL_CLOUDS_CLOUDCOVER;
+float	DYNAMIC_WEATHER_CLOUDSCALE = 1.0;// PROCEDURAL_CLOUDS_CLOUDSCALE;
+
+int		DYNAMIC_WEATHER_WANTED_CLOUDCOVER_BEGIN_TIME = 0;
+float	DYNAMIC_WEATHER_WANTED_CLOUDCOVER_BEGIN = PROCEDURAL_CLOUDS_CLOUDCOVER;
+float	DYNAMIC_WEATHER_WANTED_CLOUDCOVER = PROCEDURAL_CLOUDS_CLOUDCOVER;
+
+typedef enum
+{
+	DWEATHER_CLEAREST,
+	DWEATHER_VERY_CLEAR,
+	DWEATHER_CLEAR,
+	DWEATHER_CLOUDY,
+	DWEATHER_VERY_CLOUDY,
+	DWEATHER_LIGHT_RAIN,
+	DWEATHER_RAIN,
+	DWEATHER_HEAVY_RAIN,
+	DWEATHER_RAIN_STORM,
+} dynamicWeatherTypes_t;
+
+extern void RE_WorldEffectCommand_REAL(const char *command, qboolean noHelp);
+extern void RB_SetupGlobalWeatherZone(void);
+
+void DynamicWeather_UpdateWeatherSystems(void)
+{// Set the DYNAMIC_WEATHER_CURRENT_WEATHER value based on cloudcover setting, and also add JKA weather fx as required... 
+	float cc = Q_clamp(0.0, DYNAMIC_WEATHER_CLOUDCOVER*0.3, 0.3);
+
+	//ri->Printf(PRINT_ALL, "DYNAMIC_WEATHER_CLOUDCOVER: %f. cc: %f.\n", DYNAMIC_WEATHER_CLOUDCOVER, cc);
+
+	if (cc >= 0.275)
+	{// Stormy rain...
+		if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_RAIN_STORM)
+		{
+			RE_WorldEffectCommand_REAL("clear", qtrue);
+			RE_WorldEffectCommand_REAL("rain", qtrue);
+			RE_WorldEffectCommand_REAL("rain", qtrue);
+			//DYNAMIC_WEATHER_CLOUDSCALE = 0.4;
+			DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_RAIN_STORM;
+		}
+	}
+	else if (cc >= 0.225)
+	{// Heavy rain...
+		if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_HEAVY_RAIN)
+		{
+			RE_WorldEffectCommand_REAL("clear", qtrue);
+			RE_WorldEffectCommand_REAL("rain", qtrue);
+			RE_WorldEffectCommand_REAL("lightrain", qtrue);
+			//DYNAMIC_WEATHER_CLOUDSCALE = 0.5;
+			DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_HEAVY_RAIN;
+		}
+	}
+	else if (cc >= 0.175)
+	{// Normal rain...
+		if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_RAIN)
+		{
+			RE_WorldEffectCommand_REAL("clear", qtrue);
+			RE_WorldEffectCommand_REAL("lightrain", qtrue);
+			RE_WorldEffectCommand_REAL("lightrain", qtrue);
+			//DYNAMIC_WEATHER_CLOUDSCALE = 0.65;
+			DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_RAIN;
+		}
+	}
+	else if (cc >= 0.125)
+	{// Light rain...
+		if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_LIGHT_RAIN)
+		{
+			RE_WorldEffectCommand_REAL("clear", qtrue);
+			RE_WorldEffectCommand_REAL("lightrain", qtrue);
+			//DYNAMIC_WEATHER_CLOUDSCALE = 0.75;
+			DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_LIGHT_RAIN;
+		}
+	}
+	else if (cc >= 0.1)
+	{// Cloudy...
+		if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_VERY_CLOUDY)
+		{
+			RE_WorldEffectCommand_REAL("clear", qtrue);
+			//DYNAMIC_WEATHER_CLOUDSCALE = 1.0;
+			DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_VERY_CLOUDY;
+		}
+	}
+	else if (cc >= 0.075)
+	{// Cloudy...
+		if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_CLOUDY)
+		{
+			RE_WorldEffectCommand_REAL("clear", qtrue);
+			//DYNAMIC_WEATHER_CLOUDSCALE = 1.0;
+			DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_CLOUDY;
+		}
+	}
+	else if (cc >= 0.05)
+	{// Clear...
+		if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_CLEAR)
+		{
+			RE_WorldEffectCommand_REAL("clear", qtrue);
+			//DYNAMIC_WEATHER_CLOUDSCALE = 1.0;
+			DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_CLEAR;
+		}
+	}
+	else if (cc >= 0.025)
+	{// Very clear...
+		if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_VERY_CLEAR)
+		{
+			RE_WorldEffectCommand_REAL("clear", qtrue);
+			//DYNAMIC_WEATHER_CLOUDSCALE = 1.0;
+			DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_VERY_CLEAR;
+		}
+	}
+	else
+	{// Clearest...
+		if (DYNAMIC_WEATHER_CURRENT_WEATHER > DWEATHER_CLEAREST)
+		{
+			RE_WorldEffectCommand_REAL("clear", qtrue);
+			DYNAMIC_WEATHER_CLOUDSCALE = 1.0;
+			DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_CLEAREST;
+		}
+	}
+}
+
+void DynamicWeather_Update(void)
+{
+	if (PROCEDURAL_CLOUDS_DYNAMIC)
+	{// TODO: Move this to server, so all clients share the same weather...
+		if (DYNAMIC_WEATHER_NEXT_CHANGE <= backEnd.refdef.time)
+		{
+			DYNAMIC_WEATHER_NEXT_CHANGE = backEnd.refdef.time + 60000;
+
+#define MAX_DWEATHER_JUMP 2
+			int minWeatherChoice = Q_clampi(DWEATHER_CLEAREST, DYNAMIC_WEATHER_CURRENT_WEATHER - MAX_DWEATHER_JUMP, DWEATHER_RAIN_STORM);
+			int maxWeatherChoice = Q_clampi(DWEATHER_CLEAREST, DYNAMIC_WEATHER_CURRENT_WEATHER + MAX_DWEATHER_JUMP, DWEATHER_RAIN_STORM);
+			int nextWeatherChoice = irand(minWeatherChoice, maxWeatherChoice);
+
+			// Set up the blend to the selected choice...
+			DYNAMIC_WEATHER_WANTED_CLOUDCOVER_BEGIN = DYNAMIC_WEATHER_CLOUDCOVER;
+			DYNAMIC_WEATHER_WANTED_CLOUDCOVER_BEGIN_TIME = backEnd.refdef.time;
+			float wantedCC = 0.0;
+
+			switch (nextWeatherChoice)
+			{
+				case DWEATHER_CLEAREST:
+				default:
+				{
+					wantedCC = 0.0 + (random()*0.024);
+					break;
+				}
+				case DWEATHER_VERY_CLEAR:
+				{
+					wantedCC = 0.025 + (random()*0.024);
+					break;
+				}
+				case DWEATHER_CLEAR:
+				{
+					wantedCC = 0.05 + (random()*0.024);
+					break;
+				}
+				case DWEATHER_CLOUDY:
+				{
+					wantedCC = 0.075 + (random()*0.024);
+					break;
+				}
+				case DWEATHER_VERY_CLOUDY:
+				{
+					wantedCC = 0.1 + (random()*0.024);
+					break;
+				}
+				case DWEATHER_LIGHT_RAIN:
+				{
+					wantedCC = 0.125 + (random()*0.05);
+					break;
+				}
+				case DWEATHER_RAIN:
+				{
+					wantedCC = 0.175 + (random()*0.05);
+					break;
+				}
+				case DWEATHER_HEAVY_RAIN:
+				{
+					wantedCC = 0.225 + (random()*0.05);
+					break;
+				}
+				case DWEATHER_RAIN_STORM:
+				{
+					wantedCC = 0.275 + (random()*0.025);
+					break;
+				}
+			}
+
+			DYNAMIC_WEATHER_WANTED_CLOUDCOVER = Q_clamp(0.0, wantedCC/0.3, 1.0); // converted to 0.0-1.0 range...
+
+			//ri->Printf(PRINT_ALL, "DYNAMIC_WEATHER: Blending to new weather %i (cc: %f cc01: %f).\n", nextWeatherChoice, wantedCC, DYNAMIC_WEATHER_WANTED_CLOUDCOVER);
+		}
+		else
+		{// Blend to our wanted value over time...
+			float diff = DYNAMIC_WEATHER_WANTED_CLOUDCOVER - DYNAMIC_WEATHER_WANTED_CLOUDCOVER_BEGIN;
+			float elapsedTime = (float)(backEnd.refdef.time - DYNAMIC_WEATHER_WANTED_CLOUDCOVER_BEGIN_TIME);
+			float finalTime = (float)(DYNAMIC_WEATHER_NEXT_CHANGE - DYNAMIC_WEATHER_WANTED_CLOUDCOVER_BEGIN_TIME);
+			float percentTime = Q_clamp(0.0, elapsedTime / finalTime, 1.0);
+			float addCC = diff * percentTime;
+			DYNAMIC_WEATHER_CLOUDCOVER = DYNAMIC_WEATHER_WANTED_CLOUDCOVER_BEGIN + addCC;
+
+			//ri->Printf(PRINT_ALL, "DYNAMIC_WEATHER: Blending to %f from %f. Current %f.\n", DYNAMIC_WEATHER_WANTED_CLOUDCOVER, DYNAMIC_WEATHER_WANTED_CLOUDCOVER_BEGIN, DYNAMIC_WEATHER_CLOUDCOVER);
+		}
+
+		// Update the JKA weather system...
+		DynamicWeather_UpdateWeatherSystems();
+	}
+	else
+	{
+		DYNAMIC_WEATHER_CLOUDCOVER = PROCEDURAL_CLOUDS_CLOUDCOVER;
+		DYNAMIC_WEATHER_CLOUDSCALE = PROCEDURAL_CLOUDS_CLOUDSCALE;
+	}
+}
+
 void CLOUD_LAYER_Render(void)
 {
 	if (!PROCEDURAL_CLOUDS_ENABLED || !PROCEDURAL_CLOUDS_LAYER) return;
@@ -138,7 +354,10 @@ void CLOUD_LAYER_Render(void)
 
 	GLSL_BindProgram(&tr.cloudsShader);
 
+	
+	//FBO_Bind(tr.renderNoDepthFbo);
 	//FBO_Bind(tr.renderFbo);
+
 
 	viewParms_t parms = tr.viewParms;
 
@@ -166,12 +385,14 @@ void CLOUD_LAYER_Render(void)
 	GLSL_SetUniformVec3(&tr.cloudsShader, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);
 	GLSL_SetUniformFloat(&tr.cloudsShader, UNIFORM_TIME, backEnd.refdef.floatTime);
 
+	extern float		DYNAMIC_WEATHER_CLOUDCOVER;
+	extern float		DYNAMIC_WEATHER_CLOUDSCALE;
 
 	vec4_t vector;
-	VectorSet4(vector, PROCEDURAL_CLOUDS_LAYER ? 1.0 : 0.0, PROCEDURAL_CLOUDS_CLOUDSCALE, PROCEDURAL_CLOUDS_SPEED, PROCEDURAL_CLOUDS_DARK);
+	VectorSet4(vector, PROCEDURAL_CLOUDS_LAYER ? 1.0 : 0.0, DYNAMIC_WEATHER_CLOUDSCALE, PROCEDURAL_CLOUDS_SPEED, PROCEDURAL_CLOUDS_DARK);
 	GLSL_SetUniformVec4(&tr.cloudsShader, UNIFORM_LOCAL2, vector);
 
-	VectorSet4(vector, PROCEDURAL_CLOUDS_LIGHT, PROCEDURAL_CLOUDS_CLOUDCOVER, PROCEDURAL_CLOUDS_CLOUDALPHA, PROCEDURAL_CLOUDS_SKYTINT);
+	VectorSet4(vector, PROCEDURAL_CLOUDS_LIGHT, DYNAMIC_WEATHER_CLOUDCOVER, PROCEDURAL_CLOUDS_CLOUDALPHA, PROCEDURAL_CLOUDS_SKYTINT);
 	GLSL_SetUniformVec4(&tr.cloudsShader, UNIFORM_LOCAL3, vector);
 
 	float nightScale = RB_NightScale();
@@ -191,6 +412,7 @@ void CLOUD_LAYER_Render(void)
 	//GL_State(GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_DEPTHFUNC_LESS);
 	GL_Cull(CT_TWO_SIDED);
 	GL_State(GLS_ALPHA | GLS_DEPTHFUNC_LESS | GLS_ATEST_GT_0);
+	//GL_State(GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHFUNC_LESS | GLS_ATEST_GT_0);
 
 	//qglDepthMask(GL_FALSE);
 	qglDepthMask(GL_TRUE);
@@ -204,6 +426,8 @@ void CLOUD_LAYER_Render(void)
 	qglBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gCloudLayerIndexID);
 
 	qglDrawElements(GL_TRIANGLES, gCloudLayerDrawNumber, GL_UNSIGNED_INT, 0);
+
+	qglUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
 
 	R_BindNullVBO();
 }

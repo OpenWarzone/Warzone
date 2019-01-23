@@ -1,6 +1,11 @@
 uniform sampler2D	u_DiffuseMap;
+uniform sampler2D	u_HeightMap;
 
 uniform vec4		u_Color;
+
+uniform vec4		u_Mins;					// MAP_MINS[0], MAP_MINS[1], MAP_MINS[2], 0.0
+uniform vec4		u_Maxs;					// MAP_MAXS[0], MAP_MAXS[1], MAP_MAXS[2], 0.0
+
 uniform vec4		u_Local0; // normals, outputBuffers
 
 out vec4			out_Glow;
@@ -83,10 +88,43 @@ vec2 EncodeNormal(vec3 n)
 }
 #endif //__ENCODE_NORMALS_RECONSTRUCT_Z__
 
+vec2 GetMapTC(vec3 pos)
+{
+	vec2 mapSize = u_Maxs.xy - u_Mins.xy;
+	return (pos.xy - u_Mins.xy) / mapSize;
+}
+
+float GetHeightMap(vec3 pos)
+{
+	if (pos.x < u_Mins.x || pos.y < u_Mins.y || pos.z < u_Mins.z) return 65536.0;
+	if (pos.x > u_Maxs.x || pos.y > u_Maxs.y || pos.z > u_Maxs.z) return 65536.0;
+
+	float h = textureLod(u_HeightMap, GetMapTC(pos), 1.0).r;
+	h = mix(u_Mins.z, u_Maxs.z, h);
+	return h + 64.0; // raise it up to correct loss of precision. it's only weather anyway...
+}
+
 void main()
 {
-	gl_FragColor = texture2D(u_DiffuseMap, var_Tex1);
-	gl_FragColor.a = clamp(gl_FragColor.a * 3.0, 0.0, 1.0);
+	float hMap = GetHeightMap(var_Position.xyz);
+
+	if (var_Position.z >= hMap)
+	{// Above heightmap, so draw the particle...
+		gl_FragColor = texture2D(u_DiffuseMap, var_Tex1);
+		gl_FragColor.a = clamp(gl_FragColor.a * 3.0, 0.0, 1.0);
+	}
+	else
+	{// Culled by heightmap...
+		gl_FragColor = vec4(0.0);
+		out_Glow = vec4(0.0);
+		out_Position = vec4(0.0);
+		out_Normal = vec4(0.0);
+#ifdef __USE_REAL_NORMALMAPS__
+		out_NormalDetail = vec4(0.0);
+#endif //__USE_REAL_NORMALMAPS__
+		return;
+	}
+
 	out_Glow = vec4(0.0);
 
 	if (u_Local0.a > 0.0)
