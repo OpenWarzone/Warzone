@@ -3,6 +3,16 @@ uniform sampler2D	u_HeightMap;
 
 uniform vec4		u_Color;
 
+uniform vec3		u_ViewOrigin;
+
+uniform vec4		u_PrimaryLightOrigin;
+uniform vec3		u_PrimaryLightColor;
+
+uniform int			u_lightCount;
+uniform vec3		u_lightPositions2[MAX_DEFERRED_LIGHTS];
+uniform vec3		u_lightColors[MAX_DEFERRED_LIGHTS];
+uniform float		u_lightDistances[MAX_DEFERRED_LIGHTS];
+
 uniform vec4		u_Mins;					// MAP_MINS[0], MAP_MINS[1], MAP_MINS[2], 0.0
 uniform vec4		u_Maxs;					// MAP_MAXS[0], MAP_MAXS[1], MAP_MAXS[2], 0.0
 
@@ -110,7 +120,31 @@ void main()
 
 	if (var_Position.z >= hMap)
 	{// Above heightmap, so draw the particle...
-		gl_FragColor = texture2D(u_DiffuseMap, var_Tex1);
+		vec4 color = texture2D(u_DiffuseMap, var_Tex1);
+
+		if (color.a > 0.0)
+		{
+			/*{// Add sunlight effect to particles in the direction of of the sun... Hmm ok forget this, it works but doesnt account for sun below horizon and i dont want to do a shadow lookup.
+				vec3 v3 = normalize(u_PrimaryLightOrigin.xyz - var_Position.xyz);
+				vec3 v2 = normalize(var_Position.xyz - u_ViewOrigin.xyz);
+				float l = dot(v3, v2);
+				//l = max(3.0-(l*l * .02), 0.0);
+				l = max(pow(l, 80.0), 0.0);
+				color.rgb += l * u_PrimaryLightColor;
+			}*/
+
+			for (int t = 0; t < u_lightCount; t++)
+			{// Add emissive light effect to particles in the direction of of the sun...
+				float dist = u_lightDistances[t];//distance(u_ViewOrigin.xyz, u_lightPositions2[t].xyz);
+				vec3 v3 = normalize(u_lightPositions2[t].xyz - var_Position.xyz);
+				vec3 v2 = normalize(var_Position.xyz - u_ViewOrigin.xyz);
+				float l = max(dot(v3, v2), 0.0);
+				l = max(pow(l, (dist*0.25)), 0.0) * (8.0 / (dist*0.005));
+				color.rgb += l * u_lightColors[t];
+			}
+		}
+
+		gl_FragColor = color;
 		gl_FragColor.a = clamp(gl_FragColor.a * 3.0, 0.0, 1.0);
 	}
 	else

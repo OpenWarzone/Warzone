@@ -1342,12 +1342,12 @@ qboolean RB_GenerateVolumeLightImage(void)
 
 	shaderProgram_t *shader = &tr.volumeLightShader[dlightShader];
 
-	if (VOLUME_LIGHT_INVERTED)
-		shader = &tr.volumeLightInvertedShader[dlightShader];
-
 #define __USING_SHADOW_MAP__
 
 #ifndef __USING_SHADOW_MAP__
+	if (VOLUME_LIGHT_INVERTED)
+		shader = &tr.volumeLightInvertedShader[dlightShader];
+
 	GLSL_BindProgram(shader);
 
 	GLSL_SetUniformMatrix16(shader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
@@ -2531,6 +2531,8 @@ extern qboolean		MATERIAL_SPECULAR_CHANGED;
 extern float		MATERIAL_SPECULAR_STRENGTHS[MATERIAL_LAST];
 extern float		MATERIAL_SPECULAR_REFLECTIVENESS[MATERIAL_LAST];
 
+int					NUM_CURRENT_EMISSIVE_LIGHTS = 0;
+
 void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
 	vec4_t color;
@@ -2681,13 +2683,13 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 #endif //__EMISSIVE_CUBE_IBL__
 		}
 
-	int NUM_LIGHTS = r_lowVram->integer ? min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, 8.0)) : min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, MAX_DEFERRED_LIGHTS));
+	NUM_CURRENT_EMISSIVE_LIGHTS = r_lowVram->integer ? min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, 8.0)) : min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, MAX_DEFERRED_LIGHTS));
 
 	float maxDist = 0.0;
 
-	if (NUM_LIGHTS >= r_maxDeferredLights->integer / 2)
+	if (NUM_CURRENT_EMISSIVE_LIGHTS >= r_maxDeferredLights->integer / 2)
 	{
-		for (int i = 0; i < NUM_LIGHTS; i++)
+		for (int i = 0; i < NUM_CURRENT_EMISSIVE_LIGHTS; i++)
 		{
 			//ri->Printf(PRINT_WARNING, "%i - %i %i %i. Range %f. Color %f %f %f.\n", i, (int)CLOSEST_LIGHTS_POSITIONS[i][0], (int)CLOSEST_LIGHTS_POSITIONS[i][1], (int)CLOSEST_LIGHTS_POSITIONS[i][2], CLOSEST_LIGHTS_DISTANCES[i], CLOSEST_LIGHTS_COLORS[i][0], CLOSEST_LIGHTS_COLORS[i][1], CLOSEST_LIGHTS_COLORS[i][2]);
 
@@ -2701,7 +2703,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 
 	qboolean haveConeAngles = qfalse;
 
-	for (int i = 0; i < NUM_LIGHTS; i++)
+	for (int i = 0; i < NUM_CURRENT_EMISSIVE_LIGHTS; i++)
 	{
 		if (CLOSEST_LIGHTS_CONEANGLES[i] != 0.0)
 		{
@@ -2718,17 +2720,17 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 		GLSL_SetUniformFloatxX(shader, UNIFORM_MATERIAL_REFLECTIVENESS, MATERIAL_SPECULAR_REFLECTIVENESS, MATERIAL_LAST);
 	}
 
-	GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, NUM_LIGHTS);
-	GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTPOSITIONS2, CLOSEST_LIGHTS_POSITIONS, NUM_LIGHTS);
-	GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTCOLORS, CLOSEST_LIGHTS_COLORS, NUM_LIGHTS);
-	GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHTDISTANCES, CLOSEST_LIGHTS_DISTANCES, NUM_LIGHTS);
-	//GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHTHEIGHTSCALES, CLOSEST_LIGHTS_HEIGHTSCALES, NUM_LIGHTS);
+	GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, NUM_CURRENT_EMISSIVE_LIGHTS);
+	GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTPOSITIONS2, CLOSEST_LIGHTS_POSITIONS, NUM_CURRENT_EMISSIVE_LIGHTS);
+	GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTCOLORS, CLOSEST_LIGHTS_COLORS, NUM_CURRENT_EMISSIVE_LIGHTS);
+	GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHTDISTANCES, CLOSEST_LIGHTS_DISTANCES, NUM_CURRENT_EMISSIVE_LIGHTS);
+	//GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHTHEIGHTSCALES, CLOSEST_LIGHTS_HEIGHTSCALES, NUM_CURRENT_EMISSIVE_LIGHTS);
 	if (haveConeAngles)
 	{
-		GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHT_CONEANGLES, CLOSEST_LIGHTS_CONEANGLES, NUM_LIGHTS);
-		GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHT_CONEDIRECTIONS, CLOSEST_LIGHTS_CONEDIRECTIONS, NUM_LIGHTS);
+		GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHT_CONEANGLES, CLOSEST_LIGHTS_CONEANGLES, NUM_CURRENT_EMISSIVE_LIGHTS);
+		GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHT_CONEDIRECTIONS, CLOSEST_LIGHTS_CONEDIRECTIONS, NUM_CURRENT_EMISSIVE_LIGHTS);
 	}
-	GLSL_SetUniformFloat(shader, UNIFORM_LIGHT_MAX_DISTANCE, (NUM_LIGHTS >= r_maxDeferredLights->integer / 2) ? maxDist : 8192.0);
+	GLSL_SetUniformFloat(shader, UNIFORM_LIGHT_MAX_DISTANCE, (NUM_CURRENT_EMISSIVE_LIGHTS >= r_maxDeferredLights->integer / 2) ? maxDist : 8192.0);
 
 	GLSL_SetUniformVec3(shader, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);
 

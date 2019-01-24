@@ -806,7 +806,7 @@ void RB_UpdateDayNightCycle()
 		vec4_t sunColor;
 		float Time24h = DAY_NIGHT_CURRENT_TIME*24.0;
 
-		DAY_NIGHT_CURRENT_TIME += (r_dayNightCycleSpeed->value * DAY_NIGHT_CYCLE_SPEED);
+		DAY_NIGHT_CURRENT_TIME += (r_dayNightCycleSpeed->value * ri->Cvar_VariableValue("timescale") * DAY_NIGHT_CYCLE_SPEED);
 
 		if (Time24h > 24.0)
 		{

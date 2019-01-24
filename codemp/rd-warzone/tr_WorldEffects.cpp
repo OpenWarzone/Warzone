@@ -1748,6 +1748,36 @@ public:
 		VectorSet4(l0, norm[0], norm[1], norm[2], (mBlendMode == 2) ? 1.0 : 0.0);
 		GLSL_SetUniformVec4(shader, UNIFORM_LOCAL0, l0);
 
+
+		//
+		// For light effects...
+		//
+		extern int					NUM_CURRENT_EMISSIVE_LIGHTS; // set up by deferredlighting from previous frame...
+		extern vec3_t				CLOSEST_LIGHTS_POSITIONS[MAX_DEFERRED_LIGHTS];
+		extern vec3_t				CLOSEST_LIGHTS_COLORS[MAX_DEFERRED_LIGHTS];
+		float						EMISSIVE_LIGHT_DIST[MAX_DEFERRED_LIGHTS];
+
+		for (int i = 0; i < NUM_CURRENT_EMISSIVE_LIGHTS; i++)
+		{
+			EMISSIVE_LIGHT_DIST[i] = Distance(backEnd.refdef.vieworg, CLOSEST_LIGHTS_POSITIONS[i]);
+		}
+
+		GLSL_SetUniformVec3(shader, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);
+
+		vec3_t out;
+		float dist = 4096.0;//backEnd.viewParms.zFar / 1.75;
+		VectorMA(backEnd.refdef.vieworg, dist, backEnd.refdef.sunDir, out);
+		GLSL_SetUniformVec4(shader, UNIFORM_PRIMARYLIGHTORIGIN, out);
+
+		//GLSL_SetUniformVec4(shader, UNIFORM_LOCAL2,  backEnd.refdef.sunDir);
+		GLSL_SetUniformVec3(shader, UNIFORM_PRIMARYLIGHTCOLOR, backEnd.refdef.sunCol);
+
+		GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, NUM_CURRENT_EMISSIVE_LIGHTS);
+		GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTPOSITIONS2, CLOSEST_LIGHTS_POSITIONS, NUM_CURRENT_EMISSIVE_LIGHTS);
+		GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTCOLORS, CLOSEST_LIGHTS_COLORS, NUM_CURRENT_EMISSIVE_LIGHTS);
+		GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHTDISTANCES, EMISSIVE_LIGHT_DIST, NUM_CURRENT_EMISSIVE_LIGHTS);
+
+
 		// Set The GL State And Image Binding
 		//------------------------------------
 		//GL_Cull(CT_TWO_SIDED);

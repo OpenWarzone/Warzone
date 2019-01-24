@@ -5,7 +5,6 @@
 #define __ENHANCED_AO__
 #define __SCREEN_SPACE_REFLECTIONS__
 #define __CLOUD_SHADOWS__
-//#define __LIGHTNING__
 
 #ifdef USE_CUBEMAPS
 	#define __CUBEMAPS__
@@ -1018,131 +1017,16 @@ float CloudShadows(vec3 position)
 	
 	vec3 cameraPos = vec3(0.0);
     vec3 dir = normalize(u_PrimaryLightOrigin.xzy - position.xzy*0.25);
-	dir.y *= -1.0;
+	//dir.y *= -1.0;
+	dir = normalize(vec3(dir.x, u_Local3.r, dir.z));
 
 	vec2 pos;
 	float alpha = GetCloudAlpha(cameraPos, dir, pos);
 	//alpha *= clamp(-dir.y, 0.0, 0.75);
 
-	return (1.0 - alpha) * 0.75 + 0.25;
+	return (1.0 - alpha);
 }
 #endif //__CLOUD_SHADOWS__
-
-#ifdef __LIGHTNING__
-#define pi 3.1415926535897932384626433832795
-
-vec2 rotate(vec2 p, float a)
-{
-	return vec2(p.x * cos(a) - p.y * sin(a), p.x * sin(a) + p.y * cos(a));
-}
-
-float hash1(float p)
-{
-	return fract(sin(p * 172.435) * 29572.683) - 0.5;
-}
-
-float hash2(vec2 p)
-{
-	vec2 r = (456.789 * sin(789.123 * p.xy));
-	return fract(r.x * r.y * (1.0 + p.x));
-}
-
-float ns(float p)
-{
-	float fr = fract(p);
-	float fl = floor(p);
-	return mix(hash1(fl), hash1(fl + 1.0), fr);
-}
-
-float fbm(float p)
-{
-	return (ns(p) * 0.4 + ns(p * 2.0 - 10.0) * 0.125 + ns(p * 8.0 + 10.0) * 0.025);
-}
-
-float fbmd(float p)
-{
-	float h = 0.01;
-	return atan(fbm(p + h) - fbm(p - h), h);
-}
-
-float arcsmp(float x, float seed)
-{
-	return fbm(x * 3.0 + seed * 1111.111) * (1.0 - exp(-x * 5.0));
-}
-
-float arc(vec2 p, float seed, float len)
-{
-	p *= len;
-	//p = rotate(p, iTime);
-	float v = abs(p.y - arcsmp(p.x, seed));
-	v += exp((2.0 - p.x) * -4.0);
-	v = exp(v * -60.0) + exp(v * -10.0) * 0.6;
-	//v += exp(p.x * -2.0);
-	v *= smoothstep(0.0, 0.05, p.x);
-	return v;
-}
-
-float arcc(vec2 p, float sd)
-{
-	float v = 0.0;
-	float rnd = fract(sd);
-	float sp = 0.0;
-	v += arc(p, sd, 1.0);
-	for(int i = 0; i < 4; i ++)
-	{
-		sp = rnd + 0.01;
-		vec2 mrk = vec2(sp, arcsmp(sp, sd));
-		v += arc(rotate(p - mrk, fbmd(sp)), mrk.x, mrk.x * 0.4 + 1.5);
-		rnd = fract(sin(rnd * 195.2837) * 1720.938);
-	}
-	return v;
-}
-
-vec4 GetLightning( in vec3 position )
-{
-	float rnd2 = u_Time*hash1(float(int(u_Time*0.75)));
-	vec3 ro = u_ViewOrigin.xzy;
-	vec3 rd = normalize(u_ViewOrigin.xzy - position.xzy) * mix(16.0, 32.0, clamp(rnd2, 0.0, 1.0));
-    
-    vec3 col;
-    
-    vec4 rnd = vec4(0.1, 0.2, 0.3, 0.4);
-    float arcv = 0.0, arclight = 0.0;
-    
-    {
-        float v = 0.0;
-        rnd = fract(sin(rnd * 1.111111) * 298729.258972);
-        float ts = rnd.z * 4.0 * 1.61803398875 + 1.0;
-        float arcfl = floor(u_Time / ts + rnd.y) * ts;
-        float arcfr = fract(u_Time / ts + rnd.y) * ts;
-        
-        float arcseed = floor(u_Time * 17.0 + rnd.y);
-        vec2 uv = rd.xy;
-		//uv.y = 1.0 - uv.y;
-		uv.x += rnd2 * 0.02;
-		//uv.y -= 1.5;
-		uv.y += 1.5;
-        v = arcc(uv.yx, arcseed*0.0033333);
-
-		float arcdur = rnd.x * 0.2 + 0.05;
-        float arcint = smoothstep(0.1 + arcdur, arcdur, arcfr);
-        v *= arcint;
-        arcv += v;
-
-		//float arcz = ro.z + rnd.x + 6.0;//ro.z + 1.0 + rnd.x * 6.0;
-        //arclight += exp(abs(arcz - position.z) * -0.3) * fract(sin(arcseed) * 198721.6231) * arcint;
-    }
-    
-    vec3 arccol = vec3(0.9, 0.7, 0.7);
-    //col += arclight * arccol * 0.5;
-    col = mix(col, arccol, clamp(arcv, 0.0, 1.0));
-    col = pow(col, vec3(1.0, 0.8, 0.5) * 1.5) * 1.5;
-    col = pow(col, vec3(1.0 / 2.2));
-
-	float alpha = max(col.r, max(col.g, col.b));
-	return vec4(col, alpha);
-}
-#endif //__LIGHTNING__
 
 /*
 ** Contrast, saturation, brightness
@@ -1234,18 +1118,6 @@ void main(void)
 	vec4 outColor = vec4(color.rgb, 1.0);
 	vec3 originalPosition;
 	vec4 position = positionMapAtCoord(var_TexCoords, changedToWater, originalPosition);
-
-#ifdef __LIGHTNING__
-	if (position.a - 1.0 >= MATERIAL_SKY && CLOUDS_ENABLED > 0.0)
-	{// Distant lightning strikes...
-		float cloudy = clamp(CLOUDS_CLOUDCOVER*0.3, 0.0, 0.3);
-		if (cloudy >= 0.285)
-		{
-			vec4 lightning = GetLightning(position.xyz);
-			outColor.rgb += lightning.rgb * lightning.a;
-		}
-	}
-#endif //__LIGHTNING__
 
 	if (position.a - 1.0 >= MATERIAL_SKY
 		|| position.a - 1.0 == MATERIAL_SUN
@@ -1822,22 +1694,18 @@ void main(void)
 	}
 #endif //defined(__ENHANCED_AO__)
 
-#if defined(USE_SHADOWMAP) && !defined(__LQ_MODE__)
-	if (SHADOWS_ENABLED > 0.0 && NIGHT_SCALE < 1.0)
-	{
-		finalShadow = mix(finalShadow, 1.0, clamp(NIGHT_SCALE, 0.0, 1.0)); // Dampen out shadows at sunrise/sunset...
+	finalShadow = mix(finalShadow, 1.0, clamp(NIGHT_SCALE, 0.0, 1.0)); // Dampen out shadows at sunrise/sunset...
 
 #ifdef __CLOUD_SHADOWS__
-		if (CLOUDS_ENABLED > 0.0)
-		{
-			float cShadow = CloudShadows(position.xyz);
-			outColor.rgb *= min(cShadow, finalShadow);
-		}
-		else
-	#endif //__CLOUD_SHADOWS__
-		outColor.rgb *= finalShadow;
+	if (CLOUDS_ENABLED > 0.0)
+	{
+		float cShadow = CloudShadows(position.xyz) * 0.75 + 0.25;
+		cShadow = mix(cShadow, 1.0, clamp(NIGHT_SCALE, 0.0, 1.0)); // Dampen out cloud shadows at sunrise/sunset...
+		finalShadow = min(finalShadow, cShadow);
 	}
-#endif //defined(USE_SHADOWMAP) && !defined(__LQ_MODE__)
+#endif //__CLOUD_SHADOWS__
+
+	outColor.rgb *= finalShadow;
 
 
 	if (!(CONTRAST_STRENGTH == 1.0 && SATURATION_STRENGTH == 1.0 && BRIGHTNESS_STRENGTH == 1.0))

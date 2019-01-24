@@ -1,14 +1,16 @@
 #define __USING_SHADOW_MAP__
 
-uniform sampler2D			u_ScreenDepthMap;
+uniform sampler2D				u_ScreenDepthMap;
 
-uniform vec4				u_Local0; // r_lensflare, 0.0, r_volumeLightStrength * SUN_VOLUMETRIC_SCALE, SUN_VOLUMETRIC_FALLOFF
-uniform vec4				u_Local1; // nightScale, isVolumelightShader, r_testvalue0->value, r_testvalue1->value
-uniform vec4				u_Local2; // r_testvalue0->value, r_testvalue1->value, r_testvalue2->value, r_testvalue3->value
+uniform vec4					u_Local0; // r_lensflare, 0.0, r_volumeLightStrength * SUN_VOLUMETRIC_SCALE, SUN_VOLUMETRIC_FALLOFF
+uniform vec4					u_Local1; // nightScale, isVolumelightShader, r_testvalue0->value, r_testvalue1->value
+uniform vec4					u_Local2; // r_testvalue0->value, r_testvalue1->value, r_testvalue2->value, r_testvalue3->value
+
+#define LENS_FLARE_ENABLED		u_Local0.r
+#define NIGHT_FACTOR			u_Local1.r
 
 // General options...
 #define VOLUMETRIC_STRENGTH		u_Local0.b
-
 
 #if defined(HQ_VOLUMETRIC)
 const int	iVolumetricSamples = 32;
@@ -38,7 +40,7 @@ varying vec2				var_TexCoords;
 
 void main ( void )
 {
-	if (u_Local1.r >= 1.0)
+	if (NIGHT_FACTOR >= 1.0)
 	{// Night...
 		gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
 		return;
@@ -47,10 +49,10 @@ void main ( void )
 	vec3	totalColor = vec3(0.0, 0.0, 0.0);
 	vec3	lightColor = u_vlightColors * 1.5;
 
-	if (u_Local1.r > 0.0)
+	if (NIGHT_FACTOR > 0.0)
 	{// Adjust the sun color at sunrise/sunset...
 		vec3 sunsetSun = vec3(2.0, 0.3, 0.1);
-		lightColor = mix(lightColor, sunsetSun, u_Local1.r/*pow(u_Local1.r, u_Local1.g)*/);
+		lightColor = mix(lightColor, sunsetSun, NIGHT_FACTOR/*pow(NIGHT_FACTOR, u_Local1.g)*/);
 	}
 
 	float dist = length(var_TexCoords - u_vlightPositions);
@@ -92,10 +94,10 @@ void main ( void )
 #define lightUpper ( 255.0 / 64.0 )
 	totalColor.rgb = clamp((totalColor.rgb - lightLower) * lightUpper, 0.0, 1.0);
 
-	if (u_Local1.r > 0.0)
+	if (NIGHT_FACTOR > 0.0)
 	{// Sunset, Sunrise, and Night times... Scale down screen color, before adding lighting...
 		vec3 nightColor = vec3(0.0);
-		totalColor.rgb = mix(totalColor.rgb, nightColor, u_Local1.r);
+		totalColor.rgb = mix(totalColor.rgb, nightColor, NIGHT_FACTOR);
 	}
 
 	gl_FragColor = vec4(totalColor, 1.0);
@@ -239,10 +241,17 @@ vec3 lensflare3D(in vec3 ray, in vec3 ctr, in vec3 sDir)
 
 void main()
 {
-	if (u_Local1.r >= 1.0)
-	{// Night...
+	if (NIGHT_FACTOR >= 1.0)
+	{// Night... Skip...
 		gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
 		return;
+	}
+
+	vec3 sunColor = u_vlightColors;
+
+	if (NIGHT_FACTOR > 0.0)
+	{// Sunrise/Sunset - Adjust the sun color at sunrise/sunset...
+		sunColor = mix(sunColor, vec3(1.0, 0.8, 0.625), NIGHT_FACTOR);
 	}
 
 	float shadow = GetVolumetricShadow();
@@ -254,7 +263,7 @@ void main()
 	shadow = pow(shadow, 1.333); // a little more smoothness/contrast...
 	//shadow = smoothstep(0.0, 1.0, pow(shadow, 1.333)); // a little more smoothness/contrast...
 
-	vec3 totalColor = u_vlightColors * shadow;
+	vec3 totalColor = sunColor * shadow;
 
 
 	// Extra brightness in the direction of the sun...
@@ -274,21 +283,13 @@ void main()
 //#define lightUpper ( 255.0 / 4096.0 )
 //	totalColor.rgb = clamp((totalColor.rgb - lightLower) * lightUpper, 0.0, 1.0);
 
-	if (u_Local1.r > 0.0)
-	{// Adjust the sun color at sunrise/sunset...
-		vec3 sunsetSun = vec3(1.0, 0.8, 0.625);
-		//vec3 sunsetSun = vec3(u_Local2.r, u_Local2.g, u_Local2.b);
-		totalColor = mix(totalColor, sunsetSun, u_Local1.r);
-	}
-
-	if (u_Local1.r > 0.0)
-	{// Sunset, Sunrise, and Night times... Scale down screen color, before adding lighting...
-		vec3 nightColor = vec3(0.0);
-		totalColor.rgb = mix(totalColor.rgb, nightColor, u_Local1.r);
+	if (NIGHT_FACTOR > 0.0)
+	{// Sunrise/Sunset - Scale down screen color, before adding lighting...
+		sunColor = mix(sunColor, vec3(0.0), NIGHT_FACTOR);
 	}
 
 #ifdef __LENS_FLARE__
-	if (u_Local0.r > 0.0)
+	if (LENS_FLARE_ENABLED > 0.0)
 	{
 		totalColor.rgb += lensflare3D(vDir.xzy, normalize(var_ViewDir2).xzy, lDir.xzy) * shadow * 2.0;
 	}

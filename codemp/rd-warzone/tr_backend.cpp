@@ -3780,7 +3780,7 @@ const void *RB_PostProcess(const void *data)
 			}
 		}
 
-		if (!SCREEN_BLUR && r_dynamiclight->integer && r_volumeLight->integer)
+		if (!SCREEN_BLUR && r_dynamiclight->integer && r_volumeLight->integer && RB_NightScale() < 1.0)
 		{
 			if (!r_lowVram->integer)
 			{

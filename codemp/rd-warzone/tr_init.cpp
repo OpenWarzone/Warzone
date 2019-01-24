@@ -1716,7 +1716,7 @@ void R_Register( void )
 	r_vibrancy = ri->Cvar_Get( "r_vibrancy", "0.4", CVAR_ARCHIVE );
 	r_distanceBlur = ri->Cvar_Get( "r_distanceBlur", "0", CVAR_ARCHIVE );
 	r_fogPost = ri->Cvar_Get( "r_fogPost", "true", CVAR_ARCHIVE );
-	r_dayNightCycleSpeed = ri->Cvar_Get( "r_dayNightCycleSpeed", "0.0001", CVAR_ARCHIVE );
+	r_dayNightCycleSpeed = ri->Cvar_Get( "r_dayNightCycleSpeed", "0.004", CVAR_ARCHIVE );
 	r_testshader = ri->Cvar_Get( "r_testshader", "false", CVAR_ARCHIVE );
 	r_testshaderValue1 = ri->Cvar_Get( "r_testshaderValue1", "1.0", CVAR_ARCHIVE );
 	r_testshaderValue2 = ri->Cvar_Get( "r_testshaderValue2", "0.0", CVAR_ARCHIVE );
