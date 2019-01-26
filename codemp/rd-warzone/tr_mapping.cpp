@@ -2082,10 +2082,10 @@ void MAPPING_LoadMapInfo(void)
 			MOON_COUNT++;
 		}
 
-		MOON_ROTATION_OFFSET_X[0] = atof(IniRead(mapname, "MOON", "MOON_ROTATION_OFFSET_X1", "0.0"));
-		MOON_ROTATION_OFFSET_Y[0] = atof(IniRead(mapname, "MOON", "MOON_ROTATION_OFFSET_Y1", "0.0"));
-		MOON_SIZE[0] = atof(IniRead(mapname, "MOON", "MOON_SIZE1", "1.0"));
-		MOON_BRIGHTNESS[0] = atof(IniRead(mapname, "MOON", "MOON_BRIGHTNESS1", "1.0"));
+		MOON_ROTATION_OFFSET_X[0] = atof(IniRead(mapname, "MOON", "MOON_ROTATION_OFFSET_X1", "0.1"));
+		MOON_ROTATION_OFFSET_Y[0] = atof(IniRead(mapname, "MOON", "MOON_ROTATION_OFFSET_Y1", "0.7"));
+		MOON_SIZE[0] = atof(IniRead(mapname, "MOON", "MOON_SIZE1", "4.3"));
+		MOON_BRIGHTNESS[0] = atof(IniRead(mapname, "MOON", "MOON_BRIGHTNESS1", "3.0"));
 		MOON_TEXTURE_SCALE[0] = atof(IniRead(mapname, "MOON", "MOON_TEXTURE_SCALE1", "1.0"));
 
 		char moonImageName[512] = { 0 };
@@ -2096,7 +2096,7 @@ void MAPPING_LoadMapInfo(void)
 		if (!tr.moonImage[0]) tr.moonImage[0] = R_FindImageFile("gfx/moons/moon", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
 		if (!strcmp(moonImageName, "gfx/random"))
 		{// I changed the code, this is for old mapinfo's to be converted instead of (random) disco moon colors...
-			tr.moonImage[0] = R_FindImageFile("gfx/misc/moontexture", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+			tr.moonImage[0] = R_FindImageFile("gfx/moons/moon", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
 		}
 
 		// Add any extra moons...

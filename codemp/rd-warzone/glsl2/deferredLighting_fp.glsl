@@ -1070,8 +1070,8 @@ void AddProceduralMoss(inout vec4 outColor, in vec4 position, in bool changedToW
 {
 	if (PROCEDURAL_MOSS_ENABLED > 0.0
 		&& (position.a - 1.0 == MATERIAL_TREEBARK
-			|| position.a - 1.0 == MATERIAL_SHORTGRASS
-			|| position.a - 1.0 == MATERIAL_LONGGRASS
+			/*|| position.a - 1.0 == MATERIAL_SHORTGRASS
+			|| position.a - 1.0 == MATERIAL_LONGGRASS*/
 			|| position.a - 1.0 == MATERIAL_ROCK))
 	{// add procedural moss...
 		vec3 usePos = changedToWater ? originalPosition.xyz : position.xyz;

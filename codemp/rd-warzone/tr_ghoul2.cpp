@@ -4887,6 +4887,127 @@ template <typename T> int sgn(T val) {
 	return (T(0) < val) - (val < T(0));
 }
 
+#ifdef __EXPERIMENTAL_AUTO_BONE_WEIGHTING__
+//
+//
+//
+qboolean	kyle_data_initialized = qfalse;
+
+vec3_t		kyle_bounds[2];
+vec3_t		kyle_size;
+
+int			kyle_bonerefsNum = 0;
+int			kyle_bonerefs[64] = { -1 };
+vec3_t		kyle_bonerefs_centers[64] = { 0.0 };
+vec3_t		kyle_bonerefs_scales[64] = { 0.0 };
+float		kyle_bonerefs_maxdistances[64] = { 0.0 };
+
+int G2_GetKyleBoneFromBonerefs(int boneRefID)
+{
+	for (int i = 0; i < kyle_bonerefsNum; i++)
+	{
+		if (kyle_bonerefs[i] == boneRefID) return i;
+	}
+
+	return -1;
+}
+
+void G2_SetupKyleBoneData(void)
+{
+	// get the bounds of the kyle model...
+	// also grab the bonerefs used...
+	if (kyle_data_initialized) return;
+	
+	kyle_data_initialized = qtrue;
+
+	ClearBounds(kyle_bounds[0], kyle_bounds[1]);
+
+	mdxmLOD_t *klod = (mdxmLOD_t *)((byte *)kyleMdxm + kyleMdxm->ofsLODs);
+
+	mdxmSurface_t *ksurf = (mdxmSurface_t *)((byte *)klod + sizeof(mdxmLOD_t) + (kyleMdxm->numSurfaces * sizeof(mdxmLODSurfOffset_t)));
+
+	for (int ks = 0; ks < kyleMdxm->numSurfaces; ks++)
+	{
+		for (int kv = 0; kv < ksurf->numVerts; kv++)
+		{
+			mdxmVertex_t *kvt = (mdxmVertex_t *)((byte *)ksurf + ksurf->ofsVerts);
+			mdxmVertex_t *kvClosest = &kvt[kv];
+
+			AddPointToBounds(kvClosest->vertCoords, kyle_bounds[0], kyle_bounds[1]);
+
+			for (int br = 0; br < G2_GetVertWeights(kvClosest); br++)
+			{
+				int boneRefID = G2_GetVertBoneIndex(kvClosest, br);
+				int kreference = G2_GetKyleBoneFromBonerefs(boneRefID);
+				if (kreference < 0)
+				{// Add a new one...
+					kyle_bonerefs[kyle_bonerefsNum] = boneRefID;
+					kyle_bonerefsNum++;
+				}
+			}
+		}
+
+		ksurf = (mdxmSurface_t *)((byte *)ksurf + ksurf->ofsEnd);
+	}
+
+	kyle_size[0] = kyle_bounds[1][0] - kyle_bounds[0][0];
+	kyle_size[1] = kyle_bounds[1][1] - kyle_bounds[0][1];
+	kyle_size[2] = kyle_bounds[1][2] - kyle_bounds[0][2];
+
+	ri->Printf(PRINT_WARNING, "EXPERIMENTAL_AUTO_BONE_WEIGHTING: Kyle bounds are (%f %f %f) (%f %f %f).\n", kyle_bounds[0][0], kyle_bounds[0][1], kyle_bounds[0][2], kyle_bounds[1][0], kyle_bounds[1][1], kyle_bounds[1][2]);
+	ri->Printf(PRINT_WARNING, "EXPERIMENTAL_AUTO_BONE_WEIGHTING: Kyle had %i bonerefs.\n", kyle_bonerefsNum);
+	ri->Printf(PRINT_WARNING, "EXPERIMENTAL_AUTO_BONE_WEIGHTING: Kyle size is (%f %f %f).\n", kyle_size[0], kyle_size[1], kyle_size[2]);
+
+	// Now find all the boneref's radiuses around their bone as a percentage of the total model size...
+	for (int i = 0; i < kyle_bonerefsNum; i++)
+	{
+		int boneRefID = kyle_bonerefs[i];
+		vec3_t boneBounds[2];
+
+		ClearBounds(boneBounds[0], boneBounds[1]);
+
+		mdxmSurface_t *ksurf = (mdxmSurface_t *)((byte *)klod + sizeof(mdxmLOD_t) + (kyleMdxm->numSurfaces * sizeof(mdxmLODSurfOffset_t)));
+
+		for (int ks = 0; ks < kyleMdxm->numSurfaces; ks++)
+		{
+			for (int kv = 0; kv < ksurf->numVerts; kv++)
+			{
+				mdxmVertex_t *kvt = (mdxmVertex_t *)((byte *)ksurf + ksurf->ofsVerts);
+				mdxmVertex_t *kvClosest = &kvt[kv];
+
+				for (int br = 0; br < G2_GetVertWeights(kvClosest); br++)
+				{
+					int kboneRefID = G2_GetVertBoneIndex(kvClosest, br);
+					
+					if (kboneRefID == boneRefID)
+					{// Add this to the list of vert refs from this bone...
+						AddPointToBounds(kvClosest->vertCoords, boneBounds[0], boneBounds[1]);
+					}
+				}
+			}
+
+			ksurf = (mdxmSurface_t *)((byte *)ksurf + ksurf->ofsEnd);
+		}
+
+		// Now we have bounds of the verts using this bone ref, find a rough radius...
+		vec3_t center;
+		center[0] = (boneBounds[0][0] + boneBounds[1][0]) * 0.5;
+		center[1] = (boneBounds[0][1] + boneBounds[1][1]) * 0.5;
+		center[2] = (boneBounds[0][2] + boneBounds[1][2]) * 0.5;
+
+		VectorCopy(center, kyle_bonerefs_centers[i]);
+
+		kyle_bonerefs_scales[i][0] = max(center[0] - boneBounds[0][0], center[0] - boneBounds[1][0]);
+		kyle_bonerefs_scales[i][1] = max(center[1] - boneBounds[0][1], center[1] - boneBounds[1][1]);
+		kyle_bonerefs_scales[i][2] = max(center[2] - boneBounds[0][2], center[2] - boneBounds[1][2]);
+
+		kyle_bonerefs_maxdistances[i] = max(kyle_bonerefs_scales[i][0], max(kyle_bonerefs_scales[i][1], kyle_bonerefs_scales[i][2]));
+
+		ri->Printf(PRINT_WARNING, "EXPERIMENTAL_AUTO_BONE_WEIGHTING: Kyle boneref %i scale is (%f %f %f) Max dist is %f.\n", i, kyle_bonerefs_scales[i][0], kyle_bonerefs_scales[i][1], kyle_bonerefs_scales[i][2], kyle_bonerefs_maxdistances[i]);
+	}
+}
+#endif //__EXPERIMENTAL_AUTO_BONE_WEIGHTING__
+
 qboolean model_upload_mdxm_to_gpu(model_t *mod, qboolean isKyle) {
 
 	mdxmHeader_t *mdxm = mdxmHeader(mod);
@@ -4983,34 +5104,90 @@ qboolean model_upload_mdxm_to_gpu(model_t *mod, qboolean isKyle) {
 		surf = (mdxmSurface_t *)((byte *)lod + sizeof (mdxmLOD_t) + (mdxm->numSurfaces * sizeof (mdxmLODSurfOffset_t)));
 
 
-//#define __EXPERIMENTAL_AUTO_BONE_WEIGHTING__
-
 #ifdef __EXPERIMENTAL_AUTO_BONE_WEIGHTING__
-		//kyleModel
+		qboolean	hasBones = qfalse;
+		vec3_t		model_bounds[2];
+		vec3_t		model_size = { 0.0 };
 
-		qboolean hasBones = qfalse;
-
-		if (StringContainsWord(mod->name, "players/malechild") || StringContainsWord(mod->name, "players/boy") || StringContainsWord(mod->name, "players/test"))
+		if (isKyle || !kyleMdxm)
 		{
-			hasBones = qfalse;
+			hasBones = qtrue;
 		}
 		else
 		{
-			// See if this model has any weights/bonerefs...
-			for (int n = 0; n < mdxm->numSurfaces; n++)
+			G2_SetupKyleBoneData();
+
+			ClearBounds(model_bounds[0], model_bounds[1]);
+
+			if (StringContainsWord(mod->name, "players/malechild") || StringContainsWord(mod->name, "players/boy") || StringContainsWord(mod->name, "players/test"))
 			{
-				// Positions and normals
-				mdxmVertex_t *v = (mdxmVertex_t *)((byte *)surf + surf->ofsVerts);
+				hasBones = qfalse;
 
-				// Weights
-				for (int k = 0; k < surf->numVerts; k++)
+				// See if this model has any weights/bonerefs...
+				for (int n = 0; n < mdxm->numSurfaces; n++)
 				{
-					int numWeights = G2_GetVertWeights(&v[k]);
+					// Positions and normals
+					mdxmVertex_t *v = (mdxmVertex_t *)((byte *)surf + surf->ofsVerts);
 
-					if (numWeights > 0)
+					// Weights
+					for (int k = 0; k < surf->numVerts; k++)
 					{
-						hasBones = qtrue;
-						break;
+						AddPointToBounds(v[k].vertCoords, model_bounds[0], model_bounds[1]);
+					}
+				}
+
+				model_size[0] = model_bounds[1][0] - model_bounds[0][0];
+				model_size[1] = model_bounds[1][1] - model_bounds[0][1];
+				model_size[2] = model_bounds[1][2] - model_bounds[0][2];
+			}
+			else
+			{
+				// See if this model has any weights/bonerefs...
+				for (int n = 0; n < mdxm->numSurfaces; n++)
+				{
+					// Positions and normals
+					mdxmVertex_t *v = (mdxmVertex_t *)((byte *)surf + surf->ofsVerts);
+
+					// Weights
+					for (int k = 0; k < surf->numVerts; k++)
+					{
+						AddPointToBounds(v[k].vertCoords, model_bounds[0], model_bounds[1]);
+
+						int numWeights = G2_GetVertWeights(&v[k]);
+
+						if (numWeights > 0)
+						{
+							hasBones = qtrue;
+							//break;
+						}
+					}
+				}
+
+				model_size[0] = model_bounds[1][0] - model_bounds[0][0];
+				model_size[1] = model_bounds[1][1] - model_bounds[0][1];
+				model_size[2] = model_bounds[1][2] - model_bounds[0][2];
+
+				ri->Printf(PRINT_WARNING, "EXPERIMENTAL_AUTO_BONE_WEIGHTING: Model size for %s (anim: %s) is (%f %f %f).\n", mdxm->name, mdxm->name, model_size[0], model_size[1], model_size[2]);
+			}
+
+			if (!hasBones)
+			{
+				// Scale the model to kyle size...
+				for (int n = 0; n < mdxm->numSurfaces; n++)
+				{
+					// Positions and normals
+					mdxmVertex_t *v = (mdxmVertex_t *)((byte *)surf + surf->ofsVerts);
+
+					// Weights
+					for (int k = 0; k < surf->numVerts; k++)
+					{
+						vec3_t scaledVert;
+						VectorCopy(v[k].vertCoords, scaledVert);
+						scaledVert[0] *= kyle_size[0] / model_size[0];
+						scaledVert[1] *= kyle_size[1] / model_size[1];
+						scaledVert[2] *= kyle_size[2] / model_size[2];
+
+						VectorCopy(scaledVert, v[k].vertCoords);
 					}
 				}
 			}
@@ -5037,7 +5214,7 @@ qboolean model_upload_mdxm_to_gpu(model_t *mod, qboolean isKyle) {
 #ifdef __EXPERIMENTAL_AUTO_BONE_WEIGHTING__
 				if (!hasBones)
 				{// Copy from kyle :)
-					//mdxmHeader_t *kyleMdxm = mod->data.glm->header;//mdxmHeader(kyleModel);
+#if 1
 					mdxmLOD_t *klod = (mdxmLOD_t *)((byte *)kyleMdxm + kyleMdxm->ofsLODs);
 
 					mdxmSurface_t *ksurf = (mdxmSurface_t *)((byte *)klod + sizeof(mdxmLOD_t) + (kyleMdxm->numSurfaces * sizeof(mdxmLODSurfOffset_t)));
@@ -5051,23 +5228,17 @@ qboolean model_upload_mdxm_to_gpu(model_t *mod, qboolean isKyle) {
 
 					for (int ks = 0; ks < kyleMdxm->numSurfaces; ks++)
 					{
-						//mdxmSurface_t *kThisSurf = &ksurf[ks];
-
 						for (int kv = 0; kv < ksurf->numVerts; kv++)
 						{
 							mdxmVertex_t *kvt = (mdxmVertex_t *)((byte *)ksurf + ksurf->ofsVerts);
 							mdxmVertex_t *kvClosest = &kvt[kv];
 
-							if (sgn(v[k].vertCoords[0]) == sgn(kvClosest->vertCoords[0])
-								&& sgn(v[k].vertCoords[1]) == sgn(kvClosest->vertCoords[1])
-								/*&& sgn(v[k].vertCoords[2]) == sgn(kvClosest->vertCoords[2])*/)
+							/*if (sgn(v[k].vertCoords[0]) == sgn(kvClosest->vertCoords[0])
+								&& sgn(v[k].vertCoords[1]) == sgn(kvClosest->vertCoords[1]))*/
 							{
-								/*float vdist = DistanceVertical(v[k].vertCoords, kvClosest->vertCoords);
-								float hdist = DistanceHorizontal(v[k].vertCoords, kvClosest->vertCoords);
-								float dist = (vdist*4.0) + hdist;*/
 								float dist = Distance(v[k].vertCoords, kvClosest->vertCoords);
 
-								if (/*vdist < 3.0 && hdist*/dist < closestDistance)
+								if (dist < closestDistance)
 								{
 									closestDistance = dist;
 									VectorCopy(kvClosest->vertCoords, closestVertCoords);
@@ -5111,6 +5282,7 @@ qboolean model_upload_mdxm_to_gpu(model_t *mod, qboolean isKyle) {
 							mdxmVertex_t *kvClosest = &kv[closestVert];
 
 							v[k].uiNmWeightsAndBoneIndexes = kvClosest[closestVert].uiNmWeightsAndBoneIndexes;
+							memcpy(v[k].BoneWeightings, kvClosest->BoneWeightings, sizeof(byte)*4);
 
 							int numWeights = G2_GetVertWeights(kvClosest);
 							float lastWeight = 1.0f;
@@ -5119,7 +5291,7 @@ qboolean model_upload_mdxm_to_gpu(model_t *mod, qboolean isKyle) {
 							{
 								float weight = G2_GetVertBoneWeightNotSlow(kvClosest, w);
 								(*weights)[w] = weight;
-								v[k].BoneWeightings[w] = weight;
+								//v[k].BoneWeightings[w] = weight;
 								(*bonerefs)[w] = (float)G2_GetVertBoneIndex(kvClosest, w);
 
 								lastWeight -= weight;
@@ -5168,6 +5340,153 @@ qboolean model_upload_mdxm_to_gpu(model_t *mod, qboolean isKyle) {
 						weights = (vec4_t *)((byte *)weights + stride);
 						bonerefs = (vec4_t *)((byte *)bonerefs + stride);
 					}
+#else
+					//
+					//
+					//
+					//
+					//
+					//
+					G2_SetupKyleBoneData();
+
+					/*
+					vec3_t		kyle_bounds[2];
+					vec3_t		kyle_size;
+
+					int			kyle_bonerefsNum = 0;
+					int			kyle_bonerefs[64] = { -1 };
+					vec3_t		kyle_bonerefs_centers[64] = { 0.0 };
+					vec3_t		kyle_bonerefs_scales[64] = { 0.0 };
+					float		kyle_bonerefs_maxdistances[64] = { 0.0 };
+					*/
+
+					/*
+					vec3_t		model_bounds[2];
+					vec3_t		model_size = { 0.0 };
+					*/
+
+					// Add bone weights from the radiuses seen in the kyle model...
+					vec3_t scaledVert;
+					VectorCopy(v[k].vertCoords, scaledVert);
+					scaledVert[0] *= kyle_size[0] / model_size[0];
+					scaledVert[1] *= kyle_size[1] / model_size[1];
+					scaledVert[2] *= kyle_size[2] / model_size[2];
+
+					int		bestBonesNum = 0;
+					int		bestBones[4] = { 0 };
+					float	bestBonesDistances[4];
+					vec3_t	bestBonesScales[4];
+
+					for (int b = 0; b < 4; b++)
+					{
+						bestBones[b] = 0;
+						bestBonesDistances[b] = 9999.9;
+					}
+
+					// Find the best 4 bones to use for this vert...
+					for (int b = 0; b < 4; b++)
+					{
+						for (int kb = 0; kb < kyle_bonerefsNum; kb++)
+						{
+							float dist = Distance(scaledVert, kyle_bonerefs_centers[kb]);
+
+							if (dist > kyle_bonerefs_maxdistances[kb]) continue;
+
+							vec3_t dst;
+							dst[0] = scaledVert[0] - kyle_bonerefs_centers[kb][0];
+							dst[1] = scaledVert[1] - kyle_bonerefs_centers[kb][2];
+							dst[2] = scaledVert[2] - kyle_bonerefs_centers[kb][1];
+							if (dst[0] < 0) dst[0] *= -1.0;
+							if (dst[1] < 0) dst[1] *= -1.0;
+							if (dst[2] < 0) dst[2] *= -1.0;
+							if (dst[0] > kyle_bonerefs_scales[kb][0]*0.5 || dst[1] > kyle_bonerefs_scales[kb][1]*0.5 || dst[2] > kyle_bonerefs_scales[kb][2]*0.5) continue;
+
+							qboolean alreadyAdded = qfalse;
+
+							for (int bb = 0; bb < bestBonesNum; bb++)
+							{// Is it already in the list?
+								if (bestBones[bb] == kb)
+								{
+									alreadyAdded = qtrue;
+									break;
+								}
+							}
+
+							if (alreadyAdded)
+							{
+								continue;
+							}
+
+							if (bestBonesNum < 4)
+							{// Can just add a new one...
+								bestBones[bestBonesNum] = kb;
+								bestBonesDistances[bestBonesNum] = dist;
+
+								bestBonesScales[bestBonesNum][0] = kyle_bonerefs_centers[kb][0] - (kyle_bonerefs_scales[kb][0]*0.5);
+								bestBonesScales[bestBonesNum][1] = kyle_bonerefs_centers[kb][1] - (kyle_bonerefs_scales[kb][1]*0.5);
+								bestBonesScales[bestBonesNum][2] = kyle_bonerefs_centers[kb][2] - (kyle_bonerefs_scales[kb][2]*0.5);
+
+								bestBonesNum++;
+								continue;
+							}
+
+							// Need to find the furthest one to check against...
+							int bestReplace = -1;
+							float bestDist = 0.0;
+
+							for (int c = 0; c < bestBonesNum; c++)
+							{
+								if (bestBonesDistances[c] > bestDist)
+								{
+									bestDist = bestBonesDistances[c];
+									bestReplace = c;
+								}
+							}
+							
+							if (dist < bestDist)
+							{// Ok replace it...
+								bestBones[bestReplace] = kb;
+								bestBonesDistances[bestReplace] = dist;
+
+								bestBonesScales[bestReplace][0] = kyle_bonerefs_centers[kb][0] - (kyle_bonerefs_scales[kb][0] * 0.5);
+								bestBonesScales[bestReplace][1] = kyle_bonerefs_centers[kb][1] - (kyle_bonerefs_scales[kb][1] * 0.5);
+								bestBonesScales[bestReplace][2] = kyle_bonerefs_centers[kb][2] - (kyle_bonerefs_scales[kb][2] * 0.5);
+							}
+						}
+					}
+
+					
+					//v[k].uiNmWeightsAndBoneIndexes = bestBonesNum;
+					
+
+					int numWeights = bestBonesNum;
+
+					float lastWeight = 1.0f;
+					int lastInfluence = numWeights - 1;
+					for (int w = 0; w < lastInfluence; w++)
+					{
+						float weight = Q_clamp(0.0, (bestBonesDistances[numWeights-w] / kyle_bonerefs_maxdistances[bestBones[numWeights-w]]) / numWeights, 1.0);
+						(*weights)[w] = weight;
+						//v[k].BoneWeightings[w] = weight * 1023.0;
+						(*bonerefs)[w] = (float)kyle_bonerefs[bestBones[numWeights-w]];
+
+						lastWeight -= weight;
+					}
+
+					// Ensure that all the weights add up to 1.0
+					(*weights)[lastInfluence] = lastWeight;
+					(*bonerefs)[lastInfluence] = (float)kyle_bonerefs[bestBones[lastInfluence]];
+
+					// Fill in the rest of the info with zeroes.
+					for (int w = numWeights; w < 4; w++)
+					{
+						(*weights)[w] = 0.0f;
+						(*bonerefs)[w] = 0.0f;
+					}
+
+					weights = (vec4_t *)((byte *)weights + stride);
+					bonerefs = (vec4_t *)((byte *)bonerefs + stride);
+#endif
 				}
 				else
 #endif //__EXPERIMENTAL_AUTO_BONE_WEIGHTING__

@@ -421,7 +421,7 @@ const char *IniReadCPP(char *aFilespec, char *aSection, char *aKey, char *aDefau
 	if (!aKey || !aKey[0])
 		return "";
 
-	char	szBuffer[524288] = { 0 };					// Max ini file size is 65535 under 95 -- UQ1: Fuck windows 95!
+	char	szBuffer[512/*524288*/] = { 0 };					// Max ini file size is 65535 under 95 -- UQ1: Fuck windows 95!
 
 	if (!get_private_profile_string(aSection, aKey, aDefault, szBuffer, sizeof(szBuffer), aFilespec))
 	{

@@ -494,6 +494,15 @@ vec4 GetSky(in vec3 pos,in vec3 rd, out vec2 outPos)
 //--------------------------------------------------------------------------
 vec4 Clouds(float colorMult)
 {
+	vec3 cameraPos = vec3(0.0);
+	vec3 dir = normalize(u_ViewOrigin.xzy - var_Position.xzy*1025.0);
+	float alphaMult = clamp(-dir.y, 0.0, 0.75);
+
+	if (alphaMult <= 0.0)
+	{// No point in doing all this math if it's not going to draw anything...
+		return vec4(0.0);
+	}
+
 	gTime = u_Time*.5 + 75.5;
 	cloudy = clamp(CLOUDS_CLOUDCOVER*0.3, 0.0, 0.3);
 	cloudShadeFactor = 0.5+(cloudy*0.333);
@@ -514,9 +523,6 @@ vec4 Clouds(float colorMult)
 	flash = clamp(lightning, 0.0, 1.0);
 	
 	
-	vec3 cameraPos = vec3(0.0);
-    vec3 dir = normalize(u_ViewOrigin.xzy - var_Position.xzy*1025.0);
-
 	vec4 col;
 	vec2 pos;
 	col = GetSky(cameraPos, dir, pos);
@@ -531,8 +537,8 @@ vec4 Clouds(float colorMult)
 	
 	col = clamp(col, 0.0, 1.0);
 
-	float alpha = col.a;//max(col.r, max(col.g, col.b));
-	alpha *= clamp(-dir.y, 0.0, 0.75);
+	float alpha = col.a;
+	alpha *= alphaMult;
 	return vec4(col.rgb, alpha);
 }
 #endif //__CLOUDS__

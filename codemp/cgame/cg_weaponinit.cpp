@@ -7,6 +7,7 @@ extern void CG_RegisterDefaultBlasterShaders(void);
 
 void CG_PrecacheScopes(void)
 {
+#if 0
 	int sc = 0;
 
 	for (sc = 0; sc < SCOPE_MAX_SCOPES; sc++) {
@@ -21,6 +22,7 @@ void CG_PrecacheScopes(void)
 		if (strncmp(scopeData[sc].zoomStartSound, "", strlen(scopeData[sc].zoomStartSound))) trap->S_RegisterSound(scopeData[sc].zoomStartSound);
 		if (strncmp(scopeData[sc].zoomEndSound, "", strlen(scopeData[sc].zoomEndSound))) trap->S_RegisterSound(scopeData[sc].zoomEndSound);
 	}
+#endif
 }
 
 static qboolean CG_IsGhoul2Model(const char *modelPath)

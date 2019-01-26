@@ -3013,16 +3013,18 @@ Ghoul2 Insert End
 	CG_ParseServerinfo();
 
 	// load the new map
-//	CG_LoadingString( "collision map" );
-
+	CG_LoadingString( "Loadng collision map..." );
 	trap->CM_LoadMap( cgs.mapname, qfalse );
 
 	String_Init();
 
 	cg.loading = qtrue;		// force players to load instead of defer
 
+#if 1
 	//make sure saber data is loaded before this! (so we can precache the appropriate hilts)
+	//CG_LoadingString("Initializing siege junk...");
 	CG_InitSiegeMode();
+#endif
 
 	CG_LoadingString("Initializing...");
 	CG_RegisterGameAssets();

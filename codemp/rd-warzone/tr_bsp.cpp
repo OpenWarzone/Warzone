@@ -4290,6 +4290,8 @@ void R_CenterOfBounds(vec3_t mins, vec3_t maxs, vec3_t *center)
 
 static void R_SetupMapGlowsAndWaterPlane( void )
 {
+	r_debugEmissiveLights = ri->Cvar_Get("r_debugEmissiveLights", "0", CVAR_ARCHIVE);
+
 	qboolean setupWaterLevel = qfalse;
 
 	NUM_MAP_GLOW_LOCATIONS = 0;

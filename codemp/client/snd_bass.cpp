@@ -1371,6 +1371,81 @@ void BASS_GetMapStationTracks(void)
 }
 
 //
+// Imperial News Tracks...
+//
+
+qboolean NEWS_IMP_TRACKS_LOADED = qfalse;
+
+int NEWS_IMP_TRACKS_NUM = 0;
+
+radioMusicList_t NEWS_IMP_TRACKS[512 + 1];
+
+void BASS_GetImpNewsTracks(void)
+{
+	if (NEWS_IMP_TRACKS_LOADED) return;
+
+	DIR *dir;
+	struct dirent *ent;
+	if ((dir = opendir("warzone/music/news-imperial")) != NULL) {
+		/* all the files and directories within directory */
+		while ((ent = readdir(dir)) != NULL) {
+			if (ent->d_name[0] == '.') continue; // skip back directory...
+			if (ent->d_namlen < 3) continue;
+
+			sprintf(NEWS_IMP_TRACKS[NEWS_IMP_TRACKS_NUM].name, "music/news-imperial/%s", ent->d_name);
+			//Com_Printf("Added imperial news track %s.\n", NEWS_IMP_TRACKS[NEWS_IMP_TRACKS_NUM].name);
+			NEWS_IMP_TRACKS_NUM++;
+		}
+		closedir(dir);
+	}
+	else {
+		/* could not open directory */
+		perror("");
+	}
+
+	NEWS_IMP_TRACKS_LOADED = qtrue;
+	Com_Printf("^3BASS Sound System ^4- ^5Loaded ^7%i ^3Imperial^5 news reports.\n", NEWS_IMP_TRACKS_NUM);
+}
+
+//
+// Generic News Tracks...
+//
+
+qboolean NEWS_GENERIC_TRACKS_LOADED = qfalse;
+
+int NEWS_GENERIC_TRACKS_NUM = 0;
+
+radioMusicList_t NEWS_GENERIC_TRACKS[512 + 1];
+
+void BASS_GetGenericNewsTracks(void)
+{
+	if (NEWS_GENERIC_TRACKS_LOADED) return;
+
+	DIR *dir;
+	struct dirent *ent;
+	if ((dir = opendir("warzone/music/news-generic")) != NULL) {
+		/* all the files and directories within directory */
+		while ((ent = readdir(dir)) != NULL) {
+			if (ent->d_name[0] == '.') continue; // skip back directory...
+			if (ent->d_namlen < 3) continue;
+
+			sprintf(NEWS_GENERIC_TRACKS[NEWS_GENERIC_TRACKS_NUM].name, "music/news-generic/%s", ent->d_name);
+			//Com_Printf("Added generic news track %s.\n", NEWS_GENERIC_TRACKS[NEWS_GENERIC_TRACKS_NUM].name);
+			NEWS_GENERIC_TRACKS_NUM++;
+		}
+		closedir(dir);
+	}
+	else {
+		/* could not open directory */
+		perror("");
+	}
+
+	NEWS_GENERIC_TRACKS_LOADED = qtrue;
+	Com_Printf("^3BASS Sound System ^4- ^5Loaded ^7%i ^3Generic^5 news reports.\n", NEWS_GENERIC_TRACKS_NUM);
+}
+
+
+//
 // Imperial Advertisement Tracks...
 //
 
@@ -1408,7 +1483,7 @@ void BASS_GetImpAdsTracks(void)
 }
 
 //
-// Imperial Advertisement Tracks...
+// Generic Advertisement Tracks...
 //
 
 qboolean GENERIC_ADS_TRACKS_LOADED = qfalse;
@@ -1443,6 +1518,8 @@ void BASS_GetGenericAdsTracks(void)
 	GENERIC_ADS_TRACKS_LOADED = qtrue;
 	Com_Printf("^3BASS Sound System ^4- ^5Loaded ^7%i ^3Generic^5 advertisements.\n", GENERIC_ADS_TRACKS_NUM);
 }
+
+
 
 //
 // Custom Dynamic Tracks...
@@ -1715,6 +1792,32 @@ void BASS_InitDynamicList ( void )
 
 			//Com_Printf("^3BASS Sound System ^4- ^5Added ^7%i ^3Generic^5 advertisements.\n", IMP_ADS_TRACKS_NUM);
 		}
+
+		{// Add imperial news to all stations...
+			BASS_GetImpNewsTracks();
+
+			// Add the imperial ads...
+			for (int i = 0; i < NEWS_IMP_TRACKS_NUM; i++)
+			{
+				strcpy(MUSIC_LIST[MUSIC_LIST_COUNT].name, NEWS_IMP_TRACKS[i].name);
+				MUSIC_LIST_COUNT++;
+			}
+
+			//Com_Printf("^3BASS Sound System ^4- ^5Added ^7%i ^3Imperial^5 news reports.\n", IMP_ADS_TRACKS_NUM);
+		}
+
+		{// Add generic news to all stations...
+			BASS_GetGenericNewsTracks();
+
+			// Add the imperial ads...
+			for (int i = 0; i < NEWS_GENERIC_TRACKS_NUM; i++)
+			{
+				strcpy(MUSIC_LIST[MUSIC_LIST_COUNT].name, NEWS_GENERIC_TRACKS[i].name);
+				MUSIC_LIST_COUNT++;
+			}
+
+			//Com_Printf("^3BASS Sound System ^4- ^5Added ^7%i ^3Generic^5 news reports.\n", IMP_ADS_TRACKS_NUM);
+		}
 	}
 
 	MUSIC_LIST_INITIALIZED = qtrue;
@@ -1865,6 +1968,13 @@ void BASS_MusicUpdateThread( void * aArg )
 			continue;
 		}
 
+		qboolean playingNews = qfalse;
+
+		if (StringContainsWord(MUSIC_LIST[MUSIC_PREVIOUS_TRACKS[0]].name, "news-"))
+		{// Check the previous played track to see if we are currently playing a news track, if so, don't fade.
+			playingNews = qtrue;
+		}
+
 		// Do we need a new track yet???
 		if (BASS_ChannelIsActive(MUSIC_CHANNEL.channel) == BASS_ACTIVE_PLAYING)
 		{// Still playing a track...
@@ -1877,7 +1987,12 @@ void BASS_MusicUpdateThread( void * aArg )
 
 			//Com_Printf("%i seconds left on current music track...\n", (int)fadelen);
 
-			if (fadelen < 2)
+			if (playingNews && fadelen < 2)
+			{// When playing news, let it finish before playing the next track...
+				this_thread::sleep_for(chrono::milliseconds(1000));
+				continue;
+			}
+			else if (fadelen < 2)
 			{// Start playing next track at the same time... Copy the finish track to a new temp channel, then reuse the main channel for the new track...
 				//Com_Printf("%i seconds left on current music track... Track is fading out on its own channel. Starting new track.\n", (int)fadelen);
 				memcpy(&MUSIC_CHANNEL2, &MUSIC_CHANNEL, sizeof(MUSIC_CHANNEL));
