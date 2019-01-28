@@ -2814,6 +2814,7 @@ void BG_PlayerStateToEntityState( playerState_t *ps, entityState_t *s, qboolean 
 		if (FULL_UPDATE || ent->prev_speed - ps->speed > 8 || ent->prev_speed - ps->speed < -8 || ps->speed == 0)
 		{
 			s->speed = ps->speed;
+			ent->prev_speed = ps->speed;
 		}
 		else
 		{
@@ -3076,6 +3077,7 @@ void BG_PlayerStateToEntityStateExtraPolate( playerState_t *ps, entityState_t *s
 		if (FULL_UPDATE || ent->prev_speed - ps->speed > 8 || ent->prev_speed - ps->speed < -8 || ps->speed == 0)
 		{
 			s->speed = ps->speed;
+			ent->prev_speed = ps->speed;
 		}
 		else
 		{

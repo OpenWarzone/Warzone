@@ -4462,6 +4462,28 @@ void CalcMuzzlePoint(gentity_t *ent, vec3_t forward, vec3_t right, vec3_t up, ve
 	int weapontype;
 	vec3_t muzzleOffPoint;
 
+	if (ent->s.eType == ET_NPC && ent->client->NPC_class == CLASS_ATST)
+	{
+		VectorCopy(ent->s.pos.trBase, muzzlePoint);
+		muzzlePoint[2] += ent->client->ps.standheight - 48.0;
+		
+		switch (ent->NPC->currentTurret)
+		{
+		default:
+		case 0:
+			VectorMA(muzzlePoint, -16.0, right, muzzlePoint);
+			ent->NPC->currentTurret = 1;
+			break;
+		case 1:
+			VectorMA(muzzlePoint, +16.0, right, muzzlePoint);
+			ent->NPC->currentTurret = 0;
+			break;
+		}
+
+		SnapVector(muzzlePoint);
+		return;
+	}
+
 	if (G_GetWeaponMuzzleBoltPoint(ent, muzzlePoint, 0))
 	{
 		//VectorMA(muzzlePoint, 14, forward, muzzlePoint);
@@ -5115,19 +5137,24 @@ void FireVehicleWeapon(gentity_t *ent, qboolean alt_fire)
 	vehWeaponInfo_t *vehWeapon = NULL;
 	qboolean	clearRocketLockEntity = qfalse;
 
+	trap->Print("VWEAPON_DEBUG: Fire!\n");
+
 	if (!pVeh)
 	{
+		trap->Print("VWEAPON_DEBUG: Tried to fire while not a vehicle.\n");
 		return;
 	}
 
 	if (pVeh->m_iRemovedSurfaces)
 	{ //can't fire when the thing is breaking apart
+		trap->Print("VWEAPON_DEBUG: Tried to fire while m_iRemovedSurfaces.\n");
 		return;
 	}
 
 	if (pVeh->m_pVehicleInfo->type == VH_WALKER &&
 		ent->client->ps.electrifyTime > level.time)
 	{ //don't fire while being electrocuted
+		trap->Print("VWEAPON_DEBUG: Tried to fire while electrified.\n");
 		return;
 	}
 
@@ -5155,7 +5182,7 @@ void FireVehicleWeapon(gentity_t *ent, qboolean alt_fire)
 
 		vehWeaponIndex = pVeh->m_pVehicleInfo->weapon[weaponNum].ID;
 
-		if (pVeh->weaponStatus[weaponNum].ammo <= 0)
+		/*if (pVeh->weaponStatus[weaponNum].ammo <= 0)
 		{//no ammo for this weapon
 			if (pVeh->m_pPilot && pVeh->m_pPilot->s.number < MAX_CLIENTS)
 			{// let the client know he's out of ammo
@@ -5176,7 +5203,7 @@ void FireVehicleWeapon(gentity_t *ent, qboolean alt_fire)
 				}
 			}
 			return;
-		}
+		}*/
 
 		delay = pVeh->m_pVehicleInfo->weapon[weaponNum].delay;
 		aimCorrect = pVeh->m_pVehicleInfo->weapon[weaponNum].aimCorrect;
@@ -5189,6 +5216,7 @@ void FireVehicleWeapon(gentity_t *ent, qboolean alt_fire)
 
 		if (vehWeaponIndex <= VEH_WEAPON_BASE || vehWeaponIndex >= MAX_VEH_WEAPONS)
 		{//invalid vehicle weapon
+			trap->Print("VWEAPON_DEBUG: Tried to fire invalid vehWeaponIndex (%i).\n", vehWeaponIndex);
 			return;
 		}
 		else
@@ -5233,18 +5261,19 @@ void FireVehicleWeapon(gentity_t *ent, qboolean alt_fire)
 			{//firing all muzzles at once
 				if (numMuzzlesReady != numMuzzles)
 				{//can't fire all linked muzzles yet
+					trap->Print("VWEAPON_DEBUG: Tried to fire while numMuzzlesReady != numMuzzles.\n");
 					return;
 				}
 				else
 				{//can fire all linked muzzles, check ammo
-					if (pVeh->weaponStatus[weaponNum].ammo < cumulativeAmmo)
+					/*if (pVeh->weaponStatus[weaponNum].ammo < cumulativeAmmo)
 					{//can't fire, not enough ammo
 						if (pVeh->m_pPilot && pVeh->m_pPilot->s.number < MAX_CLIENTS)
 						{// let the client know he's out of ammo
 							G_AddEvent((gentity_t*)pVeh->m_pPilot, EV_NOAMMO, weaponNum);
 						}
 						return;
-					}
+					}*/
 				}
 			}
 
@@ -5265,7 +5294,7 @@ void FireVehicleWeapon(gentity_t *ent, qboolean alt_fire)
 				{
 					vec3_t	start, dir;
 
-					if (pVeh->weaponStatus[weaponNum].ammo < vehWeapon->iAmmoPerShot)
+					/*if (pVeh->weaponStatus[weaponNum].ammo < vehWeapon->iAmmoPerShot)
 					{//out of ammo!
 						if (!sentAmmoWarning)
 						{
@@ -5276,7 +5305,7 @@ void FireVehicleWeapon(gentity_t *ent, qboolean alt_fire)
 							}
 						}
 					}
-					else
+					else*/
 					{//have enough ammo to shoot
 						//do the firing
 						WP_CalcVehMuzzle(ent, i);
@@ -5316,6 +5345,7 @@ void FireVehicleWeapon(gentity_t *ent, qboolean alt_fire)
 						//NOTE: just need MAX_VEHICLE_MUZZLES bits for this... should be cool since it's currently 12 and we're sending it in 16 bits
 						muzzlesFired |= (1 << i);
 
+						trap->Print("VWEAPON_DEBUG: Fired!\n");
 						missile = WP_FireVehicleWeapon(ent, start, dir, vehWeapon, alt_fire, qfalse);
 						if (vehWeapon->fHoming)
 						{//clear the rocket lock entity *after* all muzzles have fired
@@ -5478,14 +5508,30 @@ void FireWeapon(gentity_t *ent, qboolean altFire) {
 
 			AngleVectors(vehTurnAngles, forward, vright, up);
 		}
+		else if (ent->s.eType == ET_NPC && ent->client->NPC_class == CLASS_ATST)
+		{// ATST's are just fucking wierd...
+			vec3_t angles;
+			/*
+			angles[PITCH] = SHORT2ANGLE(ent->client->pers.cmd.angles[PITCH] + ent->client->ps.delta_angles[PITCH]);
+			angles[YAW] = SHORT2ANGLE(ent->client->pers.cmd.angles[YAW] + ent->client->ps.delta_angles[YAW]);
+			angles[ROLL] = SHORT2ANGLE(ent->client->pers.cmd.angles[ROLL] + ent->client->ps.delta_angles[ROLL]);
+			*/
+
+			angles[PITCH] = ent->client->ps.viewangles[PITCH];// +ent->r.currentAngles[PITCH];
+			angles[YAW] = ent->client->ps.viewangles[YAW] + ent->r.currentAngles[YAW];
+			angles[ROLL] = ent->client->ps.viewangles[ROLL];// +ent->r.currentAngles[ROLL];
+			
+			AngleVectors(angles, forward, vright, up);
+		}
 		else
 		{
 			AngleVectors(ent->client->ps.viewangles, forward, vright, up);
 		}
-
+		
 		CalcMuzzlePoint(ent, forward, vright, up, muzzle);
 
 		if (ent->s.eType == ET_NPC
+			&& ent->client->NPC_class != CLASS_ATST
 			&& ent->s.weapon != WP_SABER
 			&& ent->enemy
 			&& Distance(ent->enemy->r.currentOrigin, ent->r.currentOrigin) <= 72)
@@ -5513,6 +5559,16 @@ void FireWeapon(gentity_t *ent, qboolean altFire) {
 		// If an NPC is nearby then make them cower in place...
 		NPC_CivilianCowerPoint(ent, ent->r.currentOrigin);
 
+		if (ent->s.eType == ET_NPC && ent->client->NPC_class == CLASS_ATST)
+		{
+			//if (altFire)
+			//	WP_FireTurboLaserMissile(ent, muzzle, forward);
+				//WP_FireEmplacedMissile(ent, muzzle, forward, altFire, ent);
+			//else
+				WP_FireBlaster(ent, altFire, weaponData[ent->client->ps.weapon].boltSpeed, weaponData[ent->client->ps.weapon].dmg, 0.5, ent->s.weapon);
+			return;
+		}
+
 		// fire the specific weapon
 		switch (ent->s.weapon) {
 		case WP_MELEE:
@@ -5536,6 +5592,7 @@ void FireWeapon(gentity_t *ent, qboolean altFire) {
 		case WP_CYROBAN_GRENADE:
 			WP_FireGrenadeCryoBan(ent, altFire);
 			break;
+
 		case WP_THERMAL:
 			WP_FireThermalDetonator(ent, altFire);
 			break;

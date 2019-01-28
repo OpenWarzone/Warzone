@@ -1124,7 +1124,6 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 
 	CreateSpawnpoints();
 	Load_Model_Scales();
-	NPC_PrecacheWarzoneNPCs();
 
 	Com_Printf("^5--------- ^7Spawn Groups^5 ---------\n");
 	NPC_LoadSpawnList( "default_rebels" );
@@ -1136,6 +1135,9 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 	NPC_LoadSpawnList( va("%s_mercenaries", mapname.string) );
 	NPC_LoadSpawnList( va("%s_wildlife", mapname.string) );
 	Com_Printf("^5--------------------------------\n");
+
+	// Precache the map's used NPCs...
+	NPC_PrecacheWarzoneNPCs();
 
 	JKG_InitDamageSystem();
 
@@ -4713,6 +4715,7 @@ void G_RunFrame( int levelTime ) {
 				if (FULL_UPDATE || ent->prev_speed - ps->speed > 8 || ent->prev_speed - ps->speed < -8 || ps->speed == 0)
 				{
 					s->speed = ps->speed;
+					ent->prev_speed = ps->speed;
 				}
 				else
 				{

@@ -1120,6 +1120,61 @@ qboolean NPC_ParseParms( const char *NPCName, gentity_t *NPC )
 
 	NPC->hasJetpack = qfalse;
 
+	//
+	// If this is a padawan, then setup randomized padawan saber types/colors... (could use this for any other NPCs as well, if NPC->padawanSaberType is set randomly between 1 and 12...
+	//
+	if (NPC->padawanSaberType > 0)
+	{
+		if (NPC->padawanSaberType >= 11)
+		{// Dual blade saber...
+			WP_SaberParseParms("dual_2", &NPC->client->saber[0]);
+			npcSaber1 = G_ModelIndex(va("@%s", "dual_2"));
+
+			saber_colors_t color = (saber_colors_t)irand(2, 5);
+
+			for (n = 0; n < MAX_BLADES; n++)
+			{
+				NPC->client->saber[0].blade[n].color = color;
+			}
+		}
+		else if (NPC->padawanSaberType >= 9)
+		{// Dual sabers...
+		 // saber 1...
+			WP_SaberParseParms("single_4", &NPC->client->saber[0]);
+			npcSaber1 = G_ModelIndex(va("@%s", "single_4"));
+
+			saber_colors_t color = (saber_colors_t)irand(2, 5);
+
+			for (n = 0; n < MAX_BLADES; n++)
+			{
+				NPC->client->saber[0].blade[n].color = color;
+			}
+
+			// saber 2...
+			WP_SaberParseParms("single_2", &NPC->client->saber[1]);
+			npcSaber2 = G_ModelIndex(va("@%s", "single_2"));
+
+			color = (saber_colors_t)irand(2, 5);
+
+			for (n = 0; n < MAX_BLADES; n++)
+			{
+				NPC->client->saber[1].blade[n].color = color;
+			}
+		}
+		else
+		{// Single saber...
+			WP_SaberParseParms("single_4", &NPC->client->saber[0]);
+			npcSaber1 = G_ModelIndex(va("@%s", "single_4"));
+
+			saber_colors_t color = (saber_colors_t)irand(2, 5);
+
+			for (n = 0; n < MAX_BLADES; n++)
+			{
+				NPC->client->saber[0].blade[n].color = color;
+			}
+		}
+	}
+
 	if ( !Q_stricmp( "random", NPCName ) )
 	{//Randomly assemble a starfleet guy
 		//NPC_BuildRandom( NPC );
@@ -2764,278 +2819,422 @@ qboolean NPC_ParseParms( const char *NPCName, gentity_t *NPC )
 			//saber name
 			if ( !Q_stricmp( token, "saber" ) )
 			{
-				char *saberName;
-
-				if ( COM_ParseString( &p, &value ) )
-				{
+				if (NPC->padawanSaberType > 0)
+				{// Setup above...
+					SkipRestOfLine(&p);
 					continue;
 				}
+				else
+				{
+					char *saberName;
 
-				saberName = (char *)malloc(4096);//G_NewString( value );
-				strcpy(saberName, value);
+					if (COM_ParseString(&p, &value))
+					{
+						continue;
+					}
 
-				WP_SaberParseParms( saberName, &NPC->client->saber[0] );
-				npcSaber1 = G_ModelIndex(va("@%s", saberName));
+					saberName = (char *)malloc(4096);//G_NewString( value );
+					strcpy(saberName, value);
 
-				free(saberName);
-				continue;
+					WP_SaberParseParms(saberName, &NPC->client->saber[0]);
+					npcSaber1 = G_ModelIndex(va("@%s", saberName));
+
+					free(saberName);
+					continue;
+				}
 			}
 
 			//second saber name
 			if ( !Q_stricmp( token, "saber2" ) )
 			{
-				if ( COM_ParseString( &p, &value ) )
-				{
+				if (NPC->padawanSaberType > 0)
+				{// Setup above...
+					SkipRestOfLine(&p);
 					continue;
 				}
-
-				if ( !(NPC->client->saber[0].saberFlags&SFL_TWO_HANDED) )
-				{//can't use a second saber if first one is a two-handed saber...?
-					char *saberName = (char *)malloc(4096);//G_NewString( value );
-					strcpy(saberName, value);
-
-					WP_SaberParseParms( saberName, &NPC->client->saber[1] );
-					if ( (NPC->client->saber[1].saberFlags&SFL_TWO_HANDED) )
-					{//tsk tsk, can't use a twoHanded saber as second saber
-						WP_RemoveSaber( NPC->client->saber, 1 );
-					}
-					else
+				else
+				{
+					if (COM_ParseString(&p, &value))
 					{
-						//NPC->client->ps.dualSabers = qtrue;
-						npcSaber2 = G_ModelIndex(va("@%s", saberName));
+						continue;
 					}
-					free(saberName);
+
+					if (!(NPC->client->saber[0].saberFlags&SFL_TWO_HANDED))
+					{//can't use a second saber if first one is a two-handed saber...?
+						char *saberName = (char *)malloc(4096);//G_NewString( value );
+						strcpy(saberName, value);
+
+						WP_SaberParseParms(saberName, &NPC->client->saber[1]);
+						if ((NPC->client->saber[1].saberFlags&SFL_TWO_HANDED))
+						{//tsk tsk, can't use a twoHanded saber as second saber
+							WP_RemoveSaber(NPC->client->saber, 1);
+						}
+						else
+						{
+							//NPC->client->ps.dualSabers = qtrue;
+							npcSaber2 = G_ModelIndex(va("@%s", saberName));
+						}
+						free(saberName);
+					}
+					continue;
 				}
-				continue;
 			}
 
 			// saberColor
 			if ( !Q_stricmp( token, "saberColor" ) )
 			{
-				if ( COM_ParseString( &p, &value ) )
-				{
+				if (NPC->padawanSaberType > 0)
+				{// Setup above...
+					SkipRestOfLine(&p);
 					continue;
 				}
-				if ( NPC->client )
+				else
 				{
-					saber_colors_t color = TranslateSaberColor( value );
-					for ( n = 0; n < MAX_BLADES; n++ )
+					if (COM_ParseString(&p, &value))
 					{
-						NPC->client->saber[0].blade[n].color = color;
-						
-						if (!(NPC->s.eFlags & EF_FAKE_NPC_BOT))
+						continue;
+					}
+					if (NPC->client)
+					{
+						saber_colors_t color = TranslateSaberColor(value);
+						for (n = 0; n < MAX_BLADES; n++)
 						{
-							NPC->s.boltToPlayer = NPC->s.boltToPlayer & 0x38;//(111000)
-							NPC->s.boltToPlayer += (color + 1);
+							NPC->client->saber[0].blade[n].color = color;
+
+							if (!(NPC->s.eFlags & EF_FAKE_NPC_BOT))
+							{
+								NPC->s.boltToPlayer = NPC->s.boltToPlayer & 0x38;//(111000)
+								NPC->s.boltToPlayer += (color + 1);
+							}
 						}
 					}
+					continue;
 				}
-				continue;
 			}
 
 			if ( !Q_stricmp( token, "saberColor2" ) )
 			{
-				if ( COM_ParseString( &p, &value ) )
-				{
+				if (NPC->padawanSaberType > 0)
+				{// Setup above...
+					SkipRestOfLine(&p);
 					continue;
 				}
-				if ( NPC->client )
+				else
 				{
-					NPC->client->saber[0].blade[1].color = TranslateSaberColor( value );
+					if (COM_ParseString(&p, &value))
+					{
+						continue;
+					}
+					if (NPC->client)
+					{
+						NPC->client->saber[0].blade[1].color = TranslateSaberColor(value);
+					}
+					continue;
 				}
-				continue;
 			}
 
 			if ( !Q_stricmp( token, "saberColor3" ) )
 			{
-				if ( COM_ParseString( &p, &value ) )
-				{
+				if (NPC->padawanSaberType > 0)
+				{// Setup above...
+					SkipRestOfLine(&p);
 					continue;
 				}
-				if ( NPC->client )
+				else
 				{
-					NPC->client->saber[0].blade[2].color = TranslateSaberColor( value );
+					if (COM_ParseString(&p, &value))
+					{
+						continue;
+					}
+					if (NPC->client)
+					{
+						NPC->client->saber[0].blade[2].color = TranslateSaberColor(value);
+					}
+					continue;
 				}
-				continue;
 			}
 
 			if ( !Q_stricmp( token, "saberColor4" ) )
 			{
-				if ( COM_ParseString( &p, &value ) )
-				{
+				if (NPC->padawanSaberType > 0)
+				{// Setup above...
+					SkipRestOfLine(&p);
 					continue;
 				}
-				if ( NPC->client )
+				else
 				{
-					NPC->client->saber[0].blade[3].color = TranslateSaberColor( value );
+					if (COM_ParseString(&p, &value))
+					{
+						continue;
+					}
+					if (NPC->client)
+					{
+						NPC->client->saber[0].blade[3].color = TranslateSaberColor(value);
+					}
+					continue;
 				}
-				continue;
 			}
 
 			if ( !Q_stricmp( token, "saberColor5" ) )
 			{
-				if ( COM_ParseString( &p, &value ) )
-				{
+				if (NPC->padawanSaberType > 0)
+				{// Setup above...
+					SkipRestOfLine(&p);
 					continue;
 				}
-				if ( NPC->client )
+				else
 				{
-					NPC->client->saber[0].blade[4].color = TranslateSaberColor( value );
+					if (COM_ParseString(&p, &value))
+					{
+						continue;
+					}
+					if (NPC->client)
+					{
+						NPC->client->saber[0].blade[4].color = TranslateSaberColor(value);
+					}
+					continue;
 				}
-				continue;
 			}
 
 			if ( !Q_stricmp( token, "saberColor6" ) )
 			{
-				if ( COM_ParseString( &p, &value ) )
-				{
+				if (NPC->padawanSaberType > 0)
+				{// Setup above...
+					SkipRestOfLine(&p);
 					continue;
 				}
-				if ( NPC->client )
+				else
 				{
-					NPC->client->saber[0].blade[5].color = TranslateSaberColor( value );
+					if (COM_ParseString(&p, &value))
+					{
+						continue;
+					}
+					if (NPC->client)
+					{
+						NPC->client->saber[0].blade[5].color = TranslateSaberColor(value);
+					}
+					continue;
 				}
-				continue;
 			}
 
 			if ( !Q_stricmp( token, "saberColor7" ) )
 			{
-				if ( COM_ParseString( &p, &value ) )
-				{
+				if (NPC->padawanSaberType > 0)
+				{// Setup above...
+					SkipRestOfLine(&p);
 					continue;
 				}
-				if ( NPC->client )
+				else
 				{
-					NPC->client->saber[0].blade[6].color = TranslateSaberColor( value );
+					if (COM_ParseString(&p, &value))
+					{
+						continue;
+					}
+					if (NPC->client)
+					{
+						NPC->client->saber[0].blade[6].color = TranslateSaberColor(value);
+					}
+					continue;
 				}
-				continue;
 			}
 
 			if ( !Q_stricmp( token, "saberColor8" ) )
 			{
-				if ( COM_ParseString( &p, &value ) )
-				{
+				if (NPC->padawanSaberType > 0)
+				{// Setup above...
+					SkipRestOfLine(&p);
 					continue;
 				}
-				if ( NPC->client )
+				else
 				{
-					NPC->client->saber[0].blade[7].color = TranslateSaberColor( value );
+					if (COM_ParseString(&p, &value))
+					{
+						continue;
+					}
+					if (NPC->client)
+					{
+						NPC->client->saber[0].blade[7].color = TranslateSaberColor(value);
+					}
+					continue;
 				}
-				continue;
 			}
 
 			if ( !Q_stricmp( token, "saber2Color" ) )
 			{
-				if ( COM_ParseString( &p, &value ) )
-				{
+				if (NPC->padawanSaberType > 0)
+				{// Setup above...
+					SkipRestOfLine(&p);
 					continue;
 				}
-				if ( NPC->client )
+				else
 				{
-					saber_colors_t color = TranslateSaberColor( value );
-					for ( n = 0; n < MAX_BLADES; n++ )
+					if (COM_ParseString(&p, &value))
 					{
-						NPC->client->saber[1].blade[n].color = color;
-
-						if (!(NPC->s.eFlags & EF_FAKE_NPC_BOT))
+						continue;
+					}
+					if (NPC->client)
+					{
+						saber_colors_t color = TranslateSaberColor(value);
+						for (n = 0; n < MAX_BLADES; n++)
 						{
-							NPC->s.boltToPlayer = NPC->s.boltToPlayer & 0x7;//(000111)
-							NPC->s.boltToPlayer += ((color + 1) << 3);
+							NPC->client->saber[1].blade[n].color = color;
+
+							if (!(NPC->s.eFlags & EF_FAKE_NPC_BOT))
+							{
+								NPC->s.boltToPlayer = NPC->s.boltToPlayer & 0x7;//(000111)
+								NPC->s.boltToPlayer += ((color + 1) << 3);
+							}
 						}
 					}
+					continue;
 				}
-				continue;
 			}
 
 			if ( !Q_stricmp( token, "saber2Color2" ) )
 			{
-				if ( COM_ParseString( &p, &value ) )
-				{
+				if (NPC->padawanSaberType > 0)
+				{// Setup above...
+					SkipRestOfLine(&p);
 					continue;
 				}
-				if ( NPC->client )
+				else
 				{
-					NPC->client->saber[1].blade[1].color = TranslateSaberColor( value );
+					if (COM_ParseString(&p, &value))
+					{
+						continue;
+					}
+					if (NPC->client)
+					{
+						NPC->client->saber[1].blade[1].color = TranslateSaberColor(value);
+					}
+					continue;
 				}
-				continue;
 			}
 
 			if ( !Q_stricmp( token, "saber2Color3" ) )
 			{
-				if ( COM_ParseString( &p, &value ) )
-				{
+				if (NPC->padawanSaberType > 0)
+				{// Setup above...
+					SkipRestOfLine(&p);
 					continue;
 				}
-				if ( NPC->client )
+				else
 				{
-					NPC->client->saber[1].blade[2].color = TranslateSaberColor( value );
+					if (COM_ParseString(&p, &value))
+					{
+						continue;
+					}
+					if (NPC->client)
+					{
+						NPC->client->saber[1].blade[2].color = TranslateSaberColor(value);
+					}
+					continue;
 				}
-				continue;
 			}
 
 			if ( !Q_stricmp( token, "saber2Color4" ) )
 			{
-				if ( COM_ParseString( &p, &value ) )
-				{
+				if (NPC->padawanSaberType > 0)
+				{// Setup above...
+					SkipRestOfLine(&p);
 					continue;
 				}
-				if ( NPC->client )
+				else
 				{
-					NPC->client->saber[1].blade[3].color = TranslateSaberColor( value );
+					if (COM_ParseString(&p, &value))
+					{
+						continue;
+					}
+					if (NPC->client)
+					{
+						NPC->client->saber[1].blade[3].color = TranslateSaberColor(value);
+					}
+					continue;
 				}
-				continue;
 			}
 
 			if ( !Q_stricmp( token, "saber2Color5" ) )
 			{
-				if ( COM_ParseString( &p, &value ) )
-				{
+				if (NPC->padawanSaberType > 0)
+				{// Setup above...
+					SkipRestOfLine(&p);
 					continue;
 				}
-				if ( NPC->client )
+				else
 				{
-					NPC->client->saber[1].blade[4].color = TranslateSaberColor( value );
+					if (COM_ParseString(&p, &value))
+					{
+						continue;
+					}
+					if (NPC->client)
+					{
+						NPC->client->saber[1].blade[4].color = TranslateSaberColor(value);
+					}
+					continue;
 				}
-				continue;
 			}
 
 			if ( !Q_stricmp( token, "saber2Color6" ) )
 			{
-				if ( COM_ParseString( &p, &value ) )
-				{
+				if (NPC->padawanSaberType > 0)
+				{// Setup above...
+					SkipRestOfLine(&p);
 					continue;
 				}
-				if ( NPC->client )
+				else
 				{
-					NPC->client->saber[1].blade[5].color = TranslateSaberColor( value );
+					if (COM_ParseString(&p, &value))
+					{
+						continue;
+					}
+					if (NPC->client)
+					{
+						NPC->client->saber[1].blade[5].color = TranslateSaberColor(value);
+					}
+					continue;
 				}
-				continue;
 			}
 
 			if ( !Q_stricmp( token, "saber2Color7" ) )
 			{
-				if ( COM_ParseString( &p, &value ) )
-				{
+				if (NPC->padawanSaberType > 0)
+				{// Setup above...
+					SkipRestOfLine(&p);
 					continue;
 				}
-				if ( NPC->client )
+				else
 				{
-					NPC->client->saber[1].blade[6].color = TranslateSaberColor( value );
+					if (COM_ParseString(&p, &value))
+					{
+						continue;
+					}
+					if (NPC->client)
+					{
+						NPC->client->saber[1].blade[6].color = TranslateSaberColor(value);
+					}
+					continue;
 				}
-				continue;
 			}
 
 			if ( !Q_stricmp( token, "saber2Color8" ) )
 			{
-				if ( COM_ParseString( &p, &value ) )
-				{
+				if (NPC->padawanSaberType > 0)
+				{// Setup above...
+					SkipRestOfLine(&p);
 					continue;
 				}
-				if ( NPC->client )
+				else
 				{
-					NPC->client->saber[1].blade[7].color = TranslateSaberColor( value );
+					if (COM_ParseString(&p, &value))
+					{
+						continue;
+					}
+					if (NPC->client)
+					{
+						NPC->client->saber[1].blade[7].color = TranslateSaberColor(value);
+					}
+					continue;
 				}
-				continue;
 			}
 
 			//saber length
@@ -4016,4 +4215,56 @@ spawnGroup_t GetSpawnGroup(char *filename, int RARITY)
 	spawnGroupSelection = &spawnGroupList->spawnGroups[spawnGroupInt];
 
 	return *spawnGroupSelection;
+}
+
+extern void NPC_PrecacheType(char *NPC_type);
+
+void NPC_PrecacheMapNPCs ( void )
+{
+	int		NPC_NAMES_COUNT = 0;
+	char	NPC_NAMES_LIST[1024][64 + 1] = { 0 };
+
+	memset(NPC_NAMES_LIST, 0, sizeof(NPC_NAMES_LIST));
+
+	for (int groupDataSelection = 0; groupDataSelection < spawnGroupFilesLoaded; groupDataSelection++)
+	{
+		spawnGroupLists_t *sgLists = &spawnGroupData[groupDataSelection];
+
+		for (int RARITY = 0; RARITY <= RARITY_MAX; RARITY++)
+		{
+			spawnGroupList_t *sgList = &sgLists->spawnGroupLists[RARITY];
+
+			for (int spawns = 0; spawns < sgList->spawnGroupTotal; spawns++)
+			{
+				spawnGroup_t *group = &sgList->spawnGroups[spawns];
+
+				for (int npc = 0; npc < group->npcCount; npc++)
+				{
+					qboolean isListed = qfalse;
+
+					for (int check = 0; check < NPC_NAMES_COUNT; check++)
+					{
+						if (!strcmp(NPC_NAMES_LIST[check], group->npcNames[npc]))
+						{
+							isListed = qtrue;
+							break;
+						}
+					}
+
+					if (!isListed)
+					{
+						strcpy(NPC_NAMES_LIST[NPC_NAMES_COUNT], group->npcNames[npc]);
+						NPC_NAMES_COUNT++;
+					}
+				}
+			}
+		}
+	}
+
+	trap->Print("^1*** ^3%s^5: Precaching %i unique spawngroup NPCs.\n", "SPAWNGROUPS", NPC_NAMES_COUNT);
+
+	for (int c = 0; c < NPC_NAMES_COUNT; c++)
+	{
+		NPC_PrecacheType(NPC_NAMES_LIST[c]);
+	}
 }

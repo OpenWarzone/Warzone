@@ -157,7 +157,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #endif /__REALTIME_SURFACE_SORTING__
 
 
-#define MAX_GLM_BONEREFS 10 //16 //20
+#define MAX_GLM_BONEREFS 20 //10 //16 //20 //80
 
 // -----------------------------------------------------------------------------------------------------------------------------
 //                                                Warzone Surface Merging Defines

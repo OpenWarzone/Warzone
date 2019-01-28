@@ -123,22 +123,13 @@ void CG_RegisterWeapon( int weaponNum) {
 	memset( weaponInfo, 0, sizeof( *weaponInfo ) );
 	weaponInfo->registered = qtrue;
 
-#ifndef __FULL_VERSION_WEAPONS__
-	// In non-full-version weapons mode, A280 all the guns...
-	for (item = bg_itemlist + 1; item->classname; item++) {
-		if (item->giType == IT_WEAPON && item->giTag == weaponNum) {
-			weaponInfo->item = item;
-			break;
-		}
-	}
-#else //__FULL_VERSION_WEAPONS__
 	for ( item = bg_itemlist + 1 ; item->classname ; item++ ) {
 		if ( item->giType == IT_WEAPON && item->giTag == weaponNum ) {
 			weaponInfo->item = item;
 			break;
 		}
 	}
-#endif //__FULL_VERSION_WEAPONS__
+
 	if ( !item->classname ) {
 		trap->Error( ERR_DROP, "Couldn't find weapon %i", weaponNum );
 		return;

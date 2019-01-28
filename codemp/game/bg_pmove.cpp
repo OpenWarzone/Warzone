@@ -16,7 +16,7 @@
 	#include "ui/ui_local.h"
 #endif
 
-#if defined(_GAME) || defined(_CGAME)
+#if 0//defined(_GAME) || defined(_CGAME)
 #define HASHSCALE1 .1031
 
 float glsl_mix(float x, float y, float a)
@@ -828,6 +828,10 @@ void PM_pitch_roll_for_slope( bgEntity_t *forwhom, vec3_t pass_slope, vec3_t sto
 	vec3_t	slope;
 	vec3_t	nvf, ovf, ovr, startspot, endspot, new_angles = { 0, 0, 0 };
 	float	pitch, mod, dot;
+
+#ifdef __SKIP_POINTLESS_NPC_TRACES__
+	if (!pass_slope && pm->ps->clientNum >= MAX_CLIENTS) return;
+#endif //__SKIP_POINTLESS_NPC_TRACES__
 
 	//if we don't have a slope, get one
 	if( !pass_slope || VectorCompare( vec3_origin, pass_slope ) )
@@ -4294,12 +4298,22 @@ static int PM_TryRoll( void )
 
 	if ( anim != -1 )
 	{ //We want to roll. Perform a trace to see if we can, and if so, send us into one.
-		BG_MoveTrace( &trace, pm->ps->origin, mins, maxs, traceto, pm->ps->clientNum, CONTENTS_SOLID );
-
-		if ( trace.fraction >= 1.0f )
+#ifdef __SKIP_POINTLESS_NPC_TRACES__
+		if (pm->ps->clientNum >= MAX_CLIENTS)
 		{
 			pm->ps->saberMove = LS_NONE;
 			return anim;
+		}
+		else
+#endif //__SKIP_POINTLESS_NPC_TRACES__
+		{
+			BG_MoveTrace(&trace, pm->ps->origin, mins, maxs, traceto, pm->ps->clientNum, CONTENTS_SOLID);
+
+			if (trace.fraction >= 1.0f)
+			{
+				pm->ps->saberMove = LS_NONE;
+				return anim;
+			}
 		}
 	}
 	return 0;
@@ -4308,6 +4322,12 @@ static int PM_TryRoll( void )
 #ifdef _GAME
 static void PM_CrashLandEffect( void )
 {
+#ifdef __SKIP_POINTLESS_NPC_TRACES__
+	if (pm->ps->clientNum >= MAX_CLIENTS)
+	{
+		return;
+	}
+#endif //__SKIP_POINTLESS_NPC_TRACES__
 	float delta;
 	if ( pm->waterlevel )
 	{
@@ -4642,6 +4662,12 @@ PM_CorrectAllSolid
 =============
 */
 static int PM_CorrectAllSolid( trace_t *trace ) {
+#ifdef __SKIP_POINTLESS_NPC_TRACES__
+	if (pm->ps->clientNum >= MAX_CLIENTS)
+	{
+		return qtrue;
+	}
+#endif //__SKIP_POINTLESS_NPC_TRACES__
 	int			i, j, k;
 	vec3_t		point;
 
@@ -4722,41 +4748,75 @@ static void PM_GroundTraceMissed( void ) {
 		VectorCopy( pm->ps->origin, point );
 		point[2] -= 64;
 
-		BG_MoveTrace (&trace, pm->ps->origin, pm->mins, pm->maxs, point, pm->ps->clientNum, pm->tracemask);
-
-		if ( trace.fraction == 1.0 || pm->ps->pm_type == PM_FLOAT ) {
-			if ( pm->ps->velocity[2] <= 0 && !(pm->ps->pm_flags&PMF_JUMP_HELD))
+#ifdef __SKIP_POINTLESS_NPC_TRACES__
+		if (pm->ps->clientNum >= MAX_CLIENTS)
+		{
+			if (pm->ps->velocity[2] <= 0 && !(pm->ps->pm_flags&PMF_JUMP_HELD))
 			{
-				//PM_SetAnim(SETANIM_LEGS,BOTH_INAIR1,SETANIM_FLAG_OVERRIDE);
-				PM_SetAnim(SETANIM_LEGS,BOTH_INAIR1,0);
+				PM_SetAnim(SETANIM_LEGS, BOTH_INAIR1, 0);
 				pm->ps->pm_flags &= ~PMF_BACKWARDS_JUMP;
 			}
-			else if ( pm->cmd.forwardmove >= 0 )
+			else if (pm->cmd.forwardmove >= 0)
 			{
-				PM_SetAnim(SETANIM_LEGS,BOTH_JUMP1,SETANIM_FLAG_OVERRIDE);
+				PM_SetAnim(SETANIM_LEGS, BOTH_JUMP1, SETANIM_FLAG_OVERRIDE);
 				pm->ps->pm_flags &= ~PMF_BACKWARDS_JUMP;
 			}
 			else
 			{
-				PM_SetAnim(SETANIM_LEGS,BOTH_JUMPBACK1,SETANIM_FLAG_OVERRIDE);
+				PM_SetAnim(SETANIM_LEGS, BOTH_JUMPBACK1, SETANIM_FLAG_OVERRIDE);
 				pm->ps->pm_flags |= PMF_BACKWARDS_JUMP;
 			}
 
 			pm->ps->inAirAnim = qtrue;
 		}
+		else
+#endif //__SKIP_POINTLESS_NPC_TRACES__
+		{
+			BG_MoveTrace(&trace, pm->ps->origin, pm->mins, pm->maxs, point, pm->ps->clientNum, pm->tracemask);
+
+			if (trace.fraction == 1.0 || pm->ps->pm_type == PM_FLOAT) {
+				if (pm->ps->velocity[2] <= 0 && !(pm->ps->pm_flags&PMF_JUMP_HELD))
+				{
+					//PM_SetAnim(SETANIM_LEGS,BOTH_INAIR1,SETANIM_FLAG_OVERRIDE);
+					PM_SetAnim(SETANIM_LEGS, BOTH_INAIR1, 0);
+					pm->ps->pm_flags &= ~PMF_BACKWARDS_JUMP;
+				}
+				else if (pm->cmd.forwardmove >= 0)
+				{
+					PM_SetAnim(SETANIM_LEGS, BOTH_JUMP1, SETANIM_FLAG_OVERRIDE);
+					pm->ps->pm_flags &= ~PMF_BACKWARDS_JUMP;
+				}
+				else
+				{
+					PM_SetAnim(SETANIM_LEGS, BOTH_JUMPBACK1, SETANIM_FLAG_OVERRIDE);
+					pm->ps->pm_flags |= PMF_BACKWARDS_JUMP;
+				}
+
+				pm->ps->inAirAnim = qtrue;
+			}
+		}
 	}
 	else if (!pm->ps->inAirAnim)
 	{
-		// if they aren't in a jumping animation and the ground is a ways away, force into it
-		// if we didn't do the trace, the player would be backflipping down staircases
-		VectorCopy( pm->ps->origin, point );
-		point[2] -= 64;
-
-		BG_MoveTrace (&trace, pm->ps->origin, pm->mins, pm->maxs, point, pm->ps->clientNum, pm->tracemask);
-
-		if ( trace.fraction == 1.0 || pm->ps->pm_type == PM_FLOAT )
+#ifdef __SKIP_POINTLESS_NPC_TRACES__
+		if (pm->ps->clientNum >= MAX_CLIENTS)
 		{
 			pm->ps->inAirAnim = qtrue;
+		}
+		else
+#endif //__SKIP_POINTLESS_NPC_TRACES__
+		{
+			// if they aren't in a jumping animation and the ground is a ways away, force into it
+			// if we didn't do the trace, the player would be backflipping down staircases
+			VectorCopy(pm->ps->origin, point);
+			point[2] -= 64;
+
+			BG_MoveTrace(&trace, pm->ps->origin, pm->mins, pm->maxs, point, pm->ps->clientNum, pm->tracemask);
+
+			if (trace.fraction == 1.0 || pm->ps->pm_type == PM_FLOAT)
+			{
+				pm->ps->inAirAnim = qtrue;
+			}
 		}
 	}
 
@@ -5194,6 +5254,28 @@ void PM_CheckFixMins( void )
 {
 	if ( (pm->ps->pm_flags&PMF_FIX_MINS) )// pm->mins[2] > DEFAULT_MINS_2 )
 	{//drop the mins back down
+#ifdef __SKIP_POINTLESS_NPC_TRACES__
+		if (pm->ps->clientNum >= MAX_CLIENTS)
+		{
+			if (pm->ps->legsAnim != BOTH_JUMPATTACK6
+				|| pm->ps->legsTimer <= 200)
+			{//at the end of the anim, and we can't leave ourselves like this
+			 //so drop the maxs, put the mins back and move us up
+				pm->maxs[2] += MINS_Z;
+				pm->ps->origin[2] -= MINS_Z;
+				pm->mins[2] = MINS_Z;
+				//this way we'll be in a crouch when we're done
+				if (pm->ps->legsAnim == BOTH_JUMPATTACK6)
+				{
+					pm->ps->legsTimer = pm->ps->torsoTimer = 0;
+				}
+				pm->ps->pm_flags |= PMF_DUCKED;
+				//FIXME: do we need to set a crouch anim here?
+				pm->ps->pm_flags &= ~PMF_FIX_MINS;
+			}
+			return;
+		}
+#endif //__SKIP_POINTLESS_NPC_TRACES__
 		//do a trace to make sure it's okay
 		trace_t	trace;
 		vec3_t end, curMins, curMaxs;
@@ -5256,6 +5338,12 @@ void PM_CheckFixMins( void )
 
 static qboolean PM_CanStand ( void )
 {
+#ifdef __SKIP_POINTLESS_NPC_TRACES__
+	if (pm->ps->clientNum >= MAX_CLIENTS)
+	{
+		return qtrue;
+	}
+#endif //__SKIP_POINTLESS_NPC_TRACES__
     qboolean canStand = qtrue;
     float x, y;
     trace_t trace;
@@ -5562,6 +5650,13 @@ void PM_AnglesForSlope( const float yaw, const vec3_t slope, vec3_t angles )
 
 void PM_FootSlopeTrace( float *pDiff, float *pInterval )
 {
+#ifdef __SKIP_POINTLESS_NPC_TRACES__
+	if (pm->ps->clientNum >= MAX_CLIENTS)
+	{
+		return;
+	}
+#endif //__SKIP_POINTLESS_NPC_TRACES__
+
 	vec3_t	footLOrg, footROrg, footLBot, footRBot;
 	vec3_t footLPoint, footRPoint;
 	vec3_t footMins, footMaxs;
@@ -6776,6 +6871,13 @@ void PM_CheckLadderMove(void)
 	trace_t         trace;
 	float           tracedist;
 
+#ifdef __SKIP_POINTLESS_NPC_TRACES__
+	if (pm->ps->clientNum >= MAX_CLIENTS)
+	{
+		return;
+	}
+#endif //__SKIP_POINTLESS_NPC_TRACES__
+
 #define TRACE_LADDER_DIST   48.0
 	qboolean        wasOnLadder;
 
@@ -7016,6 +7118,13 @@ PM_LadderMove
 */
 void PM_LadderMove(void)
 {
+#ifdef __SKIP_POINTLESS_NPC_TRACES__
+	if (pm->ps->clientNum >= MAX_CLIENTS)
+	{
+		return;
+	}
+#endif //__SKIP_POINTLESS_NPC_TRACES__
+
 	float           wishspeed, scale;
 	vec3_t          wishdir, wishvel;
 	float           upscale;
@@ -7157,33 +7266,56 @@ static void PM_WaterEvents( void ) {		// FIXME?
 #ifdef _GAME
 	if ( impact_splash )
 	{
-		//play the splash effect
-		trace_t	tr;
-		vec3_t	start, end;
-
-
-		VectorCopy( pm->ps->origin, start );
-		VectorCopy( pm->ps->origin, end );
-
-		// FIXME: set start and end better
-		start[2] += 10;
-		end[2] -= 40;
-
-		BG_MoveTrace( &tr, start, vec3_origin, vec3_origin, end, pm->ps->clientNum, MASK_WATER );
-
-		if ( tr.fraction < 1.0f )
+#ifdef __SKIP_POINTLESS_NPC_TRACES__
+		if (pm->ps->clientNum >= MAX_CLIENTS)
 		{
-			if ( (tr.contents&CONTENTS_LAVA) )
+			vec3_t normal;
+			VectorClear(normal);
+
+			if (pm->watertype == CONTENTS_LAVA)
 			{
-				G_PlayEffect( EFFECT_LAVA_SPLASH, tr.endpos, tr.plane.normal );
+				G_PlayEffect(EFFECT_LAVA_SPLASH, pm->ps->origin, normal);
 			}
-			else if ( (tr.contents&CONTENTS_SLIME) )
+			else if (pm->watertype == CONTENTS_SLIME)
 			{
-				G_PlayEffect( EFFECT_ACID_SPLASH, tr.endpos, tr.plane.normal );
+				G_PlayEffect(EFFECT_ACID_SPLASH, pm->ps->origin, normal);
 			}
-			else //must be water
+			else if (pm->watertype == CONTENTS_WATER)
 			{
-				G_PlayEffect( EFFECT_WATER_SPLASH, tr.endpos, tr.plane.normal );
+				G_PlayEffect(EFFECT_WATER_SPLASH, pm->ps->origin, normal);
+			}
+		}
+		else
+#endif //__SKIP_POINTLESS_NPC_TRACES__
+		{
+			//play the splash effect
+			trace_t	tr;
+			vec3_t	start, end;
+
+
+			VectorCopy(pm->ps->origin, start);
+			VectorCopy(pm->ps->origin, end);
+
+			// FIXME: set start and end better
+			start[2] += 10;
+			end[2] -= 40;
+
+			BG_MoveTrace(&tr, start, vec3_origin, vec3_origin, end, pm->ps->clientNum, MASK_WATER);
+
+			if (tr.fraction < 1.0f)
+			{
+				if ((tr.contents&CONTENTS_LAVA))
+				{
+					G_PlayEffect(EFFECT_LAVA_SPLASH, tr.endpos, tr.plane.normal);
+				}
+				else if ((tr.contents&CONTENTS_SLIME))
+				{
+					G_PlayEffect(EFFECT_ACID_SPLASH, tr.endpos, tr.plane.normal);
+				}
+				else //must be water
+				{
+					G_PlayEffect(EFFECT_WATER_SPLASH, tr.endpos, tr.plane.normal);
+				}
 			}
 		}
 	}
@@ -9098,7 +9230,8 @@ static void PM_Weapon( void )
 
 	if ( pm->cmd.buttons & BUTTON_ALT_ATTACK ) 	{
 		//if ( pm->ps->weapon == WP_MODULIZED_WEAPON && pm->gametype != GT_SIEGE )
-		if (0)
+		//if (0)
+		if (pm_entSelf->s.NPC_class == CLASS_VEHICLE || pm_entSelf->s.NPC_class == CLASS_ATST)
 		{ //kind of a hack for now
 			PM_AddEvent( EV_FIRE_WEAPON );
 			addTime = weaponData[pm->ps->weapon].fireTime;

@@ -1677,6 +1677,7 @@ gentity_t *NPC_Spawn_Do( gentity_t *ent )
 
 	//Assign the pointer for bg entity access
 	newent->playerState = &newent->client->ps;
+	newent->padawanSaberType = ent->padawanSaberType;
 
 //==NPC_Connect( newent, net_name );===================================
 
@@ -2296,10 +2297,29 @@ void NPC_PrecacheType( char *NPC_type )
 	}
 }
 
+vmCvar_t npc_precache;
+
+extern vmCvar_t npc_imperials;
+extern vmCvar_t npc_rebels;
+extern vmCvar_t npc_mandalorians;
+extern vmCvar_t npc_mercs;
+extern vmCvar_t npc_wildlife;
+extern vmCvar_t npc_civilians;
+extern vmCvar_t npc_vendors;
+
+extern void NPC_PrecacheMapNPCs(void);
+
 void NPC_PrecacheWarzoneNPCs ( void )
 {
 #ifdef __PRECACHE_NPCS__
-	int i;
+	trap->Cvar_Register(&npc_precache, "npc_precache", "0", CVAR_ARCHIVE);
+
+	trap->Cvar_Register(&npc_imperials, "npc_imperials", "0", CVAR_ARCHIVE);
+	trap->Cvar_Register(&npc_rebels, "npc_rebels", "0", CVAR_ARCHIVE);
+	trap->Cvar_Register(&npc_mandalorians, "npc_mandalorians", "0", CVAR_ARCHIVE);
+	trap->Cvar_Register(&npc_mercs, "npc_mercs", "0", CVAR_ARCHIVE);
+	trap->Cvar_Register(&npc_wildlife, "npc_wildlife", "0", CVAR_ARCHIVE);
+	trap->Cvar_Register(&npc_civilians, "npc_civilians", "0", CVAR_ARCHIVE);
 
 	//
 	// Padawans...
@@ -2307,105 +2327,44 @@ void NPC_PrecacheWarzoneNPCs ( void )
 
 	NPC_PrecacheType( "padawan" );
 
-	for (i = 2; i < 29; i++)
-	{
-		char name[64];
-		sprintf(name, "padawan%i", i);
-		NPC_PrecacheType( name );
-	}
-
-
 	//
-	// Rebels...
+	// Followers...
 	//
-
-	NPC_PrecacheType( "rebel" );
-	NPC_PrecacheType( "rebel2" );
-	NPC_PrecacheType( "prisoner" );
-	NPC_PrecacheType( "prisoner2" );
-	NPC_PrecacheType( "bespincop" );
-	NPC_PrecacheType( "bespincop2" );
-	NPC_PrecacheType( "jan" );
-	NPC_PrecacheType( "lando" );
-	NPC_PrecacheType( "chewie" );
-	NPC_PrecacheType( "jedi" );
-	NPC_PrecacheType( "jedi2" );
-	NPC_PrecacheType( "jedi_hf1" );
-	NPC_PrecacheType( "jedi_hf2" );
-	NPC_PrecacheType( "jedi_hm1" );
-	NPC_PrecacheType( "jedi_hm2" );
-	NPC_PrecacheType( "jedi_kdm1" );
-	NPC_PrecacheType( "jedi_kdm2" );
-	NPC_PrecacheType( "jedi_rm1" );
-	NPC_PrecacheType( "jedi_rm2" );
-	NPC_PrecacheType( "jedi_tf1" );
-	NPC_PrecacheType( "jedi_tf2" );
-	NPC_PrecacheType( "jedi_zf1" );
-	NPC_PrecacheType( "jedi_zf2" );
-	NPC_PrecacheType( "JediF" );
-	NPC_PrecacheType( "JediMaster" );
-	NPC_PrecacheType( "JediTrainer" );
-	NPC_PrecacheType( "Kyle_boss" );
-	NPC_PrecacheType( "Luke" );
-
-
-	//
-	// Imperials...
-	//
-
-	NPC_PrecacheType( "stormtrooper" );
-	NPC_PrecacheType( "stofficer" );
-	NPC_PrecacheType( "stofficeralt" );
-	NPC_PrecacheType( "stcommander" );
-	NPC_PrecacheType( "impofficer" );
-	NPC_PrecacheType( "impworker" );
-	//NPC_PrecacheType( "hazardtrooper" );
-	NPC_PrecacheType( "boba_fett" );
-	NPC_PrecacheType( "imperial" );
-	NPC_PrecacheType( "rockettrooper" );
-	NPC_PrecacheType( "impworker" );
-	NPC_PrecacheType( "reborn_dual" );
-	NPC_PrecacheType( "reborn_new" );
-	NPC_PrecacheType( "reborn_staff" );
-	//NPC_PrecacheType( "reborn_twin" );
-	//NPC_PrecacheType( "rebornacrobat" );
-	//	NPC_PrecacheType( "rebornchiss" );
-	//NPC_PrecacheType( "rebornfencer" );
-	//NPC_PrecacheType( "rebornforceuser" );
-	NPC_PrecacheType( "rebornrodian" );
-	NPC_PrecacheType( "reborntrandoshan" );
-	NPC_PrecacheType( "rebornweequay" );
-	NPC_PrecacheType( "rebornboss" );
-	NPC_PrecacheType( "tavion" );
-	NPC_PrecacheType( "tavion_new" );
-	//	NPC_PrecacheType( "shadowtrooper" );
-	//NPC_PrecacheType( "saber_droid" );
-	NPC_PrecacheType( "alora" );
-	NPC_PrecacheType( "alora_dual" );
-	NPC_PrecacheType( "reborn" );
 	NPC_PrecacheType( "hk51" );
 
+	if (!npc_precache.integer)
+	{// If not set to precache, don't precache any of the others... But still precache the 2 followers above...
+		return;
+	}
 
 	//
 	// Civilians...
 	//
 
-	NPC_PrecacheType( "civilian_bartender" );
-	NPC_PrecacheType( "civilian_human_merc" );
-	NPC_PrecacheType( "civilian_human_merc2" );
-	NPC_PrecacheType( "civilian_merchant" );
-	NPC_PrecacheType( "civilian_protocol" );
-	NPC_PrecacheType( "civilian_r2d2" );
-	NPC_PrecacheType( "civilian_rodian" );
-	NPC_PrecacheType( "civilian_rodian2" );
-	NPC_PrecacheType( "civilian_trandoshan" );
-	NPC_PrecacheType( "civilian_ugnaught" );
-	NPC_PrecacheType( "civilian_ugnaught2" );
-	NPC_PrecacheType( "civilian_weequay" );
-	NPC_PrecacheType( "civilian_weequay2" );
-	NPC_PrecacheType( "civilian_weequay3" );
-	NPC_PrecacheType( "civilian_weequay4" );
-	NPC_PrecacheType( "civilian_r5d2" );
+	if (npc_civilians.integer)
+	{// If civilians are enabled, then precache them...
+		NPC_PrecacheType("civilian_bartender");
+		NPC_PrecacheType("civilian_human_merc");
+		NPC_PrecacheType("civilian_human_merc2");
+		NPC_PrecacheType("civilian_merchant");
+		NPC_PrecacheType("civilian_protocol");
+		NPC_PrecacheType("civilian_r2d2");
+		NPC_PrecacheType("civilian_rodian");
+		NPC_PrecacheType("civilian_rodian2");
+		NPC_PrecacheType("civilian_trandoshan");
+		NPC_PrecacheType("civilian_ugnaught");
+		NPC_PrecacheType("civilian_ugnaught2");
+		NPC_PrecacheType("civilian_weequay");
+		NPC_PrecacheType("civilian_weequay2");
+		NPC_PrecacheType("civilian_weequay3");
+		NPC_PrecacheType("civilian_weequay4");
+		NPC_PrecacheType("civilian_r5d2");
+	}
+
+	if (npc_imperials.integer || npc_rebels.integer || npc_mandalorians.integer || npc_mercs.integer || npc_wildlife.integer)
+	{// If any of the spawnlists are enabled, then precache the NPCs in them all...
+		NPC_PrecacheMapNPCs();
+	}
 #endif //__PRECACHE_NPCS__
 }
 
@@ -2521,6 +2480,8 @@ extern int OrgVisibleBox(vec3_t org1, vec3_t mins, vec3_t maxs, vec3_t org2, int
 
 void SP_NPC_spawner( gentity_t *self)
 {
+	self->padawanSaberType = -1;
+
 	if (level.gametype == GT_INSTANCE || level.gametype == GT_WARZONE)
 	{
 		// Spawn multiple...
@@ -2566,6 +2527,7 @@ void SP_NPC_spawner( gentity_t *self)
 				|| !Q_stricmpn("Kyle", self->NPC_type, 4)
 				|| !Q_stricmpn("Luke", self->NPC_type, 4)))
 			{// Spawned a jedi. Spawn a padawan for them as well...
+#if 0
 				int choice = irand(1,36);
 				char name[64];
 
@@ -2579,28 +2541,15 @@ void SP_NPC_spawner( gentity_t *self)
 				trap->Print("Spawning padawan \"%s\" for Jedi NPC.\n", self->NPC_type);
 
 				SP_NPC_spawner2( self );
-			}
-			/*else if (NPC_NeedFollower_Spawn()
-				&& (!Q_stricmpn("jedi", self->NPC_type, 4)
-					|| !Q_stricmpn("Jedi", self->NPC_type, 4)
-					|| !Q_stricmpn("Kyle", self->NPC_type, 4)
-					|| !Q_stricmpn("Luke", self->NPC_type, 4)))
-			{// Spawned a jedi. Spawn a padawan for them as well...
-				int choice = irand(1, 36);
-				char name[64];
+#else
+				self->NPC_type = "padawan";
 
-				//sprintf(name, "hk51_%i", choice);
-				sprintf(name, "hk51");
+				trap->Print("Spawning \"%s\" for Jedi NPC.\n", self->NPC_type);
 
-				if (choice > 1 && choice < 28)
-					self->NPC_type = name;
-				else
-					self->NPC_type = "hk51";
-
-				trap->Print("Spawning follower \"%s\" for Sith NPC.\n", self->NPC_type);
-
+				self->padawanSaberType = irand(1, 12);
 				SP_NPC_spawner2(self);
-			}*/
+#endif
+			}
 			else
 				SP_NPC_spawner2( self );
 
@@ -2687,6 +2636,7 @@ void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team )
 
 			if (OrgVisibleBox(origin, playerMins, playerMaxs, self->s.origin, -1))
 			{
+#if 0
 				int choice = irand(1,36);
 				char name[64];
 
@@ -2700,6 +2650,14 @@ void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team )
 				trap->Print("Spawning padawan \"%s\" for Jedi NPC.\n", self->NPC_type);
 
 				SP_NPC_spawner2( self );
+#else
+				self->NPC_type = "padawan";
+
+				trap->Print("Spawning \"%s\" for Jedi NPC.\n", self->NPC_type);
+
+				self->padawanSaberType = irand(1, 12);
+				SP_NPC_spawner2(self);
+#endif
 
 				VectorCopy(origin, self->s.origin);
 				return;
@@ -2711,6 +2669,7 @@ void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team )
 
 			if (OrgVisibleBox(origin, playerMins, playerMaxs, self->s.origin, -1))
 			{
+#if 0
 				int choice = irand(1,36);
 				char name[64];
 
@@ -2724,6 +2683,14 @@ void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team )
 				trap->Print("Spawning padawan \"%s\" for Jedi NPC.\n", self->NPC_type);
 
 				SP_NPC_spawner2( self );
+#else
+				self->NPC_type = "padawan";
+
+				trap->Print("Spawning \"%s\" for Jedi NPC.\n", self->NPC_type);
+
+				self->padawanSaberType = irand(1, 12);
+				SP_NPC_spawner2(self);
+#endif
 
 				VectorCopy(origin, self->s.origin);
 				return;

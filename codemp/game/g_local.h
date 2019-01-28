@@ -263,6 +263,7 @@ struct gentity_s {
 	int				padawanReturnToPlayerTime;
 	int				padawanWaitTime;
 	gentity_t		*padawanGoalEntity;
+	int				padawanSaberType = -1;
 	int				combatPoint;
 	int				failedWaypoints[MAX_FAILED_NODES];
 	int				failedWaypointCheckTime;

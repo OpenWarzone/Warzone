@@ -75,6 +75,8 @@ NPC_CheckCombatMove
 
 QINLINE qboolean NPC_CheckCombatMove(gentity_t *aiEnt)
 {
+	if (aiEnt->client->NPC_class == CLASS_ATST) return qfalse;
+
 	//return NPCInfo->combatMove;
 	if ( ( aiEnt->NPC->goalEntity && aiEnt->enemy && aiEnt->NPC->goalEntity == aiEnt->enemy ) || ( aiEnt->NPC->combatMove ) )
 	{
@@ -323,59 +325,61 @@ extern qboolean UQ1_UcmdMoveForDir ( gentity_t *self, usercmd_t *cmd, vec3_t dir
 
 void G_UcmdMoveForDir( gentity_t *self, usercmd_t *cmd, vec3_t dir, vec3_t dest )
 {
-#if 0
-	vec3_t	forward, right;
-	float	fDot, rDot;
+	if (self->client->NPC_class == CLASS_ATST)
+	{
+		vec3_t	forward, right;
+		float	fDot, rDot;
 
-	AngleVectors( self->r.currentAngles, forward, right, NULL );
+		AngleVectors(self->r.currentAngles, forward, right, NULL);
 
-	dir[2] = 0;
-	VectorNormalize( dir );
-	//NPCs cheat and store this directly because converting movement into a ucmd loses precision
-	VectorCopy( dir, self->client->ps.moveDir );
+		dir[2] = 0;
+		VectorNormalize(dir);
+		//NPCs cheat and store this directly because converting movement into a ucmd loses precision
+		VectorCopy(dir, self->client->ps.moveDir);
 
-	fDot = DotProduct( forward, dir ) * 127.0f;
-	rDot = DotProduct( right, dir ) * 127.0f;
-	//Must clamp this because DotProduct is not guaranteed to return a number within -1 to 1, and that would be bad when we're shoving this into a signed byte
-	if ( fDot > 127.0f )
-	{
-		fDot = 127.0f;
-	}
-	if ( fDot < -127.0f )
-	{
-		fDot = -127.0f;
-	}
-	if ( rDot > 127.0f )
-	{
-		rDot = 127.0f;
-	}
-	if ( rDot < -127.0f )
-	{
-		rDot = -127.0f;
-	}
-	cmd->forwardmove = floor(fDot);
-	cmd->rightmove = floor(rDot);
+		fDot = DotProduct(forward, dir) * 127.0f;
+		rDot = DotProduct(right, dir) * 127.0f;
+		//Must clamp this because DotProduct is not guaranteed to return a number within -1 to 1, and that would be bad when we're shoving this into a signed byte
+		if (fDot > 127.0f)
+		{
+			fDot = 127.0f;
+		}
+		if (fDot < -127.0f)
+		{
+			fDot = -127.0f;
+		}
+		if (rDot > 127.0f)
+		{
+			rDot = 127.0f;
+		}
+		if (rDot < -127.0f)
+		{
+			rDot = -127.0f;
+		}
+		cmd->forwardmove = floor(fDot);
+		cmd->rightmove = floor(rDot);
 
-	/*
-	vec3_t	wishvel;
-	for ( int i = 0 ; i < 3 ; i++ )
-	{
-		wishvel[i] = forward[i]*cmd->forwardmove + right[i]*cmd->rightmove;
+		/*
+		vec3_t	wishvel;
+		for ( int i = 0 ; i < 3 ; i++ )
+		{
+			wishvel[i] = forward[i]*cmd->forwardmove + right[i]*cmd->rightmove;
+		}
+		VectorNormalize( wishvel );
+		if ( !VectorCompare( wishvel, dir ) )
+		{
+			Com_Printf( "PRECISION LOSS: %s != %s\n", vtos(wishvel), vtos(dir) );
+		}
+		*/
+		return;
 	}
-	VectorNormalize( wishvel );
-	if ( !VectorCompare( wishvel, dir ) )
-	{
-		Com_Printf( "PRECISION LOSS: %s != %s\n", vtos(wishvel), vtos(dir) );
-	}
-	*/
-#else
+
 	// UQ1: Use my method instead to check for falling, etc...
 	qboolean walk = qfalse;
 
 	if (self->client->pers.cmd.buttons&BUTTON_WALKING) walk = qtrue;
 
 	UQ1_UcmdMoveForDir( self, &self->client->pers.cmd, dir, walk, dest );
-#endif
 }
 
 /*
@@ -603,8 +607,15 @@ NPC_MoveToGoal
 -------------------------
 */
 
+extern qboolean ATST_MoveToGoal(gentity_t *aiEnt, qboolean tryStraight);
+
 qboolean NPC_MoveToGoal(gentity_t *aiEnt, qboolean tryStraight )
 {
+	if (aiEnt && aiEnt->client && aiEnt->client->NPC_class == CLASS_ATST)
+	{// ATST uses special move stuff to throw enemies in front of it that it hits...
+		return ATST_MoveToGoal(aiEnt, tryStraight);
+	}
+
 #if 0
 	float	distance;
 	vec3_t	dir;

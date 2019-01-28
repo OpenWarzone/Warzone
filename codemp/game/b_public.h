@@ -245,6 +245,8 @@ typedef struct
 	int			pauseTime;		//Time to stand still
 	int			standTime;
 
+	int			currentTurret = 0;
+
 	int			localState;		//Tracking information local to entity
 	int			squadState;		//Tracking information for team level interaction
 

@@ -1505,6 +1505,7 @@ NPC_BehaviorSet_ATST
 */
 void NPC_BehaviorSet_ATST(gentity_t *aiEnt, int bState)
 {
+	/*
 	switch( bState )
 	{
 	case BS_DEFAULT:
@@ -1514,9 +1515,24 @@ void NPC_BehaviorSet_ATST(gentity_t *aiEnt, int bState)
 		NPC_BSATST_Default(aiEnt);
 		break;
 	default:
-		NPC_BehaviorSet_Default(aiEnt, bState );
+		if (NPC_HaveValidEnemy(aiEnt))
+			NPC_BSATST_Default(aiEnt);
+		else
+			NPC_BehaviorSet_Default(aiEnt, bState );
 		break;
 	}
+	*/
+
+	/*
+	extern void ATST_Attack(gentity_t *aiEnt);
+
+	if (NPC_HaveValidEnemy(aiEnt))
+		ATST_Attack(aiEnt);
+	else
+		NPC_BehaviorSet_Default(aiEnt, bState);
+	*/
+
+	NPC_BehaviorSet_Jedi(aiEnt, bState);
 }
 
 /*
@@ -1757,6 +1773,11 @@ void NPC_RunBehavior( gentity_t *aiEnt, int team, int bState )
 	{
 		NPC_BSJedi_Default(aiEnt);
 	}
+	else if (aiEnt->client->NPC_class == CLASS_ATST)
+	{
+		NPC_BehaviorSet_ATST(aiEnt, bState);
+	}
+
 	/*else if ( aiEnt->NPC->scriptFlags & SCF_FORCED_MARCH )
 	{//being forced to march
 		NPC_BSDefault(aiEnt);

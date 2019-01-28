@@ -4364,6 +4364,7 @@ void ClientSpawn(gentity_t *ent) {
 
 				if (waypoint >= 0 && waypoint < gWPNum)
 				{
+#if 0
 					int choice = irand(1, 36);
 					char name[64];
 
@@ -4379,6 +4380,16 @@ void ClientSpawn(gentity_t *ent) {
 					padawan->s.teamowner = ent->client->sess.sessionTeam;
 					VectorCopy(gWPArray[waypoint]->origin, padawan->s.origin);
 					SP_NPC_spawner2(padawan);
+#else
+					padawan->NPC_type = "padawan";
+
+					trap->Print("Spawning \"%s\" for player %s.\n", padawan->NPC_type, ent->client->pers.netname);
+
+					padawan->s.teamowner = ent->client->sess.sessionTeam;
+					padawan->padawanSaberType = irand(1, 12);
+					VectorCopy(gWPArray[waypoint]->origin, padawan->s.origin);
+					SP_NPC_spawner2(padawan);
+#endif
 				}
 			}
 		}
