@@ -1990,38 +1990,6 @@ finish:
 	
 	if (Q_stricmpn("civilian_", newent->NPC_type, 9))
 	{// Only if not a civilian...
-		/*
-		// Try using NPC Type as sound name... Should work most of the time...
-		newent->s.csSounds_Std = G_SoundIndex( va("*$%s", newent->NPC_type) );
-		newent->s.csSounds_Combat = G_SoundIndex( va("*$%s", newent->NPC_type) );
-		newent->s.csSounds_Extra = G_SoundIndex( va("*$%s", newent->NPC_type) );
-		newent->s.csSounds_Jedi = G_SoundIndex( va("*$%s", newent->NPC_type) );
-
-		if (!newent->s.csSounds_Std || newent->s.csSounds_Combat || newent->s.csSounds_Extra || newent->s.csSounds_Jedi))
-		{// Still failed to find sounds... Try using model name for sounds...
-			newent->s.csSounds_Std = G_SoundIndex( va("*$%s", newent->client->modelname) );
-			newent->s.csSounds_Combat = G_SoundIndex( va("*$%s", newent->client->modelname) );
-			newent->s.csSounds_Extra = G_SoundIndex( va("*$%s", newent->client->modelname) );
-			newent->s.csSounds_Jedi = G_SoundIndex( va("*$%s", newent->client->modelname) );
-		}
-
-		if (!(newent->s.csSounds_Std || newent->s.csSounds_Combat || newent->s.csSounds_Extra || newent->s.csSounds_Jedi))
-		{// Still failed to find sounds... Try using NPC Type as sound name but with variation 1...
-			newent->s.csSounds_Std = G_SoundIndex( va("*$%s1", newent->NPC_type) );
-			newent->s.csSounds_Combat = G_SoundIndex( va("*$%s1", newent->NPC_type) );
-			newent->s.csSounds_Extra = G_SoundIndex( va("*$%s1", newent->NPC_type) );
-			newent->s.csSounds_Jedi = G_SoundIndex( va("*$%s1", newent->NPC_type) );
-		}
-
-		if (!(newent->s.csSounds_Std || newent->s.csSounds_Combat || newent->s.csSounds_Extra || newent->s.csSounds_Jedi))
-		{// Still failed to find sounds... Try using NPC Type as sound name but with variation 2...
-			newent->s.csSounds_Std = G_SoundIndex( va("*$%s2", newent->NPC_type) );
-			newent->s.csSounds_Combat = G_SoundIndex( va("*$%s2", newent->NPC_type) );
-			newent->s.csSounds_Extra = G_SoundIndex( va("*$%s2", newent->NPC_type) );
-			newent->s.csSounds_Jedi = G_SoundIndex( va("*$%s2", newent->NPC_type) );
-		}
-		*/
-
 		int SOUND_INDEX = newent->s.csSounds_Std;
 		
 		if (!SOUND_INDEX)
@@ -2332,6 +2300,9 @@ void NPC_PrecacheWarzoneNPCs ( void )
 	//
 	NPC_PrecacheType( "hk51" );
 
+	//NPC_PrecacheType("EG5_Dark");
+	//NPC_PrecacheType("EG5_Light");
+
 	if (!npc_precache.integer)
 	{// If not set to precache, don't precache any of the others... But still precache the 2 followers above...
 		return;
@@ -2431,6 +2402,9 @@ void SP_NPC_spawner2( gentity_t *self)
 	}
 	*/
 	//rwwFIXMEFIXME: support for this flag?
+
+	// UQ1: Make sure it is precached...
+	NPC_PrecacheType(self->NPC_type);
 
 	//We have to load the animation.cfg now because spawnscripts are going to want to set anims and we need to know their length and if they're valid
 	NPC_PrecacheAnimationCFG( self->NPC_type );
