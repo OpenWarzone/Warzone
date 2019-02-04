@@ -109,7 +109,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 //#define __HEIGHTMAP_TERRAIN_TEST__			// Testing stuff...
 
-//#define __INDOOR_SHADOWS__						// Testing stuff...
+#define __INDOOR_SHADOWS__						// Testing stuff...
 
 //#define __CALCULATE_LIGHTDIR_FROM_LIGHT_AVERAGES__
 
@@ -622,6 +622,7 @@ extern cvar_t  *r_esharpening;
 extern cvar_t  *r_fxaa;
 extern cvar_t  *r_fxaaScanMod;
 extern cvar_t  *r_txaa;
+extern cvar_t  *r_cloudshadows;
 extern cvar_t  *r_underwater;
 extern cvar_t  *r_multipost;
 extern cvar_t  *r_screenBlurSlow;
@@ -3521,6 +3522,7 @@ extern cvar_t  *r_esharpening;
 extern cvar_t  *r_fxaa;
 extern cvar_t  *r_fxaaScanMod;
 extern cvar_t  *r_txaa;
+extern cvar_t  *r_cloudshadows;
 extern cvar_t  *r_underwater;
 extern cvar_t  *r_multipost;
 extern cvar_t	*r_steepParallax;

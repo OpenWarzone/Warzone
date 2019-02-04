@@ -403,6 +403,7 @@ cvar_t  *r_underwater;
 cvar_t  *r_distanceBlur;
 cvar_t  *r_fogPost;
 cvar_t  *r_dayNightCycleSpeed;
+cvar_t  *r_cloudshadows;
 cvar_t  *r_testshader;
 cvar_t  *r_testshaderValue1;
 cvar_t  *r_testshaderValue2;
@@ -1692,6 +1693,7 @@ void R_Register( void )
 	r_fxaa = ri->Cvar_Get( "r_fxaa", "false", CVAR_ARCHIVE );
 	r_fxaaScanMod = ri->Cvar_Get("r_fxaaScanMod", "1.0"/*"0.666"*//*"2.0"*//*0.75*/, CVAR_ARCHIVE);
 	r_txaa = ri->Cvar_Get("r_txaa", "true", CVAR_ARCHIVE);
+	r_cloudshadows = ri->Cvar_Get("r_cloudshadows", "1", CVAR_ARCHIVE);
 	r_underwater = ri->Cvar_Get( "r_underwater", "1", CVAR_ARCHIVE );
 	r_multipost = ri->Cvar_Get( "r_multipost", "false", CVAR_ARCHIVE );
 	r_screenBlurSlow = ri->Cvar_Get( "r_screenBlurSlow", "1", CVAR_ARCHIVE );

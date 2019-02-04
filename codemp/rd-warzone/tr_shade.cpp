@@ -4940,6 +4940,18 @@ static void RB_RenderShadowmap( shaderCommands_t *input )
 		vector[3] = 1.0f;
 		GLSL_SetUniformVec4(sp, UNIFORM_LIGHTORIGIN, vector);
 		GLSL_SetUniformFloat(sp, UNIFORM_LIGHTRADIUS, backEnd.viewParms.zFar);
+
+		/*
+		if (!backEnd.viewIsOutdoors)
+		{
+			vec4_t pos;
+			pos[0] = backEnd.viewIsOutdoorsHitPosition[0];
+			pos[1] = backEnd.viewIsOutdoorsHitPosition[1];
+			pos[2] = backEnd.viewIsOutdoorsHitPosition[2];
+			pos[3] = 0.0;
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL0, pos);
+		}
+		*/
 		
 		GL_State( 0 );
 

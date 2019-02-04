@@ -43,7 +43,7 @@ uniform vec4								u_Local7; // cubemapEnabled, r_cubemapCullRange, r_cubeMapSi
 uniform vec4								u_Local8; // enableReflections, MAP_HDR_MIN, MAP_HDR_MAX, MAP_INFO_PLAYABLE_MAXS[2]
 uniform vec4								u_Local9; // PROCEDURAL_SNOW_HEIGHT_CURVE, MAP_USE_PALETTE_ON_SKY, SNOW_ENABLED, PROCEDURAL_SNOW_LOWEST_ELEVATION
 //uniform vec4								u_Local10; // PROCEDURAL_SNOW_LUMINOSITY_CURVE, PROCEDURAL_SNOW_BRIGHTNESS, 0.0, 0.0
-uniform vec4								u_Local11; // PROCEDURAL_CLOUDS_ENABLED, PROCEDURAL_CLOUDS_CLOUDSCALE, PROCEDURAL_CLOUDS_CLOUDCOVER, 0.0
+uniform vec4								u_Local11; // PROCEDURAL_CLOUDS_ENABLED, PROCEDURAL_CLOUDS_CLOUDSCALE, PROCEDURAL_CLOUDS_CLOUDCOVER, CLOUDS_SHADOWS_ENABLED
 //uniform vec4								u_Local12; // 0.0, 0.0, 0.0, 0.0
 
 //uniform vec4								u_ViewInfo; // znear, zfar, zfar / znear, fov
@@ -72,6 +72,7 @@ uniform vec4								u_Mins; // mins, mins, mins, WATER_ENABLED
 uniform vec4								u_Maxs;
 
 varying vec2								var_TexCoords;
+varying float								var_CloudShadow;
 
 
 #define BLINN_PHONG_STRENGTH				u_Local1.r
@@ -121,7 +122,7 @@ varying vec2								var_TexCoords;
 #define CLOUDS_ENABLED						u_Local11.r
 #define CLOUDS_CLOUDSCALE					u_Local11.g
 #define CLOUDS_CLOUDCOVER					u_Local11.b
-//#define CLOUDS_DARK						u_Local11.a
+#define CLOUDS_SHADOWS_ENABLED				u_Local11.a
 
 //#define CLOUDS_LIGHT						u_Local12.r
 //#define CLOUDS_CLOUDCOVER					u_Local12.g
@@ -1018,7 +1019,7 @@ float CloudShadows(vec3 position)
 	vec3 cameraPos = vec3(0.0);
     vec3 dir = normalize(u_PrimaryLightOrigin.xzy - position.xzy*0.25);
 	//dir.y *= -1.0;
-	dir = normalize(vec3(dir.x, u_Local3.r, dir.z));
+	dir = normalize(vec3(dir.x, -1.0, dir.z));
 
 	vec2 pos;
 	float alpha = GetCloudAlpha(cameraPos, dir, pos);
@@ -1697,9 +1698,13 @@ void main(void)
 	finalShadow = mix(finalShadow, 1.0, clamp(NIGHT_SCALE, 0.0, 1.0)); // Dampen out shadows at sunrise/sunset...
 
 #ifdef __CLOUD_SHADOWS__
-	if (CLOUDS_ENABLED > 0.0)
+	if (CLOUDS_ENABLED > 0.0 && CLOUDS_SHADOWS_ENABLED == 1.0)
 	{
-		float cShadow = CloudShadows(position.xyz) * 0.75 + 0.25;
+		finalShadow = min(finalShadow, var_CloudShadow);
+	}
+	else if (CLOUDS_ENABLED > 0.0 && CLOUDS_SHADOWS_ENABLED >= 2.0)
+	{
+		float cShadow = CloudShadows(position.xyz) * 0.5 + 0.5;
 		cShadow = mix(cShadow, 1.0, clamp(NIGHT_SCALE, 0.0, 1.0)); // Dampen out cloud shadows at sunrise/sunset...
 		finalShadow = min(finalShadow, cShadow);
 	}

@@ -1419,7 +1419,7 @@ void RE_RenderScene(const refdef_t *fd) {
 			lightDir[3] = 0.0;
 			
 			VectorCopy(backEnd.viewIsOutdoorsHitPosition, lightOrigin);
-			lightOrigin[2] -= r_testvalue1->value;// 8.0;
+			//lightOrigin[2] -= r_testvalue1->value;// 8.0;
 
 			lightHeight = lightOrigin[2] - backEnd.localPlayerOrigin[2];
 		}

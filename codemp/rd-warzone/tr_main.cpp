@@ -3317,6 +3317,12 @@ void R_RenderSunShadowMaps(const refdef_t *fd, int level, vec4_t sunDir, float l
 			lightviewBounds[1][2] = spot[2];
 		}*/
 
+		/*if (!backEnd.viewIsOutdoors)
+		{
+			//lightviewBounds[0][2] = backEnd.localPlayerOrigin[2] - 4096.0;
+			lightviewBounds[1][2] = lightOrg[2];// lightOrigin[2];
+		}*/
+
 		// Moving the Light in Texel-Sized Increments
 		// from http://msdn.microsoft.com/en-us/library/windows/desktop/ee416324%28v=vs.85%29.aspx
 		//

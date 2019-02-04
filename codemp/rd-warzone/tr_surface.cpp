@@ -2626,7 +2626,7 @@ static void RB_SurfaceSprites(srfSprites_t *surf)
 	}
 
 	RB_EndSurface();
-
+	
 	// TODO: Do we want a 2-level lod system where far away sprites are
 	// just flat surfaces?
 
@@ -2653,6 +2653,8 @@ static void RB_SurfaceSprites(srfSprites_t *surf)
 	data.fadeScale = ss->fadeScale;
 	data.widthVariance = ss->variance[0];
 	data.heightVariance = ss->variance[1];
+
+	RB_BeginSurface(shader, tess.fogNum, tess.cubemapIndex);
 
 	GLSL_BindProgram(program);
 	GL_State(firstStage->stateBits);
@@ -2682,9 +2684,12 @@ static void RB_SurfaceSprites(srfSprites_t *surf)
 
 	tess.useInternalVBO = qtrue;
 
+	R_BindVBO(surf->vbo);
+	tess.vbo = surf->vbo;
+
 	R_BindIBO(surf->ibo);
 	tess.ibo = surf->ibo;
-	
+
 #if 1
 	qglDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0, surf->numSprites);
 #else
@@ -2692,9 +2697,11 @@ static void RB_SurfaceSprites(srfSprites_t *surf)
 	tess.numVertexes += surf->numSprites*6;
 	tess.minIndex = 0;
 	tess.maxIndex = surf->numSprites*6*6;
+#endif
 
 	RB_EndSurface();
-#endif
+
+	if (r_testvalue0->integer) ri->Printf(PRINT_ALL, "Added %i surf sprites.\n", surf->numSprites);
 #endif
 }
 #endif //__XYC_SURFACE_SPRITES__

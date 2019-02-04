@@ -2829,7 +2829,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 	extern float		DYNAMIC_WEATHER_CLOUDSCALE;
 
 	vec4_t vector;
-	VectorSet4(vector, PROCEDURAL_CLOUDS_ENABLED ? 1.0 : 0.0, DYNAMIC_WEATHER_CLOUDSCALE, DYNAMIC_WEATHER_CLOUDCOVER, 0.0);
+	VectorSet4(vector, PROCEDURAL_CLOUDS_ENABLED ? 1.0 : 0.0, DYNAMIC_WEATHER_CLOUDSCALE, DYNAMIC_WEATHER_CLOUDCOVER, r_cloudshadows->integer);
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL11, vector);
 
 	//VectorSet4(vector, 0.0, 0.0, 0.0, 0.0);

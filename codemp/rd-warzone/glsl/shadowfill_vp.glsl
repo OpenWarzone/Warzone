@@ -108,4 +108,5 @@ void main()
 	gl_Position = u_ModelViewProjectionMatrix * vec4(position, 1.0);
 	
 	//var_Position  = (u_ModelMatrix * vec4(position, 1.0)).xyz;
+	//var_Position = position.xyz;
 }
