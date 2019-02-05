@@ -40,6 +40,7 @@ uniform float						u_Time;
 
 out precise vec3 WorldPos_FS_in;
 out precise vec2 TexCoord_FS_in;
+out precise vec2 envTC_FS_in;
 out precise vec3 Normal_FS_in;
 out precise vec3 ViewDir_FS_in;
 out precise vec4 Color_FS_in;
@@ -50,6 +51,7 @@ flat out float Slope_FS_in;
 
 #define WorldPos_GS_in WorldPos_FS_in
 #define TexCoord_GS_in TexCoord_FS_in
+#define envTC_GS_in envTC_FS_in
 #define Normal_GS_in Normal_FS_in
 #define ViewDir_GS_in ViewDir_FS_in
 #define Color_GS_in Color_FS_in
@@ -89,6 +91,7 @@ uniform float  u_DeformParams[7];
 in precise vec4 WorldPos_ES_in[];
 in precise vec3 iNormal[];
 in precise vec2 iTexCoord[];
+in precise vec2 ienvTC[];
 in precise PnPatch iPnPatch[];
 in precise vec4 Color_ES_in[];
 in precise vec4 PrimaryLightDir_ES_in[];
@@ -296,6 +299,9 @@ void main()
 	TexCoord_GS_in = gl_TessCoord[2] * iTexCoord[0]
 		+ gl_TessCoord[0] * iTexCoord[1]
 		+ gl_TessCoord[1] * iTexCoord[2];
+	envTC_GS_in = gl_TessCoord[2] * ienvTC[0]
+		+ gl_TessCoord[0] * ienvTC[1]
+		+ gl_TessCoord[1] * ienvTC[2];
 	Color_GS_in = gl_TessCoord[2] * Color_ES_in[0]
 		+ gl_TessCoord[0] * Color_ES_in[1]
 		+ gl_TessCoord[1] * Color_ES_in[2];

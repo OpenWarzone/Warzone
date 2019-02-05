@@ -1431,3 +1431,172 @@ float G_PointDistFromLineSegment( const vec3_t start, const vec3_t end, const ve
 	//perpendicular intersection is between the 2 endpoints, return dist to it from from
 	return Distance( intersection, from );
 }
+
+
+// Ray and cylinder intersection
+// If hit, returns true and the intersection point in 'hitPosition' with a hitNormal and distance along
+// the ray ('lambda')
+#define D3_EPSILON 0.001
+
+bool CylinderIntersectionFull(const bool needNormals, const vec3_t rayOrg, const vec3_t rayDir, const float rayLength, const CylinderIntersection_t cylinder, float &lambda, vec3_t &hitDirection, vec3_t &hitPosition)
+{
+	vec3_t RC, n, O, fwd, dir;
+	float d, t, s, ln, in, out, dist;
+
+	dist = Distance(rayOrg, cylinder.position);
+
+	if (dist > max(rayLength, cylinder.length))
+	{
+		return false;
+	}
+
+	VectorCopy(cylinder.dir, fwd);
+	VectorNormalize(fwd);
+
+	AngleVectors(rayDir, dir, NULL, NULL);
+	VectorNormalize(dir);
+
+	VectorSubtract(rayOrg, cylinder.position, RC);
+	CrossProduct(dir, fwd, n);
+
+	ln = VectorLength(n);
+
+	// Parallel? (?)
+	if ((ln < D3_EPSILON) && (ln > -D3_EPSILON))
+	{
+		//return false;
+		// UQ1: When parallel, I will return the middle of the ray instead of failing...
+		VectorCopy(rayOrg, hitPosition);
+		hitPosition[0] += dir[0] * rayLength * 0.5;
+		hitPosition[1] += dir[1] * rayLength * 0.5;
+		hitPosition[2] += dir[2] * rayLength * 0.5;
+
+		if (needNormals)
+		{
+			vec3_t HB;
+			VectorCopy(hitPosition, HB);
+			VectorSubtract(HB, cylinder.position, HB);
+
+			float scale = DotProduct(HB, fwd);
+			hitDirection[0] = HB[0] - fwd[0] * scale;
+			hitDirection[1] = HB[1] - fwd[1] * scale;
+			hitDirection[2] = HB[2] - fwd[2] * scale;
+			VectorNormalize(hitDirection);
+		}
+
+		return true;
+	}
+
+	VectorNormalize(n);
+	d = DotProduct(RC, n);
+
+	if (d <= cylinder.radius)
+	{
+		CrossProduct(RC, fwd, O);
+		
+		t = -DotProduct(O, n) / ln;
+		
+		CrossProduct(n, fwd, O);
+		VectorNormalize(O);
+
+		s = fabs(sqrtf(cylinder.radius*cylinder.radius - d*d) / DotProduct(dir,O));
+
+		in = t - s;
+		out = t + s;
+
+		if (in<-D3_EPSILON)
+		{
+			if (out<-D3_EPSILON)
+				return false;
+			else lambda = out;
+		}
+		else if (out<-D3_EPSILON)
+		{
+			lambda = in;
+		}
+		else if (in<out)
+		{
+			lambda = in;
+		}
+		else
+		{
+			lambda = out;
+		}
+
+		// Calculate intersection point
+		VectorCopy(rayOrg, hitPosition);
+		hitPosition[0] += dir[0] * lambda;
+		hitPosition[1] += dir[1] * lambda;
+		hitPosition[2] += dir[2] * lambda;
+
+		float hdist = Distance(hitPosition, cylinder.position);
+
+		if (hdist > max(rayLength, cylinder.length))
+		{
+			return false;
+		}
+		
+		if (needNormals)
+		{
+			vec3_t HB;
+			VectorCopy(hitPosition, HB);
+			VectorSubtract(HB, cylinder.position, HB);
+
+			float scale = DotProduct(HB, fwd);
+			hitDirection[0] = HB[0] - fwd[0] * scale;
+			hitDirection[1] = HB[1] - fwd[1] * scale;
+			hitDirection[2] = HB[2] - fwd[2] * scale;
+			VectorNormalize(hitDirection);
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+bool CylinderIntersectionReturnDirection(const vec3_t rayOrg, const vec3_t rayDir, const float rayLength, vec3_t cylinderPos, vec3_t cylinderDir, float cylinderLength, float cylinderRadius, float &lambda, vec3_t &hitNormal, vec3_t &hitPosition)
+{
+	CylinderIntersection_t cylinder;
+	VectorCopy(cylinderPos, cylinder.position);
+	VectorCopy(cylinderDir, cylinder.dir);
+	cylinder.radius = cylinderRadius;
+	cylinder.length = cylinderLength;
+
+	VectorClear(hitNormal);
+	VectorClear(hitPosition);
+
+	return CylinderIntersectionFull(qtrue, rayOrg, rayDir, rayLength, cylinder, lambda, hitNormal, hitPosition);
+}
+
+bool CylinderIntersectionRay(const vec3_t rayOrg, const vec3_t rayDir, const float rayLength, vec3_t cylinderPos, vec3_t cylinderDir, float cylinderLength, float cylinderRadius, vec3_t &hitPosition)
+{
+	CylinderIntersection_t cylinder;
+	VectorCopy(cylinderPos, cylinder.position);
+	VectorCopy(cylinderDir, cylinder.dir);
+	cylinder.radius = cylinderRadius;
+	cylinder.length = cylinderLength;
+
+	float lambda;
+	vec3_t hitNormal;
+	VectorClear(hitNormal);
+	VectorClear(hitPosition);
+
+	return CylinderIntersectionFull(qfalse, rayOrg, rayDir, rayLength, cylinder, lambda, hitNormal, hitPosition);
+}
+
+bool CylinderIntersectionSaber(const vec3_t mySaberOrg, const vec3_t mySaberDir, const float mySaberLength, vec3_t theirSaberPos, vec3_t theirSaberDir, float theirSaberLength, float theirSaberRadius, vec3_t &hitPosition)
+{
+	CylinderIntersection_t cylinder;
+	VectorCopy(theirSaberPos, cylinder.position);
+	VectorCopy(theirSaberDir, cylinder.dir);
+	cylinder.radius = theirSaberRadius;
+	cylinder.length = theirSaberLength;
+
+	float lambda = 0;
+	vec3_t hitNormal;
+	VectorClear(hitNormal);
+	VectorClear(hitPosition);
+
+	return CylinderIntersectionFull(qfalse, mySaberOrg, mySaberDir, mySaberLength, cylinder, lambda, hitNormal, hitPosition);
+}

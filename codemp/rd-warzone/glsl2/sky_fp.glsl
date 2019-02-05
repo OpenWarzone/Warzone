@@ -11,9 +11,9 @@ uniform sampler2D										u_SplatMap1; // auroraImage[0]
 uniform sampler2D										u_SplatMap2; // auroraImage[1]
 
 uniform int												u_MoonCount; // moons total count
-uniform sampler2D										u_MoonMaps[8]; // moon textures
-uniform vec4											u_MoonInfos[8]; // MOON_ENABLED, MOON_ROTATION_OFFSET_X, MOON_ROTATION_OFFSET_Y, MOON_SIZE
-uniform vec2											u_MoonInfos2[8]; // MOON_BRIGHTNESS, MOON_TEXTURE_SCALE
+uniform sampler2D										u_MoonMaps[4]; // moon textures
+uniform vec4											u_MoonInfos[4]; // MOON_ENABLED, MOON_ROTATION_OFFSET_X, MOON_ROTATION_OFFSET_Y, MOON_SIZE
+uniform vec2											u_MoonInfos2[4]; // MOON_BRIGHTNESS, MOON_TEXTURE_SCALE
 
 uniform vec4											u_Settings0; // useTC, useDeform, useRGBA, isTextureClamped
 uniform vec4											u_Settings1; // useVertexAnim, useSkeletalAnim, blendMode, is2D

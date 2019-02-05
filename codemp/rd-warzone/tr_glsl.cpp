@@ -1227,6 +1227,7 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_WaterHeightMap", GLSL_INT, 1 },
 	{ "u_HeightMap", GLSL_INT, 1 },
 	{ "u_GlowMap", GLSL_INT, 1 },
+	{ "u_EnvironmentMap", GLSL_INT, 1 },
 
 	{ "u_TextureMap", GLSL_INT, 1 },
 	{ "u_LevelsMap", GLSL_INT, 1 },
@@ -1244,7 +1245,7 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_RoadsControlMap", GLSL_INT, 1 },
 	{ "u_RoadMap", GLSL_INT, 1 },
 	{ "u_DetailMap", GLSL_INT, 1 },
-	{ "u_MoonMaps", GLSL_INT, 8 },
+	{ "u_MoonMaps", GLSL_INT, 4 },
 
 	{ "u_ScreenImageMap", GLSL_INT, 1 },
 	{ "u_ScreenDepthMap", GLSL_INT, 1 },
@@ -1279,6 +1280,7 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_Color", GLSL_VEC4, 1 },
 	{ "u_BaseColor", GLSL_VEC4, 1 },
 	{ "u_VertColor", GLSL_VEC4, 1 },
+	{ "u_ColorMod", GLSL_VEC3, 1 },
 
 	{ "u_DlightInfo", GLSL_VEC4, 1 },
 	{ "u_LightForward", GLSL_VEC3, 1 },
@@ -1383,8 +1385,8 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_Local12", GLSL_VEC4, 1 },
 
 	{ "u_MoonCount", GLSL_INT, 1 },
-	{ "u_MoonInfos", GLSL_VEC4, 8 },
-	{ "u_MoonInfos2", GLSL_VEC2, 8 },
+	{ "u_MoonInfos", GLSL_VEC4, 4 },
+	{ "u_MoonInfos2", GLSL_VEC2, 4 },
 
 	{ "u_MaterialSpeculars", GLSL_FLOAT, MATERIAL_LAST },
 	{ "u_MaterialReflectiveness", GLSL_FLOAT, MATERIAL_LAST },
@@ -4688,22 +4690,23 @@ void GLSL_EndLoadGPUShaders(int startTime)
 		GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_NORMALMAP, TB_NORMALMAP);
 		GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_DELUXEMAP, TB_DELUXEMAP);
 		GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_SPECULARMAP, TB_SPECULARMAP);
-		GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_SHADOWMAP, TB_SHADOWMAP);
-		GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_CUBEMAP, TB_CUBEMAP);
+		GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_SHADOWMAP, TB_SPLATMAP1);
+		//GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_CUBEMAP, TB_CUBEMAP);
 		//GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_SUBSURFACEMAP, TB_SUBSURFACEMAP);
 		GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_OVERLAYMAP, TB_OVERLAYMAP);
-		GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_STEEPMAP, TB_STEEPMAP);
-		GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_WATER_EDGE_MAP, TB_WATER_EDGE_MAP);
-		GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_SPLATCONTROLMAP, TB_SPLATCONTROLMAP);
-		GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_SPLATMAP1, TB_SPLATMAP1);
-		GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_SPLATMAP2, TB_SPLATMAP2);
-		GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_SPLATMAP3, TB_SPLATMAP3);
-		GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_ROADSCONTROLMAP, TB_ROADSCONTROLMAP);
-		GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_ROADMAP, TB_ROADMAP);
-		GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_DETAILMAP, TB_DETAILMAP);
+		//GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_STEEPMAP, TB_STEEPMAP);
+		//GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_WATER_EDGE_MAP, TB_WATER_EDGE_MAP);
+		//GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_SPLATCONTROLMAP, TB_SPLATCONTROLMAP);
+		//GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_SPLATMAP1, TB_SPLATMAP1);
+		//GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_SPLATMAP2, TB_SPLATMAP2);
+		//GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_SPLATMAP3, TB_SPLATMAP3);
+		//GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_ROADSCONTROLMAP, TB_ROADSCONTROLMAP);
+		//GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_ROADMAP, TB_ROADMAP);
+		//GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_DETAILMAP, TB_DETAILMAP);
 		GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_GLOWMAP, TB_GLOWMAP);
+		GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_ENVMAP, TB_ENVMAP);
 
-		GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_HEIGHTMAP, TB_HEIGHTMAP);
+		//GLSL_SetUniformInt(&tr.lightAllShader[i], UNIFORM_HEIGHTMAP, TB_HEIGHTMAP);
 
 #if defined(_DEBUG)
 		GLSL_FinishGPUShader(&tr.lightAllShader[i]);
@@ -4729,7 +4732,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 		GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_NORMALMAP, TB_NORMALMAP);
 		GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_DELUXEMAP, TB_DELUXEMAP);
 		GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_SPECULARMAP, TB_SPECULARMAP);
-		GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_SHADOWMAP, TB_SHADOWMAP);
+		//GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_SHADOWMAP, TB_SPLATMAP1);
 		GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_CUBEMAP, TB_CUBEMAP);
 		//GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_SUBSURFACEMAP, TB_SUBSURFACEMAP);
 		GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_OVERLAYMAP, TB_OVERLAYMAP);
@@ -4743,6 +4746,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 		GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_ROADMAP, TB_ROADMAP);
 		GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_DETAILMAP, TB_DETAILMAP);
 		GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_GLOWMAP, TB_GLOWMAP);
+		GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_ENVMAP, TB_ENVMAP);
 
 #if defined(_DEBUG)
 		GLSL_FinishGPUShader(&tr.lightAllSplatShader[i]);
@@ -5218,10 +5222,9 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 	GLSL_BindProgram(&tr.shadowmaskShader);
 	GLSL_SetUniformInt(&tr.shadowmaskShader, UNIFORM_SCREENDEPTHMAP, TB_COLORMAP);
-	GLSL_SetUniformInt(&tr.shadowmaskShader, UNIFORM_SHADOWMAP, TB_SHADOWMAP);
-	GLSL_SetUniformInt(&tr.shadowmaskShader, UNIFORM_SHADOWMAP2, TB_SHADOWMAP2);
-	GLSL_SetUniformInt(&tr.shadowmaskShader, UNIFORM_SHADOWMAP3, TB_SHADOWMAP3);
-	GLSL_SetUniformInt(&tr.shadowmaskShader, UNIFORM_SHADOWMAP4, TB_SHADOWMAP4);
+	GLSL_SetUniformInt(&tr.shadowmaskShader, UNIFORM_SHADOWMAP, TB_SPLATMAP1);
+	GLSL_SetUniformInt(&tr.shadowmaskShader, UNIFORM_SHADOWMAP2, TB_SPLATMAP2);
+	GLSL_SetUniformInt(&tr.shadowmaskShader, UNIFORM_SHADOWMAP3, TB_SPLATMAP3);
 	GLSL_SetUniformInt(&tr.shadowmaskShader, UNIFORM_GLOWMAP, TB_GLOWMAP);
 	GLSL_SetUniformInt(&tr.shadowmaskShader, UNIFORM_SPECULARMAP, TB_SPECULARMAP);
 
@@ -5499,9 +5502,9 @@ void GLSL_EndLoadGPUShaders(int startTime)
 		//GLSL_SetUniformInt(&tr.volumeLightShader[i], UNIFORM_POSITIONMAP, TB_POSITIONMAP);
 
 		GLSL_SetUniformInt(&tr.volumeLightShader[i], UNIFORM_SCREENDEPTHMAP, TB_COLORMAP);
-		GLSL_SetUniformInt(&tr.volumeLightShader[i], UNIFORM_SHADOWMAP, TB_SHADOWMAP);
-		GLSL_SetUniformInt(&tr.volumeLightShader[i], UNIFORM_SHADOWMAP2, TB_SHADOWMAP2);
-		GLSL_SetUniformInt(&tr.volumeLightShader[i], UNIFORM_SHADOWMAP3, TB_SHADOWMAP3);
+		GLSL_SetUniformInt(&tr.volumeLightShader[i], UNIFORM_SHADOWMAP, TB_SPLATMAP1);
+		GLSL_SetUniformInt(&tr.volumeLightShader[i], UNIFORM_SHADOWMAP2, TB_SPLATMAP2);
+		GLSL_SetUniformInt(&tr.volumeLightShader[i], UNIFORM_SHADOWMAP3, TB_SPLATMAP3);
 
 #if defined(_DEBUG)
 		GLSL_FinishGPUShader(&tr.volumeLightShader[i]);

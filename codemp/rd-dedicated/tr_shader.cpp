@@ -1510,6 +1510,17 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 				stage->bundle[0].image = tr.scratchImage[stage->bundle[0].videoMapHandle];
 			}
 		}
+		else if (!Q_stricmp(token, "overlayMap") || !Q_stricmp(token, "overlaymap"))
+		{
+			token = COM_ParseExt(text, qfalse);
+			if (!token[0])
+			{
+				ri->Printf(PRINT_WARNING, "WARNING: missing parameter for 'overlayMap' keyword in shader '%s'\n", shader.name);
+				return qfalse;
+			}
+			
+			continue;
+		}
 
 		//
 		// alphafunc <func>
@@ -1827,6 +1838,12 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 			depthMaskBits = GLS_DEPTHMASK_TRUE;
 			depthMaskExplicit = qtrue;
 
+			continue;
+		}
+		else if (!Q_stricmp(token, "colorMod") || !Q_stricmp(token, "colorModifier"))
+		{
+			ParseVector(text, 3, stage->colorMod);
+			Shader_SkipRestOfLine(text);
 			continue;
 		}
 		// If this stage has glow...	GLOWXXX

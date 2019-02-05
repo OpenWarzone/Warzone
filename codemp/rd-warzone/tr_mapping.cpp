@@ -2100,7 +2100,7 @@ void MAPPING_LoadMapInfo(void)
 		}
 
 		// Add any extra moons...
-		for (int i = 1; i < 8; i++)
+		for (int i = 1; i < 4; i++)
 		{
 			MOON_ENABLED[MOON_COUNT] = (atoi(IniRead(mapname, "MOON", va("MOON_ENABLED%i", i+1), "0")) > 0) ? qtrue : qfalse;
 

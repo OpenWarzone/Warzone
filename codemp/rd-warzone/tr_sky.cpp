@@ -618,9 +618,9 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 
 			GLSL_SetUniformInt(sp, UNIFORM_MOON_COUNT, MOON_COUNT);
 
-			vec4_t	moonInfos[8];
-			vec2_t	moonInfos2[8];
-			int		moonBundles[8] = { TB_MOONMAP1 };
+			vec4_t	moonInfos[4];
+			vec2_t	moonInfos2[4];
+			int		moonBundles[4] = { TB_MOONMAP1 };
 
 			for (int i = 0; i < MOON_COUNT; i++)
 			{

@@ -54,6 +54,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define __TINY_IMAGE_LOADER__					// Use TIL Image library when JKA fails to load an image (dds support, etc)
 
+//#define __G2_LODS_ENABLED__						// No real speed boost with them, should we disable?
 //#define __RENDERER_FOLIAGE__					// A port of the cgame foliage system in the renderer, doesn't work, only just started porting the basic code...
 #define __SHADER_GENERATOR__					// Generates warzone compatible shaders on load... Tries to convert old JKA shaders to better WZ ones... Hacky but works...
 #define __EXTRA_PRETTY__						// Makes things look better by not disabling some stuff on shaders...
@@ -1111,44 +1112,37 @@ enum
 	TB_DIFFUSEMAP		= 0,
 	TB_LIGHTMAP			= 1,
 	TB_LEVELSMAP		= 1,
-	TB_SHADOWMAP3		= 1,
 	TB_COLORMAP2		= 1,
 	TB_NORMALMAP		= 2,
 	TB_DELUXEMAP		= 3,
-	TB_SHADOWMAP2		= 4,
-	TB_SPECULARMAP		= 5,
-	TB_POSITIONMAP		= 6,
-	TB_WATERPOSITIONMAP	= 7,
-	TB_WATERHEIGHTMAP	= 8,
-	TB_HEIGHTMAP		= 9,
-	TB_GLOWMAP			= 10,
-	TB_SHADOWMAP		= 11,
-	TB_CUBEMAP			= 12,
-	TB_SKYCUBEMAP		= 13,
-	TB_SKYCUBEMAPNIGHT	= 14,
-	TB_EMISSIVECUBE		= 15,
-	TB_OVERLAYMAP		= 16,
-	TB_STEEPMAP			= 17,
-	TB_WATER_EDGE_MAP	= 18,
-	TB_SPLATCONTROLMAP	= 19,
-	TB_SPLATMAP1		= 20,
-	TB_SPLATMAP2		= 21,
-	TB_SPLATMAP3		= 22,
-	TB_ROADSCONTROLMAP	= 23,
-	TB_ROADMAP			= 24,
-	TB_DETAILMAP		= 25,
-	TB_SHADOWMAP4		= 26,
-	TB_SHADOWMAP5		= 27,
-	TB_ROOFMAP			= 28,
-	TB_MOONMAP1			= 29,
-	TB_MOONMAP2			= 30,
-	TB_MOONMAP3			= 31,
-	TB_MOONMAP4			= 32,
-	TB_MOONMAP5			= 33,
-	TB_MOONMAP6			= 34,
-	TB_MOONMAP7			= 35,
-	TB_MOONMAP8			= 36,
-	NUM_TEXTURE_BUNDLES = 37
+	TB_SHADOWMAP		= 3,
+	TB_SPECULARMAP		= 4,
+	TB_POSITIONMAP		= 5,
+	TB_WATERPOSITIONMAP	= 6,
+	TB_WATERHEIGHTMAP	= 7,
+	TB_HEIGHTMAP		= 8,
+	TB_GLOWMAP			= 9,
+	TB_CUBEMAP			= 10,
+	TB_SKYCUBEMAP		= 11,
+	TB_SKYCUBEMAPNIGHT	= 12,
+	TB_EMISSIVECUBE		= 13,
+	TB_OVERLAYMAP		= 14,
+	TB_STEEPMAP			= 15,
+	TB_WATER_EDGE_MAP	= 16,
+	TB_SPLATCONTROLMAP	= 17,
+	TB_SPLATMAP1		= 18,
+	TB_SPLATMAP2		= 19,
+	TB_SPLATMAP3		= 20,
+	TB_ROADSCONTROLMAP	= 21,
+	TB_ROADMAP			= 22,
+	TB_DETAILMAP		= 23,
+	TB_ROOFMAP			= 24,
+	TB_MOONMAP1			= 25,
+	TB_MOONMAP2			= 26,
+	TB_MOONMAP3			= 27,
+	TB_MOONMAP4			= 28,
+	TB_ENVMAP			= 29,
+	NUM_TEXTURE_BUNDLES = 30 // limit is 31 (32 max)
 };
 
 typedef enum
@@ -1288,10 +1282,15 @@ typedef struct {
 	int				fireFlyCount;
 	vec3_t			fireFlyColor;
 
+	vec3_t			colorMod;
+
 	bool			isFoliage;
 	bool			isFoliageChecked;
 
 	bool			useSkyImage;
+	bool			envmapUseSkyImage;
+
+	float			envmapStrength;
 } shaderStage_t;
 
 struct shaderCommands_s;
@@ -1621,6 +1620,7 @@ typedef enum
 	UNIFORM_WATERHEIGHTMAP,
 	UNIFORM_HEIGHTMAP,
 	UNIFORM_GLOWMAP,
+	UNIFORM_ENVMAP,
 
 	UNIFORM_TEXTUREMAP,
 	UNIFORM_LEVELSMAP,
@@ -1675,6 +1675,7 @@ typedef enum
 	UNIFORM_COLOR,
 	UNIFORM_BASECOLOR,
 	UNIFORM_VERTCOLOR,
+	UNIFORM_COLORMOD,
 
 	UNIFORM_DLIGHTINFO,
 	UNIFORM_LIGHTFORWARD,

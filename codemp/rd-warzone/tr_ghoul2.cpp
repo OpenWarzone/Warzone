@@ -917,6 +917,10 @@ static int R_GComputeFogNum( trRefEntity_t *ent ) {
 // work out lod for this entity.
 static int G2_ComputeLOD( trRefEntity_t *ent, const model_t *currentModel, int lodBias ) 
 {
+#ifndef __G2_LODS_ENABLED__
+	// G2 lods are messed up (vanishing NPCs etc), and no faster then dumping the verts anyway (the shader switches are the slow part, not the geometry count)...
+	return(0);
+#else //__G2_LODS_ENABLED__
 	float flod, lodscale;
 	float projectedRadius;
 	int lod;
@@ -986,6 +990,7 @@ static int G2_ComputeLOD( trRefEntity_t *ent, const model_t *currentModel, int l
 		lod = 0;
 
 	return lod;
+#endif //__G2_LODS_ENABLED__
 }
 
 //======================================================================
@@ -4691,7 +4696,15 @@ qboolean R_LoadMDXM( model_t *mod, void *buffer, const char *mod_name, qboolean 
 		}
 	}
 
+#ifdef __G2_LODS_ENABLED__
 	mod->numLods = mdxm->numLODs -1 ;	//copy this up to the model for ease of use - it wil get inced after this.
+#else //!__G2_LODS_ENABLED__
+	//
+	// G2 lods are messed up (vanishing NPCs etc), and no faster then dumping the verts anyway (the shader switches are the slow part, not the geometry count)...
+	// This shoule also speed loading and reduce vram usage...
+	//
+	mod->numLods = 0;
+#endif //__G2_LODS_ENABLED__
 
 	if (bAlreadyFound)
 	{

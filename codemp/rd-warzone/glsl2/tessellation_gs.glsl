@@ -10,6 +10,7 @@ uniform vec4			u_TesselationInfo;
 
 in precise vec3 WorldPos_GS_in[];
 in precise vec2 TexCoord_GS_in[];
+in precise vec2 envTC_GS_in[];
 in precise vec3 Normal_GS_in[];
 in precise vec3 ViewDir_GS_in[];
 in precise vec4 Color_GS_in[];
@@ -20,6 +21,7 @@ in float Slope_GS_in[];
 
 out precise vec3 WorldPos_FS_in;
 out precise vec2 TexCoord_FS_in;
+out precise vec2 envTC_FS_in;
 out precise vec3 Normal_FS_in;
 out precise vec3 ViewDir_FS_in;
 out precise vec4 Color_FS_in;
@@ -38,6 +40,7 @@ void main()
 	{
 		WorldPos_FS_in = WorldPos_GS_in[i];
 		TexCoord_FS_in = TexCoord_GS_in[i];
+		envTC_FS_in = envTC_GS_in[i];
 		ViewDir_FS_in = ViewDir_GS_in[i];
 		Color_FS_in = Color_GS_in[i];
 		PrimaryLightDir_FS_in = PrimaryLightDir_GS_in[i];

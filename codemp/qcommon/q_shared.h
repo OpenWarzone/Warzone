@@ -2640,6 +2640,25 @@ void NET_AddrToString( char *out, size_t size, void *addr );
 float Q_clamp(float min, float value, float max);
 int Q_clampi(int min, int value, int max);
 
+
+// Ray and cylinder intersection
+// If hit, returns true and the intersection point in 'hitPosition' with a hitNormal and distance along
+// the ray ('lambda')
+// Code is located in q_math.c
+typedef struct CylinderIntersection_s {
+	vec3_t		position;
+	vec3_t		dir;
+	float		radius;
+	float		length;
+} CylinderIntersection_t;
+
+bool CylinderIntersectionFull(const bool needNormals, const vec3_t rayOrg, const vec3_t rayDir, const float rayLength, const CylinderIntersection_t cylinder, float &lambda, vec3_t &hitNormal, vec3_t &hitPosition);
+bool CylinderIntersectionReturnDirection(const vec3_t rayOrg, const vec3_t rayDir, const float rayLength, vec3_t cylinderPos, vec3_t cylinderDir, float cylinderLength, float cylinderRadius, float &lambda, vec3_t &hitNormal, vec3_t &hitPosition);
+bool CylinderIntersectionRay(const vec3_t rayOrg, const vec3_t rayDir, const float rayLength, vec3_t cylinderPos, vec3_t cylinderDir, float cylinderLength, float cylinderRadius, vec3_t &hitPosition);
+bool CylinderIntersectionSaber(const vec3_t mySaberOrg, const vec3_t mySaberDir, const float mySaberLength, vec3_t theirSaberPos, vec3_t theirSaberDir, float theirSaberLength, float theirSaberRadius, vec3_t &hitPosition);
+
+
+
 qboolean StringContainsWord(const char *haystack, const char *needle);
 qboolean HaveWeapon( playerState_t *ps, int weapon );
 qboolean WeaponIsPistol(int weapon);

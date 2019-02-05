@@ -1432,16 +1432,16 @@ qboolean RB_GenerateVolumeLightImage(void)
 	GLSL_SetUniformInt(shader, UNIFORM_POSITIONMAP, TB_POSITIONMAP);
 	GL_BindToTMU(tr.renderPositionMapImage, TB_POSITIONMAP);
 
-	GLSL_SetUniformInt(shader, UNIFORM_SHADOWMAP, TB_SHADOWMAP);
-	GL_BindToTMU(tr.sunShadowDepthImage[0], TB_SHADOWMAP);
+	GLSL_SetUniformInt(shader, UNIFORM_SHADOWMAP, TB_SPLATMAP1);
+	GL_BindToTMU(tr.sunShadowDepthImage[0], TB_SPLATMAP1);
 	GLSL_SetUniformMatrix16(shader, UNIFORM_SHADOWMVP, backEnd.refdef.sunShadowMvp[0]);
 
-	GLSL_SetUniformInt(shader, UNIFORM_SHADOWMAP2, TB_SHADOWMAP2);
-	GL_BindToTMU(tr.sunShadowDepthImage[1], TB_SHADOWMAP2);
+	GLSL_SetUniformInt(shader, UNIFORM_SHADOWMAP2, TB_SPLATMAP2);
+	GL_BindToTMU(tr.sunShadowDepthImage[1], TB_SPLATMAP2);
 	GLSL_SetUniformMatrix16(shader, UNIFORM_SHADOWMVP2, backEnd.refdef.sunShadowMvp[1]);
 
-	GLSL_SetUniformInt(shader, UNIFORM_SHADOWMAP3, TB_SHADOWMAP3);
-	GL_BindToTMU(tr.sunShadowDepthImage[2], TB_SHADOWMAP3);
+	GLSL_SetUniformInt(shader, UNIFORM_SHADOWMAP3, TB_SPLATMAP3);
+	GL_BindToTMU(tr.sunShadowDepthImage[2], TB_SPLATMAP3);
 	GLSL_SetUniformMatrix16(shader, UNIFORM_SHADOWMVP3, backEnd.refdef.sunShadowMvp[2]);
 
 	GLSL_SetUniformVec3(shader, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);

@@ -115,11 +115,22 @@ void main()
 
 		float alphaThreshold = (SHADER_MATERIAL_TYPE == MATERIAL_GREENLEAVES) ? SCREEN_MAPS_LEAFS_THRESHOLD : SCREEN_MAPS_ALPHA_THRESHOLD;
 
-		if (gl_FragColor.a >= alphaThreshold || SHADER_MATERIAL_TYPE == 1024.0 || SHADER_MATERIAL_TYPE == 1025.0 || USE_IS2D > 0.0)
+		bool isDetail = false;
+
+		if (USE_ISDETAIL >= 1.0)
+		{
+			isDetail = true;
+		}
+		else if (gl_FragColor.a >= alphaThreshold || SHADER_MATERIAL_TYPE == 1024.0 || SHADER_MATERIAL_TYPE == 1025.0 || USE_IS2D > 0.0)
 		{
 
 		}
 		else
+		{
+			isDetail = true;
+		}
+
+		if (isDetail)
 		{
 			gl_FragColor.a = 0.0;
 		}

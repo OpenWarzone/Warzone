@@ -13,6 +13,8 @@ uniform sampler2D					u_GlowMap;
 uniform sampler2D					u_LightMap;
 uniform sampler2D					u_NormalMap;
 uniform sampler2D					u_DeluxeMap;
+uniform sampler2D					u_OverlayMap;
+uniform sampler2D					u_EnvironmentMap;
 
 
 uniform vec4						u_MapAmbient; // a basic light/color addition across the whole map...
@@ -61,6 +63,7 @@ uniform vec4						u_Local1; // MAP_SIZE, sway, overlaySway, materialType
 uniform vec4						u_Local2; // hasSteepMap, hasWaterEdgeMap, haveNormalMap, SHADER_WATER_LEVEL
 uniform vec4						u_Local3; // hasSplatMap1, hasSplatMap2, hasSplatMap3, hasSplatMap4
 uniform vec4						u_Local4; // stageNum, glowStrength, r_showsplat, glowVibrancy
+uniform vec4						u_Local5; // SHADER_HAS_OVERLAY, SHADER_ENVMAP_STRENGTH, 0.0, 0.0
 uniform vec4						u_Local9; // testvalue0, 1, 2, 3
 
 uniform vec2						u_Dimensions;
@@ -70,6 +73,8 @@ uniform vec3						u_ViewOrigin;
 uniform vec4						u_MapInfo; // MAP_INFO_SIZE[0], MAP_INFO_SIZE[1], MAP_INFO_SIZE[2], 0.0
 uniform vec4						u_Mins;
 uniform vec4						u_Maxs;
+
+uniform vec3						u_ColorMod;
 
 uniform float						u_Time;
 
@@ -97,11 +102,15 @@ uniform float						u_zFar;
 #define SHADER_SHOW_SPLAT			u_Local4.b
 #define SHADER_GLOW_VIBRANCY		u_Local4.a
 
+#define SHADER_HAS_OVERLAY			u_Local5.r
+#define SHADER_ENVMAP_STRENGTH		u_Local5.g
+
 
 #if defined(USE_TESSELLATION) || defined(USE_ICR_CULLING)
 
 in precise vec3				Normal_FS_in;
 in precise vec2				TexCoord_FS_in;
+in precise vec2				envTC_FS_in;
 in precise vec3				WorldPos_FS_in;
 in precise vec3				ViewDir_FS_in;
 
@@ -116,6 +125,7 @@ flat in float				Slope_FS_in;
 #define m_Normal 			normalize(Normal_FS_in.xyz)
 
 #define m_TexCoords			TexCoord_FS_in
+#define m_envTC				envTC_FS_in
 #define m_vertPos			WorldPos_FS_in
 #define m_ViewDir			ViewDir_FS_in
 
@@ -131,6 +141,7 @@ flat in float				Slope_FS_in;
 
 varying vec2				var_TexCoords;
 varying vec2				var_TexCoords2;
+varying vec2				var_envTC;
 varying vec3				var_Normal;
 
 varying vec4				var_Color;
@@ -148,6 +159,7 @@ varying float				var_Slope;
 
 #define m_Normal			var_Normal
 #define m_TexCoords			var_TexCoords
+#define m_envTC				var_envTC
 #define m_vertPos			var_vertPos
 #define m_ViewDir			var_ViewDir
 
@@ -545,6 +557,47 @@ void main()
 	}
 #endif //defined(__LAVA__)
 
+	// Alter colors by shader's colormod setting...
+	diffuse.rgb += diffuse.rgb * u_ColorMod.rgb;
+
+
+	if (SHADER_HAS_OVERLAY > 0.0)
+	{// Blend the overlay...
+		vec4 overlay = texture(u_OverlayMap, texCoords);
+
+	/*#if defined(__HIGH_PASS_SHARPEN__)
+		if (USE_IS2D > 0.0 || USE_TEXTURECLAMP > 0.0)
+		{
+			overlay.rgb = Enhance(u_OverlayMap, texCoords, overlay.rgb, 16.0);
+		}
+		else
+		{
+			overlay.rgb = Enhance(u_OverlayMap, texCoords, overlay.rgb, 8.0 + (gl_FragCoord.z * 8.0));
+		}
+	#endif //defined(__HIGH_PASS_SHARPEN__)*/
+
+		// overlay map is always blended by diffuse rgb strength (multiplied by the overlay's alpha to support alphas)...
+		vec3 oStr = clamp(diffuse.rgb * overlay.a * 0.5, 0.0, 1.0);
+		diffuse.rgb = mix((diffuse.rgb * 0.5), overlay.rgb * oStr, diffuse.rgb * overlay.a);
+	}
+
+	if (SHADER_ENVMAP_STRENGTH > 0.0)
+	{// Blend the overlay...
+		vec4 env = texture(u_EnvironmentMap, m_envTC);
+
+	/*#if defined(__HIGH_PASS_SHARPEN__)
+		if (USE_IS2D > 0.0 || USE_TEXTURECLAMP > 0.0)
+		{
+			env.rgb = Enhance(u_EnvironmentMap, m_envTC, env.rgb, 16.0);
+		}
+		else
+		{
+			env.rgb = Enhance(u_EnvironmentMap, m_envTC, env.rgb, 8.0 + (gl_FragCoord.z * 8.0));
+		}
+	#endif //defined(__HIGH_PASS_SHARPEN__)*/
+
+		diffuse.rgb = mix(diffuse.rgb, env.rgb, SHADER_ENVMAP_STRENGTH * env.a);
+	}
 
 	// Set alpha early so that we can cull early...
 	gl_FragColor.a = clamp(diffuse.a * var_Color.a, 0.0, 1.0);
@@ -676,10 +729,15 @@ void main()
 
 
 	float alphaThreshold = (SHADER_MATERIAL_TYPE == MATERIAL_GREENLEAVES) ? SCREEN_MAPS_LEAFS_THRESHOLD : SCREEN_MAPS_ALPHA_THRESHOLD;
+	bool isDetail = false;
 
-	if (gl_FragColor.a >= alphaThreshold || SHADER_MATERIAL_TYPE == 1024.0 || SHADER_MATERIAL_TYPE == 1025.0 || SHADER_MATERIAL_TYPE == MATERIAL_PUDDLE || USE_IS2D > 0.0)
+	if (USE_ISDETAIL >= 1.0)
 	{
-
+		isDetail = true;
+	}
+	else if (gl_FragColor.a >= alphaThreshold || SHADER_MATERIAL_TYPE == 1024.0 || SHADER_MATERIAL_TYPE == 1025.0 || SHADER_MATERIAL_TYPE == MATERIAL_PUDDLE || USE_IS2D > 0.0)
+	{
+		
 	}
 	else if (SHADER_MATERIAL_TYPE == MATERIAL_EFX)
 	{
@@ -695,7 +753,7 @@ void main()
 	}
 	else
 	{
-		gl_FragColor.a = 0.0;
+		isDetail = true;
 	}
 	
 	if (USE_BLEND > 0.0)
@@ -918,7 +976,7 @@ void main()
 		gl_FragColor.rgb = mix(gl_FragColor.rgb, glowColor.rgb, glowColor.a);
 		gl_FragColor.a = max(gl_FragColor.a, glowColor.a);
 
-		if (USE_ISDETAIL >= 1.0)
+		if (isDetail)
 		{
 			out_Position = vec4(0.0);
 			out_Normal = vec4(0.0);
@@ -980,7 +1038,7 @@ void main()
 		gl_FragColor.rgb = glowColor.rgb;
 		gl_FragColor.a = max(gl_FragColor.a, glowColor.a);
 
-		if (USE_ISDETAIL >= 1.0)
+		if (isDetail)
 		{
 			out_Position = vec4(0.0);
 			out_Normal = vec4(0.0);
@@ -1017,7 +1075,7 @@ void main()
 	{
 		out_Glow = vec4(0.0);
 
-		if (USE_ISDETAIL >= 1.0)
+		if (isDetail)
 		{
 			out_Position = vec4(0.0);
 			out_Normal = vec4(0.0);

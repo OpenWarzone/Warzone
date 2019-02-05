@@ -81,6 +81,8 @@ uniform vec4						u_MapInfo; // MAP_INFO_SIZE[0], MAP_INFO_SIZE[1], MAP_INFO_SIZ
 uniform vec4						u_Mins;
 uniform vec4						u_Maxs;
 
+uniform vec3						u_ColorMod;
+
 uniform float						u_Time;
 
 uniform float						u_zFar;
@@ -896,6 +898,9 @@ void main()
 	}
 
 	vec4 diffuse = GetDiffuse(texCoords);
+
+	// Alter colors by shader's colormod setting...
+	diffuse.rgb += diffuse.rgb * u_ColorMod.rgb;
 
 	// Set alpha early so that we can cull early...
 	gl_FragColor.a = clamp(diffuse.a * colorMap.a, 0.0, 1.0);

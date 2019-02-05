@@ -1736,6 +1736,12 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 	stage->emissiveRadiusScale = 1.0;
 	stage->emissiveColorScale = 1.5;
 
+	stage->colorMod[0] = 0.0;
+	stage->colorMod[1] = 0.0;
+	stage->colorMod[2] = 0.0;
+
+	stage->envmapStrength = 0.0;
+
 	while ( 1 )
 	{
 		token = COM_ParseExt( text, qtrue );
@@ -2232,6 +2238,78 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 			if (stage->bundle[0].videoMapHandle != -1) {
 				stage->bundle[0].isVideoMap = qtrue;
 				stage->bundle[0].image[0] = tr.scratchImage[stage->bundle[0].videoMapHandle];
+			}
+		}
+		else if (!Q_stricmp(token, "overlayMap") || !Q_stricmp(token, "overlaymap"))
+		{
+			token = COM_ParseExt(text, qfalse);
+			if (!token[0])
+			{
+				ri->Printf(PRINT_WARNING, "WARNING: missing parameter for 'overlayMap' keyword in shader '%s'\n", shader.name);
+				return qfalse;
+			}
+
+			imgType_t type = IMGTYPE_OVERLAY;
+			int flags = IMGFLAG_NONE;
+
+			if (!shader.noMipMaps)
+				flags |= IMGFLAG_MIPMAP;
+
+			if (!shader.noPicMip)
+				flags |= IMGFLAG_PICMIP;
+
+			if (shader.noTC)
+				flags |= IMGFLAG_NO_COMPRESSION;
+
+#ifdef __DEFERRED_IMAGE_LOADING__
+			stage->bundle[TB_OVERLAYMAP].image[0] = R_DeferImageLoad(token, type, flags);
+#else //!__DEFERRED_IMAGE_LOADING__
+			stage->bundle[TB_OVERLAYMAP].image[0] = R_FindImageFile(token, type, flags);
+#endif //__DEFERRED_IMAGE_LOADING__
+
+			if (!stage->bundle[TB_OVERLAYMAP].image[0])
+			{
+				ri->Printf(PRINT_WARNING, "WARNING: R_FindImageFile could not find overlayMap image '%s' in shader '%s'\n", token, shader.name);
+				return qfalse;
+			}
+		}
+		else if (!Q_stricmp(token, "envMap") || !Q_stricmp(token, "envmap"))
+		{
+			token = COM_ParseExt(text, qfalse);
+			if (!token[0])
+			{
+				ri->Printf(PRINT_WARNING, "WARNING: missing parameter for 'envMap' keyword in shader '%s'\n", shader.name);
+				return qfalse;
+			}
+
+			else if (!Q_stricmp(token, "$skyimage"))
+			{
+				stage->envmapUseSkyImage = true;
+				continue;
+			}
+
+			imgType_t type = IMGTYPE_OVERLAY;
+			int flags = IMGFLAG_NONE;
+
+			if (!shader.noMipMaps)
+				flags |= IMGFLAG_MIPMAP;
+
+			if (!shader.noPicMip)
+				flags |= IMGFLAG_PICMIP;
+
+			if (shader.noTC)
+				flags |= IMGFLAG_NO_COMPRESSION;
+
+#ifdef __DEFERRED_IMAGE_LOADING__
+			stage->bundle[TB_ENVMAP].image[0] = R_DeferImageLoad(token, type, flags);
+#else //!__DEFERRED_IMAGE_LOADING__
+			stage->bundle[TB_ENVMAP].image[0] = R_FindImageFile(token, type, flags);
+#endif //__DEFERRED_IMAGE_LOADING__
+
+			if (!stage->bundle[TB_ENVMAP].image[0])
+			{
+				ri->Printf(PRINT_WARNING, "WARNING: R_FindImageFile could not find envMap image '%s' in shader '%s'\n", token, shader.name);
+				return qfalse;
 			}
 		}
 		//
@@ -2864,6 +2942,12 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 
 			continue;
 		}
+		else if (!Q_stricmp(token, "colorMod") || !Q_stricmp(token, "colorModifier"))
+		{
+			ParseVector(text, 3, stage->colorMod);
+			SkipRestOfLine(text);
+			continue;
+		}
 		// If this stage has glow...	GLOWXXX
 		else if ( Q_stricmp( token, "glow" ) == 0 )
 		{
@@ -2913,6 +2997,18 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 		{
 			stage->isFoliage = qtrue;
 			stage->isFoliageChecked = qtrue;
+			continue;
+		}
+		else if (!Q_stricmp(token, "envmapStrength") || !Q_stricmp(token, "envmapstrength"))
+		{
+			token = COM_ParseExt(text, qfalse);
+			if (!token[0])
+			{
+				ri->Printf(PRINT_WARNING, "WARNING: missing parm for 'envmapStrength' keyword in shader '%s'\n", shader.name);
+				stage->envmapStrength = 0.0;
+				continue;
+			}
+			stage->envmapStrength = atof(token);
 			continue;
 		}
 		else if (Q_stricmp(token, "particleColor") == 0)
@@ -5739,95 +5835,6 @@ static void CollapseStagesToLightall(shaderStage_t *diffuse,
 		}
 	}*/
 
-#if 0
-	if (checkNormals && checkSplats)
-	{
-		image_t *diffuseImg = diffuse->bundle[TB_DIFFUSEMAP].image[0];
-
-		if (diffuse->bundle[TB_OVERLAYMAP].image[0] && diffuse->bundle[TB_OVERLAYMAP].image[0] != tr.whiteImage)
-		{// Got one...
-			diffuse->bundle[TB_OVERLAYMAP] = specular->bundle[0];
-			hasRealOverlayMap = qtrue;
-		}
-		else if (!diffuse->bundle[TB_OVERLAYMAP].overlayLoaded)
-		{// Check if we can load one...
-			char specularName[MAX_IMAGE_PATH];
-			char specularName2[MAX_IMAGE_PATH];
-			image_t *specularImg = NULL;
-			int specularFlags = (diffuseImg->flags & ~(IMGFLAG_GENNORMALMAP | IMGFLAG_SRGB | IMGFLAG_CLAMPTOEDGE)) /*| IMGFLAG_NOLIGHTSCALE*/;
-
-			COM_StripExtension(diffuseImg->imgName, specularName, sizeof(specularName));
-			StripCrap(specularName, specularName2, sizeof(specularName));
-			Q_strcat(specularName2, sizeof(specularName2), "_o");
-
-#ifdef __DEFERRED_IMAGE_LOADING__
-			if (R_TextureFileExists(specularName2) || R_TIL_TextureFileExists(specularName2))
-			{
-				specularImg = R_DeferImageLoad(specularName2, IMGTYPE_OVERLAY, specularFlags | IMGFLAG_MIPMAP);
-			}
-			else
-			{
-				COM_StripExtension(diffuseImg->imgName, specularName, sizeof(specularName));
-				StripCrap(specularName, specularName2, sizeof(specularName));
-				Q_strcat(specularName2, sizeof(specularName2), "_overlay");
-
-				if (R_TextureFileExists(specularName2) || R_TIL_TextureFileExists(specularName2))
-				{
-					specularImg = R_DeferImageLoad(specularName2, IMGTYPE_OVERLAY, specularFlags | IMGFLAG_MIPMAP);
-				}
-				else
-				{
-					specularImg = NULL;
-				}
-			}
-#else //!__DEFERRED_IMAGE_LOADING__
-			if (R_TextureFileExists(specularName2) || R_TIL_TextureFileExists(specularName2))
-			{
-				specularImg = R_FindImageFile(specularName2, IMGTYPE_OVERLAY, specularFlags | IMGFLAG_MIPMAP);
-			}
-
-			if (!specularImg)
-			{
-				COM_StripExtension( diffuseImg->imgName, specularName, sizeof( specularName ) );
-				StripCrap( specularName, specularName2, sizeof(specularName));
-				Q_strcat( specularName2, sizeof( specularName2 ), "_overlay" );
-
-				if (R_TextureFileExists(specularName2) || R_TIL_TextureFileExists(specularName2))
-				{
-					specularImg = R_FindImageFile(specularName2, IMGTYPE_OVERLAY, specularFlags | IMGFLAG_MIPMAP);
-				}
-			}
-#endif //__DEFERRED_IMAGE_LOADING__
-
-			/*
-			// This is a possibility, but requires more work...
-			if (!specularImg && (StringContainsWord(specularName, "foliage/grass") || StringContainsWord(specularName, "foliages/sch")))
-			{// Testing adding extra grass textures like this...
-				specularImg = diffuseImg;
-			}
-			*/
-
-			if (specularImg)
-			{
-				diffuse->bundle[TB_OVERLAYMAP] = diffuse->bundle[0];
-				diffuse->bundle[TB_OVERLAYMAP].numImageAnimations = 0;
-				diffuse->bundle[TB_OVERLAYMAP].image[0] = specularImg;
-				hasRealOverlayMap = qtrue;
-			}
-			else
-			{
-				hasRealOverlayMap = qfalse;
-			}
-
-			diffuse->bundle[TB_OVERLAYMAP].overlayLoaded = qtrue;
-		}
-		else
-		{
-			hasRealOverlayMap = qfalse;
-		}
-	}
-#endif
-	
 	if (r_splatMapping->integer && checkSplats)
 	{
 		image_t *diffuseImg = diffuse->bundle[TB_DIFFUSEMAP].image[0];
@@ -8494,6 +8501,8 @@ This creates generic shaders for anything that has none to support rend2 stuff..
 
 */
 
+//#define __USE_SKYMAP_STAGES__
+
 #ifdef __SHADER_GENERATOR__
 char uniqueGenericGlow[] = "{\n"\
 "map %s\n"\
@@ -8511,6 +8520,7 @@ char uniqueGenericLightmap[] = "{\n"\
 "noScreenMap\n"\
 "}\n";
 
+#ifdef __USE_SKYMAP_STAGES__
 char uniqueGenericSkyMap[] = "{\n"\
 "map $skyimage\n"\
 "blendFunc GL_DST_COLOR GL_SRC_COLOR\n"\
@@ -8520,6 +8530,7 @@ char uniqueGenericSkyMap[] = "{\n"\
 "rgbGen Vertex\n"\
 "noScreenMap\n"\
 "}\n";
+#endif //__USE_SKYMAP_STAGES__
 
 char uniqueGenericFoliageShader[] = "{\n"\
 "qer_editorimage	%s\n"\
@@ -8602,6 +8613,27 @@ char uniqueGenericFoliageLeafsShader[] = "{\n"\
 "}\n"\
 "";
 
+char uniqueGenericRockShader[] = "{\n"\
+"qer_editorimage	%s\n"\
+"q3map_material	rock\n"\
+"surfaceparm	noimpact\n"\
+"surfaceparm	nomarks\n"\
+"glowStrength 0.75\n"\
+"entityMergable\n"\
+"{\n"\
+"map %s\n"\
+"%s\n"\
+"blendfunc GL_ONE GL_ZERO\n"\
+"alphaFunc GE128\n"\
+"depthWrite\n"\
+"//rgbGen identity\n"\
+"rgbGen identityLighting\n"\
+"//rgbGen warzoneLighting\n"\
+"}\n"\
+"}\n"\
+"";
+
+#ifdef __USE_SKYMAP_STAGES__
 char uniqueGenericPlayerShader[] = "{\n"\
 "qer_editorimage	%s\n"\
 "surfaceparm	trans\n"\
@@ -8674,26 +8706,6 @@ char uniqueGenericMetalShader[] = "{\n"\
 "}\n"\
 "";
 
-char uniqueGenericRockShader[] = "{\n"\
-"qer_editorimage	%s\n"\
-"q3map_material	rock\n"\
-"surfaceparm	noimpact\n"\
-"surfaceparm	nomarks\n"\
-"glowStrength 0.75\n"\
-"entityMergable\n"\
-"{\n"\
-"map %s\n"\
-"%s\n"\
-"blendfunc GL_ONE GL_ZERO\n"\
-"alphaFunc GE128\n"\
-"depthWrite\n"\
-"//rgbGen identity\n"\
-"rgbGen identityLighting\n"\
-"//rgbGen warzoneLighting\n"\
-"}\n"\
-"}\n"\
-"";
-
 char uniqueGenericWeaponShader[] = "{\n"\
 "qer_editorimage	%s\n"\
 "q3map_material	solidmetal\n"\
@@ -8723,15 +8735,120 @@ char uniqueGenericShader[] = "{\n"\
 "blendfunc GL_ONE GL_ZERO\n"\
 "alphaFunc GE128\n"\
 "depthWrite\n"\
-"//rgbGen identity\n"\
 "rgbGen identityLighting\n"\
-"//rgbGen warzoneLighting\n"\
+"}\n"\
+"%s"\
+"%s"\
+"}\n"\
+"";
+#else //!__USE_SKYMAP_STAGES__
+char uniqueGenericPlayerShader[] = "{\n"\
+"qer_editorimage	%s\n"\
+"surfaceparm	trans\n"\
+"surfaceparm	noimpact\n"\
+"surfaceparm	nomarks\n"\
+"glowStrength 0.75\n"\
+"entityMergable\n"\
+"tesselation\n"\
+"tesselationLevel 3.0\n"\
+"tesselationAlpha 1.0\n"\
+"{\n"\
+"map %s\n"\
+"envmap $skyimage\n"\
+"envmapStrength 0.25\n"\
+"blendfunc GL_ONE GL_ZERO\n"\
+"alphaFunc GE128\n"\
+"depthWrite\n"\
+"rgbGen identityLighting\n"\
+"}\n"\
+"%s"\
+"}\n"\
+"";
+
+char uniqueGenericArmorShader[] = "{\n"\
+"qer_editorimage	%s\n"\
+"q3map_material	armor\n"\
+"surfaceparm trans\n"\
+"surfaceparm	noimpact\n"\
+"surfaceparm	nomarks\n"\
+"//entityMergable\n"\
+"glowStrength 8.0\n"\
+"cull	twosided\n"\
+"tesselation\n"\
+"tesselationLevel 3.0\n"\
+"tesselationAlpha 1.0\n"\
+"{\n"\
+"map %s\n"\
+"envmap $skyimage\n"\
+"envmapStrength 0.25\n"\
+"blendfunc GL_ONE GL_ZERO\n"\
+"alphaFunc GE128\n"\
+"depthWrite\n"\
+"rgbGen identityLighting\n"\
+"}\n"\
+"%s"\
+"}\n"\
+"";
+
+char uniqueGenericMetalShader[] = "{\n"\
+"qer_editorimage	%s\n"\
+"q3map_material	hollowmetal\n"\
+"surfaceparm	trans\n"\
+"surfaceparm	noimpact\n"\
+"surfaceparm	nomarks\n"\
+"cull	twosided\n"\
+"{\n"\
+"map %s\n"\
+"envmap $skyimage\n"\
+"envmapStrength 0.3\n"\
+"blendfunc GL_ONE GL_ZERO\n"\
+"alphaFunc GE128\n"\
+"depthWrite\n"\
+"rgbGen identityLighting\n"\
 "}\n"\
 "%s"\
 "%s"\
 "}\n"\
 "";
 
+char uniqueGenericWeaponShader[] = "{\n"\
+"qer_editorimage	%s\n"\
+"q3map_material	solidmetal\n"\
+"surfaceparm	noimpact\n"\
+"surfaceparm	nomarks\n"\
+"glowStrength 8.0\n"\
+"cull	twosided\n"\
+"{\n"\
+"map %s\n"\
+"envmap $skyimage\n"\
+"envmapStrength 0.3\n"\
+"blendfunc GL_ONE GL_ZERO\n"\
+"alphaFunc GE128\n"\
+"rgbGen identityLighting\n"\
+"depthWrite\n"\
+"//rgbGen entity\n"\
+"}\n"\
+"%s"\
+"}\n"\
+"";
+
+char uniqueGenericShader[] = "{\n"\
+"qer_editorimage	%s\n"\
+"//entityMergable\n"\
+"{\n"\
+"map %s\n"\
+"envmap $skyimage\n"\
+"envmapStrength 0.1\n"\
+"blendfunc GL_ONE GL_ZERO\n"\
+"alphaFunc GE128\n"\
+"depthWrite\n"\
+"rgbGen identityLighting\n"\
+"}\n"\
+"%s"\
+"%s"\
+"}\n"\
+"";
+#endif //__USE_SKYMAP_STAGES__
 
 qboolean R_AllowGenericShader ( const char *name, const char *text )
 {
@@ -9168,6 +9285,7 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 			sprintf(shaderCustomMap, uniqueGenericGlow, glowName4);
 		}
 
+#ifdef __USE_SKYMAP_STAGES__
 		//if (shaderCustomMap[0] == 0)
 		{// No glow? Add sky reflection map...
 			vec4_t settings;
@@ -9182,6 +9300,7 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 				sprintf(shaderCustomMap, "%s%s", shaderCustomMap, shaderCustomAdditionMap);
 			}
 		}
+#endif //__USE_SKYMAP_STAGES__
 
 		// Generate the shader...
 		if (StringContainsWord(strippedName, "warzone/billboard") || StringContainsWord(strippedName, "warzone\\billboard"))

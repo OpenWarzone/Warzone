@@ -1577,6 +1577,7 @@ void RB_SetMaterialBasedProperties(shaderProgram_t *sp, shaderStage_t *pStage, i
 	float	hasSplatMap3 = 0;
 	float	hasSplatMap4 = 0;
 	float	hasNormalMap = 0;
+	float	hasEnvMap = 0;
 
 	qboolean isSky = tess.shader->isSky;
 
@@ -1611,6 +1612,11 @@ void RB_SetMaterialBasedProperties(shaderProgram_t *sp, shaderStage_t *pStage, i
 		if (pStage->bundle[TB_OVERLAYMAP].image[0])
 		{
 			hasOverlay = 1.0;
+		}
+
+		if (pStage->bundle[TB_ENVMAP].image[0])
+		{
+			hasEnvMap = Q_clamp(0.0, pStage->envmapStrength, 1.0);
 		}
 
 		if (pStage->bundle[TB_STEEPMAP].image[0])
@@ -1672,7 +1678,7 @@ void RB_SetMaterialBasedProperties(shaderProgram_t *sp, shaderStage_t *pStage, i
 		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL4, local4);
 
 		vec4_t local5;
-		VectorSet4(local5, 0.0, 0.0, 0.0, 0.0);
+		VectorSet4(local5, hasOverlay, hasEnvMap, 0.0, 0.0);
 		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL5, local5); // dayNightEnabled, nightScale, skyDirection, auroraEnabled -- Sky Only...
 	}
 	else
@@ -3803,6 +3809,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			vec4_t baseColor = { 1.0 };
 			vec4_t vertColor = { 1.0 };
 
+			GLSL_SetUniformVec3(sp, UNIFORM_COLORMOD, pStage->colorMod);
+
 			if (pStage->rgbGen || pStage->alphaGen)
 			{
 				ComputeShaderColors(pStage, baseColor, vertColor, stateBits, &forceRGBGen, &forceAlphaGen);
@@ -3929,13 +3937,33 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 						GL_BindToTMU(pStage->bundle[TB_SPLATMAP3].image[0], TB_SPLATMAP3);
 					}
 				}
+			}
 
-#if 0 // Disabled for now...
-				if (pStage->bundle[TB_OVERLAYMAP].image[0])
-				{
-					R_BindAnimatedImageToTMU(&pStage->bundle[TB_OVERLAYMAP], TB_OVERLAYMAP);
-				}
+			//
+			// Single draw overlaymap system...
+			//
+			if (pStage->bundle[TB_OVERLAYMAP].image[0])
+			{
+				R_BindAnimatedImageToTMU(&pStage->bundle[TB_OVERLAYMAP], TB_OVERLAYMAP);
+			}
+
+			//
+			// Single draw envmap system...
+			//
+			if (pStage->envmapUseSkyImage && tr.skyImageShader)
+			{// This stage wants sky up image for it's diffuse... TODO: sky cubemap...
+#ifdef __DAY_NIGHT__
+				if (!DAY_NIGHT_CYCLE_ENABLED || RB_NightScale() < 1.0)
+					GL_BindToTMU(tr.skyImageShader->sky.outerbox[4], TB_ENVMAP); // Sky up...
+				else
+					GL_BindToTMU(tr.skyImageShader->sky.outerboxnight[4], TB_ENVMAP); // Night sky up...
+#else
+				GL_BindToTMU(tr.skyImageShader->sky.outerbox[4], TB_ENVMAP); // Sky up...
 #endif
+			}
+			else if (pStage->bundle[TB_ENVMAP].image[0])
+			{
+				R_BindAnimatedImageToTMU(&pStage->bundle[TB_ENVMAP], TB_ENVMAP);
 			}
 
 #ifdef __SCREEN_SPACE_GLASS_REFLECTIONS__

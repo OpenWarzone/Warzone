@@ -369,6 +369,8 @@ typedef struct shaderStage_s {
 
 	// Whether this object emits a glow or not.
 	bool			glow;
+
+	vec3_t			colorMod;
 } shaderStage_t;
 
 struct shaderCommands_s;

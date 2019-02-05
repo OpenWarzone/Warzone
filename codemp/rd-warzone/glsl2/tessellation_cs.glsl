@@ -14,6 +14,7 @@ uniform float			u_zFar;
 in vec4 WorldPos_CS_in[];
 in vec3 Normal_CS_in[];
 in vec2 TexCoord_CS_in[];
+in vec2 envTC_CS_in[];
 in vec3 ViewDir_CS_in[];
 in vec4 Color_CS_in[];
 in vec4 PrimaryLightDir_CS_in[];
@@ -44,6 +45,7 @@ struct PnPatch
 out vec4 WorldPos_ES_in[MAX_PATCH_VERTICES];
 out vec3 iNormal[MAX_PATCH_VERTICES];
 out vec2 iTexCoord[MAX_PATCH_VERTICES];
+out vec2 ienvTC[MAX_PATCH_VERTICES];
 out PnPatch iPnPatch[MAX_PATCH_VERTICES];
 out vec4 Color_ES_in[MAX_PATCH_VERTICES];
 out vec4 PrimaryLightDir_ES_in[MAX_PATCH_VERTICES];
@@ -88,6 +90,7 @@ void main()
 	iNormal[gl_InvocationID]					= Normal_CS_in[gl_InvocationID];
 	//iNormal[gl_InvocationID] = normal;
 	iTexCoord[gl_InvocationID] = TexCoord_CS_in[gl_InvocationID];
+	ienvTC[gl_InvocationID] = envTC_CS_in[gl_InvocationID];
 	Color_ES_in[gl_InvocationID] = Color_CS_in[gl_InvocationID];
 	PrimaryLightDir_ES_in[gl_InvocationID] = PrimaryLightDir_CS_in[gl_InvocationID];
 	TexCoord2_ES_in[gl_InvocationID] = TexCoord2_CS_in[gl_InvocationID];

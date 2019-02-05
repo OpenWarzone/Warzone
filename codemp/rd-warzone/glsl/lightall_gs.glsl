@@ -13,6 +13,7 @@ uniform vec3				u_ViewOrigin;
 in vec4 WorldPos_CS_in[];
 in vec3 Normal_CS_in[];
 in vec2 TexCoord_CS_in[];
+in vec2 envTC_CS_in[];
 in vec3 ViewDir_CS_in[];
 in vec4 Tangent_CS_in[];
 in vec4 Bitangent_CS_in[];
@@ -24,6 +25,7 @@ in float Slope_CS_in[];
 
 out precise vec3 WorldPos_FS_in;
 out precise vec2 TexCoord_FS_in;
+out precise vec2 envTC_FS_in;
 out precise vec3 Normal_FS_in;
 out precise vec3 ViewDir_FS_in;
 out precise vec4 Tangent_FS_in;
@@ -115,6 +117,7 @@ void main (void)
 		gl_Position				= u_ModelViewProjectionMatrix * gl_in[i].gl_Position;
 		
 		TexCoord_FS_in			= TexCoord_CS_in[i];
+		envTC_FS_in			= envTC_CS_in[i];
 		Normal_FS_in			= Normal_CS_in[i];
 		WorldPos_FS_in			= WorldPos_CS_in[i].xyz;
 		ViewDir_FS_in			= ViewDir_CS_in[i];

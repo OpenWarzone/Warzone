@@ -43,6 +43,7 @@ uniform vec4						u_Local1; // MAP_SIZE, sway, overlaySway, materialType
 uniform vec4						u_Local2; // hasSteepMap, hasWaterEdgeMap, haveNormalMap, SHADER_WATER_LEVEL
 uniform vec4						u_Local3; // hasSplatMap1, hasSplatMap2, hasSplatMap3, hasSplatMap4
 uniform vec4						u_Local4; // stageNum, glowStrength, r_showsplat, 0.0
+uniform vec4						u_Local5; // SHADER_HAS_OVERLAY, SHADER_ENVMAP_STRENGTH, 0.0, 0.0
 uniform vec4						u_Local9; // testvalue0, 1, 2, 3
 
 uniform vec4						u_Local12; // TERRAIN_TESS_OFFSET, GRASS_DISTANCE_FROM_ROADS, 0.0, 0.0
@@ -65,6 +66,8 @@ uniform vec4						u_Local12; // TERRAIN_TESS_OFFSET, GRASS_DISTANCE_FROM_ROADS, 
 #define SHADER_STAGE_NUM			u_Local4.r
 #define SHADER_GLOW_STRENGTH		u_Local4.g
 #define SHADER_SHOW_SPLAT			u_Local4.b
+
+#define SHADER_ENVMAP_STRENGTH		u_Local5.g
 
 #define TERRAIN_TESS_OFFSET			u_Local12.r
 #define GRASS_DISTANCE_FROM_ROADS	u_Local12.g
@@ -123,6 +126,7 @@ uniform float						u_PrimaryLightRadius;
 #if defined(USE_TESSELLATION) || defined(USE_ICR_CULLING)
 out vec3 Normal_CS_in;
 out vec2 TexCoord_CS_in;
+out vec2 envTC_CS_in;
 out vec4 WorldPos_CS_in;
 out vec3 ViewDir_CS_in;
 out vec4 Color_CS_in;
@@ -134,6 +138,7 @@ out float Slope_CS_in;
 
 varying vec2	var_TexCoords;
 varying vec2	var_TexCoords2;
+varying vec2	var_envTC;
 varying vec4	var_Color;
 varying vec3	var_Normal;
 varying vec3	var_ViewDir;
@@ -525,6 +530,18 @@ void main()
 		var_TexCoords2 = vec2(0.0);
 	}
 
+	if (SHADER_ENVMAP_STRENGTH > 0.0)
+	{
+		vec3 viewer = normalize(u_LocalViewOrigin - position);
+		vec2 ref = reflect(viewer, normal).yz;
+		var_envTC.s = ref.x * -0.5 + 0.5;
+		var_envTC.t = ref.y *  0.5 + 0.5;
+	}
+	else
+	{
+		var_envTC = vec2(0.0);
+	}
+
 	var_PrimaryLightDir.xyz = u_PrimaryLightOrigin.xyz - (position * u_PrimaryLightOrigin.w);
 	var_ViewDir = u_ViewOrigin - position;
 	var_Normal = normal.xyz;
@@ -533,6 +550,7 @@ void main()
 #if defined(USE_TESSELLATION) || defined(USE_ICR_CULLING)
 	WorldPos_CS_in = vec4(position.xyz, 1.0);
 	TexCoord_CS_in = var_TexCoords.xy;
+	envTC_CS_in = var_envTC.xy;
 	Normal_CS_in = var_Normal.xyz;
 	ViewDir_CS_in = var_ViewDir;
 	Color_CS_in = var_Color;

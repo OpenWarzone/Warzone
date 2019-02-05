@@ -3,12 +3,10 @@ uniform sampler2D			u_ScreenDepthMap;
 uniform sampler2DShadow		u_ShadowMap;
 uniform sampler2DShadow		u_ShadowMap2;
 uniform sampler2DShadow		u_ShadowMap3;
-uniform sampler2DShadow		u_ShadowMap4;
 
 uniform mat4				u_ShadowMvp;
 uniform mat4				u_ShadowMvp2;
 uniform mat4				u_ShadowMvp3;
-uniform mat4				u_ShadowMvp4;
 
 uniform vec4				u_Settings0;			// r_shadowSamples (numBlockerSearchSamples), SHADOW_MAP_SIZE, SHADOWS_FULL_SOLID, 0.0
 uniform vec4				u_Settings1;			// r_testshaderValue1->value, r_testshaderValue2->value, r_testshaderValue3->value, r_testshaderValue4->value

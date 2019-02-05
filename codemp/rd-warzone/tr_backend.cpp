@@ -3284,13 +3284,13 @@ const void *RB_PostProcess(const void *data)
 
 		GL_BindToTMU(tr.linearDepthImageZfar, TB_COLORMAP);
 
-		GL_BindToTMU(tr.sunShadowDepthImage[0], TB_SHADOWMAP);
+		GL_BindToTMU(tr.sunShadowDepthImage[0], TB_SPLATMAP1);
 		GLSL_SetUniformMatrix16(&tr.shadowmaskShader, UNIFORM_SHADOWMVP, backEnd.refdef.sunShadowMvp[0]);
 
-		GL_BindToTMU(tr.sunShadowDepthImage[1], TB_SHADOWMAP2);
+		GL_BindToTMU(tr.sunShadowDepthImage[1], TB_SPLATMAP2);
 		GLSL_SetUniformMatrix16(&tr.shadowmaskShader, UNIFORM_SHADOWMVP2, backEnd.refdef.sunShadowMvp[1]);
 
-		GL_BindToTMU(tr.sunShadowDepthImage[2], TB_SHADOWMAP3);
+		GL_BindToTMU(tr.sunShadowDepthImage[2], TB_SPLATMAP3);
 		GLSL_SetUniformMatrix16(&tr.shadowmaskShader, UNIFORM_SHADOWMVP3, backEnd.refdef.sunShadowMvp[2]);
 
 		GLSL_SetUniformVec3(&tr.shadowmaskShader, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);
