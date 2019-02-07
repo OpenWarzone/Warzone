@@ -16,6 +16,8 @@
                                     Stoiss
                                   kungfooman
                                     Exmirai
+                                   TheDushan
+                                   Gamebrain
 
 
 ==============================================================================
@@ -27,6 +29,7 @@
 
                                     Lwkill
                                     Noodle
+                                  TheTemplar
                              UniqueOne (test maps)
 
 
@@ -40,6 +43,18 @@
                                     Rooxon
                                     Noodle
                                      DT85
+                             Unique One (conversions)
+
+
+==============================================================================
+
+                                    OTHER:
+
+==============================================================================
+
+
+                                    Gamebrain
+                                    Finalizer
                              Unique One (conversions)
 
 
