@@ -322,6 +322,7 @@ if(BuildMPEngine OR BuildMPDed)
 	set(MPEngineAndDedFiles ${MPEngineAndDedFiles} ${MPEngineAndDedMinizipFiles})
 	
 	set(MPEngineAndDedStackWalkerFiles
+    "${MPDir}/StackWalker/StackDump.cpp"
 		"${MPDir}/StackWalker/StackWalker.cpp"
 		"${MPDir}/StackWalker/StackWalker.h"
 		)

@@ -935,79 +935,91 @@ static int ParseCommandLine(char *cmdline, char **argv)
 #	define DEFAULT_BASEDIR Sys_BinaryPath()
 #endif
 
+extern int ReportCrash(DWORD excCode, PEXCEPTION_POINTERS pExcPtrs);
+
 //std::thread::id MAIN_THREAD_ID;
 
 int main( int argc, char **argv )
 {
 	int		i;
 	char	commandLine[ MAX_STRING_CHARS ] = { 0 };
+	int		retcode = 0;
 
-	//MAIN_THREAD_ID = std::this_thread::get_id();
-
-	Sys_CreateConsole();
-
-	// no abort/retry/fail errors
-	SetErrorMode( SEM_FAILCRITICALERRORS );
-
-	// Set the initial time base
-	Sys_Milliseconds();
-
-	Sys_SetBinaryPath( Sys_Dirname( argv[ 0 ] ) );
-	Sys_SetDefaultInstallPath( DEFAULT_BASEDIR );
-
-	// Concatenate the command line for passing to Com_Init
-	for( i = 1; i < argc; i++ )
+	__try
 	{
-		const bool containsSpaces = (strchr(argv[i], ' ') != NULL);
-		if (containsSpaces)
-			Q_strcat( commandLine, sizeof( commandLine ), "\"" );
+		//MAIN_THREAD_ID = std::this_thread::get_id();
 
-		Q_strcat( commandLine, sizeof( commandLine ), argv[ i ] );
+		Sys_CreateConsole();
 
-		if (containsSpaces)
-			Q_strcat( commandLine, sizeof( commandLine ), "\"" );
+		// no abort/retry/fail errors
+		SetErrorMode(SEM_FAILCRITICALERRORS);
 
-		Q_strcat( commandLine, sizeof( commandLine ), " " );
-	}
+		// Set the initial time base
+		Sys_Milliseconds();
 
-	Com_Init( commandLine );
+		Sys_SetBinaryPath(Sys_Dirname(argv[0]));
+		Sys_SetDefaultInstallPath(DEFAULT_BASEDIR);
+
+		// Concatenate the command line for passing to Com_Init
+		for (i = 1; i < argc; i++)
+		{
+			const bool containsSpaces = (strchr(argv[i], ' ') != NULL);
+			if (containsSpaces)
+				Q_strcat(commandLine, sizeof(commandLine), "\"");
+
+			Q_strcat(commandLine, sizeof(commandLine), argv[i]);
+
+			if (containsSpaces)
+				Q_strcat(commandLine, sizeof(commandLine), "\"");
+
+			Q_strcat(commandLine, sizeof(commandLine), " ");
+		}
+
+		Com_Init(commandLine);
 
 #if !defined(DEDICATED)
-	QuickMemTest();
+		QuickMemTest();
 #endif
 
 #ifdef _WIN32
-	// UQ1: Shut up vista+  and your not responding window bs... The game is simply busy!!!
-	DisableProcessWindowsGhosting();
+		// UQ1: Shut up vista+  and your not responding window bs... The game is simply busy!!!
+		DisableProcessWindowsGhosting();
 #endif //_WIN32
 
-	NET_Init();
+		NET_Init();
 
-	// hide the early console since we've reached the point where we
-	// have a working graphics subsystems
-	if ( !com_dedicated->integer && !com_viewlog->integer ) {
-		Sys_ShowConsole( 0, qfalse );
-	}
-
-    // main game loop
-	while( 1 ) {
-		// if not running as a game client, sleep a bit
-		if ( g_wv.isMinimized || ( com_dedicated && com_dedicated->integer ) ) {
-			Sleep( 5 );
+		// hide the early console since we've reached the point where we
+		// have a working graphics subsystems
+		if (!com_dedicated->integer && !com_viewlog->integer) {
+			Sys_ShowConsole(0, qfalse);
 		}
+
+		// main game loop
+		while (1) {
+			// if not running as a game client, sleep a bit
+			if (g_wv.isMinimized || (com_dedicated && com_dedicated->integer)) {
+				Sleep(5);
+			}
 
 #ifdef _DEBUG
-		if (!g_wv.activeApp)
-		{
-			Sleep(50);
-		}
+			if (!g_wv.activeApp)
+			{
+				Sleep(50);
+			}
 #endif // _DEBUG
 
-		// make sure mouse and joystick are only called once a frame
-		IN_Frame();
+			// make sure mouse and joystick are only called once a frame
+			IN_Frame();
 
-		// run the game
-		Com_Frame();
+			// run the game
+			Com_Frame();
+
+			//{ cvar_t *N = NULL; N->flags = 1; } // force crash - to test crash dump files system...
+		}
+	}
+	__except (ReportCrash(GetExceptionCode(), GetExceptionInformation()))
+	{
+		retcode = -1;
 	}
 }
 

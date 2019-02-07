@@ -56,6 +56,18 @@ END
 // remains consistent on all systems.
 IDI_ICON1               ICON                    "icon.ico"
 
+IDD_CRASH_REPORT DIALOGEX 0, 0, 316, 139
+STYLE DS_SYSMODAL | DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION
+EXSTYLE WS_EX_TOPMOST | WS_EX_TOOLWINDOW
+CAPTION "Warzone Crash Report Utility"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    ICON            IDI_ICON1,IDC_STATIC,7,7,20,20
+    LTEXT           "Collecting error info.",IDC_STATIC,40,7,269,38
+    DEFPUSHBUTTON   "OK",IDOK,259,118,50,14,WS_DISABLED
+    EDITTEXT        IDC_NOTES_TEXT,7,45,302,69,ES_MULTILINE | ES_AUTOHSCROLL | WS_DISABLED | WS_VSCROLL
+END
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // Version
