@@ -1937,6 +1937,7 @@ typedef enum {
 	VPF_EMISSIVEMAP		= 0x800,
 	VPF_SKYCUBEDAY		= 0x1000,
 	VPF_SKYCUBENIGHT	= 0x2000,
+	VPF_RENDERCUBE		= 0x4000,
 } viewParmFlags_t;
 
 typedef struct {
@@ -1957,6 +1958,7 @@ typedef struct {
 	FBO_t		*targetFbo;
 	int         targetFboLayer;
 	int         targetFboCubemapIndex;
+	image_t		*targetCubemapImage;
 	float		fovX, fovY;
 	float		projectionMatrix[16];
 	cplane_t	frustum[5];

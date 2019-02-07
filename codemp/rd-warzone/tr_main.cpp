@@ -779,7 +779,7 @@ R_RotateForViewer
 Sets up the modelview matrix for a given viewParm
 =================
 */
-static void R_RotateForViewer(viewParms_t *viewParms)
+/*static*/ void R_RotateForViewer(viewParms_t *viewParms)
 {
 	float	viewerMatrix[16];
 	vec3_t	origin;

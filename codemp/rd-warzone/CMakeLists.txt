@@ -32,6 +32,7 @@ set(MPWarzoneFiles
 	"${MPDir}/rd-warzone/tr_cache.cpp"
 	"${MPDir}/rd-warzone/tr_clouds.cpp"
 	"${MPDir}/rd-warzone/tr_cmds.cpp"
+	"${MPDir}/rd-warzone/tr_cubemaps.cpp"
 	"${MPDir}/rd-warzone/tr_curve.cpp"
 	"${MPDir}/rd-warzone/tr_debug.cpp"
 	"${MPDir}/rd-warzone/tr_debug.h"
