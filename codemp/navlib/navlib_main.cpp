@@ -129,11 +129,11 @@ float Navlib::NavlibGetGoalRadius( gentity_t *self )
 	if ( NavlibTargetIsEntity( &self->client->navigation.goal ) )
 	{
 		navlibTargetGoal_t *t = &self->client->navigation.goal;
-		return RadiusFromBounds2D( t->ent->r.mins, t->ent->r.maxs ) + RadiusFromBounds2D( self->r.mins, self->r.maxs );
+		return (RadiusFromBounds2D( t->ent->r.mins, t->ent->r.maxs ) + RadiusFromBounds2D( self->r.mins, self->r.maxs )) * 4.0;
 	}
 	else
 	{
-		return RadiusFromBounds2D( self->r.mins, self->r.maxs );
+		return RadiusFromBounds2D( self->r.mins, self->r.maxs ) * 4.0;
 	}
 }
 
@@ -267,7 +267,10 @@ bool Navlib::NavlibPathIsWalkable( gentity_t *self, navlibTargetGoal_t target )
 
 void Navlib::NavlibFindRandomPointOnMesh( gentity_t *self, vec3_t point )
 {
-	Navlib::NavlibFindRandomPoint( self->s.number, point );
+	if (!self)
+		Navlib::NavlibFindRandomPoint( -1, point) ;
+	else
+		Navlib::NavlibFindRandomPoint( self->s.number, point );
 }
 
 qboolean usercmdButtonPressed(int cmdButtons, int button)

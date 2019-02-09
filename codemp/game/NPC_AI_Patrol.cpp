@@ -198,6 +198,47 @@ int NPC_FindPatrolGoal(gentity_t *NPC)
 	return bestWaypoints[irand_big(0, bestWaypointsNum - 1)];
 }
 
+#ifdef __USE_NAVLIB__
+int NPC_FindPatrolGoalNavLib(gentity_t *NPC)
+{
+#if 0
+	if (gWPNum > 0)
+	{
+		int waypoint = irand_big(0, gWPNum - 1);
+		int tries = 0;
+
+		while (gWPArray[waypoint]->inuse == false || gWPArray[waypoint]->wpIsBad == true)
+		{
+			if (tries > 10) return -1; // Try again next frame...
+
+			waypoint = irand_big(0, gWPNum - 1);
+			tries++;
+		}
+
+#pragma omp critical
+		{
+			NavlibFindRandomPointInRadius(NPC->s.number, gWPArray[waypoint]->origin, NPC->client->navigation.goal.origin, 99999999.9);
+		}
+		//trap->Print("[%s] newGoal: %f %f %f.\n", NPC->client->pers.netname, NPC->client->navigation.goal.origin[0], NPC->client->navigation.goal.origin[1], NPC->client->navigation.goal.origin[2]);
+		return 1;
+	}
+	else
+	{
+#pragma omp critical
+		{
+			NavlibFindRandomPointOnMesh(NPC, NPC->client->navigation.goal.origin);
+		}
+		//trap->Print("[%s] newGoal: %f %f %f.\n", NPC->client->pers.netname, NPC->client->navigation.goal.origin[0], NPC->client->navigation.goal.origin[1], NPC->client->navigation.goal.origin[2]);
+		return 1;
+	}
+#else
+	NavlibFindRandomPatrolPoint(NPC->s.number, NPC->client->navigation.goal.origin);
+	if (VectorLength(NPC->client->navigation.goal.origin) == 0)
+		return -1;
+#endif
+}
+#endif //__USE_NAVLIB__
+
 void NPC_SetNewPatrolGoalAndPath(gentity_t *aiEnt)
 {
 	if (aiEnt->next_pathfind_time > level.time)
@@ -206,6 +247,22 @@ void NPC_SetNewPatrolGoalAndPath(gentity_t *aiEnt)
 	}
 
 	aiEnt->next_pathfind_time = level.time + 10000 + irand(0, 1000);
+
+#ifdef __USE_NAVLIB__
+	if (NPC_FindPatrolGoalNavLib(aiEnt))
+	{
+#pragma omp critical
+		{
+			aiEnt->client->navigation.goal.haveGoal = (qboolean)NavlibFindRouteToTarget(aiEnt, aiEnt->client->navigation.goal, qtrue);
+		}
+
+		//if (aiEnt->client->navigation.goal.haveGoal)
+		//	trap->Print("%s found a patrol route.\n", aiEnt->client->pers.netname);
+		//else
+		//	trap->Print("%s failed to find a patrol route.\n", aiEnt->client->pers.netname);
+	}
+	return;
+#endif //__USE_NAVLIB__
 
 	gentity_t	*NPC = aiEnt;
 
@@ -332,6 +389,151 @@ qboolean NPC_PatrolArea(gentity_t *aiEnt)
 			NPC_PickRandomIdleAnimantion(NPC);
 		return qtrue;
 	}
+
+#ifdef __USE_NAVLIB__
+	if (G_NavmeshIsLoaded())
+	{
+		qboolean walk = qtrue;
+
+		if (DistanceHorizontal(NPC->r.currentOrigin, NPC->npc_previous_pos) > 3)
+		{
+			NPC->last_move_time = level.time;
+			VectorCopy(NPC->r.currentOrigin, NPC->npc_previous_pos);
+		}
+
+		if (NPC->client->navigation.goal.haveGoal && !GoalInRange(NPC, NavlibGetGoalRadius(NPC)))
+		{
+			if (NPC->last_move_time < level.time - 4000)
+			{
+				NPC->client->navigation.goal.haveGoal = qfalse;
+				VectorClear(NPC->client->navigation.goal.origin);
+				NPC->client->navigation.goal.ent = NULL;
+				NPC_SetNewPatrolGoalAndPath(NPC);
+			}
+
+			NavlibSetNavMesh(NPC->s.number, 0);
+#pragma omp critical
+			{
+				NavlibMoveToGoal(NPC);
+			}
+			NPC_FacePosition(NPC, NPC->client->navigation.nav.lookPos, qfalse);
+			VectorSubtract(NPC->client->navigation.nav.lookPos, NPC->r.currentOrigin, NPC->movedir);
+
+#ifndef __USE_NAVLIB_INTERNAL_MOVEMENT__
+			if (Distance(NPC->r.currentOrigin, NPC->client->navigation.goal.origin) < 256)
+			{
+				walk = qtrue;
+			}
+
+			if (UQ1_UcmdMoveForDir(NPC, ucmd, NPC->movedir, walk, NPC->client->navigation.nav.lookPos))
+			{
+				if (NPC->last_move_time < level.time - 2000)
+				{
+					ucmd->upmove = 127;
+
+					if (NPC->s.eType == ET_PLAYER)
+					{
+						trap->EA_Jump(NPC->s.number);
+					}
+				}
+
+				return qtrue;
+			}
+			else if (NPC->bot_strafe_jump_timer > level.time)
+			{
+				ucmd->upmove = 127;
+
+				if (NPC->s.eType == ET_PLAYER)
+				{
+					trap->EA_Jump(NPC->s.number);
+				}
+			}
+			else if (NPC->bot_strafe_left_timer > level.time)
+			{
+				ucmd->rightmove = -127;
+				trap->EA_MoveLeft(NPC->s.number);
+			}
+			else if (NPC->bot_strafe_right_timer > level.time)
+			{
+				ucmd->rightmove = 127;
+				trap->EA_MoveRight(NPC->s.number);
+			}
+
+			if (NPC->last_move_time < level.time - 2000)
+			{
+				ucmd->upmove = 127;
+
+				if (NPC->s.eType == ET_PLAYER)
+				{
+					trap->EA_Jump(NPC->s.number);
+				}
+			}
+#endif //__USE_NAVLIB_INTERNAL_MOVEMENT__
+			return qtrue;
+		}
+		else if (NPC->noWaypointTime <= level.time && NPC->client->navigation.goal.haveGoal)
+		{// We're at our goal! Find a new goal... Assign a wait time, before we do...
+#ifdef ___AI_PATHING_DEBUG___
+			trap->Print("PATHING DEBUG: HIT GOAL!\n");
+#endif //___AI_PATHING_DEBUG___
+			NPC_ClearPathData(NPC);
+			NPC->noWaypointTime = level.time + 10000; // Idle at least 10 seconds at this point before finding a new patrol position...
+			ucmd->forwardmove = 0;
+			ucmd->rightmove = 0;
+			ucmd->upmove = 0;
+
+			NPC->client->navigation.goal.haveGoal = qfalse;
+			VectorClear(NPC->client->navigation.goal.origin);
+			NPC->client->navigation.goal.ent = NULL;
+			//trap->Print("[%s] hit goal!\n", NPC->client->pers.netname);
+
+			if (NPC_IsHumanoid(NPC))
+				NPC_PickRandomIdleAnimantion(NPC);
+			return qtrue; // next think...
+		}
+		else if (NPC->noWaypointTime > level.time)
+		{// Waiting before we move again...
+			ucmd->forwardmove = 0;
+			ucmd->rightmove = 0;
+			ucmd->upmove = 0;
+
+			NPC->client->navigation.goal.haveGoal = qfalse;
+			VectorClear(NPC->client->navigation.goal.origin);
+			NPC->client->navigation.goal.ent = NULL;
+
+			if (NPC_IsHumanoid(NPC))
+				NPC_PickRandomIdleAnimantion(NPC);
+			return qtrue; // next think...
+		}
+		else
+		{// Need a new goal...
+			NavlibSetNavMesh(NPC->s.number, 0);
+
+			if (NPC->client->navigation.goal.haveGoal && GoalInRange(NPC, NavlibGetGoalRadius(NPC)))
+			{
+				NPC->client->navigation.goal.haveGoal = qfalse;
+				VectorClear(NPC->client->navigation.goal.origin);
+				NPC->client->navigation.goal.ent = NULL;
+				//trap->Print("[%s] hit goal!\n", NPC->client->pers.netname);
+			}
+
+			NPC_SetNewPatrolGoalAndPath(NPC);
+
+			ucmd->forwardmove = 0;
+			ucmd->rightmove = 0;
+			ucmd->upmove = 0;
+			NPC_PickRandomIdleAnimantion(NPC);
+
+			return qtrue;
+		}
+
+		ucmd->forwardmove = 0;
+		ucmd->rightmove = 0;
+		ucmd->upmove = 0;
+		NPC_PickRandomIdleAnimantion(NPC);
+		return qfalse;
+	}
+#endif //__USE_NAVLIB__
 
 	if (NPC->wpCurrent < 0 || NPC->wpCurrent >= gWPNum
 		|| NPC->longTermGoal < 0 || NPC->longTermGoal >= gWPNum

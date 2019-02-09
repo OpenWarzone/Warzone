@@ -1209,6 +1209,10 @@ qboolean	HAVE_WILDLIFE = qfalse;
 int next_npc_max_warning_time = 0;
 int next_npc_stats_time = 0;
 
+#ifdef __USE_NAVLIB__
+//#define __USE_NAVLIB_SPAWNPOINTS__
+#endif //__USE_NAVLIB__
+
 void G_CheckMinimumNpcs(void) 
 {
 	vmCvar_t	mapname;
@@ -1331,7 +1335,9 @@ void G_CheckMinimumNpcs(void)
 	//
 	if (num_imperial_npcs < min_imperials)
 	{
+#ifndef __USE_NAVLIB_SPAWNPOINTS__
 		int			waypoint = G_SelectWildernessSpawnpoint();
+#endif //__USE_NAVLIB_SPAWNPOINTS__
 		int			random = irand(0, 22);
 		int			tries = 0;
 		vec3_t		position;
@@ -1382,6 +1388,10 @@ void G_CheckMinimumNpcs(void)
 		}
 		else
 		{// Mandalorians and Mercs always spawn at random waypoints (for now)...
+#ifdef __USE_NAVLIB_SPAWNPOINTS__
+			NavlibFindRandomPointOnMesh(NULL, position);
+			//trap->Print("imp spawnpoint %f %f %f\n", position[0], position[1], position[2]);
+#else //!__USE_NAVLIB_SPAWNPOINTS__
 			while (gWPArray[waypoint]->inuse == false || gWPArray[waypoint]->wpIsBad == true || WAYPOINT_PARTOL_BAD_LIST[waypoint])
 			{
 				gWPArray[waypoint]->inuse = false; // set it bad!
@@ -1398,6 +1408,7 @@ void G_CheckMinimumNpcs(void)
 			}
 
 			VectorCopy(gWPArray[waypoint]->origin, position);
+#endif //__USE_NAVLIB_SPAWNPOINTS__
 			position[2] += 32; // Drop down...
 		}
 
@@ -1409,7 +1420,9 @@ void G_CheckMinimumNpcs(void)
 	//
 	if (num_rebel_npcs < min_rebels)
 	{
+#ifndef __USE_NAVLIB_SPAWNPOINTS__
 		int			waypoint = G_SelectWildernessSpawnpoint();
+#endif //__USE_NAVLIB_SPAWNPOINTS__
 		int			random = irand(0, 22);
 		int			tries = 0;
 		vec3_t		position;
@@ -1460,6 +1473,10 @@ void G_CheckMinimumNpcs(void)
 		}
 		else
 		{// Mandalorians and Mercs always spawn at random waypoints (for now)...
+#ifdef __USE_NAVLIB_SPAWNPOINTS__
+			NavlibFindRandomPointOnMesh(NULL, position);
+			//trap->Print("reb spawnpoint %f %f %f\n", position[0], position[1], position[2]);
+#else //!__USE_NAVLIB_SPAWNPOINTS__
 			while (gWPArray[waypoint]->inuse == false || gWPArray[waypoint]->wpIsBad == true || WAYPOINT_PARTOL_BAD_LIST[waypoint])
 			{
 				gWPArray[waypoint]->inuse = false; // set it bad!
@@ -1475,6 +1492,7 @@ void G_CheckMinimumNpcs(void)
 			}
 
 			VectorCopy(gWPArray[waypoint]->origin, position);
+#endif //__USE_NAVLIB_SPAWNPOINTS__
 			position[2] += 32; // Drop down...
 		}
 
@@ -1488,7 +1506,9 @@ void G_CheckMinimumNpcs(void)
 	{
 		if (num_mandalorian_npcs < min_mandalorians)
 		{
+#ifndef __USE_NAVLIB_SPAWNPOINTS__
 			int			waypoint = G_SelectWildernessSpawnpoint();
+#endif //__USE_NAVLIB_SPAWNPOINTS__
 			int			random = irand(0, 22);
 			int			tries = 0;
 			vec3_t		position;
@@ -1531,6 +1551,9 @@ void G_CheckMinimumNpcs(void)
 #endif //__ALL_JEDI_NPCS__
 
 			// Mandalorians and Mercs always spawn at random waypoints (for now)...
+#ifdef __USE_NAVLIB_SPAWNPOINTS__
+			NavlibFindRandomPointOnMesh(NULL, position);
+#else //!__USE_NAVLIB_SPAWNPOINTS__
 			while (gWPArray[waypoint]->inuse == false || gWPArray[waypoint]->wpIsBad == true || WAYPOINT_PARTOL_BAD_LIST[waypoint])
 			{
 				gWPArray[waypoint]->inuse = false; // set it bad!
@@ -1546,6 +1569,7 @@ void G_CheckMinimumNpcs(void)
 			}
 
 			VectorCopy(gWPArray[waypoint]->origin, position);
+#endif //__USE_NAVLIB_SPAWNPOINTS__
 			position[2] += 32; // Drop down...
 
 			SP_NPC_Spawner_Group(group, position, SPAWN_TEAM);
@@ -1559,7 +1583,9 @@ void G_CheckMinimumNpcs(void)
 	{
 		if (num_merc_npcs < min_mercs)
 		{
+#ifndef __USE_NAVLIB_SPAWNPOINTS__
 			int			waypoint = G_SelectWildernessSpawnpoint();
+#endif //__USE_NAVLIB_SPAWNPOINTS__
 			int			random = irand(0, 22);
 			int			tries = 0;
 			vec3_t		position;
@@ -1602,6 +1628,9 @@ void G_CheckMinimumNpcs(void)
 #endif //__ALL_JEDI_NPCS__
 
 			// Mandalorians and Mercs always spawn at random waypoints (for now)...
+#ifdef __USE_NAVLIB_SPAWNPOINTS__
+			NavlibFindRandomPointOnMesh(NULL, position);
+#else //!__USE_NAVLIB_SPAWNPOINTS__
 			while (gWPArray[waypoint]->inuse == false || gWPArray[waypoint]->wpIsBad == true || WAYPOINT_PARTOL_BAD_LIST[waypoint])
 			{
 				gWPArray[waypoint]->inuse = false; // set it bad!
@@ -1617,6 +1646,7 @@ void G_CheckMinimumNpcs(void)
 			}
 
 			VectorCopy(gWPArray[waypoint]->origin, position);
+#endif //__USE_NAVLIB_SPAWNPOINTS__
 			position[2] += 32; // Drop down...
 
 			SP_NPC_Spawner_Group(group, position, SPAWN_TEAM);
@@ -1630,7 +1660,9 @@ void G_CheckMinimumNpcs(void)
 	{
 		if (num_wildlife_npcs < min_wildlife)
 		{
+#ifndef __USE_NAVLIB_SPAWNPOINTS__
 			int			waypoint = G_SelectWildernessSpawnpoint();
+#endif //__USE_NAVLIB_SPAWNPOINTS__
 			int			random = irand(0, 22);
 			int			tries = 0;
 			vec3_t		position;
@@ -1673,6 +1705,9 @@ void G_CheckMinimumNpcs(void)
 #endif //__ALL_JEDI_NPCS__
 
 			// Wildlife always spawn at random waypoints (for now)...
+#ifdef __USE_NAVLIB_SPAWNPOINTS__
+			NavlibFindRandomPointOnMesh(NULL, position);
+#else //!__USE_NAVLIB_SPAWNPOINTS__
 			while (gWPArray[waypoint]->inuse == false || gWPArray[waypoint]->wpIsBad == true || WAYPOINT_PARTOL_BAD_LIST[waypoint])
 			{
 				gWPArray[waypoint]->inuse = false; // set it bad!
@@ -1688,6 +1723,7 @@ void G_CheckMinimumNpcs(void)
 			}
 
 			VectorCopy(gWPArray[waypoint]->origin, position);
+#endif //__USE_NAVLIB_SPAWNPOINTS__
 			position[2] += 32; // Drop down...
 
 			SP_NPC_Spawner_Group(group, position, SPAWN_TEAM);

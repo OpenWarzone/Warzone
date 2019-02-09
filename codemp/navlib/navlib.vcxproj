@@ -241,7 +241,7 @@
       <CompileAs>CompileAsCpp</CompileAs>
       <AdditionalOptions>/D WIN32 /D NAVLIB /D _CRT_SECURE_NO_WARNINGS /D __USE_NAVLIB__ %(AdditionalOptions)</AdditionalOptions>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
-      <DebugInformationFormat>None</DebugInformationFormat>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WarningLevel>Level3</WarningLevel>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>

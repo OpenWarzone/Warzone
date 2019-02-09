@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 int numNavData = 0;
 NavData_t BotNavData[ MAX_NAV_DATA ];
 
+vec3_t navmeshSize;
 vec3_t navmeshMins;
 vec3_t navmeshMaxs;
 
@@ -193,6 +194,14 @@ bool BotLoadNavMesh( const char *filename, NavData_t &nav )
 
 	trap->FS_Read(&navmeshMins, sizeof(vec3_t), f);
 	trap->FS_Read(&navmeshMaxs, sizeof(vec3_t), f);
+
+	navmeshSize[0] = navmeshMaxs[0] - navmeshMins[0];
+	navmeshSize[1] = navmeshMaxs[1] - navmeshMins[1];
+	navmeshSize[2] = navmeshMaxs[2] - navmeshMins[2];
+
+	trap->Print("navmesh mins: %f %f %f.\n", navmeshMins[0], navmeshMins[1], navmeshMins[2]);
+	trap->Print("navmesh maxs: %f %f %f.\n", navmeshMaxs[0], navmeshMaxs[1], navmeshMaxs[2]);
+	trap->Print("navmesh size: %f %f %f.\n", navmeshSize[0], navmeshSize[1], navmeshSize[2]);
 
 	nav.mesh = dtAllocNavMesh();
 
