@@ -226,11 +226,7 @@ extern int GLSL_BINDS_COUNT;
 #include "qcommon\sstring.h"
 #endif
 
-#ifdef __GLSL_OPTIMIZER__
-	#define MAX_GLSL_LENGTH 170000
-#else
-	#define MAX_GLSL_LENGTH 32768
-#endif
+#define MAX_GLSL_LENGTH 170000
 
 extern qboolean ALLOW_NULL_FBO_BIND;
 
