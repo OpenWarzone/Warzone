@@ -122,6 +122,7 @@ struct media {
 	struct nk_image del;
 	struct nk_image edit;
 	struct nk_image inventory[64];
+	struct nk_image inventoryBlank;
 	struct nk_image menu[6];
 
 #if defined(__GUI_SKINNED__)
@@ -1034,7 +1035,9 @@ uq_tooltip(struct nk_context *ctx, const char *text, struct media *media, nk_col
 	if (bounds.x + bounds.w > FBO_WIDTH) bounds = nk_rect((ctx->input.mouse.pos.x - 16) - bounds.w, bounds.y, bounds.w, bounds.h);
 	if (bounds.y + bounds.h > FBO_HEIGHT) bounds = nk_rect(bounds.x, (ctx->input.mouse.pos.y - 16) - bounds.h, bounds.w, bounds.h);
 
-	int ret = nk_begin(ctx, "Tooltip", bounds, /*NK_WINDOW_BORDER |*/ NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_NO_INPUT);
+	int ret = nk_begin(ctx, "Tooltip", bounds, NK_WINDOW_NOT_INTERACTIVE|NK_WINDOW_NO_SCROLLBAR);
+
+	//nk_window_set_focus(ctx, "Tooltip");
 
 	ctx->style.cursor_visible = 1;
 	ctx->style.property.border = 2.0;
@@ -1062,9 +1065,9 @@ uq_tooltip(struct nk_context *ctx, const char *text, struct media *media, nk_col
 		const struct nk_input *in = &ctx->input;
 
 		if (ret) win->layout->flags &= ~(nk_flags)NK_WINDOW_ROM;
-		win->popup.type = NK_PANEL_TOOLTIP;
-		win->layout->type = NK_PANEL_TOOLTIP;
-		win->flags = (nk_flags)NK_WINDOW_NOT_INTERACTIVE;// NK_WINDOW_ROM;
+		//win->popup.type = NK_PANEL_TOOLTIP;
+		//win->layout->type = NK_PANEL_TOOLTIP;
+		//win->flags = (nk_flags)NK_WINDOW_NOT_INTERACTIVE;// NK_WINDOW_ROM;
 
 		nk_layout_row_dynamic(ctx, (float)text_height, 1);
 
@@ -1142,10 +1145,10 @@ int uq_radio(struct nk_context *ctx, struct media *media, char *label, int curre
 
 	for (int i = 0; i <= maxSetting; i++)
 	{
-		int selected = nk_button_symbol_label(ctx, (setting == i) ? NK_SYMBOL_CIRCLE_OUTLINE : NK_SYMBOL_CIRCLE_SOLID, va("%i", i), NK_TEXT_LEFT);
+		int selected = nk_button_symbol_label(ctx, (setting == i) ? NK_SYMBOL_CIRCLE_SOLID : NK_SYMBOL_CIRCLE_OUTLINE, va("%i", i), NK_TEXT_LEFT);
 		
-		if (setting != selected)
-			setting = selected;
+		if (selected)
+			setting = i;
 	}
 
 	return setting;
@@ -1188,6 +1191,8 @@ void GUI_PostProcessUpdateCvars() {
 
 int GUI_PostProcessUpdateUI(struct nk_context *ctx, struct media *media) {
 	int hovered = -1;
+
+	//nk_layout_row_dynamic(ctx, 35, 1);
 
 	for (int i = 0; i < GUI_PostProcessNumCvars; i++)
 	{
@@ -1266,7 +1271,7 @@ GUI_Settings(struct nk_context *ctx, struct media *media)
 
 	int i = 0;
 	nk_style_set_font(ctx, &media->font_20->handle);
-	nk_begin(ctx, "Settings - Post Processing", nk_rect(128.0, 128.0, size[0], size[1]), NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_TITLE | NK_WINDOW_NO_SCROLLBAR);
+	nk_begin(ctx, "Settings - Post Processing", nk_rect(128.0, 128.0, size[0], size[1]), NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_TITLE | NK_WINDOW_CLOSABLE);
 
 	/*------------------------------------------------
 	*           POSTPROCESS SETTINGS DISPLAY
@@ -1541,9 +1546,76 @@ GUI_Radio(struct nk_context *ctx, struct media *media)
 	nk_end(ctx);
 }
 
+qboolean	quickBarInitialized = qfalse;
+int			quickBarSelections[12] = { -1 };
+
+static void 
+GUI_InitQuickBar(void)
+{
+	if (!quickBarInitialized)
+	{
+		for (int i = 0; i < 12; i++)
+		{
+			quickBarSelections[i] = -1;
+		}
+
+		quickBarInitialized = qtrue;
+	}
+}
+
+static void
+GUI_QuickBar(struct nk_context *ctx, struct media *media)
+{
+	GUI_InitQuickBar();
+
+	float size[2];
+	size[0] = 552.0;
+	size[1] = 53.0;
+
+	int i = 0;
+	nk_style_set_font(ctx, &media->font_20->handle);
+	nk_begin(ctx, "QuickBar", nk_rect(((float)(FBO_WIDTH / 2.0) - (size[0] / 2.0)) /*- 8.0*/, ((float)FBO_HEIGHT - size[1]) - 2.0, size[0], size[1]), NK_WINDOW_MOVABLE | NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_BACKGROUND | NK_WINDOW_DYNAMIC);
+
+	/*------------------------------------------------
+	*                QUICK BAR DISPLAY
+	*------------------------------------------------*/
+	nk_style_set_font(ctx, &media->font_14->handle);
+	nk_layout_row_static(ctx, 41, 41, 12);
+
+	for (i = 0; i < 12; ++i)
+	{
+		if (quickBarSelections[i] >= 0)
+		{
+			int quality = QUALITY_GOLD - Q_clamp(QUALITY_GREY, quickBarSelections[i] / QUALITY_GOLD, QUALITY_GOLD);
+			nk_color bgColor = ColorForQuality(quality);
+			ctx->style.button.border_color = bgColor;
+			ctx->style.button.border = 4.0;
+			ctx->style.button.image_padding = nk_vec2(-3.0, -2.0);
+			ctx->style.button.rounding = 4.0;
+
+			int ret = nk_button_image_label(ctx, media->inventory[quickBarSelections[i]], "", NK_TEXT_CENTERED);
+		}
+		else
+		{// Blank slot...
+			nk_color color = nk_rgba(0, 0, 0, 128);
+			ctx->style.button.border_color = color;
+			ctx->style.button.border = 4.0;
+			ctx->style.button.image_padding = nk_vec2(-3.0, -2.0);
+			ctx->style.button.rounding = 4.0;
+			int ret = nk_button_image_label(ctx, media->inventoryBlank, "", NK_TEXT_CENTERED);
+		}
+	}
+
+	nk_style_set_font(ctx, &media->font_14->handle);
+	nk_end(ctx);
+}
+
 int PREVIOUS_INVENTORY_TOOLTIP = -1;
 int PREVIOUS_INVENTORY_TOOLTIP_QUALITY = 0;
 int PREVIOUS_INVENTORY_TOOLTIP_TIME = 0;
+
+int selectedContextItem = 0;
+struct nk_rect selectedContextBounds;
 
 static void
 GUI_Inventory(struct nk_context *ctx, struct media *media)
@@ -1558,6 +1630,7 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 	int i = 0;
 	nk_style_set_font(ctx, &media->font_20->handle);
 	nk_begin(ctx, "Inventory", nk_rect(((float)FBO_WIDTH - size[0]) - 64.0, ((float)FBO_HEIGHT - size[1]) - 64.0, size[0], size[1]), NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_TITLE | NK_WINDOW_NO_SCROLLBAR);
+	//nk_window_set_focus(ctx, "Inventory");
 
 	/*------------------------------------------------
 	*                INVENTORY DISPLAY
@@ -1569,36 +1642,176 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 	int tooltipNum = -1;
 	int tooltipQuality = 0;
 
-	for (i = 0; i < 64; ++i) 
+	for (i = 0; i < 64; ++i)
 	{
 		int quality = QUALITY_GOLD - Q_clamp(QUALITY_GREY, i / QUALITY_GOLD, QUALITY_GOLD);
 		nk_color bgColor = ColorForQuality(quality);
+#if 0
 		ctx->style.button.border_color = bgColor;
 		ctx->style.button.border = 4.0;
 		ctx->style.button.image_padding = nk_vec2(-1.0, -1.0);
 		ctx->style.button.rounding = 4.0;
+		
+		//NK_PROPERTY_DRAG
+		int ret = nk_button_image_label(ctx, media->inventory[i], "", NK_TEXT_CENTERED);
+		//int ret = nk_button_image(ctx, media->inventory[i]);
+		//int ret = nk_selectable_image_label(ctx, media->inventory[i], "", NK_TEXT_CENTERED, 0);
+#else
+		ctx->style.button.border_color = bgColor;
+		ctx->style.button.border = 4.0;
+		ctx->style.button.image_padding = nk_vec2(-3.0, -2.0);
+		ctx->style.button.rounding = 4.0;
+
 		int ret = nk_button_image_label(ctx, media->inventory[i], "", NK_TEXT_CENTERED);
 		
-		if (ret == 1) 
-		{// Clicked...
-			selected_image = i;
-			image_active = 0;
-		}
-		
-		if (keyStatus[A_MOUSE1])
+		if ((ctx->last_widget_state & NK_WIDGET_STATE_HOVER) && keyStatus[A_MOUSE2])
 		{
-			tooltipNum = PREVIOUS_INVENTORY_TOOLTIP = -1;
-			tooltipQuality = PREVIOUS_INVENTORY_TOOLTIP_QUALITY = 0;
+			tooltipNum = -1;
+			tooltipQuality = 0;
+
+			selectedContextItem = i+1;
+			nk_widget(&selectedContextBounds, ctx);
 		}
-		else if ((ctx->last_widget_state & NK_WIDGET_STATE_HOVER))
+		else if ((ctx->last_widget_state & NK_WIDGET_STATE_HOVER) && ret/*keyStatus[A_MOUSE1]*/)
+		{
+			//selectedContextItem = 0;
+			tooltipNum = -1;
+			tooltipQuality = 0;
+
+			// do left click stuff... will just make it bring up context menu like right button for now... should change mouse cursor to drag/drop though...
+			selectedContextItem = i+1;
+			nk_widget(&selectedContextBounds, ctx);
+		}
+		else if ((ctx->last_widget_state & NK_WIDGET_STATE_HOVER) && !selectedContextItem)
 		{// Hoverred...
 			tooltipNum = i;
 			tooltipQuality = quality;
 		}
+#endif
 	}
 
 	nk_style_set_font(ctx, &media->font_14->handle);
 	nk_end(ctx);
+
+	if (selectedContextItem)
+	{
+		struct nk_rect bounds2;
+		bounds2.x = selectedContextBounds.x;
+		bounds2.y = selectedContextBounds.y;
+		bounds2.w = 120.0;
+		bounds2.h = 340.0;// 292.0;
+
+		nk_begin(ctx, "Context", bounds2, NK_WINDOW_NO_SCROLLBAR);
+
+		//nk_window_set_focus(ctx, "Context");
+
+		int ret2 = nk_contextual_begin(ctx, NK_WINDOW_NO_SCROLLBAR, nk_vec2(bounds2.w, bounds2.h), selectedContextBounds);
+
+		/* settings */
+		nk_layout_row_dynamic(ctx, 20, 1);
+
+		int eRight = nk_contextual_item_image_label(ctx, media->play, "Equip Right", NK_TEXT_RIGHT);
+		int eLeft = nk_contextual_item_image_label(ctx, media->play, "Equip Left", NK_TEXT_RIGHT);
+		int qb1 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 1", NK_TEXT_RIGHT);
+		int qb2 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 2", NK_TEXT_RIGHT);
+		int qb3 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 3", NK_TEXT_RIGHT);
+		int qb4 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 4", NK_TEXT_RIGHT);
+		int qb5 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 5", NK_TEXT_RIGHT);
+		int qb6 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 6", NK_TEXT_RIGHT);
+		int qb7 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 7", NK_TEXT_RIGHT);
+		int qb8 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 8", NK_TEXT_RIGHT);
+		int qb9 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 9", NK_TEXT_RIGHT);
+		int qb10 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 10", NK_TEXT_RIGHT);
+		int qb11 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 11", NK_TEXT_RIGHT);
+		int qb12 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 12", NK_TEXT_RIGHT);
+		nk_contextual_end(ctx);
+
+		int selectedItem = selectedContextItem-1;
+
+		if (eRight || eLeft || qb1 || qb2 || qb3 || qb4 || qb5 || qb6 || qb7 || qb8 || qb9 || qb10 || qb11 || qb12)
+		{
+			if (eRight)
+			{
+				ri->Printf(PRINT_WARNING, "Equip %i to right hand.\n", selectedItem);
+			}
+			else if (eLeft)
+			{
+				ri->Printf(PRINT_WARNING, "Equip %i to left hand.\n", selectedItem);
+			}
+			else if (qb1)
+			{
+				ri->Printf(PRINT_WARNING, "Equip %i to quickbar slot 1.\n", selectedItem);
+				quickBarSelections[0] = selectedItem;
+			}
+			else if (qb2)
+			{
+				ri->Printf(PRINT_WARNING, "Equip %i to quickbar slot 2.\n", selectedItem);
+				quickBarSelections[1] = selectedItem;
+			}
+			else if (qb3)
+			{
+				ri->Printf(PRINT_WARNING, "Equip %i to quickbar slot 3.\n", selectedItem);
+				quickBarSelections[2] = selectedItem;
+			}
+			else if (qb4)
+			{
+				ri->Printf(PRINT_WARNING, "Equip %i to quickbar slot 4.\n", selectedItem);
+				quickBarSelections[3] = selectedItem;
+			}
+			else if (qb5)
+			{
+				ri->Printf(PRINT_WARNING, "Equip %i to quickbar slot 5.\n", selectedItem);
+				quickBarSelections[4] = selectedItem;
+			}
+			else if (qb6)
+			{
+				ri->Printf(PRINT_WARNING, "Equip %i to quickbar slot 6.\n", selectedItem);
+				quickBarSelections[5] = selectedItem;
+			}
+			else if (qb7)
+			{
+				ri->Printf(PRINT_WARNING, "Equip %i to quickbar slot 7.\n", selectedItem);
+				quickBarSelections[6] = selectedItem;
+			}
+			else if (qb8)
+			{
+				ri->Printf(PRINT_WARNING, "Equip %i to quickbar slot 8.\n", selectedItem);
+				quickBarSelections[7] = selectedItem;
+			}
+			else if (qb9)
+			{
+				ri->Printf(PRINT_WARNING, "Equip %i to quickbar slot 9.\n", selectedItem);
+				quickBarSelections[8] = selectedItem;
+			}
+			else if (qb10)
+			{
+				ri->Printf(PRINT_WARNING, "Equip %i to quickbar slot 10.\n", selectedItem);
+				quickBarSelections[9] = selectedItem;
+			}
+			else if (qb11)
+			{
+				ri->Printf(PRINT_WARNING, "Equip %i to quickbar slot 11.\n", selectedItem);
+				quickBarSelections[10] = selectedItem;
+			}
+			else if (qb12)
+			{
+				ri->Printf(PRINT_WARNING, "Equip %i to quickbar slot 12.\n", selectedItem);
+				quickBarSelections[11] = selectedItem;
+			}
+
+			selectedContextItem = 0;
+		}
+		else if (keyStatus[A_MOUSE1])
+		{
+			selectedContextItem = 0;
+		}
+
+		nk_end(ctx);
+
+		return;
+	}
+
+	selectedContextItem = 0;
 
 	qboolean usePrevious = (qboolean)(tooltipNum == -1 && PREVIOUS_INVENTORY_TOOLTIP != -1 && backEnd.refdef.time - PREVIOUS_INVENTORY_TOOLTIP_TIME < 500);
 
@@ -2527,6 +2740,8 @@ void GUI_Init(void)
 	GUI_media.menu[4] = icon_load("Warzone/gui/icons/settings.png");
 	GUI_media.menu[5] = icon_load("Warzone/gui/icons/volume.png");
 
+	GUI_media.inventoryBlank = icon_load("Warzone/gui/images/blank.png");
+
 	{
 		int num = 1;
 		for (int i = 0; i < 64; ++i) 
@@ -2697,22 +2912,24 @@ void NuklearUI_Main(void)
 		
 #endif
 
-#if 1 // Disabled until I finish it...
 		/* GUI */
+
+		// Quickbar is always visible...
+		GUI_QuickBar(&GUI_ctx, &GUI_media);
+
 		if (menuOpen)
-		{
+		{// Others need the menu open...
 #ifdef __DEMOS__
 			basic_demo(&GUI_ctx, &GUI_media);
 			button_demo(&GUI_ctx, &GUI_media);
 			grid_demo(&GUI_ctx, &GUI_media);
 #endif
 
-			//GUI_Inventory(&GUI_ctx, &GUI_media);
+			GUI_Inventory(&GUI_ctx, &GUI_media);
 			//GUI_Settings(&GUI_ctx, &GUI_media);
 			GUI_Radio(&GUI_ctx, &GUI_media);
 		}
-		else
-#endif
+		/*else
 		{// Just clear the buffer...
 			FBO_Bind(tr.renderGUIFbo);
 
@@ -2723,7 +2940,7 @@ void NuklearUI_Main(void)
 			FBO_Bind(glState.previousFBO);
 
 			GL_SetDefaultState();
-		}
+		}*/
 
 		/* Draw */
 		device_draw(&GUI_device, &GUI_ctx, width, height, scale, NK_ANTI_ALIASING_ON);

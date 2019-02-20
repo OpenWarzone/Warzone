@@ -3858,7 +3858,7 @@ const void *RB_PostProcess(const void *data)
 		}
 
 		extern qboolean menuOpen;
-		if (menuOpen)
+		//if (menuOpen)
 		{
 			FBO_BlitFromTexture(tr.renderGUIImage, srcBox, NULL, currentFbo, dstBox, NULL, NULL, GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA);
 		}
