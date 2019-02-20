@@ -4,8 +4,8 @@
 ======================
 */
  
-#if defined (_WIN32) && !defined(_DEBUG) && !defined(DEDICATED)
 #include <windows.h>
+#if defined (_WIN32) && !defined(_DEBUG) && !defined(DEDICATED)
 #include <tchar.h>
 #include <stdio.h>
 #include <array>
@@ -502,5 +502,10 @@ static int ReportCrashDump( DWORD excCode, PEXCEPTION_POINTERS pExcPtrs )
 int ReportCrash(DWORD excCode, PEXCEPTION_POINTERS pExcPtrs)
 {
 	return ReportCrashDump(excCode, pExcPtrs);
+}
+#else
+int ReportCrash(DWORD excCode, PEXCEPTION_POINTERS pExcPtrs)
+{
+	return 0;
 }
 #endif
