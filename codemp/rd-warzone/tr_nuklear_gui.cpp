@@ -2914,8 +2914,11 @@ void NuklearUI_Main(void)
 
 		/* GUI */
 
+#define __USE_INV__
 		// Quickbar is always visible...
+#ifdef __USE_INV__
 		GUI_QuickBar(&GUI_ctx, &GUI_media);
+#endif //__USE_INV__
 
 		if (menuOpen)
 		{// Others need the menu open...
@@ -2925,11 +2928,14 @@ void NuklearUI_Main(void)
 			grid_demo(&GUI_ctx, &GUI_media);
 #endif
 
+#ifdef __USE_INV__
 			GUI_Inventory(&GUI_ctx, &GUI_media);
+#endif //__USE_INV__
 			//GUI_Settings(&GUI_ctx, &GUI_media);
 			GUI_Radio(&GUI_ctx, &GUI_media);
 		}
-		/*else
+#ifndef __USE_INV__
+		else
 		{// Just clear the buffer...
 			FBO_Bind(tr.renderGUIFbo);
 
@@ -2940,7 +2946,8 @@ void NuklearUI_Main(void)
 			FBO_Bind(glState.previousFBO);
 
 			GL_SetDefaultState();
-		}*/
+		}
+#endif //__USE_INV__
 
 		/* Draw */
 		device_draw(&GUI_device, &GUI_ctx, width, height, scale, NK_ANTI_ALIASING_ON);

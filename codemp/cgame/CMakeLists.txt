@@ -55,6 +55,7 @@ set(MPCGameCgameFiles
 	"${MPDir}/cgame/cg_light.cpp"
 	"${MPDir}/cgame/cg_localents.cpp"
 	"${MPDir}/cgame/cg_main.cpp"
+	"${MPDir}/cgame/cg_mapefx.cpp"
 	"${MPDir}/cgame/cg_marks.cpp"
 	"${MPDir}/cgame/cg_nav_autowaypoint.cpp"
 	"${MPDir}/cgame/cg_nav_navmesh_creator.cpp"

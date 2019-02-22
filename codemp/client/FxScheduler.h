@@ -165,6 +165,7 @@ public:
 	CFxRange		mSpawnCount;
 	CFxRange		mLife;
 	int				mCullRange;
+	float			mSoundCullRange;
 
 	CMediaHandles	mMediaHandles;
 	CMediaHandles	mImpactFxHandles;

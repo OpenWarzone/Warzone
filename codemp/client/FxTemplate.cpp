@@ -17,6 +17,7 @@ CPrimitiveTemplate::CPrimitiveTemplate()
 	mCopy = false;
 	mName[0] = 0;
 	mCullRange = 0; // no distance culling
+	mSoundCullRange = 0;
 
 	mFlags = mSpawnFlags = 0;
 	mElasticity.SetRange(0.1f, 0.1f);
@@ -75,6 +76,7 @@ CPrimitiveTemplate &CPrimitiveTemplate::operator=(const CPrimitiveTemplate &that
 	mSpawnCount			= that.mSpawnCount;
 	mLife				= that.mLife;
 	mCullRange			= that.mCullRange;
+	mSoundCullRange		= that.mSoundCullRange;
 
 	mMediaHandles		= that.mMediaHandles;
 	mImpactFxHandles	= that.mImpactFxHandles;
@@ -2177,6 +2179,9 @@ bool CPrimitiveTemplate::ParsePrimitive( CGPGroup *grp, void *effect )
 		else if ( !Q_stricmp( key, "cullrange" ) ) {
 //			mCullRange = atoi( val );
 //			mCullRange *= mCullRange; // square it now so we don't have to square every time we compare
+		}
+		else if (!Q_stricmp(key, "soundcullrange")) {
+			mSoundCullRange = atof( val );
 		}
 		else if ( !Q_stricmp( key, "bounce" ) || !Q_stricmp( key, "intensity" ) ) // me==bad for reusing this...but it shouldn't hurt anything)
 			ParseElasticity( val );

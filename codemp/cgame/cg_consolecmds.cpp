@@ -267,6 +267,8 @@ static void CG_SiegeCompleteCvarUpdate_f(void)
 
 extern void FOLIAGE_GenerateFoliage ( void );
 
+extern void CG_ReloadLoadEfxPoints(void);
+
 //[AUTOWAYPOINT]
 extern void AIMod_AutoWaypoint ( void );
 extern void AIMod_AutoWaypoint_Clean ( void );
@@ -444,6 +446,7 @@ static consoleCommand_t	commands[] = {
 	{ "nextskin",					CG_TestModelNextSkin_f },
 	{ "prevframe",					CG_TestModelPrevFrame_f },
 	{ "prevskin",					CG_TestModelPrevSkin_f },
+	{ "reloadefx",					CG_ReloadLoadEfxPoints },
 	{ "showforwardsurface",			CG_ShowForwardSurface },
 	{ "showlifts",					CG_ShowLifts },
 	{ "showskysurface",				CG_ShowSkySurface },

@@ -167,6 +167,7 @@ extern cvar_t	*s_disable;
 extern cvar_t	*s_musicSelection;
 extern cvar_t	*s_volume;
 extern cvar_t	*s_volumeAmbient;
+extern cvar_t	*s_volumeAmbientEfx;
 extern cvar_t	*s_volumeVoice;
 extern cvar_t	*s_volumeEffects;
 extern cvar_t	*s_volumeWeapon;
@@ -174,6 +175,11 @@ extern cvar_t	*s_volumeItem;
 extern cvar_t	*s_volumeBody;
 extern cvar_t	*s_volumeMusic;
 extern cvar_t	*s_volumeLocal;
+
+extern cvar_t		*s_testvalue0;
+extern cvar_t		*s_testvalue1;
+extern cvar_t		*s_testvalue2;
+extern cvar_t		*s_testvalue3;
 
 extern cvar_t	*s_nosound;
 extern cvar_t	*s_khz;

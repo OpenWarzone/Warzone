@@ -833,7 +833,7 @@ void CFxScheduler::PlayEffect( int id, vec3_t origin, matrix3_t axis, const int 
 		prim->mSoundRadius = rad;
 		prim->mSoundVolume = vol;
 
-		if ( prim->mCullRange )
+		if ( prim->mCullRange > 0 )
 		{
 			if ( DistanceSquared( origin, theFxHelper.refdef->vieworg ) > prim->mCullRange ) // cullrange gets squared on load
 			{
@@ -1637,7 +1637,42 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const vec3_t origin, ma
 		}
 		else
 		{
-			theFxHelper.PlaySound( org, ENTITYNUM_NONE, CHAN_AUTO, fx->mMediaHandles.GetHandle(), fx->mSoundVolume, fx->mSoundRadius );
+			//theFxHelper.PlaySound( org, ENTITYNUM_NONE, CHAN_AUTO, fx->mMediaHandles.GetHandle(), fx->mSoundVolume, fx->mSoundRadius ); // UQ1: WTF? This is redirecting to winapi?!?!?!?!?
+			S_StartSound(org, ENTITYNUM_NONE, CHAN_AUTO, fx->mMediaHandles.GetHandle());
+
+			extern sfx_t		s_knownSfx[];
+
+			int sfxHandle = fx->mMediaHandles.GetHandle();
+
+			if (sfxHandle < MAX_SFX)
+			{
+				if (!s_knownSfx[sfxHandle].bInMemory)
+				{
+					S_memoryLoad(&s_knownSfx[sfxHandle]);
+				}
+
+				if (s_knownSfx[sfxHandle].bassSampleID >= 0)
+				{
+					/*
+						prim = fx->mPrimitives[i];
+						prim->mSoundRadius = rad;
+						prim->mSoundVolume = vol;
+					*/
+
+					/* UQ1: mSoundRadius from the trap->PlayEffect call can override the efx's soundCullRange setting if used */
+					float efxcr = (fx->mSoundCullRange > 0.0) ? fx->mSoundCullRange : 2048.0;
+					float efxCullRange = (fx->mSoundRadius > 0.0) ? fx->mSoundRadius : efxcr;
+					float dist = Distance(cl.snap.ps.origin, org);
+					float vol = 1.0 - Q_clamp(0.0, dist / efxCullRange, 1.0);
+					
+					if (vol > 0)
+					{
+						//Com_Printf("BASS_DEBUG: Efx playing sound %s at org %f %f %f vol %f.\n", s_knownSfx[sfxHandle].sSoundName, org[0], org[1], org[2], vol);
+						extern void BASS_AddEfxMemoryChannel(DWORD samplechan, int entityNum, int entityChannel, vec3_t origin, float volume, float cullRange);
+						BASS_AddEfxMemoryChannel(s_knownSfx[sfxHandle].bassSampleID, -1, CHAN_AMBIENT_EFX, org, 1.0, efxCullRange);
+					}
+				}
+			}
 		}
 		break;
 

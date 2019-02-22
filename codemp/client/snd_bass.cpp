@@ -14,8 +14,13 @@ using namespace tthread;
 extern cvar_t		*s_khz;
 extern vec3_t		s_entityPosition[MAX_GENTITIES];
 
-extern int	s_soundStarted;
-extern int	s_numSfx;
+extern cvar_t		*s_testvalue0;
+extern cvar_t		*s_testvalue1;
+extern cvar_t		*s_testvalue2;
+extern cvar_t		*s_testvalue3;
+
+extern int			s_soundStarted;
+extern int			s_numSfx;
 
 extern qboolean S_StartBackgroundTrack_Actual( const char *intro, const char *loop );
 
@@ -26,7 +31,8 @@ qboolean EAX_SUPPORTED = qtrue;
 
 #define SOUND_3D_METHOD					BASS_3DMODE_NORMAL //BASS_3DMODE_RELATIVE
 
-float	MIN_SOUND_RANGE					=	256.0; //256.0
+float	MIN_SOUND_RANGE					= 256.0;
+//#define MIN_SOUND_RANGE s_testvalue0->value
 float	MAX_SOUND_RANGE					=	2048.0; // 3072.0
 
 int		SOUND_CONE_INSIDE_ANGLE			=	-1;//120;
@@ -35,11 +41,14 @@ float	SOUND_CONE_OUTSIDE_VOLUME		=	0;//0.9;
 
 // Use meters as distance unit, real world rolloff, real doppler effect
 // 1.0 = use meters, 0.9144 = use yards, 0.3048 = use feet.
-float	SOUND_DISTANCE_UNIT_SIZE		=	0.3048; // UQ1: It would seem that this is close to the right conversion for Q3 units... unsure though...
+float	SOUND_DISTANCE_UNIT_SIZE		= 0.3048; // UQ1: It would seem that this is close to the right conversion for Q3 units... unsure though...
+//#define SOUND_DISTANCE_UNIT_SIZE s_testvalue1->value
 // 0.0 = no rolloff, 1.0 = real world, 2.0 = 2x real.
-float	SOUND_REAL_WORLD_FALLOFF		=	1.0;//0.3048;//1.0; //0.3048
+float	SOUND_REAL_WORLD_FALLOFF		= 1.0;//0.3048;//1.0; //0.3048
+//#define SOUND_REAL_WORLD_FALLOFF s_testvalue2->value
 // 0.0 = no doppler, 1.0 = real world, 2.0 = 2x real.
-float	SOUND_REAL_WORLD_DOPPLER		=	0.1048; //1.0 //0.3048
+float	SOUND_REAL_WORLD_DOPPLER		= 0.1048; //1.0 //0.3048
+//#define SOUND_REAL_WORLD_DOPPLER s_testvalue3->value
 
 
 qboolean BASS_UPDATE_THREAD_RUNNING = qfalse;
@@ -63,6 +72,7 @@ typedef struct {
 	qboolean		isActive;
 	qboolean		startRequest;
 	qboolean		isLooping;
+	float			cullRange;
 } Channel;
 
 Channel		MUSIC_CHANNEL;
@@ -502,23 +512,24 @@ qboolean BASS_Initialize ( void )
 float BASS_GetVolumeForChannel ( int entchannel )
 {
 	float		volume = 1;
-	float		normal_vol, voice_vol, effects_vol, ambient_vol, weapon_vol, item_vol, body_vol, music_vol, local_vol;
+	float		normal_vol, voice_vol, effects_vol, ambient_vol, weapon_vol, item_vol, body_vol, music_vol, local_vol, ambient_effects_vol;
 
 	if (BASS_CheckSoundDisabled())
 	{
 		return 0.0;
 	}
 
-	normal_vol		= s_volume->value;
-	voice_vol		= (s_volumeVoice->value*normal_vol);
-	ambient_vol		= (s_volumeAmbient->value*normal_vol);
-	music_vol		= (s_volumeMusic->value*normal_vol);
-	local_vol		= (s_volumeLocal->value*normal_vol);
+	normal_vol			= s_volume->value;
+	voice_vol			= (s_volumeVoice->value*normal_vol);
+	ambient_vol			= (s_volumeAmbient->value*normal_vol);
+	ambient_effects_vol	= (s_volumeAmbientEfx->value*normal_vol);
+	music_vol			= (s_volumeMusic->value*normal_vol);
+	local_vol			= (s_volumeLocal->value*normal_vol);
 
-	effects_vol		= (s_volumeEffects->value*normal_vol);
-	weapon_vol		= (s_volumeWeapon->value*effects_vol);
-	item_vol		= (s_volumeItem->value*effects_vol);
-	body_vol		= (s_volumeBody->value*effects_vol);
+	effects_vol			= (s_volumeEffects->value*normal_vol);
+	weapon_vol			= (s_volumeWeapon->value*effects_vol);
+	item_vol			= (s_volumeItem->value*effects_vol);
+	body_vol			= (s_volumeBody->value*effects_vol);
 
 	if ( entchannel == CHAN_VOICE || entchannel == CHAN_VOICE_ATTEN )
 	{
@@ -536,15 +547,19 @@ float BASS_GetVolumeForChannel ( int entchannel )
 	{
 		volume = body_vol;
 	}
-	else if ( entchannel == CHAN_LESS_ATTEN || entchannel == CHAN_AUTO)
+	else if (entchannel == CHAN_LESS_ATTEN || entchannel == CHAN_AUTO || entchannel == CHAN_AMBIENT_EFX)
 	{
 		volume = effects_vol;
 	}
-	else if ( entchannel == CHAN_AMBIENT )
+	else if (entchannel == CHAN_AMBIENT_EFX)
+	{
+		volume = ambient_effects_vol;
+	}
+	else if (entchannel == CHAN_AMBIENT)
 	{
 		volume = ambient_vol;
 	}
-	else if ( entchannel == CHAN_MUSIC )
+	else if (entchannel == CHAN_MUSIC)
 	{
 		volume = music_vol;
 	}
@@ -571,6 +586,8 @@ void BASS_UpdatePosition ( int ch, qboolean IS_NEW_SOUND )
 
 	if (!c) return; // should be impossible, but just in case...
 	//if (!IS_NEW_SOUND && !c->isLooping) return; // We don't even need to update do we???
+
+	float dist = (c->origin[0] == 0 && c->origin[1] == 0 && c->origin[2] == 0) ? 0.0 : Distance(cl.snap.ps.origin, c->origin);
 
 	SOUND_ENTITY = c->entityNum;
 	CHAN_VOLUME = c->volume*BASS_GetVolumeForChannel(c->entityChannel);
@@ -605,11 +622,38 @@ void BASS_UpdatePosition ( int ch, qboolean IS_NEW_SOUND )
 		VectorSet(c->origin, 0, 0, 0);
 		IS_LOCAL_SOUND = qtrue;
 	}
-
-	if (c->entityChannel == CHAN_AMBIENT || c->entityChannel == CHAN_WEAPONLOCAL)
+	else if (c->entityChannel == CHAN_AMBIENT || c->entityChannel == CHAN_WEAPONLOCAL)
 	{// Force all ambient sounds to local...
 		VectorSet(c->origin, 0, 0, 0);
 		IS_LOCAL_SOUND = qtrue;
+	}
+	else if (c->cullRange && dist > c->cullRange)
+	{// Left sound range, remove it...
+		BASS_StopChannel(c->channel);
+		return;
+	}
+	else if (c->cullRange)
+	{// Update volume...
+		float vol = 1.0 - Q_clamp(0.0, dist / c->cullRange, 1.0);
+		c->volume = vol;
+		CHAN_VOLUME = c->volume*BASS_GetVolumeForChannel(c->entityChannel);
+	}
+	else if (dist > MAX_SOUND_RANGE)
+	{// Left sound range, remove it...
+		BASS_StopChannel(c->channel);
+		return;
+	}
+	else
+	{// Update volume...
+		float vol = 1.0 - Q_clamp(0.0, dist / MAX_SOUND_RANGE, 1.0);
+		c->volume = vol;
+		CHAN_VOLUME = c->volume*BASS_GetVolumeForChannel(c->entityChannel);
+	}
+
+	if (CHAN_VOLUME <= 0.0)
+	{
+		BASS_StopChannel(c->channel);
+		return;
 	}
 
 	c->vel.x = 0;
@@ -621,9 +665,6 @@ void BASS_UpdatePosition ( int ch, qboolean IS_NEW_SOUND )
 #else //__BASS_PLAYER_BASED_LOCATIONS__
 	VectorSet(porg, 0, 0, 0);
 #endif //__BASS_PLAYER_BASED_LOCATIONS__
-	//porg[0] /= 1000;
-	//porg[1] /= 1000;
-	//porg[2] /= 1000;
 
 	if (IS_LOCAL_SOUND)
 	{
@@ -636,7 +677,7 @@ void BASS_UpdatePosition ( int ch, qboolean IS_NEW_SOUND )
 
 		//if (!BASS_ChannelIsSliding(c->channel, BASS_ATTRIB_VOL))
 		{
-			BASS_ChannelSet3DAttributes(c->channel, SOUND_3D_METHOD, -1, -1, -1, -1, -1);
+			BASS_ChannelSet3DAttributes(c->channel, BASS_3DMODE_OFF/*SOUND_3D_METHOD*/, -1, -1, -1, -1, -1);
 			BASS_ChannelSetAttribute(c->channel, BASS_ATTRIB_VOL, CHAN_VOLUME);
 			//if (CHAN_VOLUME > 0) Com_Printf("LOCAL Volume %f.\n", CHAN_VOLUME);
 		}
@@ -648,9 +689,6 @@ void BASS_UpdatePosition ( int ch, qboolean IS_NEW_SOUND )
 #else //__BASS_PLAYER_BASED_LOCATIONS__
 		VectorSubtract(c->origin, cl.snap.ps.origin, corg);
 #endif //__BASS_PLAYER_BASED_LOCATIONS__
-		//corg[0] /= 1000;
-		//corg[1] /= 1000;
-		//corg[2] /= 1000;
 
 		// Set origin...
 		c->pos.x = corg[0];
@@ -662,9 +700,14 @@ void BASS_UpdatePosition ( int ch, qboolean IS_NEW_SOUND )
 		BASS_ChannelSet3DPosition(c->channel, &c->pos, NULL, &c->vel);
 
 		//if (!BASS_ChannelIsSliding(c->channel, BASS_ATTRIB_VOL))
-		if (IS_NEW_SOUND)
+		//if (IS_NEW_SOUND)
 		{
-			BASS_ChannelSet3DAttributes(c->channel, SOUND_3D_METHOD, MIN_SOUND_RANGE, MAX_SOUND_RANGE, SOUND_CONE_INSIDE_ANGLE, SOUND_CONE_OUTSIDE_ANGLE, SOUND_CONE_OUTSIDE_VOLUME*CHAN_VOLUME);
+			// UQ1: Now doing volume stuff manually... bass is wierd...
+			if (c->cullRange)
+				BASS_ChannelSet3DAttributes(c->channel, SOUND_3D_METHOD, c->cullRange, c->cullRange, SOUND_CONE_INSIDE_ANGLE, SOUND_CONE_OUTSIDE_ANGLE, SOUND_CONE_OUTSIDE_VOLUME*CHAN_VOLUME);
+			else
+				BASS_ChannelSet3DAttributes(c->channel, SOUND_3D_METHOD, MAX_SOUND_RANGE/*MIN_SOUND_RANGE*/, MAX_SOUND_RANGE, SOUND_CONE_INSIDE_ANGLE, SOUND_CONE_OUTSIDE_ANGLE, SOUND_CONE_OUTSIDE_VOLUME*CHAN_VOLUME);
+
 			BASS_ChannelSetAttribute(c->channel, BASS_ATTRIB_VOL, CHAN_VOLUME);
 			BASS_ChannelFlags(c->channel, BASS_SAMPLE_MUTEMAX, BASS_SAMPLE_MUTEMAX); // enable muting at the max distance
 			//if (CHAN_VOLUME > 0) Com_Printf("3D Volume %f.\n", CHAN_VOLUME);
@@ -949,7 +992,7 @@ void BASS_StartMusic ( DWORD samplechan )
 	BASS_ChannelSet3DPosition(MUSIC_CHANNEL.channel, &MUSIC_CHANNEL.pos, NULL, &MUSIC_CHANNEL.vel);
 
 	float CHAN_VOLUME = MUSIC_CHANNEL.volume*BASS_GetVolumeForChannel(MUSIC_CHANNEL.entityChannel);
-	BASS_ChannelSet3DAttributes(MUSIC_CHANNEL.channel, SOUND_3D_METHOD, -1, -1, -1, -1, -1);
+	BASS_ChannelSet3DAttributes(MUSIC_CHANNEL.channel, BASS_3DMODE_OFF/*SOUND_3D_METHOD*/, -1, -1, -1, -1, -1);
 	BASS_ChannelSetAttribute(MUSIC_CHANNEL.channel, BASS_ATTRIB_VOL, CHAN_VOLUME);
 	BASS_Apply3D();
 
@@ -2133,7 +2176,7 @@ void BASS_AddMemoryChannel ( DWORD samplechan, int entityNum, int entityChannel,
 	c->originalChannel=c->channel=samplechan;
 	c->entityNum = entityNum;
 	c->entityChannel = entityChannel;
-	c->volume = volume;
+	c->volume = (volume <= 1.0) ? volume : Q_clamp(0.0, volume / 255.0, 1.0); // In case someone uses a 255 based int volume somewhere, convert to 0-1
 
 	if (origin) VectorCopy(origin, c->origin);
 	else VectorSet(c->origin, 0, 0, 0);
@@ -2146,6 +2189,70 @@ void BASS_AddMemoryChannel ( DWORD samplechan, int entityNum, int entityChannel,
 	c->isActive = qtrue;
 	c->isLooping = qfalse;
 	c->startRequest = qtrue;
+	c->cullRange = 0;
+}
+
+void BASS_AddEfxMemoryChannel(DWORD samplechan, int entityNum, int entityChannel, vec3_t origin, float volume, float cullRange)
+{
+	if (BASS_CheckSoundDisabled()) return;
+
+	if (origin)	if (cullRange > 0.0 && Distance(cl.snap.ps.origin, origin) > cullRange) return;
+
+	//
+	// UQ1: Since it seems these also re-call this function to update positions, etc, run a check first...
+	//
+	//if (origin)
+	{// If there's no origin, surely this can't be an update...
+		for (int ch = 0; ch < MAX_BASS_CHANNELS; ch++)
+		{
+			if (SOUND_CHANNELS[ch].isActive && SOUND_CHANNELS[ch].isLooping)
+			{// This is active and looping...
+				if (SOUND_CHANNELS[ch].entityChannel == entityChannel
+					&& (SOUND_CHANNELS[ch].entityNum == entityNum || entityNum == -1)
+					&& SOUND_CHANNELS[ch].originalChannel == samplechan)
+				{// This is our sound! Just update it (and then return)...
+					Channel *c = &SOUND_CHANNELS[ch];
+					if (origin) VectorCopy(origin, c->origin);
+					c->volume = volume;
+					//Com_Printf("BASS DEBUG: Sound position (%f %f %f) and volume (%f) updated.\n", origin[0], origin[1], origin[2], volume);
+					return;
+				}
+			}
+		}
+	}
+
+	/*if (origin)
+	Com_Printf("BASS DEBUG: Sound %i for entity %i channel %i position (%f %f %f) and volume (%f) added.\n", (int)samplechan, entityNum, entityChannel, origin[0], origin[1], origin[2], volume);
+	else
+	Com_Printf("BASS DEBUG: Sound %i for entity %i channel %i position (%f %f %f) and volume (%f) added.\n", (int)samplechan, entityNum, entityChannel, 0, 0, 0, volume);*/
+
+	int chan = BASS_FindFreeChannel();
+
+	if (chan < 0)
+	{// No channel left to play on...
+		Com_Printf("BASS: No free sound channels.\n");
+		return;
+	}
+
+	// Load a music or sample from "file" (memory)
+	Channel *c = &SOUND_CHANNELS[chan];
+	c->originalChannel = c->channel = samplechan;
+	c->entityNum = entityNum;
+	c->entityChannel = entityChannel;
+	c->volume = volume;
+
+	if (origin) VectorCopy(origin, c->origin);
+	else VectorSet(c->origin, 0, 0, 0);
+
+	if (c->entityChannel == CHAN_AMBIENT || c->entityChannel == CHAN_WEAPONLOCAL)
+	{// Force all ambient sounds to local...
+		VectorSet(c->origin, 0, 0, 0);
+	}
+
+	c->isActive = qtrue;
+	c->isLooping = qtrue;
+	c->startRequest = qtrue;
+	c->cullRange = cullRange;
 }
 
 void BASS_AddMemoryLoopChannel ( DWORD samplechan, int entityNum, int entityChannel, vec3_t origin, float volume )
@@ -2208,6 +2315,7 @@ void BASS_AddMemoryLoopChannel ( DWORD samplechan, int entityNum, int entityChan
 	c->isActive = qtrue;
 	c->isLooping = qtrue;
 	c->startRequest = qtrue;
+	c->cullRange = 0;
 }
 
 DWORD BASS_LoadMemorySample ( void *memory, int length )

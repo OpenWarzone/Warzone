@@ -3516,6 +3516,7 @@ void Warzone_Nav_VisualizeNavMesh(void);
 
 void FOLIAGE_DrawGrass( void );
 void CG_DrawCubemaps(void);
+void CG_AddMapEfx(void);
 
 /*
 ===============
@@ -3537,6 +3538,7 @@ void CG_AddPacketEntities( qboolean isPortal ) {
 //[/AUTOWAYPOINT]
 
 	CG_DrawCubemaps();
+	CG_AddMapEfx();
 
 	if (isPortal)
 	{
