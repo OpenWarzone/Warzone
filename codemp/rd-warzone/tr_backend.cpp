@@ -1084,6 +1084,11 @@ static int RealtimeSurfaceCompare(const void *a, const void *b)
 	else if (qboolean(shadera == tr.moonShader) > qboolean(shaderb == tr.moonShader))
 		return 1;
 
+	if (qboolean(shadera->materialType == MATERIAL_MENU_BACKGROUND) < qboolean(shaderb->materialType == MATERIAL_MENU_BACKGROUND))
+		return -1;
+	else if (qboolean(shadera->materialType == MATERIAL_MENU_BACKGROUND) > qboolean(shaderb->materialType == MATERIAL_MENU_BACKGROUND))
+		return 1;
+
 	if (qboolean(shadera->materialType == MATERIAL_FIRE) < qboolean(shaderb->materialType == MATERIAL_FIRE))
 		return -1;
 	else if (qboolean(shadera->materialType == MATERIAL_FIRE) > qboolean(shaderb->materialType == MATERIAL_FIRE))

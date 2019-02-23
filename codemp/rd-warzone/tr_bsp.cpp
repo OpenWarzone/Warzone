@@ -2097,6 +2097,11 @@ static int BSPSurfaceCompare(const void *a, const void *b)
 	else if (qboolean(aa->shader == tr.sunShader) > qboolean(bb->shader == tr.sunShader))
 		return 1;
 
+	if (qboolean(aa->shader->materialType == MATERIAL_MENU_BACKGROUND) < qboolean(bb->shader->materialType == MATERIAL_MENU_BACKGROUND))
+		return -1;
+	else if (qboolean(aa->shader->materialType == MATERIAL_MENU_BACKGROUND) > qboolean(bb->shader->materialType == MATERIAL_MENU_BACKGROUND))
+		return 1;
+
 	if (qboolean(aa->shader->materialType == MATERIAL_FIRE) < qboolean(bb->shader->materialType == MATERIAL_FIRE))
 		return -1;
 	else if (qboolean(aa->shader->materialType == MATERIAL_FIRE) > qboolean(bb->shader->materialType == MATERIAL_FIRE))
@@ -4154,6 +4159,7 @@ qboolean R_MaterialUsesCubemap ( int materialType)
 	case MATERIAL_MAGIC_PARTICLES_TREE:
 	case MATERIAL_FIREFLIES:
 	case MATERIAL_PORTAL:
+	case MATERIAL_MENU_BACKGROUND:
 		return qfalse;
 		break;
 	case MATERIAL_SKYSCRAPER:

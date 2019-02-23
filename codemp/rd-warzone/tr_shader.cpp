@@ -4043,6 +4043,7 @@ qboolean HaveSurfaceType( int materialType)
 	case MATERIAL_MAGIC_PARTICLES_TREE:
 	case MATERIAL_FIREFLIES:
 	case MATERIAL_PORTAL:
+	case MATERIAL_MENU_BACKGROUND:
 	case MATERIAL_SKYSCRAPER:
 	case MATERIAL_DISTORTEDGLASS:
 	case MATERIAL_DISTORTEDPUSH:
@@ -4203,6 +4204,9 @@ void DebugSurfaceTypeSelection( const char *name, int materialType)
 		break;
 	case MATERIAL_PORTAL:
 		ri->Printf(PRINT_WARNING, "Surface %s was set to MATERIAL_PORTAL.\n", name);
+		break;
+	case MATERIAL_MENU_BACKGROUND:
+		ri->Printf(PRINT_WARNING, "Surface %s was set to MATERIAL_MENU_BACKGROUND.\n", name);
 		break;
 	case MATERIAL_SKYSCRAPER:
 		ri->Printf(PRINT_WARNING, "Surface %s was set to MATERIAL_SKYSCRAPER.\n", name);
@@ -4384,7 +4388,7 @@ int DetectMaterialType ( const char *name )
 	case MATERIAL_CLOAK:
 		break;
 	default:
-		if (isEfxShader) sh->materialType = MATERIAL_EFX;
+		if (isEfxShader && sh->materialType != MATERIAL_MENU_BACKGROUND) sh->materialType = MATERIAL_EFX;
 		if (sh->materialType == MATERIAL_NONE) sh->materialType = material;
 		break;
 	}*/
@@ -9101,7 +9105,7 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 				case MATERIAL_CLOAK:
 					break;
 				default:
-					if (isEfxShader) sh->materialType = MATERIAL_EFX;
+					if (isEfxShader && sh->materialType != MATERIAL_MENU_BACKGROUND) sh->materialType = MATERIAL_EFX;
 					if (sh->materialType == MATERIAL_NONE) sh->materialType = material;
 					break;
 				}
@@ -9129,7 +9133,7 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 				case MATERIAL_CLOAK:
 					break;
 				default:
-					if (isEfxShader) sh->materialType = MATERIAL_EFX;
+					if (isEfxShader && sh->materialType != MATERIAL_MENU_BACKGROUND) sh->materialType = MATERIAL_EFX;
 					if (sh->materialType == MATERIAL_NONE) sh->materialType = material;
 					break;
 				}
@@ -9156,7 +9160,7 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 				case MATERIAL_CLOAK:
 					break;
 				default:
-					if (isEfxShader) sh->materialType = MATERIAL_EFX;
+					if (isEfxShader && sh->materialType != MATERIAL_MENU_BACKGROUND) sh->materialType = MATERIAL_EFX;
 					if (sh->materialType == MATERIAL_NONE) sh->materialType = material;
 					break;
 				}
@@ -9183,7 +9187,7 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 				case MATERIAL_CLOAK:
 					break;
 				default:
-					if (isEfxShader) sh->materialType = MATERIAL_EFX;
+					if (isEfxShader && sh->materialType != MATERIAL_MENU_BACKGROUND) sh->materialType = MATERIAL_EFX;
 					if (sh->materialType == MATERIAL_NONE) sh->materialType = material;
 					break;
 				}
@@ -9210,7 +9214,7 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 				case MATERIAL_CLOAK:
 					break;
 				default:
-					if (isEfxShader) sh->materialType = MATERIAL_EFX;
+					if (isEfxShader && sh->materialType != MATERIAL_MENU_BACKGROUND) sh->materialType = MATERIAL_EFX;
 					if (sh->materialType == MATERIAL_NONE) sh->materialType = material;
 					break;
 				}
@@ -9424,7 +9428,7 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 
 				sh = FinishShader();
 
-				if (isEfxShader) sh->materialType = MATERIAL_EFX;
+				if (isEfxShader && sh->materialType != MATERIAL_MENU_BACKGROUND) sh->materialType = MATERIAL_EFX;
 				if (sh->materialType == MATERIAL_NONE) sh->materialType = material;
 
 				//findshader_lock.unlock();
@@ -9502,7 +9506,7 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 			case MATERIAL_CLOAK:
 				break;
 			default:
-				if (isEfxShader) sh->materialType = MATERIAL_EFX;
+				if (isEfxShader && sh->materialType != MATERIAL_MENU_BACKGROUND) sh->materialType = MATERIAL_EFX;
 				break;
 			}
 
@@ -9608,7 +9612,7 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 		stages[1].stateBits |= GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO;
 	}
 
-	if (isEfxShader) shader.materialType = MATERIAL_EFX;
+	if (isEfxShader && shader.materialType != MATERIAL_MENU_BACKGROUND) shader.materialType = MATERIAL_EFX;
 #ifndef __SHADER_GENERATOR__
 	int material = DetectMaterialType(name);
 #endif //__SHADER_GENERATOR__

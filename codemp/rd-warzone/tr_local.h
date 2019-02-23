@@ -3032,6 +3032,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t magicParticlesTreeShader;
 	shaderProgram_t magicParticlesFireFlyShader;
 	shaderProgram_t portalShader;
+	shaderProgram_t menuBackgroundShader;
 	shaderProgram_t shadowmapShader;
 	shaderProgram_t pshadowShader[3];
 	shaderProgram_t down4xShader;

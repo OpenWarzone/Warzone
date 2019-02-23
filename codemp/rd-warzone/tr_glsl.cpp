@@ -48,6 +48,8 @@ extern const char *fallbackShader_planet_vp;
 extern const char *fallbackShader_planet_fp;
 extern const char *fallbackShader_fire_vp;
 extern const char *fallbackShader_fire_fp;
+extern const char *fallbackShader_menuBackground_vp;
+extern const char *fallbackShader_menuBackground_fp;
 extern const char *fallbackShader_smoke_vp;
 extern const char *fallbackShader_smoke_fp;
 extern const char *fallbackShader_magicParticles_vp;
@@ -1632,12 +1634,13 @@ const char glslMaterialsList[] =
 "#define MATERIAL_MAGIC_PARTICLES_TREE			42\n"\
 "#define MATERIAL_MAGIC_PARTICLES				43\n"\
 "#define MATERIAL_PORTAL						44\n"\
-"#define MATERIAL_SKYSCRAPER					45\n"\
-"#define MATERIAL_DISTORTEDGLASS				46\n"\
-"#define MATERIAL_DISTORTEDPUSH					47\n"\
-"#define MATERIAL_DISTORTEDPULL					48\n"\
-"#define MATERIAL_CLOAK							49\n"\
-"#define MATERIAL_LAST							50\n"\
+"#define MATERIAL_MENU_BACKGROUND				45\n"\
+"#define MATERIAL_SKYSCRAPER					46\n"\
+"#define MATERIAL_DISTORTEDGLASS				47\n"\
+"#define MATERIAL_DISTORTEDPUSH					48\n"\
+"#define MATERIAL_DISTORTEDPULL					49\n"\
+"#define MATERIAL_CLOAK							50\n"\
+"#define MATERIAL_LAST							51\n"\
 "#define MATERIAL_SKY							1024\n"\
 "#define MATERIAL_SUN							1025\n"\
 "\n";
@@ -3619,6 +3622,14 @@ int GLSL_BeginLoadGPUShaders(void)
 		ri->Error(ERR_FATAL, "Could not load fire shader!");
 	}
 
+	attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_COLOR | ATTR_NORMAL | ATTR_TEXCOORD1 | ATTR_POSITION2 | ATTR_NORMAL2;
+	extradefines[0] = '\0';
+
+	if (!GLSL_BeginLoadGPUShader(&tr.menuBackgroundShader, "menuBackground", attribs, qtrue, qfalse, qfalse, extradefines, qtrue, NULL, fallbackShader_menuBackground_vp, fallbackShader_menuBackground_fp, NULL, NULL, NULL))
+	{
+		ri->Error(ERR_FATAL, "Could not load menuBackground shader!");
+	}
+
 
 	attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_COLOR | ATTR_NORMAL | ATTR_TEXCOORD1 | ATTR_POSITION2 | ATTR_NORMAL2;
 	extradefines[0] = '\0';
@@ -4863,6 +4874,24 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 #if defined(_DEBUG)
 	GLSL_FinishGPUShader(&tr.fireShader);
+#endif
+
+	numLightShaders++;
+
+
+
+	if (!GLSL_EndLoadGPUShader(&tr.menuBackgroundShader))
+	{
+		ri->Error(ERR_FATAL, "Could not load menuBackground shader!");
+	}
+
+	GLSL_InitUniforms(&tr.menuBackgroundShader);
+
+	GLSL_BindProgram(&tr.menuBackgroundShader);
+	GLSL_SetUniformInt(&tr.menuBackgroundShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+
+#if defined(_DEBUG)
+	GLSL_FinishGPUShader(&tr.menuBackgroundShader);
 #endif
 
 	numLightShaders++;
@@ -6999,6 +7028,7 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.magicParticlesTreeShader);
 	GLSL_DeleteGPUShader(&tr.magicParticlesFireFlyShader);
 	GLSL_DeleteGPUShader(&tr.portalShader);
+	GLSL_DeleteGPUShader(&tr.menuBackgroundShader);
 
 	GLSL_DeleteGPUShader(&tr.shadowmapShader);
 	GLSL_DeleteGPUShader(&tr.pshadowShader[0]);

@@ -126,12 +126,13 @@
 #define MATERIAL_MAGIC_PARTICLES_TREE			42			// magic tree particle fx
 #define MATERIAL_MAGIC_PARTICLES				43			// magic particles (small particle fx)
 #define MATERIAL_PORTAL							44			// area transition portal
-#define MATERIAL_SKYSCRAPER						45			// warzone sky scrapers
-#define MATERIAL_DISTORTEDGLASS					46			// warzone distorted glass
-#define MATERIAL_DISTORTEDPUSH					47			// warzone distorted push
-#define MATERIAL_DISTORTEDPULL					48			// warzone distorted pull
-#define MATERIAL_CLOAK							49			// warzone cloak
-#define MATERIAL_LAST							50			// number of materials
+#define MATERIAL_MENU_BACKGROUND				45			// main menu background glsl
+#define MATERIAL_SKYSCRAPER						46			// warzone sky scrapers
+#define MATERIAL_DISTORTEDGLASS					47			// warzone distorted glass
+#define MATERIAL_DISTORTEDPUSH					48			// warzone distorted push
+#define MATERIAL_DISTORTEDPULL					49			// warzone distorted pull
+#define MATERIAL_CLOAK							50			// warzone cloak
+#define MATERIAL_LAST							51			// number of materials
 
 // Defined as a macro here so one change will affect all the relevant files
 
@@ -181,6 +182,7 @@
 	"magicparticlestree",				\
 	"magicparticles",					\
 	"portal",							\
+	"menubackground",					\
 	"skyscraper",						\
 	"distortedglass",					\
 	"distortedpush",					\

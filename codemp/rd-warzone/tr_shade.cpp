@@ -1535,6 +1535,7 @@ void RB_PBR_DefaultsForMaterial(float *settings, int MATERIAL_TYPE)
 	case MATERIAL_MAGIC_PARTICLES_TREE:
 	case MATERIAL_FIREFLIES:
 	case MATERIAL_PORTAL:
+	case MATERIAL_MENU_BACKGROUND:
 		specularScale = 0.0;
 		cubemapScale = 0.0;
 		parallaxScale = 0.0;
@@ -2673,7 +2674,6 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				forceDetail = qtrue;
 		}
 
-
 #define __USE_DETAIL_CHECKING__			// Check and treat stages found to be random details (lightmap stages, 2d, etc) differently...
 #define __USE_DETAIL_DEPTH_SKIP__		// Skip drawing detail crap at all in shadow and depth prepasses - they should never be needed...
 #define __LIGHTMAP_IS_DETAIL__			// Lightmap stages are considered detail...
@@ -2791,6 +2791,22 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			multiPass = qfalse;
 
 			GLSL_BindProgram(sp);
+		}
+		else if (tess.shader->materialType == MATERIAL_MENU_BACKGROUND)
+		{
+			// Special case for procedural menu background...
+			if (IS_DEPTH_PASS) return;
+			if (stage > 0) return;
+
+			sp = &tr.menuBackgroundShader;
+			GLSL_SetUniformFloat(sp, UNIFORM_TIME, tess.shaderTime);
+			isGrass = qfalse;
+			isGroundFoliage = qfalse;
+			multiPass = qfalse;
+
+			GLSL_BindProgram(sp);
+
+			//ri->Printf(PRINT_WARNING, "using procedural menu background.\n");
 		}
 		else if (tess.shader->materialType == MATERIAL_FIRE)
 		{// Special case for procedural fire...
@@ -3472,6 +3488,11 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		{
 			stateBits = GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_ATEST_GT_0;
 			pStage->stateBits = stateBits;
+		}
+		else if (tess.shader->materialType == MATERIAL_MENU_BACKGROUND)
+		{// Special case for procedural main menu background...
+			//stateBits = GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_ATEST_GT_0;
+			//pStage->stateBits = stateBits;
 		}
 		else if (tess.shader->materialType == MATERIAL_FIRE)
 		{// Special case for procedural fire...
@@ -4487,6 +4508,21 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				VectorSet4(loc, SUN_COLOR_TERTIARY[0], SUN_COLOR_TERTIARY[1], SUN_COLOR_TERTIARY[2], 0.0);
 				GLSL_SetUniformVec4(sp, UNIFORM_LOCAL9, loc);
 
+				GL_Cull(CT_TWO_SIDED);
+			}
+			else if (tess.shader->materialType == MATERIAL_MENU_BACKGROUND)
+			{// Special case for procedural main menu background...
+				//stateBits = GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_ATEST_GT_0;
+				RB_SetMaterialBasedProperties(sp, pStage, stage, qfalse);
+
+				vec2_t ss;
+				ss[0] = glConfig.vidWidth * r_superSampleMultiplier->value;
+				ss[1] = glConfig.vidHeight * r_superSampleMultiplier->value;
+				GLSL_SetUniformVec2(sp, UNIFORM_DIMENSIONS, ss);
+
+				//GL_BindToTMU(tr.moonImage, TB_DIFFUSEMAP);
+
+				GLSL_SetUniformFloat(sp, UNIFORM_TIME, tess.shaderTime*10.0);
 				GL_Cull(CT_TWO_SIDED);
 			}
 			else if (tess.shader->materialType == MATERIAL_FIRE)

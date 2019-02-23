@@ -1137,6 +1137,7 @@ int uq_radio(struct nk_context *ctx, struct media *media, char *label, int curre
 	*                  RADIO
 	*------------------------------------------------*/
 
+#if 0
 	nk_style_set_font(ctx, &media->font_14->handle);
 
 	uq_widget(ctx, media, 35, maxSetting);
@@ -1150,6 +1151,20 @@ int uq_radio(struct nk_context *ctx, struct media *media, char *label, int curre
 		if (selected)
 			setting = i;
 	}
+#else
+	//nk_layout_row_dynamic(ctx, 30, maxSetting+2);
+	nk_layout_row_dynamic(ctx, 30, 2);
+	nk_label(ctx, label, NK_TEXT_LEFT);
+	
+	nk_layout_row_dynamic(ctx, 30, maxSetting + 1);
+	for (int i = 0; i <= maxSetting; i++)
+	{
+		if (nk_option_label(ctx, va("%i", i), (currentSetting == i) ? 1 : 0))
+		{
+			setting = i;
+		}
+	}
+#endif
 
 	return setting;
 }
@@ -1196,6 +1211,7 @@ int GUI_PostProcessUpdateUI(struct nk_context *ctx, struct media *media) {
 
 	for (int i = 0; i < GUI_PostProcessNumCvars; i++)
 	{
+#if 0
 		if (GUI_PostProcessMax[i] == 1)
 		{
 			if (GUI_PostProcessCvars[i]->displayInfoSet && GUI_PostProcessCvars[i]->displayName && GUI_PostProcessCvars[i]->displayName[0])
@@ -1218,6 +1234,16 @@ int GUI_PostProcessUpdateUI(struct nk_context *ctx, struct media *media) {
 				GUI_PostProcessValue[i] = uq_radio(ctx, media, GUI_PostProcessCvars[i]->name, (qboolean)GUI_PostProcessValue[i], GUI_PostProcessMax[i]);
 			}
 		}
+#else
+		if (GUI_PostProcessCvars[i]->displayInfoSet && GUI_PostProcessCvars[i]->displayName && GUI_PostProcessCvars[i]->displayName[0])
+		{
+			GUI_PostProcessValue[i] = uq_radio(ctx, media, GUI_PostProcessCvars[i]->displayName, (qboolean)GUI_PostProcessValue[i], GUI_PostProcessMax[i]);
+		}
+		else
+		{
+			GUI_PostProcessValue[i] = uq_radio(ctx, media, GUI_PostProcessCvars[i]->name, (qboolean)GUI_PostProcessValue[i], GUI_PostProcessMax[i]);
+		}
+#endif
 
 		if ((ctx->last_widget_state & NK_WIDGET_STATE_HOVER))
 		{// Hoverred...
@@ -1584,6 +1610,17 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 
 	for (i = 0; i < 12; ++i)
 	{
+		char label[4] = { 0 };
+
+		/*if (i < 9)
+			strcpy(label, va("^7%i", i + 1));
+		else if (i == 9)
+			strcpy(label, "^70");
+		else if (i == 10)
+			strcpy(label, "^7-");
+		else if (i == 11)
+			strcpy(label, "^7=");*/
+
 		if (quickBarSelections[i] >= 0)
 		{
 			int quality = QUALITY_GOLD - Q_clamp(QUALITY_GREY, quickBarSelections[i] / QUALITY_GOLD, QUALITY_GOLD);
@@ -1592,8 +1629,7 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 			ctx->style.button.border = 4.0;
 			ctx->style.button.image_padding = nk_vec2(-3.0, -2.0);
 			ctx->style.button.rounding = 4.0;
-
-			int ret = nk_button_image_label(ctx, media->inventory[quickBarSelections[i]], "", NK_TEXT_CENTERED);
+			int ret = nk_button_image_label(ctx, media->inventory[quickBarSelections[i]], label, /*NK_TEXT_CENTERED*/NK_TEXT_ALIGN_LEFT | NK_TEXT_ALIGN_TOP);
 		}
 		else
 		{// Blank slot...
@@ -1602,7 +1638,7 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 			ctx->style.button.border = 4.0;
 			ctx->style.button.image_padding = nk_vec2(-3.0, -2.0);
 			ctx->style.button.rounding = 4.0;
-			int ret = nk_button_image_label(ctx, media->inventoryBlank, "", NK_TEXT_CENTERED);
+			int ret = nk_button_image_label(ctx, media->inventoryBlank, label, /*NK_TEXT_CENTERED*/NK_TEXT_ALIGN_LEFT | NK_TEXT_ALIGN_TOP);
 		}
 	}
 
@@ -1641,22 +1677,12 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 
 	int tooltipNum = -1;
 	int tooltipQuality = 0;
-
+	
 	for (i = 0; i < 64; ++i)
 	{
 		int quality = QUALITY_GOLD - Q_clamp(QUALITY_GREY, i / QUALITY_GOLD, QUALITY_GOLD);
 		nk_color bgColor = ColorForQuality(quality);
-#if 0
-		ctx->style.button.border_color = bgColor;
-		ctx->style.button.border = 4.0;
-		ctx->style.button.image_padding = nk_vec2(-1.0, -1.0);
-		ctx->style.button.rounding = 4.0;
-		
-		//NK_PROPERTY_DRAG
-		int ret = nk_button_image_label(ctx, media->inventory[i], "", NK_TEXT_CENTERED);
-		//int ret = nk_button_image(ctx, media->inventory[i]);
-		//int ret = nk_selectable_image_label(ctx, media->inventory[i], "", NK_TEXT_CENTERED, 0);
-#else
+
 		ctx->style.button.border_color = bgColor;
 		ctx->style.button.border = 4.0;
 		ctx->style.button.image_padding = nk_vec2(-3.0, -2.0);
@@ -1664,30 +1690,37 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 
 		int ret = nk_button_image_label(ctx, media->inventory[i], "", NK_TEXT_CENTERED);
 		
-		if ((ctx->last_widget_state & NK_WIDGET_STATE_HOVER) && keyStatus[A_MOUSE2])
+		if (!selectedContextItem)
+		{
+			if ((ctx->last_widget_state & NK_WIDGET_STATE_HOVER) && keyStatus[A_MOUSE2])
+			{
+				tooltipNum = -1;
+				tooltipQuality = 0;
+
+				selectedContextItem = i + 1;
+				nk_widget(&selectedContextBounds, ctx);
+			}
+			else if ((ctx->last_widget_state & NK_WIDGET_STATE_HOVER) && keyStatus[A_MOUSE1])
+			{
+				//selectedContextItem = 0;
+				tooltipNum = -1;
+				tooltipQuality = 0;
+
+				// do left click stuff... will just make it bring up context menu like right button for now... should change mouse cursor to drag/drop though...
+				selectedContextItem = i + 1;
+				nk_widget(&selectedContextBounds, ctx);
+			}
+			else if ((ctx->last_widget_state & NK_WIDGET_STATE_HOVER) && !selectedContextItem)
+			{// Hoverred...
+				tooltipNum = i;
+				tooltipQuality = quality;
+			}
+		}
+		else
 		{
 			tooltipNum = -1;
 			tooltipQuality = 0;
-
-			selectedContextItem = i+1;
-			nk_widget(&selectedContextBounds, ctx);
 		}
-		else if ((ctx->last_widget_state & NK_WIDGET_STATE_HOVER) && ret/*keyStatus[A_MOUSE1]*/)
-		{
-			//selectedContextItem = 0;
-			tooltipNum = -1;
-			tooltipQuality = 0;
-
-			// do left click stuff... will just make it bring up context menu like right button for now... should change mouse cursor to drag/drop though...
-			selectedContextItem = i+1;
-			nk_widget(&selectedContextBounds, ctx);
-		}
-		else if ((ctx->last_widget_state & NK_WIDGET_STATE_HOVER) && !selectedContextItem)
-		{// Hoverred...
-			tooltipNum = i;
-			tooltipQuality = quality;
-		}
-#endif
 	}
 
 	nk_style_set_font(ctx, &media->font_14->handle);
@@ -1800,10 +1833,12 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 			}
 
 			selectedContextItem = 0;
+			PREVIOUS_INVENTORY_TOOLTIP = -1;
 		}
 		else if (keyStatus[A_MOUSE1])
 		{
 			selectedContextItem = 0;
+			PREVIOUS_INVENTORY_TOOLTIP = -1;
 		}
 
 		nk_end(ctx);
@@ -1813,6 +1848,9 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 
 	selectedContextItem = 0;
 
+	//
+	// All this, because nuklear tooltips blink otherwise... *shrug*
+	//
 	qboolean usePrevious = (qboolean)(tooltipNum == -1 && PREVIOUS_INVENTORY_TOOLTIP != -1 && backEnd.refdef.time - PREVIOUS_INVENTORY_TOOLTIP_TIME < 500);
 
 	if (usePrevious)

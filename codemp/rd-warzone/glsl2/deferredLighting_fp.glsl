@@ -402,6 +402,7 @@ vec2 RB_PBR_DefaultsForMaterial(float MATERIAL_TYPE)
 	case MATERIAL_MAGIC_PARTICLES_TREE:
 	case MATERIAL_FIREFLIES:
 	case MATERIAL_PORTAL:
+	case MATERIAL_MENU_BACKGROUND:
 		specularReflectionScale = 0.0;
 		cubeReflectionScale = 0.0;
 		break;
@@ -1134,7 +1135,8 @@ void main(void)
 		|| position.a - 1.0 == MATERIAL_MAGIC_PARTICLES
 		|| position.a - 1.0 == MATERIAL_MAGIC_PARTICLES_TREE
 		|| position.a - 1.0 == MATERIAL_FIREFLIES
-		|| position.a - 1.0 == MATERIAL_PORTAL)
+		|| position.a - 1.0 == MATERIAL_PORTAL
+		|| position.a - 1.0 == MATERIAL_MENU_BACKGROUND)
 	{// Skybox... Skip...
 		if (MAP_USE_PALETTE_ON_SKY > 0.0)
 		{
