@@ -257,42 +257,95 @@ void R_AddPolygonSurfaces(void) {
 	tr.shiftedEntityNum = tr.currentEntityNum << QSORT_REFENTITYNUM_SHIFT;
 	fogMask = !((tr.refdef.rdflags & RDF_NOFOG) == 0);
 
+#ifdef __SORT_POLYS__
+	//
+	// Since polys are based on world matrix, we should be able to sort them by shader and allow them to merge with previous polys as much as possible...
+	//
+
+	// First make a list of shader usage...
+	poly = tr.refdef.polys;
+
+	int			numShaders = 0;
+	qhandle_t	shaders[65536];
+
+	for (i = 0; i < tr.refdef.numPolys; i++)
+	{
+		if (poly)
+		{
+			int found = -1;
+
+			for (int p = 0; p < numShaders; p++)
+			{
+				if (shaders[numShaders] == poly->hShader)
+				{
+					found = p;
+					break;
+				}
+			}
+
+			if (found < 0)
+			{
+				shaders[numShaders] = poly->hShader;
+			}
+		}
+
+		poly++;
+	}
+
+	// Now draw each shader in order, so they can be merged in drawing...
+	for (int p = 0; p < numShaders; p++)
+	{
+		poly = tr.refdef.polys;
+
+		for (i = 0; i < tr.refdef.numPolys; i++)
+		{
+			if (poly)
+			{
+				if (poly->hShader == shaders[p])
+				{
+					surfaceType_t *ply = (surfaceType_t *)poly;
+
+					if (Distance(poly->verts[0].xyz, backEnd.refdef.vieworg) <= backEnd.viewParms.zFar)
+					{
+						sh = R_GetShaderByHandle(poly->hShader);
+						
+						R_AddDrawSurf(ply, sh,
+#ifdef __Q3_FOG__
+							poly->fogIndex & fogMask,
+#else //!__Q3_FOG__
+							0,
+#endif //__Q3_FOG__
+							qfalse, R_IsPostRenderEntity(tr.currentEntityNum, tr.currentEntity), 0 /* cubemapIndex */, qfalse);
+					}
+				}
+			}
+
+			poly++;
+		}
+	}
+#else //!__SORT_POLYS__
 	poly = tr.refdef.polys;
 
 	for (i = 0; i < tr.refdef.numPolys; i++)
 	{
 		if (poly)
 		{
-			/*
-			// stencil shadows can't do personal models unless I polyhedron clip
-			if (r_shadows->integer == 2
-				&& !(tr.currentEntity->e.renderfx & (RF_NOSHADOW | RF_DEPTHHACK))
-				&& sh->sort == SS_OPAQUE)
+			if (Distance(poly->verts[0].xyz, backEnd.refdef.vieworg) <= backEnd.viewParms.zFar)
 			{
-				R_AddDrawSurf((surfaceType_t *)poly, tr.shadowShader, 0, qfalse, R_IsPostRenderEntity(tr.currentEntityNum, tr.currentEntity), 0, qfalse);
-			}
-
-			// projection shadows work fine with personal models
-			if (r_shadows->integer == 3
-				&& !(tr.currentEntity->e.renderfx & (RF_NOSHADOW | RF_DEPTHHACK))
-				&& sh->sort == SS_OPAQUE)
-			{
-				R_AddDrawSurf((surfaceType_t *)poly, tr.projectionShadowShader, 0, qfalse, R_IsPostRenderEntity(tr.currentEntityNum, tr.currentEntity), 0, qfalse);
-			}
-			*/
-
-			sh = R_GetShaderByHandle(poly->hShader);
-			R_AddDrawSurf((surfaceType_t *)poly, sh, 
+				sh = R_GetShaderByHandle(poly->hShader);
+				R_AddDrawSurf((surfaceType_t *)poly, sh,
 #ifdef __Q3_FOG__
-				poly->fogIndex & fogMask, 
+					poly->fogIndex & fogMask,
 #else //!__Q3_FOG__
-				0,
+					0,
 #endif //__Q3_FOG__
-				qfalse, R_IsPostRenderEntity(tr.currentEntityNum, tr.currentEntity), 0 /* cubemapIndex */, qfalse);
+					qfalse, R_IsPostRenderEntity(tr.currentEntityNum, tr.currentEntity), 0 /* cubemapIndex */, qfalse);
+			}
 		}
 
 		poly++;
 	}
+#endif //__SORT_POLYS__
 }
 
 //#define __MERGE_POLYS__

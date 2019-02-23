@@ -1906,28 +1906,6 @@ static void R_AddEntitySurface (int entityNum)
 		{
 			shader = R_GetShaderByHandle( ent->e.customShader );
 
-			//ri->Printf(PRINT_ALL, "Drawing sprite %s.\n", shader->name);
-
-			/*
-			// stencil shadows can't do personal models unless I polyhedron clip
-			if (r_shadows->integer == 2
-				&& ent->e.reType != RT_SABER_GLOW
-				&& !(tr.currentEntity->e.renderfx & (RF_NOSHADOW | RF_DEPTHHACK))
-				&& shader->sort == SS_OPAQUE)
-			{
-				R_AddDrawSurf((surfaceType_t *)&entitySurface, tr.shadowShader, 0, qfalse, R_IsPostRenderEntity(tr.currentEntityNum, tr.currentEntity), 0, qfalse);
-			}
-
-			// projection shadows work fine with personal models
-			if (r_shadows->integer == 3
-				&& ent->e.reType != RT_SABER_GLOW
-				&& !(tr.currentEntity->e.renderfx & (RF_NOSHADOW | RF_DEPTHHACK))
-				&& shader->sort == SS_OPAQUE)
-			{
-				R_AddDrawSurf((surfaceType_t *)&entitySurface, tr.projectionShadowShader, 0, qfalse, R_IsPostRenderEntity(tr.currentEntityNum, tr.currentEntity), 0, qfalse);
-			}
-			*/
-
 			R_AddDrawSurf( &entitySurface, shader, R_SpriteFogNum( ent ), 0, R_IsPostRenderEntity (tr.currentEntityNum, ent), 0 /* cubeMap */, qfalse);
 		}
 		break;
@@ -1944,24 +1922,6 @@ static void R_AddEntitySurface (int entityNum)
 		//ri->Printf(PRINT_ALL, "%s\n", tr.currentModel->name);
 
 		if (!tr.currentModel) {
-			/*
-			// stencil shadows can't do personal models unless I polyhedron clip
-			if (r_shadows->integer == 2
-				&& !(tr.currentEntity->e.renderfx & (RF_NOSHADOW | RF_DEPTHHACK))
-				&& shader->sort == SS_OPAQUE)
-			{
-				R_AddDrawSurf((surfaceType_t *)&entitySurface, tr.shadowShader, 0, qfalse, R_IsPostRenderEntity(tr.currentEntityNum, tr.currentEntity), 0, qfalse);
-			}
-
-			// projection shadows work fine with personal models
-			if (r_shadows->integer == 3
-				&& !(tr.currentEntity->e.renderfx & (RF_NOSHADOW | RF_DEPTHHACK))
-				&& shader->sort == SS_OPAQUE)
-			{
-				R_AddDrawSurf((surfaceType_t *)&entitySurface, tr.projectionShadowShader, 0, qfalse, R_IsPostRenderEntity(tr.currentEntityNum, tr.currentEntity), 0, qfalse);
-			}
-			*/
-
 			R_AddDrawSurf( &entitySurface, tr.defaultShader, 0, 0, R_IsPostRenderEntity (tr.currentEntityNum, ent), 0/* cubeMap */, qfalse);
 		} else {
 			switch ( tr.currentModel->type ) {
@@ -1992,24 +1952,6 @@ static void R_AddEntitySurface (int entityNum)
 					break;
 				}
 
-				/*
-				// stencil shadows can't do personal models unless I polyhedron clip
-				if (r_shadows->integer == 2
-					&& !(tr.currentEntity->e.renderfx & (RF_NOSHADOW | RF_DEPTHHACK))
-					&& shader->sort == SS_OPAQUE)
-				{
-					R_AddDrawSurf((surfaceType_t *)&entitySurface, tr.shadowShader, 0, qfalse, R_IsPostRenderEntity(tr.currentEntityNum, tr.currentEntity), 0, qfalse);
-				}
-
-				// projection shadows work fine with personal models
-				if (r_shadows->integer == 3
-					&& !(tr.currentEntity->e.renderfx & (RF_NOSHADOW | RF_DEPTHHACK))
-					&& shader->sort == SS_OPAQUE)
-				{
-					R_AddDrawSurf((surfaceType_t *)&entitySurface, tr.projectionShadowShader, 0, qfalse, R_IsPostRenderEntity(tr.currentEntityNum, tr.currentEntity), 0, qfalse);
-				}
-				*/
-
 				R_AddDrawSurf( &entitySurface, tr.defaultShader, 0, 0, R_IsPostRenderEntity (tr.currentEntityNum, ent), 0 /* cubeMap */, qfalse);
 				break;
 			default:
@@ -2021,24 +1963,6 @@ static void R_AddEntitySurface (int entityNum)
 		break;
 	case RT_ENT_CHAIN:
 		shader = R_GetShaderByHandle( ent->e.customShader );
-
-		/*
-		// stencil shadows can't do personal models unless I polyhedron clip
-		if (r_shadows->integer == 2
-			&& !(tr.currentEntity->e.renderfx & (RF_NOSHADOW | RF_DEPTHHACK))
-			&& shader->sort == SS_OPAQUE)
-		{
-			R_AddDrawSurf((surfaceType_t *)&entitySurface, tr.shadowShader, 0, qfalse, R_IsPostRenderEntity(tr.currentEntityNum, tr.currentEntity), 0, qfalse);
-		}
-
-		// projection shadows work fine with personal models
-		if (r_shadows->integer == 3
-			&& !(tr.currentEntity->e.renderfx & (RF_NOSHADOW | RF_DEPTHHACK))
-			&& shader->sort == SS_OPAQUE)
-		{
-			R_AddDrawSurf((surfaceType_t *)&entitySurface, tr.projectionShadowShader, 0, qfalse, R_IsPostRenderEntity(tr.currentEntityNum, tr.currentEntity), 0, qfalse);
-		}
-		*/
 
 		R_AddDrawSurf( &entitySurface, shader, R_SpriteFogNum( ent ), false, R_IsPostRenderEntity (tr.currentEntityNum, ent), 0 /* cubeMap */, qfalse);
 		break;

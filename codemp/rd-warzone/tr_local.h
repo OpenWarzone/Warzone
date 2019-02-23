@@ -126,7 +126,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define MAX_GRASSBEND_HUMANOIDS 4
 #endif //__HUMANOIDS_BEND_GRASS__
 
+//
+// Optimization stuff...
+//
 #define __RENDER_PASSES__
+
+#define __SORT_POLYS__							// Sorts polys by shader so when they draw, they get merged...
 
 #define __FX_SORTING__
 #define __WATER_SORTING__
@@ -1878,6 +1883,9 @@ typedef struct {
 
 	int			numDrawSurfs;
 	struct drawSurf_s	*drawSurfs;
+
+	int			numDepthDrawSurfs;
+	struct drawSurf_s	*depthDrawSurfs;
 
 	//unsigned int dlightMask;
 #ifdef __PSHADOWS__
@@ -4284,6 +4292,7 @@ typedef enum {
 // contained in a backEndData_t.
 typedef struct backEndData_s {
 	drawSurf_t	drawSurfs[MAX_DRAWSURFS];
+	drawSurf_t	depthDrawSurfs[MAX_DRAWSURFS];
 	dlight_t	dlights[MAX_DLIGHTS];
 	trRefEntity_t	entities[MAX_REFENTITIES];
 	srfPoly_t	*polys;//[MAX_POLYS];

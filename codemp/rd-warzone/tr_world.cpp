@@ -546,7 +546,7 @@ R_AddWorldSurface
 #else //!__Q3_FOG__
 		0,
 #endif //__Q3_FOG__
-		dlightBits, R_IsPostRenderEntity(tr.currentEntityNum, tr.currentEntity), cubemapIndex, surf->depthDrawOnly);
+		dlightBits, R_IsPostRenderEntity(tr.currentEntityNum, tr.currentEntity), cubemapIndex, (qboolean)(surf->depthDrawOnly || surf->depthDrawOnlyFoliage));
 
 #ifdef __XYC_SURFACE_SPRITES__
 	for (int i = 0, numSprites = surf->numSurfaceSprites; i < numSprites; ++i)
