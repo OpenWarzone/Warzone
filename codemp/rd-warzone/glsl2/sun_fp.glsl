@@ -119,56 +119,6 @@ float ring(vec3 ray,vec3 pos,float r,float size)
     return s;
 }
 
-// rays of a star
-float ringRayNoise(vec3 ray,vec3 pos,float r,float size,mat3 mr,float anim)
-{
-  	float b = dot(ray,pos);
-    vec3 pr=ray*b-pos;
-       
-    float c=length(pr);
-
-    pr*=mr;
-    
-    pr=normalize(pr);
-    
-    float s=max(0.0,(1.0-size*abs(r-c)));
-    
-    float nd=noise4q(vec4(pr*1.0,-anim+c))*2.0;
-    nd=pow(nd,2.0);
-    float n=0.4;
-    float ns=1.0;
-    if (c>r) {
-        n=noise4q(vec4(pr*10.0,-anim+c));
-        ns=noise4q(vec4(pr*50.0,-anim*2.5+c*2.0))*2.0;
-    }
-    n=n*n*nd*ns;
-    
-    return pow(s,4.0)+s*s*n;
-}
-
-vec4 noiseSpace(vec3 ray,vec3 pos,float r,mat3 mr,float zoom,vec3 subnoise,float anim)
-{
-  	float b = dot(ray,pos);
-  	float c = dot(pos,pos) - b*b;
-    
-    vec3 r1=vec3(0.0);
-    
-    float s=0.0;
-    float d=0.0625*1.5;
-    float d2=zoom/d;
-
-	float rq=r*r;
-    float l1=sqrt(abs(rq-c));
-    r1= (ray*(b-l1)-pos)*mr;
-
-    r1*=d2;
-    s+=abs(noise4q(vec4(r1+subnoise,anim))*d);
-    s+=abs(noise4q(vec4(r1*0.5+subnoise,anim))*d*2.0);
-    s+=abs(noise4q(vec4(r1*0.25+subnoise,anim))*d*4.0);
-    //return s;
-    return vec4(s*2.0,abs(noise4q(vec4(r1*0.1+subnoise,anim))),abs(noise4q(vec4(r1*0.1+subnoise*6.0,anim))),abs(noise4q(vec4(r1*0.1+subnoise*13.0,anim))));
-}
-
 float sphereZero(vec3 ray,vec3 pos,float r)
 {
   	float b = dot(ray,pos);
