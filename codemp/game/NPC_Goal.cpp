@@ -66,6 +66,12 @@ void NPC_ClearGoal(gentity_t *aiEnt)
 {
 	gentity_t	*goal;
 
+#ifdef __USE_NAVLIB__
+	aiEnt->client->navigation.goal.haveGoal = qfalse;
+	aiEnt->client->navigation.goal.ent = NULL;
+	VectorClear(aiEnt->client->navigation.goal.origin);
+#endif //__USE_NAVLIB__
+
 	if ( !aiEnt->NPC->lastGoalEntity )
 	{
 		SetGoal(aiEnt, NULL, 0.0 );

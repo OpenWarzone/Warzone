@@ -529,6 +529,8 @@ int NPC_FindGoal( gentity_t *NPC )
 	NavlibFindRandomPointOnMesh(NPC, NPC->client->navigation.goal.origin);
 	if (VectorLength(NPC->client->navigation.goal.origin) == 0)
 		return -1;
+
+	return 1;
 #endif
 #endif //__USE_NAVLIB__
 
@@ -607,8 +609,16 @@ int NPC_FindTeamGoal( gentity_t *NPC )
 #endif //__USE_NAVMESH__
 }
 
+extern void NPC_SetNewPadawanGoalAndPath(gentity_t *aiEnt);
+
 void NPC_SetNewGoalAndPath(gentity_t *aiEnt)
 {
+	if (aiEnt->isPadawan)
+	{
+		NPC_SetNewPadawanGoalAndPath(aiEnt);
+		return;
+	}
+
 	if (aiEnt->next_pathfind_time > level.time)
 	{
 		return;
@@ -1413,6 +1423,7 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 			VectorCopy(NPC->r.currentOrigin, NPC->npc_previous_pos);
 		}
 
+#ifndef __USE_NAVLIB__
 		if (NPC->isPadawan)
 		{
 			if (NPC->nextPadawanWaypointThink < level.time)
@@ -1515,6 +1526,7 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 				}
 			}
 		}
+#endif //__USE_NAVLIB__
 
 		if (NPC->client->navigation.goal.haveGoal && !GoalInRange(NPC, NavlibGetGoalRadius(NPC)))
 		{
@@ -1533,6 +1545,116 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 			}
 			NPC_FacePosition(NPC, NPC->client->navigation.nav.lookPos, qfalse);
 			VectorSubtract(NPC->client->navigation.nav.lookPos, NPC->r.currentOrigin, NPC->movedir);
+			
+			if (NPC->isPadawan || NPC->s.NPC_class == CLASS_PADAWAN || NPC->s.NPC_class == CLASS_HK51)
+			{
+				//trap->Print("Padawan %s is a padawan.\n", NPC->client->pers.netname);
+
+				if (NPC->parent && NPC_IsAlive(NPC, NPC->parent))
+				{
+					Padawan_CheckForce(aiEnt);
+
+					//trap->Print("Padawan %s parent is alive.\n", NPC->client->pers.netname);
+					//trap->Print("Padawan %s has FP_SPEED level %i.\n", NPC->client->pers.netname, NPC->client->ps.fd.forcePowerLevel[FP_SPEED]);
+					//trap->Print("Padawan %s has FP_PROTECT level %i.\n", NPC->client->pers.netname, NPC->client->ps.fd.forcePowerLevel[FP_PROTECT]);
+
+					if (NPC->client->navigation.goal.ent == NPC->parent)
+					{// Catch-up stuff for followers, teleport to master or use force speed/protect to get there faster and safer...
+						float dist = Distance(NPC->parent->r.currentOrigin, NPC->r.currentOrigin);
+
+						//trap->Print("Padawan %s dist to master is %f.\n", NPC->client->pers.netname, dist);
+						//trap->Print("Padawan %s dist to master is %f. NPC->parent->s.groundEntityNum %i. NPC->parent->client->ps.groundEntityNum %i.\n", NPC->client->pers.netname, dist, NPC->parent->s.groundEntityNum, NPC->parent->client->ps.groundEntityNum);
+
+						if (NPC->parent->s.groundEntityNum != ENTITYNUM_NONE
+							&& NPC->parent->client->ps.groundEntityNum != ENTITYNUM_NONE
+							&& NPC->nextPadawanTeleportThink <= level.time
+							&& dist > 4096.0)
+						{// Padawan is too far from jedi. Teleport to him... Only if they are not in mid air...
+							vec3_t position;
+#pragma omp critical
+							{
+								NavlibFindRandomPointInRadius(-1, NPC->parent->r.currentOrigin, position, 2048.0);
+							}
+
+							position[2] += 32.0;
+
+							NPC->nextPadawanTeleportThink = level.time + 5000;
+
+							TeleportNPC(NPC, position, NPC->s.angles);
+
+							NPC_ClearGoal(aiEnt);
+							aiEnt->NPC->goalEntity = NULL;
+							aiEnt->NPC->tempGoal = NULL;
+
+							ucmd->forwardmove = 0;
+							ucmd->rightmove = 0;
+							ucmd->upmove = 0;
+							NPC_PickRandomIdleAnimantion(NPC);
+
+							//trap->Print("Padawan %s teleported to master.\n", NPC->client->pers.netname);
+
+							return qtrue;
+						}
+						else if (aiEnt->client->NPC_class == CLASS_PADAWAN)
+						{
+							extern void WP_ForcePowerStart(gentity_t *self, forcePowers_t forcePower, int overrideAmt);
+
+							if (dist > 1024.0
+								//&& TIMER_Done(NPC, "speed")
+								&& NPC->client->ps.fd.forcePowerLevel[FP_SPEED] > 0
+								&& !(NPC->client->ps.fd.forcePowersActive & (1 << FP_SPEED)))
+							{// When the master is a long way away, use force speed to get to him faster and safer...
+								NPC->client->ps.forceAllowDeactivateTime = level.time + 1500;
+
+								WP_ForcePowerStart(NPC, FP_SPEED, 0);
+								G_Sound(NPC, CHAN_BODY, G_SoundIndex("sound/weapons/force/speed.wav"));
+								G_Sound(NPC, TRACK_CHANNEL_2, G_SoundIndex("sound/weapons/force/speedloop.wav"));
+								//TIMER_Set(NPC, "speed", irand(15000, 20000));
+
+								//trap->Print("Padawan %s used force speed.\n", NPC->client->pers.netname);
+							}
+							else if (dist > 512.0
+								//&& NPC->health < NPC->maxHealth * 0.5
+								//&& TIMER_Done(NPC, "protect")
+								&& NPC->client->ps.fd.forcePowerLevel[FP_PROTECT] > 0
+								&& !(NPC->client->ps.fd.forcePowersActive & (1 << FP_PROTECT)))
+							{// When the master is a fair way away, use force protect to get to him safer...
+								NPC->client->ps.forceAllowDeactivateTime = level.time + 1500;
+
+								WP_ForcePowerStart(NPC, FP_PROTECT, 0);
+								G_PreDefSound(NPC->client->ps.origin, PDSOUND_PROTECT);
+								G_Sound(NPC, TRACK_CHANNEL_3, G_SoundIndex("sound/weapons/force/protectloop.wav"));
+								//TIMER_Set(NPC, "protect", irand(15000, 20000));
+
+								//trap->Print("Padawan %s used force protect.\n", NPC->client->pers.netname);
+							}
+							else if (NPC->client->ps.fd.forcePowerLevel[FP_HEAL] > 0
+								&& NPC->health < NPC->maxHealth * 0.75)
+							{// Use heal when health is down, if we have it...
+								ForceHeal(NPC);
+								//trap->Print("Padawan %s used force heal.\n", NPC->client->pers.netname);
+							}
+						}
+						else if (aiEnt->client->NPC_class == CLASS_HK51)
+						{
+							extern void WP_ForcePowerStart(gentity_t *self, forcePowers_t forcePower, int overrideAmt);
+
+							if (dist > 1024.0
+								//&& TIMER_Done(NPC, "speed")
+								&& NPC->client->ps.fd.forcePowerLevel[FP_SPEED] > 0
+								&& !(NPC->client->ps.fd.forcePowersActive & (1 << FP_SPEED)))
+							{// When the master is a long way away, use force speed to get to him faster and safer...
+								NPC->client->ps.forceAllowDeactivateTime = level.time + 1500;
+
+								WP_ForcePowerStart(NPC, FP_SPEED, 0);
+								G_Sound(NPC, CHAN_BODY, G_SoundIndex("sound/weapons/force/speed.wav"));
+								G_Sound(NPC, TRACK_CHANNEL_2, G_SoundIndex("sound/weapons/force/speedloop.wav"));
+								//TIMER_Set(NPC, "speed", irand(15000, 20000));
+							}
+						}
+					}
+				}
+			}
 
 #ifndef __USE_NAVLIB_INTERNAL_MOVEMENT__
 			if (Distance(NPC->r.currentOrigin, NPC->client->navigation.goal.origin) < 256)
@@ -1542,7 +1664,7 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 
 			if (UQ1_UcmdMoveForDir(NPC, ucmd, NPC->movedir, walk, NPC->client->navigation.nav.lookPos))
 			{
-				if (NPC->last_move_time < level.time - 2000)
+				if (NPC->last_move_time < level.time - 2000 || DistanceVertical(NPC->client->navigation.nav.pos, NPC->r.currentOrigin) > DistanceHorizontal(NPC->client->navigation.nav.pos, NPC->r.currentOrigin) * 0.666)
 				{
 					ucmd->upmove = 127;
 
@@ -1574,7 +1696,7 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 				trap->EA_MoveRight(NPC->s.number);
 			}
 
-			if (NPC->last_move_time < level.time - 2000)
+			if (NPC->last_move_time < level.time - 2000 || DistanceVertical(NPC->client->navigation.nav.pos, NPC->r.currentOrigin) > DistanceHorizontal(NPC->client->navigation.nav.pos, NPC->r.currentOrigin) * 0.666)
 			{
 				ucmd->upmove = 127;
 
@@ -1592,9 +1714,7 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 
 			if (NPC->client->navigation.goal.haveGoal && GoalInRange(NPC, NavlibGetGoalRadius(NPC)))
 			{
-				NPC->client->navigation.goal.haveGoal = qfalse;
-				VectorClear(NPC->client->navigation.goal.origin);
-				NPC->client->navigation.goal.ent = NULL;
+				NPC_ClearGoal(NPC);
 				//trap->Print("[%s] hit goal!\n", NPC->client->pers.netname);
 			}
 
@@ -2082,6 +2202,7 @@ qboolean NPC_FollowEnemyRoute(gentity_t *aiEnt)
 
 	if ( !NPC_HaveValidEnemy(aiEnt) )
 	{
+		NPC_ClearGoal(aiEnt);
 		return qfalse;
 	}
 
@@ -2107,6 +2228,21 @@ qboolean NPC_FollowEnemyRoute(gentity_t *aiEnt)
 		//trap->Print("close wp!\n");
 		return qfalse;
 	}
+
+#ifdef __USE_NAVLIB__
+	if (aiEnt->client->navigation.goal.ent != NPC->enemy)
+	{
+		NPC_ClearGoal(NPC);
+		NPC->client->navigation.goal.ent = NPC->enemy;
+
+#pragma omp critical
+		{
+			NPC->client->navigation.goal.haveGoal = (qboolean)NavlibFindRouteToTarget(NPC, NPC->client->navigation.goal, qtrue);
+		}
+	}
+
+	return NPC_FollowRoutes(NPC);
+#else //!__USE_NAVLIB__
 
 #ifndef __USE_NAVMESH__
 	if (DistanceHorizontal(NPC->r.currentOrigin, NPC->npc_previous_pos) > 3)
@@ -2300,4 +2436,5 @@ qboolean NPC_FollowEnemyRoute(gentity_t *aiEnt)
 #endif //__USE_NAVMESH__
 
 	return qtrue;
+#endif //__USE_NAVLIB__
 }

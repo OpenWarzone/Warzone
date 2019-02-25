@@ -1209,10 +1209,6 @@ qboolean	HAVE_WILDLIFE = qfalse;
 int next_npc_max_warning_time = 0;
 int next_npc_stats_time = 0;
 
-#ifdef __USE_NAVLIB__
-//#define __USE_NAVLIB_SPAWNPOINTS__
-#endif //__USE_NAVLIB__
-
 void G_CheckMinimumNpcs(void) 
 {
 	vmCvar_t	mapname;
@@ -1226,10 +1222,12 @@ void G_CheckMinimumNpcs(void)
 		return;
 	}
 
+#ifndef __USE_NAVLIB_SPAWNPOINTS__
 	if (gWPNum <= 0)
 	{
 		return;
 	}
+#endif //__USE_NAVLIB_SPAWNPOINTS__
 
 	if (g_gametype.integer == GT_SIEGE)
 	{
@@ -1248,7 +1246,9 @@ void G_CheckMinimumNpcs(void)
 		return;
 	}
 
+#ifndef __USE_NAVLIB_SPAWNPOINTS__
 	NPC_Patrol_MakeBadList();
+#endif //__USE_NAVLIB_SPAWNPOINTS__
 
 	trap->Cvar_Register(&mapname, "mapname", "", CVAR_SERVERINFO | CVAR_ROM);
 

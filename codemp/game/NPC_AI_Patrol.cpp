@@ -232,9 +232,24 @@ int NPC_FindPatrolGoalNavLib(gentity_t *NPC)
 		return 1;
 	}
 #else
-	NavlibFindRandomPatrolPoint(NPC->s.number, NPC->client->navigation.goal.origin);
-	if (VectorLength(NPC->client->navigation.goal.origin) == 0)
+#pragma omp critical
+	{
+		NavlibFindRandomPatrolPoint(NPC->s.number, NPC->client->navigation.goal.origin);
+	}
+/*#pragma omp critical
+	{
+		NavlibFindRandomPointInRadius(NPC->s.number, NPC->r.currentOrigin, NPC->client->navigation.goal.origin, 2048.0);
+	}*/
+
+	if (VectorLength(NPC->client->navigation.goal.origin) == 0 || Distance(NPC->r.currentOrigin, NPC->client->navigation.goal.origin) == 0)
+	{
+		//trap->Print("[%s] failed to find a patrol goal from: %f %f %f.\n", NPC->client->pers.netname, NPC->r.currentOrigin[0], NPC->r.currentOrigin[1], NPC->r.currentOrigin[2]);
 		return -1;
+	}
+
+	//trap->Print("[%s] newGoal: %f %f %f found for point %f %f %f.\n", NPC->client->pers.netname, NPC->client->navigation.goal.origin[0], NPC->client->navigation.goal.origin[1], NPC->client->navigation.goal.origin[2], NPC->r.currentOrigin[0], NPC->r.currentOrigin[1], NPC->r.currentOrigin[2]);
+
+	return 1;
 #endif
 }
 #endif //__USE_NAVLIB__

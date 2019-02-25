@@ -3733,7 +3733,7 @@ void FOLIAGE_GenerateFoliage_Real(float scan_density, int plant_chance, int tree
 
 				if (MaterialIsValidForGrass((tr.materialType)))
 				{
-#if 1
+#if 0
 					if (hitInvalid)
 					{// Scan above us for a roof... So we don't add grass inside of buildings...
 						if (FOLIAGE_IsIndoorLocation(tr.endpos))
@@ -3837,6 +3837,7 @@ void FOLIAGE_GenerateFoliage_Real(float scan_density, int plant_chance, int tree
 
 					if (!DO_TREE && !DO_PLANT) continue;
 
+#if 0
 					// Look around here for a different slope angle... Cull if found...
 					for (float scale = 1.00; scale >= 0.05 && scale >= cg_foliageMinFoliageScale.value; scale -= 0.05)
 					{
@@ -3874,6 +3875,36 @@ void FOLIAGE_GenerateFoliage_Real(float scan_density, int plant_chance, int tree
 
 						if (FOUND) break;
 					}
+#else
+#pragma omp critical (__ADD_TEMP_NODE__)
+					{
+						VectorCopy(tr.plane.normal, grassNormals[grassSpotCount]);
+
+						if (DO_TREE)
+						{
+							grassSpotType[grassSpotCount] = SPOT_TYPE_TREE;
+							numTrees++;
+						}
+						else if (DO_PLANT)
+						{
+							grassSpotType[grassSpotCount] = SPOT_TYPE_PLANT;
+							numPlants++;
+						}
+						else
+						{
+							grassSpotType[grassSpotCount] = SPOT_TYPE_GRASS;
+							numGrass++;
+						}
+
+						grassSpotScale[grassSpotCount] = 1.0;
+						VectorSet(grassSpotList[grassSpotCount], tr.endpos[0], tr.endpos[1], tr.endpos[2] + 8);
+
+						sprintf(last_node_added_string, "^5Adding potential foliage point ^3%i ^5at ^7%i %i %i^5. Trees ^7%i^5. Plants ^7%i^5. Grasses ^7%i^5.", grassSpotCount, (int)grassSpotList[grassSpotCount][0], (int)grassSpotList[grassSpotCount][1], (int)grassSpotList[grassSpotCount][2], numTrees, numPlants, numGrass);
+
+						grassSpotCount++;
+						FOUND = qtrue;
+					}
+#endif
 
 					if (FOUND) break;
 				}

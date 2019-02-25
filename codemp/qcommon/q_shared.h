@@ -16,9 +16,15 @@
 
 #define __MMO__
 //#define __AAS_AI_TESTING__
+
 //#define __USE_NAVMESH__
-//#define __USE_NAVLIB__
-//#define __USE_NAVLIB_INTERNAL_MOVEMENT__
+
+#define __USE_NAVLIB__
+#ifdef __USE_NAVLIB__
+	#define __USE_NAVLIB_SPAWNPOINTS__
+	//#define __USE_NAVLIB_INTERNAL_MOVEMENT__
+#endif //__USE_NAVLIB__
+
 //#define __NPC_DYNAMIC_THREADS__					// New version of threading AI... Experimental...
 #define __NO_ICARUS__								// Fuck this shit...
 #define ___ALLOW_ANY_GLM___							// Disables checks on GLM models...

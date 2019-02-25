@@ -3996,6 +3996,17 @@ qboolean NPC_CheckNearbyPlayers(gentity_t *NPC)
 		return qfalse;
 	}
 
+	if (NPC->isPadawan)
+	{// Padawans and followers with a player or an active NPC parent are always enabled...
+		if (NPC->parent 
+			&& (NPC->parent->s.eType == ET_PLAYER || (NPC->parent->s.eType == ET_NPC && NPC->parent->npc_activate_time >= level.time))
+			&& NPC_IsAlive(NPC, NPC->parent))
+		{
+			NPC->npc_activate_time = level.time + 30000;
+			return qtrue;
+		}
+	}
+
 	for (int i = 0; i < sv_maxclients.integer; i++)
 	{
 		gclient_t *cl = level.clients + i;

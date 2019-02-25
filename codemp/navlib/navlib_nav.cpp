@@ -357,7 +357,7 @@ void GetRandomOrgWithinMapBounds(vec3_t &point)
 {
 	int x = navmeshMins[0] + irand_big(0, navmeshSize[0]);
 	int y = navmeshMins[1] + irand_big(0, navmeshSize[1]);
-	int z = (navmeshMins[2] + navmeshSize[2]) * 0.5;// navmeshMins[2] + irand_big(0, navmeshSize[2]);
+	int z = 0.0;//(navmeshMins[2] + navmeshSize[2]) * 0.5;// navmeshMins[2] + irand_big(0, navmeshSize[2]);
 	VectorSet(point, (float)x, (float)y, (float)z);
 
 	//trap->Print("0. mins: %f %f %f.\n", navmeshMins[0], navmeshMins[1], navmeshMins[2]);
@@ -441,14 +441,16 @@ void Navlib::NavlibFindRandomPatrolPoint(int npcEntityNum, vec3_t point)
 		return;
 	}
 
-	vec3_t negMult, origin;
-	qVec curOrigin = g_entities[npcEntityNum].r.currentOrigin;
-	
-	VectorSet(negMult, random() > 0.5f ? 1.0f : -1.0f, random() > 0.5f ? 1.0f : -1.0f, 0.0);
-	VectorSet(origin, curOrigin[0] + (1024.0f * random() * negMult[0]), curOrigin[1] + (1024.0f * random() * negMult[1]), curOrigin[2]);
-	quake2recast(origin);
+#define NPC_PATROL_RANGE 2048.0f
 
-	if (!Navlib::NavlibFindRandomPointInRadius(npcEntityNum, origin, point, 1024.0f))
+	vec3_t negMult, origin;
+	//qVec curOrigin = g_entities[npcEntityNum].r.currentOrigin;
+	
+	//VectorSet(negMult, random() > 0.5f ? 1.0f : -1.0f, random() > 0.5f ? 1.0f : -1.0f, 0.0);
+	//VectorSet(origin, curOrigin[0] + (NPC_PATROL_RANGE * random() * negMult[0]), curOrigin[1] + (NPC_PATROL_RANGE * random() * negMult[1]), curOrigin[2]);
+	VectorCopy(g_entities[npcEntityNum].spawn_pos, origin);
+
+	if (!Navlib::NavlibFindRandomPointInRadius(npcEntityNum, origin, point, NPC_PATROL_RANGE))
 	{
 		VectorCopy(g_entities[npcEntityNum].r.currentOrigin, point);
 	}
@@ -466,7 +468,7 @@ bool Navlib::NavlibFindRandomPointInRadius( int npcEntityNum, const vec3_t origi
 		//trap->Print("1. in org: %f %f %f.\n", origin[0], origin[1], origin[2]);
 
 		rVec rorigin = qVec(origin);
-		//quake2recast(rorigin);
+		quake2recast(rorigin);
 
 		dtNavMeshQuery* query = dtAllocNavMeshQuery();
 		dtQueryFilter filter;
@@ -477,7 +479,7 @@ bool Navlib::NavlibFindRandomPointInRadius( int npcEntityNum, const vec3_t origi
 		dtStatus status;
 
 		rVec start(origin);
-		//quake2recast(start);
+		quake2recast(start);
 
 		//trap->Print("2. start: %f %f %f.\n", start[0], start[1], start[2]);
 
@@ -501,7 +503,7 @@ bool Navlib::NavlibFindRandomPointInRadius( int npcEntityNum, const vec3_t origi
 		//trap->Print("3. nearPoint: %f %f %f.\n", nearPoint[0], nearPoint[1], nearPoint[2]);
 
 		dtPolyRef randRef;
-		status = query->findRandomPointAroundCircle(nearPoly, rorigin, radius, &filter, frand, &randRef, nearPoint);
+		status = query->findRandomPointAroundCircle(nearPoly, nearPoint/*rorigin*/, radius, &filter, frand, &randRef, nearPoint);
 
 		//trap->Print("3. nearPoint2: %f %f %f.\n", nearPoint[0], nearPoint[1], nearPoint[2]);
 

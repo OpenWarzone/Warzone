@@ -4360,27 +4360,31 @@ void ClientSpawn(gentity_t *ent) {
 			if (NPC_NeedPadawan_Spawn(ent))
 			{// Only if we do not already have a padawan...
 				gentity_t *padawan = G_Spawn();
+
+#ifdef __USE_NAVLIB_SPAWNPOINTS__
+				vec3_t position;
+#pragma omp critical
+				{
+					NavlibFindRandomPointInRadius(-1, ent->r.currentOrigin, position, 1024.0/*2048.0*/);
+				}
+
+				position[2] += 32.0;
+
+				//trap->Print("padawan spawnpoint %f %f %f\n", position[0], position[1], position[2]);
+
+				padawan->NPC_type = "padawan";
+
+				trap->Print("Spawning \"%s\" for player %s.\n", padawan->NPC_type, ent->client->pers.netname);
+
+				padawan->s.teamowner = ent->client->sess.sessionTeam;
+				padawan->padawanSaberType = irand(1, 12);
+				VectorCopy(position, padawan->s.origin);
+				SP_NPC_spawner2(padawan);
+#else //!__USE_NAVLIB_SPAWNPOINTS__
 				int waypoint = DOM_GetNearWP(ent->r.currentOrigin, ent->wpCurrent);
 
 				if (waypoint >= 0 && waypoint < gWPNum)
 				{
-#if 0
-					int choice = irand(1, 36);
-					char name[64];
-
-					sprintf(name, "padawan%i", choice);
-
-					if (choice > 1 && choice < 28)
-						padawan->NPC_type = name;
-					else
-						padawan->NPC_type = "padawan";
-
-					trap->Print("Spawning \"%s\" for player %s.\n", padawan->NPC_type, ent->client->pers.netname);
-
-					padawan->s.teamowner = ent->client->sess.sessionTeam;
-					VectorCopy(gWPArray[waypoint]->origin, padawan->s.origin);
-					SP_NPC_spawner2(padawan);
-#else
 					padawan->NPC_type = "padawan";
 
 					trap->Print("Spawning \"%s\" for player %s.\n", padawan->NPC_type, ent->client->pers.netname);
@@ -4389,8 +4393,8 @@ void ClientSpawn(gentity_t *ent) {
 					padawan->padawanSaberType = irand(1, 12);
 					VectorCopy(gWPArray[waypoint]->origin, padawan->s.origin);
 					SP_NPC_spawner2(padawan);
-#endif
 				}
+#endif //__USE_NAVLIB_SPAWNPOINTS__
 			}
 		}
 		else if (ent->client->sess.sessionTeam == FACTION_EMPIRE)
@@ -4398,6 +4402,27 @@ void ClientSpawn(gentity_t *ent) {
 			if (NPC_NeedFollower_Spawn(ent))
 			{// Only if we do not already have a padawan...
 				gentity_t *padawan = G_Spawn();
+
+#ifdef __USE_NAVLIB_SPAWNPOINTS__
+				vec3_t position;
+#pragma omp critical
+				{
+					NavlibFindRandomPointInRadius(-1, ent->r.currentOrigin, position, 1024.0/*2048.0*/);
+				}
+
+				position[2] += 32.0;
+
+				//trap->Print("hk51 spawnpoint %f %f %f\n", position[0], position[1], position[2]);
+
+				char name[64] = "hk51";
+				padawan->NPC_type = Q_strlwr(G_NewString("hk51"));
+
+				trap->Print("Spawning \"%s\" for player %s.\n", padawan->NPC_type, ent->client->pers.netname);
+
+				padawan->s.teamowner = ent->client->sess.sessionTeam;
+				VectorCopy(position, padawan->s.origin);
+				SP_NPC_spawner2(padawan);
+#else //!__USE_NAVLIB_SPAWNPOINTS__
 				int waypoint = DOM_GetNearWP(ent->r.currentOrigin, ent->wpCurrent);
 
 				if (waypoint >= 0 && waypoint < gWPNum)
@@ -4411,6 +4436,7 @@ void ClientSpawn(gentity_t *ent) {
 					VectorCopy(gWPArray[waypoint]->origin, padawan->s.origin);
 					SP_NPC_spawner2(padawan);
 				}
+#endif //__USE_NAVLIB_SPAWNPOINTS__
 			}
 		}
 	}
