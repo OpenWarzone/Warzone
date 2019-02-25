@@ -1054,8 +1054,9 @@ struct gclient_s {
 	int			blockStartTime;
 	int			blockLastStartTime;
 	gentity_t	*blockStaggerDefender;
-	int			StaggerAnimTime;// hm better way to call this something else
 #endif //__TIMED_STAGGER__
+	int			StaggerAnimTime;// hm better way to call this something else
+
 
 	//fallen duelist
 	qboolean	iAmALoser;

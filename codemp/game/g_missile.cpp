@@ -364,7 +364,6 @@ G_MissileImpact
 #ifdef __MISSILES_AUTO_PARRY__
 void WP_SaberBlockNonRandom(gentity_t *self, vec3_t hitloc, qboolean missileBlock);
 #endif // __MISSILES_AUTO_PARRY__
-extern int OJP_SaberCanBlock(gentity_t *self, gentity_t *atk, qboolean checkBBoxBlock, vec3_t point, int rSaberNum, int rBladeNum);
 //[/SaberSys]
 void WP_flechette_alt_blow(gentity_t *ent);
 void G_MissileImpact(gentity_t *ent, trace_t *trace, qboolean HIT_TREE) {
@@ -629,8 +628,6 @@ void G_MissileImpact(gentity_t *ent, trace_t *trace, qboolean HIT_TREE) {
 				//[SaberSys]
 #ifdef __MISSILES_AUTO_PARRY__
 				WP_SaberBlockNonRandom(otherOwner, ent->r.currentOrigin, qtrue);
-#else
-				OJP_SaberCanBlock(other, ent, qfalse, trace->endpos, -1, -1);
 #endif //__MISSILES_AUTO_PARRY__
 				//[/SaberSys]
 			}

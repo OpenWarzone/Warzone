@@ -1479,7 +1479,7 @@ qboolean PM_InSaberAnim(int anim)
 	return qfalse;
 }
 
-#ifdef __TIMED_STAGGER__
+
 qboolean PM_StaggerAnim(int anim)
 {
 	switch (anim)
@@ -1495,7 +1495,6 @@ qboolean PM_StaggerAnim(int anim)
 	default: return qfalse;
 	}
 }
-#endif //__TIMED_STAGGER__
 
 //[KnockdownSys]
 //[SPPortCompete]

@@ -2230,14 +2230,19 @@ qboolean NPC_FollowEnemyRoute(gentity_t *aiEnt)
 	}
 
 #ifdef __USE_NAVLIB__
-	if (aiEnt->client->navigation.goal.ent != NPC->enemy)
+	if (G_NavmeshIsLoaded())
 	{
-		NPC_ClearGoal(NPC);
-		NPC->client->navigation.goal.ent = NPC->enemy;
+		NavlibSetNavMesh(NPC->s.number, 0);
+
+		if (aiEnt->client->navigation.goal.ent != NPC->enemy)
+		{
+			NPC_ClearGoal(NPC);
+			NPC->client->navigation.goal.ent = NPC->enemy;
 
 #pragma omp critical
-		{
-			NPC->client->navigation.goal.haveGoal = (qboolean)NavlibFindRouteToTarget(NPC, NPC->client->navigation.goal, qtrue);
+			{
+				NPC->client->navigation.goal.haveGoal = (qboolean)NavlibFindRouteToTarget(NPC, NPC->client->navigation.goal, qtrue);
+			}
 		}
 	}
 

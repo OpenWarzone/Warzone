@@ -20,7 +20,6 @@ extern void WP_SaberBlock(gentity_t *playerent, vec3_t hitloc, qboolean missileB
 #endif //__MISSILES_AUTO_PARRY__
 //[/SaberSys]
 extern void G_SaberBounce(gentity_t* self, gentity_t* other, qboolean hitBody);
-extern int OJP_SaberCanBlock(gentity_t *self, gentity_t *atk, qboolean checkBBoxBlock, vec3_t point, int rSaberNum, int rBladeNum);
 extern int PM_SaberBounceForAttack(int move);
 qboolean SaberAttacking(gentity_t *self);
 extern qboolean saberKnockOutOfHand(gentity_t *saberent, gentity_t *saberOwner, vec3_t velocity);
@@ -76,14 +75,15 @@ void SabBeh_AttackVsBlock( gentity_t *attacker, gentity_t *blocker, vec3_t hitLo
 		}
 	}
 
-	G_ForcePowerDrain(blocker, attacker, G_SaberFPDrain(blocker, attacker, hitLoc));
+#ifdef __BLOCK_FP_DRAIN__
+	G_ForcePowerDrain(blocker, attacker);
+#endif //__BLOCK_FP_DRAIN__
 
 	//costs FP as well.
 	BG_AddForcePowerToPlayer(&blocker->client->ps, 1);
 }
 
 extern qboolean NPC_IsAlive(gentity_t *self, gentity_t *NPC); // Also valid for non-npcs.
-
 void Update_Saberblocking(gentity_t *self, gentity_t *otherOwner, vec3_t hitLoc, qboolean *didHit, qboolean otherHitSaberBlade)
 {	
 	if (!self || !self->client || !NPC_IsAlive(self, self))
@@ -92,34 +92,9 @@ void Update_Saberblocking(gentity_t *self, gentity_t *otherOwner, vec3_t hitLoc,
 	if (!otherOwner || !otherOwner->client || !NPC_IsAlive(self, otherOwner))
 		return;
 
-	if(BG_SaberInNonIdleDamageMove(&self->client->ps, self->localAnimIndex) )
-	{//self is attacking
-		if(BG_SaberInNonIdleDamageMove(&otherOwner->client->ps, otherOwner->localAnimIndex)) 
-		{//and otherOwner is attacking
-			OJP_SaberCanBlock(otherOwner, self, qfalse, hitLoc, -1, -1);
-		}
-		else if(OJP_SaberCanBlock(otherOwner, self, qfalse, hitLoc, -1, -1))
-		{//and otherOwner is blocking or parrying
-			//this is called with dual with both sabers[DUALRAWR]
-			SabBeh_AttackVsBlock(self, otherOwner, hitLoc, otherHitSaberBlade);
-			*didHit = qfalse;
-		}
-	}
-	else if( OJP_SaberCanBlock(self, otherOwner, qfalse, hitLoc, -1, -1) )
-	{//self is blocking or parrying
-		if(BG_SaberInNonIdleDamageMove(&otherOwner->client->ps, otherOwner->localAnimIndex))
-		{//and otherOwner is attacking
-			SabBeh_AttackVsBlock(otherOwner, self, hitLoc, qtrue);
-		}
-		else if(OJP_SaberCanBlock(otherOwner, self, qfalse, hitLoc, -1, -1))
-		{//and otherOwner is blocking or parrying
-			CheckManualBlocking(self, otherOwner);
-		}
-	}
-	else
 	{//whatever other states self can be in.  (returns, bounces, or something)
 		G_SaberBounce(otherOwner, self, qfalse);
-		//G_SaberBounce(self, otherOwner, qfalse);
+		G_SaberBounce(self, otherOwner, qfalse);
 	}
 }
 
