@@ -895,6 +895,7 @@ void getBackground( out vec4 fragColor, in vec2 fragCoord )
 
 #define ADD_WATER
 //#define ADD_SUN
+#define FASTER_RANDOM
 #define WATER_LEVEL 2.3
 
 #define ITR 30//90
@@ -913,7 +914,7 @@ mat2 m2 = mat2( 0.80,  0.60, -0.60,  0.80 );
 
 float fnoise(vec2 pos)
 {
-	vec2 p = pos * 32768.0;//128.0;
+	vec2 p = pos * 32768.0;
 	vec3 p3  = fract(vec3(p.xyx) * HASHSCALE1);
     p3 += dot(p3, p3.yzx + 19.19);
     return fract((p3.x + p3.y) * p3.z);
@@ -934,6 +935,7 @@ float noise( vec2 p )
 //form iq, see: http://www.iquilezles.org/www/articles/morenoise/morenoise.htm
 vec3 noised( in vec2 x )
 {
+#ifndef FASTER_RANDOM
     vec2 p = floor(x);
     vec2 f = fract(x);
     vec2 u = f*f*(3.0-2.0*f);
@@ -943,6 +945,17 @@ vec3 noised( in vec2 x )
 	float d = noise((p+vec2(1.5,1.5))/256.0).x;
 	return vec3(a+(b-a)*u.x+(c-a)*u.y+(a-b-c+d)*u.x*u.y,
 				6.0*f*(1.0-f)*(vec2(b-a,c-a)+(a-b-c+d)*u.yx));
+#else
+	vec2 p = floor(x);
+    vec2 f = fract(x);
+    vec2 u = f*f*(3.0-2.0*f);
+	float a = fnoise((p+vec2(0.5,0.5))/256.0).x;
+	float b = fnoise((p+vec2(1.5,0.5))/256.0).x;
+	float c = fnoise((p+vec2(0.5,1.5))/256.0).x;
+	float d = fnoise((p+vec2(1.5,1.5))/256.0).x;
+	return vec3(a+(b-a)*u.x+(c-a)*u.y+(a-b-c+d)*u.x*u.y,
+				6.0*f*(1.0-f)*(vec2(b-a,c-a)+(a-b-c+d)*u.yx)) * 0.5 + 0.333;
+#endif
 }
 
 float terrain( in vec2 p)
