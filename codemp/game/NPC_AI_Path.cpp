@@ -525,6 +525,9 @@ int NPC_FindGoal( gentity_t *NPC )
 		return 1;
 	}
 #else
+	if (!G_NavmeshIsLoaded())
+		return -1;
+
 	//NavlibFindRandomPatrolPoint(NPC->s.number, NPC->client->navigation.goal.origin);
 	NavlibFindRandomPointOnMesh(NPC, NPC->client->navigation.goal.origin);
 	if (VectorLength(NPC->client->navigation.goal.origin) == 0)
@@ -620,6 +623,11 @@ void NPC_SetNewGoalAndPath(gentity_t *aiEnt)
 	}
 
 	if (aiEnt->next_pathfind_time > level.time)
+	{
+		return;
+	}
+
+	if (!G_NavmeshIsLoaded())
 	{
 		return;
 	}

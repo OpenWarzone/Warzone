@@ -3313,15 +3313,16 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				float blendMethod = 0.0;
 
 #if 1
-				if (stateBits & GLS_DSTBLEND_ONE_MINUS_SRC_COLOR)
+				/*if (stateBits & GLS_DSTBLEND_ONE_MINUS_SRC_COLOR)
 				{
 					blendMethod = 1.0;
 
 					stateBits &= ~GLS_SRCBLEND_BITS;
 					stateBits &= ~GLS_DSTBLEND_BITS;
 					stateBits |= GLS_SRCBLEND_ZERO | GLS_DSTBLEND_ONE;
+
 				}
-				else if (stateBits & GLS_DSTBLEND_SRC_COLOR)
+				else*/ if (stateBits & GLS_DSTBLEND_SRC_COLOR)
 				{
 					blendMethod = 2.0;
 
@@ -3329,14 +3330,14 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					stateBits &= ~GLS_DSTBLEND_BITS;
 					stateBits |= GLS_SRCBLEND_ZERO | GLS_DSTBLEND_ONE;
 				}
-				else if (stateBits & GLS_DSTBLEND_ONE)
+				/*else if (stateBits & GLS_DSTBLEND_ONE)
 				{
 					blendMethod = 3.0;
 
 					stateBits &= ~GLS_SRCBLEND_BITS;
 					stateBits &= ~GLS_DSTBLEND_BITS;
 					stateBits |= GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE;
-				}
+				}*/
 #endif
 
 				VectorSet4(vec,

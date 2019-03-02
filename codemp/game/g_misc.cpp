@@ -3342,10 +3342,12 @@ void SP_misc_weapon_shooter( gentity_t *self )
 
 	//set weapon
 	self->s.weapon = self->client->ps.weapon = WP_MODULIZED_WEAPON;
-	if ( s && s[0] )
-	{//use a different weapon
-		self->s.weapon = self->client->ps.weapon = GetIDForString( WPTable, s );
-	}
+	
+	// UQ1: Fix crash on some sp maps that use this, we don't have other weapons any more, so force using modularized fire...
+	//if ( s && s[0] )
+	//{//use a different weapon
+	//	self->s.weapon = self->client->ps.weapon = GetIDForString( WPTable, s );
+	//}
 
 	RegisterItem(BG_FindItemForWeapon((weapon_t)self->s.weapon));
 

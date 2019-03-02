@@ -1539,6 +1539,115 @@ void RB_StageIteratorSky( void ) {
 		qglDepthRange(1.0, 1.0);
 	}
 
+	if (!tess.shader || !tess.shader->sky.outerbox[0] || tess.shader->sky.outerbox[0] == tr.defaultImage || r_skydome->integer)
+	{// UQ1: Set a default image...
+		shader_t *scarifSky = R_FindShader("textures/sky/scarif", lightmapsNone, stylesDefault, qtrue);
+		tess.shader = scarifSky;
+
+		extern qboolean		PROCEDURAL_SKY_ENABLED;
+		extern vec3_t		PROCEDURAL_SKY_DAY_COLOR;
+		extern vec4_t		PROCEDURAL_SKY_NIGHT_COLOR;
+		extern float		PROCEDURAL_SKY_NIGHT_HDR_MIN;
+		extern float		PROCEDURAL_SKY_NIGHT_HDR_MAX;
+		extern int			PROCEDURAL_SKY_STAR_DENSITY;
+		extern float		PROCEDURAL_SKY_NEBULA_FACTOR;
+		extern float		PROCEDURAL_SKY_NEBULA_SEED;
+		extern float		PROCEDURAL_SKY_PLANETARY_ROTATION;
+
+		extern qboolean		PROCEDURAL_BACKGROUND_HILLS_ENABLED;
+		extern float		PROCEDURAL_BACKGROUND_HILLS_SMOOTHNESS;
+		extern float		PROCEDURAL_BACKGROUND_HILLS_UPDOWN;
+		extern float		PROCEDURAL_BACKGROUND_HILLS_SEED;
+		extern vec3_t		PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR;
+		extern vec3_t		PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR2;
+
+		extern vec3_t		AURORA_COLOR;
+
+		extern qboolean		PROCEDURAL_CLOUDS_ENABLED;
+		extern qboolean		PROCEDURAL_CLOUDS_LAYER;
+		extern qboolean		PROCEDURAL_CLOUDS_DYNAMIC;
+		extern float		PROCEDURAL_CLOUDS_CLOUDSCALE;
+		extern float		PROCEDURAL_CLOUDS_SPEED;
+		extern float		PROCEDURAL_CLOUDS_DARK;
+		extern float		PROCEDURAL_CLOUDS_LIGHT;
+		extern float		PROCEDURAL_CLOUDS_CLOUDCOVER;
+		extern float		PROCEDURAL_CLOUDS_CLOUDALPHA;
+		extern float		PROCEDURAL_CLOUDS_SKYTINT;
+
+		extern float		DYNAMIC_WEATHER_CLOUDCOVER;
+		extern float		DYNAMIC_WEATHER_CLOUDSCALE;
+
+		PROCEDURAL_SKY_ENABLED = qtrue;
+		VectorSet(PROCEDURAL_SKY_DAY_COLOR, 0.2455, 0.58, 1.0);
+
+		PROCEDURAL_SKY_STAR_DENSITY = 4;
+		PROCEDURAL_SKY_NEBULA_FACTOR = 0.25;
+		PROCEDURAL_SKY_NEBULA_SEED = 3.5;
+		PROCEDURAL_SKY_PLANETARY_ROTATION = 0.9;
+		VectorSet4(PROCEDURAL_SKY_NIGHT_COLOR, 1.0, 1.0, 1.0, 1.0);
+		PROCEDURAL_SKY_NIGHT_HDR_MIN = 0.0;
+		PROCEDURAL_SKY_NIGHT_HDR_MAX = 255.0;
+
+		PROCEDURAL_BACKGROUND_HILLS_ENABLED = qtrue;
+		PROCEDURAL_BACKGROUND_HILLS_SMOOTHNESS = 0.24;
+		PROCEDURAL_BACKGROUND_HILLS_UPDOWN = 380.0;
+		PROCEDURAL_BACKGROUND_HILLS_SEED = 1.0;
+		VectorSet(PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR, 0.7, 0.7, 0.1);
+		VectorSet(PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR2, 0.4, 0.7, 0.1);
+
+
+		PROCEDURAL_CLOUDS_ENABLED = qtrue;
+		PROCEDURAL_CLOUDS_LAYER = qfalse;
+		PROCEDURAL_CLOUDS_DYNAMIC = qtrue;
+		PROCEDURAL_CLOUDS_CLOUDSCALE = 1.0;
+		PROCEDURAL_CLOUDS_SPEED = 0.003;
+		PROCEDURAL_CLOUDS_DARK = 0.5;
+		PROCEDURAL_CLOUDS_LIGHT = 0.3;
+		PROCEDURAL_CLOUDS_CLOUDCOVER = 1.0;
+		PROCEDURAL_CLOUDS_CLOUDALPHA = 5.0;
+		PROCEDURAL_CLOUDS_SKYTINT = 0.5;
+
+
+		extern qboolean	DAY_NIGHT_CYCLE_ENABLED;
+		extern float		DAY_NIGHT_CYCLE_SPEED;
+		extern float		DAY_NIGHT_START_TIME;
+		extern float		SUN_PHONG_SCALE;
+		extern float		SUN_VOLUMETRIC_SCALE;
+		extern float		SUN_VOLUMETRIC_FALLOFF;
+		extern vec3_t		SUN_COLOR_MAIN;
+		extern vec3_t		SUN_COLOR_SECONDARY;
+		extern vec3_t		SUN_COLOR_TERTIARY;
+		extern vec3_t		SUN_COLOR_AMBIENT;
+
+		DAY_NIGHT_CYCLE_ENABLED = qtrue;
+		DAY_NIGHT_CYCLE_SPEED = 0.0;
+		DAY_NIGHT_START_TIME = 10.32;
+		SUN_PHONG_SCALE = 0.5;
+		SUN_VOLUMETRIC_SCALE = 1.5;
+		SUN_VOLUMETRIC_FALLOFF = 0.5;
+		VectorSet(SUN_COLOR_MAIN, 1.0, 0.9, 0.825);
+		VectorSet(SUN_COLOR_SECONDARY, 0.5, 0.4, 0.3);
+		VectorSet(SUN_COLOR_TERTIARY, 0.3, 0.25, 0.2);
+		VectorSet(SUN_COLOR_AMBIENT, 0.1, 0.08, 0.06);
+
+
+
+		extern qboolean		MOON_ENABLED[8];
+		extern float		MOON_SIZE[8];
+		extern float		MOON_BRIGHTNESS[8];
+		extern float		MOON_TEXTURE_SCALE[8];
+		extern float		MOON_ROTATION_OFFSET_X[8];
+		extern float		MOON_ROTATION_OFFSET_Y[8];
+
+		MOON_ENABLED[0] = qtrue;
+		MOON_SIZE[0] = 7.5;
+		MOON_BRIGHTNESS[0] = 4.0;
+		MOON_TEXTURE_SCALE[0] = 0.25;
+		MOON_ROTATION_OFFSET_X[0] = 0.0;
+		MOON_ROTATION_OFFSET_Y[0] = 0.7;
+		tr.moonImage[0] = R_FindImageFile("gfx/moons/greenworld", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+	}
+
 	// go through all the polygons and project them onto
 	// the sky box to see which blocks on each side need
 	// to be drawn
@@ -1547,8 +1656,8 @@ void RB_StageIteratorSky( void ) {
 		RB_ClipSkyPolygons(&tess);
 	}
 
-	if ( !tess.shader->sky.outerbox[0] || tess.shader->sky.outerbox[0] == tr.defaultImage || r_skydome->integer ) 
-	{// UQ1: Set a default image...
+	/*if ( !tess.shader->sky.outerbox[0] || tess.shader->sky.outerbox[0] == tr.defaultImage || r_skydome->integer ) 
+	{// UQ1: Use skydome...
 		matrix_t oldmodelview;
 
 		GL_State( 0 );
@@ -1576,7 +1685,7 @@ void RB_StageIteratorSky( void ) {
 
 		return;
 	}
-	else
+	else*/
 	{// draw the outer skybox
 		matrix_t oldmodelview;
 

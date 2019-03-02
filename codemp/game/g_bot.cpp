@@ -1227,6 +1227,11 @@ void G_CheckMinimumNpcs(void)
 	{
 		return;
 	}
+#else
+	if (!G_NavmeshIsLoaded())
+	{
+		return;
+	}
 #endif //__USE_NAVLIB_SPAWNPOINTS__
 
 	if (g_gametype.integer == GT_SIEGE)

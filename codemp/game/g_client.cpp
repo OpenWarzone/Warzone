@@ -4362,24 +4362,27 @@ void ClientSpawn(gentity_t *ent) {
 				gentity_t *padawan = G_Spawn();
 
 #ifdef __USE_NAVLIB_SPAWNPOINTS__
-				vec3_t position;
-#pragma omp critical
+				if (G_NavmeshIsLoaded())
 				{
-					NavlibFindRandomPointInRadius(-1, ent->r.currentOrigin, position, 1024.0/*2048.0*/);
+					vec3_t position;
+#pragma omp critical
+					{
+						NavlibFindRandomPointInRadius(-1, ent->r.currentOrigin, position, 1024.0/*2048.0*/);
+					}
+
+					position[2] += 32.0;
+
+					//trap->Print("padawan spawnpoint %f %f %f\n", position[0], position[1], position[2]);
+
+					padawan->NPC_type = "padawan";
+
+					trap->Print("Spawning \"%s\" for player %s.\n", padawan->NPC_type, ent->client->pers.netname);
+
+					padawan->s.teamowner = ent->client->sess.sessionTeam;
+					padawan->padawanSaberType = irand(1, 12);
+					VectorCopy(position, padawan->s.origin);
+					SP_NPC_spawner2(padawan);
 				}
-
-				position[2] += 32.0;
-
-				//trap->Print("padawan spawnpoint %f %f %f\n", position[0], position[1], position[2]);
-
-				padawan->NPC_type = "padawan";
-
-				trap->Print("Spawning \"%s\" for player %s.\n", padawan->NPC_type, ent->client->pers.netname);
-
-				padawan->s.teamowner = ent->client->sess.sessionTeam;
-				padawan->padawanSaberType = irand(1, 12);
-				VectorCopy(position, padawan->s.origin);
-				SP_NPC_spawner2(padawan);
 #else //!__USE_NAVLIB_SPAWNPOINTS__
 				int waypoint = DOM_GetNearWP(ent->r.currentOrigin, ent->wpCurrent);
 
@@ -4404,24 +4407,27 @@ void ClientSpawn(gentity_t *ent) {
 				gentity_t *padawan = G_Spawn();
 
 #ifdef __USE_NAVLIB_SPAWNPOINTS__
-				vec3_t position;
-#pragma omp critical
+				if (G_NavmeshIsLoaded())
 				{
-					NavlibFindRandomPointInRadius(-1, ent->r.currentOrigin, position, 1024.0/*2048.0*/);
+					vec3_t position;
+#pragma omp critical
+					{
+						NavlibFindRandomPointInRadius(-1, ent->r.currentOrigin, position, 1024.0/*2048.0*/);
+					}
+
+					position[2] += 32.0;
+
+					//trap->Print("hk51 spawnpoint %f %f %f\n", position[0], position[1], position[2]);
+
+					char name[64] = "hk51";
+					padawan->NPC_type = Q_strlwr(G_NewString("hk51"));
+
+					trap->Print("Spawning \"%s\" for player %s.\n", padawan->NPC_type, ent->client->pers.netname);
+
+					padawan->s.teamowner = ent->client->sess.sessionTeam;
+					VectorCopy(position, padawan->s.origin);
+					SP_NPC_spawner2(padawan);
 				}
-
-				position[2] += 32.0;
-
-				//trap->Print("hk51 spawnpoint %f %f %f\n", position[0], position[1], position[2]);
-
-				char name[64] = "hk51";
-				padawan->NPC_type = Q_strlwr(G_NewString("hk51"));
-
-				trap->Print("Spawning \"%s\" for player %s.\n", padawan->NPC_type, ent->client->pers.netname);
-
-				padawan->s.teamowner = ent->client->sess.sessionTeam;
-				VectorCopy(position, padawan->s.origin);
-				SP_NPC_spawner2(padawan);
 #else //!__USE_NAVLIB_SPAWNPOINTS__
 				int waypoint = DOM_GetNearWP(ent->r.currentOrigin, ent->wpCurrent);
 

@@ -232,6 +232,11 @@ int NPC_FindPatrolGoalNavLib(gentity_t *NPC)
 		return 1;
 	}
 #else
+	if (!G_NavmeshIsLoaded())
+	{
+		return 0;
+	}
+
 #pragma omp critical
 	{
 		NavlibFindRandomPatrolPoint(NPC->s.number, NPC->client->navigation.goal.origin);

@@ -761,31 +761,31 @@ void main()
 	{// Emulate RGB blending... Fuck I hate this crap...
 		float colStr = clamp(max(gl_FragColor.r, max(gl_FragColor.g, gl_FragColor.b)), 0.0, 1.0);
 
-		if (USE_BLEND == 3.0)
+		/*if (USE_BLEND == 3.0)
 		{
 			gl_FragColor.a *= colStr * 2.0;
 			gl_FragColor.rgb *= 0.5;
 		}
-		else if (USE_BLEND == 2.0)
+		else*/ if (USE_BLEND == 2.0)
 		{
 			colStr = clamp(colStr + 0.1, 0.0, 1.0);
 			gl_FragColor.a = 1.0 - colStr;
 		}
-		else
+		/*else
 		{
 			colStr = clamp(colStr - 0.1, 0.0, 1.0);
 			gl_FragColor.a = colStr;
-		}
+		}*/
 	}
 
-	if (SHADER_MATERIAL_TYPE == MATERIAL_GLASS && USE_IS2D <= 0.0)
+	/*if (SHADER_MATERIAL_TYPE == MATERIAL_GLASS && USE_IS2D <= 0.0)
 	{
 		gl_FragColor *= 6.0;
 	}
 	else if (SHADER_MATERIAL_TYPE == MATERIAL_EFX && USE_IS2D <= 0.0)
 	{
 		gl_FragColor *= 2.0;
-	}
+	}*/
 
 	gl_FragColor.a = clamp(gl_FragColor.a, 0.0, 1.0);
 
