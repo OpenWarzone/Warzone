@@ -116,7 +116,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define __USE_REGIONS__
 
-//#define __GENERATED_SKY_CUBES__				// Generate sky cubemaps from sky render instead of using map's skybox textures... Doesn't like non-procedural for some reason, so disabled.
+#define __GENERATED_SKY_CUBES__					// Generate sky cubemaps from sky render instead of using map's skybox textures... Doesn't like non-procedural for some reason, so disabled.
 
 #define __TERRAIN_TESSELATION__
 #define __PSHADOW_TESSELLATION__				// Tessellate pshadow draws so that they work correctly on tessellated terrain...

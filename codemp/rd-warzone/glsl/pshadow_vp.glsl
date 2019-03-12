@@ -16,6 +16,7 @@ out vec4 Color_CS_in;
 out vec4 PrimaryLightDir_CS_in;
 out vec2 TexCoord2_CS_in;
 out vec3 Blending_CS_in;
+out vec2 envTC_CS_in;
 out float Slope_CS_in;
 #endif
 
@@ -37,6 +38,7 @@ void main()
 	PrimaryLightDir_CS_in = vec4(0.0);
 	TexCoord2_CS_in = vec2(0.0);
 	Blending_CS_in = vec3(0.0);
+	envTC_CS_in = vec2(0.0);
 	Slope_CS_in = float(0.0);
 	gl_Position = vec4(attr_Position, 1.0);
 #else

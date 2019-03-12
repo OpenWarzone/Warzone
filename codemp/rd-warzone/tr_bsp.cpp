@@ -6213,8 +6213,12 @@ void RE_LoadWorldMap( const char *name ) {
 #endif //__REALTIME_CUBEMAP__
 
 #ifdef __GENERATED_SKY_CUBES__
-	// Generate the day/night sky cubemaps...
-	R_GenerateSkyCubes();
+	extern qboolean PROCEDURAL_SKY_ENABLED;
+
+	if (PROCEDURAL_SKY_ENABLED)
+	{// Generate the day/night sky cubemaps...
+		R_GenerateSkyCubes();
+	}
 #endif //__GENERATED_SKY_CUBES__
 
     ri->FS_FreeFile( buffer.v );

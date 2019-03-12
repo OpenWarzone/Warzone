@@ -50,7 +50,8 @@ inline int getDirOffsetY(int dir)
 }
 
 static const int MAX_VERTS_PER_POLY = 6;	// TODO: use the DT_VERTS_PER_POLYGON
-static const int MAX_REM_EDGES = 48;		// TODO: make this an expression.
+//static const int MAX_REM_EDGES = 48;		// TODO: make this an expression.
+static const int MAX_REM_EDGES = 64;		// TODO: make this an expression.
 
 
 

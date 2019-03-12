@@ -39,7 +39,7 @@ uniform vec4								u_Local3; // r_testShaderValue1, r_testShaderValue2, r_testS
 uniform vec4								u_Local4; // haveConeAngles, PROCEDURAL_SNOW_LUMINOSITY_CURVE, PROCEDURAL_SNOW_BRIGHTNESS, MAP_EMISSIVE_COLOR_SCALE
 uniform vec4								u_Local5; // CONTRAST, SATURATION, BRIGHTNESS, TRUEHDR_ENABLED
 uniform vec4								u_Local6; // AO_MINBRIGHT, AO_MULTBRIGHT, VIBRANCY, NightScale
-uniform vec4								u_Local7; // cubemapEnabled, r_cubemapCullRange, r_cubeMapSize, r_skyLightContribution
+uniform vec4								u_Local7; // cubemapEnabled, r_cubemapCullRange, PROCEDURAL_SKY_ENABLED, r_skyLightContribution
 uniform vec4								u_Local8; // enableReflections, MAP_HDR_MIN, MAP_HDR_MAX, MAP_INFO_PLAYABLE_MAXS[2]
 uniform vec4								u_Local9; // PROCEDURAL_SNOW_HEIGHT_CURVE, MAP_USE_PALETTE_ON_SKY, SNOW_ENABLED, PROCEDURAL_SNOW_LOWEST_ELEVATION
 //uniform vec4								u_Local10; // PROCEDURAL_SNOW_LUMINOSITY_CURVE, PROCEDURAL_SNOW_BRIGHTNESS, 0.0, 0.0
@@ -102,7 +102,7 @@ varying float								var_CloudShadow;
 
 #define CUBEMAP_ENABLED						u_Local7.r
 #define CUBEMAP_CULLRANGE					u_Local7.g
-//#define CUBEMAP_SIZE						u_Local7.b // UNUSED
+#define PROCEDURAL_SKY_ENABLED				u_Local7.b
 #define SKY_LIGHT_CONTRIBUTION				u_Local7.a
 
 #define REFLECTIONS_ENABLED					u_Local8.r
@@ -1285,7 +1285,6 @@ void main(void)
 	vec3 sunDir = normalize(position.xyz - u_PrimaryLightOrigin.xyz);
 	float NE = clamp(length(dot(N, E)), 0.0, 1.0);
 
-
 	float diffuse = clamp(pow(clamp(dot(-sunDir.rgb, bump.rgb), 0.0, 1.0), 8.0) * 0.6 + 0.6, 0.0, 1.0);
 	color.rgb = outColor.rgb = outColor.rgb * diffuse;
 
@@ -1352,7 +1351,12 @@ void main(void)
 		parallax.z *= -1.0;
 		
 		vec3 reflected = cubeRayDir + parallax;
-		reflected = vec3(-reflected.y, -reflected.z, -reflected.x); // for old sky cubemap generation based on sky textures
+
+		if (PROCEDURAL_SKY_ENABLED <= 0.0)
+		{
+			reflected = vec3(-reflected.y, -reflected.z, -reflected.x); // for old sky cubemap generation based on sky textures
+		}
+
 #else
 		vec3 reflected = reflect(E.xyz, flatNorm.xyz/*N.xyz*/);
 #endif
@@ -1413,19 +1417,28 @@ void main(void)
 	if (specularReflectivePower > 0.0)
 	{// If this pixel is ging to get any specular reflection, generate (PBR would instead look up image buffer) specular color, and grab any cubeMap lighting as well...
 		// Construct generic specular map by creating a greyscale, contrasted, saturation removed, color from the screen color... Then multiply by the material's default specular modifier...
-		if (isMetalic)
+		//if (isMetalic)
 		{
-			specularColor = ContrastSaturationBrightness(outColor.rgb, 1.25, 1.25, 0.7);
-		}
-		else
-		{
-			specularColor = ContrastSaturationBrightness(outColor.rgb, 1.25, 0.05, 1.0);
-			specularColor.rgb = clamp(vec3(length(specularColor.rgb) / 3.0), 0.0, 1.0);
-		}
+			//specularColor = ContrastSaturationBrightness(outColor.rgb, 1.25, 1.25, 0.7);
+			//specularColor = outColor.rgb * outColor.rgb;
+			//specularColor = pow(outColor.rgb * 0.5 + 0.5, vec3(10.0));
 
-		specularColor.rgb *= specularReflectivePower;
+#define spec_cont_1 ( 16.0 / 255.0)
+#define spec_cont_2 (255.0 / 192.0)
+			specularColor = clamp((clamp(outColor.rgb - spec_cont_1, 0.0, 1.0)) * spec_cont_2, 0.0, 1.0);
+			specularColor = clamp(Vibrancy( specularColor.rgb, 1.0 ), 0.0, 1.0);
 
-		specularColor.rgb = mix(specularColor.rgb, skyColor * specularColor.rgb, reflectionPower);
+		}
+		//else
+		//{
+		//	//specularColor = ContrastSaturationBrightness(outColor.rgb, 1.25, 0.05, 1.0);
+		//	specularColor = outColor.rgb * outColor.rgb;
+		//	specularColor.rgb = clamp(vec3(length(specularColor.rgb) / 3.0), 0.0, 1.0);
+		//}
+
+		//specularColor.rgb *= specularReflectivePower * 512.0;
+		//specularColor.rgb = mix(specularColor.rgb, skyColor * specularColor.rgb, reflectionPower);
+
 
 #ifndef __LQ_MODE__
 #if defined(__CUBEMAPS__)
@@ -1499,6 +1512,35 @@ void main(void)
 #endif //!__LQ_MODE__
 	}
 
+	//float PshadowValue = 1.0 - texture(u_RoadsControlMap, texCoords).a;
+
+
+	float SE = clamp(dot(/*E*/rayDir, sunDir), 0.0, 1.0);
+	float specPower = ((clamp(SE, 0.0, 1.0) + clamp(pow(SE, 2.0), 0.0, 1.0)) * 0.5) * 0.333;
+
+	/*if (u_Local3.r > 2.0)
+	{
+		outColor.rgb = vec3(specPower);
+		gl_FragColor = outColor;
+		return;
+	}*/
+
+	outColor.rgb = clamp(outColor.rgb + (specularColor.rgb * specPower * finalShadow), 0.0, 1.0);
+
+	/*if (u_Local3.r > 1.0)
+	{
+		outColor.rgb = clamp(specularColor.rgb * specPower, 0.0, 1.0);
+		gl_FragColor = outColor;
+		return;
+	}
+
+	if (u_Local3.r > 0.0)
+	{
+		outColor.rgb = clamp(specularColor.rgb, 0.0, 1.0);
+		gl_FragColor = outColor;
+		return;
+	}*/
+
 	if (SKY_LIGHT_CONTRIBUTION > 0.0 && cubeReflectionFactor > 0.0)
 	{// Sky light contributions...
 #ifndef __LQ_MODE__
@@ -1508,7 +1550,6 @@ void main(void)
 		outColor.rgb = mix(outColor.rgb, outColor.rgb + specularColor, clamp(pow(reflectVectorPower, 2.0) * cubeReflectionFactor * (origColorStrength * 0.75 + 0.25), 0.0, 1.0));
 		//outColor.rgb = skyColor;
 	}
-
 
 	if (BLINN_PHONG_STRENGTH > 0.0 && specularReflectivePower > 0.0)
 	{// If r_blinnPhong is <= 0.0 then this is pointless...

@@ -2520,6 +2520,7 @@ extern float		MAP_HDR_MIN;
 extern float		MAP_HDR_MAX;
 extern vec3_t		MAP_INFO_PLAYABLE_SIZE;
 extern vec3_t		MAP_INFO_PLAYABLE_MAXS;
+extern qboolean		PROCEDURAL_SKY_ENABLED;
 extern qboolean		PROCEDURAL_MOSS_ENABLED;
 extern qboolean		PROCEDURAL_SNOW_ENABLED;
 extern float		PROCEDURAL_SNOW_HEIGHT_CURVE;
@@ -2795,7 +2796,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL6, local6);
 
 	vec4_t local7;
-	VectorSet4(local7, cubeMapNum >= 0 ? 1.0 : 0.0, r_cubemapCullRange->value, 0.0, r_skyLightContribution->value*SKY_LIGHTING_SCALE);
+	VectorSet4(local7, cubeMapNum >= 0 ? 1.0 : 0.0, r_cubemapCullRange->value, PROCEDURAL_SKY_ENABLED ? 1.0 : 0.0, r_skyLightContribution->value*SKY_LIGHTING_SCALE);
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL7, local7);
 
 	vec4_t local8;

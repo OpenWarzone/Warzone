@@ -1562,6 +1562,8 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 				{
 					Padawan_CheckForce(aiEnt);
 
+#define __FOLLOWERS_USE_FORCE_SPEED__
+
 					//trap->Print("Padawan %s parent is alive.\n", NPC->client->pers.netname);
 					//trap->Print("Padawan %s has FP_SPEED level %i.\n", NPC->client->pers.netname, NPC->client->ps.fd.forcePowerLevel[FP_SPEED]);
 					//trap->Print("Padawan %s has FP_PROTECT level %i.\n", NPC->client->pers.netname, NPC->client->ps.fd.forcePowerLevel[FP_PROTECT]);
@@ -1607,6 +1609,7 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 						{
 							extern void WP_ForcePowerStart(gentity_t *self, forcePowers_t forcePower, int overrideAmt);
 
+#ifdef __FOLLOWERS_USE_FORCE_SPEED__
 							if (dist > 1024.0
 								//&& TIMER_Done(NPC, "speed")
 								&& NPC->client->ps.fd.forcePowerLevel[FP_SPEED] > 0
@@ -1621,7 +1624,9 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 
 								//trap->Print("Padawan %s used force speed.\n", NPC->client->pers.netname);
 							}
-							else if (dist > 512.0
+							else
+#endif //__FOLLOWERS_USE_FORCE_SPEED__
+							if (dist > 512.0
 								//&& NPC->health < NPC->maxHealth * 0.5
 								//&& TIMER_Done(NPC, "protect")
 								&& NPC->client->ps.fd.forcePowerLevel[FP_PROTECT] > 0
@@ -1647,6 +1652,7 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 						{
 							extern void WP_ForcePowerStart(gentity_t *self, forcePowers_t forcePower, int overrideAmt);
 
+#ifdef __FOLLOWERS_USE_FORCE_SPEED__
 							if (dist > 1024.0
 								//&& TIMER_Done(NPC, "speed")
 								&& NPC->client->ps.fd.forcePowerLevel[FP_SPEED] > 0
@@ -1659,6 +1665,7 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 								G_Sound(NPC, TRACK_CHANNEL_2, G_SoundIndex("sound/weapons/force/speedloop.wav"));
 								//TIMER_Set(NPC, "speed", irand(15000, 20000));
 							}
+#endif //__FOLLOWERS_USE_FORCE_SPEED__
 						}
 					}
 				}
@@ -1672,7 +1679,7 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 
 			if (UQ1_UcmdMoveForDir(NPC, ucmd, NPC->movedir, walk, NPC->client->navigation.nav.lookPos))
 			{
-				if (NPC->last_move_time < level.time - 2000 || DistanceVertical(NPC->client->navigation.nav.pos, NPC->r.currentOrigin) > DistanceHorizontal(NPC->client->navigation.nav.pos, NPC->r.currentOrigin) * 0.666)
+				if (NPC->last_move_time < level.time - 2000 || DistanceVertical(NPC->client->navigation.nav.lookPos/*pos*/, NPC->r.currentOrigin) > DistanceHorizontal(NPC->client->navigation.nav.lookPos/*pos*/, NPC->r.currentOrigin) * 0.666)
 				{
 					ucmd->upmove = 127;
 
