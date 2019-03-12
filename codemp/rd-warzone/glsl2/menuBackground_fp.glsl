@@ -895,6 +895,7 @@ void getBackground( out vec4 fragColor, in vec2 fragCoord )
 
 #define ADD_WATER
 //#define ADD_SUN
+#define ADD_BEACHES
 #define FASTER_RANDOM
 #define WATER_LEVEL 2.3
 
@@ -1122,7 +1123,7 @@ vec3 water(vec3 ro, vec3 rd, vec3 col, float ds)
 	vec3  wColor = col;
 
 	if (pos.y < WATER_LEVEL) {
-		den = 1.0 - clamp(pos.y / 2.3, 0.0, 1.0);
+		den = 1.0 - clamp(pos.y / WATER_LEVEL, 0.0, 1.0);
 		wColor = mix(vec3(0.05, 0.07, 0.12), vec3(0.01, 0.02, 0.04), den);
 		den = 1.0;
 	}
@@ -1130,6 +1131,23 @@ vec3 water(vec3 ro, vec3 rd, vec3 col, float ds)
 	return mix( col, wColor, clamp(den,0.,1.) );
 }
 #endif //ADD_WATER
+
+#ifdef ADD_BEACHES
+vec3 beach(vec3 ro, vec3 rd, vec3 col, float ds)
+{
+    vec3 pos = ro + rd*ds;
+	float den = 0.0;
+	vec3 sColor = vec3(0.0);
+
+	if (pos.y >= WATER_LEVEL && pos.y < WATER_LEVEL + 0.003) {
+		den = 1.0 - clamp((pos.y - WATER_LEVEL) / 0.003, 0.0, 1.0);
+		den *= 0.15;
+		sColor = mix(vec3(0.4650,0.3850,0.250), vec3(0.87,0.780,0.670), den);
+	}
+
+	return mix( col, sColor, den );
+}
+#endif //ADD_BEACHES
 
 float linstep(in float mn, in float mx, in float x){
 	return clamp((x - mn)/(mx - mn), 0., 1.);
@@ -1243,6 +1261,9 @@ void getBackground( out vec4 fragColor, in vec2 fragCoord )
 #ifdef ADD_WATER
 	col = water(ro, rd, col, rz);
 #endif //ADD_WATER
+#ifdef ADD_BEACHES
+	col = beach(ro, rd, col, rz);
+#endif //ADD_BEACHES
     col = fog(ro, rd, col, rz);
     col = mix(col,bg,smoothstep(FAR-150., FAR, rz));
     col += scatt;
