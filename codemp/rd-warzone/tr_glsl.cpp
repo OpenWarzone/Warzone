@@ -7462,9 +7462,13 @@ void GLSL_VertexAttribPointers(uint32_t attribBits)
 	{
 		GLimp_LogComment("qglVertexAttribPointer( ATTR_INDEX_COLOR )\n");
 
+#ifdef __VBO_PACK_COLOR__
+		qglVertexAttribPointer(ATTR_INDEX_COLOR, 4, GL_UNSIGNED_INT_2_10_10_10_REV, GL_FALSE, vbo->stride_vertexcolor, BUFFER_OFFSET(vbo->ofs_vertexcolor));
+#elif defined(__VBO_HALF_FLOAT_COLOR__)
+		qglVertexAttribPointer(ATTR_INDEX_COLOR, 4, GL_HALF_FLOAT, 0, vbo->stride_vertexcolor, BUFFER_OFFSET(vbo->ofs_vertexcolor));
+#else //!__VBO_PACK_COLOR__
 		qglVertexAttribPointer(ATTR_INDEX_COLOR, 4, GL_FLOAT, 0, vbo->stride_vertexcolor, BUFFER_OFFSET(vbo->ofs_vertexcolor));
-		//qglVertexAttribPointer(ATTR_INDEX_COLOR, 4, GL_UNSIGNED_INT_2_10_10_10_REV, GL_TRUE, vbo->stride_vertexcolor, BUFFER_OFFSET(vbo->ofs_vertexcolor + newFrame * vbo->size_normal));
-		//qglVertexAttribPointer(ATTR_INDEX_COLOR, 4, GL_HALF_FLOAT, 0, vbo->stride_vertexcolor, BUFFER_OFFSET(vbo->ofs_vertexcolor)); // add half-float lib for this?
+#endif //__VBO_PACK_COLOR__
 		glState.vertexAttribPointersSet |= ATTR_COLOR;
 	}
 

@@ -45,6 +45,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // -----------------------------------------------------------------------------------------------------------------------------
 //                                               Warzone Basic Renderer Defines
 // -----------------------------------------------------------------------------------------------------------------------------
+#define __HALF_FLOAT__							// Enable half float conversion code...
 #define __GLSL_OPTIMIZER__						// Enable GLSL optimization...
 //#define __DEBUG_SHADER_LOAD__					// Enable extra GLSL shader load debugging info...
 //#define __USE_GLSL_SHADER_CACHE__				// Enable GLSL shader binary caching...
@@ -125,6 +126,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #ifdef __HUMANOIDS_BEND_GRASS__
 #define MAX_GRASSBEND_HUMANOIDS 4
 #endif //__HUMANOIDS_BEND_GRASS__
+
+
+
+//#define __VBO_PACK_COLOR__
+//#define __VBO_HALF_FLOAT_COLOR__
+
 
 //
 // Optimization stuff...
@@ -1340,6 +1347,8 @@ typedef struct shader_s {
 
 	int			surfaceFlags;			// if explicitlyDefined, this will have SURF_* flags
 	int			contentFlags;
+
+	qboolean	isCursor;
 
 	qboolean	warzoneEnabled;
 
@@ -2773,6 +2782,8 @@ typedef struct {
 	trRefEntity_t		*currentEntity;
 	qboolean			skyRenderedThisView;	// flag for drawing sun
 
+	int					ui_MouseCursor = -1;
+
 	renderPasses_t		renderPass;
 
 	qboolean			projection2D;	// if qtrue, drawstretchpic doesn't need to change modes
@@ -3918,6 +3929,20 @@ uint32_t R_VboPackTangent(vec4_t v);
 uint32_t R_VboPackNormal(vec3_t v);
 void R_VboUnpackTangent(vec4_t v, uint32_t b);
 void R_VboUnpackNormal(vec3_t v, uint32_t b);
+
+#ifdef __VBO_PACK_COLOR__
+uint32_t R_VboPackColor(vec4_t v);
+void R_VboUnpackColor(vec4_t v, uint32_t b);
+#endif //__VBO_PACK_COLOR__
+
+#ifdef __HALF_FLOAT__
+static unsigned half2float(unsigned short h);
+unsigned short float2half(unsigned f);
+void floattofp16(unsigned char *dst, float *src, unsigned nelem);
+void fp16tofloat(float *dst, unsigned char *src, unsigned nelem);
+
+typedef unsigned char	hvec2_t[2], hvec3_t[3], hvec4_t[4], hvec5_t[5];
+#endif //__HALF_FLOAT__
 
 VBO_t          *R_CreateVBO(byte * vertexes, int vertexesSize, vboUsage_t usage);
 

@@ -41,6 +41,8 @@ extern void RB_DrawSurfaceSprites( shaderStage_t *stage, shaderCommands_t *input
 
 extern qboolean RB_CheckOcclusion(matrix_t MVP, shaderCommands_t *input);
 
+extern void GL_BindImageIDToTMU(int imageID, int tmu);
+
 extern vec3_t		SUN_COLOR_MAIN;
 extern vec3_t		SUN_COLOR_SECONDARY;
 extern vec3_t		SUN_COLOR_TERTIARY;
@@ -2970,6 +2972,16 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				index |= LIGHTDEF_IS_DETAIL;
 			}
 
+			if (pStage->alphaGen == AGEN_LIGHTING_SPECULAR)
+			{// Skip specular crap completely in depth prepass etc...
+				continue;
+			}
+
+			if (pStage->bundle[0].tcGen == TCGEN_ENVIRONMENT_MAPPED)
+			{// Skip envmap crap completely in depth prepass etc...
+				continue;
+			}
+
 			if (!(index & LIGHTDEF_IS_DETAIL) && !pStage->glow)
 			{
 				didNonDetail = qtrue;
@@ -4048,6 +4060,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			{
 				if (!(pStage->stateBits & GLS_ATEST_BITS))
 					GL_BindToTMU(tr.whiteImage, 0);
+				else if (tess.shader->isCursor && backEnd.ui_MouseCursor > 0)
+					GL_BindImageIDToTMU(backEnd.ui_MouseCursor, TB_COLORMAP); // override with nuklear's selected icon for drag/drop stuff...
 				else if (pStage->bundle[TB_COLORMAP].image[0] != 0)
 					R_BindAnimatedImageToTMU(&pStage->bundle[TB_COLORMAP], TB_COLORMAP);
 			}
@@ -4108,7 +4122,9 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				}
 				else
 				{
-					if (pStage->bundle[TB_ROOFMAP].image[0]) // Roofmap becomes the triplanar flat surface texture...
+					if (tess.shader->isCursor && backEnd.ui_MouseCursor > 0)
+						GL_BindImageIDToTMU(backEnd.ui_MouseCursor, TB_DIFFUSEMAP); // override with nuklear's selected icon for drag/drop stuff...
+					else if (pStage->bundle[TB_ROOFMAP].image[0]) // Roofmap becomes the triplanar flat surface texture...
 						R_BindAnimatedImageToTMU(&pStage->bundle[TB_ROOFMAP], TB_DIFFUSEMAP);
 					else if (pStage->bundle[TB_DIFFUSEMAP].image[0])
 						R_BindAnimatedImageToTMU(&pStage->bundle[TB_DIFFUSEMAP], TB_DIFFUSEMAP);

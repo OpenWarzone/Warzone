@@ -159,7 +159,7 @@ vec3 DeformPosition(const vec3 pos, const vec3 normal, const vec2 st)
 	return pos + normal * (base + func * amplitude);
 }
 
-vec2 GenTexCoords(int TCGen, vec3 position, vec3 normal, vec3 TCGenVector0, vec3 TCGenVector1)
+vec2 GenTexCoords(int TCGen, vec3 position/*, vec3 normal*/, vec3 TCGenVector0, vec3 TCGenVector1)
 {
 	vec2 tex = attr_TexCoord0;
 
@@ -172,14 +172,14 @@ vec2 GenTexCoords(int TCGen, vec3 position, vec3 normal, vec3 TCGenVector0, vec3
 			tex = attr_TexCoord1;
 		break;
 
-		case TCGEN_ENVIRONMENT_MAPPED:
+		/*case TCGEN_ENVIRONMENT_MAPPED:
 		{
 			vec3 viewer = normalize(u_LocalViewOrigin - position);
 			vec2 ref = reflect(viewer, normal).yz;
 			tex.s = ref.x * -0.5 + 0.5;
 			tex.t = ref.y *  0.5 + 0.5;
 		}
-		break;
+		break;*/
 
 		case TCGEN_VECTOR:
 		{
@@ -206,13 +206,13 @@ vec2 ModTexCoords(vec2 st, vec3 position, vec4 texMatrix, vec4 offTurb)
 	return st2 + texOffset * amplitude;
 }
 
-vec4 CalcColor(vec3 position, vec3 normal)
+vec4 CalcColor(vec3 position/*, vec3 normal*/)
 {
 	vec4 color = vec4(1.0, 1.0, 1.0, u_VertColor.a * attr_Color.a + u_BaseColor.a);
 	
 	if (USE_RGBA > 0.0)
 	{
-		if (u_AlphaGen == AGEN_LIGHTING_SPECULAR)
+		/*if (u_AlphaGen == AGEN_LIGHTING_SPECULAR)
 		{
 			vec3 viewer = u_LocalViewOrigin - position;
 			//vec3 lightDir = normalize(vec3(-960.0, 1980.0, 96.0) - position);
@@ -223,7 +223,7 @@ vec4 CalcColor(vec3 position, vec3 normal)
 			color.a *= color.a;
 			color.a *= color.a;
 		}
-		else if (u_AlphaGen == AGEN_PORTAL)
+		else*/ if (u_AlphaGen == AGEN_PORTAL)
 		{
 			vec3 viewer = u_LocalViewOrigin - position;
 			color.a = clamp(length(viewer) / u_PortalRange, 0.0, 1.0);
@@ -336,12 +336,12 @@ void main()
 	//if (USE_VERTEX_ANIM == 1.0 || USE_SKELETAL_ANIM == 1.0)
 	{
 		position = (u_ModelMatrix * vec4(position, 1.0)).xyz;
-		normal = (u_ModelMatrix * vec4(normal, 0.0)).xyz;
+		//normal = (u_ModelMatrix * vec4(normal, 0.0)).xyz;
 	}
 
 	if (USE_TC == 1.0)
 	{
-		texCoords = GenTexCoords(u_TCGen0, position, normal, u_TCGen0Vector0, u_TCGen0Vector1);
+		texCoords = GenTexCoords(u_TCGen0, position/*, normal*/, u_TCGen0Vector0, u_TCGen0Vector1);
 		texCoords = ModTexCoords(texCoords, position, u_DiffuseTexMatrix, u_DiffuseTexOffTurb);
 	}
 
@@ -351,7 +351,7 @@ void main()
 	}
 
 	var_VertPos = position.xyz;
-	var_Color = CalcColor(position, normal);
+	var_Color = CalcColor(position/*, normal*/);
 	var_TexCoords = texCoords;
 
 	if (var_Color.a >= 0.99) var_Color.a = 1.0; // Allow for rounding errors... Don't let them stop pixel culling...

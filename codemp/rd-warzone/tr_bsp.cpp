@@ -778,8 +778,8 @@ void GenerateNormalsForMesh(srfBspSurface_t *cv)
 			{
 #pragma omp critical
 				{
-					verticesFound[numVerticesFound] = tri[0];
-					numVerticesFound++;
+					//verticesFound[numVerticesFound] = tri[0];
+					//numVerticesFound++;
 					verticesFound[numVerticesFound] = tri[1];
 					numVerticesFound++;
 					verticesFound[numVerticesFound] = tri[2];
@@ -794,8 +794,8 @@ void GenerateNormalsForMesh(srfBspSurface_t *cv)
 				{
 					verticesFound[numVerticesFound] = tri[0];
 					numVerticesFound++;
-					verticesFound[numVerticesFound] = tri[1];
-					numVerticesFound++;
+					//verticesFound[numVerticesFound] = tri[1];
+					//numVerticesFound++;
 					verticesFound[numVerticesFound] = tri[2];
 					numVerticesFound++;
 				}
@@ -810,8 +810,8 @@ void GenerateNormalsForMesh(srfBspSurface_t *cv)
 					numVerticesFound++;
 					verticesFound[numVerticesFound] = tri[1];
 					numVerticesFound++;
-					verticesFound[numVerticesFound] = tri[2];
-					numVerticesFound++;
+					//verticesFound[numVerticesFound] = tri[2];
+					//numVerticesFound++;
 				}
 				continue;
 			}
@@ -825,10 +825,10 @@ void GenerateNormalsForMesh(srfBspSurface_t *cv)
 				{
 					verticesFound[numVerticesFound] = tri[0];
 					numVerticesFound++;
-					verticesFound[numVerticesFound] = tri[1];
-					numVerticesFound++;
-					verticesFound[numVerticesFound] = tri[2];
-					numVerticesFound++;
+					//verticesFound[numVerticesFound] = tri[1];
+					//numVerticesFound++;
+					//verticesFound[numVerticesFound] = tri[2];
+					//numVerticesFound++;
 				}
 				continue;
 			}
@@ -839,12 +839,12 @@ void GenerateNormalsForMesh(srfBspSurface_t *cv)
 			{
 #pragma omp critical
 				{
-					verticesFound[numVerticesFound] = tri[0];
-					numVerticesFound++;
+					//verticesFound[numVerticesFound] = tri[0];
+					//numVerticesFound++;
 					verticesFound[numVerticesFound] = tri[1];
 					numVerticesFound++;
-					verticesFound[numVerticesFound] = tri[2];
-					numVerticesFound++;
+					//verticesFound[numVerticesFound] = tri[2];
+					//numVerticesFound++;
 				}
 				continue;
 			}
@@ -855,10 +855,10 @@ void GenerateNormalsForMesh(srfBspSurface_t *cv)
 			{
 #pragma omp critical
 				{
-					verticesFound[numVerticesFound] = tri[0];
-					numVerticesFound++;
-					verticesFound[numVerticesFound] = tri[1];
-					numVerticesFound++;
+					//verticesFound[numVerticesFound] = tri[0];
+					//numVerticesFound++;
+					//verticesFound[numVerticesFound] = tri[1];
+					//numVerticesFound++;
 					verticesFound[numVerticesFound] = tri[2];
 					numVerticesFound++;
 				}
@@ -876,11 +876,13 @@ void GenerateNormalsForMesh(srfBspSurface_t *cv)
 			numAdded++;
 		}
 		pcNor /= numAdded;
+		pcNor.Set(pcNor.x, pcNor.y, pcNor.z);
 		pcNor.NormalizeSafe();
 
 #pragma omp critical
 		{
 			VectorSet(cv->verts[i].normal, pcNor.x, pcNor.y, pcNor.z);
+			VectorNormalize(cv->verts[i].normal);
 		}
 	}
 }
@@ -2506,7 +2508,13 @@ struct packedVertex_t
 	uint32_t normal;
 	//uint32_t tangent;
 	vec2_t texcoords[1 + MAXLIGHTMAPS];
+#ifdef __VBO_PACK_COLOR__
+	uint32_t colors[MAXLIGHTMAPS];
+#elif defined(__VBO_HALF_FLOAT_COLOR__)
+	hvec4_t colors[MAXLIGHTMAPS];
+#else //!__VBO_PACK_COLOR__
 	vec4_t colors[MAXLIGHTMAPS];
+#endif //__VBO_PACK_COLOR__
 };
 
 #ifdef __USE_VBO_AREAS__
@@ -3042,8 +3050,20 @@ static void R_CreateWorldVBOs(void)
 
 					for (int j = 0; j < MAXLIGHTMAPS; j++)
 					{
+#ifdef __VBO_PACK_COLOR__
+						vert.colors[j] = R_VboPackColor(bspSurf->verts[i].vertexColors[j]);
+#elif defined(__VBO_HALF_FLOAT_COLOR__)
+						floattofp16(vert.colors[j], bspSurf->verts[i].vertexColors[j], 4);
+
+						/*vec4_t fc;
+						fp16tofloat(fc, vert.colors[j], 4);
+						ri->Printf(PRINT_ALL, "Original %f %f %f %f. Final %f %f %f %f.\n",
+							bspSurf->verts[i].vertexColors[j][0], bspSurf->verts[i].vertexColors[j][1], bspSurf->verts[i].vertexColors[j][2], bspSurf->verts[i].vertexColors[j][3],
+							fc[0], fc[1], fc[2], fc[3]);*/
+#else //!__VBO_PACK_COLOR__
 						VectorCopy4(bspSurf->verts[i].vertexColors[j], vert.colors[j]);
 						//vert.colors[j] = R_VboPackTangent(bspSurf->verts[i].vertexColors[j]);
+#endif //__VBO_PACK_COLOR__
 					}
 
 					//vert.lightDirection = R_VboPackNormal(bspSurf->verts[i].lightdir);

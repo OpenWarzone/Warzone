@@ -7847,7 +7847,7 @@ Returns a freshly allocated shader with all the needed info
 from the current global working shader
 =========================
 */
-static shader_t *FinishShader( void ) {
+static shader_t *FinishShader(void) {
 	int stage;
 	qboolean hasLightmapStage = qfalse;
 
@@ -7858,14 +7858,14 @@ static shader_t *FinishShader( void ) {
 	//
 	// set sky stuff appropriate
 	//
-	if ( shader.isSky ) {
+	if (shader.isSky) {
 		shader.sort = SS_ENVIRONMENT;
 	}
 
 	//
 	// set polygon offset
 	//
-	if ( shader.polygonOffset && !shader.sort ) {
+	if (shader.polygonOffset && !shader.sort) {
 		shader.sort = SS_DECAL;
 	}
 
@@ -7884,7 +7884,7 @@ static shader_t *FinishShader( void ) {
 	}
 
 
-	if (shader.glowStrength == 1.0 
+	if (shader.glowStrength == 1.0
 		&& (StringContainsWord(shader.name, "models/players") || StringContainsWord(shader.name, "models/weapons")))
 	{// If this shader has glows, but still has the default glow strength, amp up the brightness because these are small glow objects...
 		if (StringContainsWord(shader.name, "players/hk"))
@@ -7914,14 +7914,14 @@ static shader_t *FinishShader( void ) {
 	int firstLightmapStage;
 	shaderStage_t *lmStage;
 
-	firstLightmapStage = FindFirstLightmapStage (stages, MAX_SHADER_STAGES);
+	firstLightmapStage = FindFirstLightmapStage(stages, MAX_SHADER_STAGES);
 	lmStage = &stages[firstLightmapStage];
 
-	if ( firstLightmapStage != MAX_SHADER_STAGES )
+	if (firstLightmapStage != MAX_SHADER_STAGES)
 	{
-		if ( shader.lightmapIndex[0] == LIGHTMAP_BY_VERTEX )
+		if (shader.lightmapIndex[0] == LIGHTMAP_BY_VERTEX)
 		{
-			if ( firstLightmapStage == 0 )
+			if (firstLightmapStage == 0)
 			{
 				/*// Shift all stages above it down 1.
 				memmove (lmStage,
@@ -7931,7 +7931,7 @@ static shader_t *FinishShader( void ) {
 
 				// Set state bits back to default on the over-written stage.
 				 lmStage->stateBits = GLS_DEFAULT;*/
-				ri->Printf (PRINT_ALL, "Shader '%s' has first stage as lightmap by vertex.\n", shader.name);
+				ri->Printf(PRINT_ALL, "Shader '%s' has first stage as lightmap by vertex.\n", shader.name);
 			}
 
 			/*lmStage->rgbGen = CGEN_EXACT_VERTEX_LIT;
@@ -7941,11 +7941,11 @@ static shader_t *FinishShader( void ) {
 		}
 	}
 
-	if ( firstLightmapStage != MAX_SHADER_STAGES )
+	if (firstLightmapStage != MAX_SHADER_STAGES)
 	{
-		int numStyles = GetNumStylesInShader (&shader);
+		int numStyles = GetNumStylesInShader(&shader);
 
-		ri->Printf (PRINT_ALL, "Shader '%s' has %d stages with light styles.\n", shader.name, numStyles);
+		ri->Printf(PRINT_ALL, "Shader '%s' has %d stages with light styles.\n", shader.name, numStyles);
 		/*if ( numStyles > 0 )
 		{
 			// Move back all stages, after the first lightmap stage, by 'numStyles' elements.
@@ -7989,7 +7989,7 @@ static shader_t *FinishShader( void ) {
 	}
 #else
 	int lmStage;
-	for(lmStage = 0; lmStage < MAX_SHADER_STAGES; lmStage++)
+	for (lmStage = 0; lmStage < MAX_SHADER_STAGES; lmStage++)
 	{
 		shaderStage_t *pStage = &stages[lmStage];
 		if (pStage->active && pStage->bundle[0].isLightmap)
@@ -8004,8 +8004,8 @@ static shader_t *FinishShader( void ) {
 		{
 			if (lmStage == 0)	//< MAX_SHADER_STAGES-1)
 			{//copy the rest down over the lightmap slot
-				memmove(&stages[lmStage], &stages[lmStage+1], sizeof(shaderStage_t) * (MAX_SHADER_STAGES-lmStage-1));
-				memset(&stages[MAX_SHADER_STAGES-1], 0, sizeof(shaderStage_t));
+				memmove(&stages[lmStage], &stages[lmStage + 1], sizeof(shaderStage_t) * (MAX_SHADER_STAGES - lmStage - 1));
+				memset(&stages[MAX_SHADER_STAGES - 1], 0, sizeof(shaderStage_t));
 				//change blending on the moved down stage
 				stages[lmStage].stateBits = GLS_DEFAULT;
 			}
@@ -8021,7 +8021,7 @@ static shader_t *FinishShader( void ) {
 		int	numStyles;
 		int	i;
 
-		for(numStyles=0;numStyles<MAXLIGHTMAPS;numStyles++)
+		for (numStyles = 0; numStyles < MAXLIGHTMAPS; numStyles++)
 		{
 			if (shader.styles[numStyles] >= LS_UNUSED)
 			{
@@ -8031,36 +8031,36 @@ static shader_t *FinishShader( void ) {
 		numStyles--;
 		if (numStyles > 0)
 		{
-			for(i=MAX_SHADER_STAGES-1;i>lmStage+numStyles;i--)
+			for (i = MAX_SHADER_STAGES - 1; i > lmStage + numStyles; i--)
 			{
-				stages[i] = stages[i-numStyles];
+				stages[i] = stages[i - numStyles];
 			}
 
-			for(i=0;i<numStyles;i++)
+			for (i = 0; i < numStyles; i++)
 			{
-				stages[lmStage+i+1] = stages[lmStage];
-				if (shader.lightmapIndex[i+1] == LIGHTMAP_BY_VERTEX)
+				stages[lmStage + i + 1] = stages[lmStage];
+				if (shader.lightmapIndex[i + 1] == LIGHTMAP_BY_VERTEX)
 				{
-					stages[lmStage+i+1].bundle[0].image[0] = tr.whiteImage;
+					stages[lmStage + i + 1].bundle[0].image[0] = tr.whiteImage;
 				}
-				else if (shader.lightmapIndex[i+1] < 0)
+				else if (shader.lightmapIndex[i + 1] < 0)
 				{
-					Com_Error( ERR_DROP, "FinishShader: light style with no light map or vertex color for shader %s", shader.name);
+					Com_Error(ERR_DROP, "FinishShader: light style with no light map or vertex color for shader %s", shader.name);
 				}
 				else
 				{
-					stages[lmStage+i+1].bundle[0].image[0] = tr.lightmaps[shader.lightmapIndex[i+1]];
-					stages[lmStage+i+1].bundle[0].tcGen = (texCoordGen_t)(TCGEN_LIGHTMAP+i+1);
+					stages[lmStage + i + 1].bundle[0].image[0] = tr.lightmaps[shader.lightmapIndex[i + 1]];
+					stages[lmStage + i + 1].bundle[0].tcGen = (texCoordGen_t)(TCGEN_LIGHTMAP + i + 1);
 				}
-				stages[lmStage+i+1].rgbGen = CGEN_LIGHTMAPSTYLE;
-				stages[lmStage+i+1].stateBits &= ~(GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS);
-				stages[lmStage+i+1].stateBits |= GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE;
+				stages[lmStage + i + 1].rgbGen = CGEN_LIGHTMAPSTYLE;
+				stages[lmStage + i + 1].stateBits &= ~(GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS);
+				stages[lmStage + i + 1].stateBits |= GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE;
 			}
 		}
 
-		for(i=0;i<=numStyles;i++)
+		for (i = 0; i <= numStyles; i++)
 		{
-			stages[lmStage+i].lightmapStyle = shader.styles[i];
+			stages[lmStage + i].lightmapStyle = shader.styles[i];
 		}
 	}
 #endif
@@ -8068,198 +8068,198 @@ static shader_t *FinishShader( void ) {
 	//
 	// set appropriate stage information
 	//
-	for ( stage = 0; stage < MAX_SHADER_STAGES; ) {
+	for (stage = 0; stage < MAX_SHADER_STAGES; ) {
 		shaderStage_t *pStage = &stages[stage];
 
-		if ( !pStage->active ) {
+		if (!pStage->active) {
 			break;
 		}
 
-    // check for a missing texture
-		/*if ( !pStage->bundle[0].image[0] ) {
-			ri->Printf( PRINT_WARNING, "Shader %s has a stage with no image\n", shader.name );
-			pStage->active = qfalse;
-			stage++;
-			continue;
-		}*/
-
 		// check for a missing texture
+			/*if ( !pStage->bundle[0].image[0] ) {
+				ri->Printf( PRINT_WARNING, "Shader %s has a stage with no image\n", shader.name );
+				pStage->active = qfalse;
+				stage++;
+				continue;
+			}*/
+
+			// check for a missing texture
 		switch (pStage->type)
 		{
 			//case ST_LIGHTMAP:
 			//	// skip
 			//	break;
 
-			case ST_COLORMAP: // + ST_DIFFUSEMAP
-			default:
+		case ST_COLORMAP: // + ST_DIFFUSEMAP
+		default:
+		{
+			if (!pStage->bundle[0].image[0])
 			{
-				if(!pStage->bundle[0].image[0])
+				if (!pStage->useSkyImage)
 				{
-					if (!pStage->useSkyImage)
-					{
-						ri->Printf(PRINT_WARNING, "Shader %s has a colormap/diffusemap stage with no image\n", shader.name);
-					}
+					ri->Printf(PRINT_WARNING, "Shader %s has a colormap/diffusemap stage with no image\n", shader.name);
+				}
 
-					pStage->bundle[0].image[0] = tr.defaultImage;
+				pStage->bundle[0].image[0] = tr.defaultImage;
 
-					/*if (!pStage->useSkyImage)
-					{
-						pStage->active = qfalse;
-					}*/
-				}
-				break;
+				/*if (!pStage->useSkyImage)
+				{
+					pStage->active = qfalse;
+				}*/
 			}
+			break;
+		}
 
-			case ST_NORMALMAP:
+		case ST_NORMALMAP:
+		{
+			if (!pStage->bundle[0].image[0])
 			{
-				if(!pStage->bundle[0].image[0])
-				{
-					ri->Printf(PRINT_WARNING, "Shader %s has a normalmap stage with no image\n", shader.name);
-					pStage->bundle[0].image[0] = tr.whiteImage;
-					pStage->active = qfalse;
-					stage++;
-					continue;
-				}
-				break;
+				ri->Printf(PRINT_WARNING, "Shader %s has a normalmap stage with no image\n", shader.name);
+				pStage->bundle[0].image[0] = tr.whiteImage;
+				pStage->active = qfalse;
+				stage++;
+				continue;
 			}
+			break;
+		}
 
-			case ST_SPECULARMAP:
+		case ST_SPECULARMAP:
+		{
+			if (!pStage->bundle[0].image[0])
 			{
-				if(!pStage->bundle[0].image[0])
-				{
-					ri->Printf(PRINT_WARNING, "Shader %s has a specularmap stage with no image\n", shader.name);
-					pStage->bundle[0].image[0] = tr.blackImage; // should be blackImage
-					pStage->active = qfalse;
-					stage++;
-					continue;
-				}
-				break;
+				ri->Printf(PRINT_WARNING, "Shader %s has a specularmap stage with no image\n", shader.name);
+				pStage->bundle[0].image[0] = tr.blackImage; // should be blackImage
+				pStage->active = qfalse;
+				stage++;
+				continue;
 			}
+			break;
+		}
 
-			case ST_NORMALPARALLAXMAP:
+		case ST_NORMALPARALLAXMAP:
+		{
+			if (!pStage->bundle[0].image[0])
 			{
-				if(!pStage->bundle[0].image[0])
-				{
-					ri->Printf(PRINT_WARNING, "Shader %s has a normalparallaxmap stage with no image\n", shader.name);
-					pStage->active = qfalse;
-					stage++;
-					continue;
-				}
-				break;
+				ri->Printf(PRINT_WARNING, "Shader %s has a normalparallaxmap stage with no image\n", shader.name);
+				pStage->active = qfalse;
+				stage++;
+				continue;
 			}
+			break;
+		}
 
-			/*case ST_SUBSURFACEMAP:
+		/*case ST_SUBSURFACEMAP:
+		{
+			if(!pStage->bundle[0].image[0])
 			{
-				if(!pStage->bundle[0].image[0])
-				{
-					ri->Printf(PRINT_WARNING, "Shader %s has a subsurfacemap stage with no image\n", shader.name);
-					pStage->active = qfalse;
-					stage++;
-					continue;
-				}
-				break;
-			}*/
+				ri->Printf(PRINT_WARNING, "Shader %s has a subsurfacemap stage with no image\n", shader.name);
+				pStage->active = qfalse;
+				stage++;
+				continue;
+			}
+			break;
+		}*/
 
-			case ST_OVERLAYMAP:
+		case ST_OVERLAYMAP:
+		{
+			if (!pStage->bundle[0].image[0])
 			{
-				if(!pStage->bundle[0].image[0])
-				{
-					ri->Printf(PRINT_WARNING, "Shader %s has a overlaymap stage with no image\n", shader.name);
-					pStage->active = qfalse;
-					stage++;
-					continue;
-				}
-				break;
+				ri->Printf(PRINT_WARNING, "Shader %s has a overlaymap stage with no image\n", shader.name);
+				pStage->active = qfalse;
+				stage++;
+				continue;
 			}
+			break;
+		}
 
-			case ST_STEEPMAP:
+		case ST_STEEPMAP:
+		{
+			if (!pStage->bundle[0].image[0])
 			{
-				if(!pStage->bundle[0].image[0])
-				{
-					ri->Printf(PRINT_WARNING, "Shader %s has a steepmap stage with no image\n", shader.name);
-					pStage->active = qfalse;
-					stage++;
-					continue;
-				}
-				break;
+				ri->Printf(PRINT_WARNING, "Shader %s has a steepmap stage with no image\n", shader.name);
+				pStage->active = qfalse;
+				stage++;
+				continue;
 			}
+			break;
+		}
 
-			case ST_WATER_EDGE_MAP:
+		case ST_WATER_EDGE_MAP:
+		{
+			if (!pStage->bundle[0].image[0])
 			{
-				if(!pStage->bundle[0].image[0])
-				{
-					ri->Printf(PRINT_WARNING, "Shader %s has a steepmap stage with no image\n", shader.name);
-					pStage->active = qfalse;
-					stage++;
-					continue;
-				}
-				break;
+				ri->Printf(PRINT_WARNING, "Shader %s has a steepmap stage with no image\n", shader.name);
+				pStage->active = qfalse;
+				stage++;
+				continue;
 			}
+			break;
+		}
 
-			case ST_SPLATCONTROLMAP:
+		case ST_SPLATCONTROLMAP:
+		{
+			if (!pStage->bundle[0].image[0])
 			{
-				if(!pStage->bundle[0].image[0])
-				{
-					ri->Printf(PRINT_WARNING, "Shader %s has a splatcontrolmap stage with no image\n", shader.name);
-					pStage->active = qfalse;
-					stage++;
-					continue;
-				}
-				break;
+				ri->Printf(PRINT_WARNING, "Shader %s has a splatcontrolmap stage with no image\n", shader.name);
+				pStage->active = qfalse;
+				stage++;
+				continue;
 			}
-			case ST_SPLATMAP1:
+			break;
+		}
+		case ST_SPLATMAP1:
+		{
+			if (!pStage->bundle[0].image[0])
 			{
-				if(!pStage->bundle[0].image[0])
-				{
-					ri->Printf(PRINT_WARNING, "Shader %s has a splatmap1 stage with no image\n", shader.name);
-					pStage->active = qfalse;
-					stage++;
-					continue;
-				}
-				break;
+				ri->Printf(PRINT_WARNING, "Shader %s has a splatmap1 stage with no image\n", shader.name);
+				pStage->active = qfalse;
+				stage++;
+				continue;
 			}
-			case ST_SPLATMAP2:
+			break;
+		}
+		case ST_SPLATMAP2:
+		{
+			if (!pStage->bundle[0].image[0])
 			{
-				if(!pStage->bundle[0].image[0])
-				{
-					ri->Printf(PRINT_WARNING, "Shader %s has a splatmap2 stage with no image\n", shader.name);
-					pStage->active = qfalse;
-					stage++;
-					continue;
-				}
-				break;
+				ri->Printf(PRINT_WARNING, "Shader %s has a splatmap2 stage with no image\n", shader.name);
+				pStage->active = qfalse;
+				stage++;
+				continue;
 			}
-			case ST_SPLATMAP3:
+			break;
+		}
+		case ST_SPLATMAP3:
+		{
+			if (!pStage->bundle[0].image[0])
 			{
-				if(!pStage->bundle[0].image[0])
-				{
-					ri->Printf(PRINT_WARNING, "Shader %s has a splatmap3 stage with no image\n", shader.name);
-					pStage->active = qfalse;
-					stage++;
-					continue;
-				}
-				break;
+				ri->Printf(PRINT_WARNING, "Shader %s has a splatmap3 stage with no image\n", shader.name);
+				pStage->active = qfalse;
+				stage++;
+				continue;
 			}
+			break;
+		}
 		}
 
 		//
 		// ditch this stage if it's detail and detail textures are disabled
 		//
-		if ( pStage->isDetail && !r_detailTextures->integer )
+		if (pStage->isDetail && !r_detailTextures->integer)
 		{
 			int index;
 
-			for(index = stage + 1; index < MAX_SHADER_STAGES; index++)
+			for (index = stage + 1; index < MAX_SHADER_STAGES; index++)
 			{
-				if(!stages[index].active)
+				if (!stages[index].active)
 					break;
 			}
 
-			if(index < MAX_SHADER_STAGES)
+			if (index < MAX_SHADER_STAGES)
 				memmove(pStage, pStage + 1, sizeof(*pStage) * (index - stage));
 			else
 			{
-				if(stage + 1 < MAX_SHADER_STAGES)
+				if (stage + 1 < MAX_SHADER_STAGES)
 					memmove(pStage, pStage + 1, sizeof(*pStage) * (index - stage - 1));
 
 				Com_Memset(&stages[index - 1], 0, sizeof(*stages));
@@ -8271,13 +8271,14 @@ static shader_t *FinishShader( void ) {
 		//
 		// default texture coordinate generation
 		//
-		if ( pStage->bundle[0].isLightmap ) {
-			if ( pStage->bundle[0].tcGen == TCGEN_BAD ) {
+		if (pStage->bundle[0].isLightmap) {
+			if (pStage->bundle[0].tcGen == TCGEN_BAD) {
 				pStage->bundle[0].tcGen = TCGEN_LIGHTMAP;
 			}
 			hasLightmapStage = qtrue;
-		} else {
-			if ( pStage->bundle[0].tcGen == TCGEN_BAD ) {
+		}
+		else {
+			if (pStage->bundle[0].tcGen == TCGEN_BAD) {
 				pStage->bundle[0].tcGen = TCGEN_TEXTURE;
 			}
 		}
@@ -8285,8 +8286,8 @@ static shader_t *FinishShader( void ) {
 		//
 		// determine sort order and fog color adjustment
 		//
-		if ( ( pStage->stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) &&
-			 ( stages[0].stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) ) {
+		if ((pStage->stateBits & (GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS)) &&
+			(stages[0].stateBits & (GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS))) {
 			int blendSrcBits = pStage->stateBits & GLS_SRCBLEND_BITS;
 			int blendDstBits = pStage->stateBits & GLS_DSTBLEND_BITS;
 
@@ -8297,30 +8298,32 @@ static shader_t *FinishShader( void ) {
 			// GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA
 
 			// modulate, additive
-			if ( ( ( blendSrcBits == GLS_SRCBLEND_ONE ) && ( blendDstBits == GLS_DSTBLEND_ONE ) ) ||
-				( ( blendSrcBits == GLS_SRCBLEND_ZERO ) && ( blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_COLOR ) ) ) {
+			if (((blendSrcBits == GLS_SRCBLEND_ONE) && (blendDstBits == GLS_DSTBLEND_ONE)) ||
+				((blendSrcBits == GLS_SRCBLEND_ZERO) && (blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_COLOR))) {
 				pStage->adjustColorsForFog = ACFF_MODULATE_RGB;
 			}
 			// strict blend
-			else if ( ( blendSrcBits == GLS_SRCBLEND_SRC_ALPHA ) && ( blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA ) )
+			else if ((blendSrcBits == GLS_SRCBLEND_SRC_ALPHA) && (blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA))
 			{
 				pStage->adjustColorsForFog = ACFF_MODULATE_ALPHA;
 			}
 			// premultiplied alpha
-			else if ( ( blendSrcBits == GLS_SRCBLEND_ONE ) && ( blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA ) )
+			else if ((blendSrcBits == GLS_SRCBLEND_ONE) && (blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA))
 			{
 				pStage->adjustColorsForFog = ACFF_MODULATE_RGBA;
-			} else {
+			}
+			else {
 				// we can't adjust this one correctly, so it won't be exactly correct in fog
 			}
 
 			// don't screw with sort order if this is a portal or environment
-			if ( !shader.sort ) {
+			if (!shader.sort) {
 				// see through item, like a grill or grate
-				if ( pStage->stateBits & GLS_DEPTHMASK_TRUE ) {
+				if (pStage->stateBits & GLS_DEPTHMASK_TRUE) {
 					shader.sort = SS_SEE_THROUGH;
-				} else {
-					if (( blendSrcBits == GLS_SRCBLEND_ONE ) && ( blendDstBits == GLS_DSTBLEND_ONE ))
+				}
+				else {
+					if ((blendSrcBits == GLS_SRCBLEND_ONE) && (blendDstBits == GLS_DSTBLEND_ONE))
 					{
 						// GL_ONE GL_ONE needs to come a bit later
 						shader.sort = SS_BLEND1;
@@ -8338,14 +8341,14 @@ static shader_t *FinishShader( void ) {
 
 	// there are times when you will need to manually apply a sort to
 	// opaque alpha tested shaders that have later blend passes
-	if ( !shader.sort ) {
+	if (!shader.sort) {
 		shader.sort = SS_OPAQUE;
 	}
 
 	//
 	// if we are in r_vertexLight mode, never use a lightmap texture
 	//
-	if ( stage > 1 && (r_vertexLight->integer && !r_uiFullScreen->integer) ) {
+	if (stage > 1 && (r_vertexLight->integer && !r_uiFullScreen->integer)) {
 		VertexLightingCollapse();
 		hasLightmapStage = qfalse;
 	}
@@ -8355,11 +8358,11 @@ static shader_t *FinishShader( void ) {
 	//
 	stage = CollapseStagesToGLSL();
 
-	if ( (shader.lightmapIndex[0] || shader.lightmapIndex[1] || shader.lightmapIndex[2] || shader.lightmapIndex[3]) && !hasLightmapStage )
+	if ((shader.lightmapIndex[0] || shader.lightmapIndex[1] || shader.lightmapIndex[2] || shader.lightmapIndex[3]) && !hasLightmapStage)
 	{
-		ri->Printf( PRINT_DEVELOPER, "WARNING: shader '%s' has lightmap but no lightmap stage!\n", shader.name );
+		ri->Printf(PRINT_DEVELOPER, "WARNING: shader '%s' has lightmap but no lightmap stage!\n", shader.name);
 		// Don't set this, it will just add duplicate shaders to the hash
-  		//shader.lightmapIndex = LIGHTMAP_NONE;
+		//shader.lightmapIndex = LIGHTMAP_NONE;
 	}
 
 
@@ -8389,6 +8392,11 @@ static shader_t *FinishShader( void ) {
 
 	// determine which vertex attributes this shader needs
 	ComputeVertexAttribs();
+
+	if (!strcmp(shader.name, "cursor"))
+	{// Mark the cursor so nuklear can override it's image...
+		shader.isCursor = qtrue;
+	}
 
 #ifdef __DEBUG_SHADER_LOADING__
 	ri->Printf(PRINT_ALL, "FinishShader: %s FINISHED!\n", shader.name);

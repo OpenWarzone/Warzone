@@ -125,6 +125,29 @@ void GL_BindToTMU( image_t *image, int tmu )
 	}
 }
 
+/*
+** GL_BindToTMU
+*/
+void GL_BindImageIDToTMU(int imageID, int tmu)
+{// UQ1: Added so we can bind raw image id's for ui stuff, etc, not just rend2 handled image * crap...
+	int		texnum;
+	int     oldtmu = glState.currenttmu;
+
+	if (!imageID)
+		texnum = 0;
+	else
+		texnum = imageID;
+
+	if (glState.currenttextures[tmu] != texnum) {
+		GL_SelectTexture(tmu);
+		
+		glState.currenttextures[tmu] = texnum;
+
+		qglBindTexture(GL_TEXTURE_2D, texnum);
+
+		GL_SelectTexture(oldtmu);
+	}
+}
 
 /*
 ** GL_Cull

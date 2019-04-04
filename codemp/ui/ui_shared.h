@@ -335,6 +335,7 @@ typedef struct cachedAssets_s {
 	qhandle_t	qhMediumFont;
 	qhandle_t	qhBigFont;
 	qhandle_t cursor;
+	qhandle_t defaultCursor;
 	qhandle_t gradientBar;
 	qhandle_t scrollBarArrowUp;
 	qhandle_t scrollBarArrowDown;

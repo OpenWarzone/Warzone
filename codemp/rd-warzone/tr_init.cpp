@@ -1238,6 +1238,9 @@ void GL_SetDefaultState( void )
 
 	//qglShadeModel( GL_SMOOTH );
 	qglDepthFunc( GL_LEQUAL );
+	
+	// UQ1: Testing...
+	//qglFrontFace(GL_CCW);
 
 	//
 	// make sure our GL state vector is set correctly

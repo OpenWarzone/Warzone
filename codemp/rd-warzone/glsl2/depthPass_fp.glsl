@@ -134,26 +134,16 @@ void main()
 		{
 			gl_FragColor.a = 0.0;
 		}
-	}
-
-	if (USE_BLEND > 0.0)
-	{// Emulate RGB blending... Fuck I hate this crap...
-		float colStr = 1.0;// clamp(max(gl_FragColor.r, max(gl_FragColor.g, gl_FragColor.b)), 0.0, 1.0);
-
-		if (USE_BLEND == 3.0)
-		{
-			gl_FragColor.a *= colStr * 2.0;
-			//gl_FragColor.rgb *= 0.5;
-		}
-		else if (USE_BLEND == 2.0)
-		{
-			colStr = clamp(colStr + 0.1, 0.0, 1.0);
-			gl_FragColor.a = 1.0 - colStr;
-		}
-		else
-		{
-			colStr = clamp(colStr - 0.1, 0.0, 1.0);
-			gl_FragColor.a = colStr;
+		else if (USE_BLEND > 0.0)
+		{// Emulate RGB blending... Fuck I hate this crap...
+			if (USE_BLEND == 2.0)
+			{
+				gl_FragColor.a = 0.0;
+			}
+			else
+			{
+				gl_FragColor.a = 1.0;
+			}
 		}
 	}
 
@@ -162,5 +152,8 @@ void main()
 		gl_FragColor.rgb = vec3(0.0);
 	}
 
-	if (gl_FragColor.a >= 0.99) gl_FragColor.a = 1.0; // Allow for rounding errors... Don't let them stop pixel culling...
+	if (gl_FragColor.a >= 0.99)
+	{// Allow for rounding errors... Don't let them stop pixel culling...
+		gl_FragColor.a = 1.0;
+	}
 }

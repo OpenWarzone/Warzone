@@ -121,9 +121,14 @@ struct media {
 	struct nk_image convert;
 	struct nk_image del;
 	struct nk_image edit;
+	struct nk_image volume;
 	struct nk_image inventory[64];
 	struct nk_image inventoryBlank;
 	struct nk_image menu[6];
+
+	struct nk_image menuIcon;
+	struct nk_image invIcon;
+	struct nk_image radioIcon;
 
 #if defined(__GUI_SKINNED__)
 	// Skinning...
@@ -912,9 +917,79 @@ const char *itemQualityNames[] = {
 	"Artifact",
 };
 
-NK_API void
-uq_tooltip(struct nk_context *ctx, const char *text, struct media *media, nk_color bgColor)
+NK_API int
+uq_tooltip_begin(struct nk_context *ctx, float textWidth, float maxHeight, struct nk_rect *finalBounds)
 {
+	int x, y, w, h;
+	struct nk_window *win;
+	const struct nk_input *in;
+	int ret;
+
+	NK_ASSERT(ctx);
+	NK_ASSERT(ctx->current);
+	NK_ASSERT(ctx->current->layout);
+	if (!ctx || !ctx->current || !ctx->current->layout)
+		return 0;
+
+	/* make sure that no nonblocking popup is currently active */
+	win = ctx->current;
+	in = &ctx->input;
+	if (win->popup.win && (win->popup.type & NK_PANEL_SET_NONBLOCK))
+		return 0;
+
+	struct nk_rect bounds;
+	w = nk_iceilf(textWidth);
+	h = nk_iceilf(nk_null_rect.h);
+	x = nk_ifloorf(in->mouse.pos.x + 32) - (int)win->layout->clip.x;
+	y = nk_ifloorf(in->mouse.pos.y + 32) - (int)win->layout->clip.y;
+
+	// If the tooltip would leave the screen area, move it to the top left of the mouse instead of bottom right...
+	if (nk_ifloorf(ctx->input.mouse.pos.x + 32) + w > FBO_WIDTH)
+	{
+		x = (in->mouse.pos.x - 16) - w - (int)win->layout->clip.x;
+	}
+
+	if (nk_ifloorf(ctx->input.mouse.pos.y + 32) + nk_iceilf(maxHeight) > FBO_HEIGHT)
+	{
+		y = (in->mouse.pos.y - 16) - nk_iceilf(maxHeight) - (int)win->layout->clip.y;
+	}
+
+	bounds.x = (float)x;
+	bounds.y = (float)y;
+	bounds.w = (float)w;
+	bounds.h = (float)h;
+
+	finalBounds->x = bounds.x;
+	finalBounds->y = bounds.y;
+	finalBounds->w = bounds.w;
+	finalBounds->h = bounds.h;
+
+	ret = nk_popup_begin(ctx, NK_POPUP_DYNAMIC,
+		"__##Tooltip##__", NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_BORDER, bounds);
+	if (ret) win->layout->flags &= ~(nk_flags)NK_WINDOW_ROM;
+	win->popup.type = NK_PANEL_TOOLTIP;
+	ctx->current->layout->type = NK_PANEL_TOOLTIP;
+	return ret;
+}
+
+NK_API void
+uq_tooltip(struct nk_context *ctx, const char *text, struct media *media, struct nk_image *icon)
+{
+	const struct nk_style *style;
+	struct nk_vec2 padding;
+
+	NK_ASSERT(ctx);
+	NK_ASSERT(ctx->current);
+	NK_ASSERT(ctx->current->layout);
+	NK_ASSERT(text);
+	if (!ctx || !ctx->current || !ctx->current->layout || !text)
+		return;
+
+	/* fetch configuration data */
+	style = &ctx->style;
+	padding = style->window.padding;
+
+
 	NK_ASSERT(ctx);
 	NK_ASSERT(text);
 
@@ -930,9 +1005,6 @@ uq_tooltip(struct nk_context *ctx, const char *text, struct media *media, nk_col
 		return;
 	}
 
-	const struct nk_style *style;
-	struct nk_vec2 padding;
-
 	//int text_len;
 	float text_width;
 	float text_height;
@@ -942,7 +1014,7 @@ uq_tooltip(struct nk_context *ctx, const char *text, struct media *media, nk_col
 	padding = style->window.padding;
 
 	char convertedStrings[64][256] = { 0 };
-	
+
 	int currentCount = 0;
 	int stringCount = 0;
 	int longest = 0;
@@ -954,10 +1026,10 @@ uq_tooltip(struct nk_context *ctx, const char *text, struct media *media, nk_col
 
 	for (int i = 0; i < startLen; i++)
 	{
-		if (currentCount+1 > longestCount)
+		if (currentCount + 1 > longestCount)
 		{
 			longest = stringCount;
-			longestCount = currentCount+1;
+			longestCount = currentCount + 1;
 		}
 
 		if (text[i] == '\n')
@@ -1023,52 +1095,17 @@ uq_tooltip(struct nk_context *ctx, const char *text, struct media *media, nk_col
 	}
 	else
 	{
-		text_width = style->font->width(style->font->userdata, fontSize * 0.77/*r_testvalue0->value*/, convertedStrings[longest], longestCount);
+		text_width = style->font->width(style->font->userdata, fontSize * 0.77, convertedStrings[longest], longestCount);
 		text_width += (4.0 * padding.x);
 	}
 
 	int max_height = (int)(((float)stringCount * text_height) + (stringCount * (1.1f * ctx->style.window.spacing.y)));
 
-	struct nk_rect bounds = nk_rect(nk_ifloorf(ctx->input.mouse.pos.x + 16), nk_ifloorf(ctx->input.mouse.pos.y + 16), nk_ifloorf(text_width), nk_ifloorf(max_height));
+	struct nk_rect finalBounds;
 
-	// If the tooltip would leave the screen area, move it to the top left of the mouse instead of bottom right...
-	if (bounds.x + bounds.w > FBO_WIDTH) bounds = nk_rect((ctx->input.mouse.pos.x - 16) - bounds.w, bounds.y, bounds.w, bounds.h);
-	if (bounds.y + bounds.h > FBO_HEIGHT) bounds = nk_rect(bounds.x, (ctx->input.mouse.pos.y - 16) - bounds.h, bounds.w, bounds.h);
-
-	int ret = nk_begin(ctx, "Tooltip", bounds, NK_WINDOW_NOT_INTERACTIVE|NK_WINDOW_NO_SCROLLBAR);
-
-	//nk_window_set_focus(ctx, "Tooltip");
-
-	ctx->style.cursor_visible = 1;
-	ctx->style.property.border = 2.0;
-	ctx->style.property.border_color = bgColor;
-	ctx->style.property.rounding = 4.0;
-
+	/* execute tooltip and fill with text */
+	if (uq_tooltip_begin(ctx, (float)text_width, (float)max_height, &finalBounds))
 	{
-
-		NK_ASSERT(ctx->current);
-		NK_ASSERT(ctx->current->layout);
-
-		if (!ctx->current)
-		{
-			//ri->Printf(PRINT_ALL, "!ctx->current\n");
-			return;
-		}
-
-		if (!ctx->current->layout)
-		{
-			//ri->Printf(PRINT_ALL, "!ctx->current->layout");
-			return;
-		}
-
-		struct nk_window *win = ctx->current;
-		const struct nk_input *in = &ctx->input;
-
-		if (ret) win->layout->flags &= ~(nk_flags)NK_WINDOW_ROM;
-		//win->popup.type = NK_PANEL_TOOLTIP;
-		//win->layout->type = NK_PANEL_TOOLTIP;
-		//win->flags = (nk_flags)NK_WINDOW_NOT_INTERACTIVE;// NK_WINDOW_ROM;
-
 		nk_layout_row_dynamic(ctx, (float)text_height, 1);
 
 		for (int i = 0; i < stringCount; i++)
@@ -1079,9 +1116,31 @@ uq_tooltip(struct nk_context *ctx, const char *text, struct media *media, nk_col
 				nk_text(ctx, convertedStrings[i], strlen(convertedStrings[i]), NK_TEXT_LEFT);
 		}
 
-		nk_style_set_font(ctx, &media->font_14->handle);
-		nk_end(ctx);
+		nk_tooltip_end(ctx);
 	}
+
+	/*if (icon)
+	{
+		struct nk_rect iconBounds;
+		iconBounds.x = finalBounds.x + finalBounds.w - 8 - 53;
+		iconBounds.y = finalBounds.y + 8;
+		iconBounds.w = 53;
+		iconBounds.h = 53;
+
+		int x, y, w, h;
+		struct nk_window *win = ctx->current;
+		const struct nk_input *in = &ctx->input;
+
+		nk_popup_begin(ctx, NK_POPUP_DYNAMIC,
+			"__##TooltipIcon##__", NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_BORDER | NK_WINDOW_NO_INPUT | NK_WINDOW_BACKGROUND, iconBounds);
+		win->popup.type = NK_PANEL_TOOLTIP;
+		ctx->current->layout->type = NK_PANEL_TOOLTIP;
+		nk_layout_row_static(ctx, 41, 41, 1);
+
+		nk_image_color(ctx, *icon, nk_rgba(255, 255, 255, 255));
+
+		nk_tooltip_end(ctx);
+	}*/
 }
 
 static void
@@ -1173,6 +1232,189 @@ int uq_radio(struct nk_context *ctx, struct media *media, char *label, int curre
 //
 //
 //
+//
+typedef enum nuklearMenus_s {
+	MENU_NONE,
+	MENU_INVENTORY,
+	MENU_RADIO,
+	MENU_MAX
+} nuklearMenus_t;
+
+const char *nuklearMenuWindowNames[MENU_MAX] =
+{
+	"None",
+	"Inventory",
+	"Radio"
+};
+
+bool	mainMenuOpen		= false;
+int		menuNoChangeTime	= 0; // To make sure we dont instantly close a window when openning (next frame)...
+int		windowsOpen			= MENU_NONE;
+
+qboolean GUI_IsWindowOpen(struct nk_context *ctx, nuklearMenus_t menu)
+{
+	if (windowsOpen & menu)
+		return qtrue;
+
+	return qfalse;
+}
+
+void GUI_OpenWindow(struct nk_context *ctx, nuklearMenus_t menu)
+{
+	windowsOpen |= menu;
+
+	nk_window_set_focus(ctx, nuklearMenuWindowNames[menu]);
+}
+
+void GUI_CloseWindow(struct nk_context *ctx, nuklearMenus_t menu)
+{
+	windowsOpen &= ~menu;
+
+	//nk_window_close(ctx, nuklearMenuWindowNames[menu]);
+	nk_window_show(ctx, nuklearMenuWindowNames[menu], NK_HIDDEN);
+}
+
+void GUI_CloseAllWindows(struct nk_context *ctx)
+{
+	for (int i = MENU_INVENTORY; i < MENU_MAX; i++)
+	{
+		GUI_CloseWindow(ctx, (nuklearMenus_t)i);
+	}
+}
+
+void GUI_ToggleWindow(struct nk_context *ctx, nuklearMenus_t menu)
+{
+	// To make sure we dont instantly close a window when openning (next frame)...
+	if (menuNoChangeTime > backEnd.refdef.time)
+	{
+		return;
+	}
+
+	menuNoChangeTime = backEnd.refdef.time + 100;
+
+	if (!GUI_IsWindowOpen(ctx, menu))
+		GUI_OpenWindow(ctx, menu);
+	else
+		GUI_CloseWindow(ctx, menu);
+
+	mainMenuOpen = false;
+}
+
+void GUI_UpdateClosedWindows(struct nk_context *ctx)
+{// Sync our window management with nuklear's complete mess...
+	for (int i = MENU_INVENTORY; i < MENU_MAX; i++)
+	{
+		if (!GUI_IsWindowOpen(ctx, (nuklearMenus_t)i))
+			continue;
+
+		nk_window *win = nk_window_find(ctx, nuklearMenuWindowNames[i]);
+
+		if (win && nk_window_is_hidden(ctx, nuklearMenuWindowNames[i]))
+		{
+			//ri->Printf(PRINT_ALL, "Window %s closed by GUI_UpdateClosedWindows.\n", nuklearMenuWindowNames[i]);
+			GUI_CloseWindow(ctx, (nuklearMenus_t)i);
+		}
+		else
+		{
+			//if (!win)
+			//	ri->Printf(PRINT_ALL, "Window %s has no win for GUI_UpdateClosedWindows.\n", nuklearMenuWindowNames[i]);
+		}
+	}
+}
+
+void GUI_CheckOpenWindows(struct nk_context *ctx)
+{
+	GUI_UpdateClosedWindows(ctx);
+
+	if (keyStatus[A_LOW_I] || keyStatus[A_CAP_I])
+	{// Open/Close Inventory Window...
+		GUI_ToggleWindow(ctx, MENU_INVENTORY);
+	}
+
+	if (keyStatus[A_LOW_R] || keyStatus[A_CAP_R])
+	{// Open/Close Radio Window...
+		GUI_ToggleWindow(ctx, MENU_RADIO);
+	}
+}
+
+static void
+GUI_MainMenu(struct nk_context *ctx, struct media *media)
+{
+	float size[2];
+	size[0] = 36.0;
+	size[1] = 36.0;
+
+	int i = 0;
+	nk_style_set_font(ctx, &media->font_20->handle);
+	struct nk_rect rect = nk_rect(((float)FBO_WIDTH - size[0]) - 4.0, ((float)FBO_HEIGHT - size[1]) - 2.0, size[0], size[1]);
+	nk_begin(ctx, "MainMenu", rect, NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_BACKGROUND | NK_WINDOW_DYNAMIC);
+
+	/*------------------------------------------------
+	*                MAIN MENU DISPLAY
+	*------------------------------------------------*/
+	nk_style_set_font(ctx, &media->font_14->handle);
+	nk_layout_row_static(ctx, 24, 24, 1);
+	
+	int ret = nk_button_image_label(ctx, media->menuIcon, "", NK_TEXT_ALIGN_LEFT | NK_TEXT_ALIGN_TOP);
+
+	nk_style_set_font(ctx, &media->font_14->handle);
+	nk_end(ctx);
+
+	if (ret)
+	{
+		mainMenuOpen = true;
+	}
+
+	if (mainMenuOpen)
+	{
+		float cWidth = 120.0;
+		float cHeight = 52.0;
+
+		struct nk_rect bounds2;
+		bounds2.x = rect.x - (cWidth / 2.0);
+		bounds2.y = rect.y - cHeight;
+		bounds2.w = cWidth;
+		bounds2.h = cHeight;
+
+		nk_begin(ctx, "Context", bounds2, NK_WINDOW_NO_SCROLLBAR);
+
+		int ret2 = nk_contextual_begin(ctx, NK_WINDOW_NO_SCROLLBAR, nk_vec2(bounds2.w, bounds2.h), rect);
+
+		/* settings */
+		nk_layout_row_dynamic(ctx, 20, 1);
+
+		int inv = nk_contextual_item_image_label(ctx, media->invIcon, "Inventory", NK_TEXT_RIGHT);
+		int rad = nk_contextual_item_image_label(ctx, media->radioIcon, "Radio", NK_TEXT_RIGHT);
+		nk_contextual_end(ctx);
+
+		if (inv || rad)
+		{
+			if (inv)
+			{
+				GUI_ToggleWindow(ctx, MENU_INVENTORY);
+
+				/*// Undo any nuklear flags and control it via code instead...
+				nk_window *invw = nk_window_find(ctx, "Inventory");
+				if (invw)
+				{
+					invw->flags &= ~NK_WINDOW_HIDDEN;
+					invw->flags &= ~NK_WINDOW_CLOSED;
+				}*/
+			}
+			else if (rad)
+			{
+				GUI_ToggleWindow(ctx, MENU_RADIO);
+			}
+		}
+
+		nk_end(ctx);
+
+		return;
+	}
+}
+
+//
+// Post Process Settings...
 //
 
 int			GUI_PostProcessNumCvars = 0;
@@ -1309,7 +1551,7 @@ GUI_Settings(struct nk_context *ctx, struct media *media)
 	{// Something is hovered, do the tooltip...
 		if (GUI_PostProcessCvars[hovered]->displayInfoSet && GUI_PostProcessCvars[hovered]->description && GUI_PostProcessCvars[hovered]->description[0])
 		{
-			uq_tooltip(ctx, GUI_PostProcessCvars[hovered]->description, media, ColorForQuality(QUALITY_WHITE));
+			uq_tooltip(ctx, GUI_PostProcessCvars[hovered]->description, media, NULL);
 		}
 	}
 
@@ -1399,7 +1641,15 @@ GUI_Radio(struct nk_context *ctx, struct media *media)
 
 	int i = 0;
 	nk_style_set_font(ctx, &media->font_20->handle);
-	nk_begin(ctx, "Radio", nk_rect(64.0, ((float)FBO_HEIGHT - size[1]) - 64.0, size[0], size[1]), NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_TITLE | NK_WINDOW_NO_SCROLLBAR);
+	nk_begin(ctx, "Radio", nk_rect(64.0, ((float)FBO_HEIGHT - size[1]) - 64.0, size[0], size[1]), NK_WINDOW_CLOSABLE | NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_TITLE | NK_WINDOW_NO_SCROLLBAR);
+
+
+	// Icon...
+	nk_window *win = nk_window_find(ctx, "Radio");
+	win->hasIcon = true;
+	win->icon = media->radioIcon;
+
+
 
 	if (strlen(RADIO_CUSTOM_STATION_NAME) > 0)
 		nk_layout_row_static(ctx, 96, 96, 6);
@@ -1573,7 +1823,7 @@ GUI_Radio(struct nk_context *ctx, struct media *media)
 }
 
 qboolean	quickBarInitialized = qfalse;
-int			quickBarSelections[12] = { -1 };
+int			quickBarSelections[12] = { { -1 } };
 
 static void 
 GUI_InitQuickBar(void)
@@ -1621,6 +1871,8 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 		else if (i == 11)
 			strcpy(label, "^7=");*/
 
+		int ret = 0;
+
 		if (quickBarSelections[i] >= 0)
 		{
 			int quality = QUALITY_GOLD - Q_clamp(QUALITY_GREY, quickBarSelections[i] / QUALITY_GOLD, QUALITY_GOLD);
@@ -1629,7 +1881,7 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 			ctx->style.button.border = 4.0;
 			ctx->style.button.image_padding = nk_vec2(-3.0, -2.0);
 			ctx->style.button.rounding = 4.0;
-			int ret = nk_button_image_label(ctx, media->inventory[quickBarSelections[i]], label, /*NK_TEXT_CENTERED*/NK_TEXT_ALIGN_LEFT | NK_TEXT_ALIGN_TOP);
+			ret = nk_button_image_label(ctx, media->inventory[quickBarSelections[i]], label, /*NK_TEXT_CENTERED*/NK_TEXT_ALIGN_LEFT | NK_TEXT_ALIGN_TOP);
 		}
 		else
 		{// Blank slot...
@@ -1638,7 +1890,23 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 			ctx->style.button.border = 4.0;
 			ctx->style.button.image_padding = nk_vec2(-3.0, -2.0);
 			ctx->style.button.rounding = 4.0;
-			int ret = nk_button_image_label(ctx, media->inventoryBlank, label, /*NK_TEXT_CENTERED*/NK_TEXT_ALIGN_LEFT | NK_TEXT_ALIGN_TOP);
+			ret = nk_button_image_label(ctx, media->inventoryBlank, label, /*NK_TEXT_CENTERED*/NK_TEXT_ALIGN_LEFT | NK_TEXT_ALIGN_TOP);
+		}
+
+		if (ret != 0 && backEnd.ui_MouseCursor > 0)
+		{// Have something selected for drag, also clicked this quick slot, place the selected item here...
+			//ri->Printf(PRINT_ALL, "Drop item handle %i...\n", backEnd.ui_MouseCursor);
+
+			for (int j = 0; j < 64; ++j)
+			{
+				if (media->inventory[j].handle.id == backEnd.ui_MouseCursor)
+				{
+					ri->Printf(PRINT_ALL, "Dropped inventory item %i into quickbar slot %i...\n", j, i);
+					quickBarSelections[i] = j;
+					backEnd.ui_MouseCursor = -1;
+					break;
+				}
+			}
 		}
 	}
 
@@ -1651,6 +1919,7 @@ int PREVIOUS_INVENTORY_TOOLTIP_QUALITY = 0;
 int PREVIOUS_INVENTORY_TOOLTIP_TIME = 0;
 
 int selectedContextItem = 0;
+int noSelectTime = 0;
 struct nk_rect selectedContextBounds;
 
 static void
@@ -1665,8 +1934,13 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 	
 	int i = 0;
 	nk_style_set_font(ctx, &media->font_20->handle);
-	nk_begin(ctx, "Inventory", nk_rect(((float)FBO_WIDTH - size[0]) - 64.0, ((float)FBO_HEIGHT - size[1]) - 64.0, size[0], size[1]), NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_TITLE | NK_WINDOW_NO_SCROLLBAR);
+	nk_begin(ctx, "Inventory", nk_rect(((float)FBO_WIDTH - size[0]) - 64.0, ((float)FBO_HEIGHT - size[1]) - 64.0, size[0], size[1]), NK_WINDOW_CLOSABLE | NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_TITLE | NK_WINDOW_NO_SCROLLBAR);
 	//nk_window_set_focus(ctx, "Inventory");
+
+	// Icon...
+	nk_window *win = nk_window_find(ctx, "Inventory");
+	win->hasIcon = true;
+	win->icon = media->invIcon;
 
 	/*------------------------------------------------
 	*                INVENTORY DISPLAY
@@ -1676,7 +1950,7 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 	//nk_spacing(ctx, 1);
 
 	int tooltipNum = -1;
-	int tooltipQuality = 0;
+	int tooltipQuality = QUALITY_GREY;
 	
 	for (i = 0; i < 64; ++i)
 	{
@@ -1689,45 +1963,90 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 		ctx->style.button.rounding = 4.0;
 
 		int ret = nk_button_image_label(ctx, media->inventory[i], "", NK_TEXT_CENTERED);
-		
-		if (!selectedContextItem)
-		{
-			if ((ctx->last_widget_state & NK_WIDGET_STATE_HOVER) && keyStatus[A_MOUSE2])
-			{
-				tooltipNum = -1;
-				tooltipQuality = 0;
 
-				selectedContextItem = i + 1;
-				nk_widget(&selectedContextBounds, ctx);
-			}
-			else if ((ctx->last_widget_state & NK_WIDGET_STATE_HOVER) && keyStatus[A_MOUSE1])
-			{
-				//selectedContextItem = 0;
-				tooltipNum = -1;
-				tooltipQuality = 0;
+		const struct nk_mouse_button btn1 = ctx->input.mouse.buttons[NK_BUTTON_LEFT];
+		const struct nk_mouse_button btn2 = ctx->input.mouse.buttons[NK_BUTTON_RIGHT];
+		const struct nk_mouse_button btn3 = ctx->input.mouse.buttons[NK_BUTTON_MIDDLE];
+		bool leftClick = (btn1.clicked || btn1.down == nk_true) ? true : false;
+		bool rightClick = (btn2.clicked || btn2.down == nk_true) ? true : false;
+		bool middleClick = (btn3.clicked || btn3.down == nk_true) ? true : false;
+		bool hovered = false;
 
-				// do left click stuff... will just make it bring up context menu like right button for now... should change mouse cursor to drag/drop though...
-				selectedContextItem = i + 1;
-				nk_widget(&selectedContextBounds, ctx);
-			}
-			else if ((ctx->last_widget_state & NK_WIDGET_STATE_HOVER) && !selectedContextItem)
-			{// Hoverred...
-				tooltipNum = i;
-				tooltipQuality = quality;
-			}
+		if (ctx->last_widget_state & NK_WIDGET_STATE_HOVER
+			&& !selectedContextItem
+			&& backEnd.ui_MouseCursor <= 0)
+		{// Hoverred...
+			tooltipNum = i;
+			tooltipQuality = quality;
+			hovered = true;
+
+			char tooltipString[1024] = { 0 };
+
+			sprintf(tooltipString, "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
+				, va("%s^BMy schwartz is bigger than yours (%s)^b\n", ColorStringForQuality(tooltipQuality), itemQualityNames[tooltipQuality])
+				, "^POne handed weapon, Lightsaber\n"
+				, " \n"
+				, "^7Scaling Attribute: ^PStrength\n"
+				, "^7Damage: ^P78-102 ^8(^P40.5 DPS^8).\n"
+				, "^7Attacks per Second: ^P0.45\n"
+				, "^7Crit Chance: ^P+11.5%\n"
+				, "^7Crit Power: ^P+41.0%\n"
+				, " \n"
+				, "^0Purple Crystal: ^P+12.0% ^4electric^0, and ^P+12.0% ^Nheat ^0damage.\n"
+				, "^N-42.0% ^7Dexterity.\n"
+				, "^N-97.0% ^7Intelligence.\n"
+				, "^N+33.0% ^7Weight.\n"
+				, " \n"
+				, "^P+15.0% ^2bonus to trip over your own feet.\n"
+				, "^P+50.0% ^2bonus to asking dumb questions.\n"
+				, "^P+20.0% ^2bonus to epeen trolling.\n"
+				, " \n"
+				, "^5Value: Priceless.\n");
+
+			uq_tooltip(ctx, tooltipString, media, &media->inventory[i]);
 		}
-		else
+		
+		if (hovered 
+			&& !selectedContextItem 
+			&& backEnd.ui_MouseCursor <= 0 
+			&& noSelectTime <= backEnd.refdef.time)
 		{
-			tooltipNum = -1;
-			tooltipQuality = 0;
+			if (leftClick)
+			{
+				backEnd.ui_MouseCursor = media->inventory[i].handle.id;
+				noSelectTime = backEnd.refdef.time + 100;
+			}
+			else if (rightClick)
+			{
+				selectedContextItem = i + 1;
+				nk_widget(&selectedContextBounds, ctx);
+				noSelectTime = backEnd.refdef.time + 100;
+			}
+			else if (middleClick)
+			{
+				selectedContextItem = i + 1;
+				nk_widget(&selectedContextBounds, ctx);
+				noSelectTime = backEnd.refdef.time + 100;
+			}
 		}
 	}
 
 	nk_style_set_font(ctx, &media->font_14->handle);
 	nk_end(ctx);
 
-	if (selectedContextItem)
+	if (backEnd.ui_MouseCursor > 0)
+	{// Have something selected for drag, skip tooltip stuff...
+		selectedContextItem = 0;
+		tooltipNum = -1;
+		tooltipQuality = 0;
+		return;
+	}
+	else if (selectedContextItem)
 	{
+		tooltipNum = -1;
+		tooltipQuality = 0;
+		backEnd.ui_MouseCursor = -1;
+
 		struct nk_rect bounds2;
 		bounds2.x = selectedContextBounds.x;
 		bounds2.y = selectedContextBounds.y;
@@ -1765,142 +2084,73 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 		{
 			if (eRight)
 			{
-				ri->Printf(PRINT_WARNING, "Equip %i to right hand.\n", selectedItem);
+
 			}
 			else if (eLeft)
 			{
-				ri->Printf(PRINT_WARNING, "Equip %i to left hand.\n", selectedItem);
+
 			}
 			else if (qb1)
 			{
-				ri->Printf(PRINT_WARNING, "Equip %i to quickbar slot 1.\n", selectedItem);
 				quickBarSelections[0] = selectedItem;
 			}
 			else if (qb2)
 			{
-				ri->Printf(PRINT_WARNING, "Equip %i to quickbar slot 2.\n", selectedItem);
 				quickBarSelections[1] = selectedItem;
 			}
 			else if (qb3)
 			{
-				ri->Printf(PRINT_WARNING, "Equip %i to quickbar slot 3.\n", selectedItem);
 				quickBarSelections[2] = selectedItem;
 			}
 			else if (qb4)
 			{
-				ri->Printf(PRINT_WARNING, "Equip %i to quickbar slot 4.\n", selectedItem);
 				quickBarSelections[3] = selectedItem;
 			}
 			else if (qb5)
 			{
-				ri->Printf(PRINT_WARNING, "Equip %i to quickbar slot 5.\n", selectedItem);
 				quickBarSelections[4] = selectedItem;
 			}
 			else if (qb6)
 			{
-				ri->Printf(PRINT_WARNING, "Equip %i to quickbar slot 6.\n", selectedItem);
 				quickBarSelections[5] = selectedItem;
 			}
 			else if (qb7)
 			{
-				ri->Printf(PRINT_WARNING, "Equip %i to quickbar slot 7.\n", selectedItem);
 				quickBarSelections[6] = selectedItem;
 			}
 			else if (qb8)
 			{
-				ri->Printf(PRINT_WARNING, "Equip %i to quickbar slot 8.\n", selectedItem);
 				quickBarSelections[7] = selectedItem;
 			}
 			else if (qb9)
 			{
-				ri->Printf(PRINT_WARNING, "Equip %i to quickbar slot 9.\n", selectedItem);
 				quickBarSelections[8] = selectedItem;
 			}
 			else if (qb10)
 			{
-				ri->Printf(PRINT_WARNING, "Equip %i to quickbar slot 10.\n", selectedItem);
 				quickBarSelections[9] = selectedItem;
 			}
 			else if (qb11)
 			{
-				ri->Printf(PRINT_WARNING, "Equip %i to quickbar slot 11.\n", selectedItem);
 				quickBarSelections[10] = selectedItem;
 			}
 			else if (qb12)
 			{
-				ri->Printf(PRINT_WARNING, "Equip %i to quickbar slot 12.\n", selectedItem);
 				quickBarSelections[11] = selectedItem;
 			}
 
 			selectedContextItem = 0;
 			PREVIOUS_INVENTORY_TOOLTIP = -1;
-		}
-		else if (keyStatus[A_MOUSE1])
-		{
-			selectedContextItem = 0;
-			PREVIOUS_INVENTORY_TOOLTIP = -1;
+
+			noSelectTime = backEnd.refdef.time + 500;
 		}
 
 		nk_end(ctx);
-
 		return;
 	}
 
 	selectedContextItem = 0;
-
-	//
-	// All this, because nuklear tooltips blink otherwise... *shrug*
-	//
-	qboolean usePrevious = (qboolean)(tooltipNum == -1 && PREVIOUS_INVENTORY_TOOLTIP != -1 && backEnd.refdef.time - PREVIOUS_INVENTORY_TOOLTIP_TIME < 500);
-
-	if (usePrevious)
-	{
-		tooltipNum = PREVIOUS_INVENTORY_TOOLTIP;
-		tooltipQuality = PREVIOUS_INVENTORY_TOOLTIP_QUALITY;
-	}
-
-	if (tooltipNum != -1)
-	{// Hoverred...
-		PREVIOUS_INVENTORY_TOOLTIP = tooltipNum;
-		PREVIOUS_INVENTORY_TOOLTIP_QUALITY = tooltipQuality;
-
-		if (!usePrevious)
-		{
-			PREVIOUS_INVENTORY_TOOLTIP_TIME = backEnd.refdef.time;
-		}
-
-		char tooltipString[1024] = { 0 };
-
-		sprintf(tooltipString, "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
-			, va("%s^BMy schwartz is bigger than yours (%s)^b\n", ColorStringForQuality(tooltipQuality), itemQualityNames[tooltipQuality])
-			, "^POne handed weapon, Lightsaber\n"
-			, " \n"
-			, "^7Scaling Attribute: ^PStrength\n"
-			, "^7Damage: ^P78-102 ^8(^P40.5 DPS^8).\n"
-			, "^7Attacks per Second: ^P0.45\n"
-			, "^7Crit Chance: ^P+11.5%\n"
-			, "^7Crit Power: ^P+41.0%\n"
-			, " \n"
-			, "^0Purple Crystal: ^P+12.0% ^4electric^0, and ^P+12.0% ^Nheat ^0damage.\n"
-			, "^N-42.0% ^7Dexterity.\n"
-			, "^N-97.0% ^7Intelligence.\n"
-			, "^N+33.0% ^7Weight.\n"
-			, " \n"
-			, "^P+15.0% ^2bonus to trip over your own feet.\n"
-			, "^P+50.0% ^2bonus to asking dumb questions.\n"
-			, "^P+20.0% ^2bonus to epeen trolling.\n"
-			, " \n"
-			, "^5Value: Priceless.\n");
-
-		uq_tooltip(ctx, tooltipString, media, ColorForQuality(tooltipQuality));
-		//ri->Printf(PRINT_WARNING, "Tooltip: %s", tooltip);
-		//ri->Printf(PRINT_ALL, "Tooltip icon %i.\n", tooltipNum);
-	}
-	else
-	{
-		PREVIOUS_INVENTORY_TOOLTIP = -1;
-		//ri->Printf(PRINT_ALL, "No tooltip.\n");
-	}
+	backEnd.ui_MouseCursor = -1;
 }
 
 /* ===============================================================
@@ -2178,7 +2428,7 @@ void RE_RenderImGui() {
 	}
 #endif
 
-#if 0//defined(__GNUC__) || defined(MACOS_X)
+#if 1//defined(__GNUC__) || defined(MACOS_X)
 	vec2_t ratio;
 	ratio[0] = (float)glConfig.vidWidth / (float)SCREEN_WIDTH;
 	ratio[1] = (float)glConfig.vidHeight / (float)SCREEN_HEIGHT;
@@ -2201,9 +2451,9 @@ void RE_RenderImGui() {
 
 	imgui_set_mousepos((int)x, (int)y);
 	imgui_set_widthheight(width, height);
-	imgui_mouse_set_button(0, keyStatus[A_MOUSE1]);
-	imgui_mouse_set_button(1, keyStatus[A_MOUSE2]);
-	imgui_mouse_set_button(2, keyStatus[A_MOUSE3]);
+	imgui_mouse_set_button(NK_BUTTON_LEFT, keyStatus[A_MOUSE1]);
+	imgui_mouse_set_button(NK_BUTTON_RIGHT, keyStatus[A_MOUSE2]);
+	imgui_mouse_set_button(NK_BUTTON_MIDDLE, keyStatus[A_MOUSE3]);
 
 /*
  * VK_0 - VK_9 are the same as ASCII '0' - '9' (0x30 - 0x39)
@@ -2771,12 +3021,17 @@ void GUI_Init(void)
 	GUI_media.convert = icon_load("Warzone/gui/icons/export.png");
 	GUI_media.del = icon_load("Warzone/gui/icons/delete.png");
 	GUI_media.edit = icon_load("Warzone/gui/icons/edit.png");
+	GUI_media.volume = icon_load("Warzone/gui/icons/volume.png");
 	GUI_media.menu[0] = icon_load("Warzone/gui/icons/home.png");
 	GUI_media.menu[1] = icon_load("Warzone/gui/icons/phone.png");
 	GUI_media.menu[2] = icon_load("Warzone/gui/icons/plane.png");
 	GUI_media.menu[3] = icon_load("Warzone/gui/icons/wifi.png");
 	GUI_media.menu[4] = icon_load("Warzone/gui/icons/settings.png");
 	GUI_media.menu[5] = icon_load("Warzone/gui/icons/volume.png");
+	
+	GUI_media.menuIcon = icon_load("Warzone/gui/icons/mainmenu.png");
+	GUI_media.invIcon = icon_load("Warzone/gui/icons/inventory.png");
+	GUI_media.radioIcon = icon_load("Warzone/gui/icons/radio.png");
 
 	GUI_media.inventoryBlank = icon_load("Warzone/gui/images/blank.png");
 
@@ -2808,6 +3063,10 @@ void GUI_Shutdown(void)
 	qglDeleteTextures(1, (const GLuint*)&GUI_media.tools.handle.id);
 	qglDeleteTextures(1, (const GLuint*)&GUI_media.dir.handle.id);
 	qglDeleteTextures(1, (const GLuint*)&GUI_media.del.handle.id);
+
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.menuIcon.handle.id);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.invIcon.handle.id);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.radioIcon.handle.id);
 
 #ifdef __GUI_SKINNED__
 	qglDeleteTextures(1, (const GLuint*)&GUI_media.skin);
@@ -2895,8 +3154,8 @@ void NuklearUI_Main(void)
 
 			nk_input_motion(&GUI_ctx, (int)x, (int)y);
 			nk_input_button(&GUI_ctx, NK_BUTTON_LEFT, (int)x, (int)y, keyStatus[A_MOUSE1]);
-			nk_input_button(&GUI_ctx, NK_BUTTON_MIDDLE, (int)x, (int)y, keyStatus[A_MOUSE2]);
-			nk_input_button(&GUI_ctx, NK_BUTTON_RIGHT, (int)x, (int)y, keyStatus[A_MOUSE3]);
+			nk_input_button(&GUI_ctx, NK_BUTTON_RIGHT, (int)x, (int)y, keyStatus[A_MOUSE2]);
+			nk_input_button(&GUI_ctx, NK_BUTTON_MIDDLE, (int)x, (int)y, keyStatus[A_MOUSE3]);
 			nk_input_end(&GUI_ctx);
 
 			float wheel = 0;
@@ -2951,28 +3210,54 @@ void NuklearUI_Main(void)
 #endif
 
 		/* GUI */
-
-#define __USE_INV__
-		// Quickbar is always visible...
-#ifdef __USE_INV__
-		GUI_QuickBar(&GUI_ctx, &GUI_media);
-#endif //__USE_INV__
-
 		if (menuOpen)
 		{// Others need the menu open...
+			GUI_CheckOpenWindows(&GUI_ctx);
+
 #ifdef __DEMOS__
 			basic_demo(&GUI_ctx, &GUI_media);
 			button_demo(&GUI_ctx, &GUI_media);
 			grid_demo(&GUI_ctx, &GUI_media);
 #endif
 
-#ifdef __USE_INV__
-			GUI_Inventory(&GUI_ctx, &GUI_media);
-#endif //__USE_INV__
 			//GUI_Settings(&GUI_ctx, &GUI_media);
-			GUI_Radio(&GUI_ctx, &GUI_media);
+
+			if (GUI_IsWindowOpen(&GUI_ctx, MENU_INVENTORY))
+			{
+				GUI_Inventory(&GUI_ctx, &GUI_media);
+			}
+			else if (selectedContextItem || backEnd.ui_MouseCursor > 0)
+			{// Clear any seleted stuff when inventory window is closed... TODO: When I add force power inv screen, also check if it's open first...
+				selectedContextItem = 0;
+				backEnd.ui_MouseCursor = 0;
+			}
+
+			if (GUI_IsWindowOpen(&GUI_ctx, MENU_RADIO))
+			{
+				GUI_Radio(&GUI_ctx, &GUI_media);
+			}
+
+			// Quickbar is always visible...
+			GUI_QuickBar(&GUI_ctx, &GUI_media);
+
+			// Main Menu is always visible...
+			GUI_MainMenu(&GUI_ctx, &GUI_media);
+
+			if (keyStatus[A_MOUSE1] && menuNoChangeTime > backEnd.refdef.time)
+			{
+				mainMenuOpen = false;
+			}
+
+			if (selectedContextItem || backEnd.ui_MouseCursor > 0)
+			{// If the user clicked somewhere not handled by the ui with either a drag object selected, or a right click menu open, then remove/close them... TODO: Add "trash item" here...
+				if (keyStatus[A_MOUSE1])
+				{
+					selectedContextItem = 0;
+					backEnd.ui_MouseCursor = 0;
+				}
+			}
 		}
-#ifndef __USE_INV__
+/*#ifndef __USE_INV__
 		else
 		{// Just clear the buffer...
 			FBO_Bind(tr.renderGUIFbo);
@@ -2985,7 +3270,24 @@ void NuklearUI_Main(void)
 
 			GL_SetDefaultState();
 		}
-#endif //__USE_INV__
+#endif //__USE_INV__*/
+		else
+		{
+			// Quickbar is always visible...
+			GUI_QuickBar(&GUI_ctx, &GUI_media);
+
+			// Main Menu is always visible...
+			GUI_MainMenu(&GUI_ctx, &GUI_media);
+
+			GUI_CloseAllWindows(&GUI_ctx);
+
+			if (mainMenuOpen || selectedContextItem || backEnd.ui_MouseCursor > 0)
+			{// UI closed, disable any context menu or mouse cursor (drag/drop) settings...
+				selectedContextItem = 0;
+				backEnd.ui_MouseCursor = 0;
+				mainMenuOpen = false;
+			}
+		}
 
 		/* Draw */
 		device_draw(&GUI_device, &GUI_ctx, width, height, scale, NK_ANTI_ALIASING_ON);

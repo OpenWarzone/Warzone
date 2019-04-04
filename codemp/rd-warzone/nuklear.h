@@ -5353,6 +5353,9 @@ struct nk_window {
     struct nk_panel *layout;
     float scrollbar_hiding_timer;
 
+	bool hasIcon = false;
+	struct nk_image icon;
+
     /* persistent widget state */
     struct nk_property_state property;
     struct nk_popup_state popup;
@@ -15916,6 +15919,25 @@ nk_panel_begin(struct nk_context *ctx, const char *title, enum nk_panel_type pan
                     layout->flags & (nk_flags)~NK_WINDOW_MINIMIZED:
                     layout->flags | NK_WINDOW_MINIMIZED;
         }}
+
+#ifdef __WARZONE_UI__
+		/* window icon */
+		if (win->hasIcon)
+		{
+			struct nk_rect button;
+			button.y = header.y + style->window.header.padding.y;
+			button.h = header.h - 2 * style->window.header.padding.y;
+			button.w = button.h;
+
+			{
+				nk_flags ws = 0;
+				button.x = header.x + style->window.header.padding.x;
+				header.x += button.w + style->window.header.spacing.x + style->window.header.padding.x;
+
+				nk_draw_image(&win->buffer, button, &win->icon, nk_white);
+			}
+		}
+#endif //__WARZONE_UI__
 
         {/* window header title */
         int text_len = nk_strlen(title);

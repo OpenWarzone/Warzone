@@ -127,10 +127,10 @@ void main()
 
 	float uTessLevel = (GRASS_DENSITY * sizeMult > 1.0) ? GRASS_DENSITY * sizeMult : 1.0;
 
-	if (Pos.z < MAP_WATER_LEVEL)
+	/*if (Pos.z < MAP_WATER_LEVEL)
 	{// Do less grasses underwater...
 		uTessLevel = max(float(int(uTessLevel / 6.0)), 1.0);
-	}
+	}*/
 
 	// (3)
 	gl_TessLevelOuter[0] = uTessLevel;
