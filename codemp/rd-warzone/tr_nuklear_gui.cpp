@@ -296,12 +296,12 @@ set_style(struct nk_context *ctx, enum theme theme)
 		table[NK_COLOR_TEXT] = nk_rgba(210, 210, 210, 255);
 		table[NK_COLOR_WINDOW] = nk_rgba(0, 0, 0, gui_windowTransparancy->value*255.0/*215*/);
 		table[NK_COLOR_HEADER] = nk_rgba(0, 0, 0, gui_windowTransparancy->value*255.0/*220*/);
-		table[NK_COLOR_BORDER] = nk_rgba(16, 16, 16, 255);
-		table[NK_COLOR_BUTTON] = nk_rgba(16, 16, 16, 255);
-		table[NK_COLOR_BUTTON_HOVER] = nk_rgba(48, 48, 111/*48*/, 255);
-		table[NK_COLOR_BUTTON_ACTIVE] = nk_rgba(96, 96, 96, 255);
+		table[NK_COLOR_BORDER] = nk_rgba(16, 16, 16, gui_windowTransparancy->value*255);
+		table[NK_COLOR_BUTTON] = nk_rgba(0, 0, 0, 0);
+		table[NK_COLOR_BUTTON_HOVER] = nk_rgba(32, 32, 64, gui_windowTransparancy->value * 255);
+		table[NK_COLOR_BUTTON_ACTIVE] = nk_rgba(0, 0, 0, 0); // nk_rgba(96, 96, 96, gui_windowTransparancy->value * 255);
 		table[NK_COLOR_TOGGLE] = nk_rgba(0, 0, 0, gui_windowTransparancy->value*255.0/*215*/);
-		table[NK_COLOR_TOGGLE_HOVER] = nk_rgba(45, 53, 111/*56*/, 255);
+		table[NK_COLOR_TOGGLE_HOVER] = nk_rgba(45, 53, 111, 255);
 		table[NK_COLOR_TOGGLE_CURSOR] = nk_rgba(48, 83, 111, 255);
 		table[NK_COLOR_SELECT] = nk_rgba(57, 67, 61, 255);
 		table[NK_COLOR_SELECT_ACTIVE] = nk_rgba(48, 83, 111, 255);
@@ -320,7 +320,7 @@ set_style(struct nk_context *ctx, enum theme theme)
 		table[NK_COLOR_SCROLLBAR_CURSOR] = nk_rgba(48, 83, 111, 255);
 		table[NK_COLOR_SCROLLBAR_CURSOR_HOVER] = nk_rgba(53, 88, 116, 255);
 		table[NK_COLOR_SCROLLBAR_CURSOR_ACTIVE] = nk_rgba(58, 93, 121, 255);
-		table[NK_COLOR_TAB_HEADER] = nk_rgba(0, 0, 0, 255);
+		table[NK_COLOR_TAB_HEADER] = nk_rgba(0, 0, 0, gui_windowTransparancy->value*255);
 		nk_style_from_table(ctx, table);
 	}
 	else {
@@ -2088,12 +2088,13 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 		if (quickBarSelections[i] >= 0)
 		{
 			int quality = QUALITY_GOLD - Q_clamp(QUALITY_GREY, quickBarSelections[i] / QUALITY_GOLD, QUALITY_GOLD);
-			nk_color bgColor = ColorForQuality(quality);
+			//nk_color bgColor = ColorForQuality(quality);
+			nk_color bgColor = nk_rgba(0, 0, 0, 0);
 			ctx->style.button.border_color = bgColor;
 			ctx->style.button.border = 4.0;
 			ctx->style.button.image_padding = nk_vec2(-3.0, -2.0);
 			ctx->style.button.rounding = 4.0;
-			ret = nk_button_image_label(ctx, media->inventory[quickBarSelections[i]], label, NK_TEXT_ALIGN_LEFT | NK_TEXT_ALIGN_TOP);
+			ret = nk_button_image_label(ctx, media->inventory[quickBarSelections[i]], label, NK_TEXT_CENTERED);
 
 			if (ctx->last_widget_state & NK_WIDGET_STATE_HOVER
 				&& backEnd.ui_MouseCursor <= 0)
@@ -2126,12 +2127,12 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 		}
 		else
 		{// Blank slot...
-			nk_color color = nk_rgba(0, 0, 0, 128);
+			nk_color color = nk_rgba(0, 0, 0, 0);
 			ctx->style.button.border_color = color;
 			ctx->style.button.border = 4.0;
 			ctx->style.button.image_padding = nk_vec2(-3.0, -2.0);
 			ctx->style.button.rounding = 4.0;
-			ret = nk_button_image_label(ctx, media->inventoryBlank, label, /*NK_TEXT_CENTERED*/NK_TEXT_ALIGN_LEFT | NK_TEXT_ALIGN_TOP);
+			ret = nk_button_image_label(ctx, media->inventoryBlank, label, NK_TEXT_CENTERED);
 		}
 
 		if (ret != 0 && backEnd.ui_MouseCursor > 0)
@@ -2195,15 +2196,32 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 	
 	for (i = 0; i < 64; ++i)
 	{
-		int quality = QUALITY_GOLD - Q_clamp(QUALITY_GREY, i / QUALITY_GOLD, QUALITY_GOLD);
-		nk_color bgColor = ColorForQuality(quality);
+		int ret = 0;
+		int quality = QUALITY_GREY;
 
-		ctx->style.button.border_color = bgColor;
-		ctx->style.button.border = 4.0;
-		ctx->style.button.image_padding = nk_vec2(-3.0, -2.0);
-		ctx->style.button.rounding = 4.0;
+		if (media->inventory[i].handle.id != media->inventoryBlank.handle.id)
+		{
+			quality = QUALITY_GOLD - Q_clamp(QUALITY_GREY, i / QUALITY_GOLD, QUALITY_GOLD);
+			nk_color bgColor = /*nk_rgba(0, 0, 0, 0); //*/ColorForQuality(quality);
 
-		int ret = nk_button_image_label(ctx, media->inventory[i], "", NK_TEXT_CENTERED);
+			ctx->style.button.border_color = bgColor;
+			ctx->style.button.border = 2.0;
+			ctx->style.button.padding = nk_vec2(2.0, 2.0);
+			//ctx->style.button.image_padding = nk_vec2(2.0, 2.0);
+			ctx->style.button.rounding = 4.0;
+
+			ret = nk_button_image_label(ctx, media->inventory[i], "", NK_TEXT_CENTERED);
+		}
+		else
+		{// Blank slot...
+			nk_color color = nk_rgba(0, 0, 0, 0);
+			ctx->style.button.border_color = color;
+			ctx->style.button.border = 2.0;
+			ctx->style.button.padding = nk_vec2(2.0, 2.0);
+			//ctx->style.button.image_padding = nk_vec2(2.0, 2.0);
+			ctx->style.button.rounding = 4.0;
+			ret = nk_button_image_label(ctx, media->inventoryBlank, "", NK_TEXT_CENTERED);
+		}
 
 		const struct nk_mouse_button btn1 = ctx->input.mouse.buttons[NK_BUTTON_LEFT];
 		const struct nk_mouse_button btn2 = ctx->input.mouse.buttons[NK_BUTTON_RIGHT];
@@ -2215,7 +2233,8 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 
 		if (ctx->last_widget_state & NK_WIDGET_STATE_HOVER
 			&& !selectedContextItem
-			&& backEnd.ui_MouseCursor <= 0)
+			&& backEnd.ui_MouseCursor <= 0
+			&& media->inventory[i].handle.id != media->inventoryBlank.handle.id)
 		{// Hoverred...
 			tooltipNum = i;
 			tooltipQuality = quality;
@@ -3287,9 +3306,12 @@ void GUI_Init(void)
 		int num = 1;
 		for (int i = 0; i < 64; ++i) 
 		{
-			GUI_media.inventory[i] = icon_load(va("Warzone/gui/images/icon%d.png", num));
+			if (num >= 45)
+				GUI_media.inventory[i] = GUI_media.inventoryBlank;
+			else
+				GUI_media.inventory[i] = icon_load(va("Warzone/gui/images/icon%d.png", num));
 			num++;
-			if (num > 45) num = 1;
+			//if (num > 45) num = 1;
 		}
 	}
 
