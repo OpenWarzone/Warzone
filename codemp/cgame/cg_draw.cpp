@@ -9222,6 +9222,7 @@ CG_DrawSpectator
 */
 static void CG_DrawSpectator(void)
 {
+#if 0 // UQ1: This was annoying me...
 	const char* s;
 
 	s = CG_GetStringEdString("MP_INGAME", "SPECTATOR");
@@ -9295,6 +9296,7 @@ static void CG_DrawSpectator(void)
 		s = CG_GetStringEdString("MP_INGAME", "SPEC_CHOOSEJOIN");
 		CG_Text_Paint ( 320 - CG_Text_Width ( s, 1.0f, 3 ) / 2, 440, 1.0f, colorWhite, s, 0, 0, 0, 3 );
 	}
+#endif
 }
 
 /*

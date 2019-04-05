@@ -6383,6 +6383,38 @@ nk_zero(void *ptr, nk_size size)
     NK_ASSERT(ptr);
     NK_MEMSET(ptr, 0, size);
 }
+#ifdef __WARZONE_UI__
+NK_API int
+nk_wzstrlen(const char *str)
+{// Strip color coding from the count...
+	int siz = 0;
+	NK_ASSERT(str);
+	while (str && *str++ != '\0')
+	{
+		char thisChar = *str;
+		char nextChar = *str + 1;
+		if (nextChar != '\0'
+			&& thisChar == '^'
+			&& (nextChar == '0' || nextChar == '1' || nextChar == '2' || nextChar == '3'
+				|| nextChar == '4' || nextChar == '5' || nextChar == '6' || nextChar == '7'
+				|| nextChar == '8' || nextChar == '9' || nextChar == '0'
+				|| nextChar == 'P' || nextChar == 'N' || nextChar == 'B' || nextChar == 'b'))
+		{
+			str++;
+
+			if (nextChar == '\0')
+				break;
+		}
+		else
+		{
+			siz++;
+		}
+	}
+
+	return siz;
+}
+#endif //__WARZONE_UI__
+
 NK_API int
 nk_strlen(const char *str)
 {
@@ -6391,6 +6423,7 @@ nk_strlen(const char *str)
     while (str && *str++ != '\0') siz++;
     return siz;
 }
+
 NK_API int
 nk_strtoi(const char *str, const char **endptr)
 {
@@ -19294,22 +19327,65 @@ nk_widget_text(struct nk_command_buffer *o, struct nk_rect b,
     label.y = b.y + t->padding.y;
     label.h = NK_MIN(f->height, b.h - 2 * t->padding.y);
 
-    text_width = f->width(f->userdata, f->height, (const char*)string, len);
-    text_width += (2.0f * t->padding.x);
+#ifdef __WARZONE_UI__
+	int texLen = nk_strlen(string);
+	int strippedLength = 0;
+	char strippedText[1024] = { 0 };
+
+	for (int i = 0; i < texLen; i++)
+	{
+		if (i < texLen - 1
+			&& string[i] == '^'
+			&& (string[i + 1] == '0' || string[i + 1] == '1' || string[i + 1] == '2' || string[i + 1] == '3'
+				|| string[i + 1] == '4' || string[i + 1] == '5' || string[i + 1] == '6' || string[i + 1] == '7'
+				|| string[i + 1] == '8' || string[i + 1] == '9' || string[i + 1] == '0'
+				|| string[i + 1] == 'P' || string[i + 1] == 'N' || string[i + 1] == 'B' || string[i + 1] == 'b'))
+		{
+			i++;
+			continue;
+		}
+
+		strippedText[strippedLength] = string[i];
+		strippedLength++;
+	}
+	strippedText[strippedLength] = '\0';
+	strippedLength++;
+
+	text_width = f->width(f->userdata, f->height, (const char*)strippedText, strippedLength);
+
+	// possible it could leak outside window, but it shouldn't... The original code simply doesn't work...
+	//if (a & NK_TEXT_ALIGN_LEFT) {
+	//	b.w = nk_null_rect.w;
+	//} else {
+		text_width *= 1.5;
+		b.w = NK_MAX(b.w, text_width);
+	//}
+#else //!__WARZONE_UI__
+	text_width = f->width(f->userdata, f->height, (const char*)string, len);
+#endif //__WARZONE_UI__
+	text_width += (2.0f * t->padding.x);
 
     /* align in x-axis */
     if (a & NK_TEXT_ALIGN_LEFT) {
         label.x = b.x + t->padding.x;
         label.w = NK_MAX(0, b.w - 2 * t->padding.x);
     } else if (a & NK_TEXT_ALIGN_CENTERED) {
+#ifdef __WARZONE_UI__
+		label.w = NK_MAX(1, 2 * t->padding.x + (float)text_width);
+		label.x = (b.x + t->padding.x + ((b.w - 2 * t->padding.x) - label.w) / 2);
+		label.x = NK_MAX(b.x + t->padding.x, label.x);
+		label.w = NK_MAX(b.x + b.w, label.x + label.w);
+		if (label.w >= label.x) label.w -= label.x;
+#else //!__WARZONE_UI__
         label.w = NK_MAX(1, 2 * t->padding.x + (float)text_width);
         label.x = (b.x + t->padding.x + ((b.w - 2 * t->padding.x) - label.w) / 2);
         label.x = NK_MAX(b.x + t->padding.x, label.x);
         label.w = NK_MIN(b.x + b.w, label.x + label.w);
         if (label.w >= label.x) label.w -= label.x;
+#endif //__WARZONE_UI__
     } else if (a & NK_TEXT_ALIGN_RIGHT) {
         label.x = NK_MAX(b.x + t->padding.x, (b.x + b.w) - (2 * t->padding.x + (float)text_width));
-        label.w = (float)text_width + 2 * t->padding.x;
+		label.w = (float)text_width + 2 * t->padding.x;
     } else return;
 
     /* align in y-axis */
@@ -20073,10 +20149,33 @@ nk_do_button_text_image(nk_flags *state,
     ret = nk_do_button(state, out, bounds, style, in, behavior, &content);
     icon.y = bounds.y + style->padding.y;
     icon.w = icon.h = bounds.h - 2 * style->padding.y;
+
+#ifdef __WARZONE_UI__
+	// Nuklear alignments are messed up... rewritten...
+	if (align & NK_TEXT_ALIGN_LEFT) 
+	{
+		icon.x = bounds.x + 2 * style->padding.x;
+		content.x = icon.x + icon.w + (2 * style->padding.x);
+		content.w = bounds.w;
+	}
+	else if (align & NK_TEXT_ALIGN_RIGHT) {
+		icon.x = (bounds.x + bounds.w) - (2 * style->padding.x + icon.w);
+		icon.x = NK_MAX(icon.x, 0);
+		content.x = bounds.x;
+		content.y = bounds.y;
+		content.w = bounds.w - icon.w;
+		content.h = bounds.h;
+	}
+	else
+	{
+		icon.x = bounds.x + 2 * style->padding.x;
+	}
+#else //!__WARZONE_UI__
     if (align & NK_TEXT_ALIGN_LEFT) {
         icon.x = (bounds.x + bounds.w) - (2 * style->padding.x + icon.w);
         icon.x = NK_MAX(icon.x, 0);
     } else icon.x = bounds.x + 2 * style->padding.x;
+#endif //__WARZONE_UI__
 
     icon.x += style->image_padding.x;
     icon.y += style->image_padding.y;
@@ -20084,7 +20183,30 @@ nk_do_button_text_image(nk_flags *state,
     icon.h -= 2 * style->image_padding.y;
 
     if (style->draw_begin) style->draw_begin(out, style->userdata);
+#ifdef __WARZONE_UI__
+	//nk_draw_button_text_image(out, &content, &content, &icon, *state, style, str, len, font, &img);
+
+	struct nk_text text;
+	const struct nk_style_item *background;
+	//background = nk_draw_button(out, &icon, *state, style);
+	background = nk_draw_button(out, &bounds, *state, style);
+
+	/* select correct colors */
+	if (background->type == NK_STYLE_ITEM_COLOR)
+		text.background = background->data.color;
+	else text.background = style->text_background;
+	if (*state & NK_WIDGET_STATE_HOVER)
+		text.text = style->text_hover;
+	else if (*state & NK_WIDGET_STATE_ACTIVED)
+		text.text = style->text_active;
+	else text.text = style->text_normal;
+
+	text.padding = nk_vec2(0, 0);
+	nk_widget_text(out, content, str, len, &text, align, font);
+	nk_draw_image(out, icon, &img, nk_white);
+#else //!__WARZONE_UI__
     nk_draw_button_text_image(out, &bounds, &content, &icon, *state, style, str, len, font, &img);
+#endif //__WARZONE_UI__
     if (style->draw_end) style->draw_end(out, style->userdata);
     return ret;
 }

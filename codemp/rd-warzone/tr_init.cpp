@@ -366,6 +366,8 @@ cvar_t  *r_fOff3Y;
 cvar_t  *r_debugMapAmbientR;
 cvar_t  *r_debugMapAmbientG;
 cvar_t  *r_debugMapAmbientB;
+cvar_t  *gui_useMenu;
+cvar_t  *gui_windowTransparancy;
 cvar_t  *gui_tooltipSize;
 cvar_t  *gui_tooltipCentered;
 cvar_t  *r_testvalue0;
@@ -1685,6 +1687,8 @@ void R_Register( void )
 	r_debugMapAmbientR = ri->Cvar_Get("r_debugMapAmbientR", "0.0", CVAR_NONE);
 	r_debugMapAmbientG = ri->Cvar_Get("r_debugMapAmbientG", "0.0", CVAR_NONE);
 	r_debugMapAmbientB = ri->Cvar_Get("r_debugMapAmbientB", "0.0", CVAR_NONE);
+	gui_useMenu = ri->Cvar_Get("gui_useMenu", "0", CVAR_ARCHIVE);
+	gui_windowTransparancy = ri->Cvar_Get("gui_windowTransparancy", "0.875", CVAR_ARCHIVE);
 	gui_tooltipSize = ri->Cvar_Get("gui_tooltipSize", "2", CVAR_ARCHIVE);
 	gui_tooltipCentered = ri->Cvar_Get("gui_tooltipCentered", "0", CVAR_ARCHIVE);
 	r_testvalue0 = ri->Cvar_Get( "r_testvalue0", "0.1", CVAR_ARCHIVE );
