@@ -447,7 +447,7 @@ qboolean NPC_PatrolArea(gentity_t *aiEnt)
 
 			if (UQ1_UcmdMoveForDir(NPC, ucmd, NPC->movedir, walk, NPC->client->navigation.nav.lookPos))
 			{
-				if (NPC->last_move_time < level.time - 2000)
+				if (NavlibJump(NPC) || NPC->last_move_time < level.time - 2000)
 				{
 					ucmd->upmove = 127;
 

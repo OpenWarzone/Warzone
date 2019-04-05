@@ -1679,7 +1679,7 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 
 			if (UQ1_UcmdMoveForDir(NPC, ucmd, NPC->movedir, walk, NPC->client->navigation.nav.lookPos))
 			{
-				if (NPC->last_move_time < level.time - 2000 || DistanceVertical(NPC->client->navigation.nav.lookPos/*pos*/, NPC->r.currentOrigin) > DistanceHorizontal(NPC->client->navigation.nav.lookPos/*pos*/, NPC->r.currentOrigin) * 0.666)
+				if (NavlibJump(NPC) || NPC->last_move_time < level.time - 2000 || DistanceVertical(NPC->client->navigation.nav.lookPos/*pos*/, NPC->r.currentOrigin) > DistanceHorizontal(NPC->client->navigation.nav.lookPos/*pos*/, NPC->r.currentOrigin) * 0.666)
 				{
 					ucmd->upmove = 127;
 
