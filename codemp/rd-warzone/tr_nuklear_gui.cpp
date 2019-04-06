@@ -1499,16 +1499,16 @@ GUI_MainMenu(struct nk_context *ctx, struct media *media)
 			nk_contextual_item_label(ctx, "^7Warzone Menu", NK_TEXT_CENTERED);
 			nk_contextual_item_label(ctx, "^8---------------------------------------------", NK_TEXT_CENTERED);
 
-			int abilities = nk_contextual_item_image_label(ctx, media->iconAbilities, "^8^BA^b^8bilities", NK_TEXT_LEFT);
+			int abilities = nk_contextual_item_image_label(ctx, media->iconAbilities, "^7^BA^b^7bilities", NK_TEXT_LEFT);
 			GUI_MenuHoverTooltip(ctx, media, nuklearWindows[1].tooltip, media->iconAbilities);
 
-			int character = nk_contextual_item_image_label(ctx, media->iconCharacter, "^8^BC^b^8haracter", NK_TEXT_LEFT);
+			int character = nk_contextual_item_image_label(ctx, media->iconCharacter, "^7^BC^b^7haracter", NK_TEXT_LEFT);
 			GUI_MenuHoverTooltip(ctx, media, nuklearWindows[2].tooltip, media->iconCharacter);
 
 			int inventory = nk_contextual_item_image_label(ctx, media->iconInventory, "^7^BI^b^7nventory", NK_TEXT_LEFT);
 			GUI_MenuHoverTooltip(ctx, media, nuklearWindows[3].tooltip, media->iconInventory);
 
-			int powers = nk_contextual_item_image_label(ctx, media->iconPowers, "^8^BP^b^8owers", NK_TEXT_LEFT);
+			int powers = nk_contextual_item_image_label(ctx, media->iconPowers, "^7^BP^b^7owers", NK_TEXT_LEFT);
 			GUI_MenuHoverTooltip(ctx, media, nuklearWindows[4].tooltip, media->iconPowers);
 
 			int radio = nk_contextual_item_image_label(ctx, media->iconRadio, "^7^BR^b^7adio", NK_TEXT_LEFT);
@@ -1522,12 +1522,10 @@ GUI_MainMenu(struct nk_context *ctx, struct media *media)
 			if (abilities)
 			{// For perk tree...
 				GUI_ToggleWindow(ctx, MENU_ABILITIES);
-				ri->Printf(PRINT_WARNING, "Abilities Window is currently unimplemented.\n");
 			}
 			if (character)
 			{
 				GUI_ToggleWindow(ctx, MENU_CHARACTER);
-				ri->Printf(PRINT_WARNING, "Character Window is currently unimplemented.\n");
 			}
 			if (inventory)
 			{
@@ -1536,7 +1534,6 @@ GUI_MainMenu(struct nk_context *ctx, struct media *media)
 			if (powers)
 			{// For spell book...
 				GUI_ToggleWindow(ctx, MENU_POWERS);
-				//ri->Printf(PRINT_WARNING, "Powers Window is currently unimplemented.\n");
 			}
 			if (radio)
 			{
@@ -1545,7 +1542,6 @@ GUI_MainMenu(struct nk_context *ctx, struct media *media)
 			if (settings)
 			{
 				GUI_ToggleWindow(ctx, MENU_SETTINGS);
-				ri->Printf(PRINT_WARNING, "Settings Window is currently unimplemented.\n");
 			}
 
 			nk_style_set_font(ctx, &media->font_14->handle);
@@ -1571,7 +1567,7 @@ GUI_MainMenu(struct nk_context *ctx, struct media *media)
 		nk_begin(ctx, "MainMenuBar", rect, NK_WINDOW_MOVABLE | NK_WINDOW_NO_SCROLLBAR | NK_WINDOW_BACKGROUND | NK_WINDOW_DYNAMIC);
 
 		/*------------------------------------------------
-		*                QUICK BAR DISPLAY
+		*                MENU BAR DISPLAY
 		*------------------------------------------------*/
 		nk_style_set_font(ctx, &media->font_14->handle);
 		nk_layout_row_static(ctx, iconSize, iconSize, NUM_MENU_ITEMS);
@@ -1597,12 +1593,10 @@ GUI_MainMenu(struct nk_context *ctx, struct media *media)
 		if (abilities)
 		{// For perk tree...
 			GUI_ToggleWindow(ctx, MENU_ABILITIES);
-			ri->Printf(PRINT_WARNING, "Abilities Window is currently unimplemented.\n");
 		}
 		if (character)
 		{
 			GUI_ToggleWindow(ctx, MENU_CHARACTER);
-			ri->Printf(PRINT_WARNING, "Character Window is currently unimplemented.\n");
 		}
 		if (inventory)
 		{
@@ -1611,7 +1605,6 @@ GUI_MainMenu(struct nk_context *ctx, struct media *media)
 		if (powers)
 		{// For spell book...
 			GUI_ToggleWindow(ctx, MENU_POWERS);
-			//ri->Printf(PRINT_WARNING, "Powers Window is currently unimplemented.\n");
 		}
 		if (radio)
 		{
@@ -1620,7 +1613,6 @@ GUI_MainMenu(struct nk_context *ctx, struct media *media)
 		if (settings)
 		{
 			GUI_ToggleWindow(ctx, MENU_SETTINGS);
-			ri->Printf(PRINT_WARNING, "Settings Window is currently unimplemented.\n");
 		}
 
 		nk_style_set_font(ctx, &media->font_14->handle);
@@ -1628,6 +1620,60 @@ GUI_MainMenu(struct nk_context *ctx, struct media *media)
 	}
 }
 
+
+/* ===============================================================
+*
+*                          ABILITIES
+*
+* ===============================================================*/
+static void
+GUI_Abilities(struct nk_context *ctx, struct media *media)
+{
+	float size[2] = { 640.0, 480.0 };
+
+	int i = 0;
+	nk_style_set_font(ctx, &media->font_20->handle);
+	nk_begin(ctx, "Abilities", nk_rect(128.0, 128.0, size[0], size[1]), NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_TITLE | NK_WINDOW_CLOSABLE | NK_WINDOW_NO_SCROLLBAR);
+
+	// Icon...
+	nk_window *win = nk_window_find(ctx, "Abilities");
+	win->hasIcon = true;
+	win->icon = media->iconAbilities;
+
+	nk_layout_row_static(ctx, 120.0, size[0], 1);
+
+	nk_button_image_label(ctx, media->tools, "Sorry, abilities window is not yet implemented.", NK_TEXT_LEFT);
+
+	nk_style_set_font(ctx, &media->font_14->handle);
+	nk_end(ctx);
+}
+
+/* ===============================================================
+*
+*                          CHARACTER
+*
+* ===============================================================*/
+static void
+GUI_Character(struct nk_context *ctx, struct media *media)
+{
+	float size[2] = { 640.0, 480.0 };
+
+	int i = 0;
+	nk_style_set_font(ctx, &media->font_20->handle);
+	nk_begin(ctx, "Character", nk_rect(128.0, 128.0, size[0], size[1]), NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_TITLE | NK_WINDOW_CLOSABLE | NK_WINDOW_NO_SCROLLBAR);
+
+	// Icon...
+	nk_window *win = nk_window_find(ctx, "Character");
+	win->hasIcon = true;
+	win->icon = media->iconCharacter;
+
+	nk_layout_row_static(ctx, 120.0, size[0], 1);
+
+	nk_button_image_label(ctx, media->tools, "Sorry, character window is not yet implemented.", NK_TEXT_LEFT);
+
+	nk_style_set_font(ctx, &media->font_14->handle);
+	nk_end(ctx);
+}
 
 /* ===============================================================
 *
@@ -3987,6 +4033,17 @@ void NuklearUI_Main(void)
 			//GUI_Settings(&GUI_ctx, &GUI_media);
 
 			bool quickbarAbleWindowOpen = false;
+
+			if (GUI_IsWindowOpen(&GUI_ctx, MENU_ABILITIES))
+			{
+				GUI_Abilities(&GUI_ctx, &GUI_media);
+			}
+
+			if (GUI_IsWindowOpen(&GUI_ctx, MENU_CHARACTER))
+			{
+				GUI_Character(&GUI_ctx, &GUI_media);
+				quickbarAbleWindowOpen = true;
+			}
 
 			if (GUI_IsWindowOpen(&GUI_ctx, MENU_INVENTORY))
 			{
