@@ -122,7 +122,8 @@ struct media {
 	struct nk_image del;
 	struct nk_image edit;
 	struct nk_image volume;
-	struct nk_image inventory[64];
+	struct nk_image inventory[64][7];
+	struct nk_image forcePowers[64];
 	struct nk_image inventoryBlank;
 	struct nk_image menu[6];
 
@@ -751,7 +752,7 @@ basic_demo(struct nk_context *ctx, struct media *media)
 	*------------------------------------------------*/
 	ui_header(ctx, media, "Selected Image");
 	ui_widget_centered(ctx, media, 100);
-	nk_image(ctx, media->inventory[selected_image]);
+	nk_image(ctx, media->inventory[selected_image][0]);
 
 	/*------------------------------------------------
 	*                  IMAGE POPUP
@@ -761,7 +762,7 @@ basic_demo(struct nk_context *ctx, struct media *media)
 		if (nk_popup_begin(ctx, NK_POPUP_STATIC, "Image Popup", 0, nk_rect(265, 0, 320, 220))) {
 			nk_layout_row_static(ctx, 82, 82, 3);
 			for (i = 0; i < 9; ++i) {
-				if (nk_button_image(ctx, media->inventory[i])) {
+				if (nk_button_image(ctx, media->inventory[i][0])) {
 					selected_image = i;
 					image_active = 0;
 					nk_popup_close(ctx);
@@ -784,10 +785,10 @@ basic_demo(struct nk_context *ctx, struct media *media)
 	}
 
 	ui_widget(ctx, media, 40);
-	if (nk_combo_begin_image_label(ctx, items[selected_icon], media->inventory[selected_icon], nk_vec2(nk_widget_width(ctx), 200))) {
+	if (nk_combo_begin_image_label(ctx, items[selected_icon], media->inventory[selected_icon][0], nk_vec2(nk_widget_width(ctx), 200))) {
 		nk_layout_row_dynamic(ctx, 35, 1);
 		for (i = 0; i < 3; ++i)
-			if (nk_combo_item_image_label(ctx, media->inventory[i], items[i], NK_TEXT_RIGHT))
+			if (nk_combo_item_image_label(ctx, media->inventory[i][0], items[i], NK_TEXT_RIGHT))
 				selected_icon = i;
 		nk_combo_end(ctx);
 	}
@@ -1251,11 +1252,13 @@ int uq_radio(struct nk_context *ctx, struct media *media, char *label, int curre
 	return setting;
 }
 
-//
-//
-//
-//
-//
+
+/* ===============================================================
+*
+*                          MAIN MENU
+*
+* ===============================================================*/
+
 typedef enum nuklearMenus_s {
 	MENU_NONE,
 	MENU_ABILITIES,
@@ -1406,7 +1409,7 @@ void GUI_CheckOpenWindows(struct nk_context *ctx)
 	if (keyStatus[A_LOW_P] || keyStatus[A_CAP_P])
 	{// Open/Close Powers Window...
 		GUI_ToggleWindow(ctx, MENU_POWERS);
-		ri->Printf(PRINT_WARNING, "Powers Window is currently unimplemented.\n");
+		//ri->Printf(PRINT_WARNING, "Powers Window is currently unimplemented.\n");
 	}
 
 	if (keyStatus[A_LOW_R] || keyStatus[A_CAP_R])
@@ -1532,7 +1535,7 @@ GUI_MainMenu(struct nk_context *ctx, struct media *media)
 			if (powers)
 			{// For spell book...
 				GUI_ToggleWindow(ctx, MENU_POWERS);
-				ri->Printf(PRINT_WARNING, "Powers Window is currently unimplemented.\n");
+				//ri->Printf(PRINT_WARNING, "Powers Window is currently unimplemented.\n");
 			}
 			if (radio)
 			{
@@ -1572,7 +1575,6 @@ GUI_MainMenu(struct nk_context *ctx, struct media *media)
 		nk_style_set_font(ctx, &media->font_14->handle);
 		nk_layout_row_static(ctx, iconSize, iconSize, NUM_MENU_ITEMS);
 
-		//ret = nk_button_image_label(ctx, media->inventory[quickBarSelections[i]], label, NK_TEXT_ALIGN_LEFT | NK_TEXT_ALIGN_TOP);
 		int abilities = nk_button_image_label(ctx, media->iconAbilities, "", NK_TEXT_ALIGN_LEFT | NK_TEXT_ALIGN_TOP);
 		GUI_MenuHoverTooltip(ctx, media, nuklearWindows[1].tooltip, media->iconAbilities);
 
@@ -1608,7 +1610,7 @@ GUI_MainMenu(struct nk_context *ctx, struct media *media)
 		if (powers)
 		{// For spell book...
 			GUI_ToggleWindow(ctx, MENU_POWERS);
-			ri->Printf(PRINT_WARNING, "Powers Window is currently unimplemented.\n");
+			//ri->Printf(PRINT_WARNING, "Powers Window is currently unimplemented.\n");
 		}
 		if (radio)
 		{
@@ -1625,6 +1627,12 @@ GUI_MainMenu(struct nk_context *ctx, struct media *media)
 	}
 }
 
+
+/* ===============================================================
+*
+*                          SETTINGS
+*
+* ===============================================================*/
 //
 // Post Process Settings...
 //
@@ -1773,13 +1781,16 @@ GUI_Settings(struct nk_context *ctx, struct media *media)
 	nk_end(ctx);
 }
 
+/* ===============================================================
+*
+*                        RADIO STATIONS
+*
+* ===============================================================*/
+
 extern char currentMapName[128];
 
 static struct nk_image icon_load(const char *filename); // below
 
-//
-// Radio UI...
-//
 qboolean			RADIO_CUSTOM_STATION_INITIALIZED = qfalse;
 char				RADIO_CUSTOM_STATION_NAME[512] = { 0 };
 char				RADIO_CUSTOM_STATION_ICON[512] = { 0 };
@@ -1792,12 +1803,12 @@ void GUI_Radio_IniticonRadios(void)
 {
 	if (!RADIO_ICONS_INITIALIZED)
 	{
-		RADIO_ICONS[0] = icon_load("Warzone/gui/images/radioStations/galacticRadio.png");
-		RADIO_ICONS[1] = icon_load("Warzone/gui/images/radioStations/mindWormRadio.png");
-		RADIO_ICONS[2] = icon_load("Warzone/gui/images/radioStations/relaxingRadio.png");
-		RADIO_ICONS[3] = icon_load("Warzone/gui/images/radioStations/mapRadio.png");
-		RADIO_ICONS[4] = icon_load("Warzone/gui/images/radioStations/customRadio.png");
-		RADIO_ICONS[5] = icon_load("Warzone/gui/images/radioStations/radioOff.png");
+		RADIO_ICONS[0] = icon_load("Warzone/gui/radioStations/galacticRadio.png");
+		RADIO_ICONS[1] = icon_load("Warzone/gui/radioStations/mindWormRadio.png");
+		RADIO_ICONS[2] = icon_load("Warzone/gui/radioStations/relaxingRadio.png");
+		RADIO_ICONS[3] = icon_load("Warzone/gui/radioStations/mapRadio.png");
+		RADIO_ICONS[4] = icon_load("Warzone/gui/radioStations/customRadio.png");
+		RADIO_ICONS[5] = icon_load("Warzone/gui/radioStations/radioOff.png");
 
 		RADIO_ICONS[6] = RADIO_ICONS[3]; // Backup of icon to save reloading later...
 	}
@@ -1830,7 +1841,7 @@ void GUI_Radio_InitCustomStations(void)
 	if (RADIO_CUSTOM_STATION_ICON[0] != 0)
 	{
 		char icon[512] = { 0 };
-		sprintf(icon, "Warzone/gui/images/radioStations/%s.png", RADIO_CUSTOM_STATION_ICON);
+		sprintf(icon, "Warzone/gui/radioStations/%s.png", RADIO_CUSTOM_STATION_ICON);
 		RADIO_ICONS[3] = icon_load(icon);
 	}
 	else
@@ -1847,7 +1858,7 @@ GUI_Radio(struct nk_context *ctx, struct media *media)
 {
 	GUI_Radio_InitCustomStations();
 
-	float size[2] = { (strlen(RADIO_CUSTOM_STATION_NAME) > 0) ? 616.0f : 516.0f, 170.0f };
+	float size[2] = { (strlen(RADIO_CUSTOM_STATION_NAME) > 0) ? 616.0f : 516.0f, 148.0 };
 	char tooltipString[512] = { 0 };
 	memset(tooltipString, 0, sizeof(tooltipString));
 
@@ -1868,57 +1879,67 @@ GUI_Radio(struct nk_context *ctx, struct media *media)
 	else
 		nk_layout_row_static(ctx, 96, 96, 5);
 
+	//
+	//
+	//
+	float			origBorder		= ctx->style.button.border;
+	struct nk_vec2	origPadding		= ctx->style.button.padding;
+	float			origRounding	= ctx->style.button.rounding;
 
 	//
-	nk_color bgColor = nk_rgba(64, 64, 64, 255);
-	ctx->style.button.border_color = bgColor;
+	//
+	//
+	nk_color unselectedColor = nk_rgba(0, 0, 0, 255);
+	nk_color selectedColor = ColorForQuality(QUALITY_GOLD);
+
+	ctx->style.button.border_color = unselectedColor;
 	ctx->style.button.border = 4.0;
-	ctx->style.button.image_padding = nk_vec2(-1.0, -1.0);
+	ctx->style.button.padding = nk_vec2(2.0, 2.0);
 	ctx->style.button.rounding = 4.0;
 	
 	int currentRadioSelection = ri->Cvar_VariableValue("s_musicSelection");
 
 	if (currentRadioSelection == 0)
 	{
-		bgColor = ColorForQuality(QUALITY_BLUE);
-		ctx->style.button.border_color = bgColor;
+		ctx->style.button.border_color = selectedColor;
 	}
 	else
 	{
-		bgColor = nk_rgba(64, 64, 64, 255);
-		ctx->style.button.border_color = bgColor;
+		ctx->style.button.border_color = unselectedColor;
 	}
-
+	
 	if (nk_button_image_label(ctx, RADIO_ICONS[0], "", NK_TEXT_ALIGN_BOTTOM | NK_TEXT_ALIGN_CENTERED))
 		ri->Cvar_Set("s_musicSelection", "0");
 
+	GUI_MenuHoverTooltip(ctx, media, "^8Listen to ^7Galactic Radio^8 holonet broadcast.\n\n^8Broadcasting from the core world of ^7Coruscant^8 this classic music\n^8is listened to throughout the galaxy.\n", RADIO_ICONS[0]);
+
 	if (currentRadioSelection == 1)
 	{
-		bgColor = ColorForQuality(QUALITY_BLUE);
-		ctx->style.button.border_color = bgColor;
+		ctx->style.button.border_color = selectedColor;
 	}
 	else
 	{
-		bgColor = nk_rgba(64, 64, 64, 255);
-		ctx->style.button.border_color = bgColor;
+		ctx->style.button.border_color = unselectedColor;
 	}
 
 	if (nk_button_image_label(ctx, RADIO_ICONS[1], "", NK_TEXT_ALIGN_BOTTOM | NK_TEXT_ALIGN_CENTERED))
 		ri->Cvar_Set("s_musicSelection", "1");
 
+	GUI_MenuHoverTooltip(ctx, media, "^8Listen to ^7Mind Worm Radio^8 holonet broadcast.\n\n^8Strange sounds broadcasting from ^7Nar Shaddaa^8 and guaranteed\n^8to drive even the most focused jedi crazy.\n", RADIO_ICONS[1]);
+
 	if (currentRadioSelection == 2)
 	{
-		bgColor = ColorForQuality(QUALITY_BLUE);
-		ctx->style.button.border_color = bgColor;
+		ctx->style.button.border_color = selectedColor;
 	}
 	else
 	{
-		bgColor = nk_rgba(64, 64, 64, 255);
-		ctx->style.button.border_color = bgColor;
+		ctx->style.button.border_color = unselectedColor;
 	}
 
 	if (nk_button_image_label(ctx, RADIO_ICONS[2], "", NK_TEXT_ALIGN_BOTTOM | NK_TEXT_ALIGN_CENTERED))
 		ri->Cvar_Set("s_musicSelection", "2");
+
+	GUI_MenuHoverTooltip(ctx, media, "^8Listen to ^7Relaxing In The Rim^8 holonet broadcast.\n\n^8Broadcasting from the outer rim world of ^7tattooine^8 come\n^8these smooth relaxing beets.\n", RADIO_ICONS[2]);
 
 
 	
@@ -1926,83 +1947,83 @@ GUI_Radio(struct nk_context *ctx, struct media *media)
 	{
 		if (currentRadioSelection == 3)
 		{
-			bgColor = ColorForQuality(QUALITY_BLUE);
-			ctx->style.button.border_color = bgColor;
+			ctx->style.button.border_color = selectedColor;
 		}
 		else
 		{
-			bgColor = nk_rgba(64, 64, 64, 255);
-			ctx->style.button.border_color = bgColor;
+			ctx->style.button.border_color = unselectedColor;
 		}
 
 		if (nk_button_image_label(ctx, RADIO_ICONS[3], "", NK_TEXT_ALIGN_BOTTOM | NK_TEXT_ALIGN_CENTERED))
 			ri->Cvar_Set("s_musicSelection", "3");
 
+		GUI_MenuHoverTooltip(ctx, media, va("^8Listen to ^7%s^8 holonet broadcast.\n\n^8This is a holonet station only available to nearby worlds.\n", RADIO_CUSTOM_STATION_NAME), RADIO_ICONS[3]);
+
 
 		if (currentRadioSelection == 4)
 		{
-			bgColor = ColorForQuality(QUALITY_BLUE);
-			ctx->style.button.border_color = bgColor;
+			ctx->style.button.border_color = selectedColor;
 		}
 		else
 		{
-			bgColor = nk_rgba(64, 64, 64, 255);
-			ctx->style.button.border_color = bgColor;
+			ctx->style.button.border_color = unselectedColor;
 		}
 
 		if (nk_button_image_label(ctx, RADIO_ICONS[4], "", NK_TEXT_ALIGN_BOTTOM | NK_TEXT_ALIGN_CENTERED))
 			ri->Cvar_Set("s_musicSelection", "4");
 
+		GUI_MenuHoverTooltip(ctx, media, "^8Listen to ^7Custom Radio^8 holonet broadcast.\n\n^8Put your own music into ^7gameData/warzone/music/custom\n^8and listen to it here.\n", RADIO_ICONS[4]);
+
 
 		if (currentRadioSelection == 5)
 		{
-			bgColor = ColorForQuality(QUALITY_BLUE);
-			ctx->style.button.border_color = bgColor;
+			ctx->style.button.border_color = selectedColor;
 		}
 		else
 		{
-			bgColor = nk_rgba(64, 64, 64, 255);
-			ctx->style.button.border_color = bgColor;
+			ctx->style.button.border_color = unselectedColor;
 		}
 
 		if (nk_button_image_label(ctx, RADIO_ICONS[5], "", NK_TEXT_ALIGN_BOTTOM | NK_TEXT_ALIGN_CENTERED))
 			ri->Cvar_Set("s_musicSelection", "5");
+
+		GUI_MenuHoverTooltip(ctx, media, "^8Turn ^7off^8 holonet broadcasts.\n\n^8Do you like the sweet sound of silence?\n", RADIO_ICONS[5]);
 	}
 	else
 	{
 		if (currentRadioSelection == 4)
 		{
-			bgColor = ColorForQuality(QUALITY_BLUE);
-			ctx->style.button.border_color = bgColor;
+			ctx->style.button.border_color = selectedColor;
 		}
 		else
 		{
-			bgColor = nk_rgba(64, 64, 64, 255);
-			ctx->style.button.border_color = bgColor;
+			ctx->style.button.border_color = unselectedColor;
 		}
 
 		if (nk_button_image_label(ctx, RADIO_ICONS[4], "", NK_TEXT_ALIGN_BOTTOM | NK_TEXT_ALIGN_CENTERED))
 			ri->Cvar_Set("s_musicSelection", "4");
 
+		GUI_MenuHoverTooltip(ctx, media, "^8Listen to ^7Custom Radio^8 holonet broadcast.\n\n^8Put your own music into ^7gameData/warzone/music/custom\n^8and listen to it here.\n", RADIO_ICONS[4]);
+
 
 		if (currentRadioSelection == 5)
 		{
-			bgColor = ColorForQuality(QUALITY_BLUE);
-			ctx->style.button.border_color = bgColor;
+			ctx->style.button.border_color = selectedColor;
 		}
 		else
 		{
-			bgColor = nk_rgba(64, 64, 64, 255);
-			ctx->style.button.border_color = bgColor;
+			ctx->style.button.border_color = unselectedColor;
 		}
 
 		if (nk_button_image_label(ctx, RADIO_ICONS[5], "", NK_TEXT_ALIGN_BOTTOM | NK_TEXT_ALIGN_CENTERED))
 			ri->Cvar_Set("s_musicSelection", "5");
+
+		GUI_MenuHoverTooltip(ctx, media, "^8Turn ^7off^8 holonet broadcasts.\n\n^8Do you like the sweet sound of silence?\n", RADIO_ICONS[5]);
 	}
 
 
 
-
+	/*
 	if (strlen(RADIO_CUSTOM_STATION_NAME) > 0)
 		nk_layout_row_static(ctx, 28, 96, 6);
 	else
@@ -2015,7 +2036,7 @@ GUI_Radio(struct nk_context *ctx, struct media *media)
 	if (strlen(RADIO_CUSTOM_STATION_NAME) > 0)
 	{
 		nk_text(ctx, RADIO_CUSTOM_STATION_NAME, strlen(RADIO_CUSTOM_STATION_NAME), NK_TEXT_CENTERED);
-		nk_text(ctx,  "Custom Radio", strlen("Custom Radio"), NK_TEXT_CENTERED);
+		nk_text(ctx, "Custom Radio", strlen("Custom Radio"), NK_TEXT_CENTERED);
 		nk_text(ctx, "Radio Off", strlen("Radio Off"), NK_TEXT_CENTERED);
 	}
 	else
@@ -2029,13 +2050,73 @@ GUI_Radio(struct nk_context *ctx, struct media *media)
 		nk_layout_row_static(ctx, 28, 96, 6);
 	else
 		nk_layout_row_static(ctx, 28, 96, 5);
+	*/
+
 
 	nk_style_set_font(ctx, &media->font_14->handle);
+
+	ctx->style.button.border_color = nk_rgba(0, 0, 0, 0);
+	ctx->style.button.border = origBorder;
+	ctx->style.button.padding = origPadding;
+	ctx->style.button.rounding = origRounding;
+
 	nk_end(ctx);
 }
 
-qboolean	quickBarInitialized = qfalse;
-int			quickBarSelections[12] = { { -1 } };
+/* ===============================================================
+*
+*                          QUICK BARS
+*
+* ===============================================================*/
+
+typedef enum quickbarItemType_s {
+	QUICKBAR_TYPE_NONE,
+	QUICKBAR_TYPE_INVENTORY,
+	QUICKBAR_TYPE_FORCE,
+	QUICKBAR_TYPE_MAX
+} quickbarItemType_t;
+
+typedef struct quickbarItemInfo_s
+{
+	quickbarItemType_t	type;
+	int					position;
+	int					quality;
+	int					iconImageID;
+	struct nk_image		icon;
+} quickbarItemInfo_t;
+
+qboolean				quickBarInitialized = qfalse;
+quickbarItemInfo_t		quickBarSelections[12] = { QUICKBAR_TYPE_NONE, 0, QUALITY_GREY, 0, 0 };
+
+static void
+GUI_InitQuickBarSlot(int slot)
+{
+	if (slot < 0 || slot > 11) return;
+
+	quickBarSelections[slot] = { QUICKBAR_TYPE_NONE, 0, QUALITY_GREY, 0, 0 };
+}
+
+static void
+GUI_SetQuickBarSlot(struct nk_context *ctx, struct media *media, int slot, quickbarItemType_t type, int position, int quality, int iconImageID)
+{
+	if (slot < 0 || slot > 11) return;
+
+	GUI_InitQuickBarSlot(slot);
+
+	quickBarSelections[slot].type = type;
+	quickBarSelections[slot].position = position;
+	quickBarSelections[slot].quality = quality;
+	quickBarSelections[slot].iconImageID = iconImageID;
+	
+	if (type == QUICKBAR_TYPE_INVENTORY)
+	{
+		quickBarSelections[slot].icon = media->inventory[position][quality];
+	}
+	else if (type == QUICKBAR_TYPE_FORCE)
+	{
+		quickBarSelections[slot].icon = media->forcePowers[position];
+	}
+}
 
 static void 
 GUI_InitQuickBar(void)
@@ -2044,7 +2125,7 @@ GUI_InitQuickBar(void)
 	{
 		for (int i = 0; i < 12; i++)
 		{
-			quickBarSelections[i] = -1;
+			GUI_InitQuickBarSlot(i);
 		}
 
 		quickBarInitialized = qtrue;
@@ -2072,29 +2153,15 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 
 	for (i = 0; i < 12; ++i)
 	{
-		char label[4] = { 0 };
-
-		/*if (i < 9)
-			strcpy(label, va("^7%i", i + 1));
-		else if (i == 9)
-			strcpy(label, "^70");
-		else if (i == 10)
-			strcpy(label, "^7-");
-		else if (i == 11)
-			strcpy(label, "^7=");*/
-
 		int ret = 0;
 
-		if (quickBarSelections[i] >= 0)
+		ctx->style.button.border_color = nk_rgba(0, 0, 0, 0);
+
+		if (quickBarSelections[i].type == QUICKBAR_TYPE_INVENTORY)
 		{
-			int quality = QUALITY_GOLD - Q_clamp(QUALITY_GREY, quickBarSelections[i] / QUALITY_GOLD, QUALITY_GOLD);
-			//nk_color bgColor = ColorForQuality(quality);
-			nk_color bgColor = nk_rgba(0, 0, 0, 0);
-			ctx->style.button.border_color = bgColor;
-			ctx->style.button.border = 4.0;
-			ctx->style.button.image_padding = nk_vec2(-3.0, -2.0);
-			ctx->style.button.rounding = 4.0;
-			ret = nk_button_image_label(ctx, media->inventory[quickBarSelections[i]], label, NK_TEXT_CENTERED);
+			int quality = quickBarSelections[i].quality;
+			ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+			ret = nk_button_image_label(ctx, quickBarSelections[i].icon, "", NK_TEXT_CENTERED);
 
 			if (ctx->last_widget_state & NK_WIDGET_STATE_HOVER
 				&& backEnd.ui_MouseCursor <= 0)
@@ -2122,31 +2189,72 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 					, " \n"
 					, "^5Value: Priceless.\n");
 
-				uq_tooltip(ctx, tooltipString, media, &media->inventory[i]);
+				uq_tooltip(ctx, tooltipString, media, &quickBarSelections[i].icon);
+			}
+		}
+		else if (quickBarSelections[i].type == QUICKBAR_TYPE_FORCE)
+		{
+			int quality = QUALITY_GREY;
+			ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+			ret = nk_button_image_label(ctx, quickBarSelections[i].icon, "", NK_TEXT_CENTERED);
+
+			if (ctx->last_widget_state & NK_WIDGET_STATE_HOVER
+				&& backEnd.ui_MouseCursor <= 0)
+			{// Hoverred...
+				char tooltipString[1024] = { 0 };
+
+				sprintf(tooltipString, "%s%s%s%s%s%s%s%s"
+					, va("%s^BSome Force Power^b\n", ColorStringForQuality(QUALITY_BLUE))
+					, "^POne handed power, Force\n"
+					, " \n"
+					, "^7Scaling Attribute: ^PIntelligence\n"
+					, "^7Damage: ^P78-102 ^8(^P40.5 DPS^8).\n"
+					, "^7Attacks per Second: ^P0.45\n"
+					, "^7Crit Chance: ^P+11.5%\n"
+					, "^7Crit Power: ^P+41.0%\n");
+
+				uq_tooltip(ctx, tooltipString, media, &quickBarSelections[i].icon);
 			}
 		}
 		else
 		{// Blank slot...
-			nk_color color = nk_rgba(0, 0, 0, 0);
-			ctx->style.button.border_color = color;
-			ctx->style.button.border = 4.0;
-			ctx->style.button.image_padding = nk_vec2(-3.0, -2.0);
-			ctx->style.button.rounding = 4.0;
-			ret = nk_button_image_label(ctx, media->inventoryBlank, label, NK_TEXT_CENTERED);
+			ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+			ret = nk_button_image_label(ctx, media->inventoryBlank, "", NK_TEXT_CENTERED);
 		}
 
 		if (ret != 0 && backEnd.ui_MouseCursor > 0)
 		{// Have something selected for drag, also clicked this quick slot, place the selected item here...
-			//ri->Printf(PRINT_ALL, "Drop item handle %i...\n", backEnd.ui_MouseCursor);
+			bool added = false;
 
+			// If it is an inv item, add it...
 			for (int j = 0; j < 64; ++j)
 			{
-				if (media->inventory[j].handle.id == backEnd.ui_MouseCursor)
+				for (int quality = QUALITY_GREY; quality <= QUALITY_GOLD; quality++)
 				{
-					ri->Printf(PRINT_ALL, "Dropped inventory item %i into quickbar slot %i...\n", j, i);
-					quickBarSelections[i] = j;
-					backEnd.ui_MouseCursor = -1;
-					break;
+					if (media->inventory[j][quality].handle.id == backEnd.ui_MouseCursor)
+					{
+						ri->Printf(PRINT_ALL, "Dropped inventory item %i into quickbar slot %i...\n", j, i);
+						GUI_SetQuickBarSlot(ctx, media, i, QUICKBAR_TYPE_INVENTORY, j, quality, backEnd.ui_MouseCursor);
+						backEnd.ui_MouseCursor = -1;
+						added = true;
+						break;
+					}
+				}
+			}
+
+			if (!added)
+			{
+				// If it is a force power, add it...
+				for (int j = 0; j < 64; ++j)
+				{
+					if (media->forcePowers[j].handle.id == backEnd.ui_MouseCursor)
+					{
+						ri->Printf(PRINT_ALL, "Dropped power %i into quickbar slot %i...\n", j, i);
+						GUI_SetQuickBarSlot(ctx, media, i, QUICKBAR_TYPE_FORCE, j, 0, backEnd.ui_MouseCursor);
+						backEnd.ui_MouseCursor = -1;
+						added = true;
+						break;
+					}
 				}
 			}
 		}
@@ -2156,13 +2264,249 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 	nk_end(ctx);
 }
 
-int PREVIOUS_INVENTORY_TOOLTIP = -1;
-int PREVIOUS_INVENTORY_TOOLTIP_QUALITY = 0;
-int PREVIOUS_INVENTORY_TOOLTIP_TIME = 0;
+/* ===============================================================
+*
+*        SELECTED ITEM STUFF (shared between inv and powers)
+*
+* ===============================================================*/
 
-int selectedContextItem = 0;
-int noSelectTime = 0;
-struct nk_rect selectedContextBounds;
+int				noSelectTime = 0;
+int				selectedContextItem = 0;
+struct nk_rect	selectedContextBounds;
+
+/* ===============================================================
+*
+*                            POWERS
+*
+* ===============================================================*/
+
+static void
+GUI_Powers(struct nk_context *ctx, struct media *media)
+{
+	static int image_active;
+	static int selected_item = 0;
+	static int selected_image = 3;
+	static int selected_icon = 0;
+
+	float size[2] = { 380.0, 406.0 };
+
+	int i = 0;
+	nk_style_set_font(ctx, &media->font_20->handle);
+	nk_begin(ctx, "Powers", nk_rect(((float)FBO_WIDTH - size[0]) - 64.0, ((float)FBO_HEIGHT - size[1]) - 64.0 - size[1] - 64.0, size[0], size[1]), NK_WINDOW_CLOSABLE | NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_TITLE | NK_WINDOW_NO_SCROLLBAR);
+
+	// Icon...
+	nk_window *win = nk_window_find(ctx, "Powers");
+	win->hasIcon = true;
+	win->icon = media->iconPowers;
+
+	/*------------------------------------------------
+	*                POWERS DISPLAY
+	*------------------------------------------------*/
+	nk_style_set_font(ctx, &media->font_14->handle);
+	nk_layout_row_static(ctx, 41, 41, 8);
+	//nk_spacing(ctx, 1);
+
+	int tooltipNum = -1;
+
+	for (i = 0; i < 64; ++i)
+	{
+		int ret = 0;
+
+		ctx->style.button.border_color = nk_rgba(0, 0, 0, 0);
+
+		if (media->forcePowers[i].handle.id != media->inventoryBlank.handle.id)
+		{
+			ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+			ret = nk_button_image_label(ctx, media->forcePowers[i], "", NK_TEXT_CENTERED);
+		}
+		else
+		{// Blank slot...
+			ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+			ret = nk_button_image_label(ctx, media->inventoryBlank, "", NK_TEXT_CENTERED);
+		}
+
+		const struct nk_mouse_button btn1 = ctx->input.mouse.buttons[NK_BUTTON_LEFT];
+		const struct nk_mouse_button btn2 = ctx->input.mouse.buttons[NK_BUTTON_RIGHT];
+		const struct nk_mouse_button btn3 = ctx->input.mouse.buttons[NK_BUTTON_MIDDLE];
+		bool leftClick = (btn1.clicked || btn1.down == nk_true) ? true : false;
+		bool rightClick = (btn2.clicked || btn2.down == nk_true) ? true : false;
+		bool middleClick = (btn3.clicked || btn3.down == nk_true) ? true : false;
+		bool hovered = false;
+
+		if (ctx->last_widget_state & NK_WIDGET_STATE_HOVER
+			&& !selectedContextItem
+			&& backEnd.ui_MouseCursor <= 0
+			&& media->forcePowers[i].handle.id != media->inventoryBlank.handle.id)
+		{// Hoverred...
+			hovered = true;
+
+			char tooltipString[1024] = { 0 };
+
+			sprintf(tooltipString, "%s%s%s%s%s%s%s%s"
+				, va("%s^BSome Force Power^b\n", ColorStringForQuality(QUALITY_BLUE))
+				, "^POne handed power, Force\n"
+				, " \n"
+				, "^7Scaling Attribute: ^PIntelligence\n"
+				, "^7Damage: ^P78-102 ^8(^P40.5 DPS^8).\n"
+				, "^7Attacks per Second: ^P0.45\n"
+				, "^7Crit Chance: ^P+11.5%\n"
+				, "^7Crit Power: ^P+41.0%\n");
+
+			uq_tooltip(ctx, tooltipString, media, &media->forcePowers[i]);
+		}
+
+		if (hovered
+			&& !selectedContextItem
+			&& backEnd.ui_MouseCursor <= 0
+			&& noSelectTime <= backEnd.refdef.time
+			&& menuNoChangeTime <= backEnd.refdef.time
+			&& media->forcePowers[i].handle.id != media->inventoryBlank.handle.id)
+		{
+			if (leftClick)
+			{
+				backEnd.ui_MouseCursor = media->forcePowers[i].handle.id;
+				noSelectTime = backEnd.refdef.time + 100;
+			}
+			else if (rightClick)
+			{
+				selectedContextItem = i + 1;
+				nk_widget(&selectedContextBounds, ctx);
+				noSelectTime = backEnd.refdef.time + 100;
+			}
+			else if (middleClick)
+			{
+				selectedContextItem = i + 1;
+				nk_widget(&selectedContextBounds, ctx);
+				noSelectTime = backEnd.refdef.time + 100;
+			}
+		}
+	}
+
+	nk_style_set_font(ctx, &media->font_14->handle);
+	nk_end(ctx);
+
+	if (backEnd.ui_MouseCursor > 0)
+	{// Have something selected for drag, skip tooltip stuff...
+		selectedContextItem = 0;
+		tooltipNum = -1;
+		return;
+	}
+	else if (selectedContextItem)
+	{
+		tooltipNum = -1;
+		backEnd.ui_MouseCursor = -1;
+
+		struct nk_rect bounds2;
+		bounds2.x = selectedContextBounds.x;
+		bounds2.y = selectedContextBounds.y;
+		bounds2.w = 120.0;
+		bounds2.h = 340.0;// 292.0;
+
+		nk_begin(ctx, "Context", bounds2, NK_WINDOW_NO_SCROLLBAR);
+
+		//nk_window_set_focus(ctx, "Context");
+
+		int ret2 = nk_contextual_begin(ctx, NK_WINDOW_NO_SCROLLBAR, nk_vec2(bounds2.w, bounds2.h), selectedContextBounds);
+
+		/* settings */
+		nk_layout_row_dynamic(ctx, 20, 1);
+
+		int eRight = nk_contextual_item_image_label(ctx, media->play, "Equip Right", NK_TEXT_RIGHT);
+		int eLeft = nk_contextual_item_image_label(ctx, media->play, "Equip Left", NK_TEXT_RIGHT);
+		int qb1 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 1", NK_TEXT_RIGHT);
+		int qb2 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 2", NK_TEXT_RIGHT);
+		int qb3 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 3", NK_TEXT_RIGHT);
+		int qb4 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 4", NK_TEXT_RIGHT);
+		int qb5 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 5", NK_TEXT_RIGHT);
+		int qb6 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 6", NK_TEXT_RIGHT);
+		int qb7 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 7", NK_TEXT_RIGHT);
+		int qb8 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 8", NK_TEXT_RIGHT);
+		int qb9 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 9", NK_TEXT_RIGHT);
+		int qb10 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 10", NK_TEXT_RIGHT);
+		int qb11 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 11", NK_TEXT_RIGHT);
+		int qb12 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 12", NK_TEXT_RIGHT);
+		nk_contextual_end(ctx);
+
+		int selectedItem = selectedContextItem - 1;
+
+		if (eRight || eLeft || qb1 || qb2 || qb3 || qb4 || qb5 || qb6 || qb7 || qb8 || qb9 || qb10 || qb11 || qb12)
+		{
+			if (eRight)
+			{
+
+			}
+			else if (eLeft)
+			{
+
+			}
+			else if (qb1)
+			{
+				//quickBarSelections[0] = selectedItem;
+				GUI_SetQuickBarSlot(ctx, media, 0, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY, media->forcePowers[selectedItem].handle.id);
+			}
+			else if (qb2)
+			{
+				GUI_SetQuickBarSlot(ctx, media, 1, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY, media->forcePowers[selectedItem].handle.id);
+			}
+			else if (qb3)
+			{
+				GUI_SetQuickBarSlot(ctx, media, 2, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY, media->forcePowers[selectedItem].handle.id);
+			}
+			else if (qb4)
+			{
+				GUI_SetQuickBarSlot(ctx, media, 3, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY, media->forcePowers[selectedItem].handle.id);
+			}
+			else if (qb5)
+			{
+				GUI_SetQuickBarSlot(ctx, media, 4, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY, media->forcePowers[selectedItem].handle.id);
+			}
+			else if (qb6)
+			{
+				GUI_SetQuickBarSlot(ctx, media, 5, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY, media->forcePowers[selectedItem].handle.id);
+			}
+			else if (qb7)
+			{
+				GUI_SetQuickBarSlot(ctx, media, 6, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY, media->forcePowers[selectedItem].handle.id);
+			}
+			else if (qb8)
+			{
+				GUI_SetQuickBarSlot(ctx, media, 7, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY, media->forcePowers[selectedItem].handle.id);
+			}
+			else if (qb9)
+			{
+				GUI_SetQuickBarSlot(ctx, media, 8, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY, media->forcePowers[selectedItem].handle.id);
+			}
+			else if (qb10)
+			{
+				GUI_SetQuickBarSlot(ctx, media, 9, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY, media->forcePowers[selectedItem].handle.id);
+			}
+			else if (qb11)
+			{
+				GUI_SetQuickBarSlot(ctx, media, 10, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY, media->forcePowers[selectedItem].handle.id);
+			}
+			else if (qb12)
+			{
+				GUI_SetQuickBarSlot(ctx, media, 11, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY, media->forcePowers[selectedItem].handle.id);
+			}
+
+			selectedContextItem = 0;
+
+			noSelectTime = backEnd.refdef.time + 500;
+		}
+
+		nk_end(ctx);
+		return;
+	}
+
+	selectedContextItem = 0;
+	backEnd.ui_MouseCursor = -1;
+}
+
+/* ===============================================================
+*
+*                          INVENTORY
+*
+* ===============================================================*/
 
 static void
 GUI_Inventory(struct nk_context *ctx, struct media *media)
@@ -2199,27 +2543,17 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 		int ret = 0;
 		int quality = QUALITY_GREY;
 
-		if (media->inventory[i].handle.id != media->inventoryBlank.handle.id)
+		ctx->style.button.border_color = nk_rgba(0, 0, 0, 0);
+
+		if (media->inventory[i][quality].handle.id != media->inventoryBlank.handle.id)
 		{
 			quality = QUALITY_GOLD - Q_clamp(QUALITY_GREY, i / QUALITY_GOLD, QUALITY_GOLD);
-			nk_color bgColor = /*nk_rgba(0, 0, 0, 0); //*/ColorForQuality(quality);
-
-			ctx->style.button.border_color = bgColor;
-			ctx->style.button.border = 2.0;
-			ctx->style.button.padding = nk_vec2(2.0, 2.0);
-			//ctx->style.button.image_padding = nk_vec2(2.0, 2.0);
-			ctx->style.button.rounding = 4.0;
-
-			ret = nk_button_image_label(ctx, media->inventory[i], "", NK_TEXT_CENTERED);
+			ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+			ret = nk_button_image_label(ctx, media->inventory[i][quality], "", NK_TEXT_CENTERED);
 		}
 		else
 		{// Blank slot...
-			nk_color color = nk_rgba(0, 0, 0, 0);
-			ctx->style.button.border_color = color;
-			ctx->style.button.border = 2.0;
-			ctx->style.button.padding = nk_vec2(2.0, 2.0);
-			//ctx->style.button.image_padding = nk_vec2(2.0, 2.0);
-			ctx->style.button.rounding = 4.0;
+			ctx->style.button.padding = nk_vec2(-1.0, -1.0);
 			ret = nk_button_image_label(ctx, media->inventoryBlank, "", NK_TEXT_CENTERED);
 		}
 
@@ -2234,7 +2568,7 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 		if (ctx->last_widget_state & NK_WIDGET_STATE_HOVER
 			&& !selectedContextItem
 			&& backEnd.ui_MouseCursor <= 0
-			&& media->inventory[i].handle.id != media->inventoryBlank.handle.id)
+			&& media->inventory[i][quality].handle.id != media->inventoryBlank.handle.id)
 		{// Hoverred...
 			tooltipNum = i;
 			tooltipQuality = quality;
@@ -2263,18 +2597,19 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 				, " \n"
 				, "^5Value: Priceless.\n");
 
-			uq_tooltip(ctx, tooltipString, media, &media->inventory[i]);
+			uq_tooltip(ctx, tooltipString, media, &media->inventory[i][quality]);
 		}
 		
 		if (hovered 
 			&& !selectedContextItem 
 			&& backEnd.ui_MouseCursor <= 0 
 			&& noSelectTime <= backEnd.refdef.time
-			&& menuNoChangeTime <= backEnd.refdef.time)
+			&& menuNoChangeTime <= backEnd.refdef.time
+			&& media->inventory[i][quality].handle.id != media->inventoryBlank.handle.id)
 		{
 			if (leftClick)
 			{
-				backEnd.ui_MouseCursor = media->inventory[i].handle.id;
+				backEnd.ui_MouseCursor = media->inventory[i][quality].handle.id;
 				noSelectTime = backEnd.refdef.time + 100;
 			}
 			else if (rightClick)
@@ -2343,6 +2678,8 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 
 		if (eRight || eLeft || qb1 || qb2 || qb3 || qb4 || qb5 || qb6 || qb7 || qb8 || qb9 || qb10 || qb11 || qb12)
 		{
+			int quality = QUALITY_GOLD - Q_clamp(QUALITY_GREY, selectedItem / QUALITY_GOLD, QUALITY_GOLD);
+
 			if (eRight)
 			{
 
@@ -2353,55 +2690,54 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 			}
 			else if (qb1)
 			{
-				quickBarSelections[0] = selectedItem;
+				GUI_SetQuickBarSlot(ctx, media, 0, QUICKBAR_TYPE_INVENTORY, selectedItem, quality, media->inventory[selectedItem][quality].handle.id);
 			}
 			else if (qb2)
 			{
-				quickBarSelections[1] = selectedItem;
+				GUI_SetQuickBarSlot(ctx, media, 1, QUICKBAR_TYPE_INVENTORY, selectedItem, quality, media->inventory[selectedItem][quality].handle.id);
 			}
 			else if (qb3)
 			{
-				quickBarSelections[2] = selectedItem;
+				GUI_SetQuickBarSlot(ctx, media, 2, QUICKBAR_TYPE_INVENTORY, selectedItem, quality, media->inventory[selectedItem][quality].handle.id);
 			}
 			else if (qb4)
 			{
-				quickBarSelections[3] = selectedItem;
+				GUI_SetQuickBarSlot(ctx, media, 3, QUICKBAR_TYPE_INVENTORY, selectedItem, quality, media->inventory[selectedItem][quality].handle.id);
 			}
 			else if (qb5)
 			{
-				quickBarSelections[4] = selectedItem;
+				GUI_SetQuickBarSlot(ctx, media, 4, QUICKBAR_TYPE_INVENTORY, selectedItem, quality, media->inventory[selectedItem][quality].handle.id);
 			}
 			else if (qb6)
 			{
-				quickBarSelections[5] = selectedItem;
+				GUI_SetQuickBarSlot(ctx, media, 5, QUICKBAR_TYPE_INVENTORY, selectedItem, quality, media->inventory[selectedItem][quality].handle.id);
 			}
 			else if (qb7)
 			{
-				quickBarSelections[6] = selectedItem;
+				GUI_SetQuickBarSlot(ctx, media, 6, QUICKBAR_TYPE_INVENTORY, selectedItem, quality, media->inventory[selectedItem][quality].handle.id);
 			}
 			else if (qb8)
 			{
-				quickBarSelections[7] = selectedItem;
+				GUI_SetQuickBarSlot(ctx, media, 7, QUICKBAR_TYPE_INVENTORY, selectedItem, quality, media->inventory[selectedItem][quality].handle.id);
 			}
 			else if (qb9)
 			{
-				quickBarSelections[8] = selectedItem;
+				GUI_SetQuickBarSlot(ctx, media, 8, QUICKBAR_TYPE_INVENTORY, selectedItem, quality, media->inventory[selectedItem][quality].handle.id);
 			}
 			else if (qb10)
 			{
-				quickBarSelections[9] = selectedItem;
+				GUI_SetQuickBarSlot(ctx, media, 9, QUICKBAR_TYPE_INVENTORY, selectedItem, quality, media->inventory[selectedItem][quality].handle.id);
 			}
 			else if (qb11)
 			{
-				quickBarSelections[10] = selectedItem;
+				GUI_SetQuickBarSlot(ctx, media, 10, QUICKBAR_TYPE_INVENTORY, selectedItem, quality, media->inventory[selectedItem][quality].handle.id);
 			}
 			else if (qb12)
 			{
-				quickBarSelections[11] = selectedItem;
+				GUI_SetQuickBarSlot(ctx, media, 11, QUICKBAR_TYPE_INVENTORY, selectedItem, quality, media->inventory[selectedItem][quality].handle.id);
 			}
 
 			selectedContextItem = 0;
-			PREVIOUS_INVENTORY_TOOLTIP = -1;
 
 			noSelectTime = backEnd.refdef.time + 500;
 		}
@@ -2500,6 +2836,92 @@ icon_load(const char *filename)
 	qglTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 	qglGenerateMipmap(GL_TEXTURE_2D);
 	stbi_image_free(data);
+	return nk_image_id((int)tex);
+}
+
+void icon_merge_icons(byte *image, byte *background, int width, int height)
+{// For tree leaves, grasses, plants, etc... Alpha is either 0 or 1. No blends. For speed, and to stop bad blending around the edges.
+	if (!image || !background) return;
+
+	byte *inByte = (byte *)&image[0];
+	byte *bgInByte = (byte *)&background[0];
+
+	for (int y = 0; y < height; y++)
+	{
+		for (int x = 0; x < width; x++)
+		{
+			byte *ibR = &inByte[0];
+			byte *ibG = &inByte[1];
+			byte *ibB = &inByte[2];
+			byte *ibA = &inByte[3];
+
+			float currentR = ByteToFloat(*ibR);
+			float currentG = ByteToFloat(*ibG);
+			float currentB = ByteToFloat(*ibB);
+			float currentA = ByteToFloat(*ibA);
+
+			float bgCurrentR = ByteToFloat(bgInByte[0]);
+			float bgCurrentG = ByteToFloat(bgInByte[1]);
+			float bgCurrentB = ByteToFloat(bgInByte[2]);
+			float bgCurrentA = ByteToFloat(bgInByte[3]);
+
+			float finalR = mix(bgCurrentR, currentR, currentA);
+			float finalG = mix(bgCurrentG, currentG, currentA);
+			float finalB = mix(bgCurrentB, currentB, currentA);
+			float finalA = max(bgCurrentA, currentA);
+
+			*ibR = FloatToByte(finalR);
+			*ibG = FloatToByte(finalG);
+			*ibB = FloatToByte(finalB);
+			*ibA = FloatToByte(finalA);
+
+			inByte+=4;
+			bgInByte+=4;
+		}
+	}
+}
+
+static struct nk_image
+icon_load_quality(const char *filename, int quality)
+{
+	int x, y, n;
+	GLuint tex;
+	unsigned char *data = stbi_load(filename, &x, &y, &n, 0);
+	if (!data) {
+		ri->Printf(PRINT_WARNING, "[SDL]: failed to load image: %s. Using error image.", filename);
+		return icon_load("Warzone/gui/icons/error.png");
+	}
+
+	char bgName[256] = { 0 };
+	sprintf(bgName, "Warzone/gui/inventory/quality_%d.png", quality);
+
+	int bgx, bgy, bgn;
+	unsigned char *bgdata = stbi_load(bgName, &bgx, &bgy, &bgn, 0);
+	if (!bgdata) {
+		ri->Printf(PRINT_WARNING, "[SDL]: failed to load icon quality background for image: %s. Using raw texture instead.\n", filename);
+		stbi_image_free(data);
+		return icon_load(filename);
+	}
+	if (bgx != x || bgy != y) {
+		ri->Printf(PRINT_WARNING, "[SDL]: failed to load icon quality background for image: %s. The bitmaps have different dimensions. Using raw texture instead.\n", filename);
+		stbi_image_free(data);
+		return icon_load(filename);
+	}
+
+	// Hopefully all good to merge them...
+	icon_merge_icons(data, bgdata, x, y);
+	stbi_image_free(bgdata);
+
+	qglGenTextures(1, &tex);
+	qglBindTexture(GL_TEXTURE_2D, tex);
+	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	qglTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+	qglGenerateMipmap(GL_TEXTURE_2D);
+	stbi_image_free(data);
+
 	return nk_image_id((int)tex);
 }
 
@@ -3300,18 +3722,44 @@ void GUI_Init(void)
 	GUI_media.iconRadio = icon_load("Warzone/gui/windowIcons/radio.png");
 	GUI_media.iconSettings = icon_load("Warzone/gui/windowIcons/settings.png");
 
-	GUI_media.inventoryBlank = icon_load("Warzone/gui/images/blank.png");
+	GUI_media.inventoryBlank = icon_load("Warzone/gui/inventory/blank.png");
 
-	{
+	{// Geneate a fake inventory list for testing...
 		int num = 1;
+		int num2 = 1;
 		for (int i = 0; i < 64; ++i) 
 		{
-			if (num >= 45)
-				GUI_media.inventory[i] = GUI_media.inventoryBlank;
-			else
-				GUI_media.inventory[i] = icon_load(va("Warzone/gui/images/icon%d.png", num));
+			for (int quality = 0; quality < 7; quality++)
+			{
+				if (num2 >= 45)
+				{
+					GUI_media.inventory[i][quality] = GUI_media.inventoryBlank;
+				}
+				else
+				{
+					GUI_media.inventory[i][quality] = icon_load_quality(va("Warzone/gui/inventory/icon_%d.png", num), quality);
+				}
+			}
 			num++;
-			//if (num > 45) num = 1;
+			num2++;
+			if (num > 24) num = 1;
+		}
+	}
+
+	{// Geneate a fake powers list for testing...
+		int num = 1;
+		int num2 = 1;
+		for (int i = 0; i < 64; ++i)
+		{
+			if (num >= 62)
+			{
+				GUI_media.forcePowers[i] = GUI_media.inventoryBlank;
+			}
+			else
+			{
+				GUI_media.forcePowers[i] = icon_load(va("Warzone/gui/powers/icon_%d.png", num));
+			}
+			num++;
 		}
 	}
 
@@ -3497,12 +3945,22 @@ void NuklearUI_Main(void)
 
 			//GUI_Settings(&GUI_ctx, &GUI_media);
 
+			bool quickbarAbleWindowOpen = false;
+
 			if (GUI_IsWindowOpen(&GUI_ctx, MENU_INVENTORY))
 			{
 				GUI_Inventory(&GUI_ctx, &GUI_media);
+				quickbarAbleWindowOpen = true;
 			}
-			else if (selectedContextItem || backEnd.ui_MouseCursor > 0)
-			{// Clear any seleted stuff when inventory window is closed... TODO: When I add force power inv screen, also check if it's open first...
+
+			if (GUI_IsWindowOpen(&GUI_ctx, MENU_POWERS))
+			{
+				GUI_Powers(&GUI_ctx, &GUI_media);
+				quickbarAbleWindowOpen = true;
+			}
+
+			if (!quickbarAbleWindowOpen && (selectedContextItem || backEnd.ui_MouseCursor > 0))
+			{// Clear any seleted stuff when inventory/powers window is closed...
 				selectedContextItem = 0;
 				backEnd.ui_MouseCursor = 0;
 			}
