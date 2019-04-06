@@ -382,17 +382,17 @@ static qboolean S_LoadSound_Actual( sfx_t *sfx )
 	sfx->bassSampleID = BASS_LoadMemorySample( sfx->indexData, sfx->indexSize );
 	sfx->qhandle = sfx - s_knownSfx;
 
+	FS_FreeFile(sfx->indexData);
+
 	if (sfx->bassSampleID <= 0) {
 		Com_Printf("BASS: Failed to load sound [ID %i] %s from memory.\n", sfx->qhandle, sLoadName);
 		sfx->bassSampleID = s_knownSfx[0].bassSampleID; // link to default sound bass ID...
-		sfx->bDefaultSound = qtrue;
 		FS_FreeFile( sfx->indexData );
 		return qfalse;
 	}
 
 	//Com_Printf("BASS: Registered sound [ID %i] %s. Length %i.\n", sfx->qhandle, sLoadName, sfx->indexSize);
 
-	FS_FreeFile( sfx->indexData );
 	return qtrue;
 }
 

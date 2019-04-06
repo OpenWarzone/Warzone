@@ -20,7 +20,7 @@
 #define NK_INCLUDE_DEFAULT_FONT
 #define NK_INCLUDE_STANDARD_VARARGS
 #define NK_IMPLEMENTATION
-//#define NK_BUTTON_TRIGGER_ON_RELEASE
+#define NK_BUTTON_TRIGGER_ON_RELEASE
 
 //
 // Warzone GUI Basic Defines...
@@ -1122,7 +1122,8 @@ uq_tooltip(struct nk_context *ctx, const char *text, struct media *media, struct
 
 	text_width = style->font->width(style->font->userdata, fontSize /** 0.77*/, strippedText, strippedLength);
 	//text_width += (4.0 * padding.x);
-	text_width += (2.0 * padding.x);
+	//text_width += (2.0 * padding.x);
+	text_width += (8.0 * padding.x);
 
 	int max_height = (int)(((float)stringCount * text_height) + (stringCount * (1.1f * ctx->style.window.spacing.y)));
 
@@ -2065,6 +2066,16 @@ GUI_Radio(struct nk_context *ctx, struct media *media)
 
 /* ===============================================================
 *
+* SELECTED ITEM STUFF (shared between quickbar, inventory and powers)
+*
+* ===============================================================*/
+
+int				noSelectTime = 0;
+//int				selectedContextItem = 0;
+//struct nk_rect	selectedContextBounds;
+
+/* ===============================================================
+*
 *                          QUICK BARS
 *
 * ===============================================================*/
@@ -2097,7 +2108,7 @@ GUI_InitQuickBarSlot(int slot)
 }
 
 static void
-GUI_SetQuickBarSlot(struct nk_context *ctx, struct media *media, int slot, quickbarItemType_t type, int position, int quality, int iconImageID)
+GUI_SetQuickBarSlot(struct nk_context *ctx, struct media *media, int slot, quickbarItemType_t type, int position, int quality)
 {
 	if (slot < 0 || slot > 11) return;
 
@@ -2106,15 +2117,16 @@ GUI_SetQuickBarSlot(struct nk_context *ctx, struct media *media, int slot, quick
 	quickBarSelections[slot].type = type;
 	quickBarSelections[slot].position = position;
 	quickBarSelections[slot].quality = quality;
-	quickBarSelections[slot].iconImageID = iconImageID;
 	
 	if (type == QUICKBAR_TYPE_INVENTORY)
 	{
 		quickBarSelections[slot].icon = media->inventory[position][quality];
+		quickBarSelections[slot].iconImageID = media->inventory[position][quality].handle.id;
 	}
 	else if (type == QUICKBAR_TYPE_FORCE)
 	{
 		quickBarSelections[slot].icon = media->forcePowers[position];
+		quickBarSelections[slot].iconImageID = media->forcePowers[position].handle.id;
 	}
 }
 
@@ -2194,7 +2206,6 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 		}
 		else if (quickBarSelections[i].type == QUICKBAR_TYPE_FORCE)
 		{
-			int quality = QUALITY_GREY;
 			ctx->style.button.padding = nk_vec2(-1.0, -1.0);
 			ret = nk_button_image_label(ctx, quickBarSelections[i].icon, "", NK_TEXT_CENTERED);
 
@@ -2222,7 +2233,7 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 			ret = nk_button_image_label(ctx, media->inventoryBlank, "", NK_TEXT_CENTERED);
 		}
 
-		if (ret != 0 && backEnd.ui_MouseCursor > 0)
+		if (ret != 0 && backEnd.ui_MouseCursor > 0 && noSelectTime <= backEnd.refdef.time)
 		{// Have something selected for drag, also clicked this quick slot, place the selected item here...
 			bool added = false;
 
@@ -2233,12 +2244,30 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 				{
 					if (media->inventory[j][quality].handle.id == backEnd.ui_MouseCursor)
 					{
-						ri->Printf(PRINT_ALL, "Dropped inventory item %i into quickbar slot %i...\n", j, i);
-						GUI_SetQuickBarSlot(ctx, media, i, QUICKBAR_TYPE_INVENTORY, j, quality, backEnd.ui_MouseCursor);
-						backEnd.ui_MouseCursor = -1;
+						//ri->Printf(PRINT_ALL, "Dropped inventory item %i into quickbar slot %i... Old iconID was %i.\n", j, i, quickBarSelections[i].iconImageID);
+
+						int oldIcon = quickBarSelections[i].iconImageID;
+
+						GUI_SetQuickBarSlot(ctx, media, i, QUICKBAR_TYPE_INVENTORY, j, quality);
+
+						if (oldIcon > 0)
+						{// Drop this one, but also pick up whatever was there before to be moved...
+							backEnd.ui_MouseCursor = oldIcon;
+							noSelectTime = backEnd.refdef.time + 100;
+						}
+						else
+						{// Was empty slot, so just drop the new item there...
+							backEnd.ui_MouseCursor = -1;
+						}
+
 						added = true;
 						break;
 					}
+				}
+
+				if (added)
+				{
+					break;
 				}
 			}
 
@@ -2249,13 +2278,36 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 				{
 					if (media->forcePowers[j].handle.id == backEnd.ui_MouseCursor)
 					{
-						ri->Printf(PRINT_ALL, "Dropped power %i into quickbar slot %i...\n", j, i);
-						GUI_SetQuickBarSlot(ctx, media, i, QUICKBAR_TYPE_FORCE, j, 0, backEnd.ui_MouseCursor);
-						backEnd.ui_MouseCursor = -1;
+						//ri->Printf(PRINT_ALL, "Dropped power %i into quickbar slot %i... Old iconID was %i.\n", j, i, quickBarSelections[i].iconImageID);
+
+						int oldIcon = quickBarSelections[i].iconImageID;
+
+						GUI_SetQuickBarSlot(ctx, media, i, QUICKBAR_TYPE_FORCE, j, 0);
+						
+						if (oldIcon > 0)
+						{// Drop this one, but also pick up whatever was there before to be moved...
+							backEnd.ui_MouseCursor = oldIcon;
+							noSelectTime = backEnd.refdef.time + 100;
+						}
+						else
+						{// Was empty slot, so just drop the new item there...
+							backEnd.ui_MouseCursor = -1;
+						}
+
 						added = true;
 						break;
 					}
 				}
+			}
+		}
+		else if (ret != 0 && noSelectTime <= backEnd.refdef.time)
+		{// Clicked on a slot, check if there is some icon there that the player wishes to move to somewhere else...
+			if (quickBarSelections[i].iconImageID > 0)
+			{// Pick up whatever was there before to be moved...
+				//ri->Printf(PRINT_ALL, "Pickup quickbar item %i. IconID %i.\n", i, quickBarSelections[i].iconImageID);
+				backEnd.ui_MouseCursor = quickBarSelections[i].iconImageID;
+				GUI_InitQuickBarSlot(i);
+				noSelectTime = backEnd.refdef.time + 100;
 			}
 		}
 	}
@@ -2264,15 +2316,6 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 	nk_end(ctx);
 }
 
-/* ===============================================================
-*
-*        SELECTED ITEM STUFF (shared between inv and powers)
-*
-* ===============================================================*/
-
-int				noSelectTime = 0;
-int				selectedContextItem = 0;
-struct nk_rect	selectedContextBounds;
 
 /* ===============================================================
 *
@@ -2334,7 +2377,7 @@ GUI_Powers(struct nk_context *ctx, struct media *media)
 		bool hovered = false;
 
 		if (ctx->last_widget_state & NK_WIDGET_STATE_HOVER
-			&& !selectedContextItem
+			//&& !selectedContextItem
 			&& backEnd.ui_MouseCursor <= 0
 			&& media->forcePowers[i].handle.id != media->inventoryBlank.handle.id)
 		{// Hoverred...
@@ -2356,7 +2399,7 @@ GUI_Powers(struct nk_context *ctx, struct media *media)
 		}
 
 		if (hovered
-			&& !selectedContextItem
+			//&& !selectedContextItem
 			&& backEnd.ui_MouseCursor <= 0
 			&& noSelectTime <= backEnd.refdef.time
 			&& menuNoChangeTime <= backEnd.refdef.time
@@ -2367,7 +2410,7 @@ GUI_Powers(struct nk_context *ctx, struct media *media)
 				backEnd.ui_MouseCursor = media->forcePowers[i].handle.id;
 				noSelectTime = backEnd.refdef.time + 100;
 			}
-			else if (rightClick)
+			/*else if (rightClick)
 			{
 				selectedContextItem = i + 1;
 				nk_widget(&selectedContextBounds, ctx);
@@ -2378,7 +2421,7 @@ GUI_Powers(struct nk_context *ctx, struct media *media)
 				selectedContextItem = i + 1;
 				nk_widget(&selectedContextBounds, ctx);
 				noSelectTime = backEnd.refdef.time + 100;
-			}
+			}*/
 		}
 	}
 
@@ -2387,11 +2430,11 @@ GUI_Powers(struct nk_context *ctx, struct media *media)
 
 	if (backEnd.ui_MouseCursor > 0)
 	{// Have something selected for drag, skip tooltip stuff...
-		selectedContextItem = 0;
+		//selectedContextItem = 0;
 		tooltipNum = -1;
 		return;
 	}
-	else if (selectedContextItem)
+	/*else if (selectedContextItem)
 	{
 		tooltipNum = -1;
 		backEnd.ui_MouseCursor = -1;
@@ -2408,7 +2451,6 @@ GUI_Powers(struct nk_context *ctx, struct media *media)
 
 		int ret2 = nk_contextual_begin(ctx, NK_WINDOW_NO_SCROLLBAR, nk_vec2(bounds2.w, bounds2.h), selectedContextBounds);
 
-		/* settings */
 		nk_layout_row_dynamic(ctx, 20, 1);
 
 		int eRight = nk_contextual_item_image_label(ctx, media->play, "Equip Right", NK_TEXT_RIGHT);
@@ -2442,51 +2484,51 @@ GUI_Powers(struct nk_context *ctx, struct media *media)
 			else if (qb1)
 			{
 				//quickBarSelections[0] = selectedItem;
-				GUI_SetQuickBarSlot(ctx, media, 0, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY, media->forcePowers[selectedItem].handle.id);
+				GUI_SetQuickBarSlot(ctx, media, 0, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY);
 			}
 			else if (qb2)
 			{
-				GUI_SetQuickBarSlot(ctx, media, 1, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY, media->forcePowers[selectedItem].handle.id);
+				GUI_SetQuickBarSlot(ctx, media, 1, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY);
 			}
 			else if (qb3)
 			{
-				GUI_SetQuickBarSlot(ctx, media, 2, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY, media->forcePowers[selectedItem].handle.id);
+				GUI_SetQuickBarSlot(ctx, media, 2, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY);
 			}
 			else if (qb4)
 			{
-				GUI_SetQuickBarSlot(ctx, media, 3, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY, media->forcePowers[selectedItem].handle.id);
+				GUI_SetQuickBarSlot(ctx, media, 3, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY);
 			}
 			else if (qb5)
 			{
-				GUI_SetQuickBarSlot(ctx, media, 4, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY, media->forcePowers[selectedItem].handle.id);
+				GUI_SetQuickBarSlot(ctx, media, 4, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY);
 			}
 			else if (qb6)
 			{
-				GUI_SetQuickBarSlot(ctx, media, 5, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY, media->forcePowers[selectedItem].handle.id);
+				GUI_SetQuickBarSlot(ctx, media, 5, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY);
 			}
 			else if (qb7)
 			{
-				GUI_SetQuickBarSlot(ctx, media, 6, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY, media->forcePowers[selectedItem].handle.id);
+				GUI_SetQuickBarSlot(ctx, media, 6, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY);
 			}
 			else if (qb8)
 			{
-				GUI_SetQuickBarSlot(ctx, media, 7, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY, media->forcePowers[selectedItem].handle.id);
+				GUI_SetQuickBarSlot(ctx, media, 7, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY);
 			}
 			else if (qb9)
 			{
-				GUI_SetQuickBarSlot(ctx, media, 8, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY, media->forcePowers[selectedItem].handle.id);
+				GUI_SetQuickBarSlot(ctx, media, 8, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY);
 			}
 			else if (qb10)
 			{
-				GUI_SetQuickBarSlot(ctx, media, 9, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY, media->forcePowers[selectedItem].handle.id);
+				GUI_SetQuickBarSlot(ctx, media, 9, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY);
 			}
 			else if (qb11)
 			{
-				GUI_SetQuickBarSlot(ctx, media, 10, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY, media->forcePowers[selectedItem].handle.id);
+				GUI_SetQuickBarSlot(ctx, media, 10, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY);
 			}
 			else if (qb12)
 			{
-				GUI_SetQuickBarSlot(ctx, media, 11, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY, media->forcePowers[selectedItem].handle.id);
+				GUI_SetQuickBarSlot(ctx, media, 11, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY);
 			}
 
 			selectedContextItem = 0;
@@ -2496,9 +2538,9 @@ GUI_Powers(struct nk_context *ctx, struct media *media)
 
 		nk_end(ctx);
 		return;
-	}
+	}*/
 
-	selectedContextItem = 0;
+	//selectedContextItem = 0;
 	backEnd.ui_MouseCursor = -1;
 }
 
@@ -2566,7 +2608,7 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 		bool hovered = false;
 
 		if (ctx->last_widget_state & NK_WIDGET_STATE_HOVER
-			&& !selectedContextItem
+			//&& !selectedContextItem
 			&& backEnd.ui_MouseCursor <= 0
 			&& media->inventory[i][quality].handle.id != media->inventoryBlank.handle.id)
 		{// Hoverred...
@@ -2601,7 +2643,7 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 		}
 		
 		if (hovered 
-			&& !selectedContextItem 
+			//&& !selectedContextItem 
 			&& backEnd.ui_MouseCursor <= 0 
 			&& noSelectTime <= backEnd.refdef.time
 			&& menuNoChangeTime <= backEnd.refdef.time
@@ -2612,7 +2654,7 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 				backEnd.ui_MouseCursor = media->inventory[i][quality].handle.id;
 				noSelectTime = backEnd.refdef.time + 100;
 			}
-			else if (rightClick)
+			/*else if (rightClick)
 			{
 				selectedContextItem = i + 1;
 				nk_widget(&selectedContextBounds, ctx);
@@ -2623,7 +2665,7 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 				selectedContextItem = i + 1;
 				nk_widget(&selectedContextBounds, ctx);
 				noSelectTime = backEnd.refdef.time + 100;
-			}
+			}*/
 		}
 	}
 
@@ -2632,12 +2674,12 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 
 	if (backEnd.ui_MouseCursor > 0)
 	{// Have something selected for drag, skip tooltip stuff...
-		selectedContextItem = 0;
+		//selectedContextItem = 0;
 		tooltipNum = -1;
 		tooltipQuality = 0;
 		return;
 	}
-	else if (selectedContextItem)
+	/*else if (selectedContextItem)
 	{
 		tooltipNum = -1;
 		tooltipQuality = 0;
@@ -2655,7 +2697,6 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 
 		int ret2 = nk_contextual_begin(ctx, NK_WINDOW_NO_SCROLLBAR, nk_vec2(bounds2.w, bounds2.h), selectedContextBounds);
 
-		/* settings */
 		nk_layout_row_dynamic(ctx, 20, 1);
 
 		int eRight = nk_contextual_item_image_label(ctx, media->play, "Equip Right", NK_TEXT_RIGHT);
@@ -2690,51 +2731,51 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 			}
 			else if (qb1)
 			{
-				GUI_SetQuickBarSlot(ctx, media, 0, QUICKBAR_TYPE_INVENTORY, selectedItem, quality, media->inventory[selectedItem][quality].handle.id);
+				GUI_SetQuickBarSlot(ctx, media, 0, QUICKBAR_TYPE_INVENTORY, selectedItem, quality);
 			}
 			else if (qb2)
 			{
-				GUI_SetQuickBarSlot(ctx, media, 1, QUICKBAR_TYPE_INVENTORY, selectedItem, quality, media->inventory[selectedItem][quality].handle.id);
+				GUI_SetQuickBarSlot(ctx, media, 1, QUICKBAR_TYPE_INVENTORY, selectedItem, quality);
 			}
 			else if (qb3)
 			{
-				GUI_SetQuickBarSlot(ctx, media, 2, QUICKBAR_TYPE_INVENTORY, selectedItem, quality, media->inventory[selectedItem][quality].handle.id);
+				GUI_SetQuickBarSlot(ctx, media, 2, QUICKBAR_TYPE_INVENTORY, selectedItem, quality);
 			}
 			else if (qb4)
 			{
-				GUI_SetQuickBarSlot(ctx, media, 3, QUICKBAR_TYPE_INVENTORY, selectedItem, quality, media->inventory[selectedItem][quality].handle.id);
+				GUI_SetQuickBarSlot(ctx, media, 3, QUICKBAR_TYPE_INVENTORY, selectedItem, quality);
 			}
 			else if (qb5)
 			{
-				GUI_SetQuickBarSlot(ctx, media, 4, QUICKBAR_TYPE_INVENTORY, selectedItem, quality, media->inventory[selectedItem][quality].handle.id);
+				GUI_SetQuickBarSlot(ctx, media, 4, QUICKBAR_TYPE_INVENTORY, selectedItem, quality);
 			}
 			else if (qb6)
 			{
-				GUI_SetQuickBarSlot(ctx, media, 5, QUICKBAR_TYPE_INVENTORY, selectedItem, quality, media->inventory[selectedItem][quality].handle.id);
+				GUI_SetQuickBarSlot(ctx, media, 5, QUICKBAR_TYPE_INVENTORY, selectedItem, quality);
 			}
 			else if (qb7)
 			{
-				GUI_SetQuickBarSlot(ctx, media, 6, QUICKBAR_TYPE_INVENTORY, selectedItem, quality, media->inventory[selectedItem][quality].handle.id);
+				GUI_SetQuickBarSlot(ctx, media, 6, QUICKBAR_TYPE_INVENTORY, selectedItem, quality);
 			}
 			else if (qb8)
 			{
-				GUI_SetQuickBarSlot(ctx, media, 7, QUICKBAR_TYPE_INVENTORY, selectedItem, quality, media->inventory[selectedItem][quality].handle.id);
+				GUI_SetQuickBarSlot(ctx, media, 7, QUICKBAR_TYPE_INVENTORY, selectedItem, quality);
 			}
 			else if (qb9)
 			{
-				GUI_SetQuickBarSlot(ctx, media, 8, QUICKBAR_TYPE_INVENTORY, selectedItem, quality, media->inventory[selectedItem][quality].handle.id);
+				GUI_SetQuickBarSlot(ctx, media, 8, QUICKBAR_TYPE_INVENTORY, selectedItem, quality);
 			}
 			else if (qb10)
 			{
-				GUI_SetQuickBarSlot(ctx, media, 9, QUICKBAR_TYPE_INVENTORY, selectedItem, quality, media->inventory[selectedItem][quality].handle.id);
+				GUI_SetQuickBarSlot(ctx, media, 9, QUICKBAR_TYPE_INVENTORY, selectedItem, quality);
 			}
 			else if (qb11)
 			{
-				GUI_SetQuickBarSlot(ctx, media, 10, QUICKBAR_TYPE_INVENTORY, selectedItem, quality, media->inventory[selectedItem][quality].handle.id);
+				GUI_SetQuickBarSlot(ctx, media, 10, QUICKBAR_TYPE_INVENTORY, selectedItem, quality);
 			}
 			else if (qb12)
 			{
-				GUI_SetQuickBarSlot(ctx, media, 11, QUICKBAR_TYPE_INVENTORY, selectedItem, quality, media->inventory[selectedItem][quality].handle.id);
+				GUI_SetQuickBarSlot(ctx, media, 11, QUICKBAR_TYPE_INVENTORY, selectedItem, quality);
 			}
 
 			selectedContextItem = 0;
@@ -2744,9 +2785,9 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 
 		nk_end(ctx);
 		return;
-	}
+	}*/
 
-	selectedContextItem = 0;
+	//selectedContextItem = 0;
 	backEnd.ui_MouseCursor = -1;
 }
 
@@ -3959,11 +4000,11 @@ void NuklearUI_Main(void)
 				quickbarAbleWindowOpen = true;
 			}
 
-			if (!quickbarAbleWindowOpen && (selectedContextItem || backEnd.ui_MouseCursor > 0))
-			{// Clear any seleted stuff when inventory/powers window is closed...
-				selectedContextItem = 0;
-				backEnd.ui_MouseCursor = 0;
-			}
+			//if (!quickbarAbleWindowOpen && (/*selectedContextItem ||*/ backEnd.ui_MouseCursor > 0))
+			//{// Clear any seleted stuff when inventory/powers window is closed...
+			//	//selectedContextItem = 0;
+			//	backEnd.ui_MouseCursor = 0;
+			//}
 
 			if (GUI_IsWindowOpen(&GUI_ctx, MENU_RADIO))
 			{
@@ -3976,16 +4017,16 @@ void NuklearUI_Main(void)
 			// Main Menu is always visible...
 			GUI_MainMenu(&GUI_ctx, &GUI_media);
 
-			if (keyStatus[A_MOUSE1] && menuNoChangeTime > backEnd.refdef.time)
+			if (nk_input_is_mouse_released(&GUI_ctx.input, NK_BUTTON_LEFT) && menuNoChangeTime > backEnd.refdef.time)
 			{
 				mainMenuOpen = false;
 			}
 
-			if (selectedContextItem || backEnd.ui_MouseCursor > 0)
+			if (/*selectedContextItem ||*/ backEnd.ui_MouseCursor > 0 && noSelectTime <= backEnd.refdef.time)
 			{// If the user clicked somewhere not handled by the ui with either a drag object selected, or a right click menu open, then remove/close them... TODO: Add "trash item" here...
-				if (keyStatus[A_MOUSE1])
+				if (nk_input_is_mouse_released(&GUI_ctx.input, NK_BUTTON_LEFT))
 				{
-					selectedContextItem = 0;
+					//selectedContextItem = 0;
 					backEnd.ui_MouseCursor = 0;
 				}
 			}
@@ -4014,9 +4055,9 @@ void NuklearUI_Main(void)
 
 			GUI_CloseAllWindows(&GUI_ctx);
 
-			if (mainMenuOpen || selectedContextItem || backEnd.ui_MouseCursor > 0)
+			if (mainMenuOpen || /*selectedContextItem ||*/ backEnd.ui_MouseCursor > 0)
 			{// UI closed, disable any context menu or mouse cursor (drag/drop) settings...
-				selectedContextItem = 0;
+				//selectedContextItem = 0;
 				backEnd.ui_MouseCursor = 0;
 				mainMenuOpen = false;
 			}
