@@ -661,7 +661,7 @@ void GetHeightAndNormal(in vec2 pos, in float e, in float depth, inout float hei
 		vec3 dc = vec3(depth, dheight2 * 4.0, depth + ex.x);
 
 		waveNormal = cross(normalize(da - db), normalize(da - dc));
-		waveNormal = normalize(waveNormal * u_Local0.gba);
+		waveNormal = normalize(waveNormal);
 		lightingNormal = waveNormal;
 
 		height = dheight;//0.0;
