@@ -25,12 +25,19 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "navlib_api.h"
 
+extern float navmeshScale;
+extern float navmeshScaleInv;
+
 //coordinate conversion
 static inline void quake2recast( float vec[ 3 ] )
 {
 	float temp = vec[1];
 	vec[1] = vec[2];
 	vec[2] = temp;
+
+	vec[0] *= navmeshScale;
+	vec[1] *= navmeshScale;
+	vec[2] *= navmeshScale;
 }
 
 static inline void recast2quake( float vec[ 3 ] )
@@ -38,6 +45,10 @@ static inline void recast2quake( float vec[ 3 ] )
 	float temp = vec[1];
 	vec[1] = vec[2];
 	vec[2] = temp;
+
+	vec[0] *= navmeshScaleInv;
+	vec[1] *= navmeshScaleInv;
+	vec[2] *= navmeshScaleInv;
 }
 
 class rVec;

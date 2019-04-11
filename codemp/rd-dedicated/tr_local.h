@@ -1340,6 +1340,7 @@ void	RE_UploadCinematic (int cols, int rows, const byte *data, int client, qbool
 void		RE_BeginFrame( stereoFrame_t stereoFrame );
 void		RE_BeginRegistration( glconfig_t *glconfig );
 void		RE_LoadWorldMap( const char *mapname );
+void		RE_SendLodmodelPointers(int *count, void *data);
 
 void		RE_SetWorldVisData( const byte *vis );
 

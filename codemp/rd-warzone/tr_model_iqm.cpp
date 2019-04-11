@@ -851,7 +851,7 @@ R_AddIQMSurfaces
 Add all surfaces of this model
 =================
 */
-void R_AddIQMSurfaces( trRefEntity_t *ent ) {
+void R_AddIQMSurfaces( trRefEntity_t *ent, model_t *currentModel, int entityNum, int64_t shiftedEntityNum) {
 	iqmData_t		*data;
 	srfIQModel_t		*surface;
 	int			i, j;
@@ -862,7 +862,7 @@ void R_AddIQMSurfaces( trRefEntity_t *ent ) {
 	shader_t		*shader;
 	skin_t			*skin;
 
-	data = tr.currentModel->data.iqm;
+	data = currentModel->data.iqm;
 	surface = data->surfaces;
 
 	// don't add third_person objects if not in a portal
@@ -885,7 +885,7 @@ void R_AddIQMSurfaces( trRefEntity_t *ent ) {
 	     || (ent->e.oldframe < 0) ) {
 		ri->Printf( PRINT_DEVELOPER, "R_AddIQMSurfaces: no such frame %d to %d for '%s'\n",
 			   ent->e.oldframe, ent->e.frame,
-			   tr.currentModel->name );
+			   currentModel->name );
 		ent->e.frame = 0;
 		ent->e.oldframe = 0;
 	}
@@ -965,7 +965,7 @@ void R_AddIQMSurfaces( trRefEntity_t *ent ) {
 		*/
 
 		if( !personalModel ) {
-			R_AddDrawSurf( (surfaceType_t *)surface, shader, fogNum, 0, R_IsPostRenderEntity (tr.currentEntityNum, ent), cubemapIndex, qfalse);
+			R_AddDrawSurfThreaded( (surfaceType_t *)surface, shader, fogNum, 0, R_IsPostRenderEntity (entityNum, ent), cubemapIndex, qfalse, shiftedEntityNum);
 		}
 
 		surface++;

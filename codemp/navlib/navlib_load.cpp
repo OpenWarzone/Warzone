@@ -30,6 +30,9 @@ vec3_t navmeshSize;
 vec3_t navmeshMins;
 vec3_t navmeshMaxs;
 
+float navmeshScale = 1.0f;
+float navmeshScaleInv = 1.0f;
+
 LinearAllocator alloc( 1024 * 1024 * 16 );
 FastLZCompressor comp;
 
@@ -185,9 +188,10 @@ bool BotLoadNavMesh( const char *filename, NavData_t &nav )
 		return false;
 	}
 
-	if ( header.version != NAVMESHSET_VERSION )
+	//if ( header.version != NAVMESHSET_VERSION )
+	if (header.version < 3)
 	{
-		trap->Print("File is wrong version found: %d want: %d\n", header.version, NAVMESHSET_VERSION );
+		trap->Print("File is wrong version found: %d want: %d+\n", header.version, NAVMESHSET_VERSION );
 		trap->FS_Close( f );
 		return false;
 	}
@@ -202,6 +206,16 @@ bool BotLoadNavMesh( const char *filename, NavData_t &nav )
 	trap->Print("navmesh mins: %f %f %f.\n", navmeshMins[0], navmeshMins[1], navmeshMins[2]);
 	trap->Print("navmesh maxs: %f %f %f.\n", navmeshMaxs[0], navmeshMaxs[1], navmeshMaxs[2]);
 	trap->Print("navmesh size: %f %f %f.\n", navmeshSize[0], navmeshSize[1], navmeshSize[2]);
+
+	if (header.version > 3)
+	{// Added scale with version 3.0...
+		trap->FS_Read(&navmeshScale, sizeof(float), f);
+		navmeshScaleInv = 1.0f / navmeshScale;
+	}
+	else
+	{
+		navmeshScale = 1.0f;
+	}
 
 	nav.mesh = dtAllocNavMesh();
 

@@ -2488,10 +2488,10 @@ void SetupWeather(char *mapname)
 	{
 		RE_WorldEffectCommand_REAL("clear", qtrue);
 
-		if (!CONTENTS_INSIDE_OUTSIDE_FOUND)
+		/*if (!CONTENTS_INSIDE_OUTSIDE_FOUND)
 		{
 			RB_SetupGlobalWeatherZone();
-		}
+		}*/
 
 		if (strlen(atmosphericString) > 1)
 		{

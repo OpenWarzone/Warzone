@@ -122,7 +122,7 @@ in precise vec4				PrimaryLightDir_FS_in;
 in precise vec2				TexCoord2_FS_in;
 
 in precise vec3				Blending_FS_in;
-flat in float				Slope_FS_in;
+/*flat*/ in float				Slope_FS_in;
 
 
 #define m_Normal 			normalize(Normal_FS_in.xyz)

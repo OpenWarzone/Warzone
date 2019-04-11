@@ -2427,7 +2427,7 @@ void G2_ProcessGeneratedSurfaceBolts(CGhoul2Info &ghoul2, mdxaBone_v &bonePtr, m
 #endif
 }
 
-void RenderSurfaces(CRenderSurface &RS) //also ended up just ripping right from SP.
+void RenderSurfaces(CRenderSurface &RS, trRefEntity_t *ent, model_t *currentModel, int entityNum, int64_t shiftedEntityNum) //also ended up just ripping right from SP.
 {
 #ifdef G2_PERFORMANCE_ANALYSIS
 	G2PerformanceTimer_RenderSurfaces.Start();
@@ -2492,7 +2492,7 @@ void RenderSurfaces(CRenderSurface &RS) //also ended up just ripping right from 
 #ifdef __PLAYER_BASED_CUBEMAPS__
 		int cubemapIndex = 0;
 #else
-		int cubemapIndex = R_CubemapForPoint (tr.currentEntity->e.origin);
+		int cubemapIndex = R_CubemapForPoint (ent->e.origin);
 #endif
 
 		// don't add third_person objects if not viewing through a portal
@@ -2510,7 +2510,7 @@ void RenderSurfaces(CRenderSurface &RS) //also ended up just ripping right from 
 			newSurf->surfaceData = surface;
 			newSurf->boneCache = RS.boneCache;
 
-			R_AddDrawSurf ((surfaceType_t *)newSurf, (shader_t *)shader, RS.fogNum, qfalse, R_IsPostRenderEntity (tr.currentEntityNum, tr.currentEntity), cubemapIndex, qfalse);
+			R_AddDrawSurfThreaded ((surfaceType_t *)newSurf, (shader_t *)shader, RS.fogNum, qfalse, R_IsPostRenderEntity (entityNum, ent), cubemapIndex, qfalse, shiftedEntityNum);
 
 #ifdef _G2_GORE
 			if (RS.gore_set && drawGore)
@@ -2591,7 +2591,7 @@ void RenderSurfaces(CRenderSurface &RS) //also ended up just ripping right from 
 						last->goreChain=newSurf2;
 						last=newSurf2;
 
-						R_AddDrawSurf ((surfaceType_t *)newSurf2, gshader, RS.fogNum, qfalse, R_IsPostRenderEntity (tr.currentEntityNum, tr.currentEntity), cubemapIndex, qfalse);
+						R_AddDrawSurfThreaded ((surfaceType_t *)newSurf2, gshader, RS.fogNum, qfalse, R_IsPostRenderEntity (entityNum, ent), cubemapIndex, qfalse, shiftedEntityNum);
 					}
 				}
 			}
@@ -2608,7 +2608,7 @@ void RenderSurfaces(CRenderSurface &RS) //also ended up just ripping right from 
 				assert(newSurf->vboMesh != NULL && RS.surfaceNum == surface->thisSurfaceIndex);
 				newSurf->surfaceData = surface;
 				newSurf->boneCache = RS.boneCache;
-				R_AddDrawSurf((surfaceType_t *)newSurf, tr.shadowShader, RS.fogNum, qfalse, R_IsPostRenderEntity(tr.currentEntityNum, tr.currentEntity), cubemapIndex, qfalse);
+				R_AddDrawSurf((surfaceType_t *)newSurf, tr.shadowShader, RS.fogNum, qfalse, R_IsPostRenderEntity(entityNum, ent), cubemapIndex, qfalse, shiftedEntityNum);
 			}
 
 			// projection shadows work fine with personal models
@@ -2621,7 +2621,7 @@ void RenderSurfaces(CRenderSurface &RS) //also ended up just ripping right from 
 				assert(newSurf->vboMesh != NULL && RS.surfaceNum == surface->thisSurfaceIndex);
 				newSurf->surfaceData = surface;
 				newSurf->boneCache = RS.boneCache;
-				R_AddDrawSurf((surfaceType_t *)newSurf, tr.projectionShadowShader, RS.fogNum, qfalse, R_IsPostRenderEntity(tr.currentEntityNum, tr.currentEntity), cubemapIndex, qfalse);
+				R_AddDrawSurf((surfaceType_t *)newSurf, tr.projectionShadowShader, RS.fogNum, qfalse, R_IsPostRenderEntity(entityNum, ent), cubemapIndex, qfalse, shiftedEntityNum);
 			}
 			*/
 #endif
@@ -2638,7 +2638,7 @@ void RenderSurfaces(CRenderSurface &RS) //also ended up just ripping right from 
 	for (i=0; i< surfInfo->numChildren; i++)
 	{
 		RS.surfaceNum = surfInfo->childIndexes[i];
-		RenderSurfaces(RS);
+		RenderSurfaces(RS, ent, currentModel, entityNum, shiftedEntityNum);
 	}
 
 #ifdef G2_PERFORMANCE_ANALYSIS
@@ -3252,7 +3252,7 @@ R_AddGHOULSurfaces
 ==============
 */
 
-void R_AddGhoulSurfaces( trRefEntity_t *ent ) {
+void R_AddGhoulSurfaces( trRefEntity_t *ent, model_t *currentModel, int entityNum, int64_t shiftedEntityNum) {
 #ifdef G2_PERFORMANCE_ANALYSIS
 	G2PerformanceTimer_R_AddGHOULSurfaces.Start();
 #endif
@@ -3416,7 +3416,7 @@ void R_AddGhoulSurfaces( trRefEntity_t *ent ) {
 				RS.renderfx |= RF_NOSHADOW;
 			}
 
-			RenderSurfaces(RS);
+			RenderSurfaces(RS, ent, currentModel, entityNum, shiftedEntityNum);
 		}
 	}
 	HackadelicOnClient=false;

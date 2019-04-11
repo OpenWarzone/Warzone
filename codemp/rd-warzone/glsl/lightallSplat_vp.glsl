@@ -481,28 +481,18 @@ void main()
 
 		if (SHADER_HAS_STEEPMAP > 0.0)
 		{// Steep maps...
-#if 1
 			float pitch = normalToSlope(normalize(normal.xyz));
 
 			if (pitch > 46.0 || pitch < -46.0)
 			{
 				//var_Slope = 1.0;
-				var_Slope = clamp((length(pitch) - 46.0) / 44.0, 0.0, 1.0);
+				var_Slope = clamp(pow(clamp((length(pitch) - 46.0) / 44.0, 0.0, 1.0), 0.75), 0.0, 1.0);
+				var_Slope = smoothstep(0.2, 0.7, var_Slope);
 			}
 			else
 			{
 				var_Slope = 0.0;
 			}
-#else
-			if (normal.z <= 0.73 && normal.z >= -0.73)
-			{
-				var_Slope = 1.0;
-			}
-			else
-			{
-				var_Slope = 0.0;
-			}
-#endif
 		}
 	}
 

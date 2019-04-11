@@ -1385,6 +1385,45 @@ int64_t				listEntityNums[MAX_LIST_SHADERS] = { 0 };
 int64_t				listPostProcesses[MAX_LIST_SHADERS] = { 0 };
 #endif //__REALTIME_SURFACE_SORTING__
 
+#ifdef __REALTIME_SURFACE_SORTING2__
+static int RealtimeSurfaceCompare(const void *a, const void *b)
+{
+	drawSurf_t	 *dsa, *dsb;
+
+	dsa = (drawSurf_t *)a;
+	dsb = (drawSurf_t *)b;
+
+	shader_t *shadera = tr.sortedShaders[(dsa->sort >> QSORT_SHADERNUM_SHIFT) & (MAX_SHADERS - 1)];
+	shader_t *shaderb = tr.sortedShaders[(dsb->sort >> QSORT_SHADERNUM_SHIFT) & (MAX_SHADERS - 1)];
+
+	int64_t entNumA = (dsa->sort >> QSORT_REFENTITYNUM_SHIFT) & REFENTITYNUM_MASK;
+	int64_t entNumB = (dsb->sort >> QSORT_REFENTITYNUM_SHIFT) & REFENTITYNUM_MASK;
+
+	trRefEntity_t *entA = &backEnd.refdef.entities[entNumA];
+	trRefEntity_t *entB = &backEnd.refdef.entities[entNumB];
+
+	if (entA == &tr.worldEntity || entB == &tr.worldEntity)
+		return 0; // already pre-sorted...
+
+	if (dsa->depthDrawOnly < dsb->depthDrawOnly)
+		return -1;
+	else if (dsa->depthDrawOnly > dsb->depthDrawOnly)
+		return 1;
+
+	if (shadera < shaderb)
+		return -1;
+	else if (shadera > shaderb)
+		return 1;
+
+	if (entA->e.reType < entB->e.reType)
+		return -1;
+	else if (entA->e.reType > entB->e.reType)
+		return 1;
+
+	return 0;
+}
+#endif //__REALTIME_SURFACE_SORTING2__
+
 void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQuery) {
 	int				i, max_threads_used = 0;
 	int				j = 0;
@@ -1470,6 +1509,13 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 		qsort(drawSurfs, numDrawSurfs, sizeof(*drawSurfs), RealtimeSurfaceCompare);
 	}
 #endif //__REALTIME_SURFACE_SORTING__
+
+#ifdef __REALTIME_SURFACE_SORTING2__
+	if (r_testvalue0->integer)
+	{
+		qsort(drawSurfs, numDrawSurfs, sizeof(*drawSurfs), RealtimeSurfaceCompare);
+	}
+#endif //__REALTIME_SURFACE_SORTING2__
 
 	FBO_t *originalFBO = glState.currentFBO;
 
@@ -3018,6 +3064,10 @@ extern void RB_RenderWorldEffects(void);
 void R_AddInstancedModelsToScene(void);
 #endif //__INSTANCED_MODELS__
 
+#ifdef __LODMODEL_INSTANCING__
+void R_AddInstancedLodModelsToScene(void);
+#endif //__LODMODEL_INSTANCING__
+
 const void	*RB_WorldEffects( const void *data )
 {
 	const drawBufferCommand_t	*cmd;
@@ -3092,7 +3142,7 @@ const void	*RB_WorldEffects( const void *data )
 		|| (backEnd.depthFill /*&& !doProceduralClouds*/)
 		|| (tr.renderCubeFbo && backEnd.viewParms.targetFbo == tr.renderCubeFbo)
 		|| (tr.renderSkyFbo && backEnd.viewParms.targetFbo == tr.renderSkyFbo)
-		|| (!RB_WeatherEnabled() && !waterEnabled && !doProceduralClouds))
+		|| (!RB_WeatherEnabled() && !waterEnabled && !doProceduralClouds && tr.lodModelsCount <= 0))
 	{
 		// do nothing
 		return (const void *)(cmd + 1);
@@ -3118,6 +3168,13 @@ const void	*RB_WorldEffects( const void *data )
 	{
 		RB_RenderWorldEffects();
 	}
+
+#ifdef __LODMODEL_INSTANCING__
+	if (tr.lodModelsCount > 0)
+	{
+		R_AddInstancedLodModelsToScene();
+	}
+#endif //__LODMODEL_INSTANCING__
 
 #ifdef __OCEAN__
 	if (waterEnabled)

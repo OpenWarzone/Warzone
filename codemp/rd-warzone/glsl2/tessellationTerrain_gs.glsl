@@ -26,7 +26,7 @@ out precise vec4 Color_FS_in;
 out precise vec4 PrimaryLightDir_FS_in;
 out precise vec2 TexCoord2_FS_in;
 out precise vec3 Blending_FS_in;
-flat out float Slope_FS_in;
+/*flat*/ out float Slope_FS_in;
  
 void main()
 {

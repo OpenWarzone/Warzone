@@ -632,41 +632,39 @@ void GetHeightAndNormal(in vec2 pos, in float e, in float depth, inout float hei
 		vec3 dnormal = cross(normalize(da - db), normalize(da - dc));
 		dnormal = normalize(dnormal);
 
-		//lightingNormal = normalize(mix(waveNormal, dnormal, 0.6));
-
 		lightingNormal = normalize(vec3( mix(dnormal.x, waveNormal.x, 0.5), mix(dnormal.y, waveNormal.y, 0.333), mix(dnormal.z, waveNormal.z, 0.5) ));
-		
-		//vec3 n = waveNormal * dnormal;
-		//lightingNormal = normalize(vec3(n.x, n.y * 0.5/*1.15*/, n.z));
 
-		//lightingNormal = normalize(mix(waveNormal, dnormal, 0.95));
-
-		//height *= u_Local0.g;//1.4;
-		chopheight = max(height, dheight) * 0.95;//* 0.25;
+		chopheight = max(height, dheight) * 0.95;
 	}
 	else
 #endif //!defined(__LQ_MODE__) && defined(REAL_WAVES)
 	{
-		vec2 ex = vec2(e, 0) * 64.0;
+		/*vec2 ex = vec2(e, 0) * u_Local0.r;//64.0;
 
 		height = getwavesDetail(pos.xy * waveDetailFactor) * depth;
 		float height2 = getwavesDetail((pos.xy * waveDetailFactor) + ex.xy) * depth;
 		float height3 = getwavesDetail((pos.xy * waveDetailFactor) + ex.yx) * depth;
 
-		/*vec3 da = vec3(pos.x, height, pos.y);
-		waveNormal = normalize(cross(normalize(da - vec3(pos.x - e, height2, pos.y)), normalize(da - vec3(pos.x, height3, pos.y + e))));
-		waveNormal.xz *= 256.0;
-		waveNormal = normalize(waveNormal);
-		lightingNormal = waveNormal;*/
-
 		vec3 da = vec3(depth, height * 0.05, depth);
 		vec3 db = vec3(depth - e, height2 * 0.05, depth);
 		vec3 dc = vec3(depth, height2 * 0.05, depth + e);
+		*/
+
+		vec2 ex = vec2(e, 0.0) * 32.0;
+
+		float dheight = getwavesDetail(pos.xy * waveDetailFactor) * depth;
+		float dheight2 = getwavesDetail((pos.xy * waveDetailFactor) + ex.xy) * depth;
+		float dheight3 = getwavesDetail((pos.xy * waveDetailFactor) + ex.yx) * depth;
+
+		vec3 da = vec3(depth, dheight * 4.0, depth);
+		vec3 db = vec3(depth - ex.x, dheight2 * 4.0, depth);
+		vec3 dc = vec3(depth, dheight2 * 4.0, depth + ex.x);
+
 		waveNormal = cross(normalize(da - db), normalize(da - dc));
-		waveNormal = normalize(waveNormal);
+		waveNormal = normalize(waveNormal * u_Local0.gba);
 		lightingNormal = waveNormal;
 
-		height = 0.0;
+		height = dheight;//0.0;
 		chopheight = height * 1.125;
 	}
 
@@ -683,6 +681,13 @@ void ScanHeightMap(in vec4 waterMapLower, inout vec3 surfacePoint, inout vec3 ey
 	GetHeightAndNormal(surfacePoint.xz*0.03, 0.004, 1.0, height, chopheight, waveNormal, lightingNormal, eyeVecNorm, timer, level);
 
 	surfacePoint.xyz = waterMapLower.xyz;
+#elif defined(__LQ_MODE__) || !defined(REAL_WAVES)
+	//
+	// No big waves, so we don't need to trace, just grab this pixel's height...
+	//
+	GetHeightAndNormal(surfacePoint.xz*0.03, 0.004, 1.0, height, chopheight, waveNormal, lightingNormal, eyeVecNorm, timer, level);
+
+	//surfacePoint.xyz = waterMapLower.xyz;
 #else //USE_RAYTRACE
 	//
 	// Scan for the closest big wave that intersects this ray...
@@ -1165,10 +1170,13 @@ void main ( void )
 		}
 #endif //defined(USE_REFLECTION) && !defined(__LQ_MODE__)
 
+		/*
+		// UQ1: Disabled because i cant be bothered fixing issues with it on the skybox right now...
 		vec3 caustic = color * GetCausicMap(vec3(positionMap.x, positionMap.z, (positionMap.z + level) / 16.0) / 3.0);
 		causicStrength *= 1.0 - clamp(length(foam.rgb * 3.0), 0.0, 1.0); // deduct roam strength from causics...
 		causicStrength *= 1.0 - clamp(height * 4.0, 0.0, 1.0); // deduct height from causics...
 		color = clamp(color + (caustic * causicStrength * 0.5), 0.0, 1.0);
+		*/
 
 #if !defined(__LQ_MODE__)
 		if (USE_OCEAN > 0.0)

@@ -31,8 +31,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define __DEBUG_BINDS__
 
 #ifdef __DEBUG_BINDS__
-//#define __DEBUG_FBO_BINDS__
-//#define __DEBUG_GLSL_BINDS__
+#define __DEBUG_FBO_BINDS__
+#define __DEBUG_GLSL_BINDS__
 #endif //__DEBUG_BINDS__
 
 #define __PERFORMANCE_DEBUG__
@@ -49,6 +49,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define __GLSL_OPTIMIZER__						// Enable GLSL optimization...
 //#define __DEBUG_SHADER_LOAD__					// Enable extra GLSL shader load debugging info...
 //#define __USE_GLSL_SHADER_CACHE__				// Enable GLSL shader binary caching...
+//#define __FREE_WORLD_DATA__					// Free verts and indexes for everything with a VBO+IBO to save ram... Would need to disable saber marks to do this though...
+//#define __VBO_LODMODELS__						// Experimental lodmodel > VBO crap... Broken...
+//#define __LODMODEL_INSTANCING__				// Experimental lodmodel > instancing crap... Broken...
 
 //#define __USE_QGL_FINISH__					// For testing...
 #define __USE_QGL_FLUSH__						// Use this one...
@@ -168,6 +171,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	//#define __REALTIME_TESS_SORTING__
 	//#define __REALTIME_MATERIAL_SORTING__
 #endif /__REALTIME_SURFACE_SORTING__
+
+//#define __REALTIME_SURFACE_SORTING2__
 
 
 #define MAX_GLM_BONEREFS 20 //10 //16 //20 //80
@@ -2584,6 +2589,7 @@ void		R_ModelBounds( qhandle_t handle, vec3_t mins, vec3_t maxs );
 
 void		R_Modellist_f (void);
 
+
 //====================================================
 
 //#define	MAX_DRAWIMAGES			2048
@@ -2815,6 +2821,19 @@ typedef struct {
 #endif //__INDOOR_OUTDOOR_CULLING__
 } backEndState_t;
 
+typedef struct lodModel_s {
+	char			modelName[MAX_QPATH];
+	char			overrideShader[MAX_QPATH];
+	vec3_t			modelScale;
+	vec3_t			origin;
+	vec3_t			angles;
+	vec3_t			scale;
+	matrix3_t		axes;
+	float			zoffset;
+	qhandle_t		qhandle;
+	model_t			*model;
+} lodModel_t;
+
 /*
 ** trGlobals_t 
 **
@@ -3029,6 +3048,7 @@ typedef struct trGlobals_s {
 	//
 	shaderProgram_t textureColorShader;
 	shaderProgram_t instanceShader;
+	shaderProgram_t instanceVAOShader;
 	shaderProgram_t weatherShader;
 	shaderProgram_t occlusionShader;
 	shaderProgram_t depthAdjustShader;
@@ -3265,6 +3285,17 @@ typedef struct trGlobals_s {
 	int						numBSPModels;
 	int						currentLevel;
 
+#define	MAX_SPAWN_VARS			64
+#define	MAX_SPAWN_VARS_CHARS	4096
+
+	int	numSpawnVars;
+	char *spawnVars[MAX_SPAWN_VARS][2];	// key / value pairs
+	int numSpawnVarChars;
+	char spawnVarChars[MAX_SPAWN_VARS_CHARS];
+
+#define				MAX_LODMODEL_MODELS 524288
+	int						lodModelsCount = 0;
+	lodModel_t				lodModels[MAX_LODMODEL_MODELS];
 } trGlobals_t;
 
 struct glconfigExt_t
@@ -3583,7 +3614,7 @@ void R_RenderPshadowMaps(const refdef_t *fd);
 void R_RenderSunShadowMaps(const refdef_t *fd, int level, vec4_t sundir, float lightHeight, vec3_t lightOrg);
 void R_RenderCubemapSide( int cubemapIndex, int cubemapSide, qboolean subscene );
 void R_RenderEmissiveMapSide(int cubemapIndex, int cubemapSide, qboolean subscene);
-void R_AddMD3Surfaces( trRefEntity_t *e );
+void R_AddMD3Surfaces( trRefEntity_t *e, model_t *currentModel, int entityNum, int64_t shiftedEntityNum);
 void R_AddNullModelSurfaces( trRefEntity_t *e );
 void R_AddBeamSurfaces( trRefEntity_t *e );
 void R_AddRailSurfaces( trRefEntity_t *e, qboolean isUnderwater );
@@ -3593,8 +3624,8 @@ void R_AddPolygonSurfaces( void );
 
 void R_DecomposeSort(const uint64_t sort, int64_t *entityNum, shader_t **shader, int64_t *fogNum, int64_t *postRender);
 
-void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, 
-				   int64_t fogIndex, int64_t dlightMap, int64_t postRender, int cubemap, qboolean depthDrawOnly);
+void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int64_t fogIndex, int64_t dlightMap, int64_t postRender, int cubemap, qboolean depthDrawOnly);
+void R_AddDrawSurfThreaded(surfaceType_t *surface, shader_t *shader, int64_t fogIndex, int64_t dlightMap, int64_t postRender, int cubemap, qboolean depthDrawOnly, int64_t shiftedEntityNum);
 bool R_IsPostRenderEntity(int refEntityNum, const trRefEntity_t *refEntity);
 
 void R_CalcTexDirs(vec3_t sdir, vec3_t tdir, const vec3_t v1, const vec3_t v2,
@@ -3651,6 +3682,7 @@ void	RE_SendInputEvents(qboolean clientKeyStatus[MAX_KEYS], vec2_t clientMouseSt
 void		RE_BeginFrame( stereoFrame_t stereoFrame );
 void		RE_BeginRegistration( glconfig_t *glconfig );
 void		RE_LoadWorldMap( const char *mapname );
+void		RE_SendLodmodelPointers(int *count, void *data);
 void		RE_SetWorldVisData( const byte *vis );
 qhandle_t	RE_RegisterServerModel( const char *name );
 qhandle_t	RE_RegisterModel( const char *name );
@@ -3686,7 +3718,7 @@ int		R_SumOfUsedImages( void );
 void	R_InitSkins( void );
 skin_t	*R_GetSkinByHandle( qhandle_t hSkin );
 
-int R_ComputeLOD( trRefEntity_t *ent );
+int R_ComputeLOD( trRefEntity_t *ent, model_t *currentModel);
 
 const void *RB_TakeVideoFrameCmd( const void *data );
 void RE_HunkClearCrap(void);
@@ -3831,7 +3863,7 @@ WORLD MAP
 ============================================================
 */
 
-void R_AddBrushModelSurfaces( trRefEntity_t *e );
+void R_AddBrushModelSurfaces( trRefEntity_t *e, model_t *currentModel, int entityNum, int64_t shiftedEntityNum);
 void R_AddWorldSurfaces( void );
 qboolean R_inPVS( const vec3_t p1, const vec3_t p2, byte *mask );
 
@@ -3858,7 +3890,7 @@ LIGHTS
 ============================================================
 */
 
-void R_DlightBmodel( bmodel_t *bmodel );
+void R_DlightBmodel( bmodel_t *bmodel, trRefEntity_t *ent, model_t *currentModel, int entityNum, int64_t shiftedEntityNum);
 void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent );
 void R_TransformDlights( int count, dlight_t *dl, orientationr_t *ori );
 int R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir );
@@ -4045,10 +4077,10 @@ ANIMATED MODELS
 =============================================================
 */
 
-void R_MDRAddAnimSurfaces( trRefEntity_t *ent );
+void R_MDRAddAnimSurfaces( trRefEntity_t *ent, model_t *currentModel, int entityNum, int64_t shiftedEntityNum);
 void RB_MDRSurfaceAnim( mdrSurface_t *surface );
 qboolean R_LoadIQM (model_t *mod, void *buffer, int filesize, const char *name );
-void R_AddIQMSurfaces( trRefEntity_t *ent );
+void R_AddIQMSurfaces( trRefEntity_t *ent, model_t *currentModel, int entityNum, int64_t shiftedEntityNum);
 void RB_IQMSurfaceAnim( surfaceType_t *surface );
 int R_IQMLerpTag( orientation_t *tag, iqmData_t *data,
                   int startFrame, int endFrame,
@@ -4119,7 +4151,7 @@ CRenderableSurface():
 #endif
 };
 
-void R_AddGhoulSurfaces( trRefEntity_t *ent );
+void R_AddGhoulSurfaces( trRefEntity_t *ent, model_t *currentModel, int entityNum, int64_t shiftedEntityNum);
 void RB_SurfaceGhoul( CRenderableSurface *surface );
 /*
 Ghoul2 Insert End

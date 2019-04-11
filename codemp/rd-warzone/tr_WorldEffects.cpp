@@ -35,8 +35,8 @@ extern void Volumetric_Trace(trace_t *results, const vec3_t start, const vec3_t 
 // Defines
 ////////////////////////////////////////////////////////////////////////////////////////
 #define GLS_ALPHA				(GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA)
-#define	MAX_WIND_ZONES			10
-#define MAX_WEATHER_ZONES		10
+#define	MAX_WIND_ZONES			64//10
+#define MAX_WEATHER_ZONES		64//10
 #define	MAX_PUFF_SYSTEMS		2
 #define	MAX_PARTICLE_CLOUDS		64//5
 

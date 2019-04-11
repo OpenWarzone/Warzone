@@ -192,7 +192,7 @@ R_MDRAddAnimSurfaces
 
 // much stuff in there is just copied from R_AddMd3Surfaces in tr_mesh.c
 
-void R_MDRAddAnimSurfaces( trRefEntity_t *ent ) {
+void R_MDRAddAnimSurfaces( trRefEntity_t *ent, model_t *currentModel, int entityNum, int64_t shiftedEntityNum) {
 	mdrHeader_t		*header;
 	mdrSurface_t	*surface;
 	mdrLOD_t		*lod;
@@ -205,7 +205,7 @@ void R_MDRAddAnimSurfaces( trRefEntity_t *ent ) {
 	int             cubemapIndex;
 	qboolean	personalModel;
 
-	header = (mdrHeader_t *)tr.currentModel->data.mdr;
+	header = (mdrHeader_t *)currentModel->data.mdr;
 	
 	personalModel = (qboolean)((ent->e.renderfx & RF_THIRD_PERSON) && !(tr.viewParms.isPortal || (tr.viewParms.flags & (VPF_SHADOWMAP | VPF_DEPTHSHADOW))));
 	
@@ -227,7 +227,7 @@ void R_MDRAddAnimSurfaces( trRefEntity_t *ent ) {
 		|| (ent->e.oldframe < 0) )
 	{
 		ri->Printf( PRINT_DEVELOPER, "R_MDRAddAnimSurfaces: no such frame %d to %d for '%s'\n",
-			   ent->e.oldframe, ent->e.frame, tr.currentModel->name );
+			   ent->e.oldframe, ent->e.frame, currentModel->name );
 		ent->e.frame = 0;
 		ent->e.oldframe = 0;
 	}
@@ -242,7 +242,7 @@ void R_MDRAddAnimSurfaces( trRefEntity_t *ent ) {
 	}	
 
 	// figure out the current LOD of the model we're rendering, and set the lod pointer respectively.
-	lodnum = R_ComputeLOD(ent);
+	lodnum = R_ComputeLOD(ent, currentModel);
 	// check whether this model has as that many LODs at all. If not, try the closest thing we got.
 	if(header->numLODs <= 0)
 		return;
@@ -325,7 +325,7 @@ void R_MDRAddAnimSurfaces( trRefEntity_t *ent ) {
 
 		if (!personalModel)
 		{
-			R_AddDrawSurf((surfaceType_t *)surface, shader, fogNum, qfalse, R_IsPostRenderEntity(tr.currentEntityNum, ent), cubemapIndex, qfalse);
+			R_AddDrawSurfThreaded((surfaceType_t *)surface, shader, fogNum, qfalse, R_IsPostRenderEntity(entityNum, ent), cubemapIndex, qfalse, shiftedEntityNum);
 		}
 
 		surface = (mdrSurface_t *)( (byte *)surface + surface->ofsEnd );

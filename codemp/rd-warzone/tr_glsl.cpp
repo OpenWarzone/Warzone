@@ -100,6 +100,8 @@ extern const char *fallbackShader_surfaceSprite_fp;
 //extern const char *fallbackShader_ssdoBlur_fp;
 extern const char *fallbackShader_instance_vp;
 extern const char *fallbackShader_instance_fp;
+extern const char *fallbackShader_instanceVao_vp;
+extern const char *fallbackShader_instanceVao_fp;
 extern const char *fallbackShader_occlusion_vp;
 extern const char *fallbackShader_occlusion_fp;
 extern const char *fallbackShader_depthAdjust_vp;
@@ -3370,6 +3372,16 @@ int GLSL_BeginLoadGPUShaders(void)
 	}
 #endif //__INSTANCED_MODELS__
 
+#ifdef __LODMODEL_INSTANCING__
+	attribs = ATTR_INSTANCES_POSITION | ATTR_NORMAL | ATTR_TEXCOORD0 /*| ATTR_INSTANCES_MVP | ATTR_INSTANCES_POSITION*/;
+	extradefines[0] = '\0';
+
+	if (!GLSL_BeginLoadGPUShader(&tr.instanceVAOShader, "instanceVao", attribs, qtrue, qfalse, qfalse, NULL, qtrue, "330", fallbackShader_instanceVao_vp, fallbackShader_instanceVao_fp, NULL, NULL, NULL))
+	{
+		ri->Error(ERR_FATAL, "Could not load instanceVao shader!");
+	}
+#endif //__LODMODEL_INSTANCING__
+
 	attribs = ATTR_POSITION;// | ATTR_TEXCOORD0;
 	extradefines[0] = '\0';
 
@@ -4651,6 +4663,22 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 	numEtcShaders++;
 #endif //__INSTANCED_MODELS__
+
+#ifdef __LODMODEL_INSTANCING__
+	if (!GLSL_EndLoadGPUShader(&tr.instanceVAOShader))
+	{
+		ri->Error(ERR_FATAL, "Could not load instanceVao shader!");
+	}
+
+	GLSL_InitUniforms(&tr.instanceVAOShader);
+
+	GLSL_BindProgram(&tr.instanceVAOShader);
+	GLSL_SetUniformInt(&tr.instanceVAOShader, UNIFORM_TEXTUREMAP, TB_DIFFUSEMAP);
+
+	GLSL_FinishGPUShader(&tr.instanceVAOShader);
+
+	numEtcShaders++;
+#endif //__LODMODEL_INSTANCING__
 
 
 	if (!GLSL_EndLoadGPUShader(&tr.occlusionShader))
@@ -7006,6 +7034,9 @@ void GLSL_ShutdownGPUShaders(void)
 #ifdef __INSTANCED_MODELS__
 	GLSL_DeleteGPUShader(&tr.instanceShader);
 #endif //__INSTANCED_MODELS__
+#ifdef __LODMODEL_INSTANCING__
+	GLSL_DeleteGPUShader(&tr.instanceVAOShader);
+#endif //__LODMODEL_INSTANCING__
 	GLSL_DeleteGPUShader(&tr.occlusionShader);
 	GLSL_DeleteGPUShader(&tr.depthAdjustShader);
 
@@ -7141,7 +7172,7 @@ void GLSL_BindProgram(shaderProgram_t * program)
 	if (glState.currentProgram != program)
 	{
 #ifdef __DEBUG_GLSL_BINDS__
-		if (r_debugBinds->integer)
+		if (r_debugBinds->integer == 1 || r_debugBinds->integer == 3)
 		{
 			GLSL_BINDS_COUNT++;
 

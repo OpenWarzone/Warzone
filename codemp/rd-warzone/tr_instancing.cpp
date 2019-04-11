@@ -360,3 +360,235 @@ void R_AddInstancedModelsToScene(void)
 	R_BindNullVBO();
 }
 #endif //__INSTANCED_MODELS__
+
+#ifdef __LODMODEL_INSTANCING__
+#define MAX_INSTANCED_LODMODEL_TYPES 64
+
+typedef struct lodModelInstanceData_s
+{
+	//vec3_t			**mOrigins = NULL;
+	//vec3_t			**mAngles = NULL;
+	//vec3_t			**mScales = NULL;
+	vec3_t			mOrigins[65536] = { NULL };
+	vec3_t			mAngles[65536] = { NULL };
+	vec3_t			mScales[65536] = { NULL };
+} lodModelInstanceData_t;
+
+typedef struct lodModelInstances_s
+{
+	int							instanceModelTypes = 0;
+	mdvModel_t					*mModels[MAX_INSTANCED_LODMODEL_TYPES] = { NULL };
+	int							counts[MAX_INSTANCED_LODMODEL_TYPES];
+	lodModelInstanceData_t		infos[MAX_INSTANCED_LODMODEL_TYPES];
+} lodModelInstances_t;
+
+lodModelInstances_t				mLodModelInstances;
+
+int R_HaveLodModelInstanceForModel(mdvModel_t *model)
+{
+	for (int i = 0; i < mLodModelInstances.instanceModelTypes; i++)
+	{
+		if (mLodModelInstances.mModels[i] == model)
+			return i;
+	}
+
+	return -1;
+}
+
+void R_AddLodModelInstance(int id, vec3_t origin, vec3_t angles, vec3_t scale)
+{
+	//mLodModelInstances.infos[id].mOrigins[mLodModelInstances.counts[id]] = (vec3_t*)Hunk_Alloc(sizeof(vec3_t), h_low);
+	//mLodModelInstances.infos[id].mAngles[mLodModelInstances.counts[id]] = (vec3_t*)Hunk_Alloc(sizeof(vec3_t), h_low);
+	//mLodModelInstances.infos[id].mScales[mLodModelInstances.counts[id]] = (vec3_t*)Hunk_Alloc(sizeof(vec3_t), h_low);
+
+	//VectorCopy(origin, *mLodModelInstances.infos[id].mOrigins[mLodModelInstances.counts[id]]);
+	//VectorCopy(angles, *mLodModelInstances.infos[id].mAngles[mLodModelInstances.counts[id]]);
+	//VectorCopy(scale, *mLodModelInstances.infos[id].mScales[mLodModelInstances.counts[id]]);
+
+	VectorCopy(origin, mLodModelInstances.infos[id].mOrigins[mLodModelInstances.counts[id]]);
+	VectorCopy(angles, mLodModelInstances.infos[id].mAngles[mLodModelInstances.counts[id]]);
+	VectorCopy(scale, mLodModelInstances.infos[id].mScales[mLodModelInstances.counts[id]]);
+
+	mLodModelInstances.counts[id]++;
+}
+
+void R_SetupLodModelArray(void)
+{
+	if (tr.lodModelsCount > 0)
+	{
+		if (mLodModelInstances.instanceModelTypes <= 0)
+		{
+			for (int i = 0; i < tr.lodModelsCount; i++)
+			{
+				lodModel_t *lodModel = &tr.lodModels[i];
+
+				lodModel->qhandle = RE_RegisterModel(lodModel->modelName);
+				lodModel->model = R_GetModelByHandle(lodModel->qhandle);
+
+				model_t *model = lodModel->model;
+
+				if (model->type == MOD_MESH) {
+					mdvModel_t	*header = model->data.mdv[0];
+
+					int lodModelInstance = R_HaveLodModelInstanceForModel(header);
+
+					if (lodModelInstance >= 0)
+					{
+						R_AddLodModelInstance(lodModelInstance, lodModel->origin, lodModel->angles, lodModel->scale);
+					}
+					else
+					{
+						ri->Printf(PRINT_WARNING, "New lodmodel %s.\n", lodModel->modelName);
+
+						mLodModelInstances.mModels[mLodModelInstances.instanceModelTypes] = header;
+						
+						int id = mLodModelInstances.instanceModelTypes;
+						//mLodModelInstances.infos[id].mOrigins = (vec3_t**)Hunk_Alloc(sizeof(vec3_t*), h_low);
+						//mLodModelInstances.infos[id].mAngles = (vec3_t**)Hunk_Alloc(sizeof(vec3_t*), h_low);
+						//mLodModelInstances.infos[id].mScales = (vec3_t**)Hunk_Alloc(sizeof(vec3_t*), h_low);
+						
+						R_AddLodModelInstance(mLodModelInstances.instanceModelTypes, lodModel->origin, lodModel->angles, lodModel->scale);
+						mLodModelInstances.instanceModelTypes++;
+					}
+				}
+			}
+
+			ri->Printf(PRINT_WARNING, "There are now %i vao model types\n", mLodModelInstances.instanceModelTypes);
+		}
+	}
+}
+
+void R_AddInstancedLodModelsToScene(void)
+{
+	if (tr.lodModelsCount <= 0)
+	{
+		return;
+	}
+
+	R_SetupLodModelArray();
+
+	GLSL_BindProgram(&tr.instanceVAOShader);
+
+	FBO_Bind(tr.renderFbo);
+
+	SetViewportAndScissor();
+	//GL_SetProjectionMatrix(backEnd.viewParms.projectionMatrix);
+	//GL_SetModelviewMatrix(backEnd.viewParms.world.modelViewMatrix);
+	GL_SetModelviewMatrix(backEnd.viewParms.world.modelViewMatrix);
+
+	GLSL_SetUniformMatrix16(&tr.instanceVAOShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+	GLSL_SetUniformVec3(&tr.instanceVAOShader, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);
+	GLSL_SetUniformFloat(&tr.instanceVAOShader, UNIFORM_TIME, backEnd.refdef.floatTime);
+
+	// Draw them for this scene...
+	for (int modelID = 0; modelID < mLodModelInstances.instanceModelTypes && modelID < mLodModelInstances.counts[modelID] && modelID < MAX_INSTANCED_LODMODEL_TYPES; modelID++)
+	{
+		
+		mdvModel_t *m = mLodModelInstances.mModels[modelID];
+		GLuint count = mLodModelInstances.counts[modelID];
+
+		if (r_instancing->integer >= 2)
+		{
+			ri->Printf(PRINT_WARNING, "ModelID %i. Count %i.\n", modelID, count);
+		}
+
+		if (m->vao == NULL)
+		{
+			ri->Printf(PRINT_WARNING, "Warning warning, fuckup in drawmodelinstanced - Model has no VAO!\n");
+			continue;
+		}
+
+		qglBindVertexArray(m->vao);	// Select VAO
+		qglEnableVertexAttribArray(m->vao);
+
+		for (int j = 0; j < m->numVBOSurfaces; j++)
+		{
+			R_BindVBO(m->vboSurfaces[j].vbo);
+			R_BindIBO(m->vboSurfaces[j].ibo);
+
+			shader_t *shader = tr.shaders[m->vboSurfaces[j].mdvSurface->shaderIndexes[0]];
+
+			for (int stage = 0; stage <= shader->maxStage && stage < MAX_SHADER_STAGES; stage++)
+			{
+				shaderStage_t *pStage = shader->stages[stage];
+
+				if (!pStage)
+				{// How does this happen???
+					break;
+				}
+
+				if (!pStage->active)
+				{// Shouldn't this be here, just in case???
+					continue;
+				}
+
+				uint32_t stateBits = pStage->stateBits;
+
+				if (pStage->isFoliage)
+				{
+					stateBits = GLS_DEPTHMASK_TRUE | GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_ATEST_GE_128;
+					pStage->stateBits = stateBits;
+
+					if (!shader->hasAlpha && !shader->hasGlow && !pStage->rgbGen && !pStage->alphaGen && shader->cullType != CT_BACK_SIDED)
+					{
+						GL_Cull(CT_FRONT_SIDED);
+					}
+					else if (!(backEnd.depthFill || (backEnd.viewParms.flags & VPF_SHADOWPASS)) && (stateBits & GLS_ATEST_BITS))
+					{
+						GL_Cull(CT_TWO_SIDED);
+					}
+				}
+				else if (!shader->hasAlpha && !shader->hasGlow && !pStage->rgbGen && !pStage->alphaGen && shader->cullType != CT_BACK_SIDED)
+				{
+					GL_Cull(CT_FRONT_SIDED);
+				}
+
+				GLSL_VertexAttribsState(ATTR_INSTANCES_POSITION | ATTR_NORMAL | ATTR_TEXCOORD0);
+				GLSL_VertexAttribPointers(ATTR_INSTANCES_POSITION | ATTR_NORMAL | ATTR_TEXCOORD0);
+
+				if ((backEnd.depthFill || (backEnd.viewParms.flags & VPF_SHADOWPASS)) && !(stateBits & GLS_ATEST_BITS))
+				{
+					GLSL_SetUniformInt(&tr.instanceVAOShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+					GL_BindToTMU(tr.whiteImage, TB_DIFFUSEMAP);
+				}
+				else
+				{
+					GLSL_SetUniformInt(&tr.instanceVAOShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+					GL_BindToTMU(pStage->bundle[TB_DIFFUSEMAP].image[0], TB_DIFFUSEMAP);
+				}
+
+				qglBindBuffer(GL_ARRAY_BUFFER, tr.instanceVAOShader.instances_buffer);
+				qglBufferData(GL_ARRAY_BUFFER, count * sizeof(vec3_t), mLodModelInstances.infos[modelID].mOrigins, GL_DYNAMIC_DRAW/*GL_STREAM_DRAW*/);
+				//qglBufferSubData(GL_ARRAY_BUFFER, 0, count * sizeof(vec3_t), mLodModelInstances.infos[modelID].mOrigins);
+				qglEnableVertexAttribArray(ATTR_INDEX_INSTANCES_POSITION);
+				qglVertexAttribPointer(ATTR_INDEX_INSTANCES_POSITION, 3, GL_FLOAT, GL_FALSE, sizeof(vec3_t), BUFFER_OFFSET(m->vboSurfaces[j].vbo->ofs_instancesPosition));
+				qglVertexAttribDivisor(ATTR_INDEX_INSTANCES_POSITION, 1);
+
+				/*qglBindBuffer(GL_ARRAY_BUFFER, tr.instanceVAOShader.instances_mvp);
+				qglBufferData(GL_ARRAY_BUFFER, count * sizeof(matrix_t), mMatrixes[modelID], GL_STREAM_DRAW);
+				qglEnableVertexAttribArray(ATTR_INDEX_INSTANCES_MVP);
+				qglVertexAttribPointer(ATTR_INDEX_INSTANCES_MVP, 16, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+				qglVertexAttribDivisor(ATTR_INDEX_INSTANCES_MVP, 1);*/
+
+				vec4_t l0;
+				VectorSet4(l0, shader->materialType, 0.0, 0.0, 0.0);
+				GLSL_SetUniformVec4(&tr.instanceVAOShader, UNIFORM_SETTINGS0, l0);
+				//ForceCrash();
+
+				//UpdateTexCoords(pStage);
+
+				GL_State(stateBits);
+
+				qglDrawElementsInstanced(GL_TRIANGLES, m->vboSurfaces[j].numIndexes, GL_INDEX_TYPE, 0, count);
+			}
+		}
+
+		qglDisableVertexAttribArray(ATTR_INDEX_INSTANCES_POSITION);
+		qglDisableVertexAttribArray(ATTR_INDEX_INSTANCES_MVP);
+
+		qglDisableVertexAttribArray(m->vao);
+	}
+
+	R_BindNullVBO();
+}
+#endif //__LODMODEL_INSTANCING__

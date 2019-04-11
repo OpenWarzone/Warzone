@@ -32,6 +32,21 @@ extern void R_LoadMapInfo ( void );
 extern qboolean DEFERRED_IMAGES_FORCE_LOAD;
 #endif //defined(__DEFERRED_IMAGE_LOADING__) && !defined(__DEFERRED_MAP_IMAGE_LOADING__)
 
+struct packedVertex_t
+{
+	vec3_t position;
+	uint32_t normal;
+	//uint32_t tangent;
+	vec2_t texcoords[1 + MAXLIGHTMAPS];
+#ifdef __VBO_PACK_COLOR__
+	uint32_t colors[MAXLIGHTMAPS];
+#elif defined(__VBO_HALF_FLOAT_COLOR__)
+	hvec4_t colors[MAXLIGHTMAPS];
+#else //!__VBO_PACK_COLOR__
+	vec4_t colors[MAXLIGHTMAPS];
+#endif //__VBO_PACK_COLOR__
+};
+
 /*
 
 Loads and prepares a map file for scene rendering.
@@ -705,12 +720,26 @@ static shader_t *ShaderForShaderNum( int shaderNum, const int *lightmapNums, con
 
 extern qboolean ENABLE_REGEN_SMOOTH_NORMALS;
 
-void GenerateNormalsForMesh(srfBspSurface_t *cv)
+#define MAX_SMOOTH_ERROR 0.8//1.0
+
+bool ValidForSmoothing(vec3_t v1, vec3_t n1, vec3_t v2, vec3_t n2)
+{
+	if (Distance(n1, n2) < MAX_SMOOTH_ERROR)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+void GenerateNormalsForBSPSurface(srfBspSurface_t *cv)
 {
 	if (!ENABLE_REGEN_SMOOTH_NORMALS)
 	{// Not enabled for this map, skip...
 		return;
 	}
+
+	//ri->Printf(PRINT_WARNING, "Regenerating BSP surface normals.\n");
 
 //#pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i < cv->numIndexes; i += 3)
@@ -755,134 +784,62 @@ void GenerateNormalsForMesh(srfBspSurface_t *cv)
 			VectorCopy(normal, cv->verts[tri[1]].normal);
 			VectorCopy(normal, cv->verts[tri[2]].normal);
 		}
+	}
+}
 
-		//ForceCrash();
+void GenerateSmoothNormalsForPacked(packedVertex_t *verts, int numVerts)
+{
+	if (!ENABLE_REGEN_SMOOTH_NORMALS)
+	{// Not enabled for this map, skip...
+		return;
 	}
 
-	// Now the hard part, make smooth normals...
-#pragma omp parallel for schedule(dynamic)
-	for (int i = 0; i < cv->numVerts; i++)
+#define __MULTIPASS_SMOOTHING__ // Looks better, but takes a lot longer...
+
+#ifdef __MULTIPASS_SMOOTHING__
+	for (int z = 0; z < 3; z++)
+#endif //__MULTIPASS_SMOOTHING__
 	{
-		int verticesFound[65536];
-		int numVerticesFound = 0;
-
-		// Get all vertices that share this one ...
-		for (int v = 0; v < cv->numIndexes; v += 3)
+#pragma omp parallel for schedule(dynamic)
+		for (int i = 0; i < numVerts; i++)
 		{
-			int tri[3];
-			tri[0] = cv->indexes[v];
-			tri[1] = cv->indexes[v + 1];
-			tri[2] = cv->indexes[v + 2];
+			vec3_t v1, n1, finalNormal;
 
-			if (tri[0] == i && Distance(cv->verts[i].normal, cv->verts[tri[0]].normal) <= 1.0)
+			VectorCopy(verts[i].position, v1);
+			R_VboUnpackNormal(n1, verts[i].normal);
+
+			VectorCopy(n1, finalNormal);
+
+			for (int j = 0; j < numVerts; j++)
 			{
-#pragma omp critical
+				if (j == i) continue;
+
+				vec3_t v2, n2;
+
+				if (Distance(v1, verts[j].position) > 0.0) continue;
+
+				VectorCopy(verts[j].position, v2);
+
+				R_VboUnpackNormal(n2, verts[j].normal);
+
+				if (ValidForSmoothing(v1, n1, v2, n2))
 				{
-					//verticesFound[numVerticesFound] = tri[0];
-					//numVerticesFound++;
-					verticesFound[numVerticesFound] = tri[1];
-					numVerticesFound++;
-					verticesFound[numVerticesFound] = tri[2];
-					numVerticesFound++;
+					VectorAdd(finalNormal, n2, finalNormal);
+#ifndef __MULTIPASS_SMOOTHING__
+					VectorAdd(finalNormal, n2, finalNormal);
+					VectorAdd(finalNormal, n2, finalNormal);
+					VectorAdd(finalNormal, n2, finalNormal);
+					VectorAdd(finalNormal, n2, finalNormal);
+#endif //__MULTIPASS_SMOOTHING__
 				}
-				continue;
 			}
 
-			if (tri[1] == i && Distance(cv->verts[i].normal, cv->verts[tri[1]].normal) <= 1.0)
+			VectorNormalize(finalNormal);
+
+#pragma omp critical (__SET_SMOOTH_NORMAL__)
 			{
-#pragma omp critical
-				{
-					verticesFound[numVerticesFound] = tri[0];
-					numVerticesFound++;
-					//verticesFound[numVerticesFound] = tri[1];
-					//numVerticesFound++;
-					verticesFound[numVerticesFound] = tri[2];
-					numVerticesFound++;
-				}
-				continue;
+				verts[i].normal = R_VboPackNormal(finalNormal);
 			}
-
-			if (tri[2] == i && Distance(cv->verts[i].normal, cv->verts[tri[2]].normal) <= 1.0)
-			{
-#pragma omp critical
-				{
-					verticesFound[numVerticesFound] = tri[0];
-					numVerticesFound++;
-					verticesFound[numVerticesFound] = tri[1];
-					numVerticesFound++;
-					//verticesFound[numVerticesFound] = tri[2];
-					//numVerticesFound++;
-				}
-				continue;
-			}
-
-			// Also merge close normals...
-			if (tri[0] != i 
-				&& Distance(cv->verts[i].xyz, cv->verts[tri[0]].xyz) <= 4.0
-				&& Distance(cv->verts[i].normal, cv->verts[tri[0]].normal) <= 1.0)
-			{
-#pragma omp critical
-				{
-					verticesFound[numVerticesFound] = tri[0];
-					numVerticesFound++;
-					//verticesFound[numVerticesFound] = tri[1];
-					//numVerticesFound++;
-					//verticesFound[numVerticesFound] = tri[2];
-					//numVerticesFound++;
-				}
-				continue;
-			}
-
-			if (tri[1] != i 
-				&& Distance(cv->verts[i].xyz, cv->verts[tri[1]].xyz) <= 4.0
-				&& Distance(cv->verts[i].normal, cv->verts[tri[1]].normal) <= 1.0)
-			{
-#pragma omp critical
-				{
-					//verticesFound[numVerticesFound] = tri[0];
-					//numVerticesFound++;
-					verticesFound[numVerticesFound] = tri[1];
-					numVerticesFound++;
-					//verticesFound[numVerticesFound] = tri[2];
-					//numVerticesFound++;
-				}
-				continue;
-			}
-
-			if (tri[2] != i 
-				&& Distance(cv->verts[i].xyz, cv->verts[tri[2]].xyz) <= 4.0
-				&& Distance(cv->verts[i].normal, cv->verts[tri[2]].normal) <= 1.0)
-			{
-#pragma omp critical
-				{
-					//verticesFound[numVerticesFound] = tri[0];
-					//numVerticesFound++;
-					//verticesFound[numVerticesFound] = tri[1];
-					//numVerticesFound++;
-					verticesFound[numVerticesFound] = tri[2];
-					numVerticesFound++;
-				}
-				continue;
-			}
-		}
-
-		aiVector3D pcNor;
-		pcNor.Set(cv->verts[i].normal[0], cv->verts[i].normal[1], cv->verts[i].normal[2]);
-		int numAdded = 1;
-		for (unsigned int a = 0; a < numVerticesFound; ++a) {
-			aiVector3D thisNor;
-			thisNor.Set(cv->verts[verticesFound[a]].normal[0], cv->verts[verticesFound[a]].normal[1], cv->verts[verticesFound[a]].normal[2]);
-			pcNor += thisNor;
-			numAdded++;
-		}
-		pcNor /= numAdded;
-		pcNor.Set(pcNor.x, pcNor.y, pcNor.z);
-		pcNor.NormalizeSafe();
-
-#pragma omp critical
-		{
-			VectorSet(cv->verts[i].normal, pcNor.x, pcNor.y, pcNor.z);
-			VectorNormalize(cv->verts[i].normal);
 		}
 	}
 }
@@ -934,11 +891,19 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, float *hdrVertColors, 
 	cv = (srfBspSurface_t *)surf->data;
 	cv->surfaceType = SF_FACE;
 
+#ifdef __FREE_WORLD_DATA__
+	cv->numIndexes = numIndexes;
+	cv->indexes = (glIndex_t *)malloc(numIndexes * sizeof(cv->indexes[0]));
+
+	cv->numVerts = numVerts;
+	cv->verts = (srfVert_t *)malloc(numVerts * sizeof(cv->verts[0]));
+#else //!__FREE_WORLD_DATA__
 	cv->numIndexes = numIndexes;
 	cv->indexes = (glIndex_t *)ri->Hunk_Alloc(numIndexes * sizeof(cv->indexes[0]), h_low);
 
 	cv->numVerts = numVerts;
 	cv->verts = (srfVert_t *)ri->Hunk_Alloc(numVerts * sizeof(cv->verts[0]), h_low);
+#endif //__FREE_WORLD_DATA__
 
 	// copy vertexes
 	surf->cullinfo.type = CULLINFO_PLANE | CULLINFO_BOX;
@@ -1035,7 +1000,7 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, float *hdrVertColors, 
 	surf->cullinfo.plane = cv->cullPlane;
 
 #ifdef __REGENERATE_BSP_NORMALS__
-	GenerateNormalsForMesh(cv);
+	GenerateNormalsForBSPSurface(cv);
 #endif //__REGENERATE_BSP_NORMALS__
 
 	//R_OptimizeMesh((uint32_t *)&cv->numVerts, (uint32_t *)&cv->numIndexes, cv->indexes, NULL);
@@ -1172,7 +1137,7 @@ static void ParseMesh ( dsurface_t *ds, drawVert_t *verts, float *hdrVertColors,
 	//R_OptimizeMesh((uint32_t *)&grid->numVerts, (uint32_t *)&grid->numIndexes, grid->indexes, NULL);
 
 #ifdef __REGENERATE_BSP_NORMALS__
-	GenerateNormalsForMesh(grid);
+	GenerateNormalsForBSPSurface(grid);
 #endif //__REGENERATE_BSP_NORMALS__
 }
 
@@ -1205,11 +1170,19 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, float *hdrVertColor
 	cv = (srfBspSurface_t *)surf->data;
 	cv->surfaceType = SF_TRIANGLES;
 
+#ifdef __FREE_WORLD_DATA__
+	cv->numIndexes = numIndexes;
+	cv->indexes = (glIndex_t *)malloc(numIndexes * sizeof(cv->indexes[0]));
+
+	cv->numVerts = numVerts;
+	cv->verts = (srfVert_t *)malloc(numVerts * sizeof(cv->verts[0]));
+#else //__FREE_WORLD_DATA__
 	cv->numIndexes = numIndexes;
 	cv->indexes = (glIndex_t *)ri->Hunk_Alloc(numIndexes * sizeof(cv->indexes[0]), h_low);
 
 	cv->numVerts = numVerts;
 	cv->verts = (srfVert_t *)ri->Hunk_Alloc(numVerts * sizeof(cv->verts[0]), h_low);
+#endif //__FREE_WORLD_DATA__
 
 	surf->data = (surfaceType_t *) cv;
 
@@ -1308,7 +1281,7 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, float *hdrVertColor
 	//R_OptimizeMesh((uint32_t *)&cv->numVerts, (uint32_t *)&cv->numIndexes, cv->indexes, NULL);
 
 #ifdef __REGENERATE_BSP_NORMALS__
-	GenerateNormalsForMesh(cv);
+	GenerateNormalsForBSPSurface(cv);
 #endif //__REGENERATE_BSP_NORMALS__
 
 	// Calculate tangent spaces
@@ -1327,6 +1300,151 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, float *hdrVertColor
 		}
 	}
 }
+
+#ifdef __VBO_LODMODELS__
+static void ParseLodModelTriSurf(lodModel_t *lodModel, mdvModel_t *header, int surfid, msurface_t *surf) {
+	srfBspSurface_t		*cv;
+	glIndex_t			*tri;
+	int					i, j;
+	int					numVerts, numIndexes, badTriangles;
+
+	mdvSurface_t *ds = &header->surfaces[surfid];
+	
+	int foundShader = -1;
+
+	shader_t *modelShader = tr.shaders[ds->shaderIndexes[0]];
+
+	for (i = 0; i < s_worldData.numShaders; i++)
+	{
+		if (!strcmp(s_worldData.shaders[i].shader, modelShader->name))
+		{
+			foundShader = i;
+			break;
+		}
+	}
+
+	if (foundShader < 0)
+	{
+		//s_worldData.shaders = (dshader_t *)realloc(s_worldData.shaders, sizeof(dshader_t)*(s_worldData.numShaders+1)); // hmm damn hunk_alloc crap...
+		dshader_t *oldShaders = s_worldData.shaders;
+		s_worldData.shaders = NULL;
+		s_worldData.shaders = (dshader_t *)malloc(sizeof(dshader_t)*(s_worldData.numShaders + 1));
+		memcpy(s_worldData.shaders, oldShaders, sizeof(dshader_t) * s_worldData.numShaders);
+		strcpy(s_worldData.shaders[s_worldData.numShaders].shader, modelShader->name);
+		s_worldData.shaders[s_worldData.numShaders].contentFlags = modelShader->contentFlags;
+		s_worldData.shaders[s_worldData.numShaders].surfaceFlags = modelShader->surfaceFlags;
+		foundShader = s_worldData.numShaders;
+		s_worldData.numShaders++;
+	}
+
+	// get shader
+	//surf->shader = ShaderForShaderNum(foundShader, lightmapsVertex, (const byte*)lightmapsNone, stylesDefault);
+	surf->shader = tr.shaders[ds->shaderIndexes[0]];
+
+	if (!surf->shader)
+	{
+		ri->Printf(PRINT_WARNING, "Lodmodel %s had bad shader on surface %i.\n", lodModel->modelName, surfid);
+		//surf->shader->name
+		surf->shader = tr.defaultShader;
+	}
+
+	if (r_singleShader->integer && !surf->shader->isSky) {
+		surf->shader = tr.defaultShader;
+	}
+
+	numVerts = LittleLong(ds->numVerts);
+	numIndexes = LittleLong(ds->numIndexes);
+
+	cv = (srfBspSurface_t *)surf->data;
+	cv->surfaceType = SF_TRIANGLES;
+
+	cv->numIndexes = numIndexes;
+	cv->indexes = (glIndex_t *)ri->Hunk_Alloc(numIndexes * sizeof(cv->indexes[0]), h_low);
+
+	cv->numVerts = numVerts;
+	cv->verts = (srfVert_t *)ri->Hunk_Alloc(numVerts * sizeof(cv->verts[0]), h_low);
+
+	surf->data = (surfaceType_t *)cv;
+
+	// copy vertexes
+	surf->cullinfo.type = CULLINFO_BOX;
+	ClearBounds(surf->cullinfo.bounds[0], surf->cullinfo.bounds[1]);
+
+	for (i = 0; i < numVerts; i++)
+	{
+		vec4_t color;
+
+		for (j = 0; j < 3; j++)
+		{
+			float xyz = (lodModel->modelScale[j] * ds->verts[i].xyz[j]) + lodModel->origin[j];
+
+			cv->verts[i].xyz[j] = LittleFloat(xyz);
+			cv->verts[i].normal[j] = LittleFloat(ds->verts[i].normal[j]);
+		}
+
+		AddPointToBounds(cv->verts[i].xyz, surf->cullinfo.bounds[0], surf->cullinfo.bounds[1]);
+
+		for (j = 0; j < 2; j++)
+		{
+			cv->verts[i].st[j] = LittleFloat(ds->st[i].st[j]);
+		}
+
+		for (j = 0; j < MAXLIGHTMAPS; j++)
+		{
+			cv->verts[i].lightmap[j][0] = 0;
+			cv->verts[i].lightmap[j][1] = 0;
+
+			color[0] = 1.0;
+			color[1] = 1.0;
+			color[2] = 1.0;
+			color[3] = 1.0;
+
+			R_ColorShiftLightingFloats(color, cv->verts[i].vertexColors[j], 1.0f / 255.0f);
+		}
+	}
+
+	// copy triangles
+	badTriangles = 0;
+	for (i = 0, tri = cv->indexes; i < numIndexes; i += 3, tri += 3)
+	{
+		for (j = 0; j < 3; j++)
+		{
+			tri[j] = LittleLong(ds->indexes[i + j]);
+
+			if (tri[j] >= numVerts)
+			{
+				ri->Error(ERR_DROP, "Bad index in face surface");
+			}
+		}
+
+		if ((tri[0] == tri[1]) || (tri[1] == tri[2]) || (tri[0] == tri[2]))
+		{
+			tri -= 3;
+			badTriangles++;
+		}
+	}
+
+	if (badTriangles)
+	{
+		ri->Printf(PRINT_WARNING, "Trisurf has bad triangles, originally shader %s %d tris %d verts, now %d tris\n", surf->shader->name, numIndexes / 3, numVerts, numIndexes / 3 - badTriangles);
+		cv->numIndexes -= badTriangles * 3;
+	}
+
+	/*// Calculate tangent spaces
+	{
+		srfVert_t      *dv[3];
+
+		for (i = 0, tri = cv->indexes; i < numIndexes; i += 3, tri += 3)
+		{
+			dv[0] = &cv->verts[tri[0]];
+			dv[1] = &cv->verts[tri[1]];
+			dv[2] = &cv->verts[tri[2]];
+
+			R_CalcTangentVectors(dv);
+		}
+	}*/
+}
+#endif //__VBO_LODMODELS__
 
 /*
 ===============
@@ -2046,6 +2164,25 @@ void R_MovePatchSurfacesToHunk(void) {
 			continue;
 		//
 		size = sizeof(*grid);
+
+#ifdef __FREE_WORLD_DATA__
+		srfBspSurface_t *hunkgrid = (srfBspSurface_t *)malloc(size);
+		Com_Memcpy(hunkgrid, grid, size);
+
+		hunkgrid->widthLodError = (float *)malloc(grid->width * 4);
+		Com_Memcpy(hunkgrid->widthLodError, grid->widthLodError, grid->width * 4);
+
+		hunkgrid->heightLodError = (float *)malloc(grid->height * 4);
+		Com_Memcpy(hunkgrid->heightLodError, grid->heightLodError, grid->height * 4);
+
+		hunkgrid->numIndexes = grid->numIndexes;
+		hunkgrid->indexes = (glIndex_t *)malloc(grid->numIndexes * sizeof(glIndex_t));
+		Com_Memcpy(hunkgrid->indexes, grid->indexes, grid->numIndexes * sizeof(glIndex_t));
+
+		hunkgrid->numVerts = grid->numVerts;
+		hunkgrid->verts = (srfVert_t *)malloc(grid->numVerts * sizeof(srfVert_t));
+		Com_Memcpy(hunkgrid->verts, grid->verts, grid->numVerts * sizeof(srfVert_t));
+#else //!__FREE_WORLD_DATA__
 		srfBspSurface_t *hunkgrid = (srfBspSurface_t *)ri->Hunk_Alloc(size, h_low);
 		Com_Memcpy(hunkgrid, grid, size);
 
@@ -2062,6 +2199,7 @@ void R_MovePatchSurfacesToHunk(void) {
 		hunkgrid->numVerts = grid->numVerts;
 		hunkgrid->verts = (srfVert_t *)ri->Hunk_Alloc(grid->numVerts * sizeof(srfVert_t), h_low);
 		Com_Memcpy(hunkgrid->verts, grid->verts, grid->numVerts * sizeof(srfVert_t));
+#endif //__FREE_WORLD_DATA__
 
 		R_FreeSurfaceGridMesh( grid );
 
@@ -2502,21 +2640,6 @@ static void CopyVert(const srfVert_t * in, srfVert_t * out)
 	}
 }
 
-struct packedVertex_t
-{
-	vec3_t position;
-	uint32_t normal;
-	//uint32_t tangent;
-	vec2_t texcoords[1 + MAXLIGHTMAPS];
-#ifdef __VBO_PACK_COLOR__
-	uint32_t colors[MAXLIGHTMAPS];
-#elif defined(__VBO_HALF_FLOAT_COLOR__)
-	hvec4_t colors[MAXLIGHTMAPS];
-#else //!__VBO_PACK_COLOR__
-	vec4_t colors[MAXLIGHTMAPS];
-#endif //__VBO_PACK_COLOR__
-};
-
 #ifdef __USE_VBO_AREAS__
 #define NUM_MAP_AREAS 4//16//256//64//16//9
 #define NUM_MAP_SECTIONS sqrt(NUM_MAP_AREAS)
@@ -2868,14 +2991,17 @@ static void R_CreateWorldVBOs(void)
 		VectorCopy(center, bspSurf->cullOrigin);
 #endif //__USE_VBO_AREAS__
 
-		if (shader->isPortal || shader->isSky || ShaderRequiresCPUDeforms(shader))
-		{
+		if (*surface->data == SF_BAD)
 			continue;
-		}
 
 		// check for this now so we can use srfBspSurface_t* universally in the rest of the function
 		if (!(*surface->data == SF_FACE || *surface->data == SF_GRID || *surface->data == SF_TRIANGLES))
 			continue;
+
+		if (shader->isPortal || shader->isSky || ShaderRequiresCPUDeforms(shader))
+		{
+			continue;
+		}
 
 		if (!bspSurf->numIndexes || !bspSurf->numVerts)
 			continue;
@@ -2891,6 +3017,9 @@ static void R_CreateWorldVBOs(void)
 	{
 		srfBspSurface_t *bspSurf;
 		shader_t *shader = surface->shader;
+
+		if (*surface->data == SF_BAD)
+			continue;
 
 		if (shader->isPortal || shader->isSky || ShaderRequiresCPUDeforms(shader))
 		{
@@ -3070,6 +3199,10 @@ static void R_CreateWorldVBOs(void)
 				}
 			}
 
+#ifdef __REGENERATE_BSP_NORMALS__
+			GenerateSmoothNormalsForPacked(verts, numVerts);
+#endif //__REGENERATE_BSP_NORMALS__
+
 #ifdef __USE_VBO_AREAS__
 			if (numVerts == 0 && numIndexes == 0)
 			{// Nothing to add...
@@ -3132,6 +3265,42 @@ static void R_CreateWorldVBOs(void)
 R_LoadSurfaces
 ===============
 */
+
+bool IsSurfaceShaderValid(mdvSurface_t *surf)
+{
+	if (surf->shaderIndexes[0] > tr.numShaders)
+		return false;
+
+	shader_t *shader = tr.shaders[surf->shaderIndexes[0]];
+
+	if (shader && !(shader->surfaceFlags & SURF_NODRAW) && shader != tr.defaultShader)
+	{
+		if (strlen(shader->name) > 0
+			&& strcmp(shader->name, "collision")
+			&& strcmp(shader->name, "textures/system/nodraw_solid"))
+			return true;
+	}
+
+	return false;
+}
+
+int GetGoodSurfaceCount(mdvModel_t *header)
+{
+	int count = 0;
+
+	for (int i = 0; i < header->numSurfaces; i++)
+	{
+		mdvSurface_t *surf = &header->surfaces[i];
+
+		if (surf && surf->numIndexes > 0 && surf->numVerts > 0)
+		{
+			if (IsSurfaceShaderValid(surf))
+				count++;
+		}
+	}
+
+	return count;
+}
 static	void R_LoadSurfaces( lump_t *surfs, lump_t *verts, lump_t *indexLump ) {
 	dsurface_t	*in;
 	msurface_t	*out;
@@ -3141,6 +3310,48 @@ static	void R_LoadSurfaces( lump_t *surfs, lump_t *verts, lump_t *indexLump ) {
 	int			numFaces, numMeshes, numTriSurfs, numFlares;
 	int			i;
 	float *hdrVertColors = NULL;
+
+#ifdef __VBO_LODMODELS__
+	ri->Printf(PRINT_WARNING, "##################################################\n");
+	ri->Printf(PRINT_WARNING, "There are %i lod models.\n", tr.lodModelsCount);
+
+	int lodModelSurfaceCount = 0;
+
+	for (i = 0; i < tr.lodModelsCount; i++)
+	{// Load any needed lod models... And gather surface count...
+		lodModel_t *lodModel = &tr.lodModels[i];
+		lodModel->qhandle = RE_RegisterModel(lodModel->modelName);
+		lodModel->model = R_GetModelByHandle(lodModel->qhandle);
+		
+		model_t *model = lodModel->model;
+
+		if (model->type == MOD_MESH) {
+			mdvModel_t	*header;
+			header = model->data.mdv[0];
+
+			
+
+			//lodModelSurfaceCount += header->numSurfaces;
+			lodModelSurfaceCount += GetGoodSurfaceCount(header);
+		}
+		/*else if (model->type == MOD_MDR) {
+			mdrHeader_t	*header;
+			mdrFrame_t	*frame;
+
+			header = model->data.mdr;
+		}
+		else if (model->type == MOD_IQM) {
+			iqmData_t *iqmData;
+
+			iqmData = model->data.iqm;
+		}*/
+	}
+
+	ri->Printf(PRINT_WARNING, "Found %i lod model surfaces.\n", lodModelSurfaceCount);
+	ri->Printf(PRINT_WARNING, "##################################################\n");
+#else //!__VBO_LODMODELS__
+	int lodModelSurfaceCount = 0;
+#endif //__VBO_LODMODELS__
 
 	numFaces = 0;
 	numMeshes = 0;
@@ -3161,15 +3372,15 @@ static	void R_LoadSurfaces( lump_t *surfs, lump_t *verts, lump_t *indexLump ) {
 	if ( indexLump->filelen % sizeof(*indexes))
 		ri->Error (ERR_DROP, "LoadMap: funny lump size in %s",s_worldData.name);
 
-	out = (msurface_t *)ri->Hunk_Alloc ( count * sizeof(*out), h_low );	
+	out = (msurface_t *)ri->Hunk_Alloc ( (count + lodModelSurfaceCount) * sizeof(*out), h_low );
 
 	s_worldData.surfaces = out;
-	s_worldData.numsurfaces = count;
+	s_worldData.numsurfaces = (count + lodModelSurfaceCount);
 
-	s_worldData.surfacesViewCount = (int *)ri->Hunk_Alloc ( count * sizeof(*s_worldData.surfacesViewCount), h_low );
-	//s_worldData.surfacesDlightBits = (int *)ri->Hunk_Alloc ( count * sizeof(*s_worldData.surfacesDlightBits), h_low );
+	s_worldData.surfacesViewCount = (int *)ri->Hunk_Alloc ( (count + lodModelSurfaceCount) * sizeof(*s_worldData.surfacesViewCount), h_low );
+	//s_worldData.surfacesDlightBits = (int *)ri->Hunk_Alloc ( (count + lodModelSurfaceCount) * sizeof(*s_worldData.surfacesDlightBits), h_low );
 #ifdef __PSHADOWS__
-	s_worldData.surfacesPshadowBits = (int *)ri->Hunk_Alloc ( count * sizeof(*s_worldData.surfacesPshadowBits), h_low );
+	s_worldData.surfacesPshadowBits = (int *)ri->Hunk_Alloc ( (count + lodModelSurfaceCount) * sizeof(*s_worldData.surfacesPshadowBits), h_low );
 #endif
 
 	// load hdr vertex colors
@@ -3217,6 +3428,11 @@ static	void R_LoadSurfaces( lump_t *surfs, lump_t *verts, lump_t *indexLump ) {
 		}
 	}
 
+	// UQ1: Alloc out->data for extra lodmodel surfaces...
+	for (i = count; i < count + lodModelSurfaceCount; i++, out++) {
+		out->data = (surfaceType_t *)ri->Hunk_Alloc(sizeof(srfBspSurface_t), h_low);
+	}
+
 	DEBUG_EndTimer(qfalse);
 
 	in = (dsurface_t *)(fileBase + surfs->fileofs);
@@ -3224,12 +3440,7 @@ static	void R_LoadSurfaces( lump_t *surfs, lump_t *verts, lump_t *indexLump ) {
 
 	DEBUG_StartTimer("R_LoadSurfacesParse", qfalse);
 
-	/*
-	dsurface_t *thisIn = in;
-	msurface_t *thisOut = out;
-	*/
-//#pragma omp parallel for schedule(dynamic)
-	for ( i = 0 ; i < count ; i++ /*in++, out++*/) 
+	for ( i = 0 ; i < count ; i++) 
 	{
 		dsurface_t *thisIn = in + i;
 		msurface_t *thisOut = out + i;
@@ -3267,6 +3478,39 @@ static	void R_LoadSurfaces( lump_t *surfs, lump_t *verts, lump_t *indexLump ) {
 			ri->Error( ERR_DROP, "Bad surfaceType" );
 		}
 	}
+
+#ifdef __VBO_LODMODELS__
+	// UQ1: Add extra lodmodel surfaces...
+	out = s_worldData.surfaces;
+	int numSurfsAdded = 0;
+	int j;
+	for (i = count, j = 0; i < count + lodModelSurfaceCount && j < tr.lodModelsCount; i++, j++) {
+		msurface_t *thisOut = out + i;
+		lodModel_t *lodModel = &tr.lodModels[j];
+
+		model_t *model = lodModel->model;
+
+		if (model->type == MOD_MESH) {
+			mdvModel_t	*header = model->data.mdv[0];
+
+			for (int k = 0; k < header->numSurfaces; k++)
+			{
+				mdvSurface_t *surf = &header->surfaces[k];
+
+				if (IsSurfaceShaderValid(surf) && surf->numIndexes > 0 && surf->numVerts > 0)
+				{
+					ParseLodModelTriSurf(lodModel, header, k, thisOut);
+
+					shader_t *shader = tr.shaders[surf->shaderIndexes[0]];
+					numSurfsAdded++;
+					ri->Printf(PRINT_WARNING, "Added lodmodel surface %i of %i. %i verts. %i indexes. shader: %s.\n", numSurfsAdded, lodModelSurfaceCount, surf->numIndexes, surf->numVerts, shader->name);
+
+					numTriSurfs++;
+				}
+			}
+		}
+	}
+#endif //__VBO_LODMODELS__
 
 	DEBUG_EndTimer(qfalse);
 
@@ -3789,6 +4033,228 @@ R_LoadEntities
 */
 extern int MAP_MAX_VIS_RANGE;
 
+qboolean R_SpawnString(const char *key, const char *defaultString, char **out) {
+	int i;
+
+	//if (!tr.spawning) {
+	//	*out = (char*)defaultString;
+	//	// trap->Error( ERR_DROP, "CG_SpawnString() called while not spawning" );
+	//}
+
+	for (i = 0; i < tr.numSpawnVars; i++) {
+		if (!Q_stricmp(key, tr.spawnVars[i][0])) {
+			*out = tr.spawnVars[i][1];
+			return qtrue;
+		}
+	}
+
+	*out = (char*)defaultString;
+	return qfalse;
+}
+qboolean R_SpawnFloat(const char *key, const char *defaultString, float *out) {
+	char *s;
+	qboolean present;
+
+	present = R_SpawnString(key, defaultString, &s);
+	*out = atof(s);
+	return present;
+}
+qboolean R_SpawnInt(const char *key, const char *defaultString, int *out) {
+	char *s;
+	qboolean present;
+
+	present = R_SpawnString(key, defaultString, &s);
+	*out = atoi(s);
+	return present;
+}
+qboolean R_SpawnBoolean(const char *key, const char *defaultString, qboolean *out) {
+	char *s;
+	qboolean present;
+
+	present = R_SpawnString(key, defaultString, &s);
+	if (!Q_stricmp(s, "qfalse") || !Q_stricmp(s, "false") || !Q_stricmp(s, "no") || !Q_stricmp(s, "0")) {
+		*out = qfalse;
+	}
+	else if (!Q_stricmp(s, "qtrue") || !Q_stricmp(s, "true") || !Q_stricmp(s, "yes") || !Q_stricmp(s, "1")) {
+		*out = qtrue;
+	}
+	else {
+		*out = qfalse;
+	}
+
+	return present;
+}
+qboolean R_SpawnVector(const char *key, const char *defaultString, float *out) {
+	char *s;
+	qboolean present;
+
+	present = R_SpawnString(key, defaultString, &s);
+	sscanf(s, "%f %f %f", &out[0], &out[1], &out[2]);
+	return present;
+}
+
+void SP_misc_lodmodel(void) {
+	char*			model = NULL;
+	char*			overrideShader = NULL;
+	float			angle;
+	float			scale;
+
+	R_SpawnString("model", "", &model);
+
+	if (!model || !model[0]) {
+		ri->Error(ERR_DROP, "misc_lodmodel with no model.");
+	}
+
+	lodModel_t		*staticmodel = &tr.lodModels[tr.lodModelsCount];
+	tr.lodModelsCount++;
+
+	strcpy(staticmodel->modelName, model);
+
+	R_SpawnVector("origin", "0 0 0", staticmodel->origin);
+	R_SpawnFloat("zoffset", "0", &staticmodel->zoffset);
+
+	if (!R_SpawnVector("angles", "0 0 0", staticmodel->angles)) {
+		if (R_SpawnFloat("angle", "0", &angle)) {
+			staticmodel->angles[YAW] = angle;
+		}
+	}
+
+	if (!R_SpawnVector("modelscale_vec", "1 1 1", staticmodel->scale)) {
+		if (R_SpawnFloat("modelscale", "1", &scale)) {
+			VectorSet(staticmodel->scale, scale, scale, scale);
+		}
+	}
+
+	R_SpawnString("_overrideShader", "", (char **)&staticmodel->overrideShader);
+
+	AnglesToAxis(staticmodel->angles, staticmodel->axes);
+	for (int i = 0; i < 3; i++) {
+		VectorScale(staticmodel->axes[i], staticmodel->scale[i], staticmodel->axes[i]);
+	}
+}
+
+char *R_AddSpawnVarToken(const char *string) {
+	int l;
+	char *dest;
+
+	l = strlen(string);
+	if (tr.numSpawnVarChars + l + 1 > MAX_SPAWN_VARS_CHARS) {
+		ri->Error(ERR_DROP, "CG_AddSpawnVarToken: MAX_SPAWN_VARS_CHARS");
+	}
+
+	dest = tr.spawnVarChars + tr.numSpawnVarChars;
+	memcpy(dest, string, l + 1);
+
+	tr.numSpawnVarChars += l + 1;
+
+	return dest;
+}
+
+typedef struct spawn_s {
+	const char	*name;
+	void(*spawn)(void);
+} spawn_t;
+
+/* This array MUST be sorted correctly by alphabetical name field */
+/* for conformity, use lower-case names too */
+spawn_t spawns[] = {
+	{ "misc_lodmodel",			SP_misc_lodmodel },
+};
+
+static int spawncmp(const void *a, const void *b) {
+	return Q_stricmp((const char *)a, ((spawn_t*)b)->name);
+}
+
+void R_ParseEntityFromSpawnVars(void) {
+	spawn_t *s;
+	char *classname;
+
+	if (R_SpawnString("classname", "", &classname)) {
+		s = (spawn_t *)bsearch(classname, spawns, ARRAY_LEN(spawns), sizeof(spawn_t), spawncmp);
+		if (s)
+			s->spawn();
+	}
+}
+
+void SP_worldspawn(void) {
+	char *s;
+
+	R_SpawnString("classname", "", &s);
+	if (Q_stricmp(s, "worldspawn")) {
+		ri->Error(ERR_DROP, "SP_worldspawn: The first entity isn't 'worldspawn'");
+	}
+}
+
+qboolean CG_ParseSpawnVars2(void) {
+	char keyname[MAX_TOKEN_CHARS];
+	char token[MAX_TOKEN_CHARS];
+
+	tr.numSpawnVars = 0;
+	tr.numSpawnVarChars = 0;
+
+	// parse the opening brace
+	if (!R_GetEntityToken(token, sizeof(token))) {
+		// end of spawn string
+		return qfalse;
+	}
+
+	if (token[0] != '{') {
+		ri->Error(ERR_DROP, "R_ParseSpawnVars: found %s when expecting {", token);
+	}
+
+	// go through all the key / value pairs
+	while (1) {
+		// parse key
+		if (!R_GetEntityToken(keyname, sizeof(keyname))) {
+			ri->Error(ERR_DROP, "R_ParseSpawnVars: EOF without closing brace");
+		}
+
+		if (keyname[0] == '}') {
+			break;
+		}
+
+		// parse value
+		if (!R_GetEntityToken(token, sizeof(token))) {
+			ri->Error(ERR_DROP, "R_ParseSpawnVars: EOF without closing brace");
+		}
+
+		if (token[0] == '}') {
+			ri->Error(ERR_DROP, "R_ParseSpawnVars: closing brace without data");
+		}
+
+		if (tr.numSpawnVars == MAX_SPAWN_VARS) {
+			ri->Error(ERR_DROP, "R_ParseSpawnVars: MAX_SPAWN_VARS");
+		}
+
+		tr.spawnVars[tr.numSpawnVars][0] = R_AddSpawnVarToken(keyname);
+		tr.spawnVars[tr.numSpawnVars][1] = R_AddSpawnVarToken(token);
+		tr.numSpawnVars++;
+	}
+
+	return qtrue;
+}
+
+void R_ParseEntitiesFromString(void) {
+	// make sure it is reset
+	R_GetEntityToken(NULL, -1);
+
+	tr.numSpawnVars = 0;
+
+	// the worldspawn is not an actual entity, but it still
+	// has a "spawn" function to perform any global setup
+	// needed by a level (setting configstrings or cvars, etc)
+	if (!CG_ParseSpawnVars2()) {
+		ri->Error(ERR_DROP, "ParseEntities: no entities");
+	}
+
+	SP_worldspawn();
+
+	// parse ents
+	while (CG_ParseSpawnVars2()) {
+		R_ParseEntityFromSpawnVars();
+	}
+}
+
 void R_LoadEntities( lump_t *l ) {
 	const char *p;
 	char *token, *s;
@@ -3875,6 +4341,11 @@ void R_LoadEntities( lump_t *l ) {
 			continue;
 		}
 	}
+
+	//
+	// UQ1: parsing other entities so we can grab lodmodels, and maybe other stuff later to VBO shit...
+	//
+	R_ParseEntitiesFromString();
 }
 
 /*
@@ -5820,6 +6291,41 @@ void StripMaps( const char *in, char *out, int destsize )
 }
 
 
+static void R_FreeExtraWorldData(void)
+{
+#ifdef __FREE_WORLD_DATA__
+	ri->Printf(PRINT_WARNING, "Freeing extra world data.\n");
+
+	for (int k = 0; k < s_worldData.numsurfaces; k++)
+	{
+		msurface_t *surface = &s_worldData.surfaces[k];
+		srfBspSurface_t *bspSurf = (srfBspSurface_t *)surface->data;
+		
+		if (bspSurf->vbo && bspSurf->ibo)
+		{
+			switch (bspSurf->surfaceType)
+			{
+			case SF_FACE:
+			case SF_GRID:
+			case SF_TRIANGLES:
+				free(bspSurf->verts);
+				free(bspSurf->indexes);
+				bspSurf->verts = NULL;
+				bspSurf->indexes = NULL;
+				break;
+			default:
+				break;
+			}
+		}
+	}
+#endif //__FREE_WORLD_DATA__
+}
+
+
+void RE_SendLodmodelPointers(int *count, void *data) {
+	
+}
+
 /*
 =================
 RE_LoadWorldMap
@@ -6242,6 +6748,8 @@ void RE_LoadWorldMap( const char *name ) {
 #endif //__GENERATED_SKY_CUBES__
 
     ri->FS_FreeFile( buffer.v );
+
+	R_FreeExtraWorldData();
 
 	tr.worldLoaded = qtrue;
 }

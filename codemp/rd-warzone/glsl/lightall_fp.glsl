@@ -520,7 +520,7 @@ void main()
 	if (SHADER_MATERIAL_TYPE == MATERIAL_DISTORTEDGLASS)
 	{
 		vec3 v = normalize(m_ViewDir);
-		diffuse = calc_glass_color(normalize(u_ViewOrigin), v * u_Local9.r, length(v) * u_Local9.g, (u_Local9.a == 1.0) ? normalize(v * m_Normal.xyz) : normalize(m_Normal.xyz), normalize(m_vertPos) * u_Local9.b);
+		diffuse = calc_glass_color(normalize(u_ViewOrigin), v * u_Local9.r, length(v) * u_Local9.g, (u_Local9.a == 1.0) ? normalize(v * N.xyz) : N.xyz, normalize(m_vertPos) * u_Local9.b);
 	}
 	else
 #endif //__GLASS_TEST__

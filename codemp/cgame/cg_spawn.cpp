@@ -233,6 +233,13 @@ void SP_misc_model_static( void ) {
 	}
 }
 
+//#define __VBO_LODMODELS__
+
+#ifdef __VBO_LODMODELS__
+void SP_misc_lodmodel(void) {
+	
+}
+#else //!__VBO_LODMODELS__
 void SP_misc_lodmodel(void) { // UQ1: Todo - move into the foliage areas system, and actually do billboard lods??? For now just testing render speed using models instead of bsp data.
 	char* model = NULL;
 	char* overrideShader = NULL;
@@ -318,6 +325,8 @@ void SP_misc_lodmodel(void) { // UQ1: Todo - move into the foliage areas system,
 	//if (staticmodel->overrideShader)
 	//	trap->Print("LODMODEL: Lod model %i, model %s was set up. Override shader is %s.\n", cgs.numMiscStaticModels - 1, model, staticmodel->overrideShader ? overrideShader : "none");
 }
+#endif //__VBO_LODMODELS__
+
 qboolean cg_noFogOutsidePortal = qfalse;
 void SP_misc_skyportal( void ) {
 	qboolean onlyfoghere;

@@ -1333,6 +1333,9 @@ static void CM_LoadMap_Actual( const char *name, qboolean clientload, int *check
 		CM_InitBoxHull ();
 	}
 
+#define __FREE_BSP_DATA__
+
+#ifndef __FREE_BSP_DATA__
 #ifndef BSPC	// I hope we can lose this crap soon
 	//
 	// if we've got enough memory, and it's not a dedicated-server, then keep the loaded map binary around
@@ -1355,6 +1358,10 @@ static void CM_LoadMap_Actual( const char *name, qboolean clientload, int *check
 #else
 	FS_FreeFile (buf);
 #endif
+#else //__FREE_BSP_DATA__
+	Z_Free(gpvCachedMapDiskImage);
+	gpvCachedMapDiskImage = NULL;
+#endif //__FREE_BSP_DATA__
 
 	CM_FloodAreaConnections (cm);
 

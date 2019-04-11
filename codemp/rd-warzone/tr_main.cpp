@@ -1721,13 +1721,65 @@ void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader,
 	mAddSurfMutex.lock();
 #endif
 
+#pragma omp critical (__ADD_DRAW_SURFACE__)
+	{
+		// instead of checking for overflow, we just mask the index
+		// so it wraps around
+		index = tr.refdef.numDrawSurfs & DRAWSURF_MASK;
+		// the sort data is packed into a single 32 bit value so it can be
+		// compared quickly during the qsorting process
+		tr.refdef.drawSurfs[index].sort = (shader->sortedIndex << QSORT_SHADERNUM_SHIFT)
+			| tr.shiftedEntityNum | (fogIndex << QSORT_FOGNUM_SHIFT)
+			| (postRender << QSORT_POSTRENDER_SHIFT) | (int64_t)dlightMap;
+		tr.refdef.drawSurfs[index].cubemapIndex = cubemap;
+		tr.refdef.drawSurfs[index].surface = surface;
+#ifdef __ZFAR_CULLING_ON_SURFACES__
+		tr.refdef.drawSurfs[index].depthDrawOnly = depthDrawOnly;
+#endif //__ZFAR_CULLING_ON_SURFACES__
+		tr.refdef.numDrawSurfs++;
+	}
+	
+#ifdef __RENDERER_THREADING__
+	mAddSurfMutex.unlock();
+#endif
+}
+
+#include <mutex>
+std::mutex						mAddSurfThreadedMutex;
+
+void R_AddDrawSurfThreaded(surfaceType_t *surface, shader_t *shader,
+	int64_t fogIndex, int64_t dlightMap, int64_t postRender,
+	int cubemap, qboolean depthDrawOnly, int64_t shiftedEntityNum) {
+	int			index;
+
+	if (r_cullNoDraws->integer && (!shader || (shader->surfaceFlags & SURF_NODRAW) || (*surface == SF_SKIP)))
+	{// How did we even get here?
+		return;
+	}
+
+#ifdef __Q3_FOG__
+	if (tr.refdef.rdflags & RDF_NOFOG)
+	{
+		fogIndex = 0;
+	}
+#else //!__Q3_FOG__
+	fogIndex = 0;
+#endif //__Q3_FOG__
+
+	if ((shader->surfaceFlags & SURF_FORCESIGHT) /*&& !(tr.refdef.rdflags & RDF_ForceSightOn)*/)
+	{	//if shader is only seen with ForceSight and we don't have ForceSight on, then don't draw
+		return;
+	}
+
+	mAddSurfThreadedMutex.lock();
+
 	// instead of checking for overflow, we just mask the index
 	// so it wraps around
 	index = tr.refdef.numDrawSurfs & DRAWSURF_MASK;
 	// the sort data is packed into a single 32 bit value so it can be
 	// compared quickly during the qsorting process
 	tr.refdef.drawSurfs[index].sort = (shader->sortedIndex << QSORT_SHADERNUM_SHIFT)
-		| tr.shiftedEntityNum | (fogIndex << QSORT_FOGNUM_SHIFT)
+		| shiftedEntityNum | (fogIndex << QSORT_FOGNUM_SHIFT)
 		| (postRender << QSORT_POSTRENDER_SHIFT) | (int64_t)dlightMap;
 	tr.refdef.drawSurfs[index].cubemapIndex = cubemap;
 	tr.refdef.drawSurfs[index].surface = surface;
@@ -1735,10 +1787,8 @@ void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader,
 	tr.refdef.drawSurfs[index].depthDrawOnly = depthDrawOnly;
 #endif //__ZFAR_CULLING_ON_SURFACES__
 	tr.refdef.numDrawSurfs++;
-	
-#ifdef __RENDERER_THREADING__
-	mAddSurfMutex.unlock();
-#endif
+
+	mAddSurfThreadedMutex.unlock();
 }
 
 /*
@@ -1827,12 +1877,8 @@ extern qboolean LODMODEL_MAP;
 
 static void R_AddEntitySurface (int entityNum)
 {
-	trRefEntity_t	*ent;
+	trRefEntity_t	*ent = &tr.refdef.entities[entityNum];
 	shader_t		*shader;
-
-	tr.currentEntityNum = entityNum;
-
-	ent = tr.currentEntity = &tr.refdef.entities[tr.currentEntityNum];
 	
 	if (!ent) return;
 
@@ -1847,7 +1893,7 @@ static void R_AddEntitySurface (int entityNum)
 	ent->needDlights = qfalse;
 
 	// preshift the value we are going to OR into the drawsurf sort
-	tr.shiftedEntityNum = tr.currentEntityNum << QSORT_REFENTITYNUM_SHIFT;
+	int64_t shiftedEntityNum = entityNum << QSORT_REFENTITYNUM_SHIFT;
 
 	//
 	// the weapon model must be handled special --
@@ -1884,7 +1930,7 @@ static void R_AddEntitySurface (int entityNum)
 #endif
 
 	// simple generated models, like sprites and beams, are not culled
-	switch ( ent->e.reType ) {
+	switch (ent->e.reType) {
 	case RT_PORTALSURFACE:
 		break;		// don't draw anything
 	case RT_SPRITE:
@@ -1895,64 +1941,68 @@ static void R_AddEntitySurface (int entityNum)
 	case RT_ORIENTEDLINE:
 	case RT_CYLINDER:
 	case RT_SABER_GLOW:
+	{
 		// self blood sprites, talk balloons, etc should not be drawn in the primary
 		// view.  We can't just do this check for all entities, because md3
 		// entities may still want to cast shadows from them
-		if ( (ent->e.renderfx & RF_THIRD_PERSON) && !tr.viewParms.isPortal) {
+		if ((ent->e.renderfx & RF_THIRD_PERSON) && !tr.viewParms.isPortal) {
 			return;
 		}
 
 		//if (R_CullPointAndRadius( ent->e.origin, ent->e.radius ) != CULL_OUT)
 		{
-			shader = R_GetShaderByHandle( ent->e.customShader );
+			shader = R_GetShaderByHandle(ent->e.customShader);
 
-			R_AddDrawSurf( &entitySurface, shader, R_SpriteFogNum( ent ), 0, R_IsPostRenderEntity (tr.currentEntityNum, ent), 0 /* cubeMap */, qfalse);
+			R_AddDrawSurfThreaded(&entitySurface, shader, R_SpriteFogNum(ent), 0, R_IsPostRenderEntity(entityNum, ent), 0 /* cubeMap */, qfalse, shiftedEntityNum);
 		}
-		break;
+	}
+	break;
 
 	case RT_MODEL:
 	case RT_GRASS:
 	case RT_PLANT:
 	case RT_MODEL_INSTANCED:
+	{
 		// we must set up parts of tr.ori for model culling
-		R_RotateForEntity( ent, &tr.viewParms, &tr.ori );
+		R_RotateForEntity(ent, &tr.viewParms, &tr.ori);
 
-		tr.currentModel = R_GetModelByHandle( ent->e.hModel );
+		model_t *currentModel = R_GetModelByHandle(ent->e.hModel);
 
-		//ri->Printf(PRINT_ALL, "%s\n", tr.currentModel->name);
+		//ri->Printf(PRINT_ALL, "%s\n", currentModel->name);
 
-		if (!tr.currentModel) {
-			R_AddDrawSurf( &entitySurface, tr.defaultShader, 0, 0, R_IsPostRenderEntity (tr.currentEntityNum, ent), 0/* cubeMap */, qfalse);
-		} else {
-			switch ( tr.currentModel->type ) {
+		if (!currentModel) {
+			R_AddDrawSurfThreaded(&entitySurface, tr.defaultShader, 0, 0, R_IsPostRenderEntity(entityNum, ent), 0/* cubeMap */, qfalse, shiftedEntityNum);
+		}
+		else {
+			switch (currentModel->type) {
 			case MOD_MESH:
-				R_AddMD3Surfaces( ent );
+				R_AddMD3Surfaces(ent, currentModel, entityNum, shiftedEntityNum);
 				break;
 			case MOD_MDR:
-				R_MDRAddAnimSurfaces( ent );
+				R_MDRAddAnimSurfaces(ent, currentModel, entityNum, shiftedEntityNum);
 				break;
 			case MOD_IQM:
-				R_AddIQMSurfaces( ent );
+				R_AddIQMSurfaces(ent, currentModel, entityNum, shiftedEntityNum);
 				break;
 			case MOD_BRUSH:
-				R_AddBrushModelSurfaces( ent );
+				R_AddBrushModelSurfaces(ent, currentModel, entityNum, shiftedEntityNum);
 				break;
 			case MOD_MDXM:
 				if (ent->e.ghoul2)
-					R_AddGhoulSurfaces(ent);
+					R_AddGhoulSurfaces(ent, currentModel, entityNum, shiftedEntityNum);
 				break;
 			case MOD_BAD:		// null model axis
-				if ( (ent->e.renderfx & RF_THIRD_PERSON) && !tr.viewParms.isPortal) {
+				if ((ent->e.renderfx & RF_THIRD_PERSON) && !tr.viewParms.isPortal) {
 					break;
 				}
 
-				if( ent->e.ghoul2 && G2API_HaveWeGhoul2Models(*((CGhoul2Info_v *)ent->e.ghoul2)) )
+				if (ent->e.ghoul2 && G2API_HaveWeGhoul2Models(*((CGhoul2Info_v *)ent->e.ghoul2)))
 				{
-					R_AddGhoulSurfaces( ent );
+					R_AddGhoulSurfaces(ent, currentModel, entityNum, shiftedEntityNum);
 					break;
 				}
 
-				R_AddDrawSurf( &entitySurface, tr.defaultShader, 0, 0, R_IsPostRenderEntity (tr.currentEntityNum, ent), 0 /* cubeMap */, qfalse);
+				R_AddDrawSurfThreaded(&entitySurface, tr.defaultShader, 0, 0, R_IsPostRenderEntity(entityNum, ent), 0 /* cubeMap */, qfalse, shiftedEntityNum);
 				break;
 			default:
 				//ri->Error( ERR_DROP, "R_AddEntitySurfaces: Bad modeltype" );
@@ -1960,14 +2010,22 @@ static void R_AddEntitySurface (int entityNum)
 				break;
 			}
 		}
-		break;
+	}
+	break;
 	case RT_ENT_CHAIN:
-		shader = R_GetShaderByHandle( ent->e.customShader );
+	{
+		model_t *currentModel = NULL;
+		shader = R_GetShaderByHandle(ent->e.customShader);
 
-		R_AddDrawSurf( &entitySurface, shader, R_SpriteFogNum( ent ), false, R_IsPostRenderEntity (tr.currentEntityNum, ent), 0 /* cubeMap */, qfalse);
-		break;
+		R_AddDrawSurfThreaded(&entitySurface, shader, R_SpriteFogNum(ent), false, R_IsPostRenderEntity(entityNum, ent), 0 /* cubeMap */, qfalse, shiftedEntityNum);
+	}
+	break;
 	default:
-		ri->Error( ERR_DROP, "R_AddEntitySurfaces: Bad reType" );
+	{
+		model_t *currentModel = NULL;
+		ri->Error(ERR_DROP, "R_AddEntitySurfaces: Bad reType");
+	}
+	break;
 	}
 }
 
@@ -1980,8 +2038,8 @@ R_AddEntitySurfaces
 //extern void R_AddInstancedModelsToScene(void);
 //#endif //__INSTANCED_MODELS__
 
-/*
-static int R_DistanceSortEntities(const void *a, const void *b)
+
+static int R_SortEntities(const void *a, const void *b)
 {
 	trRefEntity_t	 *e1, *e2;
 
@@ -1990,6 +2048,15 @@ static int R_DistanceSortEntities(const void *a, const void *b)
 
 	if (e1 == &tr.worldEntity || e2 == &tr.worldEntity)
 		return 0;
+
+	if (e1->e.reType && e2->e.reType)
+	{
+		if (e1->e.reType > e2->e.reType)
+			return -1;
+
+		else if (e1->e.reType < e2->e.reType)
+			return 1;
+	}
 
 	if (e1->e.hModel && e2->e.hModel)
 	{// Group same models together, save some VBO binds...
@@ -2012,7 +2079,7 @@ static int R_DistanceSortEntities(const void *a, const void *b)
 			return 1;
 	}
 
-	if (e1->e.customShader && e2->e.customShader)
+	/*if (e1->e.customShader && e2->e.customShader)
 	{// Group same skins together, save binds...
 		if (e1->e.customShader > e2->e.customShader)
 			return -1;
@@ -2050,19 +2117,11 @@ static int R_DistanceSortEntities(const void *a, const void *b)
 		else if (dist1 > dist2)
 			return 1;
 	}
-
-	if (e1->e.reType && e2->e.reType)
-	{// Group same skins together, save binds...
-		if (e1->e.reType > e2->e.reType)
-			return -1;
-
-		else if (e1->e.reType < e2->e.reType)
-			return 1;
-	}
+	*/
 
 	return 0;
 }
-*/
+
 
 void R_AddEntitySurfaces (void) {
 	int i;
@@ -2071,22 +2130,15 @@ void R_AddEntitySurfaces (void) {
 		return;
 	}
 
-	/*
-	if (r_testvalue0->integer)
+	//if (r_testvalue0->integer)
+	//	qsort(tr.refdef.entities, tr.refdef.num_entities, sizeof(trRefEntity_t), R_SortEntities);
+
+//	bool useThreading = (r_testvalue0->integer && tr.refdef.num_entities > r_testvalue0->integer);
+
+//#pragma omp parallel for if (useThreading) num_threads(r_testvalue0->integer)
+	for (i = 0; i < tr.refdef.num_entities; i++)
 	{
-		qsort(tr.refdef.entities, tr.refdef.num_entities, sizeof(trRefEntity_t), R_DistanceSortEntities);
-		
-		for (i = 0; i < tr.refdef.num_entities; i++)
-		{
-			R_AddEntitySurface(i);
-		}
-	}
-	else*/
-	{
-		for (i = 0; i < tr.refdef.num_entities; i++)
-		{
-			R_AddEntitySurface(i);
-		}
+		R_AddEntitySurface(i);
 	}
 
 //#ifdef __INSTANCED_MODELS__

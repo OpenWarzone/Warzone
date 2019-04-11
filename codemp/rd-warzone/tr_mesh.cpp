@@ -175,7 +175,7 @@ R_ComputeLOD
 
 =================
 */
-int R_ComputeLOD( trRefEntity_t *ent ) {
+int R_ComputeLOD( trRefEntity_t *ent, model_t *currentModel ) {
 	float radius;
 	float flod, lodscale;
 	float projectedRadius;
@@ -184,7 +184,7 @@ int R_ComputeLOD( trRefEntity_t *ent ) {
 	mdrFrame_t *mdrframe;
 	int lod;
 
-	if ( tr.currentModel->numLods < 2 )
+	if ( currentModel->numLods < 2 )
 	{
 		// model has only 1 LOD level, skip computations and bias
 		lod = 0;
@@ -194,10 +194,10 @@ int R_ComputeLOD( trRefEntity_t *ent ) {
 		// multiple LODs exist, so compute projected bounding sphere
 		// and use that as a criteria for selecting LOD
 
-		if(tr.currentModel->type == MOD_MDR)
+		if(currentModel->type == MOD_MDR)
 		{
 			int frameSize;
-			mdr = tr.currentModel->data.mdr;
+			mdr = currentModel->data.mdr;
 			frameSize = (size_t) (&((mdrFrame_t *)0)->bones[mdr->numBones]);
 			
 			mdrframe = (mdrFrame_t *) ((byte *) mdr + mdr->ofsFrames + frameSize * ent->e.frame);
@@ -206,8 +206,8 @@ int R_ComputeLOD( trRefEntity_t *ent ) {
 		}
 		else
 		{
-			//frame = ( md3Frame_t * ) ( ( ( unsigned char * ) tr.currentModel->md3[0] ) + tr.currentModel->md3[0]->ofsFrames );
-			frame = tr.currentModel->data.mdv[0]->frames;
+			//frame = ( md3Frame_t * ) ( ( ( unsigned char * ) currentModel->md3[0] ) + currentModel->md3[0]->ofsFrames );
+			frame = currentModel->data.mdv[0]->frames;
 
 			frame += ent->e.frame;
 
@@ -226,23 +226,23 @@ int R_ComputeLOD( trRefEntity_t *ent ) {
 			flod = 0;
 		}
 
-		flod *= tr.currentModel->numLods;
+		flod *= currentModel->numLods;
 		lod = Q_ftol(flod);
 
 		if ( lod < 0 )
 		{
 			lod = 0;
 		}
-		else if ( lod >= tr.currentModel->numLods )
+		else if ( lod >= currentModel->numLods )
 		{
-			lod = tr.currentModel->numLods - 1;
+			lod = currentModel->numLods - 1;
 		}
 	}
 
 	lod += r_lodbias->integer;
 	
-	if ( lod >= tr.currentModel->numLods )
-		lod = tr.currentModel->numLods - 1;
+	if ( lod >= currentModel->numLods )
+		lod = currentModel->numLods - 1;
 	if ( lod < 0 )
 		lod = 0;
 
@@ -300,7 +300,7 @@ R_AddMD3Surfaces
 
 =================
 */
-void R_AddMD3Surfaces( trRefEntity_t *ent ) {
+void R_AddMD3Surfaces( trRefEntity_t *ent, model_t *currentModel, int entityNum, int64_t shiftedEntityNum) {
 	int				i;
 	mdvModel_t		*model = NULL;
 	mdvSurface_t	*surface = NULL;
@@ -317,8 +317,8 @@ void R_AddMD3Surfaces( trRefEntity_t *ent ) {
 	if(personalModel) return; // Seems to never draw in this code, why waste time?
 
 	if ( ent->e.renderfx & RF_WRAP_FRAMES ) {
-		ent->e.frame %= tr.currentModel->data.mdv[0]->numFrames;
-		ent->e.oldframe %= tr.currentModel->data.mdv[0]->numFrames;
+		ent->e.frame %= currentModel->data.mdv[0]->numFrames;
+		ent->e.oldframe %= currentModel->data.mdv[0]->numFrames;
 	}
 
 	//
@@ -327,13 +327,13 @@ void R_AddMD3Surfaces( trRefEntity_t *ent ) {
 	// when the surfaces are rendered, they don't need to be
 	// range checked again.
 	//
-	if ( (ent->e.frame >= tr.currentModel->data.mdv[0]->numFrames) 
+	if ( (ent->e.frame >= currentModel->data.mdv[0]->numFrames) 
 		|| (ent->e.frame < 0)
-		|| (ent->e.oldframe >= tr.currentModel->data.mdv[0]->numFrames)
+		|| (ent->e.oldframe >= currentModel->data.mdv[0]->numFrames)
 		|| (ent->e.oldframe < 0) ) {
 			ri->Printf( PRINT_DEVELOPER, "R_AddMD3Surfaces: no such frame %d to %d for '%s'\n",
 				ent->e.oldframe, ent->e.frame,
-				tr.currentModel->name );
+				currentModel->name );
 			ent->e.frame = 0;
 			ent->e.oldframe = 0;
 	}
@@ -341,9 +341,9 @@ void R_AddMD3Surfaces( trRefEntity_t *ent ) {
 	//
 	// compute LOD
 	//
-	lod = R_ComputeLOD( ent );
+	lod = R_ComputeLOD( ent, currentModel );
 
-	model = tr.currentModel->data.mdv[lod];
+	model = currentModel->data.mdv[lod];
 
 	//
 	// cull the entire model if merged bounding box of both frames
@@ -438,7 +438,7 @@ void R_AddMD3Surfaces( trRefEntity_t *ent ) {
 		if(!personalModel)
 		{
 			srfVBOMDVMesh_t *vboSurface = &model->vboSurfaces[i];
-			R_AddDrawSurf((surfaceType_t *)vboSurface, shader, fogNum, qfalse, R_IsPostRenderEntity (tr.currentEntityNum, ent), cubemapIndex, qfalse);
+			R_AddDrawSurfThreaded((surfaceType_t *)vboSurface, shader, fogNum, qfalse, R_IsPostRenderEntity (entityNum, ent), cubemapIndex, qfalse, shiftedEntityNum);
 		}
 
 		surface++;

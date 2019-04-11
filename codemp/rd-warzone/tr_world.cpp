@@ -563,6 +563,75 @@ R_AddWorldSurface
 #endif //__XYC_SURFACE_SPRITES__
 }
 
+void R_AddWorldSurfaceThreaded(msurface_t *surf, trRefEntity_t *ent, int entityNum, int dlightBits, int pshadowBits, qboolean dontCache, int64_t shiftedEntityNum) {
+	// FIXME: bmodel fog?
+	int cubemapIndex = 0;
+
+	if (r_cullNoDraws->integer && (!surf->shader || (surf->shader->surfaceFlags & SURF_NODRAW) || (*surf->data == SF_SKIP)))
+	{// How did we even get here?
+		return;
+	}
+
+	/*if (tr.viewParms.flags & VPF_EMISSIVEMAP) {
+	if (!surf->shader->hasGlow) {
+	// Can skip all thinking on this one...
+	return;
+	}
+	}*/
+
+	// try to cull before dlighting or adding
+	if (R_CullSurface(surf, entityNum)) {
+		return;
+	}
+
+	// check for dlighting
+	/*if ( dlightBits ) {
+	dlightBits = R_DlightSurface( surf, dlightBits );
+	dlightBits = ( dlightBits != 0 );
+	}*/
+
+#ifdef __PSHADOWS__
+	// check for pshadows
+	if (pshadowBits) {
+		pshadowBits = R_PshadowSurface(surf, pshadowBits);
+		pshadowBits = (pshadowBits != 0);
+	}
+#endif
+
+	cubemapIndex = 0;
+
+#if 0 // Maybe do this for trees???...
+	if (1)
+	{// Testing...
+	 /*
+	 // stencil shadows can't do personal models unless I polyhedron clip
+	 if (r_shadows->integer == 2
+	 && !(tr.currentEntity->e.renderfx & (RF_NOSHADOW | RF_DEPTHHACK))
+	 && surf->shader->sort == SS_OPAQUE)
+	 {
+	 R_AddDrawSurf((surfaceType_t *)surf->data, tr.shadowShader, 0, qfalse, R_IsPostRenderEntity(tr.currentEntityNum, tr.currentEntity), 0, surf->depthDrawOnly);
+	 }
+
+	 // projection shadows work fine with personal models
+	 if (r_shadows->integer == 3
+	 && !(tr.currentEntity->e.renderfx & (RF_NOSHADOW | RF_DEPTHHACK))
+	 && surf->shader->sort == SS_OPAQUE)
+	 {
+	 R_AddDrawSurf((surfaceType_t *)surf->data, tr.projectionShadowShader, 0, qfalse, R_IsPostRenderEntity(tr.currentEntityNum, tr.currentEntity), 0, surf->depthDrawOnly);
+	 }
+	 */
+	}
+#endif
+
+	R_AddDrawSurfThreaded(surf->data, surf->shader,
+#ifdef __Q3_FOG__
+		surf->fogIndex,
+#else //!__Q3_FOG__
+		0,
+#endif //__Q3_FOG__
+		dlightBits, R_IsPostRenderEntity(entityNum, ent), cubemapIndex, (qboolean)(surf->depthDrawOnly || surf->depthDrawOnlyFoliage), shiftedEntityNum);
+}
+
 /*
 =============================================================
 
@@ -576,7 +645,7 @@ BRUSH MODELS
 R_AddBrushModelSurfaces
 =================
 */
-void R_AddBrushModelSurfaces(trRefEntity_t *ent) {
+void R_AddBrushModelSurfaces(trRefEntity_t *ent, model_t *currentModel, int entityNum, int64_t shiftedEntityNum) {
 	bmodel_t	*bmodel;
 	int			clip;
 	model_t		*pModel;
@@ -592,18 +661,15 @@ void R_AddBrushModelSurfaces(trRefEntity_t *ent) {
 	}
 
 	R_SetupEntityLighting(&tr.refdef, ent);
-	R_DlightBmodel(bmodel);
+	R_DlightBmodel(bmodel, ent, currentModel, entityNum, shiftedEntityNum);
 
-#ifdef __RENDERER_THREADING__
-#pragma omp parallel for if (r_multithread->integer && bmodel->numSurfaces > 64) num_threads(r_multithread->integer)
-#endif
 	for (i = 0; i < bmodel->numSurfaces; i++) {
 		int surf = bmodel->firstSurface + i;
 
 		if (tr.world->surfacesViewCount[surf] != tr.viewCount)
 		{
 			tr.world->surfacesViewCount[surf] = tr.viewCount;
-			R_AddWorldSurface(tr.world->surfaces + surf, tr.currentEntityNum, tr.currentEntity->needDlights, 0, qtrue);
+			R_AddWorldSurfaceThreaded(tr.world->surfaces + surf, ent, entityNum, /*tr.currentEntity*/ent->needDlights, 0, qtrue, shiftedEntityNum);
 		}
 	}
 }

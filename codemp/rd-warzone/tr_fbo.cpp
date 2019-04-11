@@ -355,7 +355,7 @@ void FBO_Bind(FBO_t * fbo)
 	//	return;
 		
 #ifdef __DEBUG_FBO_BINDS__
-	if (r_debugBinds->integer)
+	if (r_debugBinds->integer == 2 || r_debugBinds->integer == 3)
 	{
 		FBO_BINDS_COUNT++;
 
