@@ -1941,6 +1941,7 @@ void RB_TransparancyPost(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 }
 
 extern qboolean WATER_USE_OCEAN;
+extern qboolean WATER_ALTERNATIVE_METHOD;
 extern float WATER_WAVE_HEIGHT;
 extern float WATER_EXTINCTION1;
 extern float WATER_EXTINCTION2;
@@ -2092,7 +2093,24 @@ void RB_WaterPost(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 	}
 
 	{// Actual water draw...
-		shaderProgram_t *shader = &tr.waterPostShader[Q_clampi(0, r_glslWater->integer - 1, 5)];
+		//shaderProgram_t *shader = &tr.waterPostShader[Q_clampi(0, r_glslWater->integer - 1, 5)];
+
+		int waterShaderChoice = Q_clampi(0, r_glslWater->integer - 1, 3);
+		
+		if (WATER_ALTERNATIVE_METHOD)
+		{// Use alt shader instead...
+			if (WATER_REFLECTIVENESS > 0.0 && r_glslWater->integer > 1)
+			{// Map water setting uses reflection value, and cvar is set to use reflections, so use reflections version...
+				waterShaderChoice = 5;
+			}
+			else
+			{// no reflections version...
+				waterShaderChoice = 4;
+			}
+		}
+
+		shaderProgram_t *shader = &tr.waterPostShader[waterShaderChoice];
+		
 
 		GLSL_BindProgram(shader);
 

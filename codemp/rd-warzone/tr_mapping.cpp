@@ -1493,6 +1493,7 @@ vec3_t		FOG_LAYER_COLOR = { 0 };
 vec4_t		FOG_LAYER_BBOX = { 0.0 };
 qboolean	WATER_ENABLED = qfalse;
 qboolean	WATER_USE_OCEAN = qfalse;
+qboolean	WATER_ALTERNATIVE_METHOD = qfalse;
 qboolean	WATER_FARPLANE_ENABLED = qfalse;
 float		WATER_REFLECTIVENESS = 0.28;
 float		WATER_WAVE_HEIGHT = 64.0;
@@ -1925,6 +1926,7 @@ void MAPPING_LoadMapInfo(void)
 		WATER_FAST_INITIALIZED = qfalse;
 
 		WATER_USE_OCEAN = (atoi(IniRead(mapname, "WATER", "WATER_OCEAN_ENABLED", "0")) > 0) ? qtrue : qfalse;
+		WATER_ALTERNATIVE_METHOD = (atoi(IniRead(mapname, "WATER", "WATER_ALTERNATIVE_METHOD", "0")) > 0) ? qtrue : qfalse;
 		WATER_FARPLANE_ENABLED = (atoi(IniRead(mapname, "WATER", "WATER_FARPLANE_ENABLED", "0")) > 0) ? qtrue : qfalse;
 		WATER_REFLECTIVENESS = Q_clamp(0.0, atof(IniRead(mapname, "WATER", "WATER_REFLECTIVENESS", "0.28")), 1.0);
 		WATER_WAVE_HEIGHT = atof(IniRead(mapname, "WATER", "WATER_WAVE_HEIGHT", "64.0"));

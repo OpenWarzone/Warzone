@@ -324,6 +324,20 @@ void RB_BeginSurface( shader_t *shader, int fogNum, int cubemapIndex ) {
 	}
 #endif //__EXPERIMENTAL_TESS_SHADER_MERGE__
 
+	/*if (backEnd.depthFill)
+	{
+		if (!shader->hasAlphaTestBits || shader->hasSplatMaps || shader->isSky)
+		{// In depth pass, set all solid draws to defaultshader, so they can all get merged together...
+			shader = tr.defaultShader;
+		}
+	}*/
+
+	/*ri->Printf(PRINT_WARNING, "[depth: %s] [renderpass: %i] Begin shader %s [hasAlphaTestBits: %i].\n"
+		, backEnd.depthFill ? "true" : "false"
+		, (int)backEnd.renderPass
+		, shader->name
+		, shader->hasAlphaTestBits);*/
+
 	if (tess.numIndexes > 0 || tess.numVertexes > 0)
 	{// End any old draws we may not have written...
 #ifdef __EXPERIMENTAL_TESS_SHADER_MERGE__

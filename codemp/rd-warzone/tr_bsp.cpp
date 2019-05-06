@@ -2224,75 +2224,10 @@ static int BSPSurfaceCompare(const void *a, const void *b)
 	aa = *(msurface_t **) a;
 	bb = *(msurface_t **) b;
 
-#ifdef __USE_VBO_AREAS__
-	if (aa->vboArea < bb->vboArea)
-		return -1;
-	else if (aa->vboArea > bb->vboArea)
-		return 1;
-#endif //__USE_VBO_AREAS__
+	//
+	// First fill in the shader's hasAlphaTestBits and hasSplatMaps values...
+	//
 
-#ifdef __FX_SORTING__
-	if (qboolean(aa->shader == tr.sunShader) < qboolean(bb->shader == tr.sunShader))
-		return -1;
-	else if (qboolean(aa->shader == tr.sunShader) > qboolean(bb->shader == tr.sunShader))
-		return 1;
-
-	if (qboolean(aa->shader->materialType == MATERIAL_MENU_BACKGROUND) < qboolean(bb->shader->materialType == MATERIAL_MENU_BACKGROUND))
-		return -1;
-	else if (qboolean(aa->shader->materialType == MATERIAL_MENU_BACKGROUND) > qboolean(bb->shader->materialType == MATERIAL_MENU_BACKGROUND))
-		return 1;
-
-	if (qboolean(aa->shader->materialType == MATERIAL_FIRE) < qboolean(bb->shader->materialType == MATERIAL_FIRE))
-		return -1;
-	else if (qboolean(aa->shader->materialType == MATERIAL_FIRE) > qboolean(bb->shader->materialType == MATERIAL_FIRE))
-		return 1;
-
-	if (qboolean(aa->shader->materialType == MATERIAL_SMOKE) < qboolean(bb->shader->materialType == MATERIAL_SMOKE))
-		return -1;
-	else if (qboolean(aa->shader->materialType == MATERIAL_SMOKE) > qboolean(bb->shader->materialType == MATERIAL_SMOKE))
-		return 1;
-
-	if (qboolean(aa->shader->materialType == MATERIAL_LAVA) < qboolean(bb->shader->materialType == MATERIAL_LAVA))
-		return -1;
-	else if (qboolean(aa->shader->materialType == MATERIAL_LAVA) > qboolean(bb->shader->materialType == MATERIAL_LAVA))
-		return 1;
-
-	if (qboolean(aa->shader->materialType == MATERIAL_MAGIC_PARTICLES) < qboolean(bb->shader->materialType == MATERIAL_MAGIC_PARTICLES))
-		return -1;
-	else if (qboolean(aa->shader->materialType == MATERIAL_MAGIC_PARTICLES) > qboolean(bb->shader->materialType == MATERIAL_MAGIC_PARTICLES))
-		return 1;
-
-	if (qboolean(aa->shader->materialType == MATERIAL_MAGIC_PARTICLES_TREE) < qboolean(bb->shader->materialType == MATERIAL_MAGIC_PARTICLES_TREE))
-		return -1;
-	else if (qboolean(aa->shader->materialType == MATERIAL_MAGIC_PARTICLES_TREE) > qboolean(bb->shader->materialType == MATERIAL_MAGIC_PARTICLES_TREE))
-		return 1;
-
-	if (qboolean(aa->shader->materialType == MATERIAL_FIREFLIES) < qboolean(bb->shader->materialType == MATERIAL_FIREFLIES))
-		return -1;
-	else if (qboolean(aa->shader->materialType == MATERIAL_FIREFLIES) > qboolean(bb->shader->materialType == MATERIAL_FIREFLIES))
-		return 1;
-
-	if (qboolean(aa->shader->materialType == MATERIAL_PORTAL) < qboolean(bb->shader->materialType == MATERIAL_PORTAL))
-		return -1;
-	else if (qboolean(aa->shader->materialType == MATERIAL_PORTAL) > qboolean(bb->shader->materialType == MATERIAL_PORTAL))
-		return 1;
-
-	if (qboolean(aa->shader->materialType == MATERIAL_LAVA) < qboolean(bb->shader->materialType == MATERIAL_LAVA))
-		return -1;
-	else if (qboolean(aa->shader->materialType == MATERIAL_LAVA) > qboolean(bb->shader->materialType == MATERIAL_LAVA))
-		return 1;
-#endif //__FX_SORTING__
-
-#ifdef __WATER_SORTING__
-	// Set up a value to skip stage checks later... does this even run per frame? i shoud actually check probably...
-	if (aa->shader->isWater < bb->shader->isWater)
-		return -1;
-
-	else if (aa->shader->isWater > bb->shader->isWater)
-		return 1;
-#endif //__WATER_SORTING__
-
-#ifdef __ALPHA_SORTING__
 	// Set up a value to skip stage checks later... does this even run per frame? i shoud actually check probably...
 	if (aa->shader->hasAlphaTestBits == 0)
 	{
@@ -2314,12 +2249,12 @@ static int BSPSurfaceCompare(const void *a, const void *b)
 			{
 				aa->shader->hasAlphaTestBits = max(aa->shader->hasAlphaTestBits, 1);
 			}
-			
+
 			if (pStage->alphaGen)
 			{
 				aa->shader->hasAlphaTestBits = max(aa->shader->hasAlphaTestBits, 2);
 			}
-			
+
 			if (aa->shader->hasAlpha)
 			{
 				aa->shader->hasAlphaTestBits = max(aa->shader->hasAlphaTestBits, 3);
@@ -2353,12 +2288,12 @@ static int BSPSurfaceCompare(const void *a, const void *b)
 				bb->shader->hasAlphaTestBits = max(bb->shader->hasAlphaTestBits, 1);
 				break;
 			}
-			
+
 			if (pStage->alphaGen)
 			{
 				bb->shader->hasAlphaTestBits = max(bb->shader->hasAlphaTestBits, 2);
 			}
-			
+
 			if (bb->shader->hasAlpha)
 			{
 				bb->shader->hasAlphaTestBits = max(bb->shader->hasAlphaTestBits, 3);
@@ -2371,25 +2306,6 @@ static int BSPSurfaceCompare(const void *a, const void *b)
 		}
 	}
 
-	// Non-alpha stage shaders should draw first... Hopefully allow for faster pixel depth culling...
-	if (aa->shader->hasAlphaTestBits < bb->shader->hasAlphaTestBits)
-		return -1;
-
-	else if (aa->shader->hasAlphaTestBits > bb->shader->hasAlphaTestBits)
-		return 1;
-#endif //__ALPHA_SORTING__
-
-#ifdef __GRASS_SORTING__
-	// Sort by has geometry grass addition required...
-	if ((aa->shader->materialType == MATERIAL_SHORTGRASS || aa->shader->materialType == MATERIAL_LONGGRASS) < (bb->shader->materialType == MATERIAL_SHORTGRASS || bb->shader->materialType == MATERIAL_LONGGRASS))
-		return -1;
-
-	else if ((aa->shader->materialType == MATERIAL_SHORTGRASS || aa->shader->materialType == MATERIAL_LONGGRASS) > (bb->shader->materialType == MATERIAL_SHORTGRASS || bb->shader->materialType == MATERIAL_LONGGRASS))
-		return 1;
-#endif //__GRASS_SORTING__
-
-#ifdef __SPLATMAP_SORTING__
-	// Splat maps are always solid with no alpha, and nearly always terrain or large objects, so do them first, they should block a lot of pixels...
 	if (aa->shader->hasSplatMaps == 0)
 	{
 		for (int stage = 0; stage <= aa->shader->maxStage && stage < MAX_SHADER_STAGES; stage++)
@@ -2456,71 +2372,28 @@ static int BSPSurfaceCompare(const void *a, const void *b)
 		{
 			bb->shader->hasSplatMaps = -1;
 		}
-
-		// Non-alpha stage shaders should draw first... Hopefully allow for faster pixel depth culling...
-		if (aa->shader->hasSplatMaps < bb->shader->hasSplatMaps)
-			return -1;
-
-		else if (aa->shader->hasSplatMaps > bb->shader->hasSplatMaps)
-			return 1;
 	}
+
+	//
+	// The actual sorting...
+	//
+
+#ifdef __SPLATMAP_SORTING__
+	// Splat maps are always solid with no alpha, and nearly always terrain or large objects, so do them first, they should block a lot of pixels...
+	// Non-alpha stage shaders should draw first... Hopefully allow for faster pixel depth culling...
+	if (aa->shader->hasSplatMaps > bb->shader->hasSplatMaps)
+		return -1;
+	else if (aa->shader->hasSplatMaps < bb->shader->hasSplatMaps)
+		return 1;
 #endif //__SPLATMAP_SORTING__
-	
-#ifdef __MERGED_SORTING__
-	if (aa->isMerged > bb->isMerged)
+
+#ifdef __GRASS_SORTING__
+	// Sort by has geometry grass addition required...
+	if ((aa->shader->materialType == MATERIAL_SHORTGRASS || aa->shader->materialType == MATERIAL_LONGGRASS) > (bb->shader->materialType == MATERIAL_SHORTGRASS || bb->shader->materialType == MATERIAL_LONGGRASS))
 		return -1;
-
-	else if (aa->isMerged < bb->isMerged)
+	else if ((aa->shader->materialType == MATERIAL_SHORTGRASS || aa->shader->materialType == MATERIAL_LONGGRASS) < (bb->shader->materialType == MATERIAL_SHORTGRASS || bb->shader->materialType == MATERIAL_LONGGRASS))
 		return 1;
-#endif //__MERGED_SORTING__
-
-#ifdef __DEPTHDRAW_SORTING__
-	if (aa->depthDrawOnlyFoliage < bb->depthDrawOnlyFoliage)
-		return -1;
-
-	else if (aa->depthDrawOnlyFoliage > bb->depthDrawOnlyFoliage)
-		return 1;
-
-	if (aa->depthDrawOnly < bb->depthDrawOnly)
-		return -1;
-
-	else if (aa->depthDrawOnly > bb->depthDrawOnly)
-		return 1;
-#endif //__DEPTHDRAW_SORTING__
-
-	// sort by actual shader
-	if (aa->shader < bb->shader)
-		return -1;
-
-	else if (aa->shader > bb->shader)
-		return 1;
-
-	// sort by shader sortIndex
-	if (aa->shader->sortedIndex < bb->shader->sortedIndex)
-		return -1;
-
-	else if (aa->shader->sortedIndex > bb->shader->sortedIndex)
-		return 1;
-
-#ifdef __NUMSTAGES_SORTING__
-	// Fewer stage shaders should draw first... Hopefully allow for faster pixel depth culling...
-	if (aa->shader->numStages < bb->shader->numStages)
-		return -1;
-
-	else if (aa->shader->numStages > bb->shader->numStages)
-		return 1;
-#endif //__NUMSTAGES_SORTING__
-
-
-
-#ifdef __GLOW_SORTING__
-	// Non-glow stage shaders should draw first... Hopefully allow for faster pixel depth culling...
-	if (aa->shader->hasGlow < bb->shader->hasGlow)
-		return -1;
-
-	else if (aa->shader->hasGlow > bb->shader->hasGlow)
-		return 1;
-#endif //__GLOW_SORTING__
+#endif //__GRASS_SORTING__
 
 
 #ifdef __TESS_SORTING__
@@ -2535,35 +2408,165 @@ static int BSPSurfaceCompare(const void *a, const void *b)
 
 	if (isTerrainTessEnabled && (aaIsTessTerrain || bbIsTessTerrain))
 	{// Always add tesselation to ground surfaces...
-		if (aaIsTessTerrain < bbIsTessTerrain)
+		if (aaIsTessTerrain > bbIsTessTerrain)
 			return -1;
 
-		else if (aaIsTessTerrain > bbIsTessTerrain)
+		else if (aaIsTessTerrain < bbIsTessTerrain)
 			return 1;
 	}
 	else
 #endif //__TERRAIN_TESSELATION__
-	if (aa->shader->tesselation)
-	{// Check tesselation settings... Draw faster tesselation surfs first...
-		if (aa->shader->tesselationLevel < bb->shader->tesselationLevel)
-			return -1;
+		if (aa->shader->tesselation)
+		{// Check tesselation settings... Draw faster tesselation surfs first...
+			if (aa->shader->tesselationLevel < bb->shader->tesselationLevel)
+				return -1;
 
-		else if (aa->shader->tesselationLevel > bb->shader->tesselationLevel)
-			return 1;
+			else if (aa->shader->tesselationLevel > bb->shader->tesselationLevel)
+				return 1;
 
-		if (aa->shader->tesselationAlpha < bb->shader->tesselationAlpha)
-			return -1;
+			if (aa->shader->tesselationAlpha < bb->shader->tesselationAlpha)
+				return -1;
 
-		else if (aa->shader->tesselationAlpha > bb->shader->tesselationAlpha)
-			return 1;
-	}
+			else if (aa->shader->tesselationAlpha > bb->shader->tesselationAlpha)
+				return 1;
+		}
 #endif //__TESS_SORTING__
+
+
+#ifdef __WATER_SORTING__
+	// Set up a value to skip stage checks later... does this even run per frame? i shoud actually check probably...
+	if (aa->shader->isWater < bb->shader->isWater)
+		return -1;
+	else if (aa->shader->isWater > bb->shader->isWater)
+		return 1;
+#endif //__WATER_SORTING__
+
+
+#ifdef __USE_VBO_AREAS__
+	if (aa->vboArea < bb->vboArea)
+		return -1;
+	else if (aa->vboArea > bb->vboArea)
+		return 1;
+#endif //__USE_VBO_AREAS__
+
+
+#ifdef __FX_SORTING__
+	if (qboolean(aa->shader == tr.sunShader) < qboolean(bb->shader == tr.sunShader))
+		return -1;
+	else if (qboolean(aa->shader == tr.sunShader) > qboolean(bb->shader == tr.sunShader))
+		return 1;
+
+	if (qboolean(aa->shader->materialType == MATERIAL_MENU_BACKGROUND) < qboolean(bb->shader->materialType == MATERIAL_MENU_BACKGROUND))
+		return -1;
+	else if (qboolean(aa->shader->materialType == MATERIAL_MENU_BACKGROUND) > qboolean(bb->shader->materialType == MATERIAL_MENU_BACKGROUND))
+		return 1;
+
+	if (qboolean(aa->shader->materialType == MATERIAL_FIRE) < qboolean(bb->shader->materialType == MATERIAL_FIRE))
+		return -1;
+	else if (qboolean(aa->shader->materialType == MATERIAL_FIRE) > qboolean(bb->shader->materialType == MATERIAL_FIRE))
+		return 1;
+
+	if (qboolean(aa->shader->materialType == MATERIAL_SMOKE) < qboolean(bb->shader->materialType == MATERIAL_SMOKE))
+		return -1;
+	else if (qboolean(aa->shader->materialType == MATERIAL_SMOKE) > qboolean(bb->shader->materialType == MATERIAL_SMOKE))
+		return 1;
+
+	if (qboolean(aa->shader->materialType == MATERIAL_LAVA) < qboolean(bb->shader->materialType == MATERIAL_LAVA))
+		return -1;
+	else if (qboolean(aa->shader->materialType == MATERIAL_LAVA) > qboolean(bb->shader->materialType == MATERIAL_LAVA))
+		return 1;
+
+	if (qboolean(aa->shader->materialType == MATERIAL_MAGIC_PARTICLES) < qboolean(bb->shader->materialType == MATERIAL_MAGIC_PARTICLES))
+		return -1;
+	else if (qboolean(aa->shader->materialType == MATERIAL_MAGIC_PARTICLES) > qboolean(bb->shader->materialType == MATERIAL_MAGIC_PARTICLES))
+		return 1;
+
+	if (qboolean(aa->shader->materialType == MATERIAL_MAGIC_PARTICLES_TREE) < qboolean(bb->shader->materialType == MATERIAL_MAGIC_PARTICLES_TREE))
+		return -1;
+	else if (qboolean(aa->shader->materialType == MATERIAL_MAGIC_PARTICLES_TREE) > qboolean(bb->shader->materialType == MATERIAL_MAGIC_PARTICLES_TREE))
+		return 1;
+
+	if (qboolean(aa->shader->materialType == MATERIAL_FIREFLIES) < qboolean(bb->shader->materialType == MATERIAL_FIREFLIES))
+		return -1;
+	else if (qboolean(aa->shader->materialType == MATERIAL_FIREFLIES) > qboolean(bb->shader->materialType == MATERIAL_FIREFLIES))
+		return 1;
+
+	if (qboolean(aa->shader->materialType == MATERIAL_PORTAL) < qboolean(bb->shader->materialType == MATERIAL_PORTAL))
+		return -1;
+	else if (qboolean(aa->shader->materialType == MATERIAL_PORTAL) > qboolean(bb->shader->materialType == MATERIAL_PORTAL))
+		return 1;
+
+	if (qboolean(aa->shader->materialType == MATERIAL_LAVA) < qboolean(bb->shader->materialType == MATERIAL_LAVA))
+		return -1;
+	else if (qboolean(aa->shader->materialType == MATERIAL_LAVA) > qboolean(bb->shader->materialType == MATERIAL_LAVA))
+		return 1;
+#endif //__FX_SORTING__
+
+
+#ifdef __GLOW_SORTING__
+	// Non-glow stage shaders should draw first... Hopefully allow for faster pixel depth culling...
+	if (aa->shader->hasGlow < bb->shader->hasGlow)
+		return -1;
+	else if (aa->shader->hasGlow > bb->shader->hasGlow)
+		return 1;
+#endif //__GLOW_SORTING__
+
+
+#ifdef __ALPHA_SORTING__
+	// Non-alpha stage shaders should draw first... Hopefully allow for faster pixel depth culling...
+	if (aa->shader->hasAlphaTestBits < bb->shader->hasAlphaTestBits)
+		return -1;
+	else if (aa->shader->hasAlphaTestBits > bb->shader->hasAlphaTestBits)
+		return 1;
+#endif //__ALPHA_SORTING__
+
+
+#ifdef __NUMSTAGES_SORTING__
+	// Fewer stage shaders should draw first... Hopefully allow for faster pixel depth culling...
+	if (aa->shader->numStages < bb->shader->numStages)
+		return -1;
+	else if (aa->shader->numStages > bb->shader->numStages)
+		return 1;
+#endif //__NUMSTAGES_SORTING__
+
+	
+#ifdef __MERGED_SORTING__
+	if (aa->isMerged > bb->isMerged)
+		return -1;
+	else if (aa->isMerged < bb->isMerged)
+		return 1;
+#endif //__MERGED_SORTING__
+
+#ifdef __DEPTHDRAW_SORTING__
+	if (aa->depthDrawOnlyFoliage < bb->depthDrawOnlyFoliage)
+		return -1;
+	else if (aa->depthDrawOnlyFoliage > bb->depthDrawOnlyFoliage)
+		return 1;
+
+	if (aa->depthDrawOnly < bb->depthDrawOnly)
+		return -1;
+	else if (aa->depthDrawOnly > bb->depthDrawOnly)
+		return 1;
+#endif //__DEPTHDRAW_SORTING__
+
+
+	// sort by actual shader
+	if (aa->shader < bb->shader)
+		return -1;
+	else if (aa->shader > bb->shader)
+		return 1;
+
+	// sort by shader sortIndex
+	if (aa->shader->sortedIndex < bb->shader->sortedIndex)
+		return -1;
+	else if (aa->shader->sortedIndex > bb->shader->sortedIndex)
+		return 1;
+
 
 #ifdef __MATERIAL_SORTING__
 	{// Material types.. To minimize changing between geom (grass) versions and non-grass shaders...
 		if (aa->shader->materialType < bb->shader->materialType)
 			return -1;
-
 		else if (aa->shader->materialType > bb->shader->materialType)
 			return 1;
 	}
@@ -2575,7 +2578,6 @@ static int BSPSurfaceCompare(const void *a, const void *b)
 	{
 		if (aa->shader->isIndoor < bb->shader->isIndoor)
 			return -1;
-		
 		else if (aa->shader->isIndoor > bb->shader->isIndoor)
 			return 1;
 	}
@@ -2583,7 +2585,6 @@ static int BSPSurfaceCompare(const void *a, const void *b)
 	{
 		if (aa->shader->isIndoor > bb->shader->isIndoor)
 			return -1;
-
 		else if (aa->shader->isIndoor < bb->shader->isIndoor)
 			return 1;
 	}
@@ -2594,7 +2595,6 @@ static int BSPSurfaceCompare(const void *a, const void *b)
 	// by fogIndex
 	if(aa->fogIndex < bb->fogIndex)
 		return -1;
-
 	else if(aa->fogIndex > bb->fogIndex)
 		return 1;
 #endif //__Q3_FOG__
@@ -2604,7 +2604,6 @@ static int BSPSurfaceCompare(const void *a, const void *b)
 	// by cubemapIndex
 	if(aa->cubemapIndex < bb->cubemapIndex)
 		return -1;
-
 	else if(aa->cubemapIndex > bb->cubemapIndex)
 		return 1;
 #endif //__PLAYER_BASED_CUBEMAPS__
@@ -3051,6 +3050,16 @@ static void R_CreateWorldVBOs(void)
 	}
 
 	qsort(surfacesSorted, numSortedSurfaces, sizeof(*surfacesSorted), BSPSurfaceCompare);
+
+	/*
+	// Debug surface sorting...
+	for (currSurf = surfacesSorted, k = 0; currSurf < &surfacesSorted[numSortedSurfaces]; currSurf++, k++)
+	{
+		srfBspSurface_t *bspSurf = (srfBspSurface_t *)(*currSurf)->data;
+		shader_t *shader = (*currSurf)->shader;
+		ri->Printf(PRINT_WARNING, "QSORT DEBUG: %i - %s.\n", k, shader->name);
+	}
+	*/
 
 #ifdef __USE_VBO_AREAS__
 	k = 0;

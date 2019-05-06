@@ -143,6 +143,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define __SORT_POLYS__							// Sorts polys by shader so when they draw, they get merged...
 
+#define __MERGE_DEPTHPASS_DRAWS__				// Merges non-alpha draws in depth prepass by using defaultshader for them...
+
 #define __FX_SORTING__
 #define __WATER_SORTING__
 #define __ALPHA_SORTING__
@@ -3771,7 +3773,7 @@ typedef struct stageVars
 } stageVars_t;
 
 //#define MAX_MULTIDRAW_PRIMITIVES	16384
-#define MAX_MULTIDRAW_PRIMITIVES	65536
+#define MAX_MULTIDRAW_PRIMITIVES	1048576//65536
 
 struct shaderCommands_s 
 {

@@ -68,6 +68,11 @@ void RB_CheckVBOandIBO(VBO_t *vbo, IBO_t *ibo)
 {
 	if (!(vbo == glState.currentVBO && ibo == glState.currentIBO) || tess.multiDrawPrimitives >= MAX_MULTIDRAW_PRIMITIVES)
 	{
+		if (tess.multiDrawPrimitives >= MAX_MULTIDRAW_PRIMITIVES)
+		{
+			ri->Printf(PRINT_WARNING, "MAX_MULTIDRAW_PRIMITIVES (%i > %i) was hit while drawing shader %s.\n", tess.multiDrawPrimitives, MAX_MULTIDRAW_PRIMITIVES, tess.shader->name);
+		}
+
 		RB_EndSurface();
 		RB_BeginSurface(tess.shader, tess.fogNum, tess.cubemapIndex );
 
@@ -702,6 +707,23 @@ static qboolean RB_SurfaceVbo(VBO_t *vbo, IBO_t *ibo, int numVerts, int numIndex
 		return qfalse;
 	}
 #endif
+
+#ifdef __MERGE_DEPTHPASS_DRAWS__
+	if (backEnd.depthFill)
+	{
+		if (tess.shader->hasAlphaTestBits <= 0 /*|| tess.shader->hasSplatMaps > 0*/ || tess.shader->isSky)
+		{// In depth pass, set all solid draws to defaultshader, so they can all get merged together...
+			/*ri->Printf(PRINT_WARNING, "change: [renderpass: %i] Begin shader %s [hasAlphaTestBits: %i] [hasSplatMaps : %i] [isSky : %s].\n"
+				, (int)backEnd.renderPass
+				, tess.shader->name
+				, tess.shader->hasAlphaTestBits
+				, tess.shader->hasSplatMaps
+				, tess.shader->isSky ? "true" : "false");*/
+
+			tess.shader = tr.defaultShader;
+		}
+	}
+#endif //__MERGE_DEPTHPASS_DRAWS__
 
 	/*if (shaderCheck && previousVBOShader != tess.shader || previousCubemapIndex != tess.cubemapIndex)
 	{// Changed shader, so we need to finish this daw and start a new one...

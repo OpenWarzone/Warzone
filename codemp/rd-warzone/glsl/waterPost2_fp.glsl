@@ -724,19 +724,21 @@ float heightMapTracing(vec3 ori, vec3 dir, out vec3 p) {
     return tmid;
 }
 
-void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMapUpper, bool pixelIsUnderWater ) 
+void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMapUpper, bool pixelIsUnderWater, float wHeight ) 
 {
 	vec3 inColor = fragColor.rgb;
 
 	vec3 ori = u_ViewOrigin.xzy;
+	ori.y -= wHeight;
 	
-	if (length(ori.y - u_ViewOrigin.z) < waveHeight*2.0)
+	//if (length(ori.y - u_ViewOrigin.z) < waveHeight*2.0)
+	/*if (distance(waterMap.y, ori.y) < waveHeight*2.0)
 	{// Correct low angles...
 		if (pixelIsUnderWater)
 			ori.y -= waveHeight*2.0;
 		else
 			ori.y += waveHeight*2.0;
-	}
+	}*/
 
 	vec3 dir = normalize(waterMap.xyz - ori);
 
@@ -787,6 +789,8 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
 	float height = length((p.y - adjustedWMUHeight));
 
     vec3 dist = p - ori; // bteitler: distance vector to ocean surface for this pixel's ray
+	//vec3 dist2 = dist * u_Local0.g;
+	vec3 dist2 = normalize(dist);
 
     // bteitler: Calculate the normal on the ocean surface where we intersected (p), using
     // different "resolution" (in a sense) based on how far away the ray traveled.  Normals close to
@@ -794,7 +798,7 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
     // The reason to do this is that specular effects (or non linear normal based lighting effects) become fairly random at
     // far distances and low resolutions and can cause unpleasant shimmering during motion.
     vec3 n = getNormal(p, 
-             dot(dist,dist)   // bteitler: Think of this as inverse resolution, so far distances get bigger at an expnential rate
+             dot(dist2,dist2)   // bteitler: Think of this as inverse resolution, so far distances get bigger at an expnential rate
                 * EPSILON_NRM // bteitler: Just a resolution constant.. could easily be tweaked to artistic content
            );
 
@@ -806,7 +810,7 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
 	}
 	else
 	{
-		finalPos = p.xyz * -waveHeight;
+		finalPos = p.xyz * waveHeight;
 	}
 
 	float hMap;
@@ -821,9 +825,14 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
 		hMap = positionMap.y;
 	}
 
-	float depth2 = length(mapLevel - hMap) * 1.25;
-	float depth = length(length(positionMap.xyz - finalPos) / (waveHeight * -1.25));
+	//float depth2 = length(mapLevel - hMap) * 1.25;
+	//float depth = length(length(positionMap.xyz - finalPos) / (waveHeight * -1.25));
+	//float depthN = length(depth * fadeSpeed);
+
+	float depth = length(positionMap.xyz - finalPos) * waterClarity * 10000000.0;
+	float depth2 = length(finalPos.y - positionMap.y) * 1000.0;
 	float depthN = length(depth * fadeSpeed);
+	
 
 	float timer = systemtimer * (waveHeight / 16.0);
 	vec2 texCoord = var_TexCoords.xy;
@@ -884,17 +893,7 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
     // which contains a realistic lighting model.  This is basically doing a fog calculation: weighing more the sky color
     // in the distance in an exponential manner.
     
-#if 0
-	/*float seaAlpha = pow(smoothstep(0.0,-0.05,dir.y), 0.3);
-
-	vec3 color = mix(
-        skyColor,
-        seaColor,
-    	seaAlpha // bteitler: Can be thought of as "fog" that gets thicker in the distance
-    );*/
-#else
     vec3 color = seaColor;
-#endif
         
     // Postprocessing
     
@@ -902,7 +901,6 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
     // tweaked artistically.
     fragColor = vec4(pow(color,vec3(0.75)), 1.0);
     
-#if 1
     // CaliCoastReplay:  Adjust hue, saturation, and value adjustment for an even more processed look
     // hsv.x is hue, hsv.y is saturation, and hsv.z is value
     vec3 hsv = rgb2hsv(fragColor.xyz);    
@@ -959,7 +957,7 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
     //CaliCoastReplay:    
     //Replace the final color with the adjusted, translated HSV values
     fragColor.xyz = clamp(hsv2rgb(hsv), 0.0, 1.0);
-#endif
+
 
 	vec3 refraction1 = mix(refraction, fragColor.rgb, clamp(depthN / visibility, 0.0, 1.0));
 	fragColor.rgb = mix(refraction1, fragColor.rgb, clamp((vec3(depth2) / vec3(extinction)), 0.0, 1.0));
@@ -972,6 +970,7 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
 	}
 #endif //defined(USE_REFLECTION) && !defined(__LQ_MODE__)
 
+	/*
 	bool foamAdded = false;
 	bool whitecapAdded = false;
 	vec4 foam = vec4(0.0);
@@ -1006,70 +1005,7 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
 	{
 		fragColor.rgb = clamp(fragColor.rgb + (foam.rgb * foamPower), 0.0, 1.0);
 	}
-
-	/*foamLength = clamp(length(foam.rgb * foamPower), 0.0, 1.0);
-	foamLength = pow(foamLength, 1.5);
-
-	if (foamAdded || depth2 < foamExistence.y)
-	{
-		float ff = 1.0 - clamp(depth2 / foamExistence.y, 0.0, 1.0);
-		ff = clamp(pow(ff, 0.75), 0.0, 1.0);
-		if (foamAdded) ff *= foamLength;
-		fragColor.rgb = mix(fragColor.rgb, refraction.rgb, ff);
-	}*/
-
-	/*
-	// add white caps...
-	//float whiteCaps = pow(clamp(height, 0.0, 1.0), 16.0);
-	//float whiteCaps = pow(clamp(height - 0.75, 0.0, 1.0) * 4.0, 4.0);
-	float whiteCaps = clamp((height - 0.6) * 0.333, 0.0, 1.0);
-	if (whiteCaps > 0.0)
-	{
-		float wcMap = SmoothNoise( finalPos.xzy*0.0005 );
-		fragColor.rgb = fragColor.rgb + (wcMap * whiteCaps);
-	}
-
-	if (USE_OCEAN > 0.0)
-		{// add breaking waves
-			float aboveSeabed = 0.0;
-
-			if (HAVE_HEIGHTMAP > 0.0)
-			{
-				float hMap = GetHeightMap(waterMap.xzy);
-				aboveSeabed = length(waterMap.y - hMap);
-			}
-			else
-			{
-				aboveSeabed = length(waterMap.y - positionMap.y);
-			}
-
-			//float breakingWave = pow(clamp(clamp(height - 0.333, 0.0, 1.0) + clamp((height * height) - 0.25, 0.0, 1.0), 0.0, 1.0), 8.0) * aboveSeabed * max(n.x * 0.5 + 0.5, n.z * 0.5 + 0.5);
-			float breakingWave = 0.0;
-			if (height * waveHeight >= aboveSeabed / (waveHeight / 2.0))
-			{
-				breakingWave = clamp(height * 2.0 - 1.0, 0.0, 1.0);// * max(n.x * 0.5 + 0.5, n.z * 0.5 + 0.5);
-			}
-
-			if (breakingWave > 0.0)
-			{
-				float breakingMap = max(SmoothNoise( finalPos.xzy*0.005 ), SmoothNoise( finalPos.xzy*0.01 ));
-				fragColor.rgb = fragColor.rgb + pow(breakingMap * breakingWave, 1.0);
-
-				//float breakingWhiteCaps = pow(clamp((breakingWave * 0.25) + height * 0.75, 0.0, 1.0), 4.0);
-				//if (breakingWhiteCaps > 0.0)
-				//{
-				//	float wcMap = SmoothNoise( finalPos.xzy*0.0005 );
-				//	fragColor.rgb = fragColor.rgb + (wcMap * breakingWhiteCaps);
-				//}
-			}
-		}
 	*/
-
-	/*if (u_Local0.a == 1.0)
-	{
-		fragColor = vec4(height, height, height, 1.0);
-		return;
-	}*/
 }
 
 void main ( void )
@@ -1146,12 +1082,15 @@ void main ( void )
 
 	if (pixelIsInWaterRange || pixelIsUnderWater || position.y <= waterMapLower.y + waveHeight)
 	{
-		position.y += 72.0;
-		positionMap.y += 72.0;
-		waterMapLower.y += 72.0;
-		waterMapUpper.y += 72.0;
+		float wHeight = waterMapLower.y;
+		waterMapLower.y -= wHeight;
+		waterMapUpper.y -= wHeight;
+		position.y -= wHeight;
+		positionMap.y -= wHeight;
+		position.y -= waveHeight * 0.75; // Move the water level to half way up the possible wave height... So height 0.75 is at the original plane...
+
 		vec4 fragColor = vec4(color.rgb, 1.0);
-		Water( fragColor, vec4(position.xyz, positionMap.a), waterMapLower, waterMapUpper, pixelIsUnderWater );
+		Water( fragColor, vec4(position.xyz, positionMap.a), waterMapLower, waterMapUpper, pixelIsUnderWater, wHeight );
 		color.rgb = fragColor.rgb;
 	}
 
