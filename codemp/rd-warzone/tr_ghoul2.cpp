@@ -4671,28 +4671,19 @@ qboolean R_LoadMDXM( model_t *mod, void *buffer, const char *mod_name, qboolean 
 		LL(mdxm->ofsEnd);
 	}
 
-	if (StringContainsWord(mod_name, "players/malechild") || StringContainsWord(mod_name, "players/boy") || StringContainsWord(mod_name, "players/test"))
+	// first up, go load in the animation file we need that has the skeletal animation info for this model
+	mdxm->animIndex = RE_RegisterModel(va("%s.gla", mdxm->animName));
+
+	if (!mdxm->animIndex)
 	{
 		// Fallback to default...
 		strcpy(mdxm->animName, "models/players/_humanoid/_humanoid.gla");
 		mdxm->animIndex = RE_RegisterModel(mdxm->animName);
-	}
-	else
-	{
-		// first up, go load in the animation file we need that has the skeletal animation info for this model
-		mdxm->animIndex = RE_RegisterModel(va("%s.gla", mdxm->animName));
 
 		if (!mdxm->animIndex)
 		{
-			// Fallback to default...
-			strcpy(mdxm->animName, "models/players/_humanoid/_humanoid.gla");
-			mdxm->animIndex = RE_RegisterModel(mdxm->animName);
-
-			if (!mdxm->animIndex)
-			{
-				Com_Printf(S_COLOR_YELLOW  "R_LoadMDXM: missing animation file %s for mesh %s\n", mdxm->animName, mdxm->name);
-				return qfalse;
-			}
+			Com_Printf(S_COLOR_YELLOW  "R_LoadMDXM: missing animation file %s for mesh %s\n", mdxm->animName, mdxm->name);
+			return qfalse;
 		}
 	}
 
@@ -5132,56 +5123,32 @@ qboolean model_upload_mdxm_to_gpu(model_t *mod, qboolean isKyle) {
 
 			ClearBounds(model_bounds[0], model_bounds[1]);
 
-			if (StringContainsWord(mod->name, "players/malechild") || StringContainsWord(mod->name, "players/boy") || StringContainsWord(mod->name, "players/test"))
+			// See if this model has any weights/bonerefs...
+			for (int n = 0; n < mdxm->numSurfaces; n++)
 			{
-				hasBones = qfalse;
+				// Positions and normals
+				mdxmVertex_t *v = (mdxmVertex_t *)((byte *)surf + surf->ofsVerts);
 
-				// See if this model has any weights/bonerefs...
-				for (int n = 0; n < mdxm->numSurfaces; n++)
+				// Weights
+				for (int k = 0; k < surf->numVerts; k++)
 				{
-					// Positions and normals
-					mdxmVertex_t *v = (mdxmVertex_t *)((byte *)surf + surf->ofsVerts);
+					AddPointToBounds(v[k].vertCoords, model_bounds[0], model_bounds[1]);
 
-					// Weights
-					for (int k = 0; k < surf->numVerts; k++)
+					int numWeights = G2_GetVertWeights(&v[k]);
+
+					if (numWeights > 0)
 					{
-						AddPointToBounds(v[k].vertCoords, model_bounds[0], model_bounds[1]);
+						hasBones = qtrue;
+						//break;
 					}
 				}
-
-				model_size[0] = model_bounds[1][0] - model_bounds[0][0];
-				model_size[1] = model_bounds[1][1] - model_bounds[0][1];
-				model_size[2] = model_bounds[1][2] - model_bounds[0][2];
 			}
-			else
-			{
-				// See if this model has any weights/bonerefs...
-				for (int n = 0; n < mdxm->numSurfaces; n++)
-				{
-					// Positions and normals
-					mdxmVertex_t *v = (mdxmVertex_t *)((byte *)surf + surf->ofsVerts);
 
-					// Weights
-					for (int k = 0; k < surf->numVerts; k++)
-					{
-						AddPointToBounds(v[k].vertCoords, model_bounds[0], model_bounds[1]);
+			model_size[0] = model_bounds[1][0] - model_bounds[0][0];
+			model_size[1] = model_bounds[1][1] - model_bounds[0][1];
+			model_size[2] = model_bounds[1][2] - model_bounds[0][2];
 
-						int numWeights = G2_GetVertWeights(&v[k]);
-
-						if (numWeights > 0)
-						{
-							hasBones = qtrue;
-							//break;
-						}
-					}
-				}
-
-				model_size[0] = model_bounds[1][0] - model_bounds[0][0];
-				model_size[1] = model_bounds[1][1] - model_bounds[0][1];
-				model_size[2] = model_bounds[1][2] - model_bounds[0][2];
-
-				ri->Printf(PRINT_WARNING, "EXPERIMENTAL_AUTO_BONE_WEIGHTING: Model size for %s (anim: %s) is (%f %f %f).\n", mdxm->name, mdxm->name, model_size[0], model_size[1], model_size[2]);
-			}
+			ri->Printf(PRINT_WARNING, "EXPERIMENTAL_AUTO_BONE_WEIGHTING: Model size for %s (anim: %s) is (%f %f %f).\n", mdxm->name, mdxm->name, model_size[0], model_size[1], model_size[2]);
 
 			if (!hasBones)
 			{

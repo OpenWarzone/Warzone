@@ -296,34 +296,9 @@ extern float		currentPlayerCubemapDistance;
 #endif //__PLAYER_BASED_CUBEMAPS__
 #endif
 
-#ifdef __EXPERIMENTAL_TESS_SHADER_MERGE__
-shader_t *oldTessShader = NULL;
-#endif //__EXPERIMENTAL_TESS_SHADER_MERGE__
-
 void RB_EndSurfaceReal(void);
 
 void RB_BeginSurface( shader_t *shader, int fogNum, int cubemapIndex ) {
-#ifdef __EXPERIMENTAL_TESS_SHADER_MERGE__
-	if (tess.numIndexes > 0 || tess.numVertexes > 0)
-	{
-		if (tess.numVertexes + 128 < SHADER_MAX_VERTEXES && tess.numIndexes + (128*6) < SHADER_MAX_INDEXES)
-		{// Leave 128 free slots for now...
-			if (oldTessShader)
-			{
-				if (shader == oldTessShader)
-				{// Merge same shaders...
-					return;
-				}
-
-				if (!(shader->hasAlpha || oldTessShader->hasAlpha) && (backEnd.depthFill || (tr.viewParms.flags & VPF_SHADOWPASS)))
-				{// In shadow and depth draws, if theres no alphas to consider, merge it all...
-					return;
-				}
-			}
-		}
-	}
-#endif //__EXPERIMENTAL_TESS_SHADER_MERGE__
-
 	/*if (backEnd.depthFill)
 	{
 		if (!shader->hasAlphaTestBits || shader->hasSplatMaps || shader->isSky)
@@ -340,11 +315,7 @@ void RB_BeginSurface( shader_t *shader, int fogNum, int cubemapIndex ) {
 
 	if (tess.numIndexes > 0 || tess.numVertexes > 0)
 	{// End any old draws we may not have written...
-#ifdef __EXPERIMENTAL_TESS_SHADER_MERGE__
-		RB_EndSurfaceReal();
-#else //!__EXPERIMENTAL_TESS_SHADER_MERGE__
 		RB_EndSurface();
-#endif //__EXPERIMENTAL_TESS_SHADER_MERGE__
 	}
 
 	shader_t *state = (shader->remappedShader) ? shader->remappedShader : shader;
@@ -448,17 +419,11 @@ void RB_EndSurfaceReal(void) {
 
 	glState.vertexAnimation = qfalse;
 
-#ifdef __EXPERIMENTAL_TESS_SHADER_MERGE__
-	oldTessShader = NULL;
-#endif //__EXPERIMENTAL_TESS_SHADER_MERGE__
-
 	GLimp_LogComment("----------\n");
 }
 
 void RB_EndSurface(void) {
-#ifndef __EXPERIMENTAL_TESS_SHADER_MERGE__
 	RB_EndSurfaceReal();
-#endif //__EXPERIMENTAL_TESS_SHADER_MERGE__
 }
 
 
