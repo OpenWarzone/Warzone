@@ -37,7 +37,7 @@ uniform vec4						u_Settings0; // useTC, useDeform, useRGBA, isTextureClamped
 uniform vec4						u_Settings1; // useVertexAnim, useSkeletalAnim, blendMethod, is2D
 uniform vec4						u_Settings2; // LIGHTDEF_USE_LIGHTMAP, LIGHTDEF_USE_GLOW_BUFFER, LIGHTDEF_USE_CUBEMAP, LIGHTDEF_USE_TRIPLANAR
 uniform vec4						u_Settings3; // LIGHTDEF_USE_REGIONS, LIGHTDEF_IS_DETAIL, 0=DetailMapNormal 1=detailMapFromTC 2=detailMapFromWorld, USE_GLOW_BLEND_MODE
-uniform vec4						u_Settings4; // MAP_LIGHTMAP_MULTIPLIER, MAP_LIGHTMAP_ENHANCEMENT, 0.0, 0.0
+uniform vec4						u_Settings4; // MAP_LIGHTMAP_MULTIPLIER, MAP_LIGHTMAP_ENHANCEMENT, 0.0, PUDDLE_STRENGTH
 uniform vec4						u_Settings5; // MAP_COLOR_SWITCH_RG, MAP_COLOR_SWITCH_RB, MAP_COLOR_SWITCH_GB, 0.0
 
 #define USE_TC						u_Settings0.r
@@ -62,6 +62,7 @@ uniform vec4						u_Settings5; // MAP_COLOR_SWITCH_RG, MAP_COLOR_SWITCH_RB, MAP_
 
 #define MAP_LIGHTMAP_MULTIPLIER		u_Settings4.r
 #define MAP_LIGHTMAP_ENHANCEMENT	u_Settings4.g
+#define PUDDLE_STRENGTH				u_Settings4.a
 
 #define MAP_COLOR_SWITCH_RG			u_Settings5.r
 #define MAP_COLOR_SWITCH_RB			u_Settings5.g
@@ -124,6 +125,8 @@ in precise vec2				TexCoord2_FS_in;
 in precise vec3				Blending_FS_in;
 /*flat*/ in float				Slope_FS_in;
 
+in float					TessDepth_FS_in;
+
 
 #define m_Normal 			normalize(Normal_FS_in.xyz)
 
@@ -137,6 +140,8 @@ in precise vec3				Blending_FS_in;
 
 #define var_Blending		Blending_FS_in
 #define var_Slope			Slope_FS_in
+
+#define m_TessDepth			TessDepth_FS_in
 
 
 #else //!defined(USE_TESSELLATION) && !defined(USE_ICR_CULLING)
@@ -163,6 +168,7 @@ varying float				var_Slope;
 #define m_vertPos			var_vertPos
 #define m_ViewDir			var_ViewDir
 
+#define m_TessDepth			0.0
 
 #endif //defined(USE_TESSELLATION) || defined(USE_ICR_CULLING)
 
@@ -1075,6 +1081,18 @@ void main()
 
 	float maxColor = max(gl_FragColor.r, max(gl_FragColor.g, gl_FragColor.b));
 
+
+	// Wetness testing...
+	float FINAL_MATERIAL = SHADER_MATERIAL_TYPE+1.0;
+	/*if (u_Local9.r <= 1.0 && m_TessDepth > u_Local9.g)
+		FINAL_MATERIAL = MATERIAL_PUDDLE+1;*/
+
+	if (PUDDLE_STRENGTH > 0.0 && !(m_TessDepth > mix(-0.5, -0.2, PUDDLE_STRENGTH)))
+		FINAL_MATERIAL = MATERIAL_PUDDLE+1;
+
+	//if (u_Local9.r > 0.0 && FINAL_MATERIAL == MATERIAL_PUDDLE+1)
+	//	gl_FragColor.rgba = vec4(1.0, 0.0, 0.0, 1.0);
+
 	if (/*USE_GLOW_BUFFER > 1.0 
 		&&*/ (SHADER_MATERIAL_TYPE == MATERIAL_SKYSCRAPER)
 		&& var_Slope > 0 
@@ -1113,7 +1131,7 @@ void main()
 		gl_FragColor.rgb = mix(gl_FragColor.rgb, glowColor.rgb, glowColor.a);
 		gl_FragColor.a = max(gl_FragColor.a, glowColor.a);
 
-		out_Position = vec4(m_vertPos.xyz, SHADER_MATERIAL_TYPE+1.0);
+		out_Position = vec4(m_vertPos.xyz, FINAL_MATERIAL);
 		out_Normal = vec4(vec3(EncodeNormal(N.xyz), 1.0), 1.0 );
 #ifdef __USE_REAL_NORMALMAPS__
 		out_NormalDetail = norm;
@@ -1123,7 +1141,7 @@ void main()
 	{
 		out_Glow = vec4(0.0);
 
-		out_Position = vec4(m_vertPos.xyz, SHADER_MATERIAL_TYPE+1.0);
+		out_Position = vec4(m_vertPos.xyz, FINAL_MATERIAL);
 		out_Normal = vec4( vec3(EncodeNormal(N.xyz), 1.0), 1.0 );
 #ifdef __USE_REAL_NORMALMAPS__
 		out_NormalDetail = norm;

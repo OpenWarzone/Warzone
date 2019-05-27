@@ -2207,6 +2207,9 @@ qboolean RB_WeatherEnabled(void)
 ////////////////////////////////////////////////////////////////////////////////////////
 // RB_RenderWorldEffects - If any particle clouds exist, this will update and render them
 ////////////////////////////////////////////////////////////////////////////////////////
+
+extern float	DYNAMIC_WEATHER_PUDDLE_STRENGTH;
+
 void RB_RenderWorldEffects(void)
 {
 	extern qboolean PROCEDURAL_CLOUDS_DYNAMIC;
@@ -2231,6 +2234,8 @@ void RB_RenderWorldEffects(void)
 		(backEnd.refdef.rdflags & RDF_SKYBOXPORTAL) ||
 		!mParticleClouds.size())
 	{	//  no world rendering or no world or no particle clouds
+		DYNAMIC_WEATHER_PUDDLE_STRENGTH = Q_clamp(0.0, DYNAMIC_WEATHER_PUDDLE_STRENGTH - 0.0001, 1.0);
+		//if (DYNAMIC_WEATHER_PUDDLE_STRENGTH > 0.0) ri->Printf(PRINT_WARNING, "DYNAMIC_WEATHER_PUDDLE_STRENGTH is %f.\n", DYNAMIC_WEATHER_PUDDLE_STRENGTH);
 		return;
 	}
 
@@ -2284,11 +2289,30 @@ void RB_RenderWorldEffects(void)
 			SetViewportAndScissor();
 			GL_SetModelviewMatrix(backEnd.viewParms.world.modelViewMatrix);
 
+			bool isRaining = false;
+
 			for (int i = 0; i < mParticleClouds.size(); i++)
 			{
 				mParticleClouds[i].Update();
 				mParticleClouds[i].Render();
+
+				if (mParticleClouds[i].mWaterParticles)
+				{// Doing rain effect, mark it as active for puddles systems...
+					isRaining = true;
+				}
 			}
+
+			
+			if (isRaining)
+			{
+				DYNAMIC_WEATHER_PUDDLE_STRENGTH = Q_clamp(0.0, DYNAMIC_WEATHER_PUDDLE_STRENGTH + 0.0001, 1.0);
+			}
+			else
+			{
+				DYNAMIC_WEATHER_PUDDLE_STRENGTH = Q_clamp(0.0, DYNAMIC_WEATHER_PUDDLE_STRENGTH - 0.0001, 1.0);
+			}
+
+			//if (DYNAMIC_WEATHER_PUDDLE_STRENGTH > 0.0) ri->Printf(PRINT_WARNING, "DYNAMIC_WEATHER_PUDDLE_STRENGTH is %f.\n", DYNAMIC_WEATHER_PUDDLE_STRENGTH);
 		}
 		
 		if (false)

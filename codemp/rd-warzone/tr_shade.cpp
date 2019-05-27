@@ -56,6 +56,8 @@ extern qboolean		MAP_COLOR_SWITCH_GB;
 
 extern qboolean		ENABLE_CHRISTMAS_EFFECT;
 
+extern float		DYNAMIC_WEATHER_PUDDLE_STRENGTH;
+
 extern qboolean		GRASS_ENABLED;
 extern qboolean		GRASS_UNDERWATER_ONLY;
 extern qboolean		GRASS_RARE_PATCHES_ONLY;
@@ -3376,7 +3378,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					MAP_LIGHTMAP_MULTIPLIER * 0.0075,
 					MAP_LIGHTMAP_ENHANCEMENT,
 					(tess.shader->hasAlphaTestBits || tess.shader->materialType == MATERIAL_GREENLEAVES) ? 1.0 : 0.0, // TODO: MATERIAL_GREENLEAVES because something isnt right with models...
-					0.0);
+					DYNAMIC_WEATHER_PUDDLE_STRENGTH);
 				GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS4, vec);
 
 				VectorSet4(vec,

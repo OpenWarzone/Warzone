@@ -2552,6 +2552,8 @@ extern float		MATERIAL_SPECULAR_REFLECTIVENESS[MATERIAL_LAST];
 
 int					NUM_CURRENT_EMISSIVE_LIGHTS = 0;
 
+extern float		DYNAMIC_WEATHER_PUDDLE_STRENGTH;
+
 void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
 	vec4_t color;
@@ -2819,6 +2821,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 
 	vec4_t local8;
 	VectorSet4(local8, MAP_REFLECTION_ENABLED ? 1.0 : 0.0, MAP_HDR_MIN, MAP_HDR_MAX, MAP_INFO_PLAYABLE_MAXS[2]);
+	if (DYNAMIC_WEATHER_PUDDLE_STRENGTH > 0.0) local8[0] = DYNAMIC_WEATHER_PUDDLE_STRENGTH; // set to DYNAMIC_WEATHER_PUDDLE_STRENGTH when we are drawing puddles, so we can let the shader know...
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL8, local8);
 
 	vec4_t local9;

@@ -40,7 +40,7 @@ uniform vec4								u_Local4; // haveConeAngles, PROCEDURAL_SNOW_LUMINOSITY_CURV
 uniform vec4								u_Local5; // CONTRAST, SATURATION, BRIGHTNESS, TRUEHDR_ENABLED
 uniform vec4								u_Local6; // AO_MINBRIGHT, AO_MULTBRIGHT, VIBRANCY, NightScale
 uniform vec4								u_Local7; // cubemapEnabled, r_cubemapCullRange, PROCEDURAL_SKY_ENABLED, r_skyLightContribution
-uniform vec4								u_Local8; // enableReflections, MAP_HDR_MIN, MAP_HDR_MAX, MAP_INFO_PLAYABLE_MAXS[2]
+uniform vec4								u_Local8; // enableReflections (2 = puddles), MAP_HDR_MIN, MAP_HDR_MAX, MAP_INFO_PLAYABLE_MAXS[2]
 uniform vec4								u_Local9; // PROCEDURAL_SNOW_HEIGHT_CURVE, MAP_USE_PALETTE_ON_SKY, SNOW_ENABLED, PROCEDURAL_SNOW_LOWEST_ELEVATION
 //uniform vec4								u_Local10; // PROCEDURAL_SNOW_LUMINOSITY_CURVE, PROCEDURAL_SNOW_BRIGHTNESS, 0.0, 0.0
 uniform vec4								u_Local11; // PROCEDURAL_CLOUDS_ENABLED, PROCEDURAL_CLOUDS_CLOUDSCALE, PROCEDURAL_CLOUDS_CLOUDCOVER, CLOUDS_SHADOWS_ENABLED
@@ -387,8 +387,8 @@ vec2 RB_PBR_DefaultsForMaterial(float MATERIAL_TYPE)
 		cubeReflectionScale = 0.68;
 		break;
 	case MATERIAL_PUDDLE:
-		specularReflectionScale = 0.1;
-		cubeReflectionScale = 0.7;
+		specularReflectionScale = 0.098;
+		cubeReflectionScale = 0.098;
 		break;
 	case MATERIAL_LAVA:
 		specularReflectionScale = 0.002;
@@ -519,12 +519,14 @@ vec3 TangentFromNormal ( vec3 normal )
 #if defined(__SCREEN_SPACE_REFLECTIONS__)
 #define pw pixel.x
 #define ph pixel.y
-vec3 AddReflection(vec2 coord, vec4 positionMap, vec3 flatNorm, vec3 inColor, float reflectiveness, float ssReflection)
+vec3 AddReflection(vec2 coord, vec4 positionMap, vec3 flatNorm, vec3 inColor, float reflectiveness)
 {
 	if (reflectiveness <= 0.5)
 	{// Top of screen pixel is water, don't check...
 		return inColor;
 	}
+
+	//return vec3(reflectiveness, 0.0, 0.0);
 
 	bool changedToWater = false;
 	vec3 originalPosition;
@@ -1164,7 +1166,8 @@ void main(void)
 
 	vec2 texCoords = var_TexCoords;
 	vec2 materialSettings = RB_PBR_DefaultsForMaterial(position.a-1.0);
-	bool isMetalic = (position.a - 1.0 == MATERIAL_SOLIDMETAL || position.a - 1.0 == MATERIAL_HOLLOWMETAL) ? true : false;
+	//bool isMetalic = (position.a - 1.0 == MATERIAL_SOLIDMETAL || position.a - 1.0 == MATERIAL_HOLLOWMETAL) ? true : false;
+	bool isPuddle = (position.a - 1.0 == MATERIAL_PUDDLE) ? true : false;
 
 	//
 	// Grab and set up our normal value, from lightall buffers, or fallback to offseting the flat normal buffer by pixel luminances, etc...
@@ -1188,6 +1191,12 @@ void main(void)
 	else
 	{
 		ssReflection = clamp(ssReflection - 0.8, 0.0, 0.2) * 5.0;
+	}
+
+	if (isPuddle)
+	{// Puddles always reflect and are considered flat, even if it's just an illusion...
+		ssReflection = 1.0;
+		//flatNorm.z = 1.0;
 	}
 #endif //defined(__SCREEN_SPACE_REFLECTIONS__)
 
@@ -1271,6 +1280,7 @@ void main(void)
 	float lightsReflectionFactor = (greynessFactor * brightnessFactor * specularReflectivePower) * 0.5 + 0.5;
 #if defined(__SCREEN_SPACE_REFLECTIONS__)
 	float ssrReflectivePower = lightsReflectionFactor * reflectionPower * ssReflection;
+	if (isPuddle) ssrReflectivePower = 1.0;
 #endif //defined(__SCREEN_SPACE_REFLECTIONS__)
 
 
@@ -1675,7 +1685,15 @@ void main(void)
 	if (REFLECTIONS_ENABLED > 0.0 && ssrReflectivePower > 0.5 && position.a - 1.0 != MATERIAL_WATER && !changedToWater)
 	{
 #if 1
-		outColor.rgb = AddReflection(texCoords, position, flatNorm, outColor.rgb, ssrReflectivePower, ssReflection);
+		if (isPuddle)
+		{
+			ssrReflectivePower *= REFLECTIONS_ENABLED * 6.0; // 4x - 8x seems about right...
+
+			// Just basic water color addition for now with reflections... Maybe raindrops at some point later...
+			outColor.rgb += vec3(0.0, 0.1, 0.15);// * REFLECTIONS_ENABLED;
+		}
+
+		outColor.rgb = AddReflection(texCoords, position, flatNorm, outColor.rgb, ssrReflectivePower);
 #else
 		/*
 		vec3 rf = reflect(E.xyz, flatNorm.xyz);
