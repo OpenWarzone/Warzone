@@ -763,14 +763,6 @@ void RB_Anamorphic(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 
 void RB_BloomRays(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
-
-	// bloom
-	color[0] =
-		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
-
 	image_t *glowImage = tr.glowFboScaled[0]->colorImage[0];
 
 	GLSL_BindProgram(&tr.bloomRaysShader);
@@ -816,7 +808,7 @@ void RB_BloomRays(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		GLSL_SetUniformVec4(&tr.bloomRaysShader, UNIFORM_LOCAL2, local2);
 	}
 
-	FBO_BlitFromTexture(glowImage, NULL, NULL, tr.volumetricFbo, NULL, &tr.bloomRaysShader, color, 0);
+	FBO_BlitFromTexture(glowImage, NULL, NULL, tr.bloomRaysFbo, NULL, &tr.bloomRaysShader, colorWhite, GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO);
 
 	// Combine render and bloomrays...
 	GLSL_BindProgram(&tr.volumeLightCombineShader);
@@ -828,11 +820,11 @@ void RB_BloomRays(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 	GL_BindToTMU(hdrFbo->colorImage[0], TB_DIFFUSEMAP);
 
 	GLSL_SetUniformInt(&tr.volumeLightCombineShader, UNIFORM_NORMALMAP, TB_NORMALMAP);
-	GL_BindToTMU(tr.volumetricFBOImage, TB_NORMALMAP);
+	GL_BindToTMU(tr.bloomRaysFBOImage, TB_NORMALMAP);
 
 	vec2_t screensize;
-	screensize[0] = tr.volumetricFBOImage->width;
-	screensize[1] = tr.volumetricFBOImage->height;
+	screensize[0] = tr.bloomRaysFBOImage->width;
+	screensize[1] = tr.bloomRaysFBOImage->height;
 	GLSL_SetUniformVec2(&tr.volumeLightCombineShader, UNIFORM_DIMENSIONS, screensize);
 
 	{
@@ -841,7 +833,7 @@ void RB_BloomRays(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		GLSL_SetUniformVec4(&tr.volumeLightCombineShader, UNIFORM_LOCAL1, local1);
 	}
 
-	FBO_Blit(hdrFbo, NULL, NULL, ldrFbo, NULL, &tr.volumeLightCombineShader, color, 0);
+	FBO_Blit(hdrFbo, NULL, NULL, ldrFbo, NULL, &tr.volumeLightCombineShader, colorWhite, GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO);
 }
 
 #if 0
@@ -1381,7 +1373,7 @@ qboolean RB_GenerateVolumeLightImage(void)
 
 
 	//FBO_Blit(hdrFbo, NULL, NULL, tr.volumetricFbo, NULL, shader, color, 0);
-	FBO_BlitFromTexture(tr.anamorphicRenderFBOImage, NULL, NULL, tr.volumetricFbo, NULL, shader, color, 0);
+	FBO_BlitFromTexture(tr.anamorphicRenderFBOImage, NULL, NULL, tr.volumetricFbo, NULL, shader, color, GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO);
 #else //__USING_SHADOW_MAP__
 	FBO_t *oldFbo = glState.currentFBO;
 
@@ -1422,7 +1414,7 @@ qboolean RB_GenerateVolumeLightImage(void)
 	VectorSet4(quadVerts[2], box[2], box[1], 0, 1);
 	VectorSet4(quadVerts[3], box[0], box[1], 0, 1);
 
-	GL_State(GLS_DEPTHTEST_DISABLE);
+	GL_State(GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO);
 
 	GLSL_BindProgram(shader);
 
@@ -1525,11 +1517,6 @@ qboolean RB_VolumetricLight(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_
 	return qfalse; // meh, gonna skip instead and help fps slightly...
 	}*/
 
-	color[0] =
-	color[1] =
-	color[2] = 
-	color[3] = 1.0f;
-
 	// Combine render and volumetrics...
 	GLSL_BindProgram(&tr.volumeLightCombineShader);
 
@@ -1553,7 +1540,7 @@ qboolean RB_VolumetricLight(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_
 		GLSL_SetUniformVec4(&tr.volumeLightCombineShader, UNIFORM_LOCAL1, local1);
 	}
 
-	FBO_Blit(hdrFbo, NULL, NULL, ldrFbo, ldrBox, &tr.volumeLightCombineShader, color, 0);
+	FBO_Blit(hdrFbo, NULL, NULL, ldrFbo, ldrBox, &tr.volumeLightCombineShader, colorWhite, GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO);
 
 	//ri->Printf(PRINT_WARNING, "%i visible dlights. %i total dlights.\n", NUM_CLOSE_VLIGHTS, backEnd.refdef.num_dlights);
 	return qtrue;

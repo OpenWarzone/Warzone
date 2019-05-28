@@ -4424,6 +4424,9 @@ int DetectMaterialType ( const char *name )
 		break;
 	}*/
 
+	if (StringContainsWord(name, "gfx/effects/sabers/saberBlur"))
+		return MATERIAL_EFX;
+
 	if (StringContainsWord(name, "gfx/effects/force_push"))
 		return MATERIAL_DISTORTEDPUSH;
 	if (StringContainsWord(name, "gfx/effects/forcePush"))
@@ -9129,7 +9132,7 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 	{// See if it is warzone enabled by parsing it, if so, use it, otherwise try warzone generic shaders, etc...
 		if (ParseShader(name, &originalShaderText))
 		{
-			if (shader.warzoneEnabled)
+			if (shader.warzoneEnabled || !allowGeneric || forceShaderFileUsage)
 			{// It's a proper warzone shader, use it...
 				sh = FinishShader();
 
@@ -9154,60 +9157,6 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 					ri->Printf(PRINT_WARNING, "AGS SKIPPED because %s shader is a warzoneEnabled shader.\n", strippedName);
 				}
 
-				//findshader_lock.unlock();
-				return sh;
-			}
-			else if (!allowGeneric)
-			{
-				sh = FinishShader();
-
-				switch (sh->materialType)
-				{
-				case MATERIAL_DISTORTEDGLASS:
-					break;
-				case MATERIAL_DISTORTEDPUSH:
-					break;
-				case MATERIAL_DISTORTEDPULL:
-					break;
-				case MATERIAL_CLOAK:
-					break;
-				default:
-					if (isEfxShader && sh->materialType != MATERIAL_MENU_BACKGROUND) sh->materialType = MATERIAL_EFX;
-					if (sh->materialType == MATERIAL_NONE) sh->materialType = material;
-					break;
-				}
-
-				if (r_genericShaderDebug->integer && allowGeneric && !StringContainsWord(name, "models/player") && !StringContainsWord(name, "models/weapon")) // skip this spam for now...
-				{
-					ri->Printf(PRINT_WARNING, "AGS SKIPPED because %s shader is not allowed to use AGS.\n", strippedName);
-				}
-				//findshader_lock.unlock();
-				return sh;
-			}
-			else if (forceShaderFileUsage)
-			{
-				sh = FinishShader();
-
-				switch (sh->materialType)
-				{
-				case MATERIAL_DISTORTEDGLASS:
-					break;
-				case MATERIAL_DISTORTEDPUSH:
-					break;
-				case MATERIAL_DISTORTEDPULL:
-					break;
-				case MATERIAL_CLOAK:
-					break;
-				default:
-					if (isEfxShader && sh->materialType != MATERIAL_MENU_BACKGROUND) sh->materialType = MATERIAL_EFX;
-					if (sh->materialType == MATERIAL_NONE) sh->materialType = material;
-					break;
-				}
-
-				if (r_genericShaderDebug->integer && allowGeneric && !StringContainsWord(name, "models/player") && !StringContainsWord(name, "models/weapon")) // skip this spam for now...
-				{
-					ri->Printf(PRINT_WARNING, "AGS SKIPPED because %s shader is forceShaderFileUsage.\n", strippedName);
-				}
 				//findshader_lock.unlock();
 				return sh;
 			}

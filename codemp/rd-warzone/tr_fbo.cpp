@@ -639,6 +639,16 @@ void FBO_Init(void)
 	}
 
 	//
+	// UQ1's Bloom Rays FBO...
+	//
+	{
+		tr.bloomRaysFbo = FBO_Create("_bloomRays", tr.bloomRaysFBOImage->width, tr.bloomRaysFBOImage->height);
+		FBO_Bind(tr.bloomRaysFbo);
+		FBO_AttachTextureImage(tr.bloomRaysFBOImage, 0);
+		R_CheckFBO(tr.bloomRaysFbo);
+	}
+
+	//
 	// Water Reflection FBO...
 	//
 	{

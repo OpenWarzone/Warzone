@@ -3163,42 +3163,8 @@ void RE_RenderImGui() {
 	scale.y = 1.0;// (float)display_height / (float)height;
 	
 	float x, y;
-#if 0
-	nk_input_begin(&GUI_ctx);
 
-	nk_input_key(&GUI_ctx, NK_KEY_DEL, keyStatus[A_DELETE]);
-	nk_input_key(&GUI_ctx, NK_KEY_ENTER, keyStatus[A_ENTER]);
-	nk_input_key(&GUI_ctx, NK_KEY_TAB, keyStatus[A_TAB]);
-	nk_input_key(&GUI_ctx, NK_KEY_BACKSPACE, keyStatus[A_BACKSPACE]);
-	nk_input_key(&GUI_ctx, NK_KEY_LEFT, keyStatus[A_CURSOR_LEFT]);
-	nk_input_key(&GUI_ctx, NK_KEY_RIGHT, keyStatus[A_CURSOR_RIGHT]);
-	nk_input_key(&GUI_ctx, NK_KEY_UP, keyStatus[A_CURSOR_UP]);
-	nk_input_key(&GUI_ctx, NK_KEY_DOWN, keyStatus[A_CURSOR_DOWN]);
-	nk_input_key(&GUI_ctx, NK_KEY_SHIFT, keyStatus[A_SHIFT]);
-
-	if (keyStatus[A_CTRL] || keyStatus[A_CTRL2])
-	{
-	nk_input_key(&GUI_ctx, NK_KEY_COPY, keyStatus[A_CAP_C] || keyStatus[A_LOW_C]);
-	nk_input_key(&GUI_ctx, NK_KEY_PASTE, keyStatus[A_CAP_P] || keyStatus[A_LOW_P]);
-	nk_input_key(&GUI_ctx, NK_KEY_CUT, keyStatus[A_CAP_X] || keyStatus[A_LOW_X]);
-	nk_input_key(&GUI_ctx, NK_KEY_CUT, keyStatus[A_CAP_E] || keyStatus[A_LOW_E]);
-	nk_input_key(&GUI_ctx, NK_KEY_SHIFT, 1);
-	}
-	else
-	{
-	nk_input_key(&GUI_ctx, NK_KEY_COPY, 0);
-	nk_input_key(&GUI_ctx, NK_KEY_PASTE, 0);
-	nk_input_key(&GUI_ctx, NK_KEY_CUT, 0);
-	nk_input_key(&GUI_ctx, NK_KEY_SHIFT, 0);
-
-	if (keyStatus[A_CTRL] || keyStatus[A_CTRL2])
-	{
-	nk_input_key(&GUI_ctx, NK_KEY_CTRL, 0);
-	}
-	}
-#endif
-
-#if 1//defined(__GNUC__) || defined(MACOS_X)
+#if 0//defined(__GNUC__) || defined(MACOS_X)
 	vec2_t ratio;
 	ratio[0] = (float)glConfig.vidWidth / (float)SCREEN_WIDTH;
 	ratio[1] = (float)glConfig.vidHeight / (float)SCREEN_HEIGHT;
@@ -3221,9 +3187,9 @@ void RE_RenderImGui() {
 
 	imgui_set_mousepos((int)x, (int)y);
 	imgui_set_widthheight(width, height);
-	imgui_mouse_set_button(NK_BUTTON_LEFT, keyStatus[A_MOUSE1]);
-	imgui_mouse_set_button(NK_BUTTON_RIGHT, keyStatus[A_MOUSE2]);
-	imgui_mouse_set_button(NK_BUTTON_MIDDLE, keyStatus[A_MOUSE3]);
+	imgui_mouse_set_button(0, keyStatus[A_MOUSE1]);
+	imgui_mouse_set_button(1, keyStatus[A_MOUSE2]);
+	imgui_mouse_set_button(2, keyStatus[A_MOUSE3]);
 
 /*
  * VK_0 - VK_9 are the same as ASCII '0' - '9' (0x30 - 0x39)
@@ -3258,7 +3224,7 @@ void RE_RenderImGui() {
 	//FBO_Bind(tr.renderGUIFbo);
 	FBO_Bind(NULL);
 	GL_SetDefaultState();
-	GL_State(GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA);;
+	GL_State(GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA);
 	GL_Cull(CT_TWO_SIDED);
 	qglColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 	qglClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -3904,7 +3870,7 @@ void NuklearUI_Main(void)
 #if 1
 	/* Input */
 		{
-			double x, y;
+			float/*double*/ x, y;
 			nk_input_begin(&GUI_ctx);
 
 			nk_input_key(&GUI_ctx, NK_KEY_DEL, keyStatus[A_DELETE]);
@@ -3943,17 +3909,23 @@ void NuklearUI_Main(void)
 			ratio[0] = (float)glConfig.vidWidth / (float)SCREEN_WIDTH;
 			ratio[1] = (float)glConfig.vidHeight / (float)SCREEN_HEIGHT;
 			x = mouseStatus[0] * ratio[0]; y = mouseStatus[1] * ratio[1];
-#else
+#else // Only works when console is open and showing windows pointer... *sigh*
 			POINT p;
 			if (GetCursorPos(&p))
 			{//cursor position now in p.x and p.y
-				//HANDLE hwnd = GetCurrentProcess();
+			 //HANDLE hwnd = GetCurrentProcess();
 				HWND hwnd = GetActiveWindow();
 				if (ScreenToClient(hwnd, &p))
 				{
+					vec2_t ratio;
+					ratio[0] = (float)glConfig.vidWidth / (float)SCREEN_WIDTH;
+					ratio[1] = (float)glConfig.vidHeight / (float)SCREEN_HEIGHT;
+
 					//p.x and p.y are now relative to hwnd's client area
 					x = p.x;
 					y = p.y;
+
+					//ri->Printf(PRINT_WARNING, "X: %f. Y: %f.\n", x, y);
 				}
 			}
 #endif

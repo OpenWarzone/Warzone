@@ -5122,6 +5122,7 @@ void R_CreateBuiltinImages( void ) {
 		tr.bloomRenderFBOImage[2] = R_CreateImage("_bloom2", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
 
 		tr.volumetricFBOImage = R_CreateImage("_volumetric", NULL, (width / 4.0) / vramScaleDiv, (height / 4.0) / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
+		tr.bloomRaysFBOImage = R_CreateImage("_bloomRays", NULL, (width / 4.0) / vramScaleDiv, (height / 4.0) / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
 	}
 	else
 	{
@@ -5132,7 +5133,7 @@ void R_CreateBuiltinImages( void ) {
 		tr.bloomRenderFBOImage[2] = R_CreateImage("_bloom2", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
 
 		tr.volumetricFBOImage = R_CreateImage("_volumetric", NULL, (width / 8.0) / vramScaleDiv, (height / 8.0) / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
-		//tr.volumetricFBOImage = R_CreateImage("_volumetric", NULL, (width / 2.0) / vramScaleDiv, (height / 2.0) / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
+		tr.bloomRaysFBOImage = R_CreateImage("_bloomRays", NULL, (width / 8.0) / vramScaleDiv, (height / 8.0) / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
 	}
 
 	tr.waterReflectionRenderImage = R_CreateImage("_waterReflection", NULL, (width / 4) / vramScaleDiv, (height / 4) / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA16F);

@@ -34,7 +34,7 @@ vec3 ProcessBloomRays(vec2 inTC)
 
 	for (int i = 0; i < 9; i++)
 	{
-		float dist = length(inTC.xy - lightPositions[i]);
+		float dist = distance(inTC.xy, lightPositions[i]);
 		float fall = clamp(BLOOMRAYS_FALLOFF - dist, 0.0, 1.0);
 
 		if (fall > 0.0)
@@ -52,9 +52,11 @@ vec3 ProcessBloomRays(vec2 inTC)
 			{
 				texCoord -= deltaTexCoord;
 
-				if (texCoord.x >= 0.0 && texCoord.x <= 1.0 && texCoord.y >= 0.0 && texCoord.y <= 1.0)
+				vec2 tc = vec2(texCoord.x, 1.0 - texCoord.y);
+
+				if (tc.x >= 0.0 && tc.x <= 1.0 && tc.y >= 0.0 && tc.y <= 1.0)
 				{// Don't bother with lookups outside screen area...
-					vec4 sample2 = texture(u_GlowMap, vec2(texCoord.x, 1.0 - texCoord.y));
+					vec4 sample2 = texture(u_GlowMap, tc);
 
 					float grey = (length(sample2.rgb * sample2.a) / 3.0) * 0.01;
 					AddContrast(grey, 1.175, 0.1);

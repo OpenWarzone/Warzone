@@ -139,7 +139,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 #define __RENDER_PASSES__
 
-#define __SORT_POLYS__							// Sorts polys by shader so when they draw, they get merged...
+//#define __SORT_POLYS__							// Sorts polys by shader so when they draw, they get merged...
 
 #define __MERGE_DEPTHPASS_DRAWS__				// Merges non-alpha draws in depth prepass by using defaultshader for them...
 
@@ -3147,6 +3147,7 @@ typedef struct trGlobals_s {
 	image_t        *anamorphicRenderFBOImage;
 	image_t        *bloomRenderFBOImage[3];
 	image_t        *volumetricFBOImage;
+	image_t        *bloomRaysFBOImage;
 	image_t        *waterReflectionRenderImage;
 	image_t        *genericFBOImage;
 	image_t        *genericFBO2Image;
@@ -3162,6 +3163,7 @@ typedef struct trGlobals_s {
 	FBO_t          *anamorphicRenderFBO;
 	FBO_t          *bloomRenderFBO[3];
 	FBO_t		   *volumetricFbo;
+	FBO_t		   *bloomRaysFbo;
 	FBO_t          *waterReflectionRenderFBO;
 	FBO_t          *txaaPreviousFBO;
 	FBO_t		   *genericFbo;
