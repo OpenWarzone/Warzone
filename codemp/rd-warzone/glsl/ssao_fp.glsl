@@ -95,49 +95,17 @@ vec2 EncodeNormal(vec3 n)
 }
 #endif //__ENCODE_NORMALS_RECONSTRUCT_Z__
 
-#ifdef __FAST_NORMAL_DETAIL__
 vec4 normalVector(vec3 color) {
 	vec4 normals = vec4(color.rgb, length(color.rgb) / 3.0);
 	normals.rgb = vec3(length(normals.r - normals.a), length(normals.g - normals.a), length(normals.b - normals.a));
 
 	// Contrast...
-	//#define normLower ( 128.0 / 255.0 )
-	//#define normUpper (255.0 / 192.0 )
 #define normLower ( 32.0 / 255.0 )
 #define normUpper (255.0 / 212.0 )
 	vec3 N = clamp((clamp(normals.rgb - normLower, 0.0, 1.0)) * normUpper, 0.0, 1.0);
 
 	return vec4(vec3(1.0) - (normalize(pow(N, vec3(4.0))) * 0.5 + 0.5), 1.0 - normals.a);
 }
-#else //!__FAST_NORMAL_DETAIL__
-float getHeight(vec2 uv) {
-  return length(texture(u_DiffuseMap, uv).rgb) / 3.0;
-}
-
-vec4 bumpFromDepth(vec2 uv, vec2 resolution, float scale) {
-  vec2 step = 1. / resolution;
-    
-  float height = getHeight(uv);
-    
-  vec2 dxy = height - vec2(
-      getHeight(uv + vec2(step.x, 0.)), 
-      getHeight(uv + vec2(0., step.y))
-  );
-
-  vec3 N = vec3(dxy * scale / step, 1.);
-
-// Contrast...
-#define normLower ( 128.0 / 255.0 )
-#define normUpper (255.0 / 192.0 )
-  N = clamp((clamp(N - normLower, 0.0, 1.0)) * normUpper, 0.0, 1.0);
-
-  return vec4(normalize(N) * 0.5 + 0.5, height);
-}
-
-vec4 normalVector(vec2 coord) {
-	return bumpFromDepth(coord, u_Dimensions, 0.1 /*scale*/);
-}
-#endif //__FAST_NORMAL_DETAIL__
 
 const vec3 unKernel[32] = vec3[]
 (
@@ -189,8 +157,6 @@ float randZeroOne()
 	return fRes;
 }
 
-//#define __SHADOWS__
-
 float ssao( in vec3 position, in vec2 pixel, in vec3 normal, in float resolution, in float strength, in float minDistance, in float maxDisance )
 {
     vec2  uv  = pixel;
@@ -208,71 +174,15 @@ float ssao( in vec3 position, in vec2 pixel, in vec3 normal, in float resolution
 
 	vLocalSeed = position;
 
-#ifndef __SHADOWS__
 	vec3 ref = unKernel[int(randZeroOne() * 32.0)];
 	//vec3 ref = vec3(u_Local0.r);
-#else //__SHADOWS__
-	vec3 viewDir = normalize(u_Local1.xyz);// normalize(position.xyz - u_ViewOrigin.xyz);
-	vec3 viewDir2 = normalize(position.xyz - u_ViewOrigin.xyz);
-#endif //__SHADOWS__
 
     // accumulate occlusion
     float bl = 0.0;
     for( int i = 0; i < NUM_OCCLUSION_CHECKS; i++ )
     {
-#ifndef __SHADOWS__
 		vec3 of = faceforward( reflect( unKernel[/*i*/int(randZeroOne() * 32.0)], ref ), light, normal );
-		//vec3 of = faceforward( reflect( ref, vec3(float(i / NUM_OCCLUSION_CHECKS) + 1.0) ), light, normal );
-		//vec3 of = reflect(ref * float(i / NUM_OCCLUSION_CHECKS) + 1.0, light);
 		vec2 thisUV = uv + (res * of.xy);
-#else //__SHADOWS__
-		float dir = float(i / NUM_OCCLUSION_CHECKS) + 1.0;
-		
-		vec3 ref = normalize(vec3(dir) * viewDir);
-		vec3 of = ref;// faceforward(ref, light, normal);
-		/*if (u_Local0.g == 1.0)
-			of = faceforward(ref, -light, normal);
-		if (u_Local0.g == 2.0)
-			of = faceforward(ref, light, viewDir);
-		if (u_Local0.g == 3.0)
-			of = faceforward(ref, -light, viewDir);
-		if (u_Local0.g == 4.0)
-			of = faceforward(ref, light, -viewDir);
-		if (u_Local0.g == 5.0)
-			of = faceforward(ref, -light, -viewDir);
-		if (u_Local0.g == 6.0)
-			of = ref * viewDir;
-		if (u_Local0.g == 7.0)
-			of = ref * -viewDir;*/
-
-		if (u_Local0.g == 1.0)
-			of.y *= -1.0;
-
-		//of *= (u_Local0.r == 1.0) ? dot(viewDir, -light) : dot(viewDir, light);
-		//of = normalize(of);
-
-		vec2 thisUV = uv + (res * of.xy * u_Local0.b);
-
-		vec4 pos2 = textureLod(u_PositionMap, uv, 0.0);
-		vec3 viewDir3 = normalize(pos2.xyz - u_ViewOrigin.xyz);
-		//float E2 = dot(viewDir2, light);
-
-		if (distance(viewDir2, viewDir3) > u_Local0.r)
-		{
-			float zd = 1.0;
-			bl += clamp(zd*10.0, 0.1, 1.0)*(1.0 - clamp((zd - 1.0) / 5.0, 0.0, 1.0));
-			numOcclusions += 1.0;
-			continue;
-		}
-
-		/*if (thisUV.y < uv.y)
-		{
-			float zd = 0.5;
-			bl += clamp(zd*10.0, 0.1, 1.0)*(1.0 - clamp((zd - 1.0) / 5.0, 0.0, 1.0));
-			numOcclusions += 1.0;
-			continue;
-		}*/
-#endif //__SHADOWS__
 
 		if (thisUV.x > 1.0 || thisUV.y > 1.0 || thisUV.x < 0.0 || thisUV.y < 0.0)
 		{// Don't sample outside of screen bounds...
@@ -281,26 +191,6 @@ float ssao( in vec3 position, in vec2 pixel, in vec3 normal, in float resolution
 			numOcclusions += 1.0;
 			continue;
 		}
-
-#if 0
-		vec3 uvPos = textureLod(u_PositionMap, thisUV, 0.0).xyz;
-		float uvDist = distance(uvPos, u_PrimaryLightOrigin.xyz);
-
-		if (u_Local0.r == 1.0 && uvDist >= pDist)
-		{// This pixel is further from the light than the original pixel, skip...
-			float zd = 0.5;
-			bl += clamp(zd*10.0, 0.1, 1.0)*(1.0 - clamp((zd - 1.0) / 5.0, 0.0, 1.0));
-			numOcclusions += 1.0;
-			continue;
-		}
-		else if (u_Local0.r == 2.0 && uvDist <= pDist)
-		{// This pixel is closer to the light then the original pixel, skip...
-			float zd = 0.5;
-			bl += clamp(zd*10.0, 0.1, 1.0)*(1.0 - clamp((zd - 1.0) / 5.0, 0.0, 1.0));
-			numOcclusions += 1.0;
-			continue;
-		}
-#endif
 
 		float sz = texture2D( u_ScreenDepthMap, thisUV).x;
 		float zd = (sz-z)*strength;
@@ -343,11 +233,7 @@ void main( void )
 	}
 
 	vec4 norm = textureLod(u_NormalMap, var_ScreenTex, 0.0);
-	//norm.z = sqrt(1.0-dot(norm.xy, norm.xy)); // reconstruct Z from X and Y
-	//norm.z = sqrt(clamp((0.25 - norm.x * norm.x) - norm.y * norm.y, 0.0, 1.0));
 	norm.xyz = DecodeNormal(norm.xy);
-	//norm.z = sqrt(1.0 - dot(norm.xy, norm.xy)); // reconstruct Z from X and Y
-	//norm.xyz = normalize(norm.xyz * 2.0 - 1.0);
 
 #ifdef __USE_DETAIL_NORMALS__
 	if (u_Local0.r > 0.0)
@@ -362,10 +248,6 @@ void main( void )
 			normalDetail = normalVector(var_ScreenTex);
 #endif //__FAST_NORMAL_DETAIL__
 		}
-
-		//normalDetail.rgb = normalize(normalDetail.rgb * 2.0 - 1.0);
-		//normalDetail.rgb *= 0.25;
-		//norm.rgb = norm.rgb + normalDetail.rgb;
 
 		normalDetail.rgb = normalize(clamp(normalDetail.xyz, 0.0, 1.0) * 2.0 - 1.0);
 		norm.rgb = normalize(mix(norm.xyz, normalDetail.xyz, 0.25 * (length(norm.xyz - normalDetail.xyz) / 3.0)));

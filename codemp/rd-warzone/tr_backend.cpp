@@ -3982,10 +3982,14 @@ const void *RB_PostProcess(const void *data)
 		// End UQ1 Added...
 		//
 
+		extern int			MAP_TONEMAP_METHOD;
+		extern qboolean		MAP_TONEMAP_AUTOEXPOSURE;
+		//extern float		MAP_TONEMAP_SPHERICAL_STRENGTH;
+
 		DEBUG_StartTimer("HDR", qtrue);
-		if (r_hdr->integer && (r_toneMap->integer || r_forceToneMap->integer))
+		if (r_hdr->integer && MAP_TONEMAP_METHOD > 0 && (r_toneMap->integer || r_forceToneMap->integer))
 		{
-			autoExposure = (qboolean)(r_autoExposure->integer || r_forceAutoExposure->integer);
+			autoExposure = (qboolean)((r_autoExposure->integer && MAP_TONEMAP_AUTOEXPOSURE) || r_forceAutoExposure->integer);
 			RB_ToneMap(srcFbo, srcBox, NULL, dstBox, autoExposure);
 		}
 		else if (r_cameraExposure->value == 0.0f)
@@ -4003,7 +4007,6 @@ const void *RB_PostProcess(const void *data)
 
 			FBO_Blit(srcFbo, srcBox, NULL, NULL, dstBox, NULL, color, 0);
 		}
-
 		DEBUG_EndTimer(qtrue);
 	}
 

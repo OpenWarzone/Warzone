@@ -1442,7 +1442,7 @@ void CG_RegisterShaders(void)
 	cgs.media.purpleEp3GlowShader = trap->R_RegisterShader("gfx/effects/Ep3Sabers/purple_glowa");
 	//[Movie Sabers]
 #endif
-	cgs.media.saberBlurShader = trap->R_RegisterShader("gfx/effects/sabers/saberBlur");
+	cgs.media.saberBlurShader = trap->R_RegisterShader("gfx/effects/sabers/saberTrail");
 	cgs.media.swordTrailShader = trap->R_RegisterShader("gfx/effects/sabers/swordTrail");
 
 	cgs.media.forceCoronaShader = trap->R_RegisterShaderNoMip("gfx/hud/force_swirl");

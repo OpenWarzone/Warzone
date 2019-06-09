@@ -394,14 +394,17 @@ void main(void)
 
 	vec3 position = texture(u_PositionMap, var_TexCoords).xyz;
 
-	vec3 V = normalize(u_ViewOrigin.xyz - position.xyz).xzy;
-	vec3 L = normalize(u_ViewOrigin.xyz - u_PrimaryLightOrigin.xyz).xzy;
+	vec3 V = normalize(position.xyz - u_ViewOrigin.xyz).xyz;
+	vec3 L = normalize(u_ViewOrigin.xyz - u_PrimaryLightOrigin.xyz).xyz;
 
 	vec3 norm = DecodeNormal(textureLod(u_NormalMap, var_TexCoords, 0.0).xy);
-	vec3 tangent = TangentFromNormal( norm.xzy );
-	vec3 bitangent = normalize( cross(norm.xzy, tangent) );
-	//mat3 tangentToWorld = mat3(tangent.xzy, bitangent.xzy, norm.xzy);
+	//vec3 norm = getViewNormal(var_TexCoords);
+	vec3 tangent = TangentFromNormal( norm.xyz );
+	vec3 bitangent = normalize( cross(norm.xyz, tangent) );
+	//mat3 tangentToWorld = mat3(tangent.xyz, bitangent.xyz, norm.xyz);
 
+	if (u_Local1.b == 0.0)
+	{
 	V = vec3(
 		dot(V, norm),
 		dot(V, tangent),
@@ -413,6 +416,7 @@ void main(void)
 		dot(L, tangent),
 		dot(L, bitangent)
 	);
+	}
 
 	// get new texture coordinates from Parallax Mapping
 	float parallaxHeight;

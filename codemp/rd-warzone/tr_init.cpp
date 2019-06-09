@@ -1538,7 +1538,7 @@ void R_Register( void )
 	r_floatLightmap = ri->Cvar_Get( "r_floatLightmap", "0", CVAR_ARCHIVE | CVAR_LATCH );
 	r_postProcess = ri->Cvar_Get( "r_postProcess", "1", CVAR_ARCHIVE );
 
-	r_toneMap = ri->Cvar_Get( "r_toneMap", "0", CVAR_ARCHIVE | CVAR_LATCH ); // UQ1: Disabled. Pointless.
+	r_toneMap = ri->Cvar_Get( "r_toneMap", "1", CVAR_ARCHIVE ); // UQ1: Disabled. Pointless.
 	r_forceToneMap = ri->Cvar_Get( "r_forceToneMap", "0", CVAR_CHEAT );
 	r_forceToneMapMin = ri->Cvar_Get( "r_forceToneMapMin", "-8.0", CVAR_CHEAT );
 	r_forceToneMapAvg = ri->Cvar_Get( "r_forceToneMapAvg", "-2.0", CVAR_CHEAT );
@@ -1587,7 +1587,7 @@ void R_Register( void )
 	r_imageUpsampleType = ri->Cvar_Get( "r_imageUpsampleType", "1", CVAR_ARCHIVE | CVAR_LATCH );
 	r_genNormalMaps = ri->Cvar_Get( "r_genNormalMaps", "0", CVAR_ARCHIVE | CVAR_LATCH );
 
-	r_glowStrength = ri->Cvar_Get("r_glowStrength", "1.75", CVAR_ARCHIVE);
+	r_glowStrength = ri->Cvar_Get("r_glowStrength", "1.0", CVAR_ARCHIVE);
 	r_glowVibrancy = ri->Cvar_Get("r_glowVibrancy", "1.0", CVAR_ARCHIVE);
 
 	r_dlightShadows = ri->Cvar_Get( "r_dlightShadows", "0", CVAR_ARCHIVE );
@@ -1677,7 +1677,7 @@ void R_Register( void )
 	r_bloomRaysDensity = ri->Cvar_Get("r_bloomRaysDensity", "1.0", CVAR_ARCHIVE);
 	r_bloomRaysStrength = ri->Cvar_Get("r_bloomRaysStrength", "1.0", CVAR_ARCHIVE);
 	r_anamorphic = ri->Cvar_Get( "r_anamorphic", "true", CVAR_ARCHIVE );
-	r_anamorphicStrength = ri->Cvar_Get("r_anamorphicStrength", "0.5", CVAR_ARCHIVE);
+	r_anamorphicStrength = ri->Cvar_Get("r_anamorphicStrength", "1.0", CVAR_ARCHIVE);
 	r_darkexpand = ri->Cvar_Get( "r_darkexpand", "false", CVAR_ARCHIVE );
 	r_truehdr = ri->Cvar_Get( "r_truehdr", "1", CVAR_ARCHIVE );
 	r_magicdetail = ri->Cvar_Get( "r_magicdetail", "true", CVAR_ARCHIVE );
@@ -1909,6 +1909,15 @@ extern void R_WorldEffect_f(void);	//TR_WORLDEFFECTS.CPP
 	ri->Cmd_AddCommand("genroadmap", R_CreateRoadMapImage);
 	ri->Cmd_AddCommand("showtime", R_ShowTime);
 	ri->Cmd_AddCommand("reloadshader", R_ReloadShaderCommand);
+
+
+	// Init glow settings here to convert to new defaults...
+	if (r_glowStrength->value == 1.75)
+		ri->Cvar_SetValue("r_glowStrength", 1.0);
+	if (r_anamorphicStrength->value == 0.5)
+		ri->Cvar_SetValue("r_anamorphicStrength", 1.0);
+	if (r_dynamicGlowIntensity->value == 1.13)
+		ri->Cvar_SetValue("r_dynamicGlowIntensity", 1.3);
 }
 
 void R_InitQueries(void)

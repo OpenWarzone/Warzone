@@ -1,12 +1,13 @@
-uniform sampler2D u_TextureMap;
-uniform sampler2D u_LevelsMap;
+uniform sampler2D	u_TextureMap;
+uniform sampler2D	u_LevelsMap;
 
-uniform vec4      u_Color;
+uniform vec4		u_Color;
+uniform vec4		u_Local0; // tonemapMethod, sphericPower, 0.0, 0.0
 
-uniform vec2      u_AutoExposureMinMax;
-uniform vec3      u_ToneMinAvgMaxLinear;
+uniform vec2		u_AutoExposureMinMax;
+uniform vec3		u_ToneMinAvgMaxLinear;
 
-varying vec2      var_TexCoords;
+varying vec2		var_TexCoords;
 
 const vec3  LUMINANCE_VECTOR =   vec3(0.2125, 0.7154, 0.0721); //vec3(0.299, 0.587, 0.114);
 
@@ -26,7 +27,58 @@ vec3 FilmicTonemap(vec3 x)
 	return ((SSxx + LALSx + TS * TAN) / (SSxx + LSx + TS * TAD)) - TAN / TAD;
 
 	//return ((x*(SS*x+LA*LS)+TS*TAN)/(x*(SS*x+LS)+TS*TAD)) - TAN/TAD;
+}
 
+vec3 HaarmPeterDuikerFilmicToneMapping(in vec3 x)
+{
+	x = max( vec3(0.0), x - 0.004 );
+	return pow( abs( ( x * ( 6.2 * x + 0.5 ) ) / ( x * ( 6.2 * x + 1.7 ) + 0.06 ) ), vec3(2.2) );
+}
+
+vec3 CustomToneMapping(in vec3 x)
+{
+	const float A = 0.665f;
+	const float B = 0.09f;
+	const float C = 0.004f;
+	const float D = 0.445f;
+	const float E = 0.26f;
+	const float F = 0.025f;
+	const float G = 0.16f;//0.145f;
+	const float H = 1.1844f;//1.15f;
+
+    // gamma space or not?
+	return (((x*(A*x+B)+C)/(x*(D*x+E)+F))-G) / H;
+}
+
+vec3 ColorFilmicToneMapping(in vec3 x)
+{
+	// Filmic tone mapping
+	const vec3 A = vec3(0.55f, 0.50f, 0.45f);	// Shoulder strength
+	const vec3 B = vec3(0.30f, 0.27f, 0.22f);	// Linear strength
+	const vec3 C = vec3(0.10f, 0.10f, 0.10f);	// Linear angle
+	const vec3 D = vec3(0.10f, 0.07f, 0.03f);	// Toe strength
+	const vec3 E = vec3(0.01f, 0.01f, 0.01f);	// Toe Numerator
+	const vec3 F = vec3(0.30f, 0.30f, 0.30f);	// Toe Denominator
+	const vec3 W = vec3(2.80f, 2.90f, 3.10f);	// Linear White Point Value
+	const vec3 F_linearWhite = ((W*(A*W+C*B)+D*E)/(W*(A*W+B)+D*F))-(E/F);
+	vec3 F_linearColor = ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-(E/F);
+
+    // gamma space or not?
+	//return pow(clamp(F_linearColor * 1.25 / F_linearWhite, 0.0, 1.0), vec3(1.25));
+	return clamp(F_linearColor * 1.25 / F_linearWhite, 0.0, 1.0);
+}
+
+#define sphericalAmount u_Local0.g //[0.0:2.0] //-Amount of spherical tonemapping applied...sort of
+
+vec3 SphericalPass( vec3 color )
+{
+	vec3 signedColor = clamp(color.rgb, 0.0, 1.0) * 2.0 - 1.0;
+	vec3 sphericalColor = sqrt(vec3(1.0) - signedColor.rgb * signedColor.rgb);
+	sphericalColor = sphericalColor * 0.5 + 0.5;
+	sphericalColor *= color.rgb;
+	color.rgb += sphericalColor.rgb * sphericalAmount;
+	color.rgb *= 0.95;
+	return color;
 }
 
 void main()
@@ -41,8 +93,27 @@ void main()
 	color.rgb *= u_ToneMinAvgMaxLinear.y / avgLum;
 	color.rgb = max(vec3(0.0), color.rgb - vec3(u_ToneMinAvgMaxLinear.x));
 
-	vec3 fWhite = 1.0 / FilmicTonemap(vec3(u_ToneMinAvgMaxLinear.z - u_ToneMinAvgMaxLinear.x));
-	color.rgb = FilmicTonemap(color.rgb) * fWhite;
+	if (u_Local0.r == 1)
+	{
+		color.rgb = SphericalPass(color.rgb);
+	}
+	else if (u_Local0.r == 2)
+	{
+		color.rgb = ColorFilmicToneMapping(color.rgb);
+	}
+	else if (u_Local0.r == 3)
+	{// Watch dogs method...
+		color.rgb = HaarmPeterDuikerFilmicToneMapping(color.rgb);
+	}
+	else if (u_Local0.r == 4)
+	{
+		color.rgb = CustomToneMapping(color.rgb);
+	}
+	else
+	{
+		vec3 fWhite = 1.0 / FilmicTonemap(vec3(u_ToneMinAvgMaxLinear.z - u_ToneMinAvgMaxLinear.x));
+		color.rgb = FilmicTonemap(color.rgb) * fWhite;
+	}
 	
 	gl_FragColor = clamp(color, 0.0, 1.0);
 }

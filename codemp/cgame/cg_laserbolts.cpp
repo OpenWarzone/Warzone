@@ -325,11 +325,13 @@ extern qboolean WP_SaberBladeUseSecondBladeStyle(saberInfo_t *saber, int bladeNu
 
 void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t end, vec3_t *axis_, saber_colors_t scolor, saberTrail_t *saberTrail, int saberNum, int bladeNum)
 {
+#if 1 // Meh, Stoiss thinks we should remove them, and I think I agree...
 	effectTrailArgStruct_t fx;
 
 	if (saberTrail)
 	{// Trails...
-		vec3_t rgb1;
+		vec3_t	rgb1;
+		float	useAlpha = 0.01;
 
 		//saberTrail->duration = 0;
 		saberTrail->duration = saberMoveData[cent->currentState.saberMove].trailLength;
@@ -348,7 +350,7 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 			}
 		}
 
-		trailDur = int(float(trailDur) * cg_saberTrailMult.value);
+		trailDur = int(float(trailDur) * 120.0/*cg_saberTrailMult.value*/);
 
 		// if we happen to be timescaled or running in a high framerate situation, we don't want to flood
 		// the system with very small trail slices...but perhaps doing it by distance would yield better results?
@@ -378,6 +380,7 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 					break;
 				case SABER_BLUE:
 					VectorSet(rgb1, 0.0f, 64.0f, 255.0f);
+					useAlpha = 0.02;
 					break;
 				case SABER_PURPLE:
 					VectorSet(rgb1, 220.0f, 0.0f, 255.0f);
@@ -387,7 +390,7 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 				case SABER_SCRIPTED:
 				case SABER_BLACK:
 				case SABER_WHITE:
-					VectorSet(rgb1, 1.0f, 1.0f, 1.0f);
+					VectorSet(rgb1, 255.0f, 255.0f, 255.0f);
 					break;
 				default:
 					VectorSet(rgb1, 0.0f, 64.0f, 255.0f);
@@ -425,16 +428,17 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 					else
 					{
 						//extern qhandle_t CG_GetSaberBoltColor(saber_colors_t color);
-						//fx.mShader = CG_GetSaberBoltColor((saber_colors_t)scolor);// cgs.media.saberBlurShader;
+						//fx.mShader = CG_GetSaberBoltColor((saber_colors_t)scolor);
+						//VectorCopy(CG_Get3DWeaponBoltLightColor(fx.mShader), rgb1);
 						fx.mShader = cgs.media.saberBlurShader;
 					}
 
-					fx.mKillTime = int(float(trailDur) / cg_saberTrailDecay.value);
+					fx.mKillTime = int(float(trailDur) / 40.0/*cg_saberTrailDecay.value*/);
 					fx.mSetFlags = FX_USE_ALPHA;
 
 					// New muzzle
 					VectorCopy(rgb1, fx.mVerts[0].rgb);
-					fx.mVerts[0].alpha = 255.0f * cg_saberTrailAlpha.value * oldAlpha;
+					fx.mVerts[0].alpha = 255.0f * useAlpha/*cg_saberTrailAlpha.value*/ * oldAlpha;
 
 					fx.mVerts[0].ST[0] = 0.0f;
 					fx.mVerts[0].ST[1] = 1.0f;
@@ -443,7 +447,7 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 
 					// new tip
 					VectorCopy(rgb1, fx.mVerts[1].rgb);
-					fx.mVerts[1].alpha = 255.0f * cg_saberTrailAlpha.value * oldAlpha;
+					fx.mVerts[1].alpha = 255.0f * useAlpha/*cg_saberTrailAlpha.value*/ * oldAlpha;
 
 					fx.mVerts[1].ST[0] = 0.0f;
 					fx.mVerts[1].ST[1] = 0.0f;
@@ -478,4 +482,5 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 			saberTrail->lastTime = cg.time;
 		}
 	}
+#endif
 }

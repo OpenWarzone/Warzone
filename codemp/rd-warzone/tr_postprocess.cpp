@@ -56,6 +56,9 @@ extern float		AO_MULTBRIGHT;
 extern vec3_t		MAP_AMBIENT_CSB;
 extern vec3_t		MAP_AMBIENT_CSB_NIGHT;
 
+extern int			MAP_TONEMAP_METHOD;
+extern float		MAP_TONEMAP_SPHERICAL_STRENGTH;
+
 extern int			NUM_CLOSE_LIGHTS;
 extern int			CLOSEST_LIGHTS[MAX_DEFERRED_LIGHTS];
 extern vec2_t		CLOSEST_LIGHTS_SCREEN_POSITIONS[MAX_DEFERRED_LIGHTS];
@@ -132,11 +135,19 @@ void RB_ToneMap(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox, in
 	color[2] = pow(2, r_cameraExposure->value); //exp2(r_cameraExposure->value);
 	color[3] = 1.0f;
 
+	GLSL_BindProgram(&tr.tonemapShader);
+
 	if (autoExposure)
 		GL_BindToTMU(tr.calcLevelsImage,  TB_LEVELSMAP);
 	else
 		GL_BindToTMU(tr.fixedLevelsImage, TB_LEVELSMAP);
 
+	{
+		vec4_t local0;
+		VectorSet4(local0, (float)MAP_TONEMAP_METHOD, MAP_TONEMAP_SPHERICAL_STRENGTH, 0.0, 0.0);
+		GLSL_SetUniformVec4(&tr.tonemapShader, UNIFORM_LOCAL0, local0);
+	}
+	
 	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.tonemapShader, color, 0);
 }
 
@@ -829,7 +840,7 @@ void RB_BloomRays(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 
 	{
 		vec4_t local1;
-		VectorSet4(local1, backEnd.refdef.floatTime, 0.0 /*is volumelight shader*/, 0.0, 0.0);
+		VectorSet4(local1, backEnd.refdef.floatTime, 0.0 /*is volumelight shader*/, r_testshaderValue1->value, r_testshaderValue2->value);
 		GLSL_SetUniformVec4(&tr.volumeLightCombineShader, UNIFORM_LOCAL1, local1);
 	}
 
@@ -3312,6 +3323,20 @@ void RB_ColorCorrection(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ld
 	{
 		GL_BindToTMU(tr.glowFboScaled[0]->colorImage[0], TB_GLOWMAP);
 	}
+#endif
+
+#if 1
+	extern int			MAP_TONEMAP_METHOD;
+	extern qboolean		MAP_TONEMAP_AUTOEXPOSURE;
+
+	qboolean autoExposure = (qboolean)((r_autoExposure->integer && MAP_TONEMAP_AUTOEXPOSURE) || r_forceAutoExposure->integer);
+
+	GLSL_SetUniformInt(&tr.colorCorrectionShader, UNIFORM_GLOWMAP, TB_GLOWMAP);
+
+	if (autoExposure)
+		GL_BindToTMU(tr.calcLevelsImage, UNIFORM_GLOWMAP);
+	else
+		GL_BindToTMU(tr.fixedLevelsImage, UNIFORM_GLOWMAP);
 #endif
 
 	GLSL_SetUniformMatrix16(&tr.colorCorrectionShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);

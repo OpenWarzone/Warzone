@@ -3,7 +3,7 @@ uniform sampler2D	u_NormalMap;
 
 uniform vec2		u_Dimensions;
 
-uniform vec4		u_Local1; // floatTime, r_testshaderValue1, r_testshaderValue2, r_testshaderValue3
+uniform vec4		u_Local1; // floatTime, isVlight (0 is bloomrays), r_testshaderValue1, r_testshaderValue2
 
 varying vec2		var_ScreenTex;
 
@@ -64,6 +64,11 @@ void main()
 #define const_2 (255.0 / 255.0)
 	volumeLight.rgb = clamp((clamp(volumeLight.rgb - const_1, 0.0, 1.0)) * const_2, 0.0, 1.0);
 #endif
+
+if (u_Local1.g <= 0.0)
+{// Bloom rays get amplified...
+	volumeLight.rgb *= 3.0;
+}
 
 #ifdef DEBUG
 	gl_FragColor.rgb = volumeLight;

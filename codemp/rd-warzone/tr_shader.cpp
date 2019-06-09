@@ -1783,7 +1783,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 					if (stage->emissiveColorScale <= 0.0)
 						stage->emissiveColorScale = 1.5;
 
-					stage->glowStrength = 0.5;
+					stage->glowStrength = 1.0;// 0.5;
 				}
 				//UQ1: END - Testing - Force glow to obvious glow components...
 				continue;
@@ -1961,21 +1961,6 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 #else //!__DEFERRED_IMAGE_LOADING__
 					stage->bundle[TB_GLOWMAP].image[0] = R_FindImageFile(imgname, type, (flags & IMGFLAG_GLOW) ? flags : (flags | IMGFLAG_GLOW));
 #endif //__DEFERRED_IMAGE_LOADING__
-
-					/*if (!stage->bundle[TB_GLOWMAP].image[0] || stage->bundle[TB_GLOWMAP].image[0] == tr.defaultImage)
-					{
-						stippedName[0] = 0;
-						COM_StripExtension(token, stippedName, sizeof(stippedName));
-						sprintf(imgname, "%s_blend", stippedName);
-
-#ifdef __DEFERRED_IMAGE_LOADING__
-						stage->bundle[TB_GLOWMAP].image[0] = R_DeferImageLoad(imgname, type, flags | IMGFLAG_GLOW);
-#else //!__DEFERRED_IMAGE_LOADING__
-						stage->bundle[TB_GLOWMAP].image[0] = R_FindImageFile(imgname, type, (flags & IMGFLAG_GLOW) ? flags : (flags | IMGFLAG_GLOW));
-#endif //__DEFERRED_IMAGE_LOADING__
-
-						stage->glowStrength *= 0.5;
-					}*/
 				}
 
 				if (stage->bundle[TB_GLOWMAP].image[0]
@@ -2017,12 +2002,12 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 
 				if (StringContains(token, "street_light", 0))
 				{// bespin light hack...
-					shader.glowStrength = 0.35357;// 0.275;
+					shader.glowStrength = 1.0;// 0.35357;// 0.275;
 					stage->emissiveRadiusScale = 16.0;
 				}
 				else if (StringContains(token, "sconce", 0))
 				{// bespin light hack...
-					shader.glowStrength = 0.575;
+					shader.glowStrength = 1.0;// 0.575;
 					stage->emissiveRadiusScale = 3.0;
 				}
 
@@ -2098,21 +2083,6 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 #else //!__DEFERRED_IMAGE_LOADING__
 				stage->bundle[TB_GLOWMAP].image[0] = R_FindImageFile(imgname, type, (flags & IMGFLAG_GLOW) ? flags : (flags | IMGFLAG_GLOW));
 #endif //__DEFERRED_IMAGE_LOADING__
-
-				/*if (!stage->bundle[TB_GLOWMAP].image[0] || stage->bundle[TB_GLOWMAP].image[0] == tr.defaultImage)
-				{
-					stippedName[0] = 0;
-					COM_StripExtension(token, stippedName, sizeof(stippedName));
-					sprintf(imgname, "%s_blend", stippedName);
-
-#ifdef __DEFERRED_IMAGE_LOADING__
-					stage->bundle[TB_GLOWMAP].image[0] = R_DeferImageLoad(imgname, type, flags | IMGFLAG_GLOW);
-#else //!__DEFERRED_IMAGE_LOADING__
-					stage->bundle[TB_GLOWMAP].image[0] = R_FindImageFile(imgname, type, (flags & IMGFLAG_GLOW) ? flags : (flags | IMGFLAG_GLOW));
-#endif //__DEFERRED_IMAGE_LOADING__
-
-					stage->glowStrength *= 0.5;
-				}*/
 			}
 
 			if (stage->bundle[TB_GLOWMAP].image[0]
@@ -4424,7 +4394,7 @@ int DetectMaterialType ( const char *name )
 		break;
 	}*/
 
-	if (StringContainsWord(name, "gfx/effects/sabers/saberBlur"))
+	if (StringContainsWord(name, "gfx/effects/sabers/saberTrail"))
 		return MATERIAL_EFX;
 
 	if (StringContainsWord(name, "gfx/effects/force_push"))
@@ -6584,15 +6554,9 @@ static int CollapseStagesToGLSL(void)
 				if (ForceGlow(pStage->bundle[TB_DIFFUSEMAP].image[0]->imgName))
 				{
 					pStage->glow = qtrue;
-					pStage->glowStrength = 0.17142857142857142857142857142857;// 0.15;// 1.0;
+					pStage->glowStrength = 1.0;// 0.17142857142857142857142857142857;// 0.15;// 1.0;
 					if (shader.glowStrength <= 0.0) shader.glowStrength = 1.0;// max(pStage->glowStrength, shader.glowStrength);
 					shader.hasGlow = qtrue;
-
-					/*if (StringContains(pStage->bundle[TB_DIFFUSEMAP].image[0]->imgName, "_blend", 0) && StringContains(pStage->bundle[TB_DIFFUSEMAP].image[0]->imgName, "strip", 0))
-					{
-						pStage->glowStrength = 2.0;
-						shader.glowStrength = max(pStage->glowStrength, shader.glowStrength);
-					}*/
 				}
 			}
 		}
@@ -7892,7 +7856,7 @@ static shader_t *FinishShader(void) {
 	{// If this shader has glows, but still has the default glow strength, amp up the brightness because these are small glow objects...
 		if (StringContainsWord(shader.name, "players/hk"))
 		{// Hacky override for follower hk droids eyes...
-			shader.glowStrength = 48.0;
+			shader.glowStrength = 96.0;// 48.0;
 		}
 		else
 		{
@@ -7906,7 +7870,7 @@ static shader_t *FinishShader(void) {
 
 				if (pStage->glow || pStage->glowMapped)
 				{
-					shader.glowStrength = 2.0;
+					shader.glowStrength = 4.0;// 2.0;
 					break;
 				}
 			}
@@ -8620,7 +8584,7 @@ char uniqueGenericFoliageBillboardShader[] = "{\n"\
 char uniqueGenericFoliageTreeBarkShader[] = "{\n"\
 "qer_editorimage	%s\n"\
 "q3map_material	treebark\n"\
-"glowStrength 0.75\n"\
+"glowStrength 1.5\n"\
 "entityMergable\n"\
 "//tesselation\n"\
 "//tesselationLevel 3.0\n"\
@@ -8664,7 +8628,7 @@ char uniqueGenericRockShader[] = "{\n"\
 "q3map_material	rock\n"\
 "surfaceparm	noimpact\n"\
 "surfaceparm	nomarks\n"\
-"glowStrength 0.75\n"\
+"glowStrength 1.5\n"\
 "entityMergable\n"\
 "{\n"\
 "map %s\n"\
@@ -8685,7 +8649,7 @@ char uniqueGenericPlayerShader[] = "{\n"\
 "surfaceparm	trans\n"\
 "surfaceparm	noimpact\n"\
 "surfaceparm	nomarks\n"\
-"glowStrength 0.75\n"\
+"glowStrength 1.5\n"\
 "entityMergable\n"\
 "tesselation\n"\
 "tesselationLevel 3.0\n"\
@@ -8711,7 +8675,7 @@ char uniqueGenericArmorShader[] = "{\n"\
 "surfaceparm	noimpact\n"\
 "surfaceparm	nomarks\n"\
 "//entityMergable\n"\
-"glowStrength 8.0\n"\
+"glowStrength 16.0\n"\
 "cull	twosided\n"\
 "tesselation\n"\
 "tesselationLevel 3.0\n"\
@@ -8757,7 +8721,7 @@ char uniqueGenericWeaponShader[] = "{\n"\
 "q3map_material	solidmetal\n"\
 "surfaceparm	noimpact\n"\
 "surfaceparm	nomarks\n"\
-"glowStrength 8.0\n"\
+"glowStrength 16.0\n"\
 "cull	twosided\n"\
 "{\n"\
 "map %s\n"\
@@ -8793,7 +8757,7 @@ char uniqueGenericPlayerShader[] = "{\n"\
 "surfaceparm	trans\n"\
 "surfaceparm	noimpact\n"\
 "surfaceparm	nomarks\n"\
-"glowStrength 0.75\n"\
+"glowStrength 1.5\n"\
 "entityMergable\n"\
 "tesselation\n"\
 "tesselationLevel 3.0\n"\
@@ -8818,7 +8782,7 @@ char uniqueGenericArmorShader[] = "{\n"\
 "surfaceparm	noimpact\n"\
 "surfaceparm	nomarks\n"\
 "//entityMergable\n"\
-"glowStrength 8.0\n"\
+"glowStrength 16.0\n"\
 "cull	twosided\n"\
 "tesselation\n"\
 "tesselationLevel 3.0\n"\
@@ -8862,7 +8826,7 @@ char uniqueGenericWeaponShader[] = "{\n"\
 "q3map_material	solidmetal\n"\
 "surfaceparm	noimpact\n"\
 "surfaceparm	nomarks\n"\
-"glowStrength 8.0\n"\
+"glowStrength 16.0\n"\
 "cull	twosided\n"\
 "{\n"\
 "map %s\n"\
@@ -9060,6 +9024,7 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 	//
 	// attempt to define shader from an explicit parameter file
 	//
+	shaderText = NULL;
 	shaderText = FindShaderInShaderText(strippedName);
 
 	qboolean isEfxShader = qfalse;
@@ -9077,7 +9042,6 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 	qboolean		forceShaderFileUsage = qfalse;
 	qboolean		haveImage = qfalse;
 	int				material = DetectMaterialType(name);
-	const char		*originalShaderText = shaderText;
 	qboolean		allowGeneric = R_AllowGenericShader(name, shaderText);
 
 	if (StringContainsWord(strippedName, "gfx/") || StringContainsWord(strippedName, "gfx_base/"))
@@ -9128,9 +9092,14 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 		}
 	}
 
-	if (originalShaderText)
+	if (shaderText)
 	{// See if it is warzone enabled by parsing it, if so, use it, otherwise try warzone generic shaders, etc...
-		if (ParseShader(name, &originalShaderText))
+		if (StringContains((char *)name, "gfx/effects/sabers/saberTrail", 0)) {
+			ri->Printf(PRINT_ALL, "*PARSE SHADER* %s\n", name);
+			ri->Printf(PRINT_ALL, "%s\n", shaderText);
+		}
+
+		if (ParseShader(name, &shaderText))
 		{
 			if (shader.warzoneEnabled || !allowGeneric || forceShaderFileUsage)
 			{// It's a proper warzone shader, use it...
@@ -9155,6 +9124,14 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 				if (r_genericShaderDebug->integer && allowGeneric && !StringContainsWord(name, "models/player") && !StringContainsWord(name, "models/weapon")) // skip this spam for now...
 				{
 					ri->Printf(PRINT_WARNING, "AGS SKIPPED because %s shader is a warzoneEnabled shader.\n", strippedName);
+				}
+
+				if (r_printShaders->integer || r_genericShaderDebug->integer) {
+					ri->Printf(PRINT_ALL, "*NON-AGS warzoneEnabled/forcedUsage SHADER* %s\n", name);
+
+					/*if (StringContains((char *)name, "gfx/effects/sabers/saberTrail", 0)) {
+						ri->Printf(PRINT_ALL, "%s\n", shaderText);
+					}*/
 				}
 
 				//findshader_lock.unlock();
@@ -9184,6 +9161,15 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 				{
 					ri->Printf(PRINT_WARNING, "AGS SKIPPED because %s texture does not exist.\n", strippedName);
 				}
+
+				if (r_printShaders->integer || r_genericShaderDebug->integer) {
+					ri->Printf(PRINT_ALL, "*NON-AGS No-Texture SHADER* %s\n", name);
+
+					/*if (r_printShaders->integer >= 2 || r_genericShaderDebug->integer >= 2) {
+						ri->Printf(PRINT_ALL, "%s\n", shaderText);
+					}*/
+				}
+
 				//findshader_lock.unlock();
 				return sh;
 			}
@@ -9211,11 +9197,25 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 				{
 					ri->Printf(PRINT_WARNING, "AGS SKIPPED because %s original had a glow stage.\n", strippedName);
 				}
+
+				if (r_printShaders->integer || r_genericShaderDebug->integer) {
+					ri->Printf(PRINT_ALL, "*NON-AGS GLOW SHADER* %s\n", name);
+
+					/*if (r_printShaders->integer >= 2 || r_genericShaderDebug->integer >= 2) {
+						ri->Printf(PRINT_ALL, "%s\n", shaderText);
+					}*/
+				}
+
 				//findshader_lock.unlock();
 				return sh;
 			}
 			else
 			{// Not a warzone shader, and is allowed to use AGS, so clear it and let warzone try it's stuff...
+				if (r_genericShaderDebug->integer > 2)
+				{
+					ri->Printf(PRINT_WARNING, "AGS is attempting to create shader for %s.\n", name);
+				}
+
 				// clear the global shader
 				ClearGlobalShader();
 				Q_strncpyz(shader.name, strippedName, sizeof(shader.name));
@@ -9225,6 +9225,17 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 		}
 		else
 		{
+			if (r_genericShaderDebug->integer && allowGeneric && !StringContainsWord(name, "models/player") && !StringContainsWord(name, "models/weapon")) // skip this spam for now...
+			{
+				ri->Printf(PRINT_WARNING, "AGS failed to pass shader %s.\n", name);
+
+				/*if (r_genericShaderDebug->integer > 2)
+				{
+					ri->Printf(PRINT_ALL, "*AGS FAILED SHADER* %s\n", name);
+					ri->Printf(PRINT_ALL, "%s\n", shaderText);
+				}*/
+			}
+
 			// clear the global shader
 			ClearGlobalShader();
 			Q_strncpyz(shader.name, strippedName, sizeof(shader.name));
@@ -9409,7 +9420,7 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 
 					if (r_genericShaderDebug->integer > 2)
 					{
-						ri->Printf(PRINT_ALL, "%s\n", strippedName);
+						ri->Printf(PRINT_ALL, "\n*AGS SHADER* %s\n", strippedName);
 						ri->Printf(PRINT_ALL, "%s\n", myShader);
 					}
 				}
@@ -9425,7 +9436,7 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 			else
 			{
 				ri->Printf(PRINT_WARNING, "AGS generation failed for %s. Detected material %s. Falling back to JKA system. Generated source follows.\n", strippedName, materialNames[material]);
-				ri->Printf(PRINT_WARNING, "%s\n", strippedName);
+				ri->Printf(PRINT_WARNING, "*AGS FAILED SHADER* %s\n", strippedName);
 				ri->Printf(PRINT_WARNING, "%s\n", myShader);
 			}
 		}
@@ -9458,6 +9469,9 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 
 	shader.defaultShader = qfalse;
 
+	shaderText = NULL;
+	shaderText = FindShaderInShaderText(strippedName);
+
 	if (shaderText)
 	{
 		// clear the global shader
@@ -9468,11 +9482,13 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 
 		// enable this when building a pak file to get a global list
 		// of all explicit shaders
-		if (r_printShaders->integer) {
-			ri->Printf(PRINT_ALL, "*SHADER* %s\n", name);
-		}
+		if (r_printShaders->integer || r_genericShaderDebug->integer) {
+			ri->Printf(PRINT_ALL, "*NON-AGS SHADER* %s\n", name);
 
-		//Com_Error(ERR_FATAL, "SHADER LOOKS LIKE:\n%s\n", shaderText);
+			if (r_printShaders->integer >= 2 || r_genericShaderDebug->integer >= 2) {
+				ri->Printf(PRINT_ALL, "%s\n", shaderText);
+			}
+		}
 
 		if (!ParseShader(name, &shaderText))
 		{
@@ -10039,6 +10055,8 @@ static void ScanAndLoadShaderFiles( void )
 			{
 				Com_sprintf( filename, sizeof( filename ), "shaders/%s", shaderFiles[i] );
 			}
+
+			ri->Printf(PRINT_WARNING, "%i: %s.\n", i, filename);
 		}
 
 		ri->Printf( PRINT_DEVELOPER, "...loading '%s'\n", filename );

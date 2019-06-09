@@ -491,8 +491,6 @@ void main()
 
 	gl_Position = u_ModelViewProjectionMatrix * vec4(position, 1.0);
 
-	vec3 preMMPos = position.xyz;
-
 	position = (u_ModelMatrix * vec4(position, 1.0)).xyz;
 	normal = (u_ModelMatrix * vec4(normal, 0.0)).xyz;
 #endif

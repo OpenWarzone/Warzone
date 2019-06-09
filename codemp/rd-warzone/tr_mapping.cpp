@@ -1436,6 +1436,9 @@ float		PROCEDURAL_SNOW_LOWEST_ELEVATION = -999999.9;
 float		PROCEDURAL_SNOW_HEIGHT_CURVE = 1.0;
 float		PROCEDURAL_SNOW_LUMINOSITY_CURVE = 0.35;
 float		PROCEDURAL_SNOW_BRIGHTNESS = 0.5;
+int			MAP_TONEMAP_METHOD = 0;
+qboolean	MAP_TONEMAP_AUTOEXPOSURE = qfalse;
+float		MAP_TONEMAP_SPHERICAL_STRENGTH = 1.0;
 int			LATE_LIGHTING_ENABLED = 0;
 qboolean	MAP_LIGHTMAP_DISABLED = qfalse;
 int			MAP_LIGHTMAP_ENHANCEMENT = 1;
@@ -1789,6 +1792,10 @@ void MAPPING_LoadMapInfo(void)
 	//
 	// Palette...
 	//
+	MAP_TONEMAP_METHOD = atoi(IniRead(mapname, "PALETTE", "MAP_TONEMAP_METHOD", "0"));
+	MAP_TONEMAP_AUTOEXPOSURE = (atoi(IniRead(mapname, "PALETTE", "MAP_TONEMAP_AUTOEXPOSURE", "0")) > 0) ? qtrue : qfalse;
+	MAP_TONEMAP_SPHERICAL_STRENGTH = atof(IniRead(mapname, "PALETTE", "MAP_TONEMAP_SPHERICAL_STRENGTH", "1.0"));
+
 	LATE_LIGHTING_ENABLED = atoi(IniRead(mapname, "PALETTE", "LATE_LIGHTING_ENABLED", "0"));
 	MAP_LIGHTMAP_DISABLED = atoi(IniRead(mapname, "PALETTE", "MAP_LIGHTMAP_DISABLED", "0")) ? qtrue : qfalse;
 	MAP_LIGHTMAP_ENHANCEMENT = atoi(IniRead(mapname, "PALETTE", "MAP_LIGHTMAP_ENHANCEMENT", "1"));
@@ -2692,11 +2699,11 @@ void R_LoadMapInfo(void)
 	if (r_colorCorrection->integer)
 	{
 		// Color Palette... Try to load map based image first...
-		tr.paletteImage = R_FindImageFile(va("maps/%s_palette.png", currentMapName), IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE);
+		tr.paletteImage = R_FindImageFile(va("maps/%s_palette.png", currentMapName), IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_CLAMPTOEDGE);
 
 		if (!tr.paletteImage)
 		{// No map based image? Use default...
-			tr.paletteImage = R_FindImageFile("gfx/palette.png", IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE);
+			tr.paletteImage = R_FindImageFile("gfx/palette.png", IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_CLAMPTOEDGE);
 		}
 
 		if (!tr.paletteImage)

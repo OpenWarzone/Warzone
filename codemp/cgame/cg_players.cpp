@@ -8981,6 +8981,112 @@ void JKG_PlayerDebuffVisuals(centity_t *cent, refEntity_t *refEntity)
 	}
 }
 
+//#define __TESS_OFFSET_TEST__
+
+#ifdef __TESS_OFFSET_TEST__
+#define HASHSCALE1 .1031
+
+float glsl_mix(float x, float y, float a)
+{
+	float inva = 1.0f - a;
+	return x * inva + y * a;
+}
+
+float randomf(vec2_t p)
+{
+	vec3_t p3;
+	p3[0] = (p[0] * HASHSCALE1) - floorf(p[0] * HASHSCALE1);
+	p3[1] = (p[1] * HASHSCALE1) - floorf(p[1] * HASHSCALE1);
+	p3[2] = (p[0] * HASHSCALE1) - floorf(p[0] * HASHSCALE1);
+
+	//p3 += dot(p3, p3.yzx + 19.19);
+	//return fract((p3.x + p3.y) * p3.z);
+
+	vec3_t p4;
+	p4[0] = p3[1] + 19.19;
+	p4[1] = p3[2] + 19.19;
+	p4[2] = p3[0] + 19.19;
+
+	float dp = DotProduct(p3, p4);
+	p3[0] += dp;
+	p3[1] += dp;
+	p3[2] += dp;
+
+	float out;
+	out = (p3[0] + p3[1]) * p3[2];
+	out = out - floorf(out);
+	return out;
+}
+
+// 2D Noise based on Morgan McGuire @morgan3d
+// https://www.shadertoy.com/view/4dS3Wd
+float noise(vec2_t st) {
+	vec2_t i;
+	i[0] = floorf(st[0]);
+	i[1] = floorf(st[1]);
+	vec2_t f;
+	f[0] = st[0] - floorf(st[0]);
+	f[1] = st[1] - floorf(st[1]);
+
+	// Four corners in 2D of a tile
+	float a = randomf(i);
+	vec2_t temp;
+	temp[0] = i[0] + 1.0;
+	temp[1] = i[1] + 0.0;
+	float b = randomf(temp);
+	temp[0] = i[0] + 0.0;
+	temp[1] = i[1] + 1.0;
+	float c = randomf(temp);
+	temp[0] = i[0] + 1.0;
+	temp[1] = i[1] + 1.0;
+	float d = randomf(temp);
+
+	// Smooth Interpolation
+
+	// Cubic Hermine Curve.  Same as SmoothStep()
+	vec2_t u;
+	u[0] = f[0] * f[0] * (3.0 - 2.0*f[0]);
+	u[1] = f[1] * f[1] * (3.0 - 2.0*f[1]);
+
+	// Mix 4 coorners percentages
+	return Q_clamp(0.0, glsl_mix(a, b, u[0] + (c - a) * u[1] * (1.0 - u[0], 1.0) + (d - b) * u[0] * u[1]), 1.0);
+}
+
+float LDHeightForPosition(vec3_t pos)
+{
+	vec2_t p;
+	p[0] = pos[0] * 0.00875;
+	p[1] = pos[1] * 0.00875;
+	return noise(p);
+}
+
+extern float		TERRAIN_TESSELLATION_OFFSET;
+
+float TessellationOffsetForPosition(vec3_t pos)
+{
+	float roadScale = 0.0;// GetRoadFactor(pixel);
+	float SmoothRand = LDHeightForPosition(pos);
+	float offsetScale = SmoothRand * Q_clamp(0.75, 1.0 - roadScale, 1.0);
+
+	float offset = max(offsetScale, roadScale) - 0.5;
+	float finalOffset = offset * 24.0;// TERRAIN_TESSELLATION_OFFSET;
+
+	Com_Printf("pos %i %i %i. offset %f. finalOffset %f.\n", int(pos[0]), int(pos[1]), int(pos[2]), offset, finalOffset);
+	return finalOffset;
+}
+
+float TessellationOffsetForTrace(trace_t trace)
+{
+	//if (trace.startsolid && (trace.materialType == MATERIAL_SHORTGRASS || trace.materialType == MATERIAL_LONGGRASS || trace.materialType == MATERIAL_SAND))
+	{
+		return TessellationOffsetForPosition(trace.endpos);
+	}
+	/*else
+	{
+	return 0.0;
+	}*/
+}
+#endif //__TESS_OFFSET_TEST__
 
 void CG_Player( centity_t *cent ) {
 	clientInfo_t	*ci;
@@ -9034,6 +9140,28 @@ void CG_Player( centity_t *cent ) {
 	{
 		VectorClear(cent->modelScale);
 	}
+
+#ifdef __TESS_OFFSET_TEST__
+	float offsetZ = TessellationOffsetForPosition(cent->lerpOrigin);
+	
+	vec3_t org2;
+	VectorSet(org2, cent->lerpOrigin[0] + 16.0, cent->lerpOrigin[1] + 16.0, cent->lerpOrigin[2]);
+	offsetZ += TessellationOffsetForPosition(org2);
+
+	VectorSet(org2, cent->lerpOrigin[0] - 16.0, cent->lerpOrigin[1] + 16.0, cent->lerpOrigin[2]);
+	offsetZ += TessellationOffsetForPosition(org2);
+
+	VectorSet(org2, cent->lerpOrigin[0] + 16.0, cent->lerpOrigin[1] - 16.0, cent->lerpOrigin[2]);
+	offsetZ += TessellationOffsetForPosition(org2);
+
+	VectorSet(org2, cent->lerpOrigin[0] - 16.0, cent->lerpOrigin[1] - 16.0, cent->lerpOrigin[2]);
+	offsetZ += TessellationOffsetForPosition(org2);
+
+	offsetZ /= 5.0;
+
+	cent->lerpOrigin[2] += offsetZ;
+	cent->currentState.origin[2] += offsetZ;
+#endif //__TESS_OFFSET_TEST__
 
 	if ((cg_smoothClients.integer || cent->currentState.heldByClient) && (cent->currentState.groundEntityNum >= ENTITYNUM_WORLD || cent->currentState.eType == ET_TERRAIN) &&
 		!(cent->currentState.eFlags2 & EF2_HYPERSPACE) && cg.predictedPlayerState.m_iVehicleNum != cent->currentState.number)
