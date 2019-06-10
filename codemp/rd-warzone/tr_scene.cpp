@@ -857,9 +857,10 @@ void RB_UpdateDayNightCycle()
 	if (DAY_NIGHT_UPDATE_TIME < nowTime)
 	{
 		vec4_t sunColor;
-		float Time24h = DAY_NIGHT_CURRENT_TIME*24.0;
 
 		DAY_NIGHT_CURRENT_TIME += (r_dayNightCycleSpeed->value * ri->Cvar_VariableValue("timescale") * DAY_NIGHT_CYCLE_SPEED);
+
+		float Time24h = DAY_NIGHT_CURRENT_TIME*24.0;
 
 		if (Time24h > 24.0)
 		{
@@ -1465,10 +1466,10 @@ void RE_RenderScene(const refdef_t *fd) {
 		{
 			lightDir[0] = 0.0;
 			lightDir[1] = 0.0;
-			if (r_testvalue0->integer < 1)
+			//if (r_testvalue0->integer < 1) // UQ1: ancient debug cvar left in, think this one is right...
 				lightDir[2] = 1.0;
-			else
-				lightDir[2] = -1.0;
+			//else
+			//	lightDir[2] = -1.0;
 			lightDir[3] = 0.0;
 			
 			VectorCopy(backEnd.viewIsOutdoorsHitPosition, lightOrigin);
@@ -1526,10 +1527,11 @@ void RE_RenderScene(const refdef_t *fd) {
 			{
 				vec3_t lightDir2;
 
-				if (r_testvalue0->integer < 1)
+				//if (r_testvalue0->integer < 1)
+				//if (r_testvalue0->integer < 1) // UQ1: ancient debug cvar left in, think this one is right...
 					VectorSubtract(CLOSE_POS[best], tr.refdef.vieworg, lightDir2);
-				else
-					VectorSubtract(tr.refdef.vieworg, CLOSE_POS[best], lightDir2);
+				//else
+				//	VectorSubtract(tr.refdef.vieworg, CLOSE_POS[best], lightDir2);
 
 				VectorNormalize(lightDir2);
 
@@ -1539,10 +1541,10 @@ void RE_RenderScene(const refdef_t *fd) {
 
 				lightDir[0] = 0.0;
 				lightDir[1] = 0.0;
-				if (r_testvalue0->integer < 1)
+				//if (r_testvalue0->integer < 1) // UQ1: ancient debug cvar left in, think this one is right...
 					lightDir[2] = 1.0;
-				else
-					lightDir[2] = -1.0;
+				//else
+				//	lightDir[2] = -1.0;
 
 				lightHeight = CLOSE_POS[best][2] - tr.refdef.vieworg[2];
 				

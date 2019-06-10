@@ -4064,7 +4064,7 @@ const void *RB_PostProcess(const void *data)
 	{
 		vec4i_t dstBox;
 		VectorSet4(dstBox, 256, glConfig.vidHeight - 256, 256, 256);
-		FBO_BlitFromTexture(tr.shadowCubemaps[/* 0 */r_testvalue0->integer], NULL, NULL, NULL, dstBox, NULL, NULL, 0);
+		FBO_BlitFromTexture(tr.shadowCubemaps[0], NULL, NULL, NULL, dstBox, NULL, NULL, 0);
 	}
 
 	if (0)

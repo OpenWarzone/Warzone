@@ -907,6 +907,9 @@ public:
 				//ri->FS_Read(&pointCahceSize, sizeof(uint32_t), f);
 				ri->FS_Read(wz.mPointCache, pointCahceSize, f);
 
+				// Force outside for everything. GLSL shader checks heightmap anyway...
+				//wz.mMarkedOutside = false;
+
 				if (wz.mMarkedOutside)
 					numOutside++;
 				else
@@ -1071,7 +1074,7 @@ public:
 
 		// If no indoor or outdoor brushes were found
 		//--------------------------------------------
-		if (!mCacheInit)
+		//if (!mCacheInit)
 		{
 			mCacheInit = true;
 			SWeatherZone::mMarkedOutside = false;		// Assume All Is Outside, Except Solid
@@ -1099,6 +1102,9 @@ public:
 			for (int zone = 0; zone < mWeatherZones.size(); zone++)
 			{
 				SWeatherZone	wz = mWeatherZones[zone];
+
+				// Force outside for everything. GLSL shader checks heightmap anyway...
+				wz.mMarkedOutside = true;
 
 				ri->FS_Write(&wz.mDepth, sizeof(wz.mDepth), f);
 				ri->FS_Write(&wz.mExtents, sizeof(wz.mExtents), f);
@@ -2236,6 +2242,8 @@ void RB_RenderWorldEffects(void)
 	{	//  no world rendering or no world or no particle clouds
 		DYNAMIC_WEATHER_PUDDLE_STRENGTH = Q_clamp(0.0, DYNAMIC_WEATHER_PUDDLE_STRENGTH - 0.0001, 1.0);
 		//if (DYNAMIC_WEATHER_PUDDLE_STRENGTH > 0.0) ri->Printf(PRINT_WARNING, "DYNAMIC_WEATHER_PUDDLE_STRENGTH is %f.\n", DYNAMIC_WEATHER_PUDDLE_STRENGTH);
+
+		//ri->Printf(PRINT_WARNING, "!mParticleClouds.size()\n");
 		return;
 	}
 

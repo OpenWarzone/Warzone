@@ -2449,7 +2449,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				else
 				{
 					useTesselation = 2;
-					tessInner = max(min(r_terrainTessellationMax->value, r_testvalue0->value/*TERRAIN_TESSELLATION_LEVEL*/), 2.0);
+					tessInner = max(min(r_terrainTessellationMax->value, TERRAIN_TESSELLATION_LEVEL), 2.0);
 					tessOuter = tessInner;
 					tessAlpha = r_testvalue1->value;// TERRAIN_TESSELLATION_OFFSET;
 				}
@@ -3331,6 +3331,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					stateBits &= ~GLS_DSTBLEND_BITS;
 					stateBits |= GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE;
 				}*/
+				else if (/*(stateBits & GLS_SRCBLEND_ONE) &&*/ (stateBits & GLS_DSTBLEND_ONE))
+				{
+					blendMethod = 4.0;
+				}
 #endif
 
 				VectorSet4(vec,

@@ -3,7 +3,7 @@
 uniform sampler2D				u_ScreenDepthMap;
 
 uniform vec4					u_Local0; // r_lensflare, 0.0, r_volumeLightStrength * SUN_VOLUMETRIC_SCALE, SUN_VOLUMETRIC_FALLOFF
-uniform vec4					u_Local1; // nightScale, isVolumelightShader, r_testvalue0->value, r_testvalue1->value
+uniform vec4					u_Local1; // nightScale, isVolumelightShader, 0.0, 0.0
 uniform vec4					u_Local2; // r_testvalue0->value, r_testvalue1->value, r_testvalue2->value, r_testvalue3->value
 
 #define LENS_FLARE_ENABLED		u_Local0.r
@@ -289,7 +289,7 @@ void main()
 	}
 
 #ifdef __LENS_FLARE__
-	if (LENS_FLARE_ENABLED > 0.0)
+	if (LENS_FLARE_ENABLED > 0.0 && shadow > 0.0)
 	{
 		totalColor.rgb += lensflare3D(vDir.xzy, normalize(var_ViewDir2).xzy, lDir.xzy) * shadow * 2.0;
 	}

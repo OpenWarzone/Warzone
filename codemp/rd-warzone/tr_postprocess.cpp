@@ -2039,7 +2039,7 @@ void RB_WaterPost(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 
 		{
 			vec4_t loc;
-			VectorSet4(loc, WATER_COLOR_DEEP[0], WATER_COLOR_DEEP[1], WATER_COLOR_DEEP[2], tr.waterHeightMapImage != tr.whiteImage ? 1.0 : 0.0);
+			VectorSet4(loc, WATER_COLOR_DEEP[0], WATER_COLOR_DEEP[1], WATER_COLOR_DEEP[2], tr.waterHeightMapImage != tr.blackImage ? 1.0 : 0.0);
 			GLSL_SetUniformVec4(shader, UNIFORM_LOCAL3, loc);
 		}
 
@@ -2201,7 +2201,7 @@ void RB_WaterPost(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 
 		{
 			vec4_t loc;
-			VectorSet4(loc, WATER_COLOR_DEEP[0], WATER_COLOR_DEEP[1], WATER_COLOR_DEEP[2], tr.waterHeightMapImage != tr.whiteImage ? 1.0 : 0.0);
+			VectorSet4(loc, WATER_COLOR_DEEP[0], WATER_COLOR_DEEP[1], WATER_COLOR_DEEP[2], tr.waterHeightMapImage != tr.blackImage ? 1.0 : 0.0);
 			GLSL_SetUniformVec4(shader, UNIFORM_LOCAL3, loc);
 		}
 
@@ -2562,7 +2562,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 		color[2] = pow(2, r_cameraExposure->value);
 	color[3] = 1.0f;
 
-	shaderProgram_t *shader = &tr.deferredLightingShader[MAP_LIGHTING_METHOD ? 1 : 0];
+	shaderProgram_t *shader = &tr.deferredLightingShader[(MAP_LIGHTING_METHOD > 2) ? 2 : MAP_LIGHTING_METHOD];
 
 	GLSL_BindProgram(shader);
 
@@ -2594,7 +2594,8 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 	}
 
 	GLSL_SetUniformInt(shader, UNIFORM_GLOWMAP, TB_GLOWMAP);
-	GL_BindToTMU(tr.anamorphicRenderFBOImage, TB_GLOWMAP);
+	//GL_BindToTMU(tr.anamorphicRenderFBOImage, TB_GLOWMAP);
+	GL_BindToTMU(tr.glowFboScaled[0]->colorImage[0], TB_GLOWMAP);
 
 	if (SHADOWS_ENABLED)
 	{
@@ -2819,16 +2820,16 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 
 	vec4_t local8;
 	VectorSet4(local8, MAP_REFLECTION_ENABLED ? 1.0 : 0.0, MAP_HDR_MIN, MAP_HDR_MAX, MAP_INFO_PLAYABLE_MAXS[2]);
-	if (DYNAMIC_WEATHER_PUDDLE_STRENGTH > 0.0) local8[0] = DYNAMIC_WEATHER_PUDDLE_STRENGTH; // set to DYNAMIC_WEATHER_PUDDLE_STRENGTH when we are drawing puddles, so we can let the shader know...
+	if (DYNAMIC_WEATHER_PUDDLE_STRENGTH > 0.0) local8[0] = MAP_REFLECTION_ENABLED ? 1.0 : 0.0; // Need reflections on when it's wet... Unless specifically turned off by cvar...
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL8, local8);
 
 	vec4_t local9;
 	VectorSet4(local9, PROCEDURAL_SNOW_HEIGHT_CURVE * 0.1, MAP_USE_PALETTE_ON_SKY ? 1.0 : 0.0, PROCEDURAL_SNOW_ENABLED ? 1.0 : 0.0, PROCEDURAL_SNOW_LOWEST_ELEVATION);
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL9, local9);
 
-	//vec4_t local10;
-	//VectorSet4(local10, 0.0 /* UNUSED */, 0.0 /* UNUSED */, 0.0 /* UNUSED */, 0.0 /* UNUSED */);
-	//GLSL_SetUniformVec4(shader, UNIFORM_LOCAL10, local10);
+	vec4_t local10;
+	VectorSet4(local10, DYNAMIC_WEATHER_PUDDLE_STRENGTH, 0.0 /* UNUSED */, 0.0 /* UNUSED */, 0.0 /* UNUSED */);
+	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL10, local10);
 
 
 	//

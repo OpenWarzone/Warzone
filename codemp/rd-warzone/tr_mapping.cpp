@@ -1408,6 +1408,7 @@ vec3_t		SUN_COLOR_AMBIENT = { 0.85f };
 qboolean	PROCEDURAL_SKY_ENABLED = qfalse;
 vec3_t		PROCEDURAL_SKY_DAY_COLOR = { 1.0f };
 vec4_t		PROCEDURAL_SKY_NIGHT_COLOR = { 1.0f };
+vec4_t		PROCEDURAL_SKY_SUNSET_COLOR = { 1.0f };
 float		PROCEDURAL_SKY_NIGHT_HDR_MIN = { 1.0f };
 float		PROCEDURAL_SKY_NIGHT_HDR_MAX = { 255.0f };
 int			PROCEDURAL_SKY_STAR_DENSITY = 8;
@@ -1715,6 +1716,11 @@ void MAPPING_LoadMapInfo(void)
 	PROCEDURAL_SKY_DAY_COLOR[0] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_DAY_COLOR_R", "0.2455"));
 	PROCEDURAL_SKY_DAY_COLOR[1] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_DAY_COLOR_G", "0.58"));
 	PROCEDURAL_SKY_DAY_COLOR[2] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_DAY_COLOR_B", "1.0"));
+
+	PROCEDURAL_SKY_SUNSET_COLOR[0] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_SUNSET_COLOR_R", "1.0"));
+	PROCEDURAL_SKY_SUNSET_COLOR[1] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_SUNSET_COLOR_G", "0.7"));
+	PROCEDURAL_SKY_SUNSET_COLOR[2] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_SUNSET_COLOR_B", "0.2"));
+	PROCEDURAL_SKY_SUNSET_COLOR[3] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_SUNSET_STRENGTH", "2.0"));
 
 	PROCEDURAL_SKY_NIGHT_COLOR[0] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_NIGHT_COLOR_R", "1.0"));
 	PROCEDURAL_SKY_NIGHT_COLOR[1] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_NIGHT_COLOR_G", "1.0"));
@@ -2291,7 +2297,7 @@ void MAPPING_LoadMapInfo(void)
 			if (!tr.waterHeightMapImage || tr.waterHeightMapImage == tr.defaultImage)
 			{
 				//ri->Printf(PRINT_ALL, "No waterHeightMap was found.\n");
-				tr.waterHeightMapImage = tr.whiteImage;
+				tr.waterHeightMapImage = tr.blackImage;
 			}
 		}
 	}

@@ -140,6 +140,10 @@ void main()
 			{
 				gl_FragColor.a = 0.0;
 			}
+			else if (USE_BLEND == 4.0)
+			{
+				gl_FragColor.a = 0.0;
+			}
 			else
 			{
 				gl_FragColor.a = 1.0;

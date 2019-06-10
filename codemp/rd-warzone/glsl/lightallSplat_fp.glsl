@@ -1084,11 +1084,29 @@ void main()
 
 	// Wetness testing...
 	float FINAL_MATERIAL = SHADER_MATERIAL_TYPE+1.0;
-	/*if (u_Local9.r <= 1.0 && m_TessDepth > u_Local9.g)
-		FINAL_MATERIAL = MATERIAL_PUDDLE+1;*/
 
-	if (PUDDLE_STRENGTH > 0.0 && !(m_TessDepth > mix(-0.5, -0.2, PUDDLE_STRENGTH)))
+	if (PUDDLE_STRENGTH > 0.0)
+	{// Rain wetness...
+		const float nl = 1.33283;
+		// lower layer
+		const float nr = 2.0;
+
+		float p = 1.0-1.0/(nl*nl)*(1.0-Raverage_approx(nl));
+		vec3 aD = 1.0 - gl_FragColor.rgb;
+		vec3 aW0 = aD * (1.0 - Raverage_approx(nr/nl))/(1.0-Raverage_approx(nr));
+		vec3 aW1 = aD;
+		vec3 aW = (1.0-aD)*aW0 +  aD*aW1;
+		vec3 A = (1.0-Raverage_approx(nl))*aW/(1.0-p*(1.0-aW));
+		vec3 wetDiffuse = 1.0-A;
+		gl_FragColor.rgb = mix(gl_FragColor.rgb, wetDiffuse.rgb, clamp(PUDDLE_STRENGTH * 5.0, 0.0, 1.0));
+		gl_FragColor.rgb = mix(gl_FragColor.rgb, wetDiffuse.rgb, clamp(PUDDLE_STRENGTH * 5.0, 0.0, 1.0));
+		//gl_FragColor.rgb = max(gl_FragColor.rgb - mix(0.0, 0.1, PUDDLE_STRENGTH), 0.0);
+	}
+
+	if (PUDDLE_STRENGTH > 0.0 && !(m_TessDepth > mix(-0.5, -0.2, PUDDLE_STRENGTH)) && N.z * 0.5 + 0.5 >= 0.9999)
+	{// Rain puddles...
 		FINAL_MATERIAL = MATERIAL_PUDDLE+1;
+	}
 
 	//if (u_Local9.r > 0.0 && FINAL_MATERIAL == MATERIAL_PUDDLE+1)
 	//	gl_FragColor.rgba = vec4(1.0, 0.0, 0.0, 1.0);

@@ -42,7 +42,7 @@ uniform vec4								u_Local6; // AO_MINBRIGHT, AO_MULTBRIGHT, VIBRANCY, NightSca
 uniform vec4								u_Local7; // cubemapEnabled, r_cubemapCullRange, PROCEDURAL_SKY_ENABLED, r_skyLightContribution
 uniform vec4								u_Local8; // enableReflections (2 = puddles), MAP_HDR_MIN, MAP_HDR_MAX, MAP_INFO_PLAYABLE_MAXS[2]
 uniform vec4								u_Local9; // PROCEDURAL_SNOW_HEIGHT_CURVE, MAP_USE_PALETTE_ON_SKY, SNOW_ENABLED, PROCEDURAL_SNOW_LOWEST_ELEVATION
-//uniform vec4								u_Local10; // PROCEDURAL_SNOW_LUMINOSITY_CURVE, PROCEDURAL_SNOW_BRIGHTNESS, 0.0, 0.0
+uniform vec4								u_Local10; // WETNESS, 0.0, 0.0, 0.0
 uniform vec4								u_Local11; // PROCEDURAL_CLOUDS_ENABLED, PROCEDURAL_CLOUDS_CLOUDSCALE, PROCEDURAL_CLOUDS_CLOUDCOVER, CLOUDS_SHADOWS_ENABLED
 //uniform vec4								u_Local12; // 0.0, 0.0, 0.0, 0.0
 
@@ -115,8 +115,7 @@ varying float								var_CloudShadow;
 #define SNOW_ENABLED						u_Local9.b
 #define PROCEDURAL_SNOW_LOWEST_ELEVATION	u_Local9.a
 
-//#define PROCEDURAL_SNOW_LUMINOSITY_CURVE	u_Local10.r
-//#define PROCEDURAL_SNOW_BRIGHTNESS			u_Local10.g
+#define WETNESS								u_Local10.r
 
 // CLOUDS
 #define CLOUDS_ENABLED						u_Local11.r
@@ -521,7 +520,7 @@ vec3 TangentFromNormal ( vec3 normal )
 #define ph pixel.y
 vec3 AddReflection(vec2 coord, vec4 positionMap, vec3 flatNorm, vec3 inColor, float reflectiveness)
 {
-	if (reflectiveness <= 0.5)
+	if (reflectiveness <= 0.0)
 	{// Top of screen pixel is water, don't check...
 		return inColor;
 	}
@@ -631,9 +630,13 @@ vec3 AddReflection(vec2 coord, vec4 positionMap, vec3 flatNorm, vec3 inColor, fl
 		return inColor;
 	}
 
-	vec3 glowColor = textureLod(u_GlowMap, vec2(coord.x, upPos), 0.0).rgb;
-	vec3 landColor = textureLod(u_DiffuseMap, vec2(coord.x, upPos), 0.0).rgb;
-	return mix(inColor.rgb, inColor.rgb + landColor.rgb + (glowColor.rgb * 3.5), clamp(strength * reflectiveness * 4.0, 0.0, 1.0));
+	// Offset the final pixel based on the height of the wave at that point, to create randomization...
+	float hoff = proceduralHash(upPos+(u_Time*0.0004)) * 2.0 - 1.0;
+	float offset = hoff * pw;
+
+	vec3 glowColor = textureLod(u_GlowMap, vec2(coord.x + offset, 1.0-upPos), 0.0).rgb;
+	vec3 landColor = textureLod(u_DiffuseMap, vec2(coord.x + offset, upPos), 0.0).rgb;
+	return mix(inColor.rgb, inColor.rgb + landColor.rgb + (glowColor.rgb * /*2.0*/4.0 * reflectiveness), clamp(strength * reflectiveness * 4.0, 0.0, 1.0));
 }
 #endif //defined(__SCREEN_SPACE_REFLECTIONS__)
 
@@ -732,6 +735,11 @@ float getspecularLight(vec3 surfaceNormal, vec3 lightDirection, vec3 viewDirecti
 	return clamp(pow(max(0.0, dot(surfaceNormal, H)), shininess), 0.0, 1.0);
 }
 
+float wetSpecular(vec3 n,vec3 l,vec3 e,float s) {    
+    float nrm = (s + 8.0) / (3.1415 * 8.0);
+    return pow(max(dot(reflect(e,n),l),0.0),s) * nrm;
+}
+
 #if defined(__LQ_MODE__) || defined(__FAST_LIGHTING__)
 float getdiffuse(vec3 n, vec3 l, float p) {
 	float ndotl = clamp(dot(n, l), 0.5, 0.9);
@@ -739,7 +747,7 @@ float getdiffuse(vec3 n, vec3 l, float p) {
 	//return pow(dot(n, l) * 0.4 + 0.6, p);
 }
 
-vec3 blinn_phong(vec3 pos, vec3 color, vec3 normal, vec3 view, vec3 light, vec3 diffuseColor, vec3 specularColor, float specPower, vec3 lightPos) {
+vec3 blinn_phong(vec3 pos, vec3 color, vec3 normal, vec3 bump, vec3 view, vec3 light, vec3 diffuseColor, vec3 specularColor, float specPower, vec3 lightPos, float wetness) {
 	// Ambient light.
 	float ambience = 4.0;// 0.25;
 
@@ -749,8 +757,46 @@ vec3 blinn_phong(vec3 pos, vec3 color, vec3 normal, vec3 view, vec3 light, vec3 
 	// Specular lighting.
 	float fre = clamp(pow(clamp(dot(normal, -view) + 1.0, 0.0, 1.0), -2.0), 0.0, 1.0);
 	float spec = pow(max(dot(reflect(-light, normal), view), 0.0), 1.2);
+	float wetSpec = 0.0;
 
-	return (clamp(diffuseColor, 0.0, 1.0) * ambience) + (clamp(diffuseColor, 0.0, 1.0) * diff) + (clamp(specularColor, 0.0, 1.0) * spec * fre);
+	if (wetness > 0.0)
+	{// Increase specular strength when the ground is wet during/after rain...
+		wetSpec = wetSpecular(bump, -light, view, 256.0) * wetness * 0.5;
+	}
+
+	return (clamp(diffuseColor, 0.0, 1.0) * ambience) + (clamp(diffuseColor, 0.0, 1.0) * diff) + (clamp(specularColor, 0.0, 1.0) * spec * fre) + (clamp(specularColor, 0.0, 1.0) * wetSpec);
+}
+#elif defined(__NAYAR_LIGHTING__)
+float orenNayar( in vec3 n, in vec3 v, in vec3 ldir, float specPower )
+{
+    float r2 = pow(specPower, 2.0);
+    float a = 1.0 - 0.5*(r2/(r2+0.57));
+    float b = 0.45*(r2/(r2+0.09));
+
+    float nl = dot(n, ldir);
+    float nv = dot(n, v);
+
+    float ga = dot(v-n*nv,n-n*nl);
+
+	return max(0.0,nl) * (a + b*max(0.0,ga) * sqrt((1.0-nv*nv)*(1.0-nl*nl)) / max(nl, nv));
+}
+
+vec3 blinn_phong(vec3 pos, vec3 color, vec3 normal, vec3 bump, vec3 view, vec3 light, vec3 diffuseColor, vec3 specularColor, float specPower, vec3 lightPos, float wetness) {
+	float base = orenNayar( normal, view, light, specPower * 3.0 ) * 10.0;
+
+	vec3 reflection = normalize(reflect(view, normal));
+    float specular = clamp(pow(clamp(dot(light, reflection),0.0,1.0),25.0),0.0,1.0);
+
+	float wetSpec = 0.0;
+
+	if (wetness > 0.0)
+	{// Increase specular strength when the ground is wet during/after rain...
+		wetSpec = wetSpecular(bump, -light, view, 256.0) * wetness * 0.5;
+		wetSpec += wetSpecular(bump, -light, view, 4.0) * wetness * 8.0;
+		wetSpec *= 0.5;
+	}
+	
+	return specularColor*specular + base*specularColor*color + specularColor*.0125 + specularColor*wetSpec;
 }
 #else //!defined(__LQ_MODE__) || defined(__FAST_LIGHTING__)
 float specTrowbridgeReitz(float HoN, float a, float aP)
@@ -846,7 +892,7 @@ float getdiffuse(vec3 n, vec3 l, float p) {
 	return pow(ndotl, p);
 }
 
-vec3 blinn_phong(vec3 pos, vec3 color, vec3 normal, vec3 view, vec3 light, vec3 diffuseColor, vec3 specularColor, float specPower, vec3 lightPos) {
+vec3 blinn_phong(vec3 pos, vec3 color, vec3 normal, vec3 bump, vec3 view, vec3 light, vec3 diffuseColor, vec3 specularColor, float specPower, vec3 lightPos, float wetness) {
 	float noise = proceduralNoise(pos.xyx) * 0.5;
 	noise += proceduralNoise(pos.yzx * 0.5);
 	noise += proceduralNoise(pos.zxy * 0.25) * 2.0;
@@ -888,7 +934,14 @@ vec3 blinn_phong(vec3 pos, vec3 color, vec3 normal, vec3 view, vec3 light, vec3 
 	
 	spec = pow(spec, 1.0 / 2.2) * specPower * 256.0;
 
-	return (clamp(diffuseColor, 0.0, 1.0) * ambience) + (clamp(diffuseColor, 0.0, 1.0) * diff) + (clamp(specularColor, 0.0, 1.0) * clamp(albedo, 0.0, 1.0) * spec);
+	float wetSpec = 0.0;
+
+	if (wetness > 0.0)
+	{// Increase specular strength when the ground is wet during/after rain...
+		wetSpec = wetSpecular(bump, -light, view, 256.0) * wetness * 0.5;
+	}
+
+	return (clamp(diffuseColor, 0.0, 1.0) * ambience) + (clamp(diffuseColor, 0.0, 1.0) * diff) + (clamp(specularColor, 0.0, 1.0) * clamp(albedo, 0.0, 1.0) * spec) + (clamp(specularColor, 0.0, 1.0) * clamp(albedo, 0.0, 1.0) * wetSpec);
 }
 #endif //defined(__LQ_MODE__) || defined(__FAST_LIGHTING__)
 
@@ -1169,6 +1222,7 @@ void main(void)
 	//bool isMetalic = (position.a - 1.0 == MATERIAL_SOLIDMETAL || position.a - 1.0 == MATERIAL_HOLLOWMETAL) ? true : false;
 	bool isPuddle = (position.a - 1.0 == MATERIAL_PUDDLE) ? true : false;
 
+
 	//
 	// Grab and set up our normal value, from lightall buffers, or fallback to offseting the flat normal buffer by pixel luminances, etc...
 	//
@@ -1196,7 +1250,6 @@ void main(void)
 	if (isPuddle)
 	{// Puddles always reflect and are considered flat, even if it's just an illusion...
 		ssReflection = 1.0;
-		//flatNorm.z = 1.0;
 	}
 #endif //defined(__SCREEN_SPACE_REFLECTIONS__)
 
@@ -1222,6 +1275,34 @@ void main(void)
 	//vec3 bump = normalize(mix(norm.xyz, normalDetail.xyz, u_Local3.a * (length(norm.xyz - normalDetail.xyz) / 3.0)));
 	vec3 bump = normalize(mix(norm.xyz, normalDetail.xyz, 0.5 * (length((norm.xyz * 0.5 + 0.5) - (normalDetail.xyz * 0.5 + 0.5)) / 3.0)));
 	norm.rgb = normalize(mix(norm.xyz, normalDetail.xyz, 0.25 * (length((norm.xyz * 0.5 + 0.5) - (normalDetail.xyz * 0.5 + 0.5)) / 3.0)));
+
+	float wetness = 0.0;
+
+	if (WETNESS > 0.0)
+	{
+		if ((position.a - 1.0 == MATERIAL_PUDDLE)
+			|| (position.a - 1.0 == MATERIAL_TREEBARK)
+			|| (position.a - 1.0 == MATERIAL_GREENLEAVES)
+			|| (position.a - 1.0 == MATERIAL_SHORTGRASS)
+			|| (position.a - 1.0 == MATERIAL_LONGGRASS)
+			|| (position.a - 1.0 == MATERIAL_ROCK)
+			|| (position.a - 1.0 == MATERIAL_SAND)
+			|| (position.a - 1.0 == MATERIAL_DIRT)
+			|| (position.a - 1.0 == MATERIAL_MUD))
+		{
+			// Hmm. this really should check for splat mapped pixels, but I dont have buffer room, and dont want to add a new screen buffer
+			// unless I must... For now i'll use materials that generally get splat mapped, but should not be used indoors...
+			wetness = WETNESS;
+
+#if defined(__SCREEN_SPACE_REFLECTIONS__)
+			// Allow only fairly flat surfaces for reflections...
+			if (norm.z * 0.5 + 0.5 >= 0.8)
+			{
+				ssReflection = WETNESS;
+			}
+#endif //defined(__SCREEN_SPACE_REFLECTIONS__)
+		}
+	}
 
 	// If we ever need a tangent/bitangent, we can get one like this... But I'm just working in world directions, so it's not required...
 	//vec3 tangent = TangentFromNormal( norm.xyz );
@@ -1280,7 +1361,9 @@ void main(void)
 	float lightsReflectionFactor = (greynessFactor * brightnessFactor * specularReflectivePower) * 0.5 + 0.5;
 #if defined(__SCREEN_SPACE_REFLECTIONS__)
 	float ssrReflectivePower = lightsReflectionFactor * reflectionPower * ssReflection;
-	if (isPuddle) ssrReflectivePower = 1.0;
+	if (isPuddle) ssrReflectivePower = WETNESS * 3.0; // 3x - 8x seems about right...
+	else if (wetness > 0.0) ssrReflectivePower = ssReflection * 0.333;
+	else if (ssrReflectivePower < 0.5) ssrReflectivePower = 0.0; // cull on non-wet stuff, when theres little point...
 #endif //defined(__SCREEN_SPACE_REFLECTIONS__)
 
 
@@ -1600,7 +1683,7 @@ void main(void)
 
 				lightColor.rgb *= lightsReflectionFactor * phongFactor * origColorStrength * 8.0;
 
-				vec3 blinn = blinn_phong(position.xyz, outColor.rgb, N, E, normalize(-sunDir), lightColor * 0.06, lightColor, 1.0, u_PrimaryLightOrigin.xyz);
+				vec3 blinn = blinn_phong(position.xyz, outColor.rgb, N, bump, E, normalize(-sunDir), lightColor * 0.06, lightColor, 1.0, u_PrimaryLightOrigin.xyz, wetness);
 				lightColor.rgb += blinn;
 
 				outColor.rgb = outColor.rgb + max(lightColor * PshadowValue * finalShadow, vec3(0.0));
@@ -1668,7 +1751,7 @@ void main(void)
 
 								addedLight.rgb += lightColor * lightStrength * 0.333 * selfShadow;
 
-								vec3 blinn = blinn_phong(position.xyz, outColor.rgb, N, E, lightDir, lightColor * 0.06, lightColor, mix(0.1, 0.5, clamp(lightsReflectionFactor, 0.0, 1.0)) * clamp(lightStrength * phongFactor, 0.0, 1.0), lightPos) * lightFade * selfShadow;
+								vec3 blinn = blinn_phong(position.xyz, outColor.rgb, N, bump, E, lightDir, lightColor * 0.06, lightColor, mix(0.1, 0.5, clamp(lightsReflectionFactor, 0.0, 1.0)) * clamp(lightStrength * phongFactor, 0.0, 1.0), lightPos, wetness) * lightFade * selfShadow;
 								addedLight.rgb += blinn;
 							}
 						}
@@ -1682,15 +1765,12 @@ void main(void)
 	}
 
 #if defined(__SCREEN_SPACE_REFLECTIONS__)
-	if (REFLECTIONS_ENABLED > 0.0 && ssrReflectivePower > 0.5 && position.a - 1.0 != MATERIAL_WATER && !changedToWater)
+	if (REFLECTIONS_ENABLED > 0.0 && ssrReflectivePower > 0.0 && position.a - 1.0 != MATERIAL_WATER && !changedToWater)
 	{
 #if 1
 		if (isPuddle)
-		{
-			ssrReflectivePower *= REFLECTIONS_ENABLED * 6.0; // 4x - 8x seems about right...
-
-			// Just basic water color addition for now with reflections... Maybe raindrops at some point later...
-			outColor.rgb += vec3(0.0, 0.1, 0.15);// * REFLECTIONS_ENABLED;
+		{// Just basic water color addition for now with reflections... Maybe raindrops at some point later...
+			outColor.rgb += vec3(0.0, 0.1, 0.15);
 		}
 
 		outColor.rgb = AddReflection(texCoords, position, flatNorm, outColor.rgb, ssrReflectivePower);

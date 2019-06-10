@@ -167,6 +167,8 @@ void DynamicWeather_UpdateWeatherSystems(void)
 			RE_WorldEffectCommand_REAL("clear", qtrue);
 			RE_WorldEffectCommand_REAL("rain", qtrue);
 			RE_WorldEffectCommand_REAL("rain", qtrue);
+			RE_WorldEffectCommand_REAL("rain", qtrue);
+			RE_WorldEffectCommand_REAL("rain", qtrue);
 			//DYNAMIC_WEATHER_CLOUDSCALE = 0.4;
 			DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_RAIN_STORM;
 		}
@@ -177,6 +179,8 @@ void DynamicWeather_UpdateWeatherSystems(void)
 		{
 			RE_WorldEffectCommand_REAL("clear", qtrue);
 			RE_WorldEffectCommand_REAL("rain", qtrue);
+			RE_WorldEffectCommand_REAL("rain", qtrue);
+			RE_WorldEffectCommand_REAL("lightrain", qtrue);
 			RE_WorldEffectCommand_REAL("lightrain", qtrue);
 			//DYNAMIC_WEATHER_CLOUDSCALE = 0.5;
 			DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_HEAVY_RAIN;
@@ -187,6 +191,7 @@ void DynamicWeather_UpdateWeatherSystems(void)
 		if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_RAIN)
 		{
 			RE_WorldEffectCommand_REAL("clear", qtrue);
+			RE_WorldEffectCommand_REAL("rain", qtrue);
 			RE_WorldEffectCommand_REAL("lightrain", qtrue);
 			RE_WorldEffectCommand_REAL("lightrain", qtrue);
 			//DYNAMIC_WEATHER_CLOUDSCALE = 0.65;
@@ -198,6 +203,7 @@ void DynamicWeather_UpdateWeatherSystems(void)
 		if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_LIGHT_RAIN)
 		{
 			RE_WorldEffectCommand_REAL("clear", qtrue);
+			RE_WorldEffectCommand_REAL("lightrain", qtrue);
 			RE_WorldEffectCommand_REAL("lightrain", qtrue);
 			//DYNAMIC_WEATHER_CLOUDSCALE = 0.75;
 			DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_LIGHT_RAIN;

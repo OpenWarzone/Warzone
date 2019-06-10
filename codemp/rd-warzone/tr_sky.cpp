@@ -390,6 +390,7 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 
 	extern qboolean		PROCEDURAL_SKY_ENABLED;
 	extern vec3_t		PROCEDURAL_SKY_DAY_COLOR;
+	extern vec4_t		PROCEDURAL_SKY_SUNSET_COLOR;
 	extern vec4_t		PROCEDURAL_SKY_NIGHT_COLOR;
 	extern float		PROCEDURAL_SKY_NIGHT_HDR_MIN;
 	extern float		PROCEDURAL_SKY_NIGHT_HDR_MAX;
@@ -564,8 +565,7 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 			VectorSet4(vector, PROCEDURAL_CLOUDS_ENABLED ? 1.0 : 0.0, DYNAMIC_WEATHER_CLOUDSCALE, DYNAMIC_WEATHER_CLOUDCOVER, 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL2, vector);
 
-			//VectorSet4(vector, 0.0, DYNAMIC_WEATHER_CLOUDCOVER, 0.0, 0.0);
-			//GLSL_SetUniformVec4(sp, UNIFORM_LOCAL3, vector);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL3, PROCEDURAL_SKY_SUNSET_COLOR);
 
 			VectorSet4(vector, PROCEDURAL_SKY_NIGHT_HDR_MIN, PROCEDURAL_SKY_NIGHT_HDR_MAX, PROCEDURAL_SKY_PLANETARY_ROTATION, Q_clamp(0.0, 1.0 - PROCEDURAL_SKY_NEBULA_FACTOR, 1.0));
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL4, vector);
@@ -584,15 +584,15 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 			else if (tr.viewParms.flags & VPF_SKYCUBENIGHT)
 				nightScale = 1.0;
 
-			VectorSet4(vector, DAY_NIGHT_CYCLE_ENABLED ? 1.0 : 0.0, DAY_NIGHT_CYCLE_ENABLED ? nightScale : 0.0, skyDirection, auroraEnabled);
+			VectorSet4(vector, DAY_NIGHT_CYCLE_ENABLED ? 1.0 : 0.0, nightScale, skyDirection, auroraEnabled);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL5, vector); // dayNightEnabled, nightScale, skyDirection, auroraEnabled
 
-			VectorSet4(vector, PROCEDURAL_SKY_DAY_COLOR[0], PROCEDURAL_SKY_DAY_COLOR[1], PROCEDURAL_SKY_DAY_COLOR[2], 1.0);
+			VectorSet4(vector, PROCEDURAL_SKY_DAY_COLOR[0], PROCEDURAL_SKY_DAY_COLOR[1], PROCEDURAL_SKY_DAY_COLOR[2], 0.0 /* UNUSED */);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL6, vector);
 			
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL7, PROCEDURAL_SKY_NIGHT_COLOR);
 
-			VectorSet4(vector, AURORA_COLOR[0], AURORA_COLOR[1], AURORA_COLOR[2], 1.0);
+			VectorSet4(vector, AURORA_COLOR[0], AURORA_COLOR[1], AURORA_COLOR[2], 0.0 /*UNUSED*/);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL8, vector);
 
 			VectorSet4(vector, r_testvalue0->value, r_testvalue1->value, r_testvalue2->value, r_testvalue3->value);

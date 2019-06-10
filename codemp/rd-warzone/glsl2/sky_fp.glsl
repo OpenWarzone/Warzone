@@ -40,13 +40,13 @@ uniform vec4											u_Settings3; // LIGHTDEF_USE_REGIONS, LIGHTDEF_IS_DETAIL,
 #define USE_DETAIL_COORD								u_Settings3.b
 
 uniform vec4											u_Local1; // PROCEDURAL_SKY_ENABLED, DAY_NIGHT_24H_TIME/24.0, PROCEDURAL_SKY_STAR_DENSITY, PROCEDURAL_SKY_NEBULA_SEED
-uniform vec4											u_Local2; // PROCEDURAL_CLOUDS_ENABLED, PROCEDURAL_CLOUDS_CLOUDSCALE, PROCEDURAL_CLOUDS_CLOUDCOVER, 0.0
-uniform vec4											u_Local3; // 0.0, 0.0, 0.0, 0.0
+uniform vec4											u_Local2; // PROCEDURAL_CLOUDS_ENABLED, PROCEDURAL_CLOUDS_CLOUDSCALE, PROCEDURAL_CLOUDS_CLOUDCOVER, 0.0 /*UNUSED*/
+uniform vec4											u_Local3; // PROCEDURAL_SKY_SUNSET_COLOR_R, PROCEDURAL_SKY_SUNSET_COLOR_G, PROCEDURAL_SKY_SUNSET_COLOR_B, PROCEDURAL_SKY_SUNSET_STRENGTH
 uniform vec4											u_Local4; // PROCEDURAL_SKY_NIGHT_HDR_MIN, PROCEDURAL_SKY_NIGHT_HDR_MAX, PROCEDURAL_SKY_PLANETARY_ROTATION, PROCEDURAL_SKY_NEBULA_FACTOR
 uniform vec4											u_Local5; // dayNightEnabled, nightScale, skyDirection, auroraEnabled -- Sky draws only!
-uniform vec4											u_Local6; // PROCEDURAL_SKY_DAY_COLOR
+uniform vec4											u_Local6; // PROCEDURAL_SKY_DAY_COLOR, 0.0 /*UNUSED*/
 uniform vec4											u_Local7; // PROCEDURAL_SKY_NIGHT_COLOR
-uniform vec4											u_Local8; // AURORA_COLOR
+uniform vec4											u_Local8; // AURORA_COLOR_R, AURORA_COLOR_G, AURORA_COLOR_B, 0.0 /*UNUSED*/
 uniform vec4											u_Local9; // testvalue0, 1, 2, 3
 uniform vec4											u_Local10; // PROCEDURAL_BACKGROUND_HILLS_ENABLED, PROCEDURAL_BACKGROUND_HILLS_SMOOTHNESS, PROCEDURAL_BACKGROUND_HILLS_UPDOWN, PROCEDURAL_BACKGROUND_HILLS_SEED
 uniform vec4											u_Local11; // PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR
@@ -62,10 +62,8 @@ uniform vec4											u_Local12; // PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR
 #define CLOUDS_CLOUDCOVER								u_Local2.b
 //#define CLOUDS_DARK									u_Local2.a
 
-//#define CLOUDS_LIGHT									u_Local3.r
-//#define CLOUDS_CLOUDCOVER								u_Local3.g
-//#define CLOUDS_CLOUDALPHA								u_Local3.b
-//#define CLOUDS_SKYTINT								u_Local3.a
+#define PROCEDURAL_SKY_SUNSET_COLOR						u_Local3.rgb
+#define PROCEDURAL_SKY_SUNSET_STRENGTH					u_Local3.a
 
 #define PROCEDURAL_SKY_NIGHT_HDR_MIN					u_Local4.r
 #define PROCEDURAL_SKY_NIGHT_HDR_MAX					u_Local4.g
@@ -77,10 +75,10 @@ uniform vec4											u_Local12; // PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR
 #define SHADER_SKY_DIRECTION							u_Local5.b
 #define SHADER_AURORA_ENABLED							u_Local5.a
 
-#define PROCEDURAL_SKY_DAY_COLOR						u_Local6
-#define PROCEDURAL_SKY_NIGHT_COLOR						u_Local7
+#define PROCEDURAL_SKY_DAY_COLOR						u_Local6.rgb
+#define PROCEDURAL_SKY_NIGHT_COLOR						u_Local7.rgba
 
-#define AURORA_COLOR									u_Local8
+#define AURORA_COLOR									u_Local8.rgb
 
 #define PROCEDURAL_BACKGROUND_HILLS_ENABLED 			u_Local10.r
 #define PROCEDURAL_BACKGROUND_HILLS_SMOOTHNESS			u_Local10.g
@@ -278,9 +276,8 @@ vec3 extra_cheap_atmosphere(vec3 raydir, vec3 skyViewDir2, vec3 sunDir, inout ve
 	float special_trick = 1.0 / (rayDirLength * 1.0 + 0.2);
 	float special_trick2 = 1.0 / (length(raydir.y) * 3.0 + 1.0);
 	
-	vec3 skyColor = PROCEDURAL_SKY_DAY_COLOR.rgb;
-	vec3 bluesky = skyColor;
-	vec3 bluesky2 = max(bluesky, bluesky - skyColor * 0.0896 * (special_trick + -6.0 * sunDirLength * sunDirLength));
+	vec3 bluesky = PROCEDURAL_SKY_DAY_COLOR;
+	vec3 bluesky2 = max(bluesky, bluesky - PROCEDURAL_SKY_DAY_COLOR * 0.0896 * (special_trick + -6.0 * sunDirLength * sunDirLength));
 	
 	float dotSun = dot(sundir, raydir);
 	float raysundt = pow(abs(dotSun), 2.0);
@@ -291,12 +288,11 @@ vec3 extra_cheap_atmosphere(vec3 raydir, vec3 skyViewDir2, vec3 sunDir, inout ve
 
 	// sunset
 	float sunsetIntensity = 0.9;
-	float sundt = pow(max(0.0, dotSun), 8.0);
-	float my = clamp(1.25-length(raydir.y*1.25), 0.0, 1.0);
-	my *= pow(clamp(3.0-distance(raydir.y, sundir.y), 0.0, 1.0), 1.25);
-	float mymie = pow(clamp(clamp(sundt, 0.1, 1.0) * (special_trick2 * 0.05 + 0.95), 0.0, sunsetIntensity), 0.75) * 0.9 * my;
-	vec3 suncolor = vec3(1.0, 0.5, 0.0);
-	vec3 color = (bluesky * 0.333 + bluesky2 * 0.333) + (mymie * suncolor);
+	float sundt = smoothstep(0.0, 1.0, pow(clamp(max(0.0, dotSun), 0.0, 1.0), 3.0));
+	float sunsetPhase = 1.0 - clamp(pow(sunDirLength, 0.3), 0.0, 1.0);
+	float my = clamp(0.75-length(raydir.y*0.75), 0.0, 1.0) * sunsetPhase;
+	float mymie = pow(clamp(clamp(sundt, 0.1, 1.0) * (special_trick2 * 0.05 + 0.95), 0.0, sunsetIntensity), 0.75) * sunsetPhase * my;
+	vec3 color = mix((bluesky * 0.333 + bluesky2 * 0.333), PROCEDURAL_SKY_SUNSET_COLOR * PROCEDURAL_SKY_SUNSET_STRENGTH, mymie);
 	sunColorMod = clamp(color, 0.0, 1.0);
 	return color * 0.5;
 }
@@ -1089,7 +1085,7 @@ void main()
 
 				color *= 0.7;
 
-				color *= AURORA_COLOR.rgb;
+				color *= AURORA_COLOR;
 
 				gl_FragColor.rgb = mix(gl_FragColor.rgb, gl_FragColor.rgb + color, auroraPower * str);
 			}
