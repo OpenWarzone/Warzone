@@ -7852,7 +7852,7 @@ static shader_t *FinishShader(void) {
 
 
 	if (shader.glowStrength == 1.0
-		&& (StringContainsWord(shader.name, "models/players") || StringContainsWord(shader.name, "models/weapons")))
+		&& (StringContainsWord(shader.name, "models/players") || StringContainsWord(shader.name, "models/weapons") || StringContainsWord(shader.name, "models/wzweapons")))
 	{// If this shader has glows, but still has the default glow strength, amp up the brightness because these are small glow objects...
 		if (StringContainsWord(shader.name, "players/hk"))
 		{// Hacky override for follower hk droids eyes...

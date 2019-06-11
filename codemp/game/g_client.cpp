@@ -2412,7 +2412,7 @@ qboolean ClientUserinfoChanged( int clientNum ) {
 
 		for (loop = 0; loop < num_scale_models; loop++)
 		{
-			if (!Q_stricmp(model_scale_list[loop].botName, model) && ent->modelScale[2] != model_scale_list[loop].scale/100.0f)
+			if (!Q_strncmp(model_scale_list[loop].botName, model, strlen(model_scale_list[loop].botName)) && ent->modelScale[2] != model_scale_list[loop].scale/100.0f)
 			{// A match! Set the scale!
 				ent->modelScale[0] = ent->modelScale[1] = ent->modelScale[2] = model_scale_list[loop].scale/100.0f;
 				client->ps.iModelScale = model_scale_list[loop].scale;
