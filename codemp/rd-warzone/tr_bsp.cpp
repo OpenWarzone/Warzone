@@ -4838,6 +4838,8 @@ static void R_SetupMapGlowsAndWaterPlane( void )
 		emissiveConeDirection[1] = 0.0;
 		emissiveConeDirection[2] = 0.0;
 
+		if (!surf || !surf->shader) continue;
+
 		qboolean	hasGlow = qfalse;
 		vec4_t		glowColor = { 0 };
 
@@ -4869,6 +4871,12 @@ static void R_SetupMapGlowsAndWaterPlane( void )
 #endif //__INDOOR_OUTDOOR_CULLING__
 
 			srfBspSurface_t *bspSurf = (srfBspSurface_t *)surf->data;
+
+			if (!(*surf->data == SF_FACE || *surf->data == SF_GRID || *surf->data == SF_TRIANGLES))
+			{// Only handle bsp surfaces...
+				continue;
+				//bspSurf = NULL;
+			}
 
 			for ( int stage = 0; stage < MAX_SHADER_STAGES; stage++ )
 			{
@@ -4926,7 +4934,7 @@ static void R_SetupMapGlowsAndWaterPlane( void )
 
 #define EMISSIVE_MERGE_RADIUS 128.0//64.0
 
-			if (hasGlow && bspSurf && !StringContainsWord(surf->shader->name, "warzone/trees"))
+			if (hasGlow && bspSurf && surf->shader->name && surf->shader->name[0] != 0 && !StringContainsWord(surf->shader->name, "warzone/trees"))
 			{// Handle individual verts, since we can. So we don't loose individual lights with merging... Tree glows can be merged though...
 				hasGlow = qfalse;
 
@@ -4937,7 +4945,7 @@ static void R_SetupMapGlowsAndWaterPlane( void )
 			
 				if (radius > 0)
 				{
-#define TEMP_LIGHTS_MAX 1024
+#define TEMP_LIGHTS_MAX 4096//1024
 					int		TEMP_LIGHTS_NUM = 0;
 					vec3_t	TEMP_LIGHTS_BASE_POSITION[TEMP_LIGHTS_MAX];
 					vec3_t	TEMP_LIGHTS_MINS[TEMP_LIGHTS_MAX];
@@ -4952,6 +4960,8 @@ static void R_SetupMapGlowsAndWaterPlane( void )
 					for (int v = 0; v < bspSurf->numVerts; v++)
 					{// Create temp lights list, with any connected positions...
 						srfVert_t *vert = &bspSurf->verts[v];
+
+						if (!vert) continue;
 
 						int CLOSE_TO_TEMP_ID = -1;
 

@@ -1930,7 +1930,7 @@ void MAPPING_LoadMapInfo(void)
 	//
 	// Water...
 	//
-	WATER_ENABLED = (atoi(IniRead(mapname, "WATER", "WATER_ENABLED", "1")) > 0) ? qtrue : qfalse;
+	WATER_ENABLED = (atoi(IniRead(mapname, "WATER", "WATER_ENABLED", "0")) > 0) ? qtrue : qfalse;
 
 	if (WATER_ENABLED /*&& !WATER_INITIALIZED*/)
 	{
