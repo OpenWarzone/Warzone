@@ -740,31 +740,41 @@ float wetSpecular(vec3 n,vec3 l,vec3 e,float s) {
     return pow(max(dot(reflect(e,n),l),0.0),s) * nrm;
 }
 
-#if defined(__LQ_MODE__) || defined(__FAST_LIGHTING__)
-float getdiffuse(vec3 n, vec3 l, float p) {
-	float ndotl = clamp(dot(n, l), 0.5, 0.9);
-	return pow(ndotl, p);
-	//return pow(dot(n, l) * 0.4 + 0.6, p);
+float getSpecialSauce(vec3 color)
+{
+	// Secret sauce diffuse adaption.
+	float b = clamp(length(clamp(color.rgb, 0.0, 1.0))/3.0, 0.0, 1.0);
+	b = clamp(clamp(pow(b, 3.5), 0.0, 1.0) * 512.0, 2.0, 4.0);
+	return b;
 }
 
-vec3 blinn_phong(vec3 pos, vec3 color, vec3 normal, vec3 bump, vec3 view, vec3 light, vec3 diffuseColor, vec3 specularColor, float specPower, vec3 lightPos, float wetness) {
+#if defined(__LQ_MODE__) || defined(__FAST_LIGHTING__)
+vec3 blinn_phong(vec3 pos, vec3 color, vec3 bump, vec3 view, vec3 light, vec3 lightColor, float specPower, vec3 lightPos, float wetness) {
 	// Ambient light.
-	float ambience = 4.0;// 0.25;
+	float ambience = 0.24;
 
 	// Diffuse lighting.
-	float diff = getdiffuse(normal, light, 2.0) * 16.0;
+	float ndotl = clamp(dot(bump, light), 0.0, 1.0);
+	float diff = pow(ndotl, 2.0);
+	diff *= getSpecialSauce(color);
 
 	// Specular lighting.
-	float fre = clamp(pow(clamp(dot(normal, -view) + 1.0, 0.0, 1.0), -2.0), 0.0, 1.0);
-	float spec = pow(max(dot(reflect(-light, normal), view), 0.0), 1.2);
+	//float fre = clamp(pow(clamp(dot(bump, -view) + 1.0, 0.0, 1.0), -2.0), 0.0, 1.0);
+	//float spec = pow(max(dot(reflect(-light, bump), view), 0.0), 1.2);
+	float fre = 1.0;
+	float nvl = clamp(dot(bump, normalize(view+light)), 0.0, 1.0);
+	float spec = pow(nvl, 22.0);
+
 	float wetSpec = 0.0;
 
 	if (wetness > 0.0)
 	{// Increase specular strength when the ground is wet during/after rain...
 		wetSpec = wetSpecular(bump, -light, view, 256.0) * wetness * 0.5;
+		wetSpec += wetSpecular(bump, -light, view, 4.0) * wetness * 8.0;
+		wetSpec *= 0.5;
 	}
 
-	return (clamp(diffuseColor, 0.0, 1.0) * ambience) + (clamp(diffuseColor, 0.0, 1.0) * diff) + (clamp(specularColor, 0.0, 1.0) * spec * fre) + (clamp(specularColor, 0.0, 1.0) * wetSpec);
+	return (lightColor * ambience) + (lightColor * diff) + (lightColor * spec * fre) + (lightColor * wetSpec);
 }
 #elif defined(__NAYAR_LIGHTING__)
 float orenNayar( in vec3 n, in vec3 v, in vec3 ldir, float specPower )
@@ -781,11 +791,17 @@ float orenNayar( in vec3 n, in vec3 v, in vec3 ldir, float specPower )
 	return max(0.0,nl) * (a + b*max(0.0,ga) * sqrt((1.0-nv*nv)*(1.0-nl*nl)) / max(nl, nv));
 }
 
-vec3 blinn_phong(vec3 pos, vec3 color, vec3 normal, vec3 bump, vec3 view, vec3 light, vec3 diffuseColor, vec3 specularColor, float specPower, vec3 lightPos, float wetness) {
-	float base = orenNayar( normal, view, light, specPower * 3.0 ) * 10.0;
+vec3 blinn_phong(vec3 pos, vec3 color, vec3 bump, vec3 view, vec3 light, vec3 lightColor, float specPower, vec3 lightPos, float wetness) {
+	// Ambient light.
+	float ambience = 0.24;
 
-	vec3 reflection = normalize(reflect(view, normal));
-    float specular = clamp(pow(clamp(dot(light, reflection),0.0,1.0),25.0),0.0,1.0);
+	// Nayar diffuse light.
+	float base = orenNayar( bump, view, light, specPower );
+	base *= getSpecialSauce(color);
+
+	// Specular light.
+	vec3 reflection = normalize(reflect(-view, bump));
+    float specular = clamp(pow(clamp(dot(light, reflection), 0.0, 1.0), 15.0), 0.0, 1.0) * 0.25;
 
 	float wetSpec = 0.0;
 
@@ -796,9 +812,9 @@ vec3 blinn_phong(vec3 pos, vec3 color, vec3 normal, vec3 bump, vec3 view, vec3 l
 		wetSpec *= 0.5;
 	}
 	
-	return specularColor*specular + base*specularColor*color + specularColor*.0125 + specularColor*wetSpec;
+	return (lightColor * ambience) + (base * lightColor) + (lightColor * specular) + (lightColor * wetSpec);
 }
-#else //!defined(__LQ_MODE__) || defined(__FAST_LIGHTING__)
+#else // PBR LIGHTING
 float specTrowbridgeReitz(float HoN, float a, float aP)
 {
 	float a2 = a * a;
@@ -892,7 +908,10 @@ float getdiffuse(vec3 n, vec3 l, float p) {
 	return pow(ndotl, p);
 }
 
-vec3 blinn_phong(vec3 pos, vec3 color, vec3 normal, vec3 bump, vec3 view, vec3 light, vec3 diffuseColor, vec3 specularColor, float specPower, vec3 lightPos, float wetness) {
+//#define USE_ALBEDO_CONVERSION
+
+vec3 blinn_phong(vec3 pos, vec3 color, vec3 bump, vec3 view, vec3 light, vec3 lightColor, float specPower, vec3 lightPos, float wetness) {
+#ifdef USE_ALBEDO_CONVERSION
 	float noise = proceduralNoise(pos.xyx) * 0.5;
 	noise += proceduralNoise(pos.yzx * 0.5);
 	noise += proceduralNoise(pos.zxy * 0.25) * 2.0;
@@ -903,45 +922,52 @@ vec3 blinn_phong(vec3 pos, vec3 color, vec3 normal, vec3 bump, vec3 view, vec3 l
 	float roughness = 0.7 - clamp(0.5 - dot(albedo, albedo), 0.05, 0.95);
 	float f0 = 0.3;
 
-#ifdef DISABLE_ALBEDO
-	albedo = vec3(0.1);
-#endif
-
-#ifdef DISABLE_ROUGHNESS
-	roughness = 0.05;
-#endif
+	albedo = clamp(albedo, 0.0, 1.0);
+#else //!USE_ALBEDO_CONVERSION
+	vec3 albedo = pow(color, vec3(2.2));
+	float roughness = 0.7 - clamp(0.5 - dot(albedo, albedo), 0.05, 0.95);
+	float f0 = 0.3;
+#endif //USE_ALBEDO_CONVERSION
 
 	// Ambient light.
-	float ambience = 4.0;// 0.25;
+	float ambience = 0.24;
 
-	// Diffuse light.
-	float diff = getdiffuse(normal, light, 2.0) * 16.0;
+	// Diffuse lighting.
+	float ndotl = clamp(dot(bump, light), 0.0, 1.0);
+	float diff = pow(ndotl, 2.0);
+	diff *= getSpecialSauce(color);
 
 	// Specular light.
 	vec3 v = view;
-	float NoV = clamp(dot(normal, v), 0.0, 1.0);
-	vec3 r = reflect(-v, normal);
+	float NoV = clamp(dot(bump, v), 0.0, 1.0);
+	vec3 r = reflect(-v, bump);
 
 #if 1
 	float NdotLSphere;
-	float specSph = clamp(sphereLight(pos, normal, v, r, f0, roughness, NoV, NdotLSphere, lightPos), 0.0, 1.0/*0.2*/);
+	float specSph = clamp(sphereLight(pos, bump, v, r, f0, roughness, NoV, NdotLSphere, lightPos), 0.0, 1.0/*0.2*/);
 	float spec = clamp(/*0.3183 **/ NdotLSphere+specSph, 0.0, 1.0/*0.2*/);
 #else
 	float NdotLTube;
-	float specTube = clamp(tubeLight(pos, normal, v, r, f0, roughness, NoV, NdotLTube, lightPosStart, lightPosEnd), 0.0, 1.0/*0.2*/);
+	float specTube = clamp(tubeLight(pos, bump, v, r, f0, roughness, NoV, NdotLTube, lightPosStart, lightPosEnd), 0.0, 1.0/*0.2*/);
 	float spec = clamp(/*0.3183 **/ NdotLTube+specTube, 0.0, 1.0/*0.2*/);
 #endif
 	
-	spec = pow(spec, 1.0 / 2.2) * specPower * 256.0;
+#ifdef USE_ALBEDO_CONVERSION
+	spec = clamp(pow(spec, 1.0 / 2.2) * specPower * 256.0, 0.0, 1.0);
+#else //USE_ALBEDO_CONVERSION
+	spec = clamp(pow(spec, 1.0 / 2.2), 0.0, 1.0);
+#endif //USE_ALBEDO_CONVERSION
 
 	float wetSpec = 0.0;
 
 	if (wetness > 0.0)
 	{// Increase specular strength when the ground is wet during/after rain...
 		wetSpec = wetSpecular(bump, -light, view, 256.0) * wetness * 0.5;
+		wetSpec += wetSpecular(bump, -light, view, 4.0) * wetness * 8.0;
+		wetSpec *= 0.5;
 	}
 
-	return (clamp(diffuseColor, 0.0, 1.0) * ambience) + (clamp(diffuseColor, 0.0, 1.0) * diff) + (clamp(specularColor, 0.0, 1.0) * clamp(albedo, 0.0, 1.0) * spec) + (clamp(specularColor, 0.0, 1.0) * clamp(albedo, 0.0, 1.0) * wetSpec);
+	return (lightColor * ambience) + (lightColor * diff) + (lightColor * albedo * spec) + (lightColor * albedo * wetSpec);
 }
 #endif //defined(__LQ_MODE__) || defined(__FAST_LIGHTING__)
 
@@ -1273,8 +1299,29 @@ void main(void)
 	normalDetail.rgb = normalize(clamp(normalDetail.xyz, 0.0, 1.0) * 2.0 - 1.0);
 
 	//vec3 bump = normalize(mix(norm.xyz, normalDetail.xyz, u_Local3.a * (length(norm.xyz - normalDetail.xyz) / 3.0)));
-	vec3 bump = normalize(mix(norm.xyz, normalDetail.xyz, 0.5 * (length((norm.xyz * 0.5 + 0.5) - (normalDetail.xyz * 0.5 + 0.5)) / 3.0)));
+	//vec3 bump = normalize(mix(norm.xyz, normalDetail.xyz, 0.5 * (length((norm.xyz * 0.5 + 0.5) - (normalDetail.xyz * 0.5 + 0.5)) / 3.0)));
 	norm.rgb = normalize(mix(norm.xyz, normalDetail.xyz, 0.25 * (length((norm.xyz * 0.5 + 0.5) - (normalDetail.xyz * 0.5 + 0.5)) / 3.0)));
+
+	//
+	// Set up the general directional stuff, to use throughout the shader...
+	//
+
+	vec3 N = norm.xyz;
+	vec3 E = normalize(u_ViewOrigin.xyz - position.xyz);
+	vec3 rayDir = reflect(E, N);
+	vec3 cubeRayDir = reflect(E, flatNorm);
+	vec3 sunDir = normalize(position.xyz - u_PrimaryLightOrigin.xyz);
+	float NE = clamp(length(dot(N, E)), 0.0, 1.0);
+
+	//vec3 bump = normalize(faceforward(normalDetail.xyz, -norm.xyz, E));
+	//vec3 bump = normalize(normalize(faceforward(normalDetail.xyz, -rayDir, N)) * N);
+	//vec3 ND = normalDetail.xyz * 0.5 + 0.5;
+	//vec3 bump = normalize(normalize(faceforward(-ND, N, -E)) * N);
+	
+	float b = clamp(length(outColor.rgb/3.0), 0.0, 1.0);
+	b = clamp(pow(b, 64.0), 0.0, 1.0);
+	vec3 of = clamp(pow(vec3(b*65536.0), -N), 0.0, 1.0) * 0.25;
+	vec3 bump = normalize(N+of);
 
 	float wetness = 0.0;
 
@@ -1367,16 +1414,6 @@ void main(void)
 #endif //defined(__SCREEN_SPACE_REFLECTIONS__)
 
 
-	//
-	// Set up the general directional stuff, to use throughout the shader...
-	//
-
-	vec3 N = norm.xyz;
-	vec3 E = normalize(u_ViewOrigin.xyz - position.xyz);
-	vec3 rayDir = reflect(E, N);
-	vec3 cubeRayDir = reflect(E, flatNorm);
-	vec3 sunDir = normalize(position.xyz - u_PrimaryLightOrigin.xyz);
-	float NE = clamp(length(dot(N, E)), 0.0, 1.0);
 
 	float diffuse = clamp(pow(clamp(dot(-sunDir.rgb, bump.rgb), 0.0, 1.0), 8.0) * 0.6 + 0.6, 0.0, 1.0);
 	color.rgb = outColor.rgb = outColor.rgb * diffuse;
@@ -1656,53 +1693,40 @@ void main(void)
 		{// this is blinn phong
 			float maxBright = clamp(max(outColor.r, max(outColor.g, outColor.b)), 0.0, 1.0);
 			float power = clamp(pow(maxBright * 0.75, LIGHT_COLOR_POWER) + 0.333, 0.0, 1.0);
-			vec3 lightColor = u_PrimaryLightColor.rgb;
+			vec3 lightColor = Vibrancy(u_PrimaryLightColor.rgb, 1.0);
 			float lightMult = clamp(specularReflectivePower * power, 0.0, 1.0);
 
 			if (lightMult > 0.0)
 			{
 				lightColor *= lightMult;
-				lightColor *= max(outColor.r, max(outColor.g, outColor.b)) * 0.9 + 0.1;
+				//lightColor *= max(outColor.r, max(outColor.g, outColor.b)) * 0.9 + 0.1;
 				lightColor *= clamp(1.0 - NIGHT_SCALE, 0.0, 1.0); // Day->Night scaling of sunlight...
-				lightColor = clamp(lightColor, 0.0, 0.7);
-
-#if 0
-				// Add vibrancy to light color at sunset/sunrise???
-				if (NIGHT_SCALE > 0.0 && NIGHT_SCALE < 1.0)
-				{// Vibrancy gets greater the closer we get to night time...
-					float vib = NIGHT_SCALE;
-					if (vib > 0.8)
-					{// Scale back vibrancy to 0.0 just before nightfall...
-						float downScale = 1.0 - vib;
-						downScale *= 4.0;
-						vib = mix(vib, 0.0, clamp(downScale, 0.0, 1.0));
-					}
-					lightColor = Vibrancy(lightColor, clamp(vib * 4.0, 0.0, 1.0));
-				}
-#endif
+				//lightColor = clamp(lightColor, 0.0, 0.7);
 
 				lightColor.rgb *= lightsReflectionFactor * phongFactor * origColorStrength * 8.0;
 
-				vec3 blinn = blinn_phong(position.xyz, outColor.rgb, N, bump, E, normalize(-sunDir), lightColor * 0.06, lightColor, 1.0, u_PrimaryLightOrigin.xyz, wetness);
-				lightColor.rgb += blinn;
+				vec3 addColor = blinn_phong(position.xyz, outColor.rgb, bump, E, -sunDir, clamp(lightColor, 0.0, 1.0), 1.0, u_PrimaryLightOrigin.xyz, wetness);
 
-				outColor.rgb = outColor.rgb + max(lightColor * PshadowValue * finalShadow, vec3(0.0));
+				if (position.a - 1.0 == MATERIAL_GREENLEAVES)
+				{// Light bleeding through tree leaves...
+					float ndotl = clamp(dot(bump, sunDir), 0.0, 1.0);
+					float diffuse = pow(ndotl, 2.0) * 1.25;
+
+					addColor += lightColor * diffuse;
+				}
+
+				outColor.rgb = outColor.rgb + max(addColor * PshadowValue * finalShadow, vec3(0.0));
 			}
 		}
 
 		if (u_lightCount > 0.0)
 		{
-			phongFactor = BLINN_PHONG_STRENGTH * 12.0;
-
-			if (phongFactor <= 0.0)
-			{// Never allow no phong...
-				phongFactor = 1.0;
-			}
+			phongFactor = 12.0;
 
 			vec3 addedLight = vec3(0.0);
 			float maxBright = clamp(max(outColor.r, max(outColor.g, outColor.b)), 0.0, 1.0);
 			float power = maxBright * 0.85;
-			power = clamp(pow(power, LIGHT_COLOR_POWER) + 0.333, 0.0, 1.0);
+			power = clamp(pow(power, LIGHT_COLOR_POWER) + 0.5/*0.333*/, 0.0, 1.0);
 
 			if (power > 0.0)
 			{
@@ -1747,12 +1771,19 @@ void main(void)
 								vec3 lightColor = (u_lightColors[li].rgb / length(u_lightColors[li].rgb)) * MAP_EMISSIVE_COLOR_SCALE * maxLightsScale;
 								float selfShadow = clamp(pow(clamp(dot(-lightDir.rgb, bump.rgb), 0.0, 1.0), 8.0) * 0.6 + 0.6, 0.0, 1.0);
 				
-								lightColor = lightColor * power * origColorStrength * 2.0;
+								lightColor = lightColor * power * origColorStrength;
 
-								addedLight.rgb += lightColor * lightStrength * 0.333 * selfShadow;
+								float lightSpecularPower = mix(0.1, 0.5, clamp(lightsReflectionFactor, 0.0, 1.0)) * clamp(lightStrength * phongFactor, 0.0, 1.0);
 
-								vec3 blinn = blinn_phong(position.xyz, outColor.rgb, N, bump, E, lightDir, lightColor * 0.06, lightColor, mix(0.1, 0.5, clamp(lightsReflectionFactor, 0.0, 1.0)) * clamp(lightStrength * phongFactor, 0.0, 1.0), lightPos, wetness) * lightFade * selfShadow;
-								addedLight.rgb += blinn;
+								addedLight.rgb += blinn_phong(position.xyz, outColor.rgb, bump, E, lightDir, clamp(lightColor, 0.0, 1.0), lightSpecularPower, lightPos, wetness) * lightFade * selfShadow;
+
+								if (position.a - 1.0 == MATERIAL_GREENLEAVES)
+								{// Light bleeding through tree leaves...
+									float ndotl = clamp(dot(bump, -lightDir), 0.0, 1.0);
+									float diffuse = pow(ndotl, 2.0) * 4.0;
+
+									addedLight.rgb += lightColor * diffuse * lightFade * selfShadow * lightSpecularPower;
+								}
 							}
 						}
 					}
@@ -1841,13 +1872,13 @@ void main(void)
 #ifdef __CLOUD_SHADOWS__
 	if (CLOUDS_ENABLED > 0.0 && CLOUDS_SHADOWS_ENABLED == 1.0)
 	{
-		finalShadow = min(finalShadow, var_CloudShadow);
+		finalShadow = min(finalShadow, clamp(var_CloudShadow + 0.1, 0.0, 1.0));
 	}
 	else if (CLOUDS_ENABLED > 0.0 && CLOUDS_SHADOWS_ENABLED >= 2.0)
 	{
 		float cShadow = CloudShadows(position.xyz) * 0.5 + 0.5;
 		cShadow = mix(cShadow, 1.0, clamp(NIGHT_SCALE, 0.0, 1.0)); // Dampen out cloud shadows at sunrise/sunset...
-		finalShadow = min(finalShadow, cShadow);
+		finalShadow = min(finalShadow, clamp(cShadow + 0.1, 0.0, 1.0));
 	}
 #endif //__CLOUD_SHADOWS__
 

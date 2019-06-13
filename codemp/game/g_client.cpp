@@ -2412,22 +2412,25 @@ qboolean ClientUserinfoChanged( int clientNum ) {
 
 		for (loop = 0; loop < num_scale_models; loop++)
 		{
-			if (!Q_strncmp(model_scale_list[loop].botName, model, strlen(model_scale_list[loop].botName)) && ent->modelScale[2] != model_scale_list[loop].scale/100.0f)
+			if (!Q_strncmp(model_scale_list[loop].botName, model, strlen(model_scale_list[loop].botName)))
 			{// A match! Set the scale!
-				ent->modelScale[0] = ent->modelScale[1] = ent->modelScale[2] = model_scale_list[loop].scale/100.0f;
-				client->ps.iModelScale = model_scale_list[loop].scale;
-				ent->s.iModelScale = model_scale_list[loop].scale;
+				if (ent->modelScale[2] != model_scale_list[loop].scale / 100.0f)
+				{
+					ent->modelScale[0] = ent->modelScale[1] = ent->modelScale[2] = model_scale_list[loop].scale / 100.0f;
+					client->ps.iModelScale = model_scale_list[loop].scale;
+					ent->s.iModelScale = model_scale_list[loop].scale;
 
-				ent->r.maxs[0] = playerMaxs[0] * ent->modelScale[0];
-				ent->r.maxs[1] = playerMaxs[1] * ent->modelScale[1];
-				ent->r.maxs[2] = playerMaxs[2] * ent->modelScale[2];
+					ent->r.maxs[0] = playerMaxs[0] * ent->modelScale[0];
+					ent->r.maxs[1] = playerMaxs[1] * ent->modelScale[1];
+					ent->r.maxs[2] = playerMaxs[2] * ent->modelScale[2];
 
-				ent->client->ps.standheight = DEFAULT_MAXS_2 * ent->modelScale[2];
-				ent->client->ps.crouchheight = CROUCH_MAXS_2 * ent->modelScale[2];
+					ent->client->ps.standheight = DEFAULT_MAXS_2 * ent->modelScale[2];
+					ent->client->ps.crouchheight = CROUCH_MAXS_2 * ent->modelScale[2];
+
+					Com_Printf("^1*** ^3MODEL-SCALE^5: Scale set to ^7%fx^5 normal for model %s.\n", model_scale_list[loop].scale / 100.0f, model);
+				}
 
 				found = qtrue;
-
-				Com_Printf("^1*** ^3MODEL-SCALE^5: Scale set to ^7%fx^5 normal for model %s.\n", model_scale_list[loop].scale/100.0f, model);
 				break;
 			}
 		}
@@ -2445,7 +2448,7 @@ qboolean ClientUserinfoChanged( int clientNum ) {
 			ent->client->ps.standheight = DEFAULT_MAXS_2 * ent->modelScale[2];
 			ent->client->ps.crouchheight = CROUCH_MAXS_2 * ent->modelScale[2];
 
-			Com_Printf("^1*** ^3MODEL-SCALE^5: Scale set to ^7%fx^5 normal for model %s.\n", model_scale_list[loop].scale/100.0f, model);
+			Com_Printf("^1*** ^3MODEL-SCALE^5: Scale set to ^7%fx^5 normal for UNKNOWN model %s.\n", 1.0f, model);
 		}
 	}
 

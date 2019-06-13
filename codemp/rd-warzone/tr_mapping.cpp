@@ -1618,10 +1618,10 @@ void MAPPING_LoadMapInfo(void)
 	ENABLE_INDOOR_OUTDOOR_SYSTEM = atoi(IniRead(mapname, "FIXES", "ENABLE_INDOOR_OUTDOOR_SYSTEM", "0"));
 	ENABLE_REGEN_SMOOTH_NORMALS = (atoi(IniRead(mapname, "FIXES", "ENABLE_REGEN_SMOOTH_NORMALS", "0"))) ? qtrue : qfalse;
 
-	if (!ENABLE_REGEN_SMOOTH_NORMALS && StringContainsWord(currentMapName, "mp/")) 
+	/*if (!ENABLE_REGEN_SMOOTH_NORMALS && StringContainsWord(currentMapName, "mp/")) 
 	{// Meh, always regen them on base mp maps...
 		ENABLE_REGEN_SMOOTH_NORMALS = qtrue;
-	}
+	}*/
 
 	//
 	// Misc effect enablers...

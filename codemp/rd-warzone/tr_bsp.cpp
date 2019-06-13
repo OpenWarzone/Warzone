@@ -803,9 +803,11 @@ void GenerateSmoothNormalsForPacked(packedVertex_t *verts, int numVerts)
 #pragma omp parallel for schedule(dynamic)
 		for (int i = 0; i < numVerts; i++)
 		{
-			vec3_t v1, n1, finalNormal;
+			//ri->Printf(PRINT_WARNING, "%i of %i.\n", i, numVerts);
 
-			VectorCopy(verts[i].position, v1);
+			qboolean updated = qfalse;
+			vec3_t n1, finalNormal;
+
 			R_VboUnpackNormal(n1, verts[i].normal);
 
 			VectorCopy(n1, finalNormal);
@@ -814,15 +816,14 @@ void GenerateSmoothNormalsForPacked(packedVertex_t *verts, int numVerts)
 			{
 				if (j == i) continue;
 
-				vec3_t v2, n2;
+				vec3_t n2;
 
-				if (Distance(v1, verts[j].position) > 0.0) continue;
-
-				VectorCopy(verts[j].position, v2);
+				//if (Distance(verts[i].position, verts[j].position) > 0.0) continue;
+				if (!VectorCompare(verts[i].position, verts[j].position)) continue;
 
 				R_VboUnpackNormal(n2, verts[j].normal);
 
-				if (ValidForSmoothing(v1, n1, v2, n2))
+				if (ValidForSmoothing(verts[i].position, n1, verts[j].position, n2))
 				{
 					VectorAdd(finalNormal, n2, finalNormal);
 #ifndef __MULTIPASS_SMOOTHING__
@@ -831,14 +832,19 @@ void GenerateSmoothNormalsForPacked(packedVertex_t *verts, int numVerts)
 					VectorAdd(finalNormal, n2, finalNormal);
 					VectorAdd(finalNormal, n2, finalNormal);
 #endif //__MULTIPASS_SMOOTHING__
+
+					updated = qtrue;
 				}
 			}
 
-			VectorNormalize(finalNormal);
+			if (updated)
+			{
+				VectorNormalize(finalNormal);
 
 #pragma omp critical (__SET_SMOOTH_NORMAL__)
-			{
-				verts[i].normal = R_VboPackNormal(finalNormal);
+				{
+					verts[i].normal = R_VboPackNormal(finalNormal);
+				}
 			}
 		}
 	}
