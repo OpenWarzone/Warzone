@@ -29,13 +29,13 @@ vec2 sampleOffset = vec2(1.0/u_Dimensions);
 
 #if defined(FAST_DOF)
 
-#define iMatsoDOFBokehQuality	3		// [1 to 10] Blur quality as control value over tap count.
-#define DOF_BLURRADIUS 			10.0
+#define iMatsoDOFBokehQuality	6		// [1 to 10] Blur quality as control value over tap count.
+#define DOF_BLURRADIUS 			3.0
 
 #elif defined(MEDIUM_DOF)
 
 #define iMatsoDOFBokehQuality	6		// [1 to 10] Blur quality as control value over tap count.
-#define DOF_BLURRADIUS 			10.0
+#define DOF_BLURRADIUS 			6.0
 
 #else //defined(HIGH_DOF)
 

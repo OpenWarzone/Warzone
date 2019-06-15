@@ -1151,45 +1151,21 @@ vec3 splatblend(vec3 color1, float a1, vec3 color2, float a2)
 //
 void AddProceduralMoss(inout vec4 outColor, in vec4 position, in bool changedToWater, in vec3 originalPosition)
 {
-	if (PROCEDURAL_MOSS_ENABLED > 0.0
-		&& (position.a - 1.0 == MATERIAL_TREEBARK
-			/*|| position.a - 1.0 == MATERIAL_SHORTGRASS
-			|| position.a - 1.0 == MATERIAL_LONGGRASS*/
-			|| position.a - 1.0 == MATERIAL_ROCK))
+	if (PROCEDURAL_MOSS_ENABLED > 0.0 && (position.a - 1.0 == MATERIAL_TREEBARK || position.a - 1.0 == MATERIAL_ROCK))
 	{// add procedural moss...
 		vec3 usePos = changedToWater ? originalPosition.xyz : position.xyz;
-		vec3 pos = usePos.xyz * 0.005;
-		float moss = clamp(proceduralNoise( pos ), 0.0, 1.0);
-		float mossMix = clamp(pow(moss, 3.0), 0.0, 1.0);
+		float moss = clamp(proceduralNoise( usePos.xyz * 0.00125 ), 0.0, 1.0);
 
-#define mossLower ( 48.0 / 255.0 )
-#define mossUpper ( 255.0 / 12.0 )
-		mossMix = clamp((clamp(mossMix - mossLower, 0.0, 1.0)) * mossUpper, 0.0, 1.0);
-
-		if (mossMix > 0.0)
+		if (moss > 0.25)
 		{
 			const vec3 colorLight = vec3(0.0, 0.65, 0.0);
 			const vec3 colorDark = vec3(0.0, 0.0, 0.0);
 			
-			vec3 pos1 = usePos.xyz * 0.08;
-			float mossPatches = clamp(proceduralNoise( pos1 ), 0.0, 1.0);
-			mossPatches = clamp(pow(mossPatches, 2.5), 0.0, 1.0);
-#define mossPatchLower ( 1.0 / 255.0 )
-#define mossPatchUpper ( 255.0 / 96.0 )
-			mossPatches = clamp((clamp(mossPatches - mossPatchLower, 0.0, 1.0)) * mossPatchUpper, 0.0, 1.0);
+			float mossClr = proceduralSmoothNoise(usePos.xyz * 0.25);
+			vec3 mossColor = mix(colorDark, colorLight, mossClr*0.25);
 
-			vec3 pos2 = usePos.xyz * 0.50175;
-			float mossStr = proceduralSmoothNoise(pos2);
-			float mossDark = proceduralSmoothNoise(pos2 * 0.8);
-			vec3 col = mix(colorDark, colorLight, mossStr);
-			col = mix(col, outColor.rgb, mossDark);
-
-			vec3 pos3 = usePos.xyz * 3.5;
-			float shadow = clamp(proceduralSmoothNoise( pos3 ), 0.0, 1.0);
-			col = mix(col, vec3(0.0, 0.065, 0.0), shadow);
-
-			mossMix *= mossPatches;
-			outColor.rgb = splatblend(outColor.rgb, 1.0 - mossMix, col, mossMix);
+			moss = pow((moss - 0.25) * 3.0, 0.35);
+			outColor.rgb = splatblend(outColor.rgb, 1.0 - moss*0.75, mossColor, moss*0.25);
 		}
 	}
 }
