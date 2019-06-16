@@ -1869,6 +1869,8 @@ void RB_UpdateMatrixes ( void )
 	MATRIX_UPDATE = qfalse;
 }
 
+int			CLOSEST_LIGHTS_UPDATE_TIME = 0;
+qboolean	CLOSEST_LIGHTS_CHANGED = qtrue;
 int			NUM_CLOSE_LIGHTS = 0;
 int			CLOSEST_LIGHTS[MAX_DEFERRED_LIGHTS] = {0};
 vec3_t		CLOSEST_LIGHTS_POSITIONS[MAX_DEFERRED_LIGHTS] = {0};
@@ -1882,75 +1884,17 @@ vec3_t		CLOSEST_LIGHTS_COLORS[MAX_DEFERRED_LIGHTS] = {0};
 extern void WorldCoordToScreenCoord(vec3_t origin, float *x, float *y);
 extern qboolean Volumetric_Visible(vec3_t from, vec3_t to, qboolean isSun);
 extern void Volumetric_Trace(trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, const int passEntityNum, const int contentmask);
-
-qboolean Light_Visible(vec3_t from, vec3_t to, qboolean isSun, float radius)
-{
-#ifdef __GLOW_LIGHT_PVS__
-	if (!R_inPVS(tr.refdef.vieworg, to, tr.refdef.areamask))
-	{// Not in PVS, don't add it...
-		return qfalse;
-	}
-#endif //__GLOW_LIGHT_PVS__
-
-	//if (isSun)
-		return qtrue;
-
-	float scanRad = radius;
-	if (scanRad < 0) scanRad = -scanRad;
-	scanRad *= 4.0;
-
-	trace_t trace;
-
-	Volumetric_Trace(&trace, from, NULL, NULL, to, -1, (CONTENTS_SOLID | CONTENTS_TERRAIN));
-
-	if (!(trace.fraction != 1.0 && Distance(trace.endpos, to) > scanRad))
-	{
-		return qtrue;
-	}
-
-	vec3_t to2;
-	VectorCopy(to, to2);
-	to2[0] += scanRad;
-	Volumetric_Trace(&trace, from, NULL, NULL, to2, -1, (CONTENTS_SOLID | CONTENTS_TERRAIN));
-
-	if (!(trace.fraction != 1.0 && Distance(trace.endpos, to2) > scanRad))
-	{
-		return qtrue;
-	}
-
-	VectorCopy(to, to2);
-	to2[0] -= scanRad;
-	Volumetric_Trace(&trace, from, NULL, NULL, to2, -1, (CONTENTS_SOLID | CONTENTS_TERRAIN));
-
-	if (!(trace.fraction != 1.0 && Distance(trace.endpos, to2) > scanRad))
-	{
-		return qtrue;
-	}
-
-	VectorCopy(to, to2);
-	to2[1] += scanRad;
-	Volumetric_Trace(&trace, from, NULL, NULL, to2, -1, (CONTENTS_SOLID | CONTENTS_TERRAIN));
-
-	if (!(trace.fraction != 1.0 && Distance(trace.endpos, to2) > scanRad))
-	{
-		return qtrue;
-	}
-
-	VectorCopy(to, to2);
-	to2[1] -= scanRad;
-	Volumetric_Trace(&trace, from, NULL, NULL, to2, -1, (CONTENTS_SOLID | CONTENTS_TERRAIN));
-
-	if (!(trace.fraction != 1.0 && Distance(trace.endpos, to2) > scanRad))
-	{
-		return qtrue;
-	}
-
-	return qfalse;
-}
-
 void RB_UpdateCloseLights ( void )
 {
 	if (!CLOSE_LIGHTS_UPDATE) return; // Already done for this frame...
+	
+	// Only update the list once every 1/2 sec...
+	if (CLOSEST_LIGHTS_UPDATE_TIME > backEnd.refdef.time)
+	{
+		return;
+	}
+
+	CLOSEST_LIGHTS_UPDATE_TIME = backEnd.refdef.time + 500;
 
 	NUM_CLOSE_LIGHTS = 0;
 
@@ -1980,14 +1924,6 @@ void RB_UpdateCloseLights ( void )
 
 		if (NUM_CLOSE_LIGHTS < MAX_CLOSE_LIGHTS)
 		{// Have free light slots for a new light...
-			/*vec3_t from;
-			VectorCopy(backEnd.refdef.vieworg, from);
-			from[2] += 64.0;
-			if (!Light_Visible(backEnd.refdef.vieworg, dl->origin, qfalse, dl->radius))
-			{
-				continue;
-			}*/
-
 #ifdef __LIGHT_OCCLUSION__
 			float x, y;
 			WorldCoordToScreenCoord(dl->origin, &x, &y);
@@ -2014,11 +1950,6 @@ void RB_UpdateCloseLights ( void )
 			int		farthest_light = 0;
 			float	farthest_distance = 0.0;
 
-			/*if (!Light_Visible(backEnd.refdef.vieworg, dl->origin, qfalse, dl->radius))
-			{
-				continue;
-			}*/
-
 			for (int i = 0; i < NUM_CLOSE_LIGHTS; i++)
 			{// Find the most distance light in our current list to replace, if this new option is closer...
 				dlight_t	*thisLight = &backEnd.refdef.dlights[CLOSEST_LIGHTS[i]];
@@ -2034,10 +1965,6 @@ void RB_UpdateCloseLights ( void )
 
 			if (distance < farthest_distance)
 			{// This light is closer. Replace this one in our array of closest lights...
-				//vec3_t from;
-				//VectorCopy(backEnd.refdef.vieworg, from);
-				//from[2] += 64.0;
-
 #ifdef __LIGHT_OCCLUSION__
 				float x, y;
 				WorldCoordToScreenCoord(dl->origin, &x, &y);
@@ -2066,13 +1993,7 @@ void RB_UpdateCloseLights ( void )
 		{// Remove volume light markers...
 			CLOSEST_LIGHTS_DISTANCES[i] = -CLOSEST_LIGHTS_DISTANCES[i];
 		}
-
-		// Double the range on all lights...
-		//CLOSEST_LIGHTS_DISTANCES[i] *= 4.0;
 	}
-
-	//ri->Printf(PRINT_ALL, "Found %i close lights this frame from %i dlights. Max allowed %i.\n", NUM_CLOSE_LIGHTS, backEnd.refdef.num_dlights, MAX_CLOSE_LIGHTS);
-
 	int NUM_LIGHTS = r_lowVram->integer ? min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, 8.0)) : min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, MAX_DEFERRED_LIGHTS));
 
 	//if (NUM_CLOSE_LIGHTS >= min(r_maxDeferredLights->integer, MAX_DEFERRED_LIGHTS))
@@ -2184,6 +2105,7 @@ void RB_UpdateCloseLights ( void )
 #endif //__CALCULATE_LIGHTDIR_FROM_LIGHT_AVERAGES__
 
 	CLOSE_LIGHTS_UPDATE = qfalse;
+	CLOSEST_LIGHTS_CHANGED = qtrue;
 }
 
 float waveTime = 0.5;
@@ -3550,11 +3472,25 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			if (GRASS_UNDERWATER_ONLY)
 			{
 				GL_BindToTMU(tr.seaGrassAliasImage, TB_WATER_EDGE_MAP);
+
+				{
+					vec2_t dimensions;
+					dimensions[0] = tr.seaGrassAliasImage->width;
+					dimensions[1] = tr.seaGrassAliasImage->height;
+					GLSL_SetUniformVec2(sp, UNIFORM_DIMENSIONS, dimensions);
+				}
 			}
 			else
 			{
 				GL_BindToTMU(tr.grassAliasImage, TB_DIFFUSEMAP);
 				GL_BindToTMU(tr.seaGrassAliasImage, TB_WATER_EDGE_MAP);
+
+				{
+					vec2_t dimensions;
+					dimensions[0] = tr.grassAliasImage->width;
+					dimensions[1] = tr.grassAliasImage->height;
+					GLSL_SetUniformVec2(sp, UNIFORM_DIMENSIONS, dimensions);
+				}
 			}
 
 			float TERRAIN_TESS_OFFSET = 0.0;
@@ -3636,10 +3572,17 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 
 			GLSL_SetUniformVec3(sp, UNIFORM_PLAYERORIGIN, backEnd.localPlayerOrigin);
 
-#ifdef __HUMANOIDS_BEND_GRASS__ // Bend grass for all close player/NPCs...
-			GLSL_SetUniformInt(sp, UNIFORM_HUMANOIDORIGINSNUM, backEnd.humanoidOriginsNum);
-			GLSL_SetUniformVec3xX(sp, UNIFORM_HUMANOIDORIGINS, backEnd.humanoidOrigins, backEnd.humanoidOriginsNum);
-#endif //__HUMANOIDS_BEND_GRASS__
+//#ifdef __HUMANOIDS_BEND_GRASS__ // Bend grass for all close player/NPCs...
+//			GLSL_SetUniformInt(sp, UNIFORM_HUMANOIDORIGINSNUM, backEnd.humanoidOriginsNum);
+//			GLSL_SetUniformVec3xX(sp, UNIFORM_HUMANOIDORIGINS, backEnd.humanoidOrigins, backEnd.humanoidOriginsNum);
+//#endif //__HUMANOIDS_BEND_GRASS__
+
+			{
+				vec2_t dimensions;
+				dimensions[0] = tr.foliageAliasImage->width;
+				dimensions[1] = tr.foliageAliasImage->height;
+				GLSL_SetUniformVec2(sp, UNIFORM_DIMENSIONS, dimensions);
+			}
 
 			GL_BindToTMU(tr.foliageAliasImage, TB_DIFFUSEMAP);
 
@@ -3709,6 +3652,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		else if (isVines && backEnd.renderPass == RENDERPASS_VINES)
 		{
 			stateBits = GLS_DEPTHMASK_TRUE | GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_ATEST_GT_0;
+			//stateBits = GLS_DEPTHMASK_TRUE | GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ZERO/*GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA*/ | GLS_ATEST_GT_0;
 
 			RB_SetMaterialBasedProperties(sp, pStage, stage, qfalse);
 
@@ -3720,10 +3664,18 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 
 			GLSL_SetUniformVec3(sp, UNIFORM_PLAYERORIGIN, backEnd.localPlayerOrigin);
 
-#ifdef __HUMANOIDS_BEND_GRASS__ // Bend grass for all close player/NPCs...
-			GLSL_SetUniformInt(sp, UNIFORM_HUMANOIDORIGINSNUM, backEnd.humanoidOriginsNum);
-			GLSL_SetUniformVec3xX(sp, UNIFORM_HUMANOIDORIGINS, backEnd.humanoidOrigins, backEnd.humanoidOriginsNum);
-#endif //__HUMANOIDS_BEND_GRASS__
+			{
+				vec2_t dimensions;
+				dimensions[0] = tr.vinesAliasImage->width;
+				dimensions[1] = tr.vinesAliasImage->height*VINES_HEIGHT;
+				GLSL_SetUniformVec2(sp, UNIFORM_DIMENSIONS, dimensions);
+			}
+			
+
+//#ifdef __HUMANOIDS_BEND_GRASS__ // Bend grass for all close player/NPCs...
+//			GLSL_SetUniformInt(sp, UNIFORM_HUMANOIDORIGINSNUM, backEnd.humanoidOriginsNum);
+//			GLSL_SetUniformVec3xX(sp, UNIFORM_HUMANOIDORIGINS, backEnd.humanoidOrigins, backEnd.humanoidOriginsNum);
+//#endif //__HUMANOIDS_BEND_GRASS__
 
 			GL_BindToTMU(tr.vinesAliasImage, TB_DIFFUSEMAP);
 			//GL_BindToTMU(tr.seaVinesAliasImage, TB_WATER_EDGE_MAP);
@@ -4530,9 +4482,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			else if (tess.shader->materialType == MATERIAL_FIRE)
 			{// Special case for procedural fire...
 				stateBits = GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_ATEST_GT_0;
+				
 				RB_SetMaterialBasedProperties(sp, pStage, stage, qfalse);
 
-				//GL_BindToTMU(tr.moonImage, TB_DIFFUSEMAP);
+				GLSL_SetUniformVec3(sp, UNIFORM_VIEWORIGIN, backEnd.viewParms.ori.origin);
 
 				GLSL_SetUniformFloat(sp, UNIFORM_TIME, tess.shaderTime*10.0);
 				GL_Cull(CT_TWO_SIDED);

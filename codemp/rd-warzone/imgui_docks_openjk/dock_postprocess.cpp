@@ -179,11 +179,11 @@ void DockPostProcess::MakeCvarList() {
 	AddCvar(r_colorCorrection, 1);
 	AddCvar(r_esharpening, 1);
 	//AddCvar(r_esharpening2, 1);
-	AddCvar(r_darkexpand, 1);
-	AddCvar(r_distanceBlur, 5);
+	//AddCvar(r_darkexpand, 1);
+	//AddCvar(r_distanceBlur, 5);
 	AddCvar(r_volumeLight, 1);
 	AddCvar(r_cloudshadows, 2);
-	AddCvar(r_fxaa, 1);
+	//AddCvar(r_fxaa, 1);
 	AddCvar(r_txaa, 1);
 	AddCvar(r_showdepth, 1);
 	AddCvar(r_shownormals, 4);

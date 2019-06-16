@@ -59,16 +59,6 @@ extern vec3_t		MAP_AMBIENT_CSB_NIGHT;
 extern int			MAP_TONEMAP_METHOD;
 extern float		MAP_TONEMAP_SPHERICAL_STRENGTH;
 
-extern int			NUM_CLOSE_LIGHTS;
-extern int			CLOSEST_LIGHTS[MAX_DEFERRED_LIGHTS];
-extern vec2_t		CLOSEST_LIGHTS_SCREEN_POSITIONS[MAX_DEFERRED_LIGHTS];
-extern vec3_t		CLOSEST_LIGHTS_POSITIONS[MAX_DEFERRED_LIGHTS];
-extern float		CLOSEST_LIGHTS_DISTANCES[MAX_DEFERRED_LIGHTS];
-extern float		CLOSEST_LIGHTS_HEIGHTSCALES[MAX_DEFERRED_LIGHTS];
-extern vec3_t		CLOSEST_LIGHTS_COLORS[MAX_DEFERRED_LIGHTS];
-extern float		CLOSEST_LIGHTS_CONEANGLES[MAX_DEFERRED_LIGHTS];
-extern vec3_t		CLOSEST_LIGHTS_CONEDIRECTIONS[MAX_DEFERRED_LIGHTS];
-
 #ifdef __PLAYER_BASED_CUBEMAPS__
 extern int			currentPlayerCubemap;
 extern vec4_t		currentPlayerCubemapVec;
@@ -1999,14 +1989,6 @@ void RB_WaterPost(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 
 		GLSL_SetUniformVec3(shader, UNIFORM_PRIMARYLIGHTCOLOR, backEnd.refdef.sunCol);
 
-
-		/*GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, NUM_CLOSE_LIGHTS);
-		GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTPOSITIONS2, CLOSEST_LIGHTS_POSITIONS, NUM_CLOSE_LIGHTS);
-		GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTCOLORS, CLOSEST_LIGHTS_COLORS, NUM_CLOSE_LIGHTS);
-		GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHTDISTANCES, CLOSEST_LIGHTS_DISTANCES, NUM_CLOSE_LIGHTS);
-		GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHT_CONEANGLES, CLOSEST_LIGHTS_CONEANGLES, NUM_CLOSE_LIGHTS);
-		GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHT_CONEDIRECTIONS, CLOSEST_LIGHTS_CONEDIRECTIONS, NUM_CLOSE_LIGHTS);*/
-
 		{
 			vec4_t loc;
 			VectorSet4(loc, MAP_INFO_MINS[0], MAP_INFO_MINS[1], MAP_INFO_MINS[2], 0.0);
@@ -2160,14 +2142,6 @@ void RB_WaterPost(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		GLSL_SetUniformVec4(shader, UNIFORM_PRIMARYLIGHTORIGIN, out);
 
 		GLSL_SetUniformVec3(shader, UNIFORM_PRIMARYLIGHTCOLOR, backEnd.refdef.sunCol);
-
-
-		/*GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, NUM_CLOSE_LIGHTS);
-		GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTPOSITIONS2, CLOSEST_LIGHTS_POSITIONS, NUM_CLOSE_LIGHTS);
-		GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTCOLORS, CLOSEST_LIGHTS_COLORS, NUM_CLOSE_LIGHTS);
-		GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHTDISTANCES, CLOSEST_LIGHTS_DISTANCES, NUM_CLOSE_LIGHTS);
-		GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHT_CONEANGLES, CLOSEST_LIGHTS_CONEANGLES, NUM_CLOSE_LIGHTS);
-		GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHT_CONEDIRECTIONS, CLOSEST_LIGHTS_CONEDIRECTIONS, NUM_CLOSE_LIGHTS);*/
 
 		{
 			vec4_t loc;
@@ -2552,6 +2526,21 @@ int					NUM_CURRENT_EMISSIVE_LIGHTS = 0;
 
 extern float		DYNAMIC_WEATHER_PUDDLE_STRENGTH;
 
+extern float		DISPLACEMENT_MAPPING_STRENGTH;
+
+extern qboolean		CLOSEST_LIGHTS_CHANGED;
+extern int			NUM_CLOSE_LIGHTS;
+extern int			CLOSEST_LIGHTS[MAX_DEFERRED_LIGHTS];
+extern vec2_t		CLOSEST_LIGHTS_SCREEN_POSITIONS[MAX_DEFERRED_LIGHTS];
+extern vec3_t		CLOSEST_LIGHTS_POSITIONS[MAX_DEFERRED_LIGHTS];
+extern float		CLOSEST_LIGHTS_DISTANCES[MAX_DEFERRED_LIGHTS];
+extern float		CLOSEST_LIGHTS_HEIGHTSCALES[MAX_DEFERRED_LIGHTS];
+extern vec3_t		CLOSEST_LIGHTS_COLORS[MAX_DEFERRED_LIGHTS];
+extern float		CLOSEST_LIGHTS_CONEANGLES[MAX_DEFERRED_LIGHTS];
+extern vec3_t		CLOSEST_LIGHTS_CONEDIRECTIONS[MAX_DEFERRED_LIGHTS];
+
+qboolean			DEFERRED_LIGHT_HAVE_CONEANGLES = qfalse;
+
 void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
 	vec4_t color;
@@ -2568,9 +2557,6 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 
 	GLSL_SetUniformInt(shader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
 	GL_BindToTMU(hdrFbo->colorImage[0], TB_DIFFUSEMAP);
-
-	//GLSL_SetUniformInt(shader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
-	//GL_BindToTMU(tr.linearDepthImageZfar, TB_LIGHTMAP);
 
 	GLSL_SetUniformInt(shader, UNIFORM_NORMALMAP, TB_NORMALMAP);
 	GL_BindToTMU(tr.renderNormalImage, TB_NORMALMAP);
@@ -2594,7 +2580,6 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 	}
 
 	GLSL_SetUniformInt(shader, UNIFORM_GLOWMAP, TB_GLOWMAP);
-	//GL_BindToTMU(tr.anamorphicRenderFBOImage, TB_GLOWMAP);
 	GL_BindToTMU(tr.glowFboScaled[0]->colorImage[0], TB_GLOWMAP);
 
 	if (SHADOWS_ENABLED)
@@ -2703,34 +2688,49 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 #endif //__EMISSIVE_CUBE_IBL__
 		}
 
-	NUM_CURRENT_EMISSIVE_LIGHTS = r_lowVram->integer ? min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, 8.0)) : min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, MAX_DEFERRED_LIGHTS));
-
-	float maxDist = 0.0;
-
-	if (NUM_CURRENT_EMISSIVE_LIGHTS >= r_maxDeferredLights->integer / 2)
+	if (CLOSEST_LIGHTS_CHANGED)
 	{
-		for (int i = 0; i < NUM_CURRENT_EMISSIVE_LIGHTS; i++)
-		{
-			//ri->Printf(PRINT_WARNING, "%i - %i %i %i. Range %f. Color %f %f %f.\n", i, (int)CLOSEST_LIGHTS_POSITIONS[i][0], (int)CLOSEST_LIGHTS_POSITIONS[i][1], (int)CLOSEST_LIGHTS_POSITIONS[i][2], CLOSEST_LIGHTS_DISTANCES[i], CLOSEST_LIGHTS_COLORS[i][0], CLOSEST_LIGHTS_COLORS[i][1], CLOSEST_LIGHTS_COLORS[i][2]);
+		NUM_CURRENT_EMISSIVE_LIGHTS = r_lowVram->integer ? min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, 8.0)) : min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, MAX_DEFERRED_LIGHTS));
 
-			float dist = Distance(backEnd.refdef.vieworg, CLOSEST_LIGHTS_POSITIONS[i]);
-			if (dist > maxDist)
+		float maxDist = 0.0;
+
+		if (NUM_CURRENT_EMISSIVE_LIGHTS >= r_maxDeferredLights->integer / 2)
+		{
+			for (int i = 0; i < NUM_CURRENT_EMISSIVE_LIGHTS; i++)
 			{
-				maxDist = dist;
+				float dist = Distance(backEnd.refdef.vieworg, CLOSEST_LIGHTS_POSITIONS[i]);
+				if (dist > maxDist)
+				{
+					maxDist = dist;
+				}
 			}
 		}
-	}
 
-	qboolean haveConeAngles = qfalse;
+		DEFERRED_LIGHT_HAVE_CONEANGLES = qfalse;
 
-	for (int i = 0; i < NUM_CURRENT_EMISSIVE_LIGHTS; i++)
-	{
-		if (CLOSEST_LIGHTS_CONEANGLES[i] != 0.0)
+		for (int i = 0; i < NUM_CURRENT_EMISSIVE_LIGHTS; i++)
 		{
-			haveConeAngles = qtrue;
-			break;
+			if (CLOSEST_LIGHTS_CONEANGLES[i] != 0.0)
+			{
+				DEFERRED_LIGHT_HAVE_CONEANGLES = qtrue;
+				break;
+			}
 		}
+
+		GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, NUM_CURRENT_EMISSIVE_LIGHTS);
+		GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTPOSITIONS2, CLOSEST_LIGHTS_POSITIONS, NUM_CURRENT_EMISSIVE_LIGHTS);
+		GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTCOLORS, CLOSEST_LIGHTS_COLORS, NUM_CURRENT_EMISSIVE_LIGHTS);
+		GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHTDISTANCES, CLOSEST_LIGHTS_DISTANCES, NUM_CURRENT_EMISSIVE_LIGHTS);
+		if (DEFERRED_LIGHT_HAVE_CONEANGLES)
+		{
+			GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHT_CONEANGLES, CLOSEST_LIGHTS_CONEANGLES, NUM_CURRENT_EMISSIVE_LIGHTS);
+			GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHT_CONEDIRECTIONS, CLOSEST_LIGHTS_CONEDIRECTIONS, NUM_CURRENT_EMISSIVE_LIGHTS);
+		}
+		GLSL_SetUniformFloat(shader, UNIFORM_LIGHT_MAX_DISTANCE, (NUM_CURRENT_EMISSIVE_LIGHTS >= r_maxDeferredLights->integer / 2) ? maxDist : 8192.0);
+
+		CLOSEST_LIGHTS_CHANGED = qfalse;
 	}
+
 
 	GLSL_SetUniformMatrix16(shader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
 
@@ -2738,36 +2738,24 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 	{// Only update as needed..
 		GLSL_SetUniformFloatxX(shader, UNIFORM_MATERIAL_SPECULARS, MATERIAL_SPECULAR_STRENGTHS, MATERIAL_LAST);
 		GLSL_SetUniformFloatxX(shader, UNIFORM_MATERIAL_REFLECTIVENESS, MATERIAL_SPECULAR_REFLECTIVENESS, MATERIAL_LAST);
+		MATERIAL_SPECULAR_CHANGED = qfalse;
 	}
-
-	GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, NUM_CURRENT_EMISSIVE_LIGHTS);
-	GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTPOSITIONS2, CLOSEST_LIGHTS_POSITIONS, NUM_CURRENT_EMISSIVE_LIGHTS);
-	GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTCOLORS, CLOSEST_LIGHTS_COLORS, NUM_CURRENT_EMISSIVE_LIGHTS);
-	GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHTDISTANCES, CLOSEST_LIGHTS_DISTANCES, NUM_CURRENT_EMISSIVE_LIGHTS);
-	//GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHTHEIGHTSCALES, CLOSEST_LIGHTS_HEIGHTSCALES, NUM_CURRENT_EMISSIVE_LIGHTS);
-	if (haveConeAngles)
-	{
-		GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHT_CONEANGLES, CLOSEST_LIGHTS_CONEANGLES, NUM_CURRENT_EMISSIVE_LIGHTS);
-		GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHT_CONEDIRECTIONS, CLOSEST_LIGHTS_CONEDIRECTIONS, NUM_CURRENT_EMISSIVE_LIGHTS);
-	}
-	GLSL_SetUniformFloat(shader, UNIFORM_LIGHT_MAX_DISTANCE, (NUM_CURRENT_EMISSIVE_LIGHTS >= r_maxDeferredLights->integer / 2) ? maxDist : 8192.0);
 
 	GLSL_SetUniformVec3(shader, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);
 
 
 	vec3_t out;
-	float dist = 4096.0;//backEnd.viewParms.zFar / 1.75;
+	float dist = 4096.0;
  	VectorMA( backEnd.refdef.vieworg, dist, backEnd.refdef.sunDir, out );
 	GLSL_SetUniformVec4(shader, UNIFORM_PRIMARYLIGHTORIGIN,  out);
 
-	//GLSL_SetUniformVec4(shader, UNIFORM_LOCAL2,  backEnd.refdef.sunDir);
 	GLSL_SetUniformVec3(shader, UNIFORM_PRIMARYLIGHTCOLOR,   backEnd.refdef.sunCol);
 
 	float useAO = 0.0;
 	if (r_ao->integer >= 3 && AO_ENABLED && AO_BLUR)
-		useAO = 6.0;// r_ao->integer;
+		useAO = 6.0;
 	else if (r_ao->integer >= 3 && AO_ENABLED && StringContainsWord(currentMapName, "mp/")) // Allow mp/ maps to always use blurred AO, if the cvar is set high...
-		useAO = 6.0;// r_ao->integer;
+		useAO = 6.0;
 	else if (r_ao->integer >= 2 && AO_ENABLED) 
 		useAO = 2.0;
 	else if (r_ao->integer && AO_ENABLED) 
@@ -2776,7 +2764,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 		useAO = 0.0;
 
 	vec4_t local1;
-	VectorSet4(local1, r_blinnPhong->value, SUN_PHONG_SCALE, useAO, r_ssdm->integer ? 1.0 : 0.0);
+	VectorSet4(local1, r_blinnPhong->value * SUN_PHONG_SCALE, MAP_USE_PALETTE_ON_SKY ? 1.0 : 0.0, useAO, 0.0);
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL1, local1);
 
 	qboolean shadowsEnabled = qfalse;
@@ -2790,46 +2778,32 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 		shadowsEnabled = qtrue;
 
 	vec4_t local2;
-	VectorSet4(local2, PROCEDURAL_MOSS_ENABLED ? 1.0 : 0.0, shadowsEnabled ? 1.0 : 0.0, SHADOW_MINBRIGHT, SHADOW_MAXBRIGHT);
+	VectorSet4(local2, (MAP_REFLECTION_ENABLED || DYNAMIC_WEATHER_PUDDLE_STRENGTH > 0.0) ? 1.0 : 0.0, shadowsEnabled ? 1.0 : 0.0, SHADOW_MINBRIGHT, SHADOW_MAXBRIGHT);
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL2,  local2);
 
 	vec4_t local3;
 	VectorSet4(local3, r_testshaderValue1->value, r_testshaderValue2->value, r_testshaderValue3->value, r_testshaderValue4->value);
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL3, local3);
 
-	float dayNightGlowFactor = mix(MAP_EMISSIVE_COLOR_SCALE, MAP_EMISSIVE_COLOR_SCALE_NIGHT, RB_NightScale());
-
 	vec4_t local4;
-	VectorSet4(local4, haveConeAngles ? 1.0 : 0.0, PROCEDURAL_SNOW_LUMINOSITY_CURVE, PROCEDURAL_SNOW_BRIGHTNESS, dayNightGlowFactor);
+	VectorSet4(local4, DEFERRED_LIGHT_HAVE_CONEANGLES ? 1.0 : 0.0, PROCEDURAL_SKY_ENABLED ? 1.0 : 0.0, MAP_HDR_MIN, MAP_HDR_MAX);
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL4, local4);
 
 	vec4_t local5;
-	local5[0] = mix(MAP_AMBIENT_CSB[0], MAP_AMBIENT_CSB_NIGHT[0], RB_NightScale());
-	local5[1] = mix(MAP_AMBIENT_CSB[1], MAP_AMBIENT_CSB_NIGHT[1], RB_NightScale());
-	local5[2] = mix(MAP_AMBIENT_CSB[2], MAP_AMBIENT_CSB_NIGHT[2], RB_NightScale());
-	local5[3] = r_truehdr->integer ? 1.0 : 0.0;
+	local5[0] = DYNAMIC_WEATHER_PUDDLE_STRENGTH;
+	local5[1] = mix(MAP_AMBIENT_CSB[0], MAP_AMBIENT_CSB_NIGHT[0], RB_NightScale());
+	local5[2] = mix(MAP_AMBIENT_CSB[1], MAP_AMBIENT_CSB_NIGHT[1], RB_NightScale());
+	local5[3] = mix(MAP_AMBIENT_CSB[2], MAP_AMBIENT_CSB_NIGHT[2], RB_NightScale());
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL5, local5);
 
 	vec4_t local6;
-	VectorSet4(local6, AO_MINBRIGHT, AO_MULTBRIGHT, r_vibrancy->value, DAY_NIGHT_CYCLE_ENABLED ? RB_NightScale() : 0.0);
+	VectorSet4(local6, AO_MINBRIGHT, AO_MULTBRIGHT, r_vibrancy->value, r_truehdr->integer ? 1.0 : 0.0);
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL6, local6);
 
 	vec4_t local7;
-	VectorSet4(local7, cubeMapNum >= 0 ? 1.0 : 0.0, r_cubemapCullRange->value, PROCEDURAL_SKY_ENABLED ? 1.0 : 0.0, r_skyLightContribution->value*SKY_LIGHTING_SCALE);
+	float dayNightGlowFactor = mix(MAP_EMISSIVE_COLOR_SCALE, MAP_EMISSIVE_COLOR_SCALE_NIGHT, RB_NightScale());
+	VectorSet4(local7, dayNightGlowFactor, cubeMapNum >= 0 ? 1.0 : 0.0, r_cubemapCullRange->value, r_skyLightContribution->value*SKY_LIGHTING_SCALE);
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL7, local7);
-
-	vec4_t local8;
-	VectorSet4(local8, MAP_REFLECTION_ENABLED ? 1.0 : 0.0, MAP_HDR_MIN, MAP_HDR_MAX, MAP_INFO_PLAYABLE_MAXS[2]);
-	if (DYNAMIC_WEATHER_PUDDLE_STRENGTH > 0.0) local8[0] = MAP_REFLECTION_ENABLED ? 1.0 : 0.0; // Need reflections on when it's wet... Unless specifically turned off by cvar...
-	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL8, local8);
-
-	vec4_t local9;
-	VectorSet4(local9, PROCEDURAL_SNOW_HEIGHT_CURVE * 0.1, MAP_USE_PALETTE_ON_SKY ? 1.0 : 0.0, PROCEDURAL_SNOW_ENABLED ? 1.0 : 0.0, PROCEDURAL_SNOW_LOWEST_ELEVATION);
-	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL9, local9);
-
-	vec4_t local10;
-	VectorSet4(local10, DYNAMIC_WEATHER_PUDDLE_STRENGTH, 0.0 /* UNUSED */, 0.0 /* UNUSED */, 0.0 /* UNUSED */);
-	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL10, local10);
 
 
 	//
@@ -2850,11 +2824,40 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 	extern float		DYNAMIC_WEATHER_CLOUDSCALE;
 
 	vec4_t vector;
-	VectorSet4(vector, PROCEDURAL_CLOUDS_ENABLED ? 1.0 : 0.0, DYNAMIC_WEATHER_CLOUDSCALE, DYNAMIC_WEATHER_CLOUDCOVER, r_cloudshadows->integer);
-	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL11, vector);
+	if (r_cloudshadows->integer && PROCEDURAL_CLOUDS_ENABLED)
+	{
+		VectorSet4(vector, RB_NightScale(), DYNAMIC_WEATHER_CLOUDCOVER, DYNAMIC_WEATHER_CLOUDSCALE, (PROCEDURAL_CLOUDS_ENABLED && r_cloudshadows->integer > 0.0) ? r_cloudshadows->integer : 0.0);
+		GLSL_SetUniformVec4(shader, UNIFORM_LOCAL8, vector);
+	}
+	else
+	{
+		VectorSet4(vector, RB_NightScale(), 0.0, 0.0, 0.0);
+		GLSL_SetUniformVec4(shader, UNIFORM_LOCAL8, vector);
+	}
 
-	//VectorSet4(vector, 0.0, 0.0, 0.0, 0.0);
-	//GLSL_SetUniformVec4(shader, UNIFORM_LOCAL12, vector);
+#ifdef __PROCEDURALS_IN_DEFERRED_SHADER__
+	vec4_t local9;
+	VectorSet4(local9, MAP_INFO_PLAYABLE_MAXS[2], PROCEDURAL_MOSS_ENABLED ? 1.0 : 0.0, PROCEDURAL_SNOW_ENABLED ? 1.0 : 0.0, 0.0);
+	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL9, local9);
+
+	vec4_t local10;
+	VectorSet4(local10, PROCEDURAL_SNOW_LUMINOSITY_CURVE, PROCEDURAL_SNOW_BRIGHTNESS, PROCEDURAL_SNOW_HEIGHT_CURVE * 0.1, PROCEDURAL_SNOW_LOWEST_ELEVATION);
+	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL10, local10);
+#endif //__PROCEDURALS_IN_DEFERRED_SHADER__
+
+#ifdef __SSDM_IN_DEFERRED_SHADER__
+	extern qboolean ENABLE_DISPLACEMENT_MAPPING;
+
+	GLSL_SetUniformInt(shader, UNIFORM_ROADMAP, TB_ROADMAP);
+	GL_BindToTMU(tr.ssdmImage, TB_ROADMAP);
+
+	GLSL_SetUniformInt(shader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
+	GL_BindToTMU(tr.linearDepthImage512, TB_LIGHTMAP);
+
+	vec4_t local11;
+	VectorSet4(local11, (ENABLE_DISPLACEMENT_MAPPING && r_ssdm->integer) ? DISPLACEMENT_MAPPING_STRENGTH : 0.0, 0.0, 0.0, 0.0);
+	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL11, local11);
+#endif //__SSDM_IN_DEFERRED_SHADER__
 
 	//
 	//
@@ -2878,22 +2881,68 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 
 		GLSL_SetUniformVec2(shader, UNIFORM_DIMENSIONS, screensize);
 	}
-
-	/*{
-		vec4_t viewInfo;
-		float zmax = 4096.0;// 2048.0;
-		//float zmax = backEnd.viewParms.zFar;
-		float ymax = zmax * tan(backEnd.viewParms.fovY * M_PI / 360.0f);
-		float xmax = zmax * tan(backEnd.viewParms.fovX * M_PI / 360.0f);
-		float zmin = r_znear->value;
-		VectorSet4(viewInfo, zmin, zmax, zmax / zmin, backEnd.viewParms.fovX);
-		GLSL_SetUniformVec4(shader, UNIFORM_VIEWINFO, viewInfo);
-	}*/
 	
 	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, shader, color, 0);
 }
 
-extern float DISPLACEMENT_MAPPING_STRENGTH;
+#ifndef __PROCEDURALS_IN_DEFERRED_SHADER__
+void RB_Procedural(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
+{
+	vec4_t color;
+
+	// bloom
+	color[0] =
+		color[1] =
+		color[2] = pow(2, r_cameraExposure->value);
+	color[3] = 1.0f;
+
+	shaderProgram_t *shader = &tr.proceduralShader;
+
+	GLSL_BindProgram(shader);
+
+	GLSL_SetUniformInt(shader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+	GL_BindToTMU(hdrFbo->colorImage[0], TB_DIFFUSEMAP);
+
+	GLSL_SetUniformInt(shader, UNIFORM_NORMALMAP, TB_NORMALMAP);
+	GL_BindToTMU(tr.renderNormalImage, TB_NORMALMAP);
+
+	GLSL_SetUniformInt(shader, UNIFORM_POSITIONMAP, TB_POSITIONMAP);
+	GL_BindToTMU(tr.renderPositionMapImage, TB_POSITIONMAP);
+
+	GLSL_SetUniformInt(shader, UNIFORM_WATERPOSITIONMAP, TB_WATERPOSITIONMAP);
+	GL_BindToTMU(tr.waterPositionMapImage, TB_WATERPOSITIONMAP);
+
+
+	GLSL_SetUniformMatrix16(shader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+
+	GLSL_SetUniformVec3(shader, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);
+
+	vec4_t local1;
+	VectorSet4(local1, PROCEDURAL_MOSS_ENABLED ? 1.0 : 0.0, MAP_INFO_PLAYABLE_MAXS[2], WATER_ENABLED ? 1.0 : 0.0, PROCEDURAL_SNOW_ENABLED ? 1.0 : 0.0);
+	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL1, local1);
+
+	vec4_t local2;
+	VectorSet4(local2, PROCEDURAL_SNOW_LUMINOSITY_CURVE, PROCEDURAL_SNOW_BRIGHTNESS, PROCEDURAL_SNOW_HEIGHT_CURVE * 0.1, PROCEDURAL_SNOW_LOWEST_ELEVATION);
+	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL2, local2);
+
+	vec4_t local3;
+	VectorSet4(local3, r_testshaderValue1->value, r_testshaderValue2->value, r_testshaderValue3->value, r_testshaderValue4->value);
+	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL3, local3);
+
+
+	GLSL_SetUniformFloat(shader, UNIFORM_TIME, backEnd.refdef.floatTime);
+
+	{
+		vec2_t screensize;
+		screensize[0] = glConfig.vidWidth * r_superSampleMultiplier->value;
+		screensize[1] = glConfig.vidHeight * r_superSampleMultiplier->value;
+
+		GLSL_SetUniformVec2(shader, UNIFORM_DIMENSIONS, screensize);
+	}
+
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, shader, color, 0);
+}
+#endif //__PROCEDURALS_IN_DEFERRED_SHADER__
 
 void RB_SSDM_Generate(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
@@ -3224,12 +3273,6 @@ void RB_TestShader(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox,
 
 	GLSL_SetUniformInt(&tr.testshaderShader, UNIFORM_SPECULARMAP, TB_SPECULARMAP);
 	GL_BindToTMU(tr.random2KImage[0], TB_SPECULARMAP);
-
-
-	GLSL_SetUniformInt(&tr.testshaderShader, UNIFORM_LIGHTCOUNT, NUM_CLOSE_LIGHTS);
-	GLSL_SetUniformVec3xX(&tr.testshaderShader, UNIFORM_LIGHTPOSITIONS2, CLOSEST_LIGHTS_POSITIONS, MAX_DEFERRED_LIGHTS);
-	GLSL_SetUniformVec3xX(&tr.testshaderShader, UNIFORM_LIGHTCOLORS, CLOSEST_LIGHTS_COLORS, MAX_DEFERRED_LIGHTS);
-	GLSL_SetUniformFloatxX(&tr.testshaderShader, UNIFORM_LIGHTDISTANCES, CLOSEST_LIGHTS_DISTANCES, MAX_DEFERRED_LIGHTS);
 
 	GLSL_SetUniformVec3(&tr.testshaderShader, UNIFORM_VIEWORIGIN,  backEnd.refdef.vieworg);
 	GLSL_SetUniformFloat(&tr.testshaderShader, UNIFORM_TIME, backEnd.refdef.floatTime);

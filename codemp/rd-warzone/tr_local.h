@@ -118,6 +118,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define __USE_REGIONS__
 
+
+#define	__PROCEDURALS_IN_DEFERRED_SHADER__		// Merge procedural draws into deferred light shader...
+#define __SSDM_IN_DEFERRED_SHADER__				// Merge SSDM draws into deferred light shader...
+
 #define __GENERATED_SKY_CUBES__					// Generate sky cubemaps from sky render instead of using map's skybox textures... Doesn't like non-procedural for some reason, so disabled.
 
 #define __TERRAIN_TESSELATION__
@@ -3138,6 +3142,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t showNormalsShader;
 	shaderProgram_t showDepthShader;
 	shaderProgram_t deferredLightingShader[3];
+	shaderProgram_t proceduralShader;
 	shaderProgram_t ssdmShader;
 	shaderProgram_t ssdmGenerateShader[2];
 	//shaderProgram_t ssrShader;

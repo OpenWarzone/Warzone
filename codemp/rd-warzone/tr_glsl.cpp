@@ -203,6 +203,8 @@ extern const char *fallbackShader_showDepth_vp;
 extern const char *fallbackShader_showDepth_fp;
 extern const char *fallbackShader_deferredLighting_vp;
 extern const char *fallbackShader_deferredLighting_fp;
+extern const char *fallbackShader_procedural_vp;
+extern const char *fallbackShader_procedural_fp;
 extern const char *fallbackShader_ssdm_vp;
 extern const char *fallbackShader_ssdm_fp;
 extern const char *fallbackShader_ssdmGenerate_vp;
@@ -4304,6 +4306,18 @@ int GLSL_BeginLoadGPUShaders(void)
 		ri->Error(ERR_FATAL, "Could not load showDepth shader!");
 	}
 
+#ifndef __PROCEDURALS_IN_DEFERRED_SHADER__
+	{
+		attribs = ATTR_POSITION | ATTR_TEXCOORD0;
+		extradefines[0] = '\0';
+
+		if (!GLSL_BeginLoadGPUShader(&tr.proceduralShader, "procedural", attribs, qtrue, qfalse, qfalse, extradefines, qtrue, NULL, fallbackShader_procedural_vp, fallbackShader_procedural_fp, NULL, NULL, NULL))
+		{
+			ri->Error(ERR_FATAL, "Could not load procedural shader!");
+		}
+	}
+#endif //__PROCEDURALS_IN_DEFERRED_SHADER__
+
 	{
 		attribs = ATTR_POSITION | ATTR_TEXCOORD0;
 		extradefines[0] = '\0';
@@ -6109,6 +6123,33 @@ void GLSL_EndLoadGPUShaders(int startTime)
 	numEtcShaders++;
 
 
+#ifndef __PROCEDURALS_IN_DEFERRED_SHADER__
+	{
+		if (!GLSL_EndLoadGPUShader(&tr.proceduralShader))
+		{
+			ri->Error(ERR_FATAL, "Could not load procedural!");
+		}
+
+		GLSL_InitUniforms(&tr.proceduralShader);
+
+		GLSL_BindProgram(&tr.proceduralShader);
+
+		GLSL_SetUniformInt(&tr.proceduralShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+		GLSL_SetUniformInt(&tr.proceduralShader, UNIFORM_POSITIONMAP, TB_POSITIONMAP);
+		GLSL_SetUniformInt(&tr.proceduralShader, UNIFORM_NORMALMAP, TB_NORMALMAP);
+		GLSL_SetUniformInt(&tr.proceduralShader, UNIFORM_SHADOWMAP, TB_SHADOWMAP);
+		GLSL_SetUniformInt(&tr.proceduralShader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
+		GLSL_SetUniformInt(&tr.proceduralShader, UNIFORM_HEIGHTMAP, TB_HEIGHTMAP);
+
+		GLSL_SetUniformVec3(&tr.proceduralShader, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);
+
+#if defined(_DEBUG)
+		GLSL_FinishGPUShader(&tr.proceduralShader);
+#endif
+
+		numEtcShaders++;
+	}
+#endif //__PROCEDURALS_IN_DEFERRED_SHADER__
 
 	{
 		if (!GLSL_EndLoadGPUShader(&tr.deferredLightingShader[0]))
@@ -7211,6 +7252,9 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.deferredLightingShader[0]);
 	GLSL_DeleteGPUShader(&tr.deferredLightingShader[1]);
 	GLSL_DeleteGPUShader(&tr.deferredLightingShader[2]);
+#ifndef __PROCEDURALS_IN_DEFERRED_SHADER__
+	GLSL_DeleteGPUShader(&tr.proceduralShader);
+#endif //__PROCEDURALS_IN_DEFERRED_SHADER__
 	GLSL_DeleteGPUShader(&tr.ssdmShader);
 	GLSL_DeleteGPUShader(&tr.ssdmGenerateShader[0]);
 	GLSL_DeleteGPUShader(&tr.ssdmGenerateShader[1]);

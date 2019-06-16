@@ -9,21 +9,15 @@ uniform float	u_Time;
 
 uniform vec4	u_PrimaryLightOrigin;
 
-uniform vec4	u_Local3; // r_testShaderValue1, r_testShaderValue2, r_testShaderValue3, r_testShaderValue4
-uniform vec4	u_Local6; // AO_MINBRIGHT, AO_MULTBRIGHT, VIBRANCY, NightScale
-uniform vec4	u_Local11; // PROCEDURAL_CLOUDS_ENABLED, PROCEDURAL_CLOUDS_CLOUDSCALE, PROCEDURAL_CLOUDS_CLOUDCOVER, CLOUDS_SHADOWS_ENABLED
+uniform vec4								u_Local8; // NIGHT_SCALE,		CLOUDS_CLOUDCOVER,		CLOUDS_CLOUDSCALE,		CLOUDS_SHADOWS_ENABLED
 
-
-#define AO_MINBRIGHT						u_Local6.r
-#define AO_MULTBRIGHT						u_Local6.g
-#define VIBRANCY							u_Local6.b
-#define NIGHT_SCALE							u_Local6.a
 
 // CLOUDS
-#define CLOUDS_ENABLED						u_Local11.r
-#define CLOUDS_CLOUDSCALE					u_Local11.g
-#define CLOUDS_CLOUDCOVER					u_Local11.b
-#define CLOUDS_SHADOWS_ENABLED				u_Local11.a
+#define NIGHT_SCALE							u_Local8.r
+#define CLOUDS_CLOUDCOVER					u_Local8.g
+#define CLOUDS_CLOUDSCALE					u_Local8.b
+#define CLOUDS_SHADOWS_ENABLED				u_Local8.a
+
 
 varying vec2   	var_TexCoords;
 
@@ -173,7 +167,7 @@ void main()
 	var_TexCoords = attr_TexCoord0.st;
 
 #ifdef __CLOUD_SHADOWS__
-	if (CLOUDS_ENABLED > 0.0 && CLOUDS_SHADOWS_ENABLED == 1.0)
+	if (CLOUDS_SHADOWS_ENABLED == 1.0)
 	{
 		float cShadow = CloudShadows() * 0.5 + 0.5;
 		var_CloudShadow = mix(cShadow, 1.0, clamp(NIGHT_SCALE, 0.0, 1.0)); // Dampen out cloud shadows at sunrise/sunset...

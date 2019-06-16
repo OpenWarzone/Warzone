@@ -158,15 +158,15 @@ void main(void)
 
 	gl_FragColor = color;
 #else //!TEST_PARALLAX
-	vec2 texCoords = var_TexCoords;
-	vec3 dMap = texture(u_RoadMap, texCoords).rgb;
-	if (length(dMap.rg) == 0.0)
+	vec3 parallax = texture(u_RoadMap, var_TexCoords).rgb;
+
+	if (length(parallax.xy) == 0.0)
 	{
-		gl_FragColor = vec4(texture(u_DiffuseMap, texCoords).rgb, 1.0);
+		gl_FragColor = vec4(texture(u_DiffuseMap, var_TexCoords).rgb, 1.0);
 	}
 	else
 	{
-		gl_FragColor = vec4(texture(u_DiffuseMap, dMap.xy*2.0-1.0).rgb * pow(dMap.b, 4.0), 1.0);
+		gl_FragColor = vec4(texture(u_DiffuseMap, var_TexCoords+(parallax.xy*2.0-1.0)).rgb * parallax.z, 1.0);
 	}
 #endif //TEST_PARALLAX
 }

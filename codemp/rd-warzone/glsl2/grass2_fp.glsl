@@ -2,6 +2,7 @@ uniform sampler2D					u_DiffuseMap;	// Land grass atlas
 uniform sampler2D					u_WaterEdgeMap; // Sea grass atlas
 
 uniform vec3						u_ViewOrigin;
+uniform vec2						u_Dimensions;
 
 uniform vec4						u_Settings1; // IS_DEPTH_PASS, 0.0, 0.0, 0.0
 uniform vec4						u_Settings5; // MAP_COLOR_SWITCH_RG, MAP_COLOR_SWITCH_RB, MAP_COLOR_SWITCH_GB, 0.0
@@ -136,6 +137,25 @@ vec4 DecodeFloatRGBA( float v ) {
   return enc;
 }
 
+bool isDithered(vec2 pos, float alpha)
+{
+	pos *= u_Dimensions.xy * 12.0;
+
+	// Define a dither threshold matrix which can
+	// be used to define how a 4x4 set of pixels
+	// will be dithered
+	float DITHER_THRESHOLDS[16] = float[]
+	(
+		1.0 / 17.0,  9.0 / 17.0,  3.0 / 17.0, 11.0 / 17.0,
+		13.0 / 17.0,  5.0 / 17.0, 15.0 / 17.0,  7.0 / 17.0,
+		4.0 / 17.0, 12.0 / 17.0,  2.0 / 17.0, 10.0 / 17.0,
+		16.0 / 17.0,  8.0 / 17.0, 14.0 / 17.0,  6.0 / 17.0
+	);
+
+	int index = (int(pos.x) % 4) * 4 + int(pos.y) % 4;
+	return (alpha - DITHER_THRESHOLDS[index] < 0) ? true : false;
+}
+
 void main() 
 {
 	vec4 diffuse;
@@ -192,22 +212,25 @@ void main()
 
 	if (diffuse.a > 0.5)
 	{
-#if 0
-		float alpha = 1.0;
+#if 1
+		// Screen-door transparancy on distant and extremely close grasses...
 		float dist = distance(vVertPosition, u_ViewOrigin);
-		float fadeStart = MAX_RANGE * 0.75;
-		if (dist > fadeStart)
-		{
-			float fadeDiv = MAX_RANGE * 0.25;
-			float fd = dist - fadeStart;
-			alpha = 1.0 - clamp(fd / fadeDiv, 0.0, 1.0);
-		}
-		else if (dist <= 64.0)
-		{
-			alpha = clamp(dist / 64.0, 0.0, 1.0);
-		}
+		float alpha = 1.0 - (dist / MAX_RANGE);
+		float afar = clamp(alpha * 2.0, 0.0, 1.0);
+		float anear = clamp(dist / 48.0, 0.0, 1.0);
 
-		diffuse.a = alpha;
+		if (isDithered(tc, afar))
+		{
+			diffuse.a = 0.0;
+		}
+		else if (isDithered(tc, anear))
+		{
+			diffuse.a = 0.0;
+		}
+		else
+		{
+			diffuse.a = 1.0;
+		}
 #else
 		diffuse.a = 1.0;
 #endif
@@ -221,7 +244,7 @@ void main()
 	{
 		gl_FragColor = vec4(diffuse.rgb, diffuse.a/*1.0*/);
 		out_Glow = vec4(0.0);
-		out_Normal = vec4(EncodeNormal(DecodeNormal(vVertNormal.xy)), 0.0, 1.0);
+		out_Normal = vec4(vVertNormal.xy/*EncodeNormal(DecodeNormal(vVertNormal.xy))*/, 0.0, 1.0);
 #ifdef __USE_REAL_NORMALMAPS__
 		out_NormalDetail = vec4(0.0);
 #endif //__USE_REAL_NORMALMAPS__

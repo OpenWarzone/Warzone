@@ -1,6 +1,9 @@
-﻿#ifndef __LQ_MODE__
+﻿#define __PROCEDURALS_IN_DEFERRED_SHADER__
+#define __SSDM_IN_DEFERRED_SHADER__
 
-//#define SSDM_PROCEDURAL_MOSS
+
+#ifndef __LQ_MODE__
+
 #define __AMBIENT_OCCLUSION__
 #define __ENHANCED_AO__
 #define __SCREEN_SPACE_REFLECTIONS__
@@ -13,48 +16,74 @@
 #endif //__LQ_MODE__
 
 uniform sampler2D							u_DiffuseMap;		// Screen image
-//uniform sampler2D							u_ScreenDepthMap;	// Depth map - currently unused
 uniform sampler2D							u_NormalMap;		// Flat normals
 uniform sampler2D							u_PositionMap;		// positionMap
 uniform sampler2D							u_WaterPositionMap;	// water positions
-uniform sampler2D							u_OverlayMap;		// Real normals. Alpha channel 1.0 means enabled...
-uniform sampler2D							u_SteepMap;			// ssao image
-//uniform sampler2D							u_HeightMap;		// unused
-uniform sampler2D							u_GlowMap;			// anamorphic
-uniform sampler2D							u_ShadowMap;		// Screen Shadow Map
-uniform sampler2D							u_WaterEdgeMap;		// tr.shinyImage
 uniform sampler2D							u_RoadsControlMap;	// Screen Pshadows Map
+
+#ifdef __USE_REAL_NORMALMAPS__
+uniform sampler2D							u_OverlayMap;		// Real normals. Alpha channel 1.0 means enabled...
+#endif //__USE_REAL_NORMALMAPS__
+
+#ifdef __ENHANCED_AO__
+uniform sampler2D							u_SteepMap;			// ssao image
+#endif //__ENHANCED_AO__
+
+#ifdef __SCREEN_SPACE_REFLECTIONS__
+uniform sampler2D							u_GlowMap;			// anamorphic
+#endif //__SCREEN_SPACE_REFLECTIONS__
+
+#ifdef USE_SHADOWMAP
+uniform sampler2D							u_ShadowMap;		// Screen Shadow Map
+#endif //USE_SHADOWMAP
+
+#ifndef __LQ_MODE__
+uniform sampler2D							u_WaterEdgeMap;		// tr.shinyImage
 uniform samplerCube							u_SkyCubeMap;		// Day sky cubemap
 uniform samplerCube							u_SkyCubeMapNight;	// Night sky cubemap
+#endif //__LQ_MODE__
+
+#ifdef __CUBEMAPS__
 uniform samplerCube							u_CubeMap;			// Closest cubemap
-//uniform samplerCube							u_EmissiveCubeMap;	// Closest emissive cubemap - currently unused
+#endif //__CUBEMAPS__
+
+#ifdef __SSDM_IN_DEFERRED_SHADER__
+uniform sampler2D							u_ScreenDepthMap;	// 512 depth map.
+uniform sampler2D							u_RoadMap;			// SSDM map.
+#endif //__SSDM_IN_DEFERRED_SHADER__
 
 uniform mat4								u_ModelViewProjectionMatrix;
 
 uniform vec2								u_Dimensions;
 
-uniform vec4								u_Local1; // r_blinnPhong, SUN_PHONG_SCALE, r_ao, SSDM_ENABLED
-uniform vec4								u_Local2; // PROCEDURAL_MOSS_ENABLED, SHADOWS_ENABLED, SHADOW_MINBRIGHT, SHADOW_MAXBRIGHT
-uniform vec4								u_Local3; // r_testShaderValue1, r_testShaderValue2, r_testShaderValue3, r_testShaderValue4
-uniform vec4								u_Local4; // haveConeAngles, PROCEDURAL_SNOW_LUMINOSITY_CURVE, PROCEDURAL_SNOW_BRIGHTNESS, MAP_EMISSIVE_COLOR_SCALE
-uniform vec4								u_Local5; // CONTRAST, SATURATION, BRIGHTNESS, TRUEHDR_ENABLED
-uniform vec4								u_Local6; // AO_MINBRIGHT, AO_MULTBRIGHT, VIBRANCY, NightScale
-uniform vec4								u_Local7; // cubemapEnabled, r_cubemapCullRange, PROCEDURAL_SKY_ENABLED, r_skyLightContribution
-uniform vec4								u_Local8; // enableReflections (2 = puddles), MAP_HDR_MIN, MAP_HDR_MAX, MAP_INFO_PLAYABLE_MAXS[2]
-uniform vec4								u_Local9; // PROCEDURAL_SNOW_HEIGHT_CURVE, MAP_USE_PALETTE_ON_SKY, SNOW_ENABLED, PROCEDURAL_SNOW_LOWEST_ELEVATION
-uniform vec4								u_Local10; // WETNESS, 0.0, 0.0, 0.0
-uniform vec4								u_Local11; // PROCEDURAL_CLOUDS_ENABLED, PROCEDURAL_CLOUDS_CLOUDSCALE, PROCEDURAL_CLOUDS_CLOUDCOVER, CLOUDS_SHADOWS_ENABLED
-//uniform vec4								u_Local12; // 0.0, 0.0, 0.0, 0.0
+uniform vec4								u_Local1;	// SUN_PHONG_SCALE,			MAP_USE_PALETTE_ON_SKY,			r_ao,							0.0
+uniform vec4								u_Local2;	// MAP_REFLECTION_ENABLED,	SHADOWS_ENABLED,				SHADOW_MINBRIGHT,				SHADOW_MAXBRIGHT
+uniform vec4								u_Local3;	// r_testShaderValue1,		r_testShaderValue2,				r_testShaderValue3,				r_testShaderValue4
+uniform vec4								u_Local4;	// haveConeAngles,			MAP_EMISSIVE_COLOR_SCALE,		MAP_HDR_MIN,					MAP_HDR_MAX
+uniform vec4								u_Local5;	// CONTRAST,				SATURATION,						BRIGHTNESS,						WETNESS
+uniform vec4								u_Local6;	// AO_MINBRIGHT,			AO_MULTBRIGHT,					VIBRANCY,						TRUEHDR_ENABLED
+uniform vec4								u_Local7;	// cubemapEnabled,			r_cubemapCullRange,				PROCEDURAL_SKY_ENABLED,			r_skyLightContribution
+uniform vec4								u_Local8;	// NIGHT_SCALE,				PROCEDURAL_CLOUDS_CLOUDCOVER,	PROCEDURAL_CLOUDS_CLOUDSCALE,	CLOUDS_SHADOWS_ENABLED
 
-//uniform vec4								u_ViewInfo; // znear, zfar, zfar / znear, fov
+#ifdef __PROCEDURALS_IN_DEFERRED_SHADER__
+uniform vec4								u_Local9;	// MAP_INFO_PLAYABLE_HEIGHT, PROCEDURAL_MOSS_ENABLED, PROCEDURAL_SNOW_ENABLED, 0.0
+uniform vec4								u_Local10;	// PROCEDURAL_SNOW_LUMINOSITY_CURVE, PROCEDURAL_SNOW_BRIGHTNESS, PROCEDURAL_SNOW_HEIGHT_CURVE, PROCEDURAL_SNOW_LOWEST_ELEVATION
+#endif //__PROCEDURALS_IN_DEFERRED_SHADER__
+
+#ifdef __SSDM_IN_DEFERRED_SHADER__
+uniform vec4								u_Local11;	// DISPLACEMENT_MAPPING_STRENGTH, 0.0, 0.0, 0.0
+#endif //__SSDM_IN_DEFERRED_SHADER__
+
 uniform vec3								u_ViewOrigin;
 uniform vec4								u_PrimaryLightOrigin;
 uniform vec3								u_PrimaryLightColor;
 
 uniform float								u_Time;
 
+#ifdef __CUBEMAPS__
 uniform vec4								u_CubeMapInfo;
 uniform float								u_CubeMapStrength;
+#endif //__CUBEMAPS__
 
 uniform float								u_MaterialSpeculars[MATERIAL_LAST];
 uniform float								u_MaterialReflectiveness[MATERIAL_LAST];
@@ -62,7 +91,6 @@ uniform float								u_MaterialReflectiveness[MATERIAL_LAST];
 uniform int									u_lightCount;
 uniform vec3								u_lightPositions2[MAX_DEFERRED_LIGHTS];
 uniform float								u_lightDistances[MAX_DEFERRED_LIGHTS];
-//uniform float								u_lightHeightScales[MAX_DEFERRED_LIGHTS];
 uniform vec3								u_lightColors[MAX_DEFERRED_LIGHTS];
 uniform float								u_lightConeAngles[MAX_DEFERRED_LIGHTS];
 uniform vec3								u_lightConeDirections[MAX_DEFERRED_LIGHTS];
@@ -75,62 +103,56 @@ varying vec2								var_TexCoords;
 varying float								var_CloudShadow;
 
 
-#define BLINN_PHONG_STRENGTH				u_Local1.r
-#define SUN_PHONG_SCALE						u_Local1.g
+#define SUN_PHONG_SCALE						u_Local1.r
+#define MAP_USE_PALETTE_ON_SKY				u_Local1.g
 #define AO_TYPE								u_Local1.b
-#define SSDM_ENABLED						u_Local1.a
+//#define UNUSED							u_Local1.a
 
-#define PROCEDURAL_MOSS_ENABLED				u_Local2.r
+#define REFLECTIONS_ENABLED					u_Local2.r
 #define SHADOWS_ENABLED						u_Local2.g
 #define SHADOW_MINBRIGHT					u_Local2.b
 #define SHADOW_MAXBRIGHT					u_Local2.a
 
 #define HAVE_CONE_ANGLES					u_Local4.r
-#define PROCEDURAL_SNOW_LUMINOSITY_CURVE	u_Local4.g
-#define PROCEDURAL_SNOW_BRIGHTNESS			u_Local4.b
-#define MAP_EMISSIVE_COLOR_SCALE			u_Local4.a
+#define PROCEDURAL_SKY_ENABLED				u_Local4.g
+#define MAP_HDR_MIN							u_Local4.b
+#define MAP_HDR_MAX							u_Local4.a
 
-#define CONTRAST_STRENGTH					u_Local5.r
-#define SATURATION_STRENGTH					u_Local5.g
-#define BRIGHTNESS_STRENGTH					u_Local5.b
-#define TRUEHDR_ENABLED						u_Local5.a
+#define WETNESS								u_Local5.r
+#define CONTRAST_STRENGTH					u_Local5.g
+#define SATURATION_STRENGTH					u_Local5.b
+#define BRIGHTNESS_STRENGTH					u_Local5.a
 
 #define AO_MINBRIGHT						u_Local6.r
 #define AO_MULTBRIGHT						u_Local6.g
 #define VIBRANCY							u_Local6.b
-#define NIGHT_SCALE							u_Local6.a
+#define TRUEHDR_ENABLED						u_Local6.a
 
-#define CUBEMAP_ENABLED						u_Local7.r
-#define CUBEMAP_CULLRANGE					u_Local7.g
-#define PROCEDURAL_SKY_ENABLED				u_Local7.b
+#define MAP_EMISSIVE_COLOR_SCALE			u_Local7.r
+#define CUBEMAP_ENABLED						u_Local7.g
+#define CUBEMAP_CULLRANGE					u_Local7.b
 #define SKY_LIGHT_CONTRIBUTION				u_Local7.a
 
-#define REFLECTIONS_ENABLED					u_Local8.r
-#define MAP_HDR_MIN							u_Local8.g
-#define MAP_HDR_MAX							u_Local8.b
-#define MAP_INFO_PLAYABLE_HEIGHT			u_Local8.a
-
-#define PROCEDURAL_SNOW_HEIGHT_CURVE		u_Local9.r
-#define MAP_USE_PALETTE_ON_SKY				u_Local9.g
-#define SNOW_ENABLED						u_Local9.b
-#define PROCEDURAL_SNOW_LOWEST_ELEVATION	u_Local9.a
-
-#define WETNESS								u_Local10.r
-
 // CLOUDS
-#define CLOUDS_ENABLED						u_Local11.r
-#define CLOUDS_CLOUDSCALE					u_Local11.g
-#define CLOUDS_CLOUDCOVER					u_Local11.b
-#define CLOUDS_SHADOWS_ENABLED				u_Local11.a
+#define NIGHT_SCALE							u_Local8.r
+#define CLOUDS_CLOUDCOVER					u_Local8.g
+#define CLOUDS_CLOUDSCALE					u_Local8.b
+#define CLOUDS_SHADOWS_ENABLED				u_Local8.a
 
-//#define CLOUDS_LIGHT						u_Local12.r
-//#define CLOUDS_CLOUDCOVER					u_Local12.g
-//#define CLOUDS_CLOUDALPHA					u_Local12.b
-//#define CLOUDS_SKYTINT					u_Local12.a
-//
+#ifdef __PROCEDURALS_IN_DEFERRED_SHADER__
+#define MAP_INFO_PLAYABLE_HEIGHT			u_Local9.r
+#define PROCEDURAL_MOSS_ENABLED				u_Local9.g
+#define PROCEDURAL_SNOW_ENABLED				u_Local9.b
 
-#define SHADER_DAY_NIGHT_ENABLED			u_Local5.r
-#define SHADER_NIGHT_SCALE					u_Local5.g
+#define PROCEDURAL_SNOW_LUMINOSITY_CURVE	u_Local10.r
+#define PROCEDURAL_SNOW_BRIGHTNESS			u_Local10.g
+#define PROCEDURAL_SNOW_HEIGHT_CURVE		u_Local10.b
+#define PROCEDURAL_SNOW_LOWEST_ELEVATION	u_Local10.a
+#endif //__PROCEDURALS_IN_DEFERRED_SHADER__
+
+#ifdef __SSDM_IN_DEFERRED_SHADER__
+#define DISPLACEMENT_STRENGTH				u_Local11.r
+#endif //__SSDM_IN_DEFERRED_SHADER__
 
 #define WATER_ENABLED						u_Mins.a
 
@@ -445,6 +467,7 @@ float proceduralHash( const in float n ) {
 	return fract(sin(n)*4378.5453);
 }
 
+#ifdef __PROCEDURALS_IN_DEFERRED_SHADER__
 float proceduralNoise(in vec3 o) 
 {
 	vec3 p = floor(o);
@@ -494,6 +517,39 @@ float proceduralSmoothNoise( vec3 p )
     return clamp(f * 1.3333333333333333333333333333333, 0.0, 1.0);
 	//return proceduralNoise(p);
 }
+
+vec3 splatblend(vec3 color1, float a1, vec3 color2, float a2)
+{
+    float depth = 0.2;
+	float ma = max(a1, a2) - depth;
+
+    float b1 = max(a1 - ma, 0);
+    float b2 = max(a2 - ma, 0);
+
+    return ((color1.rgb * b1) + (color2.rgb * b2)) / (b1 + b2);
+}
+
+//
+// Procedural texturing variation...
+//
+void AddProceduralMoss(inout vec4 outColor, in vec4 position, in bool changedToWater, in vec3 originalPosition)
+{
+	vec3 usePos = changedToWater ? originalPosition.xyz : position.xyz;
+	float moss = clamp(proceduralNoise( usePos.xyz * 0.00125 ), 0.0, 1.0);
+
+	if (moss > 0.25)
+	{
+		const vec3 colorLight = vec3(0.0, 0.65, 0.0);
+		const vec3 colorDark = vec3(0.0, 0.0, 0.0);
+			
+		float mossClr = proceduralSmoothNoise(usePos.xyz * 0.25);
+		vec3 mossColor = mix(colorDark, colorLight, mossClr*0.25);
+
+		moss = pow((moss - 0.25) * 3.0, 0.35);
+		outColor.rgb = splatblend(outColor.rgb, 1.0 - moss*0.75, mossColor, moss*0.25);
+	}
+}
+#endif //__PROCEDURALS_IN_DEFERRED_SHADER__
 
 #if 0
 vec3 TangentFromNormal ( vec3 normal )
@@ -908,26 +964,10 @@ float getdiffuse(vec3 n, vec3 l, float p) {
 	return pow(ndotl, p);
 }
 
-//#define USE_ALBEDO_CONVERSION
-
 vec3 blinn_phong(vec3 pos, vec3 color, vec3 bump, vec3 view, vec3 light, vec3 lightColor, float specPower, vec3 lightPos, float wetness) {
-#ifdef USE_ALBEDO_CONVERSION
-	float noise = proceduralNoise(pos.xyx) * 0.5;
-	noise += proceduralNoise(pos.yzx * 0.5);
-	noise += proceduralNoise(pos.zxy * 0.25) * 2.0;
-	noise += proceduralNoise(pos.yxz * 0.125) * 4.0;
-
-	vec3 albedo = pow(color, vec3(2.2));
-	albedo = mix(albedo, albedo * 1.3, noise * 0.35 - 1.0);
-	float roughness = 0.7 - clamp(0.5 - dot(albedo, albedo), 0.05, 0.95);
-	float f0 = 0.3;
-
-	albedo = clamp(albedo, 0.0, 1.0);
-#else //!USE_ALBEDO_CONVERSION
 	vec3 albedo = pow(color, vec3(2.2));
 	float roughness = 0.7 - clamp(0.5 - dot(albedo, albedo), 0.05, 0.95);
 	float f0 = 0.3;
-#endif //USE_ALBEDO_CONVERSION
 
 	// Ambient light.
 	float ambience = 0.24;
@@ -952,11 +992,7 @@ vec3 blinn_phong(vec3 pos, vec3 color, vec3 bump, vec3 view, vec3 light, vec3 li
 	float spec = clamp(/*0.3183 **/ NdotLTube+specTube, 0.0, 1.0/*0.2*/);
 #endif
 	
-#ifdef USE_ALBEDO_CONVERSION
-	spec = clamp(pow(spec, 1.0 / 2.2) * specPower * 256.0, 0.0, 1.0);
-#else //USE_ALBEDO_CONVERSION
 	spec = clamp(pow(spec, 1.0 / 2.2), 0.0, 1.0);
-#endif //USE_ALBEDO_CONVERSION
 
 	float wetSpec = 0.0;
 
@@ -1135,48 +1171,83 @@ vec3 ContrastSaturationBrightness(vec3 color, float con, float sat, float brt)
 	return conColor;
 }
 
-vec3 splatblend(vec3 color1, float a1, vec3 color2, float a2)
+vec3 GetScreenPixel(void)
 {
-    float depth = 0.2;
-	float ma = max(a1, a2) - depth;
+#ifndef __SSDM_IN_DEFERRED_SHADER__
+	return texture(u_DiffuseMap, var_TexCoords).rgb;
+#else //__SSDM_IN_DEFERRED_SHADER__
+	vec3 dMap = texture(u_RoadMap, var_TexCoords).rgb;
+	vec3 color = texture(u_DiffuseMap, var_TexCoords).rgb;
 
-    float b1 = max(a1 - ma, 0);
-    float b2 = max(a2 - ma, 0);
-
-    return ((color1.rgb * b1) + (color2.rgb * b2)) / (b1 + b2);
-}
-
-//
-// Procedural texturing variation...
-//
-void AddProceduralMoss(inout vec4 outColor, in vec4 position, in bool changedToWater, in vec3 originalPosition)
-{
-	if (PROCEDURAL_MOSS_ENABLED > 0.0 && (position.a - 1.0 == MATERIAL_TREEBARK || position.a - 1.0 == MATERIAL_ROCK))
-	{// add procedural moss...
-		vec3 usePos = changedToWater ? originalPosition.xyz : position.xyz;
-		float moss = clamp(proceduralNoise( usePos.xyz * 0.00125 ), 0.0, 1.0);
-
-		if (moss > 0.25)
-		{
-			const vec3 colorLight = vec3(0.0, 0.65, 0.0);
-			const vec3 colorDark = vec3(0.0, 0.0, 0.0);
-			
-			float mossClr = proceduralSmoothNoise(usePos.xyz * 0.25);
-			vec3 mossColor = mix(colorDark, colorLight, mossClr*0.25);
-
-			moss = pow((moss - 0.25) * 3.0, 0.35);
-			outColor.rgb = splatblend(outColor.rgb, 1.0 - moss*0.75, mossColor, moss*0.25);
-		}
+	if (dMap.r <= 0.0 || DISPLACEMENT_STRENGTH == 0.0)
+	{
+		return color;
 	}
+	
+	vec2 texCoords = var_TexCoords;
+	float invDepth = clamp((1.0 - texture(u_ScreenDepthMap, texCoords).r) * 2.0 - 1.0, 0.0, 1.0);
+
+	if (invDepth <= 0.0)
+	{
+		return color;
+	}
+
+	float material = texture(u_PositionMap, var_TexCoords).a - 1.0;
+	float materialMultiplier = 1.0;
+
+	if (material == MATERIAL_ROCK || material == MATERIAL_STONE || material == MATERIAL_SKYSCRAPER)
+	{// Rock gets more displacement...
+		materialMultiplier = 3.0;
+	}
+	else if (material == MATERIAL_TREEBARK)
+	{// Rock gets more displacement...
+		materialMultiplier = 1.5;
+	}
+
+	vec3 norm = vec3(dMap.gb, 0.0) * 2.0 - 1.0;
+	norm.z = sqrt(1.0 - dot(norm.xy, norm.xy)); // reconstruct Z from X and Y
+
+	vec2 distFromCenter = vec2(length(texCoords.x - 0.5), length(texCoords.y - 0.5));
+	float displacementStrengthMod = ((DISPLACEMENT_STRENGTH * materialMultiplier) / 18.0); // Default is 18.0. If using higher displacement, need more screen edge flattening, if less, less flattening.
+	float screenEdgeScale = clamp(max(distFromCenter.x, distFromCenter.y) * 2.0, 0.0, 1.0);
+	screenEdgeScale = 1.0 - pow(screenEdgeScale, 16.0/displacementStrengthMod);
+
+	float finalModifier = invDepth;
+
+	float offset = -DISPLACEMENT_STRENGTH * materialMultiplier * finalModifier * screenEdgeScale * dMap.r;
+
+	texCoords += norm.xy * pixel * offset;
+
+	vec3 col = vec3(0.0);
+	float steps = min(DISPLACEMENT_STRENGTH * materialMultiplier, 4.0);
+	vec2 dir = (texCoords - var_TexCoords) / steps;
+	col = texture(u_DiffuseMap, texCoords).rgb;
+
+	for (float x = steps; x > 0.0; x -= 1.0)
+	{
+		col += texture(u_DiffuseMap, var_TexCoords + (dir*x)).rgb;
+	}
+	col /= steps+1.0;
+	color = col;
+
+	float shadow = 1.0 - clamp(dMap.r, 0.0, 1.0);
+	shadow = pow(shadow, 8.0);
+	shadow = 1.0 - (shadow * finalModifier);
+	shadow = clamp(shadow * 0.75 + 0.25, 0.0, 1.0);
+	color.rgb *= shadow;
+
+	return color;
+#endif //__SSDM_IN_DEFERRED_SHADER__
 }
 
 void main(void)
 {
 	bool changedToWater = false;
-	vec4 color = texture(u_DiffuseMap, var_TexCoords);
-	vec4 outColor = vec4(color.rgb, 1.0);
 	vec3 originalPosition;
 	vec4 position = positionMapAtCoord(var_TexCoords, changedToWater, originalPosition);
+
+	vec4 color = vec4(GetScreenPixel(), 1.0);
+	vec4 outColor = color;
 
 	if (position.a - 1.0 >= MATERIAL_SKY
 		|| position.a - 1.0 == MATERIAL_SUN
@@ -1221,7 +1292,6 @@ void main(void)
 
 	vec2 texCoords = var_TexCoords;
 	vec2 materialSettings = RB_PBR_DefaultsForMaterial(position.a-1.0);
-	//bool isMetalic = (position.a - 1.0 == MATERIAL_SOLIDMETAL || position.a - 1.0 == MATERIAL_HOLLOWMETAL) ? true : false;
 	bool isPuddle = (position.a - 1.0 == MATERIAL_PUDDLE) ? true : false;
 
 
@@ -1274,9 +1344,7 @@ void main(void)
 	// Simply offset the normal value based on the detail value... It looks good enough, but true PBR would probably want to use the tangent/bitangent below instead...
 	normalDetail.rgb = normalize(clamp(normalDetail.xyz, 0.0, 1.0) * 2.0 - 1.0);
 
-	//vec3 bump = normalize(mix(norm.xyz, normalDetail.xyz, u_Local3.a * (length(norm.xyz - normalDetail.xyz) / 3.0)));
-	//vec3 bump = normalize(mix(norm.xyz, normalDetail.xyz, 0.5 * (length((norm.xyz * 0.5 + 0.5) - (normalDetail.xyz * 0.5 + 0.5)) / 3.0)));
-	norm.rgb = normalize(mix(norm.xyz, normalDetail.xyz, 0.25 * (length((norm.xyz * 0.5 + 0.5) - (normalDetail.xyz * 0.5 + 0.5)) / 3.0)));
+	norm.xyz = normalize(mix(norm.xyz, normalDetail.xyz, 0.25 * (length((norm.xyz * 0.5 + 0.5) - (normalDetail.xyz * 0.5 + 0.5)) / 3.0)));
 
 	//
 	// Set up the general directional stuff, to use throughout the shader...
@@ -1289,15 +1357,52 @@ void main(void)
 	vec3 sunDir = normalize(position.xyz - u_PrimaryLightOrigin.xyz);
 	float NE = clamp(length(dot(N, E)), 0.0, 1.0);
 
-	//vec3 bump = normalize(faceforward(normalDetail.xyz, -norm.xyz, E));
-	//vec3 bump = normalize(normalize(faceforward(normalDetail.xyz, -rayDir, N)) * N);
-	//vec3 ND = normalDetail.xyz * 0.5 + 0.5;
-	//vec3 bump = normalize(normalize(faceforward(-ND, N, -E)) * N);
-	
 	float b = clamp(length(outColor.rgb/3.0), 0.0, 1.0);
 	b = clamp(pow(b, 64.0), 0.0, 1.0);
 	vec3 of = clamp(pow(vec3(b*65536.0), -N), 0.0, 1.0) * 0.25;
 	vec3 bump = normalize(N+of);
+
+
+#ifdef __PROCEDURALS_IN_DEFERRED_SHADER__
+	if (PROCEDURAL_MOSS_ENABLED > 0.0 && (position.a - 1.0 == MATERIAL_TREEBARK || position.a - 1.0 == MATERIAL_ROCK))
+	{// Add any procedural moss...
+		AddProceduralMoss(outColor, position, changedToWater, originalPosition);
+	}
+
+	if (PROCEDURAL_SNOW_ENABLED > 0.0)
+	{// Add any procedural snow...
+		if (position.z >= PROCEDURAL_SNOW_LOWEST_ELEVATION)
+		{
+			float snowHeightFactor = 1.0;
+
+			if (PROCEDURAL_SNOW_LOWEST_ELEVATION > -999999.0)
+			{// Elevation is enabled...
+				float elevationRange = MAP_INFO_PLAYABLE_HEIGHT - PROCEDURAL_SNOW_LOWEST_ELEVATION;
+				float pixelElevation = position.z - PROCEDURAL_SNOW_LOWEST_ELEVATION;
+			
+				snowHeightFactor = clamp(pow(clamp(pixelElevation / elevationRange, 0.0, 1.0) * 4.0, 2.0), 0.0, 1.0);
+			}
+
+			float snow = clamp(dot(normalize(bump.xyz), vec3(0.0, 0.0, 1.0)), 0.0, 1.0);
+
+			if (position.a - 1.0 == MATERIAL_GREENLEAVES)
+				snow = pow(snow * 0.25 + 0.75, 1.333);
+			else
+				snow = pow(snow, 0.4);
+
+			snow *= snowHeightFactor;
+		
+			if (snow > 0.0)
+			{
+				vec3 snowColor = vec3(PROCEDURAL_SNOW_BRIGHTNESS);
+				float snowColorFactor = clamp(pow(max(outColor.r, max(outColor.g, outColor.b)), PROCEDURAL_SNOW_LUMINOSITY_CURVE), 0.0, 1.0);
+				float snowMix = clamp(mix(snow*snowColorFactor, 1.0, snowHeightFactor * PROCEDURAL_SNOW_HEIGHT_CURVE), 0.0, 1.0);
+				outColor.rgb = splatblend(outColor.rgb, 1.0 - snowMix, snowColor, snowMix);
+			}
+		}
+	}
+#endif //__PROCEDURALS_IN_DEFERRED_SHADER__
+
 
 	float wetness = 0.0;
 
@@ -1340,33 +1445,6 @@ void main(void)
 #define specularReflectivePower		materialSettings.x
 #define reflectionPower				materialSettings.y
 
-	float snow = 0.0;
-	float snowHeightFactor = 1.0;
-
-	if (SNOW_ENABLED > 0.0)
-	{// calculate procedural snow factor...
-		if (position.z >= PROCEDURAL_SNOW_LOWEST_ELEVATION)
-		{
-			if (PROCEDURAL_SNOW_LOWEST_ELEVATION > -999999.0)
-			{// Elevation is enabled...
-				float elevationRange = MAP_INFO_PLAYABLE_HEIGHT - PROCEDURAL_SNOW_LOWEST_ELEVATION;
-				float pixelElevation = position.z - PROCEDURAL_SNOW_LOWEST_ELEVATION;
-			
-				snowHeightFactor = clamp(pow(clamp(pixelElevation / elevationRange, 0.0, 1.0) * 4.0, 2.0), 0.0, 1.0);
-			}
-			
-			vec3 sBump = bump;
-
-			snow = clamp(dot(normalize(sBump.rgb), vec3(0.0, 0.0, 1.0)), 0.0, 1.0);
-
-			if (position.a - 1.0 == MATERIAL_GREENLEAVES)
-				snow = pow(snow * 0.25 + 0.75, 1.333);
-			else
-				snow = pow(snow, 0.4);
-
-			snow *= snowHeightFactor;
-		}
-	}
 
 	//
 	// This is the basics of creating a fake PBR look to the lighting. It could be replaced, or overridden by actual PBR pixel buffer inputs.
@@ -1382,6 +1460,7 @@ void main(void)
 	// It looks better to use slightly different cube and light reflection multipliers... Lights should always add some light, cubes should allow none on some pixels..
 	float cubeReflectionFactor = clamp(greynessFactor * brightnessFactor, 0.5, 1.0) * reflectionPower;
 	float lightsReflectionFactor = (greynessFactor * brightnessFactor * specularReflectivePower) * 0.5 + 0.5;
+
 #if defined(__SCREEN_SPACE_REFLECTIONS__)
 	float ssrReflectivePower = lightsReflectionFactor * reflectionPower * ssReflection;
 	if (isPuddle) ssrReflectivePower = WETNESS * 3.0; // 3x - 8x seems about right...
@@ -1390,26 +1469,10 @@ void main(void)
 #endif //defined(__SCREEN_SPACE_REFLECTIONS__)
 
 
-
 	float diffuse = clamp(pow(clamp(dot(-sunDir.rgb, bump.rgb), 0.0, 1.0), 8.0) * 0.6 + 0.6, 0.0, 1.0);
 	color.rgb = outColor.rgb = outColor.rgb * diffuse;
 
 	float origColorStrength = clamp(max(color.r, max(color.g, color.b)), 0.0, 1.0) * 0.75 + 0.25;
-
-#ifdef SSDM_PROCEDURAL_MOSS
-	if (SSDM_ENABLED <= 0.0 && PROCEDURAL_MOSS_ENABLED > 0.0)
-#endif //SSDM_PROCEDURAL_MOSS
-	{// Add any procedural moss...
-		AddProceduralMoss(outColor, position, changedToWater, originalPosition);
-	}
-
-	if (SNOW_ENABLED > 0.0 && snow > 0.0)
-	{// add procedural snow...
-		vec3 snowColor = vec3(PROCEDURAL_SNOW_BRIGHTNESS);
-		float snowColorFactor = clamp(pow(max(color.r, max(color.g, color.b)), PROCEDURAL_SNOW_LUMINOSITY_CURVE), 0.0, 1.0);
-		float snowMix = clamp(mix(snow*snowColorFactor, 1.0, snowHeightFactor * PROCEDURAL_SNOW_HEIGHT_CURVE), 0.0, 1.0);
-		outColor.rgb = splatblend(outColor.rgb, 1.0 - snowMix, snowColor, snowMix);
-	}
 
 
 	//
@@ -1435,16 +1498,9 @@ void main(void)
 	vec3 specularColor = vec3(0.0);
 	vec3 skyColor = vec3(0.0);
 
-	/*if (NIGHT_SCALE > 0.0)
-		gl_FragColor = texture(u_SkyCubeMapNight, reflect(E.xyz, N.xyz), 1.0);
-	else
-		gl_FragColor = texture(u_SkyCubeMap, reflect(E.xyz, N.xyz), 1.0);
-	return;*/
-
 #ifndef __LQ_MODE__
 	if (SKY_LIGHT_CONTRIBUTION > 0.0 && (cubeReflectionFactor > 0.0 || reflectionPower > 0.0))
 	{// Sky cube light contributions... If enabled...
-#if 1
 		vec4 cubeInfo = vec4(0.0, 0.0, 0.0, 1.0);
 		cubeInfo.xyz -= u_ViewOrigin.xyz;
 
@@ -1463,56 +1519,42 @@ void main(void)
 			reflected = vec3(-reflected.y, -reflected.z, -reflected.x); // for old sky cubemap generation based on sky textures
 		}
 
-#else
-		vec3 reflected = reflect(E.xyz, flatNorm.xyz/*N.xyz*/);
-#endif
-
 		const float lod1 = 4.0;
-#ifndef __LQ_MODE__
 		const float lod2 = 5.0;
 		const float lod3 = 7.0;
 		const float lod4 = 10.0;
-#endif //__LQ_MODE__
 
 		if (NIGHT_SCALE > 0.0 && NIGHT_SCALE < 1.0)
 		{// Mix between night and day colors...
 			vec3 skyColorDay = textureLod(u_SkyCubeMap, reflected, lod1).rgb;
-#ifndef __LQ_MODE__
 			skyColorDay += textureLod(u_SkyCubeMap, reflected, lod2).rgb;
 			skyColorDay += textureLod(u_SkyCubeMap, reflected, lod3).rgb;
 			skyColorDay += textureLod(u_SkyCubeMap, reflected, lod4).rgb;
 			skyColorDay /= 4.0;
-#endif //__LQ_MODE__
 
 			vec3 skyColorNight = textureLod(u_SkyCubeMapNight, reflected, lod1).rgb;
-#ifndef __LQ_MODE__
 			skyColorNight += textureLod(u_SkyCubeMapNight, reflected, lod2).rgb;
 			skyColorNight += textureLod(u_SkyCubeMapNight, reflected, lod3).rgb;
 			skyColorNight += textureLod(u_SkyCubeMapNight, reflected, lod4).rgb;
 			skyColorNight /= 4.0;
-#endif //__LQ_MODE__
 
 			skyColor = mix(skyColorDay, skyColorNight, clamp(NIGHT_SCALE, 0.0, 1.0));
 		}
 		else if (NIGHT_SCALE >= 1.0)
 		{// Night only colors...
 			skyColor = textureLod(u_SkyCubeMapNight, reflected, lod1).rgb;
-#ifndef __LQ_MODE__
 			skyColor += textureLod(u_SkyCubeMapNight, reflected, lod2).rgb;
 			skyColor += textureLod(u_SkyCubeMapNight, reflected, lod3).rgb;
 			skyColor += textureLod(u_SkyCubeMapNight, reflected, lod4).rgb;
 			skyColor /= 4.0;
-#endif //__LQ_MODE__
 		}
 		else
 		{// Day only colors...
 			skyColor = textureLod(u_SkyCubeMap, reflected, lod1).rgb;
-#ifndef __LQ_MODE__
 			skyColor += textureLod(u_SkyCubeMap, reflected, lod2).rgb;
 			skyColor += textureLod(u_SkyCubeMap, reflected, lod3).rgb;
 			skyColor += textureLod(u_SkyCubeMap, reflected, lod4).rgb;
 			skyColor /= 4.0;
-#endif //__LQ_MODE__
 		}
 
 		skyColor = clamp(ContrastSaturationBrightness(skyColor, 1.0, 2.0, 0.333), 0.0, 1.0);
@@ -1523,28 +1565,10 @@ void main(void)
 	if (specularReflectivePower > 0.0)
 	{// If this pixel is ging to get any specular reflection, generate (PBR would instead look up image buffer) specular color, and grab any cubeMap lighting as well...
 		// Construct generic specular map by creating a greyscale, contrasted, saturation removed, color from the screen color... Then multiply by the material's default specular modifier...
-		//if (isMetalic)
-		{
-			//specularColor = ContrastSaturationBrightness(outColor.rgb, 1.25, 1.25, 0.7);
-			//specularColor = outColor.rgb * outColor.rgb;
-			//specularColor = pow(outColor.rgb * 0.5 + 0.5, vec3(10.0));
-
 #define spec_cont_1 ( 16.0 / 255.0)
 #define spec_cont_2 (255.0 / 192.0)
 			specularColor = clamp((clamp(outColor.rgb - spec_cont_1, 0.0, 1.0)) * spec_cont_2, 0.0, 1.0);
 			specularColor = clamp(Vibrancy( specularColor.rgb, 1.0 ), 0.0, 1.0);
-
-		}
-		//else
-		//{
-		//	//specularColor = ContrastSaturationBrightness(outColor.rgb, 1.25, 0.05, 1.0);
-		//	specularColor = outColor.rgb * outColor.rgb;
-		//	specularColor.rgb = clamp(vec3(length(specularColor.rgb) / 3.0), 0.0, 1.0);
-		//}
-
-		//specularColor.rgb *= specularReflectivePower * 512.0;
-		//specularColor.rgb = mix(specularColor.rgb, skyColor * specularColor.rgb, reflectionPower);
-
 
 #ifndef __LQ_MODE__
 #if defined(__CUBEMAPS__)
@@ -1582,15 +1606,12 @@ void main(void)
 			{
 				vec2 shinyTC = ((cubeRayDir.xy + cubeRayDir.z) / 2.0) * 0.5 + 0.5;
 
-#ifdef __LQ_MODE__
-				vec3 shiny = textureLod(u_WaterEdgeMap, shinyTC, 5.5 - (cubeReflectionFactor * 5.5)).rgb;
-#else //!__LQ_MODE__
+				//vec3 shiny = textureLod(u_WaterEdgeMap, shinyTC, 5.5 - (cubeReflectionFactor * 5.5)).rgb;
 				vec3 shiny = textureLod(u_WaterEdgeMap, shinyTC, 4.0 - (cubeReflectionFactor * 4.0)).rgb;
 				shiny += textureLod(u_WaterEdgeMap, shinyTC, 5.0 - (cubeReflectionFactor * 5.0)).rgb;
 				shiny += textureLod(u_WaterEdgeMap, shinyTC, 7.0 - (cubeReflectionFactor * 7.0)).rgb;
 				shiny += textureLod(u_WaterEdgeMap, shinyTC, 10.0 - (cubeReflectionFactor * 10.0)).rgb;
 				shiny /= 4.0;
-#endif //__LQ_MODE__
 
 				shiny = clamp(ContrastSaturationBrightness(shiny, 1.75, 1.0, 0.333), 0.0, 1.0);
 				outColor.rgb = mix(outColor.rgb, outColor.rgb + shiny.rgb, clamp(NE * cubeReflectionFactor * (origColorStrength * 0.75 + 0.25), 0.0, 1.0));
@@ -1601,15 +1622,12 @@ void main(void)
 		{
 			vec2 shinyTC = ((cubeRayDir.xy + cubeRayDir.z) / 2.0) * 0.5 + 0.5;
 
-#ifdef __LQ_MODE__
-			vec3 shiny = textureLod(u_WaterEdgeMap, shinyTC, 5.5 - (cubeReflectionFactor * 5.5)).rgb;
-#else //!__LQ_MODE__
+			//vec3 shiny = textureLod(u_WaterEdgeMap, shinyTC, 5.5 - (cubeReflectionFactor * 5.5)).rgb;
 			vec3 shiny = textureLod(u_WaterEdgeMap, shinyTC, 4.0 - (cubeReflectionFactor * 4.0)).rgb;
 			shiny += textureLod(u_WaterEdgeMap, shinyTC, 5.0 - (cubeReflectionFactor * 5.0)).rgb;
 			shiny += textureLod(u_WaterEdgeMap, shinyTC, 7.0 - (cubeReflectionFactor * 7.0)).rgb;
 			shiny += textureLod(u_WaterEdgeMap, shinyTC, 10.0 - (cubeReflectionFactor * 10.0)).rgb;
 			shiny /= 4.0;
-#endif //__LQ_MODE__
 
 			shiny = clamp(ContrastSaturationBrightness(shiny, 1.75, 1.0, 0.333), 0.0, 1.0);
 			outColor.rgb = mix(outColor.rgb, outColor.rgb + shiny.rgb, clamp(NE * cubeReflectionFactor * (origColorStrength * 0.75 + 0.25), 0.0, 1.0));
@@ -1618,34 +1636,13 @@ void main(void)
 #endif //!__LQ_MODE__
 	}
 
-	//float PshadowValue = 1.0 - texture(u_RoadsControlMap, texCoords).a;
-
 
 	float SE = clamp(dot(/*E*/rayDir, sunDir), 0.0, 1.0);
 	float specPower = ((clamp(SE, 0.0, 1.0) + clamp(pow(SE, 2.0), 0.0, 1.0)) * 0.5) * 0.333;
 
-	/*if (u_Local3.r > 2.0)
-	{
-		outColor.rgb = vec3(specPower);
-		gl_FragColor = outColor;
-		return;
-	}*/
 
 	outColor.rgb = clamp(outColor.rgb + (specularColor.rgb * specPower * finalShadow), 0.0, 1.0);
 
-	/*if (u_Local3.r > 1.0)
-	{
-		outColor.rgb = clamp(specularColor.rgb * specPower, 0.0, 1.0);
-		gl_FragColor = outColor;
-		return;
-	}
-
-	if (u_Local3.r > 0.0)
-	{
-		outColor.rgb = clamp(specularColor.rgb, 0.0, 1.0);
-		gl_FragColor = outColor;
-		return;
-	}*/
 
 	if (SKY_LIGHT_CONTRIBUTION > 0.0 && cubeReflectionFactor > 0.0)
 	{// Sky light contributions...
@@ -1657,9 +1654,9 @@ void main(void)
 		//outColor.rgb = skyColor;
 	}
 
-	if (BLINN_PHONG_STRENGTH > 0.0 && specularReflectivePower > 0.0)
+	if (SUN_PHONG_SCALE > 0.0 && specularReflectivePower > 0.0)
 	{// If r_blinnPhong is <= 0.0 then this is pointless...
-		float phongFactor = (BLINN_PHONG_STRENGTH * 12.0) * SUN_PHONG_SCALE;
+		float phongFactor = (SUN_PHONG_SCALE * 12.0);
 
 		float PshadowValue = 1.0 - texture(u_RoadsControlMap, texCoords).a;
 
@@ -1774,28 +1771,12 @@ void main(void)
 #if defined(__SCREEN_SPACE_REFLECTIONS__)
 	if (REFLECTIONS_ENABLED > 0.0 && ssrReflectivePower > 0.0 && position.a - 1.0 != MATERIAL_WATER && !changedToWater)
 	{
-#if 1
 		if (isPuddle)
 		{// Just basic water color addition for now with reflections... Maybe raindrops at some point later...
 			outColor.rgb += vec3(0.0, 0.1, 0.15);
 		}
 
 		outColor.rgb = AddReflection(texCoords, position, flatNorm, outColor.rgb, ssrReflectivePower);
-#else
-		/*
-		vec3 rf = reflect(E.xyz, flatNorm.xyz);
-		float maxDistance = u_Local3.r;
-		float lenz = length(rf.z);
-		float offset = (maxDistance + ((1.0-lenz) * maxDistance));
-		float tcoff = (1.0 - texCoords.y) - (offset / u_Local3.g);
-		tcoff -= distance(0.5, maxDistance);
-		//float tcoff = (offset - texCoords.y) * offset;
-		*/
-		float tcoff = reflect(-texCoords.y, flatNorm.z);
-		//vec3 reflection = texture(u_DiffuseMap, vec2(texCoords.x, 1.0 - tcoff)).rgb;
-		vec3 reflection = texture(u_DiffuseMap, vec2(texCoords.x, 1.0 - (tcoff + (distance(texCoords.y, 1.0 - (E.z * 0.5 + 0.5)) * u_Local3.a)))).rgb;
-		outColor.rgb += reflection;
-#endif
 	}
 #endif //defined(__SCREEN_SPACE_REFLECTIONS__)
 
@@ -1846,11 +1827,11 @@ void main(void)
 	finalShadow = mix(finalShadow, 1.0, clamp(NIGHT_SCALE, 0.0, 1.0)); // Dampen out shadows at sunrise/sunset...
 
 #ifdef __CLOUD_SHADOWS__
-	if (CLOUDS_ENABLED > 0.0 && CLOUDS_SHADOWS_ENABLED == 1.0)
+	if (CLOUDS_SHADOWS_ENABLED == 1.0)
 	{
 		finalShadow = min(finalShadow, clamp(var_CloudShadow + 0.1, 0.0, 1.0));
 	}
-	else if (CLOUDS_ENABLED > 0.0 && CLOUDS_SHADOWS_ENABLED >= 2.0)
+	else if (CLOUDS_SHADOWS_ENABLED >= 2.0)
 	{
 		float cShadow = CloudShadows(position.xyz) * 0.5 + 0.5;
 		cShadow = mix(cShadow, 1.0, clamp(NIGHT_SCALE, 0.0, 1.0)); // Dampen out cloud shadows at sunrise/sunset...

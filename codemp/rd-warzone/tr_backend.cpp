@@ -3525,6 +3525,19 @@ const void *RB_PostProcess(const void *data)
 			}
 		}
 
+#ifndef __PROCEDURALS_IN_DEFERRED_SHADER__
+		extern qboolean PROCEDURAL_MOSS_ENABLED;
+		extern qboolean PROCEDURAL_SNOW_ENABLED;
+
+		if (!SCREEN_BLUR && (PROCEDURAL_MOSS_ENABLED || PROCEDURAL_SNOW_ENABLED))
+		{
+			DEBUG_StartTimer("Screen Space Procedurals", qtrue);
+			RB_Procedural(currentFbo, srcBox, currentOutFbo, dstBox);
+			RB_SwapFBOs(&currentFbo, &currentOutFbo);
+			DEBUG_EndTimer(qtrue);
+		}
+#endif //__PROCEDURALS_IN_DEFERRED_SHADER__
+
 		/*if (!SCREEN_BLUR && r_ssdo->integer && AO_DIRECTIONAL)
 		{
 			if (!r_lowVram->integer)
@@ -3649,6 +3662,7 @@ const void *RB_PostProcess(const void *data)
 			}
 		}*/
 
+#ifndef __SSDM_IN_DEFERRED_SHADER__
 		if (!SCREEN_BLUR && ENABLE_DISPLACEMENT_MAPPING && r_ssdm->integer)
 		{
 			if (!r_lowVram->integer)
@@ -3659,6 +3673,7 @@ const void *RB_PostProcess(const void *data)
 				DEBUG_EndTimer(qtrue);
 			}
 		}
+#endif //__SSDM_IN_DEFERRED_SHADER__
 
 		if (!SCREEN_BLUR && r_glslWater->integer && WATER_ENABLED)
 		{
@@ -3778,7 +3793,7 @@ const void *RB_PostProcess(const void *data)
 			}
 		}*/
 
-		if (!SCREEN_BLUR && r_darkexpand->integer)
+		/*if (!SCREEN_BLUR && r_darkexpand->integer)
 		{
 			if (!r_lowVram->integer)
 			{
@@ -3790,8 +3805,9 @@ const void *RB_PostProcess(const void *data)
 				}
 				DEBUG_EndTimer(qtrue);
 			}
-		}
+		}*/
 
+		/*
 		if (!SCREEN_BLUR && r_distanceBlur->integer)
 		{
 			if (!r_lowVram->integer)
@@ -3816,6 +3832,7 @@ const void *RB_PostProcess(const void *data)
 				DEBUG_EndTimer(qtrue);
 			}
 		}
+		*/
 
 		if (!SCREEN_BLUR && r_dynamicGlow->integer)
 		{
@@ -3899,6 +3916,7 @@ const void *RB_PostProcess(const void *data)
 			DEBUG_EndTimer(qtrue);
 		}
 
+		/*
 		if (!SCREEN_BLUR && r_fxaa->integer)
 		{
 			for (int pass = 0; pass < r_fxaa->integer; pass++)
@@ -3909,6 +3927,7 @@ const void *RB_PostProcess(const void *data)
 				DEBUG_EndTimer(qtrue);
 			}
 		}
+		*/
 
 		if (!SCREEN_BLUR && r_txaa->integer)
 		{

@@ -131,6 +131,12 @@ float GetDisplacementAtCoord(vec2 coord)
 	}
 #endif
 
+#if 0
+	vec3 col = texture(u_DiffuseMap, coord).rgb;
+	float b = clamp(length(col.rgb) / 3.0), 0.0, 1.0);
+	b = clamp(pow(1.0-b, 0.5), 0.0, 1.0);
+	return 1.0-b;
+#else
 #define contLower ( 16.0 / 255.0 )
 #define contUpper (255.0 / 156.0 )
 
@@ -151,6 +157,7 @@ float GetDisplacementAtCoord(vec2 coord)
 	displacement = clamp((clamp(displacement - contLower, 0.0, 1.0)) * contUpper, 0.0, 1.0);
 
 	return displacement;
+#endif
 }
 
 #ifndef TEST_PARALLAX
@@ -198,143 +205,161 @@ float ReliefMapping(vec2 dp, vec2 ds, float origDepth, float materialMultiplier)
 	return clamp(best_depth, 0.0, 1.0) * finished;
 }
 #else //TEST_PARALLAX
-#define parallaxScale u_Local1.g
+/*
+uniform int MinSamples; //! slider[1, 1, 100]
+uniform int MaxSamples; //! slider[20, 20, 256]
+uniform bool UseShadow; //! checkbox[true]
+uniform float SteepHeightScale; //! slider[0.005, 0.05, 0.1]
+uniform float ShadowOffset; //! slider[0.01, 0.05, 0.5]
+*/
 
-vec2 parallaxMapping(in vec3 V, in vec2 T, out float parallaxHeight)
-{
-   // determine optimal number of layers
-   const float minLayers = 10;
-   const float maxLayers = 15;
-   float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0, 0, 1), V)));
+const int linear_steps = 10;
 
-   // height of each layer
-   float layerHeight = 1.0 / numLayers;
-   // current depth of the layer
-   float curLayerHeight = 0;
-   // shift of texture coordinates for each layer
-   vec2 dtex = parallaxScale * V.xy / V.z / numLayers;
+int MinSamples = 1; //! slider[1, 1, 100]
+int MaxSamples = int(u_Local1.a); //! slider[20, 20, 256]
+bool UseShadow = true;
 
-   // current texture coordinates
-   vec2 currentTextureCoords = T;
+float SteepHeightScale = u_Local1.g; //! slider[0.005, 0.05, 0.1]
+float ShadowOffset = u_Local1.b; //! slider[0.01, 0.05, 0.5]
 
-   // depth from heightmap
-   float heightFromTexture = GetDisplacementAtCoord(currentTextureCoords).r;
+#define SQR(x) ((x) * (x))
 
-   float layer = 0.0;
+vec2 raymarch(vec2 startPos, vec3 dir) {
+	// Compute initial parallax displacement direction:
+	vec2 parallaxDirection = normalize(dir.xy);
 
-   // while point is above the surface
-   while(heightFromTexture > curLayerHeight) 
-   {
-      // to the next layer
-      curLayerHeight += layerHeight; 
-      // shift of texture coordinates
-      currentTextureCoords -= dtex;
-      // new depth from heightmap
-      heightFromTexture = GetDisplacementAtCoord(currentTextureCoords).r;
+	// The length of this vector determines the
+	// furthest amount of displacement:
+	float parallaxLength = sqrt(1.0 - SQR(dir.z));
+	parallaxLength /= dir.z;
 
-	  layer += 1.0;
-	  if (layer >= maxLayers) break;
-   }
+	// Compute the actual reverse parallax displacement vector:
+	vec2 parallaxOffset = parallaxDirection * parallaxLength;
 
-   ///////////////////////////////////////////////////////////
+	// Need to scale the amount of displacement to account
+	// for different height ranges in height maps.
+	parallaxOffset *= SteepHeightScale;
 
-   // previous texture coordinates
-   vec2 texStep	= dtex;
-   vec2 prevTCoords = currentTextureCoords + texStep;
+	// corrected for tangent space. Normal is always z=1 in TS and
+	// v.viewdir is in tangent space as well...
+	int numSteps = int(mix(MaxSamples, MinSamples, dir.z));
 
-   // heights for linear interpolation
-   float nextH	= heightFromTexture - curLayerHeight;
-   float prevH	= GetDisplacementAtCoord(prevTCoords).r - curLayerHeight + layerHeight;
+	float currHeight = 0.0;
+	float stepSize = 1.0 / float(numSteps);
+	int stepIndex = 0;
+	vec2 texCurrentOffset = startPos;
+	vec2 texOffsetPerStep = stepSize * parallaxOffset;
 
-   // proportions for linear interpolation
-   float weight = nextH / (nextH - prevH);
+	vec2 resultTexPos = vec2(texCurrentOffset - (texOffsetPerStep * numSteps));
 
-   // interpolation of texture coordinates
-   vec2 finalTexCoords = prevTCoords * weight + currentTextureCoords * (1.0-weight);
+	float prevHeight = 1.0;
+	float currRayDist = 1.0;
 
-   // interpolation of depth values
-   parallaxHeight = curLayerHeight + prevH * weight + nextH * (1.0 - weight);
+	while (stepIndex < numSteps) {
+		// Determine where along our ray we currently are.
+		currRayDist -= stepSize;
+		texCurrentOffset -= texOffsetPerStep;
+		currHeight = GetDisplacementAtCoord(texCurrentOffset).r;
 
-   // return result
-   return finalTexCoords;
-}
+		// Because we're using heights in the [0..1] range
+		// and the ray is defined in terms of [0..1] scanning
+		// from top-bottom we can simply compare the surface
+		// height against the current ray distance.
+		if (currHeight >= currRayDist) {
+			// Push the counter above the threshold so that
+			// we exit the loop on the next iteration
+			stepIndex = numSteps + 1;
 
-float parallaxSoftShadowMultiplier(in vec3 L, in vec2 initialTexCoord, in float initialHeight)
-{
-   float shadowMultiplier = 1;
+			// We now know the location along the ray of the first
+			// point *BELOW* the surface and the previous point
+			// *ABOVE* the surface:
+			float rayDistAbove = currRayDist + stepSize;
+			float rayDistBelow = currRayDist;
 
-   const float minLayers = 15;
-   const float maxLayers = 30;
+			// We also know the height of the surface before and
+			// after we intersected it:
+			float surfHeightBefore = prevHeight;
+			float surfHeightAfter = currHeight;
 
-   // calculate lighting only for surface oriented to the light source
-   if(dot(vec3(0, 0, 1), L) > 0)
-   {
-      // calculate initial parameters
-      float numSamplesUnderSurface	= 0;
-      shadowMultiplier	= 0;
-      float numLayers	= mix(maxLayers, minLayers, abs(dot(vec3(0, 0, 1), L)));
-      float layerHeight	= initialHeight / numLayers;
-      vec2 texStep	= parallaxScale * L.xy / L.z / numLayers;
+			float numerator = rayDistAbove - surfHeightBefore;
+			float denominator = (surfHeightAfter - surfHeightBefore)
+					- (rayDistBelow - rayDistAbove);
 
-      // current parameters
-      float currentLayerHeight	= initialHeight - layerHeight;
-      vec2 currentTextureCoords	= initialTexCoord + texStep;
-      float heightFromTexture	= GetDisplacementAtCoord(currentTextureCoords).r;
-      int stepIndex	= 1;
+			// As the angle between the view direction and the
+			// surface becomes closer to parallel (e.g. grazing
+			// view angles) the denominator will tend towards zero.
+			// When computing the final ray length we'll
+			// get a divide-by-zero and bad things happen.
+			float x = 0.0;
 
-	  float layer = 0.0;
+			if (abs(denominator) > 1e-5) {
+				x = numerator / denominator;
+			}
 
-      // while point is below depth 0.0 )
-      while(currentLayerHeight > 0)
-      {
-         // if point is under the surface
-         if(heightFromTexture < currentLayerHeight)
-         {
-            // calculate partial shadowing factor
-            numSamplesUnderSurface	+= 1;
-            float newShadowMultiplier	= (currentLayerHeight - heightFromTexture) * (1.0 - stepIndex / numLayers);
-            shadowMultiplier	= max(shadowMultiplier, newShadowMultiplier);
-         }
+			// Now that we've found the position along the ray
+			// that indicates where the true intersection exists
+			// we can translate this into a texture coordinate
+			// - the intended output of this utility function.
 
-         // offset to the next layer
-         stepIndex	+= 1;
-         currentLayerHeight	-= layerHeight;
-         currentTextureCoords	+= texStep;
-         heightFromTexture	= GetDisplacementAtCoord(currentTextureCoords).r;
-
-		layer += 1.0;
-		if (layer >= maxLayers) break;
-      }
-
-      // Shadowing factor should be 1 if there were no points under the surface
-      if(numSamplesUnderSurface < 1)
-      {
-         shadowMultiplier = 1;
-      }
-      else
-      {
-         shadowMultiplier = 1.0 - shadowMultiplier;
-      }
-   }
-   return shadowMultiplier;
-}
-
-vec3 TangentFromNormal ( vec3 normal )
-{
-	vec3 tangent;
-	vec3 c1 = cross(normal, vec3(0.0, 0.0, 1.0)); 
-	vec3 c2 = cross(normal, vec3(0.0, 1.0, 0.0)); 
-
-	if( length(c1) > length(c2) )
-	{
-		tangent = c1;
-	}
-	else
-	{
-		tangent = c2;
+			resultTexPos = mix(texCurrentOffset + texOffsetPerStep, texCurrentOffset, x);
+		} else {
+			++stepIndex;
+			prevHeight = currHeight;
+		}
 	}
 
-	return normalize(tangent);
+	return resultTexPos;
+}
+
+float raymarchShadow(vec2 startPos, vec3 dir) {
+	vec2 parallaxDirection = normalize(dir.xy);
+
+	float parallaxLength = sqrt(1.0 - SQR(dir.z));
+	parallaxLength /= dir.z;
+
+	vec2 parallaxOffset = parallaxDirection * parallaxLength;
+	parallaxOffset *= SteepHeightScale;
+
+	int numSteps = int(mix(MaxSamples, MinSamples, dir.z));
+
+	float currHeight = 0.0;
+	float stepSize = 1.0 / float(numSteps);
+	int stepIndex = 0;
+
+	vec2 texCurrentOffset = startPos;
+	vec2 texOffsetPerStep = stepSize * parallaxOffset;
+
+	float initialHeight = GetDisplacementAtCoord(startPos).r + ShadowOffset;
+
+	while (stepIndex < numSteps) {
+		texCurrentOffset += texOffsetPerStep;
+
+		float rayHeight = mix(initialHeight, 1.0, float(stepIndex / numSteps));
+
+		currHeight = GetDisplacementAtCoord(texCurrentOffset).r;
+
+		if (currHeight > rayHeight) {
+			// ray has gone below the height of the surface, therefore
+			// this pixel is occluded...
+			return 0.0;
+		}
+
+		++stepIndex;
+	}
+
+	return 1.0;
+}
+
+vec3 steepParallax(vec3 V, vec3 L, vec3 N, vec2 T) {
+	vec3 result = vec3(1.0);
+	float shadow = 1.0;
+	vec2 T2 = raymarch(T, -V);
+
+	if (UseShadow) {
+		shadow = raymarchShadow(T, -L);
+	}
+
+	return vec3(T2-T, shadow);
 }
 #endif //TEST_PARALLAX
 
@@ -388,47 +413,20 @@ void main(void)
 
 #else //TEST_PARALLAX
 
-	// normalize vectors after vertex shader
-	//vec3 V = normalize(o_toCameraInTangentSpace);
-	//vec3 L = normalize(o_toLightInTangentSpace);
-
 	vec3 position = texture(u_PositionMap, var_TexCoords).xyz;
 
 	vec3 V = normalize(position.xyz - u_ViewOrigin.xyz).xyz;
 	vec3 L = normalize(u_ViewOrigin.xyz - u_PrimaryLightOrigin.xyz).xyz;
 
-	vec3 norm = DecodeNormal(textureLod(u_NormalMap, var_TexCoords, 0.0).xy);
-	//vec3 norm = getViewNormal(var_TexCoords);
-	vec3 tangent = TangentFromNormal( norm.xyz );
-	vec3 bitangent = normalize( cross(norm.xyz, tangent) );
+	vec3 N = DecodeNormal(textureLod(u_NormalMap, var_TexCoords, 0.0).xy);
+	//vec3 N = getViewNormal(var_TexCoords);
+	//vec3 tangent = TangentFromNormal( norm.xyz );
+	//vec3 bitangent = normalize( cross(norm.xyz, tangent) );
 	//mat3 tangentToWorld = mat3(tangent.xyz, bitangent.xyz, norm.xyz);
 
-	if (u_Local1.b == 0.0)
-	{
-	V = vec3(
-		dot(V, norm),
-		dot(V, tangent),
-		dot(V, bitangent)
-	);
+	vec3 parallax = steepParallax(V, L, N, var_TexCoords);
 
-	L = vec3(
-		dot(L, norm),
-		dot(L, tangent),
-		dot(L, bitangent)
-	);
-	}
-
-	// get new texture coordinates from Parallax Mapping
-	float parallaxHeight;
-	vec2 T = parallaxMapping(V, var_TexCoords, parallaxHeight);
-
-	// get self-shadowing factor for elements of parallax
-	float shadowMultiplier = parallaxSoftShadowMultiplier(L, T, parallaxHeight - 0.05);
-
-	// calculate lighting
-	//resultingColor = normalMappingLighting(T, L, V, shadowMultiplier);
-
-	gl_FragColor = vec4(T*0.5+0.5, shadowMultiplier, 1.0);
+	gl_FragColor = vec4(parallax.xy*0.5+0.5, parallax.z, 1.0);
 
 #endif //TEST_PARALLAX
 }

@@ -484,6 +484,7 @@ vec4 calc_glass_color(vec3 ro, vec3 rd, float dist, vec3 n, vec3 iXPos) {
 }
 #endif //__GLASS_TEST__
 
+
 void main()
 {
 	float dist = distance(m_vertPos.xyz, u_ViewOrigin.xyz);
@@ -790,6 +791,7 @@ void main()
 	gl_FragColor.a = clamp(gl_FragColor.a, 0.0, 1.0);
 
 	if (gl_FragColor.a >= 0.99) gl_FragColor.a = 1.0; // Allow for rounding errors... Don't let them stop pixel culling...
+
 
 	if (USE_EMISSIVE_BLACK > 0.0 && USE_GLOW_BUFFER <= 0.0)
 	{
