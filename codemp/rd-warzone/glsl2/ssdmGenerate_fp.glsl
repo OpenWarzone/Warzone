@@ -156,6 +156,10 @@ float GetDisplacementAtCoord(vec2 coord)
 	// Contrast...
 	displacement = clamp((clamp(displacement - contLower, 0.0, 1.0)) * contUpper, 0.0, 1.0);
 
+#if 0
+	displacement = clamp(pow(displacement, 0.25) * 1.5, 0.0, 1.0) * 0.5;
+#endif
+
 	return displacement;
 #endif
 }
@@ -385,6 +389,7 @@ void main(void)
 	vec3 norm = getViewNormal(var_TexCoords);
 	float material = texture(u_PositionMap, var_TexCoords).a - 1.0;
 	
+#if 1
 	float materialMultiplier = 1.0;
 
 	if (material == MATERIAL_ROCK || material == MATERIAL_STONE || material == MATERIAL_SKYSCRAPER)
@@ -397,7 +402,6 @@ void main(void)
 	}
 	//const float materialMultiplier = 1.0;
 
-#if 1
 	vec2 coord2 = var_TexCoords;
 	coord2.y = 1.0 - coord2.y;
 	vec3 gMap = texture(u_GlowMap, coord2).rgb;													// Glow map strength at this pixel
@@ -405,6 +409,11 @@ void main(void)
 
 	vec2 ParallaxXY = norm.xy * vec2((-DISPLACEMENT_STRENGTH * materialMultiplier) / u_Dimensions) * invDepth;
 	float displacement = invGlowStrength * ReliefMapping(var_TexCoords, ParallaxXY, depth, materialMultiplier);
+#elif 0
+	//norm.xyz = vec3(var_TexCoords.x * 2.0 - 1.0, var_TexCoords.y, 1.0);
+	norm.xyz = vec3(dot(var_TexCoords.x * 2.0 - 1.0, -norm.x), dot(var_TexCoords.y * 2.0 - 1.0, -norm.y), 1.0);
+	float displacement = GetDisplacementAtCoord(var_TexCoords);
+
 #else
 	float displacement = GetDisplacementAtCoord(var_TexCoords);
 #endif

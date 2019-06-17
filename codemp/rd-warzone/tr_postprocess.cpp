@@ -2528,7 +2528,6 @@ extern float		DYNAMIC_WEATHER_PUDDLE_STRENGTH;
 
 extern float		DISPLACEMENT_MAPPING_STRENGTH;
 
-extern qboolean		CLOSEST_LIGHTS_CHANGED;
 extern int			NUM_CLOSE_LIGHTS;
 extern int			CLOSEST_LIGHTS[MAX_DEFERRED_LIGHTS];
 extern vec2_t		CLOSEST_LIGHTS_SCREEN_POSITIONS[MAX_DEFERRED_LIGHTS];
@@ -2643,6 +2642,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 		GLSL_SetUniformVec4(shader, UNIFORM_CUBEMAPINFO, cubeMapVec);
 	}
 	else
+	{
 #endif //!__REALTIME_CUBEMAP__
 		if (r_cubeMapping->integer >= 1 && !r_lowVram->integer)
 		{
@@ -2687,8 +2687,8 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 			}
 #endif //__EMISSIVE_CUBE_IBL__
 		}
+	}
 
-	if (CLOSEST_LIGHTS_CHANGED)
 	{
 		NUM_CURRENT_EMISSIVE_LIGHTS = r_lowVram->integer ? min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, 8.0)) : min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, MAX_DEFERRED_LIGHTS));
 
@@ -2727,8 +2727,6 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 			GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHT_CONEDIRECTIONS, CLOSEST_LIGHTS_CONEDIRECTIONS, NUM_CURRENT_EMISSIVE_LIGHTS);
 		}
 		GLSL_SetUniformFloat(shader, UNIFORM_LIGHT_MAX_DISTANCE, (NUM_CURRENT_EMISSIVE_LIGHTS >= r_maxDeferredLights->integer / 2) ? maxDist : 8192.0);
-
-		CLOSEST_LIGHTS_CHANGED = qfalse;
 	}
 
 

@@ -1,3 +1,5 @@
+#define USE_EDGE_TESSELLATION
+
 attribute vec2 attr_TexCoord0;
 
 attribute vec2 attr_TexCoord1;
@@ -40,6 +42,7 @@ uniform vec4						u_Local1; // MAP_SIZE, sway, overlaySway, materialType
 uniform vec4						u_Local2; // hasSteepMap, hasWaterEdgeMap, haveNormalMap, SHADER_WATER_LEVEL
 uniform vec4						u_Local3; // hasSplatMap1, hasSplatMap2, hasSplatMap3, hasSplatMap4
 uniform vec4						u_Local4; // stageNum, glowStrength, r_showsplat, 0.0
+uniform vec4						u_Local8;
 uniform vec4						u_Local9; // testvalue0, 1, 2, 3
 
 #define SHADER_MAP_SIZE				u_Local1.r
@@ -107,6 +110,20 @@ uniform vec3  u_PrimaryLightColor;
 uniform float u_PrimaryLightRadius;
 
 #if defined(USE_TESSELLATION) || defined(USE_ICR_CULLING)
+#ifdef USE_EDGE_TESSELLATION
+uniform sampler2D					u_RoadsControlMap;
+
+uniform vec4						u_MapInfo; // MAP_INFO_SIZE[0], MAP_INFO_SIZE[1], MAP_INFO_SIZE[2], 0.0
+uniform vec4						u_Mins;
+uniform vec4						u_Maxs;
+
+#define SHADER_HAS_SPLATMAP4		u_Local3.a
+#define GRASS_DISTANCE_FROM_ROADS	u_Local8.r
+
+uniform vec4 u_TesselationInfo;
+#define uTessAlpha u_TesselationInfo.r
+#endif //USE_EDGE_TESSELLATION
+
 out vec3 Normal_CS_in;
 out vec2 TexCoord_CS_in;
 out vec4 WorldPos_CS_in;
@@ -351,6 +368,97 @@ float normalToSlope(in vec3 normal) {
 	return pitch;
 }
 
+#if defined(USE_TESSELLATION) && defined(USE_EDGE_TESSELLATION)
+#define HASHSCALE1 .1031
+
+float random(vec2 p)
+{
+	vec3 p3 = fract(vec3(p.xyx) * HASHSCALE1);
+	p3 += dot(p3, p3.yzx + 19.19);
+	return fract((p3.x + p3.y) * p3.z);
+}
+
+// 2D Noise based on Morgan McGuire @morgan3d
+// https://www.shadertoy.com/view/4dS3Wd
+float noise(in vec2 st) {
+	vec2 i = floor(st);
+	vec2 f = fract(st);
+
+	// Four corners in 2D of a tile
+	float a = random(i);
+	float b = random(i + vec2(1.0, 0.0));
+	float c = random(i + vec2(0.0, 1.0));
+	float d = random(i + vec2(1.0, 1.0));
+
+	// Smooth Interpolation
+
+	// Cubic Hermine Curve.  Same as SmoothStep()
+	vec2 u = f*f*(3.0 - 2.0*f);
+	// u = smoothstep(0.,1.,f);
+
+	// Mix 4 coorners percentages
+	return mix(a, b, u.x) +
+		(c - a)* u.y * (1.0 - u.x) +
+		(d - b) * u.x * u.y;
+}
+
+float GetRoadFactor(vec2 pixel)
+{
+	float roadScale = 1.0;
+
+	if (SHADER_HAS_SPLATMAP4 > 0.0)
+	{// Also grab the roads map, if we have one...
+		float road = texture(u_RoadsControlMap, pixel).r;
+
+		if (road > GRASS_DISTANCE_FROM_ROADS)
+		{
+			roadScale = 0.0;
+		}
+		else if (road > 0.0)
+		{
+			roadScale = 1.0 - clamp(road / GRASS_DISTANCE_FROM_ROADS, 0.0, 1.0);
+		}
+		else
+		{
+			roadScale = 1.0;
+		}
+	}
+	else
+	{
+		roadScale = 1.0;
+	}
+
+	return 1.0 - clamp(roadScale * 0.6 + 0.4, 0.0, 1.0);
+}
+
+float GetHeightmap(vec2 pixel)
+{
+	return texture(u_HeightMap, pixel).r;
+}
+
+vec2 GetMapTC(vec3 pos)
+{
+	vec2 mapSize = u_Maxs.xy - u_Mins.xy;
+	return (pos.xy - u_Mins.xy) / mapSize;
+}
+
+float LDHeightForPosition(vec3 pos)
+{
+	return noise(vec2(pos.xy * 0.00875));
+}
+
+float OffsetForPosition(vec3 pos)
+{
+	vec2 pixel = GetMapTC(pos);
+	float roadScale = GetRoadFactor(pixel);
+	float SmoothRand = LDHeightForPosition(pos);
+	float offsetScale = SmoothRand * clamp(1.0 - roadScale, 0.75, 1.0);
+
+	float offset = max(offsetScale, roadScale) - 0.5;
+	return offset * uTessAlpha;
+}
+#endif //defined(USE_TESSELLATION) && defined(USE_EDGE_TESSELLATION)
+
 void main()
 {
 	vec3 position;
@@ -408,6 +516,11 @@ void main()
 		position  = attr_Position;
 		normal    = attr_Normal * 2.0 - 1.0;
 	}
+
+#if defined(USE_TESSELLATION) && defined(USE_EDGE_TESSELLATION)
+	vec3 baseVertPos = position;
+	position.z += OffsetForPosition(position);
+#endif //defined(USE_TESSELLATION) && defined(USE_EDGE_TESSELLATION)
 
 #ifdef __HEIGHTMAP_TERRAIN_TEST__
 	position.xyz += heightMap;
@@ -504,7 +617,13 @@ void main()
 	}
 
 #if defined(USE_TESSELLATION) || defined(USE_ICR_CULLING)
+#if defined(USE_EDGE_TESSELLATION)
+	WorldPos_CS_in = vec4(baseVertPos.xyz, 1.0);
+	gl_Position = vec4(position.xyz, 1.0);
+#else //!defined(USE_EDGE_TESSELLATION)
 	WorldPos_CS_in = vec4(position.xyz, 1.0);
+	gl_Position = vec4(position.xyz, 1.0);
+#endif //defined(USE_EDGE_TESSELLATION)
 	TexCoord_CS_in = var_TexCoords.xy;
 	Normal_CS_in = var_Normal.xyz;
 	ViewDir_CS_in = var_ViewDir;
@@ -514,7 +633,6 @@ void main()
 	Blending_CS_in = var_Blending;
 	envTC_CS_in = vec2(0.0);
 	Slope_CS_in = var_Slope;
-	gl_Position = vec4(position.xyz, 1.0);
 #endif
 
 	var_vertPos = position.xyz;

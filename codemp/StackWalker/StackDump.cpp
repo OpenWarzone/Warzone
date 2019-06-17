@@ -434,7 +434,7 @@ static DWORD WINAPI DoReportCrashGUI( LPVOID pParams )
     {
         DWORD hRet;
         GetExitCodeThread( h, &hRet );
-       
+       /*
         if( hRet == 0 )
         {
             MessageBox( NULL, "There was an error. Please submit a bug report.", "Error", MB_ICONERROR | MB_OK | MB_DEFBUTTON1 );
@@ -449,6 +449,7 @@ static DWORD WINAPI DoReportCrashGUI( LPVOID pParams )
                        
             MessageBox( NULL, msg, "Error", MB_ICONERROR | MB_OK | MB_DEFBUTTON1 );
         }
+		*/
     }
    
     DestroyWindow( dlg );

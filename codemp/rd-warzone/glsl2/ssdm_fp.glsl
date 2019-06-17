@@ -150,11 +150,11 @@ void main(void)
 	col /= steps+1.0;
 	color = vec4(col, 1.0);
 
-	float shadow = 1.0 - clamp(dMap.r, 0.0, 1.0);
-	shadow = pow(shadow, 8.0);
-	shadow = 1.0 - (shadow * finalModifier);
-	shadow = clamp(shadow * 0.75 + 0.25, 0.0, 1.0);
-	color.rgb *= shadow;
+	//float shadow = 1.0 - clamp(dMap.r, 0.0, 1.0);
+	//shadow = pow(shadow, 8.0);
+	//shadow = 1.0 - (shadow * finalModifier);
+	//shadow = clamp(shadow * 0.75 + 0.25, 0.0, 1.0);
+	//color.rgb *= shadow;
 
 	gl_FragColor = color;
 #else //!TEST_PARALLAX

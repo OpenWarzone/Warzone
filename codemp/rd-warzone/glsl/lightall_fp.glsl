@@ -1,7 +1,8 @@
 #define __HIGH_PASS_SHARPEN__
 #define __CHRISTMAS_LIGHTS__
 //#define __GLASS_TEST__
-#define __GLASS_TEST2__
+//#define __GLASS_TEST2__
+//#define __STEEP_PARALLAX__
 
 #define SCREEN_MAPS_ALPHA_THRESHOLD 0.666
 #define SCREEN_MAPS_LEAFS_THRESHOLD 0.001
@@ -485,6 +486,185 @@ vec4 calc_glass_color(vec3 ro, vec3 rd, float dist, vec3 n, vec3 iXPos) {
 #endif //__GLASS_TEST__
 
 
+#ifdef __STEEP_PARALLAX__
+int MinSamples = 1; //! slider[1, 1, 100]
+int MaxSamples = 20; //! slider[20, 20, 256]
+bool UseShadow = false;
+
+float SteepHeightScale = 0.005; //! slider[0.005, 0.05, 0.1]
+float ShadowOffset = 0.01; //! slider[0.01, 0.05, 0.5]
+
+#define SQR(x) ((x) * (x))
+
+float GetDisplacementAtCoord(vec2 coord)
+{
+	vec3 col = textureLod(u_DiffuseMap, coord, 1.0).rgb;
+	vec3 col2 = textureLod(u_DiffuseMap, coord, 16.0).rgb;
+	//float diff = distance(col.rgb/3.0, col2.rgb/3.0);
+	float diff = clamp((length(col.rgb)/3.0) - (length(col2.rgb)/3.0), -1.0, 1.0) * 0.5 + 0.5;
+	//return clamp(pow(1.0-diff, 4.0) * 4.0, 0.0, 1.0);
+	return clamp(pow(1.0-diff, 6.0) * 24.0, 0.0, 1.0);
+}
+
+vec2 raymarch(vec2 startPos, vec3 dir) {
+	// Compute initial parallax displacement direction:
+	vec2 parallaxDirection = -normalize(dir.xy);
+
+	// The length of this vector determines the
+	// furthest amount of displacement:
+	float parallaxLength = sqrt(1.0 - SQR(dir.z));
+	//parallaxLength /= dir.z;
+
+	// Compute the actual reverse parallax displacement vector:
+	vec2 parallaxOffset = parallaxDirection * parallaxLength;
+
+	// Need to scale the amount of displacement to account
+	// for different height ranges in height maps.
+	parallaxOffset *= SteepHeightScale;
+
+	// corrected for tangent space. Normal is always z=1 in TS and
+	// v.viewdir is in tangent space as well...
+	int numSteps = int(mix(MaxSamples, MinSamples, dir.z));
+
+	float currHeight = 0.0;
+	float stepSize = 1.0 / float(numSteps);
+	int stepIndex = 0;
+	vec2 texCurrentOffset = startPos;
+	vec2 texOffsetPerStep = stepSize * parallaxOffset;
+
+	vec2 resultTexPos = vec2(texCurrentOffset - (texOffsetPerStep * numSteps));
+
+	float prevHeight = 1.0;
+	float currRayDist = 1.0;
+
+	while (stepIndex < numSteps) {
+		// Determine where along our ray we currently are.
+		currRayDist -= stepSize;
+		texCurrentOffset -= texOffsetPerStep;
+		currHeight = GetDisplacementAtCoord(texCurrentOffset).r;
+
+		// Because we're using heights in the [0..1] range
+		// and the ray is defined in terms of [0..1] scanning
+		// from top-bottom we can simply compare the surface
+		// height against the current ray distance.
+		if (currHeight >= currRayDist) {
+			// Push the counter above the threshold so that
+			// we exit the loop on the next iteration
+			stepIndex = numSteps + 1;
+
+			// We now know the location along the ray of the first
+			// point *BELOW* the surface and the previous point
+			// *ABOVE* the surface:
+			float rayDistAbove = currRayDist + stepSize;
+			float rayDistBelow = currRayDist;
+
+			// We also know the height of the surface before and
+			// after we intersected it:
+			float surfHeightBefore = prevHeight;
+			float surfHeightAfter = currHeight;
+
+			float numerator = rayDistAbove - surfHeightBefore;
+			float denominator = (surfHeightAfter - surfHeightBefore)
+					- (rayDistBelow - rayDistAbove);
+
+			// As the angle between the view direction and the
+			// surface becomes closer to parallel (e.g. grazing
+			// view angles) the denominator will tend towards zero.
+			// When computing the final ray length we'll
+			// get a divide-by-zero and bad things happen.
+			float x = 0.0;
+
+			if (abs(denominator) > 1e-5) {
+				x = numerator / denominator;
+			}
+
+			// Now that we've found the position along the ray
+			// that indicates where the true intersection exists
+			// we can translate this into a texture coordinate
+			// - the intended output of this utility function.
+
+			resultTexPos = mix(texCurrentOffset + texOffsetPerStep, texCurrentOffset, x);
+		} else {
+			++stepIndex;
+			prevHeight = currHeight;
+		}
+	}
+
+	return resultTexPos;
+}
+
+float raymarchShadow(vec2 startPos, vec3 dir) {
+	vec2 parallaxDirection = -normalize(dir.xy);
+
+	float parallaxLength = sqrt(1.0 - SQR(dir.z));
+	//parallaxLength /= dir.z;
+
+	vec2 parallaxOffset = parallaxDirection * parallaxLength;
+	parallaxOffset *= SteepHeightScale;
+
+	int numSteps = int(mix(MaxSamples, MinSamples, dir.z));
+
+	float currHeight = 0.0;
+	float stepSize = 1.0 / float(numSteps);
+	int stepIndex = 0;
+
+	vec2 texCurrentOffset = startPos;
+	vec2 texOffsetPerStep = stepSize * parallaxOffset;
+
+	float initialHeight = GetDisplacementAtCoord(startPos).r + ShadowOffset;
+
+	while (stepIndex < numSteps) {
+		texCurrentOffset += texOffsetPerStep;
+
+		float rayHeight = mix(initialHeight, 1.0, float(stepIndex / numSteps));
+
+		currHeight = GetDisplacementAtCoord(texCurrentOffset).r;
+
+		if (currHeight > rayHeight) {
+			// ray has gone below the height of the surface, therefore
+			// this pixel is occluded...
+			return 0.0;
+		}
+
+		++stepIndex;
+	}
+
+	return 1.0;
+}
+
+vec3 steepParallax(vec3 V, vec3 L, vec3 N, vec2 T) {
+	vec3 result = vec3(1.0);
+	float shadow = 1.0;
+	T = raymarch(T, -V);
+
+	if (UseShadow) {
+		shadow = raymarchShadow(T, -L);
+	}
+
+	return vec3(T, shadow);
+}
+
+vec3 TangentFromNormal ( vec3 normal )
+{
+	/*vec3 tangent;
+	vec3 c1 = cross(normal, vec3(0.0, 0.0, 1.0)); 
+	vec3 c2 = cross(normal, vec3(0.0, 1.0, 0.0)); 
+
+	if( length(c1) > length(c2) )
+	{
+		tangent = c1;
+	}
+	else
+	{
+		tangent = c2;
+	}
+
+	return normalize(tangent);
+	*/
+	return normalize(cross(normal, vec3(0.0, 0.0, 1.0)));
+}
+#endif //__STEEP_PARALLAX__
+
 void main()
 {
 	float dist = distance(m_vertPos.xyz, u_ViewOrigin.xyz);
@@ -502,16 +682,33 @@ void main()
 	}
 
 	bool LIGHTMAP_ENABLED = (USE_LIGHTMAP > 0.0 && USE_GLOW_BUFFER != 1.0 && USE_IS2D <= 0.0) ? true : false;
-
 	vec2 texCoords = m_TexCoords.xy;
+	vec3 N = normalize(m_Normal.xyz);
 
 	if (SHADER_SWAY > 0.0)
 	{// Sway...
 		texCoords += vec2(GetSway());
 	}
 
+#ifdef __STEEP_PARALLAX__
+	float pShadow = 1.0;
 
-	vec3 N = normalize(m_Normal.xyz);
+	if (USE_IS2D <= 0.0 && USE_GLOW_BUFFER != 1.0)
+	{
+		vec3 tangent = TangentFromNormal(N);
+		vec3 bitangent = normalize( cross(N, tangent) );
+
+		mat3 tangentToWorld = mat3(tangent, bitangent, N);
+
+		vec3 V = normalize(m_ViewDir*tangentToWorld);
+		vec3 L = normalize(var_PrimaryLightDir.xyz*tangentToWorld);
+
+		vec3 parallax = steepParallax(V, L, N, texCoords);
+		texCoords = parallax.xy;
+		pShadow = parallax.z;
+	}
+#endif //__STEEP_PARALLAX__
+
 	vec4 diffuse = vec4(0.0);
 
 #if defined(__LAVA__)
@@ -557,6 +754,10 @@ void main()
 	#endif //defined(__HIGH_PASS_SHARPEN__)
 	}
 #endif //defined(__LAVA__)
+
+#ifdef __STEEP_PARALLAX__
+	diffuse.rgb *= pShadow;
+#endif //__STEEP_PARALLAX__
 
 	// Alter colors by shader's colormod setting...
 	diffuse.rgb += diffuse.rgb * u_ColorMod.rgb;

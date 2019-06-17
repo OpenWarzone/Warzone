@@ -1205,7 +1205,7 @@ vec3 GetScreenPixel(void)
 	}
 
 	vec3 norm = vec3(dMap.gb, 0.0) * 2.0 - 1.0;
-	norm.z = sqrt(1.0 - dot(norm.xy, norm.xy)); // reconstruct Z from X and Y
+	//norm.z = sqrt(1.0 - dot(norm.xy, norm.xy)); // reconstruct Z from X and Y
 
 	vec2 distFromCenter = vec2(length(texCoords.x - 0.5), length(texCoords.y - 0.5));
 	float displacementStrengthMod = ((DISPLACEMENT_STRENGTH * materialMultiplier) / 18.0); // Default is 18.0. If using higher displacement, need more screen edge flattening, if less, less flattening.
@@ -1219,21 +1219,19 @@ vec3 GetScreenPixel(void)
 	texCoords += norm.xy * pixel * offset;
 
 	vec3 col = vec3(0.0);
-	float steps = min(DISPLACEMENT_STRENGTH * materialMultiplier, 4.0);
-	vec2 dir = (texCoords - var_TexCoords) / steps;
 	col = texture(u_DiffuseMap, texCoords).rgb;
 
-	for (float x = steps; x > 0.0; x -= 1.0)
-	{
-		col += texture(u_DiffuseMap, var_TexCoords + (dir*x)).rgb;
-	}
-	col /= steps+1.0;
+	//float steps = min(DISPLACEMENT_STRENGTH * materialMultiplier, 4.0);
+	//vec2 dir = (texCoords - var_TexCoords) / steps;
+	//for (float x = steps; x > 0.0; x -= 1.0)
+	//{
+	//	col += texture(u_DiffuseMap, var_TexCoords + (dir*x)).rgb;
+	//}
+	//col /= steps+1.0;
 	color = col;
 
-	float shadow = 1.0 - clamp(dMap.r, 0.0, 1.0);
-	shadow = pow(shadow, 8.0);
+	float shadow = 1.0 - clamp(dMap.r * 0.5 + 0.5, 0.0, 1.0);
 	shadow = 1.0 - (shadow * finalModifier);
-	shadow = clamp(shadow * 0.75 + 0.25, 0.0, 1.0);
 	color.rgb *= shadow;
 
 	return color;
@@ -1688,7 +1686,9 @@ void main(void)
 					addColor += lightColor * diffuse;
 				}
 
-				outColor.rgb = outColor.rgb + max(addColor * PshadowValue * finalShadow, vec3(0.0));
+				float puddleMult = 1.0;
+				if (isPuddle) puddleMult = 0.25;
+				outColor.rgb = outColor.rgb + max(addColor * PshadowValue * finalShadow * puddleMult, vec3(0.0));
 			}
 		}
 

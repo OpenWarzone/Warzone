@@ -30,7 +30,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
   This file deals with applying shaders to surface data in the tess struct.
 */
 
-qboolean MATRIX_UPDATE = qtrue;
 qboolean CLOSE_LIGHTS_UPDATE = qtrue;
 
 extern qboolean WATER_ENABLED;
@@ -1722,155 +1721,6 @@ qboolean RB_ShouldUseGeometryGrass (int materialType )
 	return qfalse;
 }
 
-bool theOriginalGluInvertMatrix(const float m[16], float invOut[16])
-{
-	double inv[16], det;
-	int i;
-
-	inv[0] = m[5] * m[10] * m[15] -
-		m[5] * m[11] * m[14] -
-		m[9] * m[6] * m[15] +
-		m[9] * m[7] * m[14] +
-		m[13] * m[6] * m[11] -
-		m[13] * m[7] * m[10];
-
-	inv[4] = -m[4] * m[10] * m[15] +
-		m[4] * m[11] * m[14] +
-		m[8] * m[6] * m[15] -
-		m[8] * m[7] * m[14] -
-		m[12] * m[6] * m[11] +
-		m[12] * m[7] * m[10];
-
-	inv[8] = m[4] * m[9] * m[15] -
-		m[4] * m[11] * m[13] -
-		m[8] * m[5] * m[15] +
-		m[8] * m[7] * m[13] +
-		m[12] * m[5] * m[11] -
-		m[12] * m[7] * m[9];
-
-	inv[12] = -m[4] * m[9] * m[14] +
-		m[4] * m[10] * m[13] +
-		m[8] * m[5] * m[14] -
-		m[8] * m[6] * m[13] -
-		m[12] * m[5] * m[10] +
-		m[12] * m[6] * m[9];
-
-	inv[1] = -m[1] * m[10] * m[15] +
-		m[1] * m[11] * m[14] +
-		m[9] * m[2] * m[15] -
-		m[9] * m[3] * m[14] -
-		m[13] * m[2] * m[11] +
-		m[13] * m[3] * m[10];
-
-	inv[5] = m[0] * m[10] * m[15] -
-		m[0] * m[11] * m[14] -
-		m[8] * m[2] * m[15] +
-		m[8] * m[3] * m[14] +
-		m[12] * m[2] * m[11] -
-		m[12] * m[3] * m[10];
-
-	inv[9] = -m[0] * m[9] * m[15] +
-		m[0] * m[11] * m[13] +
-		m[8] * m[1] * m[15] -
-		m[8] * m[3] * m[13] -
-		m[12] * m[1] * m[11] +
-		m[12] * m[3] * m[9];
-
-	inv[13] = m[0] * m[9] * m[14] -
-		m[0] * m[10] * m[13] -
-		m[8] * m[1] * m[14] +
-		m[8] * m[2] * m[13] +
-		m[12] * m[1] * m[10] -
-		m[12] * m[2] * m[9];
-
-	inv[2] = m[1] * m[6] * m[15] -
-		m[1] * m[7] * m[14] -
-		m[5] * m[2] * m[15] +
-		m[5] * m[3] * m[14] +
-		m[13] * m[2] * m[7] -
-		m[13] * m[3] * m[6];
-
-	inv[6] = -m[0] * m[6] * m[15] +
-		m[0] * m[7] * m[14] +
-		m[4] * m[2] * m[15] -
-		m[4] * m[3] * m[14] -
-		m[12] * m[2] * m[7] +
-		m[12] * m[3] * m[6];
-
-	inv[10] = m[0] * m[5] * m[15] -
-		m[0] * m[7] * m[13] -
-		m[4] * m[1] * m[15] +
-		m[4] * m[3] * m[13] +
-		m[12] * m[1] * m[7] -
-		m[12] * m[3] * m[5];
-
-	inv[14] = -m[0] * m[5] * m[14] +
-		m[0] * m[6] * m[13] +
-		m[4] * m[1] * m[14] -
-		m[4] * m[2] * m[13] -
-		m[12] * m[1] * m[6] +
-		m[12] * m[2] * m[5];
-
-	inv[3] = -m[1] * m[6] * m[11] +
-		m[1] * m[7] * m[10] +
-		m[5] * m[2] * m[11] -
-		m[5] * m[3] * m[10] -
-		m[9] * m[2] * m[7] +
-		m[9] * m[3] * m[6];
-
-	inv[7] = m[0] * m[6] * m[11] -
-		m[0] * m[7] * m[10] -
-		m[4] * m[2] * m[11] +
-		m[4] * m[3] * m[10] +
-		m[8] * m[2] * m[7] -
-		m[8] * m[3] * m[6];
-
-	inv[11] = -m[0] * m[5] * m[11] +
-		m[0] * m[7] * m[9] +
-		m[4] * m[1] * m[11] -
-		m[4] * m[3] * m[9] -
-		m[8] * m[1] * m[7] +
-		m[8] * m[3] * m[5];
-
-	inv[15] = m[0] * m[5] * m[10] -
-		m[0] * m[6] * m[9] -
-		m[4] * m[1] * m[10] +
-		m[4] * m[2] * m[9] +
-		m[8] * m[1] * m[6] -
-		m[8] * m[2] * m[5];
-
-	det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
-
-	if (det == 0)
-	{
-		for (i = 0; i < 16; i++)
-			invOut[i] = 0;
-
-		return false;
-	}
-
-	det = 1.0 / det;
-
-	for (i = 0; i < 16; i++)
-		invOut[i] = inv[i] * det;
-
-	return true;
-}
-
-matrix_t MATRIX_TRANS, MATRIX_MODEL, MATRIX_MVP, MATRIX_INVTRANS, MATRIX_NORMAL, MATRIX_VP, MATRIX_INVMV;
-
-void RB_UpdateMatrixes ( void )
-{
-	if (!MATRIX_UPDATE) return;
-
-	//theOriginalGluInvertMatrix((const float *)glState.modelviewProjection, (float *)MATRIX_INVTRANS);
-	Matrix16SimpleInverse(backEnd.viewParms.projectionMatrix, MATRIX_NORMAL);
-
-	MATRIX_UPDATE = qfalse;
-}
-
-int			CLOSEST_LIGHTS_UPDATE_TIME = 0;
-qboolean	CLOSEST_LIGHTS_CHANGED = qtrue;
 int			NUM_CLOSE_LIGHTS = 0;
 int			CLOSEST_LIGHTS[MAX_DEFERRED_LIGHTS] = {0};
 vec3_t		CLOSEST_LIGHTS_POSITIONS[MAX_DEFERRED_LIGHTS] = {0};
@@ -1887,14 +1737,6 @@ extern void Volumetric_Trace(trace_t *results, const vec3_t start, const vec3_t 
 void RB_UpdateCloseLights ( void )
 {
 	if (!CLOSE_LIGHTS_UPDATE) return; // Already done for this frame...
-	
-	// Only update the list once every 1/2 sec...
-	if (CLOSEST_LIGHTS_UPDATE_TIME > backEnd.refdef.time)
-	{
-		return;
-	}
-
-	CLOSEST_LIGHTS_UPDATE_TIME = backEnd.refdef.time + 500;
 
 	NUM_CLOSE_LIGHTS = 0;
 
@@ -2105,7 +1947,6 @@ void RB_UpdateCloseLights ( void )
 #endif //__CALCULATE_LIGHTDIR_FROM_LIGHT_AVERAGES__
 
 	CLOSE_LIGHTS_UPDATE = qfalse;
-	CLOSEST_LIGHTS_CHANGED = qtrue;
 }
 
 float waveTime = 0.5;
@@ -2157,8 +1998,6 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	ComputeDeformValues(&deformGen, deformParams);
 
 	ComputeFogValues(fogDistanceVector, fogDepthVector, &eyeT);
-
-	RB_UpdateMatrixes();
 
 	//
 	// UQ1: I think we only need to do all these once, not per stage... Waste of FPS!

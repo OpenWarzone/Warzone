@@ -1,7 +1,5 @@
 #include "tr_local.h"
 
-extern qboolean MATRIX_UPDATE;
-
 extern void R_RotateForViewer(viewParms_t *viewParms);
 extern void R_SetupProjectionZ(viewParms_t *dest);
 extern void R_SortDrawSurfs(drawSurf_t *drawSurfs, int numDrawSurfs);
@@ -147,8 +145,6 @@ void R_RenderCubeSide(int cubemapSide, model_t *model, image_t *cubeModelImage)
 	VectorCopy(refdef.viewaxis[2], parms.ori.axis[2]);
 
 	VectorCopy(refdef.vieworg, parms.pvsOrigin);
-
-	MATRIX_UPDATE = qtrue;
 
 	parms.targetFbo = tr.renderCubeFbo;
 	parms.targetFboLayer = cubemapSide;

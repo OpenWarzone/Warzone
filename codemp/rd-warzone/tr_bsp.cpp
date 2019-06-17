@@ -5545,7 +5545,6 @@ static void R_RenderAllCubemaps(void)
 }
 #endif //__REALTIME_CUBEMAP__
 
-extern qboolean MATRIX_UPDATE;
 extern qboolean CLOSE_LIGHTS_UPDATE;
 
 #ifdef __GENERATED_SKY_CUBES__
@@ -5643,7 +5642,6 @@ void R_RenderSkyCubeSide(int cubemapSide, qboolean subscene, int flag /* VPF_SKY
 		parms.flags |= VPF_USESUNLIGHT;
 	}
 
-	MATRIX_UPDATE = qtrue;
 	CLOSE_LIGHTS_UPDATE = qtrue;
 
 	parms.targetFbo = tr.renderSkyFbo;

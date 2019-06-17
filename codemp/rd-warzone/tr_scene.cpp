@@ -36,10 +36,7 @@ int			r_firstScenePoly;
 int			r_numpolyverts;
 
 
-extern qboolean MATRIX_UPDATE;
 extern qboolean CLOSE_LIGHTS_UPDATE;
-
-extern void RB_UpdateMatrixes(void);
 
 
 /*
@@ -1421,7 +1418,6 @@ void RE_RenderScene(const refdef_t *fd) {
 		ri->Error(ERR_DROP, "R_RenderScene: NULL worldmodel");
 	}
 
-	MATRIX_UPDATE = qtrue;
 	CLOSE_LIGHTS_UPDATE = qtrue;
 	RE_BeginScene(fd);
 
@@ -1666,7 +1662,6 @@ void RE_RenderScene(const refdef_t *fd) {
 
 	parms.maxEntityRange = 512000;
 
-	MATRIX_UPDATE = qtrue;
 	CLOSE_LIGHTS_UPDATE = qtrue;
 	R_RenderView( &parms );
 

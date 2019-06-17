@@ -27,10 +27,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "ghoul2/g2_local.h"
 
-extern qboolean MATRIX_UPDATE;
 extern qboolean CLOSE_LIGHTS_UPDATE;
-
-extern void RB_UpdateMatrixes ( void );
 
 trGlobals_t		tr;
 
@@ -1558,7 +1555,6 @@ qboolean R_MirrorViewBySurface(drawSurf_t *drawSurf, int64_t entityNum) {
 	// OPTIMIZE: restrict the viewport on the mirrored view
 
 	// render the mirror view
-	MATRIX_UPDATE = qtrue;
 	CLOSE_LIGHTS_UPDATE = qtrue;
 	R_RenderView (&newParms);
 
@@ -3078,8 +3074,6 @@ void R_RenderSunShadowMaps(const refdef_t *fd, int level, vec4_t sunDir, float l
 	vec3_t lightviewBounds[2];
 	qboolean lightViewIndependentOfCameraView = qtrue;// qfalse;
 
-	MATRIX_UPDATE = qtrue;
-
 	VectorCopy4(sunDir, lightDir);
 
 	viewZNear = r_znear->value;// r_shadowCascadeZNear->value;
@@ -3529,7 +3523,6 @@ void R_RenderCubemapSide( int cubemapIndex, int cubemapSide, qboolean subscene )
 	parms.targetFboLayer = cubemapSide;
 	parms.targetFboCubemapIndex = cubemapIndex;
 	
-	MATRIX_UPDATE = qtrue;
 	CLOSE_LIGHTS_UPDATE = qtrue;
 	R_RenderView(&parms);
 
@@ -3642,7 +3635,6 @@ void R_RenderEmissiveMapSide(int cubemapIndex, int cubemapSide, qboolean subscen
 	parms.targetFboLayer = cubemapSide;
 	parms.targetFboCubemapIndex = cubemapIndex;
 
-	MATRIX_UPDATE = qtrue;
 	CLOSE_LIGHTS_UPDATE = qtrue;
 	R_RenderView(&parms);
 
@@ -3757,7 +3749,6 @@ void R_RenderCubemapSideRealtime(vec3_t origin, int cubemapSide, qboolean subsce
 	parms.targetFboLayer = cubemapSide;
 	//parms.targetFboCubemapIndex = cubemapIndex;
 
-	MATRIX_UPDATE = qtrue;
 	CLOSE_LIGHTS_UPDATE = qtrue;
 	R_RenderView(&parms);
 
