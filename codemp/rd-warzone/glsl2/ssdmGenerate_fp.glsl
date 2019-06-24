@@ -1,4 +1,5 @@
 //#define TEST_PARALLAX
+//#define TEST_PARALLAX2
 
 uniform sampler2D				u_DiffuseMap;
 uniform sampler2D				u_ScreenDepthMap;
@@ -156,59 +157,151 @@ float GetDisplacementAtCoord(vec2 coord)
 	// Contrast...
 	displacement = clamp((clamp(displacement - contLower, 0.0, 1.0)) * contUpper, 0.0, 1.0);
 
-#if 0
-	displacement = clamp(pow(displacement, 0.25) * 1.5, 0.0, 1.0) * 0.5;
-#endif
+#ifdef TEST_PARALLAX2
+	displacement = clamp(pow(displacement, 0.333) * 1.25, 0.0, 1.0) + displacement;
+#endif //TEST_PARALLAX2
 
 	return displacement;
 #endif
 }
 
-#ifndef TEST_PARALLAX
-float ReliefMapping(vec2 dp, vec2 ds, float origDepth, float materialMultiplier)
+#ifdef TEST_PARALLAX2
+#define RAY_STEPS 8
+float GetDepth(in vec2 UV, in vec2 Displace)
 {
-	//return clamp(GetDisplacementAtCoord(dp + ds), 0.0, 1.0);
-
-#ifdef __HQ_PARALLAX__
-	int linear_steps = 10 * int(materialMultiplier);
-	int binary_steps = 5 * int(materialMultiplier);
-#else //!__HQ_PARALLAX__
-	const int linear_steps = 10;// 4;// 5;// 10;
-	const int binary_steps = 5;// 2;// 5;
-#endif //__HQ_PARALLAX__
-	float size = 1.0 / linear_steps;
+	float Height = 0.0;
 	float depth = 1.0;
-	float best_depth = 1.0;
-	float stepsDone = 0;
+	float Inc = 1.0 / float(RAY_STEPS);//0.125;
 
-	for (int i = 0; i < linear_steps - 1; ++i) 
+	for( int i = 0; i < RAY_STEPS/*8*/; i++ )
 	{
-		stepsDone += 1.0;
-		depth -= size;
-		float t = GetDisplacementAtCoord(dp + ds * depth);
-		if (t == -1.0) break;
-		if (depth >= t)
-			best_depth = depth;
-	}
+		Height += Inc;
+		//float HeightTex = 1.0 - texture(HeightM, UV + Displace * Height);
+		float HeightTex = GetDisplacementAtCoord(UV + Displace * Height);
 
-	depth = best_depth - size;
-
-	for (int i = 0; i < binary_steps; ++i) 
-	{
-		size *= 0.5;
-		float t = GetDisplacementAtCoord(dp + ds * depth);
-		if (t == -1.0) break;
-		if (depth >= t) {
-			best_depth = depth;
-			depth -= 2 * size;
+		if (HeightTex == -1.0)
+		{
+			break;
 		}
-		depth += size;
+		
+		if ( depth > 0.995 && Height >= HeightTex )
+		{
+			depth = Height;
+		}
 	}
 
-	float finished = (stepsDone / linear_steps);
-	return clamp(best_depth, 0.0, 1.0) * finished;
+	Height=depth;
+
+	for( int i = 0; i < 4; i++ )
+	{
+		Inc *= 0.5;
+		
+		//float HeightTex = 1.0 - texture(HeightM, Uv + Displace * Height);
+		float HeightTex = GetDisplacementAtCoord(UV + Displace * Height);
+
+		if (HeightTex == -1.0)
+		{
+			break;
+		}
+		
+		if ( Height >= HeightTex )
+		{
+			depth = Height;
+			Height -= 2.0 * Inc;
+		}
+		
+		Height = Height + Inc;
+	}
+
+	return depth;
 }
-#else //TEST_PARALLAX
+
+void main(void)
+{
+	vec3 normal = texture(u_NormalMap, var_TexCoords).rgb;
+
+	if (normal.b < 1.0)
+	{
+		gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+		return;
+	}
+
+	float depth = getDepth(var_TexCoords);
+	float invDepth = clamp((1.0 - depth) /** 2.0 - 1.0*/, 0.0, 1.0);
+
+	if (invDepth <= 0.0)
+	{// Sky...
+		gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+		return;
+	}
+
+	vec4 position = texture(u_PositionMap, var_TexCoords);
+
+	if (position.a - 1.0 >= 1024.0)
+	{// Sky...
+		gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+		return;
+	}
+
+#if 0
+	vec3 V = position.xyz - u_ViewOrigin.xzy;
+	//vec3 LightV = normalize(u_ViewOrigin.xyz - u_PrimaryLightOrigin.xyz);
+
+	vec3 N = DecodeNormal(normal.xy).xzy;
+
+	
+	vec3 View = normalize(V);
+	float ViewN = -0.5;//dot(View, normalize(u_ViewOrigin.xzy));
+
+	vec2 Displace = ((View * /*0.03*/0.035) / ViewN).xy * pow(invDepth, 8.0);
+#else
+	/*float material = position.a - 1.0;
+	float materialMultiplier = 1.0;
+
+	if (material == MATERIAL_ROCK || material == MATERIAL_STONE || material == MATERIAL_SKYSCRAPER)
+	{// Rock gets more displacement...
+		materialMultiplier = 3.0;
+	}
+	else if (material == MATERIAL_TREEBARK)
+	{// Rock gets more displacement...
+		materialMultiplier = 1.5;
+	}*/
+
+	vec3 N = DecodeNormal(normal.xy).xzy;
+	vec2 Displace = /*N.xy*/vec2(dot(N.x, N.z), N.y) * vec2((-DISPLACEMENT_STRENGTH /** materialMultiplier*/) / u_Dimensions) * pow(invDepth, 8.0);
+	//Displace.x *= -1.0;
+#endif
+
+	float Ray = GetDepth(var_TexCoords, Displace);
+
+	vec2 coord2 = var_TexCoords;
+	coord2.y = 1.0 - coord2.y;
+	vec3 gMap = texture(u_GlowMap, coord2).rgb;													// Glow map strength at this pixel
+	float invGlowStrength = 1.0 - clamp(max(gMap.r, max(gMap.g, gMap.b)), 0.0, 1.0);
+
+	Ray *= invGlowStrength;
+
+	/*
+	vec2 NewUv = (var_TexCoords + Displace * Ray);
+
+	
+	vec2 Texture = texture(u_DiffuseMap, NewUv);
+	vec2 NormalMap = texture(u_NormalMap, NewUv);
+	NormalMap = normalize(NormalMap);
+	float Normal = clamp(dot(reflect(-View, NormalMap), LightV), 0.0, 1.0);
+	Normal = pow(Normal, SpecularPow) + saturate(dot(NormalMap, LightV));
+	float PixelLight = 1.0 - clamp(dot(IN.Attenuation, IN.Attenuation), 0.0, 1.0);
+	vec3 Light = PixelLight * LightColor;
+	return vec4(Texture * ((Normal * Light) + Ambient), Texture.w * Alpha);
+	*/
+
+	
+	//gl_FragColor = vec4(Ray, norm.x * 0.5 + 0.5, norm.y * 0.5 + 0.5, 1.0);
+	gl_FragColor = vec4(Ray, Displace.x * 0.5 + 0.5, Displace.y * 0.5 + 0.5, 1.0);
+
+}
+
+#elif defined(TEST_PARALLAX)
 /*
 uniform int MinSamples; //! slider[1, 1, 100]
 uniform int MaxSamples; //! slider[20, 20, 256]
@@ -365,7 +458,6 @@ vec3 steepParallax(vec3 V, vec3 L, vec3 N, vec2 T) {
 
 	return vec3(T2-T, shadow);
 }
-#endif //TEST_PARALLAX
 
 void main(void)
 {
@@ -375,7 +467,74 @@ void main(void)
 		return;
 	}
 
-#ifndef TEST_PARALLAX
+	vec3 position = texture(u_PositionMap, var_TexCoords).xyz;
+
+	vec3 V = normalize(position.xyz - u_ViewOrigin.xyz).xyz;
+	vec3 L = normalize(u_ViewOrigin.xyz - u_PrimaryLightOrigin.xyz).xyz;
+
+	vec3 N = DecodeNormal(textureLod(u_NormalMap, var_TexCoords, 0.0).xy);
+	//vec3 N = getViewNormal(var_TexCoords);
+	//vec3 tangent = TangentFromNormal( norm.xyz );
+	//vec3 bitangent = normalize( cross(norm.xyz, tangent) );
+	//mat3 tangentToWorld = mat3(tangent.xyz, bitangent.xyz, norm.xyz);
+
+	vec3 parallax = steepParallax(V, L, N, var_TexCoords);
+
+	gl_FragColor = vec4(parallax.xy*0.5+0.5, parallax.z, 1.0);
+}
+
+#else //!defined(TEST_PARALLAX)
+float ReliefMapping(vec2 dp, vec2 ds, float origDepth, float materialMultiplier)
+{
+	//return clamp(GetDisplacementAtCoord(dp + ds), 0.0, 1.0);
+
+#ifdef __HQ_PARALLAX__
+	int linear_steps = 10 * int(materialMultiplier);
+	int binary_steps = 5 * int(materialMultiplier);
+#else //!__HQ_PARALLAX__
+	const int linear_steps = 10;// 4;// 5;// 10;
+	const int binary_steps = 5;// 2;// 5;
+#endif //__HQ_PARALLAX__
+	float size = 1.0 / linear_steps;
+	float depth = 1.0;
+	float best_depth = 1.0;
+	float stepsDone = 0;
+
+	for (int i = 0; i < linear_steps - 1; ++i) 
+	{
+		stepsDone += 1.0;
+		depth -= size;
+		float t = GetDisplacementAtCoord(dp + ds * depth);
+		if (t == -1.0) break;
+		if (depth >= t)
+			best_depth = depth;
+	}
+
+	depth = best_depth - size;
+
+	for (int i = 0; i < binary_steps; ++i) 
+	{
+		size *= 0.5;
+		float t = GetDisplacementAtCoord(dp + ds * depth);
+		if (t == -1.0) break;
+		if (depth >= t) {
+			best_depth = depth;
+			depth -= 2 * size;
+		}
+		depth += size;
+	}
+
+	float finished = (stepsDone / linear_steps);
+	return clamp(best_depth, 0.0, 1.0) * finished;
+}
+
+void main(void)
+{
+	if (texture(u_NormalMap, var_TexCoords).b < 1.0)
+	{// An if based on output from a texture, but seems to increase FPS a little anyway...
+		gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+		return;
+	}
 
 	float depth = getDepth(var_TexCoords);
 	float invDepth = clamp((1.0 - depth) * 2.0 - 1.0, 0.0, 1.0);
@@ -419,23 +578,6 @@ void main(void)
 #endif
 	
 	gl_FragColor = vec4(displacement, norm.x * 0.5 + 0.5, norm.y * 0.5 + 0.5, 1.0);
-
-#else //TEST_PARALLAX
-
-	vec3 position = texture(u_PositionMap, var_TexCoords).xyz;
-
-	vec3 V = normalize(position.xyz - u_ViewOrigin.xyz).xyz;
-	vec3 L = normalize(u_ViewOrigin.xyz - u_PrimaryLightOrigin.xyz).xyz;
-
-	vec3 N = DecodeNormal(textureLod(u_NormalMap, var_TexCoords, 0.0).xy);
-	//vec3 N = getViewNormal(var_TexCoords);
-	//vec3 tangent = TangentFromNormal( norm.xyz );
-	//vec3 bitangent = normalize( cross(norm.xyz, tangent) );
-	//mat3 tangentToWorld = mat3(tangent.xyz, bitangent.xyz, norm.xyz);
-
-	vec3 parallax = steepParallax(V, L, N, var_TexCoords);
-
-	gl_FragColor = vec4(parallax.xy*0.5+0.5, parallax.z, 1.0);
-
-#endif //TEST_PARALLAX
 }
+#endif //TEST_PARALLAX
+

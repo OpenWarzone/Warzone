@@ -586,7 +586,7 @@ void main()
 	var_Slope = 0.0;
 
 
-	if (USE_TRIPLANAR > 0.0)
+	if (USE_REGIONS > 0.0 || USE_TRIPLANAR > 0.0)
 	{
 		//
 		// Steep Maps...
@@ -595,16 +595,32 @@ void main()
 		if (SHADER_HAS_STEEPMAP > 0.0)
 		{// Steep maps...
 			float pitch = normalToSlope(normalize(normal.xyz));
+			pitch = length(pitch);
 
-			if (pitch > 46.0 || pitch < -46.0)
+			if (pitch > 46.0 && USE_REGIONS <= 0.0)
 			{
-				//var_Slope = 1.0;
-				var_Slope = clamp(pow(clamp((length(pitch) - 46.0) / 44.0, 0.0, 1.0), 0.75), 0.0, 1.0);
-				var_Slope = smoothstep(0.2, 0.7, var_Slope);
+				var_Slope = clamp(pow(clamp((pitch - 46.0) / 44.0, 0.0, 1.0), 0.75), 0.0, 1.0);
+				
+				if (USE_REGIONS > 0.0)
+				{
+					var_Slope = 0.0;
+				}
+				else
+				{
+					var_Slope = smoothstep(0.2, 0.7, var_Slope);
+				}
 			}
 			else
 			{
-				var_Slope = 0.0;
+				if (USE_REGIONS > 0.0)
+				{
+					var_Slope = clamp(pow(clamp(pitch / 90.0, 0.0, 1.0), 2.0), 0.0, 1.0);
+					var_Slope = smoothstep(0.5, 1.0, 1.0 - var_Slope);
+				}
+				else
+				{
+					var_Slope = 0.0;
+				}
 			}
 		}
 	}

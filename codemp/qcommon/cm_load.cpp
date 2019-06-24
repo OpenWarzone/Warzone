@@ -759,37 +759,78 @@ CMod_LoadNodes
 
 =================
 */
-void CMod_LoadNodes( lump_t *l, clipMap_t &cm ) {
+void CMod_LoadNodes( lump_t *l, clipMap_t &cm, bool subBSP ) {
 	dnode_t		*in;
 	int			child;
 	cNode_t		*out;
 	int			i, j, count;
 
 	in = (dnode_t *)(cmod_base + l->fileofs);
+
 	if (l->filelen % sizeof(*in))
 		Com_Error (ERR_DROP, "MOD_LoadBmodel: funny lump size");
+
 	count = l->filelen / sizeof(*in);
 
-	if (count < 1)
+	if (!subBSP && count < 1)
 		Com_Error (ERR_DROP, "Map has no nodes");
-	cm.nodes = (cNode_t *)Hunk_Alloc( count * sizeof( *cm.nodes ), h_high );
-	cm.numNodes = count;
 
-	NodesData = cm.nodes;
-	NodesDataCount = cm.numNodes;
+	int originalNumNodes = cm.numNodes;
+	
+	if (subBSP)
+	{
+		cNode_t *oldNodes = cm.nodes;
 
-	out = cm.nodes;
+		cm.nodes = (cNode_t *)Hunk_Alloc((count + originalNumNodes) * sizeof(*cm.nodes), h_high);
+		cm.numNodes = originalNumNodes + count;
+
+		for (int i = 0; i < originalNumNodes; i++)
+		{
+			cNode_t *oldn = oldNodes + i;
+			cNode_t *newn = cm.nodes + i;
+
+			newn->plane = oldn->plane;
+
+			for (j = 0; j<2; j++)
+			{
+				Com_Printf("ORIGINAL: node %i. child %i is %i.\n", i, j, oldn->children[j]);
+				newn->children[j] = oldn->children[j];
+			}
+		}
+
+		Z_Free(oldNodes);
+
+		NodesData = cm.nodes;
+		NodesDataCount = cm.numNodes;
+
+		out = cm.nodes + originalNumNodes;
+	}
+	else
+	{
+		cm.nodes = (cNode_t *)Hunk_Alloc(count * sizeof(*cm.nodes), h_high);
+		cm.numNodes = count;
+
+		NodesData = cm.nodes;
+		NodesDataCount = cm.numNodes;
+
+		out = cm.nodes;
+	}
 
 	for (i=0 ; i<count ; i++, out++, in++)
 	{
 		out->plane = cm.planes + LittleLong( in->planeNum );
+
 		for (j=0 ; j<2 ; j++)
 		{
 			child = LittleLong (in->children[j]);
+
+			if (subBSP && in->children[j] < 0) child -= originalNumNodes;
+			if (subBSP && in->children[j] >= 0) child += originalNumNodes;
 			out->children[j] = child;
+
+			if (subBSP) Com_Printf("NEW: node %i. child %i is %i.\n", i + originalNumNodes, j, out->children[j]);
 		}
 	}
-
 }
 
 /*
@@ -901,7 +942,7 @@ void CMod_LoadLeafs (lump_t *l, clipMap_t &cm)
 CMod_LoadPlanes
 =================
 */
-void CMod_LoadPlanes (lump_t *l, clipMap_t &cm)
+void CMod_LoadPlanes (lump_t *l, clipMap_t &cm, bool subBSP)
 {
 	int			i, j;
 	cplane_t	*out;
@@ -910,19 +951,56 @@ void CMod_LoadPlanes (lump_t *l, clipMap_t &cm)
 	int			bits;
 
 	in = (dplane_t *)(cmod_base + l->fileofs);
+
 	if (l->filelen % sizeof(*in))
 		Com_Error (ERR_DROP, "MOD_LoadBmodel: funny lump size");
+
 	count = l->filelen / sizeof(*in);
 
-	if (count < 1)
+	if (!subBSP && count < 1)
 		Com_Error (ERR_DROP, "Map with no planes");
-	cm.planes = (struct cplane_s *)Hunk_Alloc( ( BOX_PLANES + count ) * sizeof( *cm.planes ), h_high );
-	cm.numPlanes = count;
 
-	PlanesData = cm.planes;
-	PlanesDataCount = cm.numPlanes;
+	if (subBSP)
+	{
+		int originalNumPlanes = cm.numPlanes;
 
-	out = cm.planes;
+		cplane_t *oldPlanes = cm.planes;
+
+		cm.planes = (struct cplane_s *)Hunk_Alloc((BOX_PLANES + count + originalNumPlanes) * sizeof(*cm.planes), h_high);
+		cm.numPlanes = originalNumPlanes + count;
+
+		for (int i = 0; i < originalNumPlanes; i++)
+		{
+			cplane_t *oldp = oldPlanes + i;
+			cplane_t *newp = cm.planes + i;
+			
+			for (j = 0; j<3; j++)
+			{
+				newp->normal[j] = oldp->normal[j];
+			}
+
+			newp->dist = oldp->dist;
+			newp->type = oldp->type;
+			newp->signbits = oldp->signbits;
+		}
+
+		Z_Free(oldPlanes);
+
+		PlanesData = cm.planes;
+		PlanesDataCount = cm.numPlanes;
+
+		out = cm.planes + originalNumPlanes;
+	}
+	else
+	{
+		cm.planes = (struct cplane_s *)Hunk_Alloc((BOX_PLANES + count) * sizeof(*cm.planes), h_high);
+		cm.numPlanes = count;
+
+		PlanesData = cm.planes;
+		PlanesDataCount = cm.numPlanes;
+
+		out = cm.planes;
+	}
 
 	for ( i=0 ; i<count ; i++, in++, out++)
 	{
@@ -1218,7 +1296,8 @@ static void CM_LoadMap_Actual( const char *name, qboolean clientload, int *check
 	cm_playerCurveClip = Cvar_Get ("cm_playerCurveClip", "1", CVAR_ARCHIVE|CVAR_CHEAT );
 	cm_extraVerbose = Cvar_Get ("cm_extraVerbose", "0", CVAR_TEMP );
 #endif
-	Com_DPrintf( "CM_LoadMap( %s, %i )\n", name, clientload );
+
+	Com_Printf( "CM_LoadMap( %s, %i )\n", name, clientload );
 
 	if ( !strcmp( cm.name, name ) && clientload ) {
 		if ( checksum )
@@ -1316,11 +1395,11 @@ static void CM_LoadMap_Actual( const char *name, qboolean clientload, int *check
 	CMod_LoadLeafs (&header.lumps[LUMP_LEAFS], cm);
 	CMod_LoadLeafBrushes (&header.lumps[LUMP_LEAFBRUSHES], cm);
 	CMod_LoadLeafSurfaces (&header.lumps[LUMP_LEAFSURFACES], cm);
-	CMod_LoadPlanes (&header.lumps[LUMP_PLANES], cm);
+	CMod_LoadPlanes (&header.lumps[LUMP_PLANES], cm, false);
 	CMod_LoadBrushSides (&header.lumps[LUMP_BRUSHSIDES], cm);
 	CMod_LoadBrushes (&header.lumps[LUMP_BRUSHES], cm);
 	CMod_LoadSubmodels (&header.lumps[LUMP_MODELS], cm);
-	CMod_LoadNodes (&header.lumps[LUMP_NODES], cm);
+	CMod_LoadNodes (&header.lumps[LUMP_NODES], cm, false);
 	CMod_LoadEntityString (&header.lumps[LUMP_ENTITIES], cm);
 	CMod_LoadVisibility( &header.lumps[LUMP_VISIBILITY], cm );
 	CMod_LoadPatches( &header.lumps[LUMP_SURFACES], &header.lumps[LUMP_DRAWVERTS], cm );
@@ -1362,6 +1441,103 @@ static void CM_LoadMap_Actual( const char *name, qboolean clientload, int *check
 	Z_Free(gpvCachedMapDiskImage);
 	gpvCachedMapDiskImage = NULL;
 #endif //__FREE_BSP_DATA__
+
+#if 0
+	//
+	// Load extra bsp's planes, if it has any...
+	//
+	{
+		char strippedName[512] = { 0 };
+		char loadName[512] = { 0 };
+		COM_StripExtension(name, strippedName, strlen(name));
+		sprintf(loadName, "%s_nonsolid.bsp", strippedName);
+
+		Com_Printf("CM_LoadMap( %s, %i )\n", loadName, clientload);
+
+#ifndef BSPC
+		//
+		// load the file into a buffer that we either discard as usual at the bottom, or if we've got enough memory
+		//	then keep it long enough to save the renderer re-loading it (if not dedicated server),
+		//	then discard it after that...
+		//
+		buf = NULL;
+		fileHandle_t h;
+		const int iBSPLen = FS_FOpenFileRead(loadName, &h, qfalse);
+		if (h)
+		{
+			newBuff = Z_Malloc(iBSPLen, TAG_BSP_DISKIMAGE);
+			FS_Read(newBuff, iBSPLen, h);
+			FS_FCloseFile(h);
+
+			buf = (int*)newBuff;	// so the rest of the code works as normal
+			if (&cm == &cmg)
+			{
+				gpvCachedMapDiskImage = newBuff;
+				newBuff = 0;
+			}
+
+			// carry on as before...
+			//
+		}
+#else
+		const int iBSPLen = LoadQuakeFile((quakefile_t *)loadName, (void **)&buf);
+#endif
+
+		if (buf) 
+		{
+			last_checksum = LittleLong(Com_BlockChecksum(buf, iBSPLen));
+			if (checksum)
+				*checksum = last_checksum;
+
+			header = *(dheader_t *)buf;
+			for (size_t i = 0; i < sizeof(dheader_t) / 4; i++) {
+				((int *)&header)[i] = LittleLong(((int *)&header)[i]);
+			}
+
+			if (header.version != BSP_VERSION) {
+				Z_Free(gpvCachedMapDiskImage);
+				gpvCachedMapDiskImage = NULL;
+
+				Com_Error(ERR_DROP, "CM_LoadMap: %s has wrong version number (%i should be %i)"
+					, name, header.version, BSP_VERSION);
+			}
+
+			cmod_base = (byte *)buf;
+
+			// load into heap
+			CMod_LoadPlanes(&header.lumps[LUMP_PLANES], cm, true);
+			CMod_LoadNodes(&header.lumps[LUMP_NODES], cm, true);
+
+#ifndef __FREE_BSP_DATA__
+#ifndef BSPC	// I hope we can lose this crap soon
+			//
+			// if we've got enough memory, and it's not a dedicated-server, then keep the loaded map binary around
+			//	for the renderer to chew on... (but not if this gets ported to a big-endian machine, because some of the
+			//	map data will have been Little-Long'd, but some hasn't).
+			//
+			if (Sys_LowPhysicalMemory()
+				|| com_dedicated->integer
+				//		|| we're on a big-endian machine
+				)
+			{
+				Z_Free(gpvCachedMapDiskImage);
+				gpvCachedMapDiskImage = NULL;
+			}
+			else
+			{
+				// ... do nothing, and let the renderer free it after it's finished playing with it...
+				//
+			}
+#else
+			FS_FreeFile(buf);
+#endif
+#else //__FREE_BSP_DATA__
+			Z_Free(gpvCachedMapDiskImage);
+			gpvCachedMapDiskImage = NULL;
+#endif //__FREE_BSP_DATA__
+		}
+	}
+#endif
 
 	CM_FloodAreaConnections (cm);
 

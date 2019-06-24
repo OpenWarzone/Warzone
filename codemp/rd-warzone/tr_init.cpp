@@ -305,6 +305,7 @@ cvar_t	*r_saveFontData;
 cvar_t	*r_perf;
 cvar_t	*r_glslOptimize;
 cvar_t	*r_lowVram;
+cvar_t	*r_useStaticVBO;
 cvar_t	*r_volumeLightHQ;
 cvar_t	*r_debugBinds;
 cvar_t	*r_debugMapInfo;
@@ -1620,6 +1621,7 @@ void R_Register( void )
 
 	r_glslOptimize = ri->Cvar_Get("r_glslOptimize", "1", CVAR_ARCHIVE | CVAR_LATCH);
 	r_lowVram = ri->Cvar_Get("r_lowVram", "0", CVAR_ARCHIVE | CVAR_LATCH);
+	r_useStaticVBO = ri->Cvar_Get("r_useStaticVBO", "1", CVAR_ARCHIVE);
 	r_volumeLightHQ = ri->Cvar_Get("r_volumeLightHQ", "0", CVAR_ARCHIVE | CVAR_LATCH);
 
 	r_debugBinds = ri->Cvar_Get("r_debugBinds", "0", CVAR_ARCHIVE);

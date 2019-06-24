@@ -581,6 +581,7 @@ extern int		max_polyverts;
 extern cvar_t	*r_perf;
 extern cvar_t	*r_glslOptimize;
 extern cvar_t	*r_lowVram;
+extern cvar_t	*r_useStaticVBO;
 extern cvar_t	*r_volumeLightHQ;
 extern cvar_t	*r_debugBinds;
 extern cvar_t	*r_debugShaderStages;
@@ -2425,6 +2426,7 @@ typedef struct {
 	int			numClusters;
 	int			clusterBytes;
 	const byte	*vis;			// may be passed in by CM_LoadMap to save space
+	byte		*novis;			// clusterBytes of 0xff (everything is visible)
 
 	char		*entityString;
 	char		*entityParsePoint;
@@ -2866,7 +2868,10 @@ typedef struct trGlobals_s {
 	qboolean				worldDeluxeMapping;
 	vec2_t                  autoExposureMinMax;
 	vec3_t                  toneMinAvgMaxLevel;
-	world_t					*world;
+
+	world_t					*world = NULL;
+	world_t					*worldSolid = NULL;
+	world_t					*worldNonSolid = NULL;
 
 	const byte				*externalVisData;	// from RE_SetWorldVisData, shared with CM_Load
 
@@ -2954,9 +2959,9 @@ typedef struct trGlobals_s {
 
 
 	image_t                 *linearDepthImage512;
-	image_t                 *linearDepthImage1024;
 	image_t                 *linearDepthImage2048;
 	image_t                 *linearDepthImage4096;
+	image_t                 *linearDepthImage8192;
 	image_t                 *linearDepthImageZfar;
 
 	image_t					*dofFocusDepthScratchImage;
@@ -3517,6 +3522,7 @@ extern cvar_t	*r_dynamicGlowSoft;
 extern cvar_t	*r_perf;
 extern cvar_t	*r_glslOptimize;
 extern cvar_t	*r_lowVram;
+extern cvar_t	*r_useStaticVBO;
 extern cvar_t	*r_volumeLightHQ;
 extern cvar_t	*r_debugBinds;
 extern cvar_t	*r_debugShaderStages;

@@ -2149,7 +2149,18 @@ R_GenerateDrawSurfs
 */
 void R_GenerateDrawSurfs( void ) 
 {
+	tr.world = tr.worldSolid;
+
 	R_AddWorldSurfaces();
+
+	if (tr.worldNonSolid)
+	{// Set extra world data pointer, and render it...
+		tr.world = tr.worldNonSolid;
+		R_AddWorldSurfaces();
+
+		// Restore the original pointer to solid world...
+		tr.world = tr.worldSolid;
+	}
 
 	if (!(tr.viewParms.flags & VPF_CUBEMAP))
 	{// UQ: Don't fx on cubemaps... or emissivemaps
@@ -3393,8 +3404,17 @@ void R_RenderSunShadowMaps(const refdef_t *fd, int level, vec4_t sunDir, float l
 				qglClearDepth(1.0f);
 			//}
 
-
+			tr.world = tr.worldSolid;
 			R_AddWorldSurfaces ();
+
+			if (tr.worldNonSolid)
+			{// Set extra world data pointer, and render it...
+				tr.world = tr.worldNonSolid;
+				R_AddWorldSurfaces();
+
+				// Restore the original pointer to solid world...
+				tr.world = tr.worldSolid;
+			}
 
 			/*extern qboolean PROCEDURAL_CLOUDS_ENABLED;
 			extern qboolean PROCEDURAL_CLOUDS_LAYER;

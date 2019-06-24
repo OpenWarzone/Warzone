@@ -1196,6 +1196,11 @@ void R_SetSunScreenPos(vec3_t sunDirection)
 ** RB_DrawSun
 */
 void RB_DrawSun( float scale, shader_t *shader ) {
+	if (tr.world != tr.worldSolid)
+	{// Only render the solid world's sky...
+		return;
+	}
+
 	float		size;
 	float		dist;
 	vec3_t		origin, vec1, vec2;
@@ -1299,6 +1304,11 @@ void RB_DrawSun( float scale, shader_t *shader ) {
 ** RB_DrawMoon
 */
 void RB_DrawMoon(float scale, shader_t *shader) {
+	if (tr.world != tr.worldSolid)
+	{// Only render the solid world's sky...
+		return;
+	}
+
 #ifdef __DAY_NIGHT__
 	float		size;
 	float		dist;
@@ -1514,6 +1524,11 @@ image_t *skyImage = NULL;
 //#define ___FORCED_SKYDOME___
 
 void RB_StageIteratorSky( void ) {
+	if (tr.world != tr.worldSolid)
+	{// Only render the solid world's sky...
+		return;
+	}
+
 #ifndef ___FORCED_SKYDOME___
 	if ( r_fastsky->integer ) {
 		return;

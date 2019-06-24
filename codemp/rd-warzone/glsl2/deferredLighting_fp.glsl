@@ -1,6 +1,10 @@
 ﻿#define __PROCEDURALS_IN_DEFERRED_SHADER__
 #define __SSDM_IN_DEFERRED_SHADER__
 
+#ifdef __SSDM_IN_DEFERRED_SHADER__
+	//#define TEST_PARALLAX2
+#endif //__SSDM_IN_DEFERRED_SHADER__
+
 
 #ifndef __LQ_MODE__
 
@@ -66,7 +70,7 @@ uniform vec4								u_Local7;	// cubemapEnabled,			r_cubemapCullRange,				PROCED
 uniform vec4								u_Local8;	// NIGHT_SCALE,				PROCEDURAL_CLOUDS_CLOUDCOVER,	PROCEDURAL_CLOUDS_CLOUDSCALE,	CLOUDS_SHADOWS_ENABLED
 
 #ifdef __PROCEDURALS_IN_DEFERRED_SHADER__
-uniform vec4								u_Local9;	// MAP_INFO_PLAYABLE_HEIGHT, PROCEDURAL_MOSS_ENABLED, PROCEDURAL_SNOW_ENABLED, 0.0
+uniform vec4								u_Local9;	// MAP_INFO_PLAYABLE_HEIGHT, PROCEDURAL_MOSS_ENABLED, PROCEDURAL_SNOW_ENABLED, PROCEDURAL_SNOW_ROCK_ONLY
 uniform vec4								u_Local10;	// PROCEDURAL_SNOW_LUMINOSITY_CURVE, PROCEDURAL_SNOW_BRIGHTNESS, PROCEDURAL_SNOW_HEIGHT_CURVE, PROCEDURAL_SNOW_LOWEST_ELEVATION
 #endif //__PROCEDURALS_IN_DEFERRED_SHADER__
 
@@ -143,6 +147,7 @@ varying float								var_CloudShadow;
 #define MAP_INFO_PLAYABLE_HEIGHT			u_Local9.r
 #define PROCEDURAL_MOSS_ENABLED				u_Local9.g
 #define PROCEDURAL_SNOW_ENABLED				u_Local9.b
+#define PROCEDURAL_SNOW_ROCK_ONLY			u_Local9.a
 
 #define PROCEDURAL_SNOW_LUMINOSITY_CURVE	u_Local10.r
 #define PROCEDURAL_SNOW_BRIGHTNESS			u_Local10.g
@@ -1171,20 +1176,61 @@ vec3 ContrastSaturationBrightness(vec3 color, float con, float sat, float brt)
 	return conColor;
 }
 
-vec3 GetScreenPixel(void)
+vec3 GetScreenPixel(inout vec2 texCoords)
 {
 #ifndef __SSDM_IN_DEFERRED_SHADER__
-	return texture(u_DiffuseMap, var_TexCoords).rgb;
-#else //__SSDM_IN_DEFERRED_SHADER__
-	vec3 dMap = texture(u_RoadMap, var_TexCoords).rgb;
-	vec3 color = texture(u_DiffuseMap, var_TexCoords).rgb;
+	return texture(u_DiffuseMap, texCoords).rgb;
+#elif defined(TEST_PARALLAX2)
+	vec3 dMap = texture(u_RoadMap, texCoords).rgb;
+	vec3 color = texture(u_DiffuseMap, texCoords).rgb;
 
 	if (dMap.r <= 0.0 || DISPLACEMENT_STRENGTH == 0.0)
 	{
 		return color;
 	}
 	
-	vec2 texCoords = var_TexCoords;
+	float invDepth = clamp((1.0 - texture(u_ScreenDepthMap, texCoords).r) /** 2.0 - 1.0*/, 0.0, 1.0);
+
+	if (invDepth <= 0.0)
+	{
+		return color;
+	}
+
+	float Ray = dMap.x;
+	vec2 Displace = dMap.yz * 2.0 - 1.0;
+
+	vec2 distFromCenter = vec2(length(texCoords.x - 0.5), length(texCoords.y - 0.5));
+	float screenEdgeScale = clamp(max(distFromCenter.x, distFromCenter.y) * 2.0, 0.0, 1.0);
+	screenEdgeScale = 1.0 - pow(screenEdgeScale, 1.5);
+	Ray *= screenEdgeScale;
+
+	texCoords = (texCoords + Displace * Ray * invDepth);
+
+	color = texture(u_DiffuseMap, texCoords).rgb;
+	
+	/*vec3 NormalMap = texture(u_NormalMap, NewUv).xyy;
+	NormalMap = DecodeNormal(NormalMap.xy);
+
+	float Normal = clamp(dot(reflect(-View, NormalMap), LightV), 0.0, 1.0);
+
+	Normal = pow(Normal, SpecularPow) + saturate(dot(NormalMap, LightV));
+
+	float PixelLight = 1.0 - clamp(dot(IN.Attenuation, IN.Attenuation), 0.0, 1.0);
+
+	vec3 Light = PixelLight * LightColor;
+
+	return vec4(color * ((Normal * Light) + Ambient), 1.0);
+	*/
+	return color;
+#else //__SSDM_IN_DEFERRED_SHADER__
+	vec3 dMap = texture(u_RoadMap, texCoords).rgb;
+	vec3 color = texture(u_DiffuseMap, texCoords).rgb;
+
+	if (dMap.r <= 0.0 || DISPLACEMENT_STRENGTH == 0.0)
+	{
+		return color;
+	}
+	
 	float invDepth = clamp((1.0 - texture(u_ScreenDepthMap, texCoords).r) * 2.0 - 1.0, 0.0, 1.0);
 
 	if (invDepth <= 0.0)
@@ -1192,7 +1238,7 @@ vec3 GetScreenPixel(void)
 		return color;
 	}
 
-	float material = texture(u_PositionMap, var_TexCoords).a - 1.0;
+	float material = texture(u_PositionMap, texCoords).a - 1.0;
 	float materialMultiplier = 1.0;
 
 	if (material == MATERIAL_ROCK || material == MATERIAL_STONE || material == MATERIAL_SKYSCRAPER)
@@ -1221,13 +1267,6 @@ vec3 GetScreenPixel(void)
 	vec3 col = vec3(0.0);
 	col = texture(u_DiffuseMap, texCoords).rgb;
 
-	//float steps = min(DISPLACEMENT_STRENGTH * materialMultiplier, 4.0);
-	//vec2 dir = (texCoords - var_TexCoords) / steps;
-	//for (float x = steps; x > 0.0; x -= 1.0)
-	//{
-	//	col += texture(u_DiffuseMap, var_TexCoords + (dir*x)).rgb;
-	//}
-	//col /= steps+1.0;
 	color = col;
 
 	float shadow = 1.0 - clamp(dMap.r * 0.5 + 0.5, 0.0, 1.0);
@@ -1240,11 +1279,12 @@ vec3 GetScreenPixel(void)
 
 void main(void)
 {
+	vec2 texCoords = var_TexCoords;
 	bool changedToWater = false;
 	vec3 originalPosition;
-	vec4 position = positionMapAtCoord(var_TexCoords, changedToWater, originalPosition);
+	vec4 position = positionMapAtCoord(texCoords, changedToWater, originalPosition);
 
-	vec4 color = vec4(GetScreenPixel(), 1.0);
+	vec4 color = vec4(GetScreenPixel(texCoords), 1.0);
 	vec4 outColor = color;
 
 	if (position.a - 1.0 >= MATERIAL_SKY
@@ -1288,7 +1328,6 @@ void main(void)
 	}
 
 
-	vec2 texCoords = var_TexCoords;
 	vec2 materialSettings = RB_PBR_DefaultsForMaterial(position.a-1.0);
 	bool isPuddle = (position.a - 1.0 == MATERIAL_PUDDLE) ? true : false;
 
@@ -1367,7 +1406,8 @@ void main(void)
 		AddProceduralMoss(outColor, position, changedToWater, originalPosition);
 	}
 
-	if (PROCEDURAL_SNOW_ENABLED > 0.0)
+	if (PROCEDURAL_SNOW_ENABLED > 0.0 
+		&& (PROCEDURAL_SNOW_ROCK_ONLY <= 0.0 || (position.a - 1.0 == MATERIAL_ROCK)))
 	{// Add any procedural snow...
 		if (position.z >= PROCEDURAL_SNOW_LOWEST_ELEVATION)
 		{
@@ -1378,7 +1418,8 @@ void main(void)
 				float elevationRange = MAP_INFO_PLAYABLE_HEIGHT - PROCEDURAL_SNOW_LOWEST_ELEVATION;
 				float pixelElevation = position.z - PROCEDURAL_SNOW_LOWEST_ELEVATION;
 			
-				snowHeightFactor = clamp(pow(clamp(pixelElevation / elevationRange, 0.0, 1.0) * 4.0, 2.0), 0.0, 1.0);
+				snowHeightFactor = clamp(pixelElevation / elevationRange, 0.0, 1.0);
+				snowHeightFactor = clamp(pow(snowHeightFactor, PROCEDURAL_SNOW_HEIGHT_CURVE), 0.0, 1.0);
 			}
 
 			float snow = clamp(dot(normalize(bump.xyz), vec3(0.0, 0.0, 1.0)), 0.0, 1.0);
@@ -1393,8 +1434,9 @@ void main(void)
 			if (snow > 0.0)
 			{
 				vec3 snowColor = vec3(PROCEDURAL_SNOW_BRIGHTNESS);
-				float snowColorFactor = clamp(pow(max(outColor.r, max(outColor.g, outColor.b)), PROCEDURAL_SNOW_LUMINOSITY_CURVE), 0.0, 1.0);
-				float snowMix = clamp(mix(snow*snowColorFactor, 1.0, snowHeightFactor * PROCEDURAL_SNOW_HEIGHT_CURVE), 0.0, 1.0);
+				float snowColorFactor = max(outColor.r, max(outColor.g, outColor.b));
+				snowColorFactor = clamp(pow(snowColorFactor, PROCEDURAL_SNOW_LUMINOSITY_CURVE), 0.0, 1.0);
+				float snowMix = clamp(snow*snowColorFactor, 0.0, 1.0);
 				outColor.rgb = splatblend(outColor.rgb, 1.0 - snowMix, snowColor, snowMix);
 			}
 		}

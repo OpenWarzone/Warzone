@@ -2382,7 +2382,7 @@ void RB_DofFocusDepth(void)
 	GLSL_BindProgram(&tr.dofFocusDepthShader);
 
 	GLSL_SetUniformInt(&tr.dofFocusDepthShader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
-	GL_BindToTMU(tr.linearDepthImage4096, TB_LIGHTMAP);
+	GL_BindToTMU(/*tr.linearDepthImage4096*/tr.linearDepthImage8192, TB_LIGHTMAP);
 
 	GLSL_SetUniformMatrix16(&tr.dofFocusDepthShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
 
@@ -2418,23 +2418,12 @@ void RB_DOF(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox, int di
 	float zfar = 4096;
 
 	GLSL_SetUniformInt(shader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
-	GL_BindToTMU(tr.linearDepthImage4096, TB_LIGHTMAP);
+	GL_BindToTMU(/*tr.linearDepthImage4096*/tr.linearDepthImage8192, TB_LIGHTMAP);
 	
 	GLSL_SetUniformInt(shader, UNIFORM_GLOWMAP, TB_GLOWMAP);
 	//GL_BindToTMU(tr.glowFboScaled[0]->colorImage[0], TB_GLOWMAP);
 	// Use the most blurred version of glow...
-	if (r_anamorphic->integer)
-	{
-		GL_BindToTMU(tr.anamorphicRenderFBOImage, TB_GLOWMAP);
-	}
-	else if (r_bloom->integer)
-	{
-		GL_BindToTMU(tr.bloomRenderFBOImage[0], TB_GLOWMAP);
-	}
-	else
-	{
-		GL_BindToTMU(tr.glowFboScaled[0]->colorImage[0], TB_GLOWMAP);
-	}
+	GL_BindToTMU(tr.glowFboScaled[0]->colorImage[0], TB_GLOWMAP);
 
 	GLSL_SetUniformInt(shader, UNIFORM_SPECULARMAP, TB_SPECULARMAP);
 	GL_BindToTMU(tr.dofFocusDepthImage, TB_SPECULARMAP);
@@ -2513,6 +2502,7 @@ extern vec3_t		MAP_INFO_PLAYABLE_MAXS;
 extern qboolean		PROCEDURAL_SKY_ENABLED;
 extern qboolean		PROCEDURAL_MOSS_ENABLED;
 extern qboolean		PROCEDURAL_SNOW_ENABLED;
+extern qboolean		PROCEDURAL_SNOW_ROCK_ONLY;
 extern float		PROCEDURAL_SNOW_HEIGHT_CURVE;
 extern float		PROCEDURAL_SNOW_LUMINOSITY_CURVE;
 extern float		PROCEDURAL_SNOW_BRIGHTNESS;
@@ -2835,11 +2825,11 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 
 #ifdef __PROCEDURALS_IN_DEFERRED_SHADER__
 	vec4_t local9;
-	VectorSet4(local9, MAP_INFO_PLAYABLE_MAXS[2], PROCEDURAL_MOSS_ENABLED ? 1.0 : 0.0, PROCEDURAL_SNOW_ENABLED ? 1.0 : 0.0, 0.0);
+	VectorSet4(local9, MAP_INFO_PLAYABLE_MAXS[2], PROCEDURAL_MOSS_ENABLED ? 1.0 : 0.0, PROCEDURAL_SNOW_ENABLED ? 1.0 : 0.0, PROCEDURAL_SNOW_ROCK_ONLY ? 1.0 : 0.0);
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL9, local9);
 
 	vec4_t local10;
-	VectorSet4(local10, PROCEDURAL_SNOW_LUMINOSITY_CURVE, PROCEDURAL_SNOW_BRIGHTNESS, PROCEDURAL_SNOW_HEIGHT_CURVE * 0.1, PROCEDURAL_SNOW_LOWEST_ELEVATION);
+	VectorSet4(local10, PROCEDURAL_SNOW_LUMINOSITY_CURVE, PROCEDURAL_SNOW_BRIGHTNESS, PROCEDURAL_SNOW_HEIGHT_CURVE, PROCEDURAL_SNOW_LOWEST_ELEVATION);
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL10, local10);
 #endif //__PROCEDURALS_IN_DEFERRED_SHADER__
 
@@ -2850,7 +2840,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 	GL_BindToTMU(tr.ssdmImage, TB_ROADMAP);
 
 	GLSL_SetUniformInt(shader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
-	GL_BindToTMU(tr.linearDepthImage512, TB_LIGHTMAP);
+	GL_BindToTMU(tr.linearDepthImage512/*tr.linearDepthImage4096*/, TB_LIGHTMAP);
 
 	vec4_t local11;
 	VectorSet4(local11, (ENABLE_DISPLACEMENT_MAPPING && r_ssdm->integer) ? DISPLACEMENT_MAPPING_STRENGTH : 0.0, 0.0, 0.0, 0.0);
@@ -2960,7 +2950,7 @@ void RB_SSDM_Generate(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrB
 	GL_BindToTMU(hdrFbo->colorImage[0], TB_DIFFUSEMAP);
 
 	GLSL_SetUniformInt(shader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
-	GL_BindToTMU(tr.linearDepthImage512, TB_LIGHTMAP);
+	GL_BindToTMU(tr.linearDepthImage512/*tr.linearDepthImage4096*/, TB_LIGHTMAP);
 
 	GLSL_SetUniformInt(shader, UNIFORM_POSITIONMAP, TB_POSITIONMAP);
 	GL_BindToTMU(tr.renderPositionMapImage, TB_POSITIONMAP);

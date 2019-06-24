@@ -2670,7 +2670,7 @@ const void	*RB_DrawSurfs( const void *data ) {
 	backEnd.viewParms = cmd->viewParms;
 
 	// clear the z buffer, set the modelview, etc
-	RB_BeginDrawingView ();
+	RB_BeginDrawingView();
 
 	if (backEnd.viewParms.flags & VPF_DEPTHCLAMP)
 	{
@@ -2678,7 +2678,8 @@ const void	*RB_DrawSurfs( const void *data ) {
 	}
 
 	if (!(backEnd.refdef.rdflags & RDF_NOWORLDMODEL) 
-		&& ((r_depthPrepass->integer && !DISABLE_DEPTH_PREPASS) || backEnd.viewParms.flags & VPF_DEPTHSHADOW))
+		&& ((r_depthPrepass->integer && !DISABLE_DEPTH_PREPASS) || backEnd.viewParms.flags & VPF_DEPTHSHADOW)
+		/*&& tr.world == tr.worldSolid*/)
 	{
 		//FBO_t *oldFbo = glState.currentFBO;
 
@@ -2696,6 +2697,7 @@ const void	*RB_DrawSurfs( const void *data ) {
 			FBO_Bind(tr.renderDepthFbo);
 			FBO_SWITCHED = qtrue;
 		}
+
 		qglColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 		RB_RenderDrawSurfList( cmd->drawSurfs, cmd->numDrawSurfs, qfalse );
 		qglColorMask(!backEnd.colorMask[0], !backEnd.colorMask[1], !backEnd.colorMask[2], !backEnd.colorMask[3]);

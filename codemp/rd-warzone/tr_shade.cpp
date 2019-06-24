@@ -3146,12 +3146,43 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					DYNAMIC_WEATHER_PUDDLE_STRENGTH);
 				GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS4, vec);
 
-				VectorSet4(vec,
-					(backEnd.currentEntity == &tr.worldEntity && MAP_COLOR_SWITCH_RG) ? 1.0 : 0.0,
-					(backEnd.currentEntity == &tr.worldEntity && MAP_COLOR_SWITCH_RB) ? 1.0 : 0.0,
-					(backEnd.currentEntity == &tr.worldEntity && MAP_COLOR_SWITCH_GB) ? 1.0 : 0.0,
-					(ENABLE_CHRISTMAS_EFFECT && tess.shader->materialType == MATERIAL_GREENLEAVES) ? 1.0 : 0.0);
-				GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS5, vec);
+				
+				//
+				// lightAllSplat shaders need splatmap scales and not christmas light info.
+				//
+				extern float		STANDARD_SPLATMAP_SCALE;
+				extern float		ROCK_SPLATMAP_SCALE;
+
+#ifdef __USE_REGIONS__
+				if (index & LIGHTDEF_USE_REGIONS)
+				{
+					VectorSet4(vec,
+						(backEnd.currentEntity == &tr.worldEntity && MAP_COLOR_SWITCH_RG) ? 1.0 : 0.0,
+						(backEnd.currentEntity == &tr.worldEntity && MAP_COLOR_SWITCH_RB) ? 1.0 : 0.0,
+						(backEnd.currentEntity == &tr.worldEntity && MAP_COLOR_SWITCH_GB) ? 1.0 : 0.0,
+						ROCK_SPLATMAP_SCALE);
+					GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS5, vec);
+				}
+				else
+#endif //__USE_REGIONS__
+				if (index & LIGHTDEF_USE_TRIPLANAR)
+				{
+					VectorSet4(vec,
+						(backEnd.currentEntity == &tr.worldEntity && MAP_COLOR_SWITCH_RG) ? 1.0 : 0.0,
+						(backEnd.currentEntity == &tr.worldEntity && MAP_COLOR_SWITCH_RB) ? 1.0 : 0.0,
+						(backEnd.currentEntity == &tr.worldEntity && MAP_COLOR_SWITCH_GB) ? 1.0 : 0.0,
+						STANDARD_SPLATMAP_SCALE);
+					GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS5, vec);
+				}
+				else
+				{
+					VectorSet4(vec,
+						(backEnd.currentEntity == &tr.worldEntity && MAP_COLOR_SWITCH_RG) ? 1.0 : 0.0,
+						(backEnd.currentEntity == &tr.worldEntity && MAP_COLOR_SWITCH_RB) ? 1.0 : 0.0,
+						(backEnd.currentEntity == &tr.worldEntity && MAP_COLOR_SWITCH_GB) ? 1.0 : 0.0,
+						(ENABLE_CHRISTMAS_EFFECT && tess.shader->materialType == MATERIAL_GREENLEAVES) ? 1.0 : 0.0);
+					GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS5, vec);
+				}
 
 				GLSL_SetUniformFloat(sp, UNIFORM_ZFAR, r_occlusion->integer ? tr.occlusionZfar : backEnd.viewParms.zFar);
 			}

@@ -5,7 +5,6 @@
 #define __USE_REGIONS__
 
 
-#define SNOW_HEIGHT_STRENGTH		0.25 // Distance above water to start snow...
 #define SCREEN_MAPS_ALPHA_THRESHOLD 0.666
 #define SCREEN_MAPS_LEAFS_THRESHOLD 0.0
 
@@ -38,7 +37,7 @@ uniform vec4						u_Settings1; // useVertexAnim, useSkeletalAnim, blendMethod, i
 uniform vec4						u_Settings2; // LIGHTDEF_USE_LIGHTMAP, LIGHTDEF_USE_GLOW_BUFFER, LIGHTDEF_USE_CUBEMAP, LIGHTDEF_USE_TRIPLANAR
 uniform vec4						u_Settings3; // LIGHTDEF_USE_REGIONS, LIGHTDEF_IS_DETAIL, 0=DetailMapNormal 1=detailMapFromTC 2=detailMapFromWorld, USE_GLOW_BLEND_MODE
 uniform vec4						u_Settings4; // MAP_LIGHTMAP_MULTIPLIER, MAP_LIGHTMAP_ENHANCEMENT, 0.0, PUDDLE_STRENGTH
-uniform vec4						u_Settings5; // MAP_COLOR_SWITCH_RG, MAP_COLOR_SWITCH_RB, MAP_COLOR_SWITCH_GB, 0.0
+uniform vec4						u_Settings5; // MAP_COLOR_SWITCH_RG, MAP_COLOR_SWITCH_RB, MAP_COLOR_SWITCH_GB, SPLATMAP_SCALE
 
 #define USE_TC						u_Settings0.r
 #define USE_DEFORM					u_Settings0.g
@@ -67,6 +66,7 @@ uniform vec4						u_Settings5; // MAP_COLOR_SWITCH_RG, MAP_COLOR_SWITCH_RB, MAP_
 #define MAP_COLOR_SWITCH_RG			u_Settings5.r
 #define MAP_COLOR_SWITCH_RB			u_Settings5.g
 #define MAP_COLOR_SWITCH_GB			u_Settings5.b
+#define SPLATMAP_SCALE				u_Settings5.a
 
 uniform vec4						u_Local1; // MAP_SIZE, sway, overlaySway, materialType
 uniform vec4						u_Local2; // hasSteepMap, hasWaterEdgeMap, haveNormalMap, SHADER_WATER_LEVEL
@@ -553,14 +553,7 @@ vec4 GetSplatMap(vec2 texCoords, vec4 inColor, inout float depth)
 
 	vec4 control = GetControlMap();
 
-	float scale = 0.01;
-
-#ifdef __USE_REGIONS__
-	if (USE_REGIONS > 0.0)
-	{
-		scale = 0.0025;
-	}
-#endif //__USE_REGIONS__
+	float scale = SPLATMAP_SCALE;
 
 	if (SHADER_HAS_SPLATMAP1 > 0.0 && control.r > 0.0)
 	{
@@ -649,14 +642,7 @@ vec4 GetDiffuse2(vec2 texCoords, out float a1)
 			return vec4(control.rgb, 1.0);
 		}
 
-		float scale = 0.0075;
-
-#ifdef __USE_REGIONS__
-		if (USE_REGIONS > 0.0)
-		{
-			scale = 0.0025;
-		}
-#endif //__USE_REGIONS__
+		float scale = SPLATMAP_SCALE;
 
 #ifdef __USE_REGIONS__
 		if (USE_REGIONS > 0.0 && (SHADER_HAS_SPLATMAP1 > 0 || SHADER_HAS_SPLATMAP2 > 0 || SHADER_HAS_SPLATMAP3 > 0 || SHADER_HAS_SPLATMAP4 > 0))
@@ -714,7 +700,7 @@ vec4 GetDiffuse(vec2 texCoords)
 	if (USE_REGIONS > 0.0 || USE_TRIPLANAR > 0.0)
 	{
 		if (SHADER_HAS_STEEPMAP > 0.0 && var_Slope > 0)
-		{// Do full slope blending...
+		{// Do full slope blending... or inverted slope blending on regions.
 			float a1 = -1.0;
 			vec4 steep = GetMap(u_SteepMap, 0.0025, a1);
 			diffuse.rgb = mix(diffuse.rgb, steep.rgb, var_Slope * steep.a);

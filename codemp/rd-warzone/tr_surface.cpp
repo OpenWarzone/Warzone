@@ -76,18 +76,24 @@ void RB_CheckVBOandIBO(VBO_t *vbo, IBO_t *ibo)
 		RB_EndSurface();
 		RB_BeginSurface(tess.shader, tess.fogNum, tess.cubemapIndex );
 
-		R_BindVBO(vbo);
-		R_BindIBO(ibo);
+		if (vbo != glState.currentVBO) R_BindVBO(vbo);
+		if (ibo != glState.currentIBO) R_BindIBO(ibo);
 
 		glState.vertexAnimation = qfalse;
 	}
 
 	if (vbo != tess.vbo && ibo != tess.ibo)
+	{
 		tess.useInternalVBO = qfalse;
+	}
 	else if (vbo->vboUsage == GL_STATIC_DRAW && ibo->iboUsage == GL_STATIC_DRAW)
+	{
 		tess.useInternalVBO = qtrue;
+	}
 	else
+	{
 		tess.useInternalVBO = qfalse;
+	}
 }
 
 uint32_t R_TessXYZtoPackedNormals(vec3_t xyz)
@@ -724,15 +730,6 @@ static qboolean RB_SurfaceVbo(VBO_t *vbo, IBO_t *ibo, int numVerts, int numIndex
 		}
 	}
 #endif //__MERGE_DEPTHPASS_DRAWS__
-
-	/*if (shaderCheck && previousVBOShader != tess.shader || previousCubemapIndex != tess.cubemapIndex)
-	{// Changed shader, so we need to finish this daw and start a new one...
-		RB_EndSurface();
-		RB_BeginSurface(tess.shader, tess.fogNum, tess.cubemapIndex);
-	}
-
-	previousVBOShader = tess.shader;
-	previousCubemapIndex = tess.cubemapIndex;*/
 
 	RB_CheckVBOandIBO(vbo, ibo);
 

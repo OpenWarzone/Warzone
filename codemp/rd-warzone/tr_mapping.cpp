@@ -19,7 +19,7 @@ extern const char *materialNames[MATERIAL_LAST];
 
 extern char currentMapName[128];
 
-extern	world_t		s_worldData;
+extern	world_t		*s_worldData;
 
 extern image_t	*R_FindImageFile(const char *name, imgType_t type, int flags);
 
@@ -56,7 +56,7 @@ void R_SetupMapInfo(void)
 	VectorSet(MAP_INFO_PLAYABLE_MINS, 128000, 128000, 128000);
 	VectorSet(MAP_INFO_PLAYABLE_MAXS, -128000, -128000, -128000);
 
-	w = &s_worldData;
+	w = tr.worldSolid;
 
 	// Find the map min/maxs...
 	for (i = 0; i < w->numsurfaces; i++)
@@ -1391,6 +1391,8 @@ qboolean	ENABLE_DISPLACEMENT_MAPPING = qfalse;
 float		DISPLACEMENT_MAPPING_STRENGTH = 18.0;
 qboolean	MAP_REFLECTION_ENABLED = qfalse;
 qboolean	ENABLE_CHRISTMAS_EFFECT = qfalse;
+float		STANDARD_SPLATMAP_SCALE = 0.0075;// 0.01;
+float		ROCK_SPLATMAP_SCALE = 0.0025;
 qboolean	TERRAIN_TESSELLATION_ENABLED = qtrue;
 float		TERRAIN_TESSELLATION_LEVEL = 11.0;
 float		TERRAIN_TESSELLATION_OFFSET = 16.0;
@@ -1433,6 +1435,7 @@ float		PROCEDURAL_CLOUDS_CLOUDALPHA = 2.0;
 float		PROCEDURAL_CLOUDS_SKYTINT = 0.5;
 qboolean	PROCEDURAL_MOSS_ENABLED = qfalse;
 qboolean	PROCEDURAL_SNOW_ENABLED = qfalse;
+qboolean	PROCEDURAL_SNOW_ROCK_ONLY = qfalse;
 float		PROCEDURAL_SNOW_LOWEST_ELEVATION = -999999.9;
 float		PROCEDURAL_SNOW_HEIGHT_CURVE = 1.0;
 float		PROCEDURAL_SNOW_LUMINOSITY_CURVE = 0.35;
@@ -1638,6 +1641,12 @@ void MAPPING_LoadMapInfo(void)
 	ENABLE_CHRISTMAS_EFFECT = (atoi(IniRead(mapname, "EFFECTS", "ENABLE_CHRISTMAS_EFFECT", "0")) > 0) ? qtrue : qfalse;
 
 	//
+	// Splat Maps...
+	//
+	STANDARD_SPLATMAP_SCALE = atof(IniRead(mapname, "SPLATMAPS", "STANDARD_SPLATMAP_SCALE", "0.0075")); // 0.01
+	ROCK_SPLATMAP_SCALE = atof(IniRead(mapname, "SPLATMAPS", "ROCK_SPLATMAP_SCALE", "0.0025"));
+
+	//
 	// Tessellation...
 	//
 	TERRAIN_TESSELLATION_ENABLED = (atoi(IniRead(mapname, "TESSELLATION", "TERRAIN_TESSELLATION_ENABLED", "1")) > 0) ? qtrue : qfalse;
@@ -1781,6 +1790,7 @@ void MAPPING_LoadMapInfo(void)
 	// Procedural Snow...
 	//
 	PROCEDURAL_SNOW_ENABLED = (atoi(IniRead(mapname, "SNOW", "PROCEDURAL_SNOW_ENABLED", "0")) > 0) ? qtrue : qfalse;
+	PROCEDURAL_SNOW_ROCK_ONLY = (atoi(IniRead(mapname, "SNOW", "PROCEDURAL_SNOW_ROCK_ONLY", "0")) > 0) ? qtrue : qfalse;
 	PROCEDURAL_SNOW_HEIGHT_CURVE = atof(IniRead(mapname, "SNOW", "PROCEDURAL_SNOW_HEIGHT_CURVE", "1.0"));
 	PROCEDURAL_SNOW_LUMINOSITY_CURVE = atof(IniRead(mapname, "SNOW", "PROCEDURAL_SNOW_LUMINOSITY_CURVE", "0.35"));
 	PROCEDURAL_SNOW_BRIGHTNESS = atof(IniRead(mapname, "SNOW", "PROCEDURAL_SNOW_BRIGHTNESS", "0.5"));
@@ -2699,7 +2709,7 @@ void R_LoadMapInfo(void)
 		tr.defaultSplatControlImage = R_FindImageFile("gfx/splatControlImage.tga", IMGTYPE_SPLATCONTROLMAP, IMGFLAG_NOLIGHTSCALE);
 	}
 #else
-	tr.defaultSplatControlImage = tr.random2KImage[1];
+	tr.defaultSplatControlImage = R_FindImageFile("gfx/defaultSplatControl.jpg", IMGTYPE_SPLATCONTROLMAP, IMGFLAG_NOLIGHTSCALE);// tr.random2KImage[1];
 #endif
 
 	if (r_colorCorrection->integer)

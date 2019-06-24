@@ -162,6 +162,11 @@ cvar_t *com_debugMemory = NULL;
 #include "StackWalker/StackWalker.h"
 #endif //__DEBUG_ZALLOC__
 
+int Z_GetRealSize(int iSize)
+{
+	return (iSize + sizeof(zoneHeader_t) + sizeof(zoneTail_t));
+}
+
 void *Z_Malloc(int iSize, memtag_t eTag, qboolean bZeroit /* = qfalse */, int iUnusedAlign /* = 4 */)
 {
 #ifdef __DEBUG_ZALLOC__

@@ -1389,6 +1389,9 @@ void RE_RenderScene(const refdef_t *fd) {
 		return;
 	}
 
+	// Set main world data pointer...
+	tr.world = tr.worldSolid;
+
 #ifdef __PERFORMANCE_DEBUG_STARTUP__
 	DEBUG_StartTimer("RE_RenderScene", qtrue);
 #endif //__PERFORMANCE_DEBUG_STARTUP__
@@ -1456,8 +1459,6 @@ void RE_RenderScene(const refdef_t *fd) {
 		vec3_t lightOrigin;
 		VectorCopy(fd->vieworg, lightOrigin);
 
-#ifdef __INDOOR_SHADOWS__
-#if 1
 		if (!backEnd.viewIsOutdoors)
 		{
 			lightDir[0] = 0.0;
@@ -1477,84 +1478,6 @@ void RE_RenderScene(const refdef_t *fd) {
 		{
 			VectorCopy4(tr.refdef.sunDir, lightDir);
 		}
-#else
-		vec3_t pos;
-		VectorCopy(tr.refdef.vieworg, pos);
-		pos[2] += 48;
-		RE_FindRoof(pos);
-		// TRACE_ROOF now contains the location of the roof above us... TRACE_HIT_SKY is if it was sky or not...
-
-		float ROOF_HEIGHT = TRACE_ROOF[2] - pos[2];
-
-		if (TRACE_HIT_SKY || ROOF_HEIGHT < 256.0)
-		{// This light isn't high enough above us, or we hit sky...
-			VectorCopy4(tr.refdef.sunDir, lightDir);
-			//ri->Printf(PRINT_ALL, "Hit sky.\n");
-		}
-		else
-		{// Use the closest light to roof above us...
-			int		best = -1;
-			float	bestDist = 999999;
-
-			for (int l = 0; l < CLOSE_TOTAL; l++)
-			{
-				float thisHeight = CLOSE_POS[l][2] - pos[2];
-
-				if (/*thisHeight < 256.0 ||*/ ROOF_HEIGHT < thisHeight)
-				{// This light is either too close, or above our current roof height...
-					continue;
-				}
-				
-				float dist = DistanceHorizontal(TRACE_ROOF, CLOSE_POS[l]);
-
-				if (dist < bestDist)
-				{
-					best = l;
-					dist = bestDist;
-				}
-			}
-
-			if (best == -1)
-			{// Use sun...
-				VectorCopy4(tr.refdef.sunDir, lightDir);
-				//ri->Printf(PRINT_ALL, "No glow lights. %i total glow lights.\n", CLOSE_TOTAL);
-			}
-			else
-			{
-				vec3_t lightDir2;
-
-				//if (r_testvalue0->integer < 1)
-				//if (r_testvalue0->integer < 1) // UQ1: ancient debug cvar left in, think this one is right...
-					VectorSubtract(CLOSE_POS[best], tr.refdef.vieworg, lightDir2);
-				//else
-				//	VectorSubtract(tr.refdef.vieworg, CLOSE_POS[best], lightDir2);
-
-				VectorNormalize(lightDir2);
-
-				VectorCopy(lightDir2, lightDir);
-
-				lightDir[3] = 0.0f;
-
-				lightDir[0] = 0.0;
-				lightDir[1] = 0.0;
-				//if (r_testvalue0->integer < 1) // UQ1: ancient debug cvar left in, think this one is right...
-					lightDir[2] = 1.0;
-				//else
-				//	lightDir[2] = -1.0;
-
-				lightHeight = CLOSE_POS[best][2] - tr.refdef.vieworg[2];
-				
-				VectorCopy(CLOSE_POS[best], lightOrigin);
-				lightOrigin[2] -= 48.0;
-				lightHeight -= 48.0;
-
-				ri->Printf(PRINT_ALL, "Used glow light at %f %f %f. %i total glow lights.\n", CLOSE_POS[best][0], CLOSE_POS[best][1], CLOSE_POS[best][2], CLOSE_TOTAL);
-			}
-		}
-#endif
-#else //__INDOOR_SHADOWS__
-		VectorCopy4(tr.refdef.sunDir, lightDir);
-#endif //__INDOOR_SHADOWS__
 
 		int nowTime = ri->Milliseconds();
 
@@ -1663,6 +1586,8 @@ void RE_RenderScene(const refdef_t *fd) {
 	parms.maxEntityRange = 512000;
 
 	CLOSE_LIGHTS_UPDATE = qtrue;
+
+	// Render the sold world...
 	R_RenderView( &parms );
 
 	if (!tr.world

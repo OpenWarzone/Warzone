@@ -1111,8 +1111,14 @@ R_ClusterPVS
 ==============
 */
 static const byte *R_ClusterPVS(int cluster) {
+	if (r_novis->integer)
+	{
+		return tr.world->novis;
+	}
+
 	if (!tr.world->vis || cluster < 0 || cluster >= tr.world->numClusters) {
-		return NULL;
+		//return NULL;
+		return tr.world->novis;
 	}
 
 	return tr.world->vis + cluster * tr.world->clusterBytes;
@@ -1124,6 +1130,11 @@ R_inPVS
 =================
 */
 qboolean R_inPVS(const vec3_t p1, const vec3_t p2, byte *mask) {
+	if (r_novis->integer)
+	{
+		return qtrue;
+	}
+
 	int		cluster;
 
 	mnode_t *leaf = R_PointInLeaf(p1);
@@ -1135,7 +1146,8 @@ qboolean R_inPVS(const vec3_t p1, const vec3_t p2, byte *mask) {
 	leaf = R_PointInLeaf(p2);
 	cluster = leaf->cluster;
 
-	if (mask && (!(mask[cluster >> 3] & (1 << (cluster & 7)))))
+	//if (mask && (!(mask[cluster >> 3] & (1 << (cluster & 7)))))
+	if (!(mask[cluster >> 3] & (1 << (cluster & 7))))
 		return qfalse;
 
 	return qtrue;
@@ -1211,7 +1223,8 @@ static void R_MarkLeaves(void) {
 		}
 
 		// check for door connection
-		if ((tr.refdef.areamask[leaf->area >> 3] & (1 << (leaf->area & 7)))) {
+		//if ((tr.refdef.areamask[leaf->area >> 3] & (1 << (leaf->area & 7)))) {
+		if (!(vis[cluster >> 3] & (1 << (cluster & 7)))) {
 			continue;		// not visible
 		}
 
@@ -1771,6 +1784,11 @@ void R_AddWorldSurfaces(void) {
 				}
 			}
 #endif
+
+			if ((tr.world->surfaces + i)->shader->isSky && tr.world != tr.worldSolid)
+			{// Skip sky when drawing the transparancy world...
+				continue;
+			}
 
 			if (!(tr.world->surfaces + i)->isMerged)
 			{
