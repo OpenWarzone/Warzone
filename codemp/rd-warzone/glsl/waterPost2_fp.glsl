@@ -306,7 +306,7 @@ vec3 Vibrancy ( vec3 origcolor, float vibrancyStrength )
 	return mix(vec3(luma), origcolor.rgb, (1.0 + (vibrancyStrength * (1.0 - (sign(vibrancyStrength) * color_saturation))))); 	//Extrapolate between luma and original by 1 + (1-saturation) - current
 }
 
-vec3 AddReflection(vec2 coord, vec3 positionMap, vec3 surfacePoint, vec3 inColor, float height)
+vec3 AddReflection(vec2 coord, vec3 positionMap, vec3 surfacePoint, vec3 inColor, float height, float dt)
 {
 	/*if (positionMap.y > surfacePoint.y)
 	{
@@ -320,7 +320,7 @@ vec3 AddReflection(vec2 coord, vec3 positionMap, vec3 surfacePoint, vec3 inColor
 	}
 
 	// Offset the final pixel based on the height of the wave at that point, to create randomization...
-	float hoff = height * 2.0 - 1.0;
+	float hoff = height * 4.0 - 2.0;//* 2.0 - 1.0;
 	float offset = hoff * (0.3 * waveHeight * pw);
 
 	vec2 finalPosition = clamp(vec2(coord.x + offset, coord.y), 0.0, 1.0);
@@ -353,7 +353,7 @@ vec3 AddReflection(vec2 coord, vec3 positionMap, vec3 surfacePoint, vec3 inColor
 
 	landColor.rgb = Vibrancy( landColor.rgb, 1.25 );
 
-	return mix(inColor.rgb, landColor.rgb, vec3(landColor.a * u_Local1.a));
+	return mix(inColor.rgb, landColor.rgb, vec3(landColor.a * u_Local1.a * dt));
 }
 #endif //defined(USE_REFLECTION) && !defined(__LQ_MODE__)
 
@@ -364,7 +364,7 @@ const float PI	 	= 3.14159265358;
 
 // Can you explain these epsilons to a wide graphics audience?  YOUR comment could go here.
 const float EPSILON	= 1e-3;
-#define  EPSILON_NRM	(0.5 / u_Dimensions.x)
+#define  EPSILON_NRM	(4.0/*0.5*/ / u_Dimensions.x)
 
 // Constant indicaing the number of steps taken while marching the light ray.  
 const int NUM_STEPS = 6;
@@ -964,9 +964,11 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
 
 
 #if defined(USE_REFLECTION) && !defined(__LQ_MODE__)
-	if (!pixelIsUnderWater && u_Local1.g >= 2.0)
+	float dt = pow(clamp(dot(reflect(-dir, n), -dir), 0.0, 1.0), 4.0);
+
+	if (!pixelIsUnderWater && u_Local1.g >= 2.0 && dt > 0.0)
 	{
-		fragColor.rgb = AddReflection(var_TexCoords, finalPos, waterMap.xyz, fragColor.rgb, height);
+		fragColor.rgb = AddReflection(var_TexCoords, finalPos, waterMap.xyz, fragColor.rgb, height, dt);
 	}
 #endif //defined(USE_REFLECTION) && !defined(__LQ_MODE__)
 
