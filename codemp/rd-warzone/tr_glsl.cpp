@@ -556,30 +556,6 @@ const char fallbackShader_genericTessControl_cp[] =
 "    gl_TessLevelInner[1] = gl_TessLevelOuter[2];\n"\
 "	}\n"\
 "\n"\
-"#if defined(USE_ICR_CULLING)\n"\
-"	//face center------------------------\n"\
-"	vec3 Vert1 = WorldPos_ES_in[0].xyz;\n"\
-"	vec3 Vert2 = WorldPos_ES_in[1].xyz;\n"\
-"	vec3 Vert3 = WorldPos_ES_in[2].xyz;\n"\
-"\n"\
-"	vec3 Pos = (Vert1+Vert2+Vert3) / 3.0;   //Center of the triangle - copy for later\n"\
-"\n"\
-"	// Do some ICR culling on the base surfaces... Save us looping through extra surfaces...\n"\
-"	vec3 maxs;\n"\
-"	maxs = max(WorldPos_ES_in[0].xyz - Pos, WorldPos_ES_in[1].xyz - Pos);\n"\
-"	maxs = max(maxs, WorldPos_ES_in[2].xyz - Pos);\n"\
-"\n"\
-"	if (InstanceCloudReductionCulling(vec4(Pos, 0.0), maxs*2.0))\n"\
-"	{\n"\
-"		gl_TessLevelOuter[0] = 0.0;\n"\
-"		gl_TessLevelOuter[1] = 0.0;\n"\
-"		gl_TessLevelOuter[2] = 0.0;\n"\
-"		gl_TessLevelInner[0] = 0.0;\n"\
-"		gl_TessLevelInner[1] = 0.0;\n"\
-"		return;\n"\
-"	}\n"\
-"#endif\n"\
-"\n"\
 "	if (distance(gEyeWorldPos, WorldPos_ES_in[0].xyz) > 16384.0)\n"\
 "	{// Let's simply not tessellate anything this far away...\n"\
 "		gl_TessLevelOuter[0] = 1.0;\n"\
@@ -616,6 +592,7 @@ const char fallbackShader_genericTessControl_ep[] =
 "out float Slope_GS_in;\n"\
 "out float usingSteepMap_GS_in;\n"\
 "//out float tessScale_GS_in;\n"\
+"out float TessDepth_FS_in;\n"\
 "\n"\
 "uniform vec4				u_Local9; // testvalue0, 1, 2, 3\n"\
 "\n"\
@@ -633,6 +610,7 @@ const char fallbackShader_genericTessControl_ep[] =
 "	usingSteepMap_GS_in = (gl_TessCoord.x * usingSteepMap_ES_in[0] + gl_TessCoord.y * usingSteepMap_ES_in[1] + gl_TessCoord.z * usingSteepMap_ES_in[2]);\n"\
 "//	tessScale_GS_in = (gl_TessCoord.x * tessScale_ES_in[0] + gl_TessCoord.y * tessScale_ES_in[1] + gl_TessCoord.z * tessScale_ES_in[2]);\n"\
 "//	WorldPos_GS_in.z += u_Local9.r/*16.0*/;\n"\
+"	TessDepth_FS_in = 0.0;"
 "}\n";
 
 const char fallbackShader_genericGeometry[] =

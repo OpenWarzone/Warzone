@@ -111,7 +111,7 @@ uniform float						u_zFar;
 #define SHADER_GLOW_VIBRANCY		u_Local4.a
 
 
-#if defined(USE_TESSELLATION) || defined(USE_ICR_CULLING)
+#if defined(USE_TESSELLATION)
 
 in precise vec3				Normal_FS_in;
 in precise vec2				TexCoord_FS_in;
@@ -144,7 +144,7 @@ in float					TessDepth_FS_in;
 #define m_TessDepth			TessDepth_FS_in
 
 
-#else //!defined(USE_TESSELLATION) && !defined(USE_ICR_CULLING)
+#else //!defined(USE_TESSELLATION)
 
 varying vec2				var_TexCoords;
 varying vec2				var_TexCoords2;
@@ -170,7 +170,7 @@ varying float				var_Slope;
 
 #define m_TessDepth			0.0
 
-#endif //defined(USE_TESSELLATION) || defined(USE_ICR_CULLING)
+#endif //defined(USE_TESSELLATION)
 
 
 

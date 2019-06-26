@@ -107,7 +107,7 @@ uniform float						u_zFar;
 #define SHADER_ENVMAP_STRENGTH		u_Local5.g
 
 
-#if defined(USE_TESSELLATION) || defined(USE_ICR_CULLING)
+#if defined(USE_TESSELLATION)
 
 in precise vec3				Normal_FS_in;
 in precise vec2				TexCoord_FS_in;
@@ -138,7 +138,7 @@ flat in float				Slope_FS_in;
 #define var_Slope			Slope_FS_in
 
 
-#else //!defined(USE_TESSELLATION) && !defined(USE_ICR_CULLING)
+#else //!defined(USE_TESSELLATION)
 
 varying vec2				var_TexCoords;
 varying vec2				var_TexCoords2;
@@ -165,7 +165,7 @@ varying float				var_Slope;
 #define m_ViewDir			var_ViewDir
 
 
-#endif //defined(USE_TESSELLATION) || defined(USE_ICR_CULLING)
+#endif //defined(USE_TESSELLATION)
 
 
 

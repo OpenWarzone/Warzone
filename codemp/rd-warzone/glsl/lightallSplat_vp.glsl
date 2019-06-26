@@ -109,7 +109,7 @@ uniform vec4  u_PrimaryLightOrigin;
 uniform vec3  u_PrimaryLightColor;
 uniform float u_PrimaryLightRadius;
 
-#if defined(USE_TESSELLATION) || defined(USE_ICR_CULLING)
+#if defined(USE_TESSELLATION)
 #ifdef USE_EDGE_TESSELLATION
 uniform sampler2D					u_RoadsControlMap;
 
@@ -632,7 +632,7 @@ void main()
 		GetBlending(normalize(attr_Normal.xyz * 2.0 - 1.0));
 	}
 
-#if defined(USE_TESSELLATION) || defined(USE_ICR_CULLING)
+#if defined(USE_TESSELLATION)
 #if defined(USE_EDGE_TESSELLATION)
 	WorldPos_CS_in = vec4(baseVertPos.xyz, 1.0);
 	gl_Position = vec4(position.xyz, 1.0);

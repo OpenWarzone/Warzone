@@ -48,6 +48,7 @@ out precise vec4 PrimaryLightDir_FS_in;
 out precise vec2 TexCoord2_FS_in;
 out precise vec3 Blending_FS_in;
 /*flat*/ out float Slope_FS_in;
+out float TessDepth_FS_in;
 
 #define WorldPos_GS_in WorldPos_FS_in
 #define TexCoord_GS_in TexCoord_FS_in
@@ -59,6 +60,7 @@ out precise vec3 Blending_FS_in;
 #define TexCoord2_GS_in TexCoord2_FS_in
 #define Blending_GS_in Blending_FS_in
 #define Slope_GS_in Slope_FS_in
+#define TessDepth_GS_in TessDepth_FS_in
 
 // PN patch data
 struct PnPatch
@@ -378,4 +380,6 @@ void main()
 #endif //__USE_GEOM_SHADER__
 	WorldPos_GS_in = finalPos.xyz;
 	ViewDir_GS_in = u_ViewOrigin - finalPos;
+
+	TessDepth_GS_in = 0.0;
 }
