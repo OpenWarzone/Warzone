@@ -1385,6 +1385,7 @@ qboolean	LODMODEL_MAP = qfalse;
 qboolean	DISABLE_MERGED_GLOWS = qfalse;
 qboolean	DISABLE_LIFTS_AND_PORTALS_MERGE = qtrue;
 qboolean	ENABLE_REGEN_SMOOTH_NORMALS = qfalse;
+float		LEAF_ALPHA_MULTIPLIER = 1.75;
 int			ENABLE_INDOOR_OUTDOOR_SYSTEM = 0;
 int			MAP_MAX_VIS_RANGE = 0;
 qboolean	ENABLE_DISPLACEMENT_MAPPING = qfalse;
@@ -1620,6 +1621,7 @@ void MAPPING_LoadMapInfo(void)
 	GENERIC_MATERIALS_PREFER_SHINY = (atoi(IniRead(mapname, "FIXES", "GENERIC_MATERIALS_PREFER_SHINY", "0")) > 0) ? qtrue : qfalse;
 	ENABLE_INDOOR_OUTDOOR_SYSTEM = atoi(IniRead(mapname, "FIXES", "ENABLE_INDOOR_OUTDOOR_SYSTEM", "0"));
 	ENABLE_REGEN_SMOOTH_NORMALS = (atoi(IniRead(mapname, "FIXES", "ENABLE_REGEN_SMOOTH_NORMALS", "0"))) ? qtrue : qfalse;
+	LEAF_ALPHA_MULTIPLIER = atof(IniRead(mapname, "FIXES", "LEAF_ALPHA_MULTIPLIER", "1.75"));
 
 	/*if (!ENABLE_REGEN_SMOOTH_NORMALS && StringContainsWord(currentMapName, "mp/")) 
 	{// Meh, always regen them on base mp maps...

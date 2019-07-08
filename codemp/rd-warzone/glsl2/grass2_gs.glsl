@@ -539,9 +539,9 @@ void main()
 	for (int i = 0; i < 2; i++)
 #endif //THREE_WAY_GRASS_CLUMPS
 	{// Draw either 2 or 3 copies at each position at different angles...
-		if (lodLevel == 3 && i > 2) continue;
+		if (lodLevel == 3 && i > 0) continue;
 		if (lodLevel == 2 && i > 1) continue;
-		if (lodLevel == 1 && i > 0) continue;
+		if (lodLevel == 1 && i > 2) continue;
 
 		vec3 direction = (rotationMatrix(vec3(0, 1, 0), randDir)*vec4(vBaseDir[i], 1.0)).xyz;
 		

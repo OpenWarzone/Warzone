@@ -15,139 +15,158 @@ normalMap – texture storing normal vectors for normal mapping as described in th
 foamMap – texture containing foam – in my case it is a photo of foam converted to greyscale
 */
 
-uniform mat4		u_ModelViewProjectionMatrix;
+uniform mat4								u_ModelViewProjectionMatrix;
 
-uniform sampler2D	u_DiffuseMap;			// backBufferMap
-uniform sampler2D	u_PositionMap;
+uniform sampler2D							u_DiffuseMap;			// backBufferMap
+uniform sampler2D							u_PositionMap;
 
-uniform sampler2D	u_OverlayMap;			// foamMap 1
-uniform sampler2D	u_SplatMap1;			// foamMap 2
-uniform sampler2D	u_SplatMap2;			// foamMap 3
-uniform sampler2D	u_SplatMap3;			// foamMap 4
+uniform sampler2D							u_OverlayMap;			// foamMap 1
+uniform sampler2D							u_SplatMap1;			// foamMap 2
+uniform sampler2D							u_SplatMap2;			// foamMap 3
+uniform sampler2D							u_SplatMap3;			// foamMap 4
 
-uniform sampler2D	u_DetailMap;			// causics map
+uniform sampler2D							u_DetailMap;			// causics map
 
-uniform sampler2D	u_HeightMap;			// map height map
+uniform sampler2D							u_HeightMap;			// map height map
 
-uniform sampler2D	u_WaterPositionMap;
+uniform sampler2D							u_WaterPositionMap;
 
-uniform sampler2D	u_EmissiveCubeMap;		// water reflection image... (not really a cube, just reusing using the uniform)
+uniform sampler2D							u_EmissiveCubeMap;		// water reflection image... (not really a cube, just reusing using the uniform)
 
-uniform samplerCube	u_SkyCubeMap;
-uniform samplerCube	u_SkyCubeMapNight;
+uniform samplerCube							u_SkyCubeMap;
+uniform samplerCube							u_SkyCubeMapNight;
 
-uniform vec4		u_Mins;					// MAP_MINS[0], MAP_MINS[1], MAP_MINS[2], 0.0
-uniform vec4		u_Maxs;					// MAP_MAXS[0], MAP_MAXS[1], MAP_MAXS[2], 0.0
-uniform vec4		u_MapInfo;				// MAP_INFO_SIZE[0], MAP_INFO_SIZE[1], MAP_INFO_SIZE[2], SUN_VISIBILITY
+uniform vec4								u_Mins;					// MAP_MINS[0], MAP_MINS[1], MAP_MINS[2], 0.0
+uniform vec4								u_Maxs;					// MAP_MAXS[0], MAP_MAXS[1], MAP_MAXS[2], 0.0
+uniform vec4								u_MapInfo;				// MAP_INFO_SIZE[0], MAP_INFO_SIZE[1], MAP_INFO_SIZE[2], SUN_VISIBILITY
 
-uniform vec4		u_Local0;				// testvalue0, testvalue1, testvalue2, testvalue3
-uniform vec4		u_Local1;				// MAP_WATER_LEVEL, USE_GLSL_REFLECTION, IS_UNDERWATER, WATER_REFLECTIVENESS
-uniform vec4		u_Local2;				// WATER_COLOR_SHALLOW_R, WATER_COLOR_SHALLOW_G, WATER_COLOR_SHALLOW_B, WATER_CLARITY
-uniform vec4		u_Local3;				// WATER_COLOR_DEEP_R, WATER_COLOR_DEEP_G, WATER_COLOR_DEEP_B, HAVE_HEIGHTMAP
-uniform vec4		u_Local4;				// SHADER_NIGHT_SCALE, WATER_EXTINCTION1, WATER_EXTINCTION2, WATER_EXTINCTION3
-uniform vec4		u_Local7;				// testshadervalue1, etc
-uniform vec4		u_Local8;				// testshadervalue5, etc
-uniform vec4		u_Local9;				// SUN_VISIBILITY, SHADER_NIGHT_SCALE, 0.0, 0.0
-uniform vec4		u_Local10;				// waveHeight, waveDensity, USE_OCEAN, WATER_UNDERWATER_CLARITY
+uniform vec4								u_Local0;				// testvalue0, testvalue1, testvalue2, testvalue3
+uniform vec4								u_Local1;				// MAP_WATER_LEVEL, USE_GLSL_REFLECTION, IS_UNDERWATER, WATER_REFLECTIVENESS
+uniform vec4								u_Local2;				// WATER_COLOR_SHALLOW_R, WATER_COLOR_SHALLOW_G, WATER_COLOR_SHALLOW_B, WATER_CLARITY
+uniform vec4								u_Local3;				// WATER_COLOR_DEEP_R, WATER_COLOR_DEEP_G, WATER_COLOR_DEEP_B, HAVE_HEIGHTMAP
+uniform vec4								u_Local4;				// SHADER_NIGHT_SCALE, WATER_EXTINCTION1, WATER_EXTINCTION2, WATER_EXTINCTION3
+uniform vec4								u_Local7;				// testshadervalue1, etc
+uniform vec4								u_Local8;				// testshadervalue5, etc
+uniform vec4								u_Local9;				// SUN_VISIBILITY, SHADER_NIGHT_SCALE, 0.0, 0.0
+uniform vec4								u_Local10;				// waveHeight, waveDensity, USE_OCEAN, WATER_UNDERWATER_CLARITY
+uniform vec4								u_Local11;				// CONTRAST, SATURATION, BRIGHTNESS, 0.0
 
-uniform vec2		u_Dimensions;
-uniform vec4		u_ViewInfo;				// zmin, zmax, zmax / zmin
+uniform vec2								u_Dimensions;
+uniform vec4								u_ViewInfo;				// zmin, zmax, zmax / zmin
 
-varying vec2		var_TexCoords;
-varying vec3		var_ViewDir;
+varying vec2								var_TexCoords;
+varying vec3								var_ViewDir;
 
-uniform vec4		u_PrimaryLightOrigin;
-uniform vec3		u_PrimaryLightColor;
+uniform vec4								u_PrimaryLightOrigin;
+uniform vec3								u_PrimaryLightColor;
 
-#define				MAP_WATER_LEVEL		u_Local1.r
-#define				HAVE_HEIGHTMAP		u_Local3.a
-#define				SHADER_NIGHT_SCALE	u_Local4.r
-#define				SUN_VISIBILITY			u_Local9.r
+#define	MAP_WATER_LEVEL						u_Local1.r
+#define	HAVE_HEIGHTMAP						u_Local3.a
+#define	SHADER_NIGHT_SCALE					u_Local4.r
+#define	SUN_VISIBILITY						u_Local9.r
 
-/*uniform int			u_lightCount;
-uniform vec3		u_lightPositions2[MAX_DEFERRED_LIGHTS];
-uniform float		u_lightDistances[MAX_DEFERRED_LIGHTS];
-uniform float		u_lightHeightScales[MAX_DEFERRED_LIGHTS];
-uniform vec3		u_lightColors[MAX_DEFERRED_LIGHTS];*/
+#define CONTRAST_STRENGTH					u_Local11.r
+#define SATURATION_STRENGTH					u_Local11.g
+#define BRIGHTNESS_STRENGTH					u_Local11.b
+
+/*uniform int								u_lightCount;
+uniform vec3								u_lightPositions2[MAX_DEFERRED_LIGHTS];
+uniform float								u_lightDistances[MAX_DEFERRED_LIGHTS];
+uniform float								u_lightHeightScales[MAX_DEFERRED_LIGHTS];
+uniform vec3								u_lightColors[MAX_DEFERRED_LIGHTS];*/
 
 // Position of the camera
-uniform vec3		u_ViewOrigin;
-#define ViewOrigin	u_ViewOrigin.xzy
+uniform vec3								u_ViewOrigin;
+#define ViewOrigin							u_ViewOrigin.xzy
 
 // Timer
-uniform float		u_Time;
-#define systemtimer		(u_Time * 5000.0)
+uniform float								u_Time;
+#define systemtimer							(u_Time * 5000.0)
 
 
 // Over-all water clearness...
-//const float waterClarity2 = 0.001;
-const float waterClarity2 = 0.03;
+const float waterClarity2 =					0.03;
 
-#define waterClarity u_Local2.a
-#define underWaterClarity u_Local10.a
+#define waterClarity						u_Local2.a
+#define underWaterClarity					u_Local10.a
 
 // How fast will colours fade out. You can also think about this
 // values as how clear water is. Therefore use smaller values (eg. 0.05f)
 // to have crystal clear water and bigger to achieve "muddy" water.
-const float fadeSpeed = 0.15;
+const float fadeSpeed =						0.15;
 
 // Normals scaling factor
-const float normalScale = 1.0;
+const float normalScale =					1.0;
 
 // R0 is a constant related to the index of refraction (IOR).
 // It should be computed on the CPU and passed to the shader.
-const float R0 = 0.5;
+const float R0 =							0.5;
 
 // Maximum waves amplitude
-#define waveHeight (u_Local10.r * 0.5)
-#define waveDensity u_Local10.g
+#define waveHeight							(u_Local10.r * 0.5)
+#define waveDensity							u_Local10.g
 
 // The smaller this value is, the more soft the transition between
 // shore and water. If you want hard edges use very big value.
 // Default is 1.0f.
-const float shoreHardness = 0.2;//1.0;
+const float shoreHardness =					0.2;
 
 // This value modifies current fresnel term. If you want to weaken
 // reflections use bigger value. If you want to empasize them use
 // value smaller then 0. Default is 0.0.
-const float refractionStrength = 0.0;
-//float refractionStrength = -0.3;
+const float refractionStrength =			0.0;
 
 // Modifies 4 sampled normals. Increase first values to have more
 // smaller "waves" or last to have more bigger "waves"
-const vec4 normalModifier = vec4(1.0, 2.0, 4.0, 8.0);
+const vec4 normalModifier =					vec4(1.0, 2.0, 4.0, 8.0);
 
 // Describes at what depth foam starts to fade out and
 // at what it is completely invisible. The third value is at
 // what height foam for waves appear (+ waterLevel).
-#define foamExistence vec3(8.0, 50.0, waveHeight)
+#define foamExistence						vec3(8.0, 50.0, waveHeight)
 
-const float sunScale = 3.0;
+const float sunScale =						3.0;
 
-const float shininess = 0.7;
-const float specularScale = 0.07;
+const float shininess =						0.7;
+const float specularScale =					0.07;
 
 
 // Colour of the water surface
-//const vec3 waterColorShallow = vec3(0.0078, 0.5176, 0.7);
-vec3 waterColorShallow = u_Local2.rgb;
+vec3 waterColorShallow =					u_Local2.rgb;
 
 // Colour of the water depth
-//const vec3 waterColorDeep = vec3(0.0059, 0.1276, 0.18);
-vec3 waterColorDeep = u_Local3.rgb;
+vec3 waterColorDeep =						u_Local3.rgb;
 
-//const vec3 extinction = vec3(35.0, 480.0, 8192.0);
-vec3 extinction = u_Local4.gba;
+vec3 extinction =							u_Local4.gba;
 
 // Water transparency along eye vector.
-//const float visibility = 320.0;
-const float visibility = 32.0;
+const float visibility =					32.0;
 
 // Increase this value to have more smaller waves.
-const vec2 scale = vec2(0.002, 0.002);
-const float refractionScale = 0.005;
+const vec2 scale =							vec2(0.002, 0.002);
+const float refractionScale =				0.005;
 
-#define USE_OCEAN u_Local10.b
+#define USE_OCEAN							u_Local10.b
+
+
+// For all settings: 1.0 = 100% 0.5=50% 1.5 = 150%
+vec3 ContrastSaturationBrightness(vec3 color, float con, float sat, float brt)
+{
+	// Increase or decrease theese values to adjust r, g and b color channels seperately
+	const float AvgLumR = 0.5;
+	const float AvgLumG = 0.5;
+	const float AvgLumB = 0.5;
+	
+	const vec3 LumCoeff = vec3(0.2125, 0.7154, 0.0721);
+	
+	vec3 AvgLumin = vec3(AvgLumR, AvgLumG, AvgLumB);
+	vec3 brtColor = color * brt;
+	vec3 intensity = vec3(dot(brtColor, LumCoeff));
+	vec3 satColor = mix(intensity, brtColor, sat);
+	vec3 conColor = mix(AvgLumin, satColor, con);
+	return conColor;
+}
+
 
 vec2 GetMapTC(vec3 pos)
 {
@@ -962,6 +981,10 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
 	vec3 refraction1 = mix(refraction, fragColor.rgb, clamp(depthN / visibility, 0.0, 1.0));
 	fragColor.rgb = mix(refraction1, fragColor.rgb, clamp((vec3(depth2) / vec3(extinction)), 0.0, 1.0));
 
+	if (!(CONTRAST_STRENGTH == 1.0 && SATURATION_STRENGTH == 1.0 && BRIGHTNESS_STRENGTH == 1.0))
+	{// C/S/B enabled...
+		fragColor.rgb = ContrastSaturationBrightness(fragColor.rgb, CONTRAST_STRENGTH, SATURATION_STRENGTH, BRIGHTNESS_STRENGTH);
+	}
 
 #if defined(USE_REFLECTION) && !defined(__LQ_MODE__)
 	float dt = pow(clamp(dot(reflect(-dir, n), -dir), 0.0, 1.0), 4.0);

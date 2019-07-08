@@ -2217,6 +2217,15 @@ void RB_WaterPost(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 			GLSL_SetUniformVec2(shader, UNIFORM_DIMENSIONS, screensize);
 		}
 
+		{
+			vec4_t local11;
+			local11[0] = mix(MAP_AMBIENT_CSB[0], MAP_AMBIENT_CSB_NIGHT[0], RB_NightScale());
+			local11[1] = mix(MAP_AMBIENT_CSB[1], MAP_AMBIENT_CSB_NIGHT[1], RB_NightScale());
+			local11[2] = mix(MAP_AMBIENT_CSB[2], MAP_AMBIENT_CSB_NIGHT[2], RB_NightScale());
+			local11[3] = 0.0;
+			GLSL_SetUniformVec4(shader, UNIFORM_LOCAL11, local11);
+		}
+
 		/*{
 			vec4_t viewInfo;
 
@@ -2752,7 +2761,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 		useAO = 0.0;
 
 	vec4_t local1;
-	VectorSet4(local1, r_blinnPhong->value * SUN_PHONG_SCALE, MAP_USE_PALETTE_ON_SKY ? 1.0 : 0.0, useAO, 0.0);
+	VectorSet4(local1, r_blinnPhong->value * SUN_PHONG_SCALE, MAP_USE_PALETTE_ON_SKY ? 1.0 : 0.0, useAO, r_gamma->value);
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL1, local1);
 
 	qboolean shadowsEnabled = qfalse;

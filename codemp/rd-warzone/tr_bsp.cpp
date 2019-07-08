@@ -4682,6 +4682,9 @@ qboolean R_MaterialUsesCubemap ( int materialType)
 	case MATERIAL_SKYSCRAPER:
 		return qtrue;
 		break;
+	case MATERIAL_PROCEDURALFOLIAGE:
+		return qfalse;
+		break;
 	default:
 		return qfalse;
 		break;

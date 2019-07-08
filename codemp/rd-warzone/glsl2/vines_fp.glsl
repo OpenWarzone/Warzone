@@ -6,10 +6,11 @@ uniform sampler2D					u_WaterEdgeMap; // Sea grass atlas
 uniform vec3						u_ViewOrigin;
 uniform vec2						u_Dimensions;
 
-uniform vec4						u_Settings1; // IS_DEPTH_PASS, 0.0, 0.0, 0.0
+uniform vec4						u_Settings1; // IS_DEPTH_PASS, 0.0, 0.0, LEAF_ALPHA_MULTIPLIER
 uniform vec4						u_Settings5; // MAP_COLOR_SWITCH_RG, MAP_COLOR_SWITCH_RB, MAP_COLOR_SWITCH_GB, ENABLE_CHRISTMAS_EFFECT
 
 #define IS_DEPTH_PASS				u_Settings1.r
+#define LEAF_ALPHA_MULTIPLIER		u_Settings1.a
 
 #define MAP_COLOR_SWITCH_RG			u_Settings5.r
 #define MAP_COLOR_SWITCH_RB			u_Settings5.g
@@ -260,6 +261,9 @@ void main()
 		diffuse.gb = diffuse.bg;
 	}
 
+	// Amp up alphas on tree leafs, etc, so they draw at range instead of being blurred out...
+	diffuse.a = clamp(diffuse.a * 1.5/*LEAF_ALPHA_MULTIPLIER*/, 0.0, 1.0);
+
 	if (diffuse.a > 0.5)
 	{
 #if 1
@@ -315,7 +319,7 @@ void main()
 #ifdef __USE_REAL_NORMALMAPS__
 		out_NormalDetail = vec4(0.0);
 #endif //__USE_REAL_NORMALMAPS__
-		out_Position = vec4(vVertPosition, MATERIAL_GREENLEAVES+1.0);
+		out_Position = vec4(vVertPosition, MATERIAL_PROCEDURALFOLIAGE+1.0);
 	}
 	else
 	{

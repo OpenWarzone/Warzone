@@ -4050,6 +4050,7 @@ qboolean HaveSurfaceType( int materialType)
 	case MATERIAL_DISTORTEDPUSH:
 	case MATERIAL_DISTORTEDPULL:
 	case MATERIAL_CLOAK:
+	case MATERIAL_PROCEDURALFOLIAGE:
 		return qtrue;
 		break;
 	default:
@@ -4223,6 +4224,9 @@ void DebugSurfaceTypeSelection( const char *name, int materialType)
 		break;
 	case MATERIAL_CLOAK:
 		ri->Printf(PRINT_WARNING, "Surface %s was set to MATERIAL_CLOAK.\n", name);
+		break;
+	case MATERIAL_PROCEDURALFOLIAGE:
+		ri->Printf(PRINT_WARNING, "Surface %s was set to MATERIAL_PROCEDURALFOLIAGE.\n", name);
 		break;
 	default:
 		ri->Printf(PRINT_WARNING, "Surface %s was set to MATERIAL_NONE.\n", name);

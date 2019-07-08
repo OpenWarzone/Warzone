@@ -157,7 +157,7 @@ float CloudShadows(void)
 	vec2 pos;
 	float alpha = GetCloudAlpha(cameraPos, dir, pos);
 
-	return (1.0 - alpha);
+	return (1.0 - (alpha*0.75));
 }
 #endif //__CLOUD_SHADOWS__
 

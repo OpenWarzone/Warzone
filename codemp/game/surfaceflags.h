@@ -132,7 +132,8 @@
 #define MATERIAL_DISTORTEDPUSH					48			// warzone distorted push
 #define MATERIAL_DISTORTEDPULL					49			// warzone distorted pull
 #define MATERIAL_CLOAK							50			// warzone cloak
-#define MATERIAL_LAST							51			// number of materials
+#define MATERIAL_PROCEDURALFOLIAGE				51			// warzone GLSL foliages
+#define MATERIAL_LAST							52			// number of materials
 
 // Defined as a macro here so one change will affect all the relevant files
 
@@ -187,4 +188,5 @@
 	"distortedglass",					\
 	"distortedpush",					\
 	"distortedpull",					\
-	"cloak"
+	"cloak",							\
+	"proceduralfoliage"

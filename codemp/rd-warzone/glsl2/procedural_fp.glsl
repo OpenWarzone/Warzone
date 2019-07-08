@@ -279,7 +279,7 @@ void main(void)
 			
 			float snow = clamp(dot(normalize(bump.xyz), vec3(0.0, 0.0, 1.0)), 0.0, 1.0);
 
-			if (position.a - 1.0 == MATERIAL_GREENLEAVES)
+			if (position.a - 1.0 == MATERIAL_GREENLEAVES || position.a - 1.0 == MATERIAL_PROCEDURALFOLIAGE)
 				snow = pow(snow * 0.25 + 0.75, 1.333);
 			else
 				snow = pow(snow, 0.4);

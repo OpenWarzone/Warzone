@@ -18,33 +18,8 @@ flat varying float	var_FocalDepth;
 
 float GetFocalDepth(vec2 focalpoint)
 {
-#if 0
-	//if (u_Local0.r == 1.0 || u_Local0.r == 3.0)
-	//	return DOF_MANUALFOCUSDEPTH;
-
- 	float depthsum = 0.0;
-	
-	depthsum+=texture(u_ScreenDepthMap,focalpoint).x * 0.999;
-
-#ifdef BLUR_FOCUS
-	depthsum+=texture(u_ScreenDepthMap,focalpoint+vec2(-0.1, -0.1)).x * 0.999;
-	depthsum+=texture(u_ScreenDepthMap,focalpoint+vec2(0.1, 0.1)).x * 0.999;
-	depthsum+=texture(u_ScreenDepthMap,focalpoint+vec2(-0.1, 0.1)).x * 0.999;
-	depthsum+=texture(u_ScreenDepthMap,focalpoint+vec2(0.1, -0.1)).x * 0.999;
-#if 1 // More focus checking, to blend over time better...
-	depthsum+=texture(u_ScreenDepthMap,focalpoint+vec2(-0.2, -0.2)).x * 0.999 * 0.5;
-	depthsum+=texture(u_ScreenDepthMap,focalpoint+vec2(0.2, 0.2)).x * 0.999 * 0.5;
-	depthsum+=texture(u_ScreenDepthMap,focalpoint+vec2(-0.2, 0.2)).x * 0.999 * 0.5;
-	depthsum+=texture(u_ScreenDepthMap,focalpoint+vec2(0.2, -0.2)).x * 0.999 * 0.5;
-	depthsum = depthsum/7.0;
-#else
-	depthsum = depthsum/5.0;
-#endif
-#endif //BLUR_FOCUS
-#else
 	float depthsum = clamp(texture(u_SpecularMap, vec2(0.5, 0.5)).x + 0.1, 0.0, 1.0) * 0.999;
-#endif
-
+	depthsum = pow(clamp(depthsum * 2.25, 0.0, 1.0), 1.15);
 	return depthsum; 
 }
 

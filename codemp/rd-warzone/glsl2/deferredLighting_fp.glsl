@@ -60,7 +60,7 @@ uniform mat4								u_ModelViewProjectionMatrix;
 
 uniform vec2								u_Dimensions;
 
-uniform vec4								u_Local1;	// SUN_PHONG_SCALE,			MAP_USE_PALETTE_ON_SKY,			r_ao,							0.0
+uniform vec4								u_Local1;	// SUN_PHONG_SCALE,			MAP_USE_PALETTE_ON_SKY,			r_ao,							GAMMA_CORRECTION
 uniform vec4								u_Local2;	// MAP_REFLECTION_ENABLED,	SHADOWS_ENABLED,				SHADOW_MINBRIGHT,				SHADOW_MAXBRIGHT
 uniform vec4								u_Local3;	// r_testShaderValue1,		r_testShaderValue2,				r_testShaderValue3,				r_testShaderValue4
 uniform vec4								u_Local4;	// haveConeAngles,			MAP_EMISSIVE_COLOR_SCALE,		MAP_HDR_MIN,					MAP_HDR_MAX
@@ -110,7 +110,7 @@ varying float								var_CloudShadow;
 #define SUN_PHONG_SCALE						u_Local1.r
 #define MAP_USE_PALETTE_ON_SKY				u_Local1.g
 #define AO_TYPE								u_Local1.b
-//#define UNUSED							u_Local1.a
+#define GAMMA_CORRECTION					u_Local1.a
 
 #define REFLECTIONS_ENABLED					u_Local2.r
 #define SHADOWS_ENABLED						u_Local2.g
@@ -337,6 +337,10 @@ vec2 RB_PBR_DefaultsForMaterial(float MATERIAL_TYPE)
 		cubeReflectionScale = 0.0;
 		break;
 	case MATERIAL_GREENLEAVES:		// 20			// fresh leaves still on a tree
+		specularReflectionScale = 0.0055;
+		cubeReflectionScale = 0.35;
+		break;
+	case MATERIAL_PROCEDURALFOLIAGE:
 		specularReflectionScale = 0.0055;
 		cubeReflectionScale = 0.35;
 		break;
@@ -1148,7 +1152,7 @@ float CloudShadows(vec3 position)
 	float alpha = GetCloudAlpha(cameraPos, dir, pos);
 	//alpha *= clamp(-dir.y, 0.0, 0.75);
 
-	return (1.0 - alpha);
+	return (1.0 - (alpha*0.75));
 }
 #endif //__CLOUD_SHADOWS__
 
@@ -1324,6 +1328,8 @@ void main(void)
 
 		outColor.rgb = clamp(outColor.rgb, 0.0, 1.0);
 		gl_FragColor = outColor;
+
+		gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 / GAMMA_CORRECTION));
 		return;
 	}
 
@@ -1424,7 +1430,7 @@ void main(void)
 
 			float snow = clamp(dot(normalize(bump.xyz), vec3(0.0, 0.0, 1.0)), 0.0, 1.0);
 
-			if (position.a - 1.0 == MATERIAL_GREENLEAVES)
+			if (position.a - 1.0 == MATERIAL_GREENLEAVES || position.a - 1.0 == MATERIAL_PROCEDURALFOLIAGE)
 				snow = pow(snow * 0.25 + 0.75, 1.333);
 			else
 				snow = pow(snow, 0.4);
@@ -1451,6 +1457,7 @@ void main(void)
 		if ((position.a - 1.0 == MATERIAL_PUDDLE)
 			|| (position.a - 1.0 == MATERIAL_TREEBARK)
 			|| (position.a - 1.0 == MATERIAL_GREENLEAVES)
+			|| (position.a - 1.0 == MATERIAL_PROCEDURALFOLIAGE)
 			|| (position.a - 1.0 == MATERIAL_SHORTGRASS)
 			|| (position.a - 1.0 == MATERIAL_LONGGRASS)
 			|| (position.a - 1.0 == MATERIAL_ROCK)
@@ -1509,7 +1516,7 @@ void main(void)
 #endif //defined(__SCREEN_SPACE_REFLECTIONS__)
 
 
-	float diffuse = clamp(pow(clamp(dot(-sunDir.rgb, bump.rgb), 0.0, 1.0), 8.0) * 0.6 + 0.6, 0.0, 1.0);
+	float diffuse = clamp(pow(clamp(dot(-sunDir.rgb, bump.rgb), 0.0, 1.0), 8.0) * 0.2 + 0.8, 0.0, 1.0);
 	color.rgb = outColor.rgb = outColor.rgb * diffuse;
 
 	float origColorStrength = clamp(max(color.r, max(color.g, color.b)), 0.0, 1.0) * 0.75 + 0.25;
@@ -1610,6 +1617,17 @@ void main(void)
 			specularColor = clamp((clamp(outColor.rgb - spec_cont_1, 0.0, 1.0)) * spec_cont_2, 0.0, 1.0);
 			specularColor = clamp(Vibrancy( specularColor.rgb, 1.0 ), 0.0, 1.0);
 
+			//vec3 s = (outColor.rgb + ((outColor.r+outColor.g+outColor.b) / 3.0)) * 0.5;
+			//float df = clamp(distance(outColor.rgb, vec3((outColor.r+outColor.g+outColor.b) / 3.0)), 0.0, 1.0);
+			//s = mix(s, outColor.rgb, df);
+
+			//specularColor = clamp(pow(s *2.5, vec3(1.5)), 0.0, 1.0);
+			//specularColor = vec3(df);
+			//specularColor = clamp(outColor.rgb * vec3(pow(df, 1.0-df)*8.0), 0.0, 1.0);
+			//gl_FragColor = vec4(specularColor.rgb, 1.0);
+			//return;
+
+
 #ifndef __LQ_MODE__
 #if defined(__CUBEMAPS__)
 		if (CUBEMAP_ENABLED > 0.0 && cubeReflectionFactor > 0.0 && NE > 0.0 && u_CubeMapStrength > 0.0)
@@ -1681,7 +1699,7 @@ void main(void)
 	float specPower = ((clamp(SE, 0.0, 1.0) + clamp(pow(SE, 2.0), 0.0, 1.0)) * 0.5) * 0.333;
 
 
-	outColor.rgb = clamp(outColor.rgb + (specularColor.rgb * specPower * finalShadow), 0.0, 1.0);
+	outColor.rgb = clamp(outColor.rgb + (specularColor.rgb * specularReflectivePower * specPower * finalShadow), 0.0, 1.0);
 
 
 	if (SKY_LIGHT_CONTRIBUTION > 0.0 && cubeReflectionFactor > 0.0)
@@ -1720,7 +1738,7 @@ void main(void)
 
 				vec3 addColor = blinn_phong(position.xyz, outColor.rgb, bump, E, -sunDir, clamp(lightColor, 0.0, 1.0), 1.0, u_PrimaryLightOrigin.xyz, wetness);
 
-				if (position.a - 1.0 == MATERIAL_GREENLEAVES)
+				if (position.a - 1.0 == MATERIAL_GREENLEAVES || position.a - 1.0 == MATERIAL_PROCEDURALFOLIAGE)
 				{// Light bleeding through tree leaves...
 					float ndotl = clamp(dot(bump, sunDir), 0.0, 1.0);
 					float diffuse = pow(ndotl, 2.0) * 1.25;
@@ -1792,7 +1810,7 @@ void main(void)
 
 								addedLight.rgb += blinn_phong(position.xyz, outColor.rgb, bump, E, lightDir, clamp(lightColor, 0.0, 1.0), lightSpecularPower, lightPos, wetness) * lightFade * selfShadow;
 
-								if (position.a - 1.0 == MATERIAL_GREENLEAVES)
+								if (position.a - 1.0 == MATERIAL_GREENLEAVES || position.a - 1.0 == MATERIAL_PROCEDURALFOLIAGE)
 								{// Light bleeding through tree leaves...
 									float ndotl = clamp(dot(bump, -lightDir), 0.0, 1.0);
 									float diffuse = pow(ndotl, 2.0) * 4.0;
@@ -1822,8 +1840,97 @@ void main(void)
 	}
 #endif //defined(__SCREEN_SPACE_REFLECTIONS__)
 
-
 #if defined(__AMBIENT_OCCLUSION__)
+	#if 0
+	if (AO_TYPE == 1.0)
+	{// Fast AO enabled...
+		const float MAX_AO_DIST = 32.0;
+		float ao = 0.0;
+
+		float vdist1 = distance(u_ViewOrigin.xy, position.xy);
+
+		//for (int x = 1; x < 12; x++)
+		for (int x = 1; x < 6; x++)
+		{
+			//float fx = pixel.x * pow(float(x), 1.5);
+			float fx = pixel.x * float(x) * 4.0/*2.0*/;//pow(float(x), 1.25);
+
+			//for (int y = 1; y < 4; y++)
+			for (int y = 1; y < 6; y++)
+			{
+				//float fy = pixel.y * pow(float(y), 1.5);
+				float fy = pixel.y * float(y) * float(y);//pow(float(y), 1.25);
+				vec2 off = vec2(fx,fy);
+
+				if (ao < 1.0)
+				{
+					//bool changedToWater3 = false;
+					//vec3 originalPosition3;
+
+					vec4 pMap3 = texture(u_PositionMap, texCoords + off);//positionMapAtCoord(texCoords + off, changedToWater3, originalPosition3);
+					float dist = distance(position.xyz, pMap3.xyz);
+					float vdist2 = distance(u_ViewOrigin.xy, pMap3.xy);
+					
+					float vmod = vdist1 - vdist2;
+					if (vmod > 0.0)
+						vmod = 1.0 - clamp(vmod / 8.0, 0.0, 1.0);
+					else
+						vmod = 1.0;
+
+					float hdiff = pMap3.z - position.z;
+
+					if (/*dist <= MAX_AO_DIST &&*/ hdiff > 0.0)
+					{
+						//float dmod = 1.0 - clamp(dist / MAX_AO_DIST, 0.0, 1.0);
+						//float hmod = clamp(hdiff / MAX_AO_DIST, 0.0, 1.0);
+						//ao = max(ao, dmod*hmod);
+						ao = max(ao, clamp(hdiff/dist, 0.0, 1.0) * vmod);
+					}
+				}
+
+				if (ao < 1.0)
+				{
+					//bool changedToWater3 = false;
+					//vec3 originalPosition3;
+
+					vec4 pMap3 = texture(u_PositionMap, texCoords + vec2(-off.x, off.y));//positionMapAtCoord(texCoords + vec2(-off.x, off.y), changedToWater3, originalPosition3);
+					float dist = distance(position.xyz, pMap3.xyz);
+					float vdist2 = distance(u_ViewOrigin.xy, pMap3.xy);
+
+					float vmod = vdist1 - vdist2;
+					if (vmod > 0.0)
+						vmod = 1.0 - clamp(vmod / 8.0, 0.0, 1.0);
+					else
+						vmod = 1.0;
+
+					float hdiff = pMap3.z - position.z;
+
+					if (/*dist <= MAX_AO_DIST &&*/ hdiff > 0.0)
+					{
+						//float dmod = 1.0 - clamp(dist / MAX_AO_DIST, 0.0, 1.0);
+						//float hmod = clamp(hdiff / MAX_AO_DIST, 0.0, 1.0);
+						//ao = max(ao, dmod*hmod);
+						ao = max(ao, clamp(hdiff/dist, 0.0, 1.0) * vmod);
+					}
+				}
+			}
+		}
+
+		if (ao > 0.0)
+		{
+			//ao = clamp(pow(ao, 0.25), 0.0, 1.0);
+			//ao = clamp(pow(ao, 1.5), 0.0, 1.0);
+			//outColor.rgb *= 1.0 - ao;
+			ao *= norm.b * 0.5 + 0.5;
+			ao = (1.0 - ao) * 0.7 + 0.3;
+
+			//float selfShadow = clamp(pow(clamp(dot(-sunDir.rgb, bump.rgb), 0.0, 1.0), 8.0), 0.0, 1.0);
+			//ao = clamp(((ao + selfShadow) / 2.0) * AO_MULTBRIGHT + AO_MINBRIGHT, AO_MINBRIGHT, 1.0);
+			ao = clamp(ao * AO_MULTBRIGHT + AO_MINBRIGHT, AO_MINBRIGHT, 1.0);
+			outColor.rgb *= ao;
+		}
+	}
+	#else
 	if (AO_TYPE == 1.0)
 	{// Fast AO enabled...
 		float ao = calculateAO(sunDir, N * 10000.0, texCoords);
@@ -1831,6 +1938,7 @@ void main(void)
 		ao = clamp(((ao + selfShadow) / 2.0) * AO_MULTBRIGHT + AO_MINBRIGHT, AO_MINBRIGHT, 1.0);
 		outColor.rgb *= ao;
 	}
+	#endif
 #endif //defined(__AMBIENT_OCCLUSION__)
 
 #if defined(__ENHANCED_AO__)
@@ -1901,5 +2009,7 @@ void main(void)
 
 	outColor.rgb = clamp(outColor.rgb, 0.0, 1.0);
 	gl_FragColor = outColor;
+	
+	gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 / GAMMA_CORRECTION));
 }
 

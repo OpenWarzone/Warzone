@@ -1540,6 +1540,8 @@ void RB_PBR_DefaultsForMaterial(float *settings, int MATERIAL_TYPE)
 	settings[3] = parallaxScale;
 }
 
+extern float		LEAF_ALPHA_MULTIPLIER;
+
 extern float		MAP_GLOW_MULTIPLIER;
 extern float		MAP_GLOW_MULTIPLIER_NIGHT;
 extern float		MAP_WATER_LEVEL;
@@ -1661,8 +1663,8 @@ void RB_SetMaterialBasedProperties(shaderProgram_t *sp, shaderStage_t *pStage, i
 		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL4, local4);
 
 		vec4_t local5;
-		VectorSet4(local5, hasOverlay, hasEnvMap, 0.0, 0.0);
-		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL5, local5); // dayNightEnabled, nightScale, skyDirection, auroraEnabled -- Sky Only...
+		VectorSet4(local5, hasOverlay, hasEnvMap, 0.0, LEAF_ALPHA_MULTIPLIER);
+		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL5, local5); // dayNightEnabled, nightScale, skyDirection, LEAF_ALPHA_MULTIPLIER
 	}
 	else
 	{// Don't waste time on unneeded stuff... Absolute minimum shader complexity...
@@ -1680,7 +1682,10 @@ void RB_SetMaterialBasedProperties(shaderProgram_t *sp, shaderStage_t *pStage, i
 		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL2, vector); // hasSteepMap, hasWaterEdgeMap, hasNormalMap, MAP_WATER_LEVEL
 		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL3, vector); // hasSplatMap1, hasSplatMap2, hasSplatMap3, hasSplatMap4
 		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL4, vector); // stageNum, glowStrength, r_showsplat, glowVibrancy
-		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL5, vector); // dayNightEnabled, nightScale, skyDirection, auroraEnabled -- Sky Only...
+		
+		vec4_t local5;
+		VectorSet4(local5, 0.0, 0.0, 0.0, LEAF_ALPHA_MULTIPLIER);
+		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL5, local5); // dayNightEnabled, nightScale, skyDirection, LEAF_ALPHA_MULTIPLIER
 	}
 
 	GLSL_SetUniformFloat(sp, UNIFORM_TIME, backEnd.refdef.floatTime);
@@ -2018,12 +2023,20 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			&& GRASS_ENABLED
 			&& (tess.shader->isGrass || RB_ShouldUseGeometryGrass(tess.shader->materialType)))
 		{
-			isGrass = qtrue;
+			if (r_foliageShadows->integer > 1 || GRASS_HEIGHT * GRASS_SIZE_MULTIPLIER_COMMON >= 20)
+			{// Only when foliageShadows >= 2 will we do them on grass... (unless the grass is fairly large)
+				isGrass = qtrue;
+			}
+
 			tess.shader->isGrass = qtrue; // Cache to speed up future checks...
 
 			if (FOLIAGE_ENABLED)
 			{
-				isGroundFoliage = qtrue;
+				if (r_foliageShadows->integer > 1)
+				{// Only when foliageShadows >= 2 will we do shadows on groundcover...
+					isGroundFoliage = qtrue;
+				}
+
 				tess.shader->isGroundFoliage = qtrue; // Cache to speed up future checks...
 			}
 		}
@@ -2039,7 +2052,11 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			&& FOLIAGE_ENABLED
 			&& (tess.shader->isGroundFoliage || RB_ShouldUseGeometryGrass(tess.shader->materialType)))
 		{
-			isGroundFoliage = qtrue;
+			if (r_foliageShadows->integer > 1)
+			{// Only when foliageShadows >= 2 will we do shadows on groundcover...
+				isGroundFoliage = qtrue;
+			}
+
 			tess.shader->isGroundFoliage = qtrue; // Cache to speed up future checks...
 		}
 	}
@@ -3410,7 +3427,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					IS_DEPTH_PASS ? 1.0 : 0.0,
 					0.0,
 					0.0,
-					0.0);
+					LEAF_ALPHA_MULTIPLIER);
 				GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS1, vec);
 			}
 
@@ -3503,7 +3520,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					IS_DEPTH_PASS ? 1.0 : 0.0,
 					0.0,
 					0.0,
-					0.0);
+					LEAF_ALPHA_MULTIPLIER);
 				GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS1, vec);
 			}
 
@@ -3576,7 +3593,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					IS_DEPTH_PASS ? 1.0 : 0.0,
 					0.0,
 					0.0,
-					0.0);
+					LEAF_ALPHA_MULTIPLIER);
 				GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS1, vec);
 			}
 

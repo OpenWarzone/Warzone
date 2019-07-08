@@ -36,7 +36,7 @@ uniform vec4						u_Local1; // TERRAIN_TESSELLATION_OFFSET, sway, overlaySway, m
 uniform vec4						u_Local2; // hasSteepMap, hasWaterEdgeMap, haveNormalMap, WATER_LEVEL
 uniform vec4						u_Local3; // hasSplatMap1, hasSplatMap2, hasSplatMap3, hasSplatMap4
 uniform vec4						u_Local4; // stageNum, glowStrength, r_showsplat, 0.0
-uniform vec4						u_Local5; // dayNightEnabled, nightScale, skyDirection, auroraEnabled -- Sky draws only!
+uniform vec4						u_Local5; // dayNightEnabled, nightScale, skyDirection, LEAF_ALPHA_MULTIPLIER
 uniform vec4						u_Local9; // testvalue0, 1, 2, 3
 
 #define TERRAIN_TESSELLATION_OFFSET	u_Local1.r
@@ -61,7 +61,7 @@ uniform vec4						u_Local9; // testvalue0, 1, 2, 3
 #define SHADER_DAY_NIGHT_ENABLED	u_Local5.r
 #define SHADER_NIGHT_SCALE			u_Local5.g
 #define SHADER_SKY_DIRECTION		u_Local5.b
-#define SHADER_AURORA_ENABLED		u_Local5.a
+#define LEAF_ALPHA_MULTIPLIER		u_Local5.a
 
 
 uniform vec2						u_Dimensions;
@@ -109,9 +109,20 @@ void main()
 			texCoords += vec2(GetSway());
 		}
 
-		// We don't even need the colors, just the alphas...
-		gl_FragColor = vec4(1.0, 1.0, 1.0, texture(u_DiffuseMap, texCoords).a * var_Color.a);
+		if (SHADER_MATERIAL_TYPE == MATERIAL_GREENLEAVES)
+		{
+			gl_FragColor = texture(u_DiffuseMap, texCoords);
+			gl_FragColor.a *= var_Color.a;
+		}
+		else
+		{
+			gl_FragColor = vec4(1.0, 1.0, 1.0, texture(u_DiffuseMap, texCoords).a * var_Color.a);
+		}
 
+		if (SHADER_MATERIAL_TYPE == MATERIAL_GREENLEAVES)
+		{// Amp up alphas on tree leafs, etc, so they draw at range instead of being blurred out...
+			gl_FragColor.a = clamp(gl_FragColor.a * LEAF_ALPHA_MULTIPLIER, 0.0, 1.0);
+		}
 
 		float alphaThreshold = (SHADER_MATERIAL_TYPE == MATERIAL_GREENLEAVES) ? SCREEN_MAPS_LEAFS_THRESHOLD : SCREEN_MAPS_ALPHA_THRESHOLD;
 

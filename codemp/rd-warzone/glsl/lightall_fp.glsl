@@ -64,7 +64,7 @@ uniform vec4						u_Local1; // MAP_SIZE, sway, overlaySway, materialType
 uniform vec4						u_Local2; // hasSteepMap, hasWaterEdgeMap, haveNormalMap, SHADER_WATER_LEVEL
 uniform vec4						u_Local3; // hasSplatMap1, hasSplatMap2, hasSplatMap3, hasSplatMap4
 uniform vec4						u_Local4; // stageNum, glowStrength, r_showsplat, glowVibrancy
-uniform vec4						u_Local5; // SHADER_HAS_OVERLAY, SHADER_ENVMAP_STRENGTH, 0.0, 0.0
+uniform vec4						u_Local5; // SHADER_HAS_OVERLAY, SHADER_ENVMAP_STRENGTH, 0.0, LEAF_ALPHA_MULTIPLIER
 uniform vec4						u_Local9; // testvalue0, 1, 2, 3
 
 uniform vec2						u_Dimensions;
@@ -105,6 +105,7 @@ uniform float						u_zFar;
 
 #define SHADER_HAS_OVERLAY			u_Local5.r
 #define SHADER_ENVMAP_STRENGTH		u_Local5.g
+#define LEAF_ALPHA_MULTIPLIER		u_Local5.a
 
 
 #if defined(USE_TESSELLATION)
@@ -930,6 +931,10 @@ void main()
 	
 	gl_FragColor.rgb *= clamp(lightColor, 0.0, 1.0);
 
+	if (SHADER_MATERIAL_TYPE == MATERIAL_GREENLEAVES)
+	{// Amp up alphas on tree leafs, etc, so they draw at range instead of being blurred out...
+		gl_FragColor.a = clamp(gl_FragColor.a * LEAF_ALPHA_MULTIPLIER, 0.0, 1.0);
+	}
 
 	float alphaThreshold = (SHADER_MATERIAL_TYPE == MATERIAL_GREENLEAVES) ? SCREEN_MAPS_LEAFS_THRESHOLD : SCREEN_MAPS_ALPHA_THRESHOLD;
 	bool isDetail = false;
