@@ -312,7 +312,7 @@ void main()
 
 	if (TERRAIN_TESSELLATION_OFFSET != 0.0)
 	{// Tesselated terrain, lower the depth of the terrain...
-		float pitch = normalToSlope(normal.xyz);
+		/*float pitch = normalToSlope(normal.xyz);
 
 		if (pitch >= 90.0 || pitch <= -90.0)
 		{
@@ -321,7 +321,11 @@ void main()
 		else
 		{
 			position.z -= TERRAIN_TESSELLATION_OFFSET;
-		}
+		}*/
+
+		// Just push shit away from the viewer, and get a very rough depth map prepass. Will still cull most stuff.
+		vec3 dir = normalize(u_ViewOrigin.xyz - position.xyz);
+		position.xyz -= dir * 512.0;
 	}
 
 	vec2 texCoords = attr_TexCoord0.st;

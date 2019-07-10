@@ -2849,6 +2849,8 @@ void CG_Init( int serverMessageNum, int serverCommandSequence, int clientNum )
 
 	trap->RegisterSharedMemory( cg.sharedBuffer.raw );
 
+	CG_LoadingString("Loadng vehicles...");
+
 	//Load external vehicle data
 	BG_VehicleLoadParms();
 
@@ -2865,14 +2867,19 @@ Ghoul2 Insert Start
 	CG_InitItems();
 	CG_PrecacheScopes();
 
+	CG_LoadingString("Loadng jetpack...");
+
 	//create the global jetpack instance
 	CG_InitJetpackGhoul2();
+
 
 	CG_PmoveClientPointerUpdate();
 
 /*
 Ghoul2 Insert End
 */
+
+	CG_LoadingString("Loadng sabers...");
 
 	//Load sabers.cfg data
 	WP_SaberLoadParms();
@@ -2913,6 +2920,8 @@ Ghoul2 Insert End
 	cg.forceHUDTotalFlashTime = 0;
 	cg.forceHUDNextFlashTime = 0;
 
+	CG_LoadingString("Loadng weapon icons...");
+
 	i = WP_NONE+1;
 	while (i <= WP_NUM_USEABLE)
 	{
@@ -2943,6 +2952,8 @@ Ghoul2 Insert End
 	cgs.media.forceIconBackground		= trap->R_RegisterShaderNoMip( "gfx/hud/background_f");
 	cgs.media.inventoryIconBackground	= trap->R_RegisterShaderNoMip( "gfx/hud/background_i");
 
+	CG_LoadingString("Loadng holdable icons...");
+
 	//rww - precache holdable item icons here
 	while (i < bg_numItems)
 	{
@@ -2960,6 +2971,9 @@ Ghoul2 Insert End
 
 		i++;
 	}
+
+
+	CG_LoadingString("Loadng force power icons...");
 
 	//rww - precache force power icons here
 	i = 0;
@@ -2996,6 +3010,8 @@ Ghoul2 Insert End
 	cgs.screenXScale = cgs.glconfig.vidWidth / 640.0;
 	cgs.screenYScale = cgs.glconfig.vidHeight / 480.0;
 
+	CG_LoadingString("Waiting for game state...");
+
 	// get the gamestate from the client system
 	trap->GetGameState( &cgs.gameState );
 
@@ -3009,6 +3025,8 @@ Ghoul2 Insert End
 
 	s = CG_ConfigString( CS_LEVEL_START_TIME );
 	cgs.levelStartTime = atoi( s );
+
+	CG_LoadingString("Waiting for server info...");
 
 	CG_ParseServerinfo();
 

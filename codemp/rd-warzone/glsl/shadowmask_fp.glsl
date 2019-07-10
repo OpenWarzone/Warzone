@@ -19,7 +19,7 @@ varying vec3				var_ViewDir;
 #define						SHADOW_MAP_SIZE			u_Settings0.g
 #define						SHADOWS_FULL_SOLID		u_Settings0.b
 
-#define SHADOW_Z_ERROR_OFFSET 0.0001
+#define SHADOW_Z_ERROR_OFFSET 0.01//u_Settings1.r//0.0001
 #define MAX_SHADOW_VALUE_NORMAL 0.1
 #define MAX_SHADOW_VALUE_SOLID 0.9999999
 

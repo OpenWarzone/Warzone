@@ -38,6 +38,7 @@ struct packedVertex_t
 	uint32_t normal;
 	//uint32_t tangent;
 	vec2_t texcoords[1 + MAXLIGHTMAPS];
+#ifndef __CHEAP_VERTS__
 #ifdef __VBO_PACK_COLOR__
 	uint32_t colors[MAXLIGHTMAPS];
 #elif defined(__VBO_HALF_FLOAT_COLOR__)
@@ -45,6 +46,7 @@ struct packedVertex_t
 #else //!__VBO_PACK_COLOR__
 	vec4_t colors[MAXLIGHTMAPS];
 #endif //__VBO_PACK_COLOR__
+#endif //__CHEAP_VERTS__
 };
 
 /*
@@ -3404,13 +3406,17 @@ static void R_CreateWorldVBOs(void)
 			vbo->ofs_xyz = offsetof(packedVertex_t, position);
 			vbo->ofs_normal = offsetof(packedVertex_t, normal);
 			vbo->ofs_st = offsetof(packedVertex_t, texcoords);
+#ifndef __CHEAP_VERTS__
 			vbo->ofs_vertexcolor = offsetof(packedVertex_t, colors);
+#endif //__CHEAP_VERTS__
 
 			const size_t packedVertexSize = sizeof(packedVertex_t);
 			vbo->stride_xyz = packedVertexSize;
 			vbo->stride_normal = packedVertexSize;
 			vbo->stride_st = packedVertexSize;
+#ifndef __CHEAP_VERTS__
 			vbo->stride_vertexcolor = packedVertexSize;
+#endif //__CHEAP_VERTS__
 
 			// point bsp surfaces to VBO
 			for (currSurf = firstSurf; currSurf < lastSurf; currSurf++)

@@ -24,6 +24,13 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_local.h"
 //#include "assert.h"
 
+//
+// UQ1: Disabled because it wont mark anything any more anyway, needed to free up the verts memory that it needs. It also doesnt make sense with tessellation (marks in mid air).
+// While it is possible a very few surfs might still be markable (non-vbo ones), it is pretty much a waste of cpu time for those.
+//
+
+//#define __ENABLE_MARKS__
+
 #define MAX_VERTS_ON_POLY		64
 
 #define MARKER_OFFSET			0	// 1
@@ -202,6 +209,7 @@ void R_AddMarkFragments(int numClipPoints, vec3_t clipPoints[2][MAX_VERTS_ON_POL
 				   int maxFragments, markFragment_t *fragmentBuffer,
 				   int *returnedPoints, int *returnedFragments,
 				   vec3_t mins, vec3_t maxs) {
+#ifdef __ENABLE_MARKS__
 	int pingPong, i;
 	markFragment_t	*mf;
 
@@ -247,6 +255,7 @@ void R_AddMarkFragments(int numClipPoints, vec3_t clipPoints[2][MAX_VERTS_ON_POL
 
 	(*returnedPoints) += numClipPoints;
 	(*returnedFragments)++;
+#endif //__ENABLE_MARKS__
 }
 
 /*
@@ -257,6 +266,7 @@ R_MarkFragments
 */
 int R_MarkFragments( int numPoints, const vec3_t *points, const vec3_t projection,
 				   int maxPoints, vec3_t pointBuffer, int maxFragments, markFragment_t *fragmentBuffer ) {
+#ifdef __ENABLE_MARKS__
 	int				numsurfaces, numPlanes;
 	int				i, j, k, m, n;
 	surfaceType_t	*surfaces[64];
@@ -474,6 +484,9 @@ int R_MarkFragments( int numPoints, const vec3_t *points, const vec3_t projectio
 		}
 	}
 	return returnedFragments;
+#else //!__ENABLE_MARKS__
+	return 0;
+#endif //__ENABLE_MARKS__
 }
 
 

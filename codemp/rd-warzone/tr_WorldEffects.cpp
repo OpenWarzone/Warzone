@@ -23,6 +23,8 @@
 
 #ifdef __JKA_WEATHER__
 
+#define __CHEAP_WEATHER__
+
 extern qboolean	JKA_WEATHER_ENABLED;
 extern qboolean	WZ_WEATHER_ENABLED;
 extern qboolean	WZ_WEATHER_SOUND_ONLY;
@@ -40,7 +42,7 @@ extern void Volumetric_Trace(trace_t *results, const vec3_t start, const vec3_t 
 #define	MAX_PUFF_SYSTEMS		2
 #define	MAX_PARTICLE_CLOUDS		64//5
 
-#define POINTCACHE_CELL_SIZE	96.0f
+#define POINTCACHE_CELL_SIZE	2048.0f//96.0f
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -368,7 +370,7 @@ bool R_GetWindGusting()
 }
 
 
-
+#ifndef __CHEAP_WEATHER__
 ////////////////////////////////////////////////////////////////////////////////////////
 // Outside Point Cache
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1228,7 +1230,12 @@ float R_IsOutsideCausingPain(vec3_t pos)
 {
 	return (mOutside.mOutsidePain && mOutside.PointOutside(pos));
 }
-
+#else //__CHEAP_WEATHER__
+void RE_AddWeatherZone(vec3_t mins, vec3_t maxs)
+{// We are using the whole map... GLSL handles culling...
+	
+}
+#endif //__CHEAP_WEATHER__
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Particle Cloud
@@ -1601,7 +1608,11 @@ public:
 
 			partToCamera	= (part->mPosition - mCameraPosition);
 			partRendering	= part->mFlags.get_bit(CWeatherParticle::FLAG_RENDER);
+#ifdef __CHEAP_WEATHER__
+			partOutside = true;
+#else //!__CHEAP_WEATHER__
 			partOutside		= mOutside.PointOutside(part->mPosition, mWidth, mHeight);
+#endif //__CHEAP_WEATHER__
 			partInRange		= mRange.In(part->mPosition);
 			partInView		= (partOutside && partInRange && (partToCamera.Dot(mCameraForward)>0.0f));
 
@@ -2164,7 +2175,9 @@ void R_InitWorldEffects(void)
 	}
 	mParticleClouds.clear();
 	mWindZones.clear();
+#ifndef __CHEAP_WEATHER__
 	mOutside.Reset();
+#endif //__CHEAP_WEATHER__
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -2182,11 +2195,13 @@ qboolean WEATHER_KLUDGE_DONE = qfalse;
 
 void RB_SetupGlobalWeatherZone(void)
 {
+#ifndef __CHEAP_WEATHER__
 	if (!WEATHER_KLUDGE_DONE)
 	{
 		mOutside.AddWeatherZone(MAP_INFO_MINS, MAP_INFO_MAXS);
 		WEATHER_KLUDGE_DONE = qtrue;
 	}
+#endif //__CHEAP_WEATHER__
 }
 
 qboolean RB_WeatherEnabled(void)
@@ -2218,6 +2233,7 @@ extern float	DYNAMIC_WEATHER_PUDDLE_STRENGTH;
 
 void RB_RenderWorldEffects(void)
 {
+#ifndef __CHEAP_WEATHER__
 	extern qboolean PROCEDURAL_CLOUDS_DYNAMIC;
 	if (!mOutside.Initialized() && PROCEDURAL_CLOUDS_DYNAMIC)
 	{
@@ -2234,6 +2250,7 @@ void RB_RenderWorldEffects(void)
 
 		WEATHER_KLUDGE_DONE = qtrue;
 	}
+#endif //__CHEAP_WEATHER__
 
 	if (!tr.world ||
 		(tr.refdef.rdflags & RDF_NOWORLDMODEL) ||
@@ -2263,11 +2280,13 @@ void RB_RenderWorldEffects(void)
 
 	// Make Sure We Are Always Outside Cached
 	//----------------------------------------
+#ifndef __CHEAP_WEATHER__
 	if (!mOutside.Initialized())
 	{
 		mOutside.Cache();
 	}
 	else
+#endif //__CHEAP_WEATHER__
 	{
 		// Update All Wind Zones
 		//-----------------------
@@ -2417,6 +2436,7 @@ void RE_WorldEffectCommand_REAL(const char *command, qboolean noHelp)
 		mFrozen = !mFrozen;
 	}
 
+#ifndef __CHEAP_WEATHER__
 	// Add a zone
 	//---------------
 	else if (Q_stricmp(token, "zone") == 0)
@@ -2428,6 +2448,7 @@ void RE_WorldEffectCommand_REAL(const char *command, qboolean noHelp)
 			mOutside.AddWeatherZone(mins, maxs);
 		}
 	}
+#endif //__CHEAP_WEATHER__
 
 	// Basic Wind
 	//------------
@@ -2721,7 +2742,9 @@ void RE_WorldEffectCommand_REAL(const char *command, qboolean noHelp)
 		nCloud.mOrientWithVelocity = true;
 		nCloud.mWaterParticles = true;
 
+#ifndef __CHEAP_WEATHER__
 		mOutside.mOutsidePain = 0.1f;
+#endif //__CHEAP_WEATHER__
 	}
 
 	// Create A Rain Storm
@@ -3094,6 +3117,7 @@ void RE_WorldEffectCommand_REAL(const char *command, qboolean noHelp)
 		nCloud.mRotationChangeNext	= 0;
 	}
 
+#ifndef __CHEAP_WEATHER__
 	else if (Q_stricmp(token, "outsideshake") == 0)
 	{
 		mOutside.mOutsideShake = !mOutside.mOutsideShake;
@@ -3102,6 +3126,7 @@ void RE_WorldEffectCommand_REAL(const char *command, qboolean noHelp)
 	{
 		mOutside.mOutsidePain = !mOutside.mOutsidePain;
 	}
+#endif //__CHEAP_WEATHER__
 	else
 	{
 		if (!noHelp)
@@ -3136,8 +3161,10 @@ void RE_WorldEffectCommand_REAL(const char *command, qboolean noHelp)
 			ri->Printf(PRINT_ALL, "^1*** ^3%s^5: 	^7fog\n", heading);
 			ri->Printf(PRINT_ALL, "^1*** ^3%s^5: 	^7heavyrainfog\n", heading);
 			ri->Printf(PRINT_ALL, "^1*** ^3%s^5: 	^7light_fog\n", heading);
+#ifndef __CHEAP_WEATHER__
 			ri->Printf(PRINT_ALL, "^1*** ^3%s^5: 	^7outsideshake\n", heading);
 			ri->Printf(PRINT_ALL, "^1*** ^3%s^5: 	^7outsidepain\n", heading);
+#endif //__CHEAP_WEATHER__
 		}
 	}
 }

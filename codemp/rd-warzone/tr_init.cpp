@@ -1608,7 +1608,7 @@ void R_Register( void )
 	r_shadowContrast = ri->Cvar_Get("r_shadowContrast", "0.7", CVAR_ARCHIVE);
 	r_shadowBlur = ri->Cvar_Get( "r_shadowBlur", "true", CVAR_ARCHIVE );
 	r_shadowFilter = ri->Cvar_Get( "r_shadowFilter", "2", CVAR_ARCHIVE | CVAR_LATCH );
-	r_shadowMapSize = ri->Cvar_Get( "r_shadowMapSize", "1024", CVAR_ARCHIVE | CVAR_LATCH );
+	r_shadowMapSize = ri->Cvar_Get( "r_shadowMapSize", "2048"/*"1024"*/, CVAR_ARCHIVE | CVAR_LATCH );
 	r_shadowCascadeZNear = ri->Cvar_Get( "r_shadowCascadeZNear", "4", CVAR_ARCHIVE );
 	r_shadowCascadeZFar = ri->Cvar_Get( "r_shadowCascadeZFar", "8192"/*"3072"*/, CVAR_ARCHIVE );
 	r_shadowCascadeZBias = ri->Cvar_Get( "r_shadowCascadeZBias", "-320", CVAR_ARCHIVE );

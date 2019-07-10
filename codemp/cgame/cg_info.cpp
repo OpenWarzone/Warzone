@@ -251,6 +251,12 @@ void CG_DrawInformation( void ) {
 		y += iPropHeight;
 	}
 
+	// warn of non-warzone map support...
+	if (StringContainsWord(cgs.currentmapname, "mp/")) {
+		CG_DrawProportionalString(320, y, "This is a base JKA map. They are not officially supported by warzone.", UI_CENTER | UI_SMALLFONT/*UI_INFOFONT*/ | UI_DROPSHADOW, colorRed);
+		y += iPropHeight;
+	}
+
 	// game type
 	s = BG_GetGametypeString( cgs.gametype );
 	CG_DrawProportionalString( 320, y, s, UI_CENTER| UI_SMALLFONT/*UI_INFOFONT*/ |UI_DROPSHADOW, colorWhite );
