@@ -786,7 +786,7 @@ static qboolean R_LoadAssImp(model_t * mod, int lod, void *buffer, const char *m
 
 		// swap all the triangles
 		surf->numIndexes = aiSurf->mNumFaces * 3;
-		surf->indexes = tri = (glIndex_t *)ri->Hunk_Alloc(sizeof(*tri) * aiSurf->mNumFaces * 3, h_low);
+		surf->indexes = tri = (glIndex_t *)ri->Hunk_AllocateTempMemory(sizeof(*tri) * aiSurf->mNumFaces * 3);
 
 		for (j = 0; j < aiSurf->mNumFaces; j++, tri += 3)
 		{// Assuming triangles for now... AssImp is currently set to convert everything to triangles anyway...
@@ -797,7 +797,7 @@ static qboolean R_LoadAssImp(model_t * mod, int lod, void *buffer, const char *m
 
 		// swap all the XyzNormals
 		surf->numVerts = aiSurf->mNumVertices;
-		surf->verts = v = (mdvVertex_t *)ri->Hunk_Alloc(sizeof(*v) * aiSurf->mNumVertices, h_low);
+		surf->verts = v = (mdvVertex_t *)ri->Hunk_AllocateTempMemory(sizeof(*v) * aiSurf->mNumVertices);
 
 		for (j = 0; j < aiSurf->mNumVertices; j++, v++)
 		{
@@ -895,7 +895,7 @@ static qboolean R_LoadAssImp(model_t * mod, int lod, void *buffer, const char *m
 		srfVBOMDVMesh_t *vboSurf;
 
 		mdvModel->numVBOSurfaces = mdvModel->numSurfaces;
-		mdvModel->vboSurfaces = (srfVBOMDVMesh_t *)ri->Hunk_Alloc(sizeof(*mdvModel->vboSurfaces) * mdvModel->numSurfaces, h_low);
+		mdvModel->vboSurfaces = (srfVBOMDVMesh_t *)ri->Hunk_AllocateTempMemory(sizeof(*mdvModel->vboSurfaces) * mdvModel->numSurfaces);
 
 		vboSurf = mdvModel->vboSurfaces;
 		surf = mdvModel->surfaces;
@@ -996,6 +996,9 @@ static qboolean R_LoadAssImp(model_t * mod, int lod, void *buffer, const char *m
 			Z_Free(data);
 
 			vboSurf->ibo = R_CreateIBO((byte *)surf->indexes, sizeof(glIndex_t) * surf->numIndexes, VBO_USAGE_STATIC);
+
+			ri->Hunk_FreeTempMemory(surf->indexes);
+			ri->Hunk_FreeTempMemory(surf->verts);
 		}
 
 		/*
@@ -2125,7 +2128,7 @@ static qboolean R_LoadMD3(model_t * mod, int lod, void *buffer, const char *modN
 
 		// swap all the triangles
 		surf->numIndexes = md3Surf->numTriangles * 3;
-		surf->indexes = tri = (glIndex_t *)ri->Hunk_Alloc(sizeof(*tri) * 3 * md3Surf->numTriangles, h_low);
+		surf->indexes = tri = (glIndex_t *)ri->Hunk_AllocateTempMemory(sizeof(*tri) * 3 * md3Surf->numTriangles);
 
 		md3Tri = (md3Triangle_t *) ((byte *) md3Surf + md3Surf->ofsTriangles);
 		for(j = 0; j < md3Surf->numTriangles; j++, tri += 3, md3Tri++)
@@ -2137,7 +2140,7 @@ static qboolean R_LoadMD3(model_t * mod, int lod, void *buffer, const char *modN
 
 		// swap all the XyzNormals
 		surf->numVerts = md3Surf->numVerts;
-		surf->verts = v = (mdvVertex_t *)ri->Hunk_Alloc(sizeof(*v) * (md3Surf->numVerts * md3Surf->numFrames), h_low);
+		surf->verts = v = (mdvVertex_t *)ri->Hunk_AllocateTempMemory(sizeof(*v) * (md3Surf->numVerts * md3Surf->numFrames));
 
 		md3xyz = (md3XyzNormal_t *) ((byte *) md3Surf + md3Surf->ofsXyzNormals);
 		for(j = 0; j < md3Surf->numVerts * md3Surf->numFrames; j++, md3xyz++, v++)
@@ -2338,6 +2341,9 @@ static qboolean R_LoadMD3(model_t * mod, int lod, void *buffer, const char *modN
 			Z_Free(data);
 
 			vboSurf->ibo = R_CreateIBO ((byte *)surf->indexes, sizeof (glIndex_t) * surf->numIndexes, VBO_USAGE_STATIC);
+
+			ri->Hunk_FreeTempMemory(surf->indexes);
+			ri->Hunk_FreeTempMemory(surf->verts);
 		}
 
 		/*

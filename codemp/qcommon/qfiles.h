@@ -463,11 +463,11 @@ typedef struct dsurface_s {
 	int			fogNum;
 	int			surfaceType;
 
-	int			firstVert;
-	int			numVerts;
+	uint32_t	firstVert;
+	uint32_t	numVerts;
 
-	int			firstIndex;
-	int			numIndexes;
+	uint32_t	firstIndex;
+	uint32_t	numIndexes;
 
 	byte		lightmapStyles[MAXLIGHTMAPS], vertexStyles[MAXLIGHTMAPS];
 	int			lightmapNum[MAXLIGHTMAPS];

@@ -190,6 +190,13 @@ if(BuildMPEngine OR BuildMPDed)
 		)
 	source_group("game" FILES ${MPEngineAndDedGameFiles})
 	set(MPEngineAndDedFiles ${MPEngineAndDedFiles} ${MPEngineAndDedGameFiles})
+	
+	set(MPEngineAndDedSharedMemoryFiles
+		"${MPDir}/SharedMemory/sharedmemory.h"
+		"${MPDir}/SharedMemory/sharedmemory.cpp"
+		)
+	source_group("SharedMemory" FILES ${MPEngineAndDedSharedMemoryFiles})
+	set(MPEngineAndDedFiles ${MPEngineAndDedFiles} ${MPEngineAndDedSharedMemoryFiles})
 
 	set(MPEngineAndDedCommonFiles
 		"${MPDir}/qcommon/inifile.cpp"

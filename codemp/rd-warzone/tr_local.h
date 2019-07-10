@@ -42,6 +42,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //#define __PERFORMANCE_DEBUG_STARTUP__
 #endif //__PERFORMANCE_DEBUG__
 
+#define __CHEAP_VERTS__
+
 // -----------------------------------------------------------------------------------------------------------------------------
 //                                               Warzone Basic Renderer Defines
 // -----------------------------------------------------------------------------------------------------------------------------
@@ -178,6 +180,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 //#define __REALTIME_SURFACE_SORTING2__
 
+#ifdef _WIN32
+	#define __BSP_USE_SHARED_MEMORY__
+#endif //_WIN32
 
 #define MAX_GLM_BONEREFS 20 //10 //16 //20 //80
 
@@ -245,6 +250,7 @@ extern int GLSL_BINDS_COUNT;
 #ifdef _WIN32
 #include "win32\win_local.h"
 #include "qcommon\sstring.h"
+#include "../SharedMemory/sharedMemory.h"
 #endif
 
 #define MAX_GLSL_LENGTH 170000
@@ -2095,6 +2101,7 @@ struct srfSprites_t
 };
 #endif //__XYC_SURFACE_SPRITES__
 
+#ifndef __CHEAP_VERTS__
 typedef struct
 {
 	vec3_t          xyz;
@@ -2109,6 +2116,19 @@ typedef struct
 	unsigned int    id;
 #endif
 } srfVert_t;
+#else //__CHEAP_VERTS__
+typedef struct
+{
+	vec3_t          xyz;
+	vec2_t          st;
+	vec2_t          lightmap[MAXLIGHTMAPS];
+	vec3_t          normal;
+
+#if DEBUG_OPTIMIZEVERTICES
+	unsigned int    id;
+#endif
+} srfVert_t;
+#endif //__CHEAP_VERTS__
 
 // srfBspSurface_t covers SF_GRID, SF_TRIANGLES, SF_POLY, and SF_VBO_MESH
 typedef struct srfBspSurface_s
@@ -2128,16 +2148,16 @@ typedef struct srfBspSurface_s
 	cplane_t        cullPlane;
 
 	// indexes
-	int             numIndexes;
+	uint32_t       numIndexes;
 	glIndex_t      *indexes;
 
 	// vertexes
-	int             numVerts;
+	uint32_t       numVerts;
 	srfVert_t      *verts;
 
 	// BSP VBO offsets
-	int             firstVert;
-	int             firstIndex;
+	uint32_t        firstVert;
+	uint32_t        firstIndex;
 	glIndex_t       minIndex;
 	glIndex_t       maxIndex;
 
@@ -2163,6 +2183,9 @@ typedef struct srfBspSurface_s
 #ifdef __USE_VBO_AREAS__
 	int				vboArea = -1;
 #endif //__USE_VBO_AREAS__
+
+	qboolean		isWorldVBO = qfalse;
+	hSharedMemory	*sharedMemoryPointer = NULL;
 } srfBspSurface_t;
 
 // inter-quake-model

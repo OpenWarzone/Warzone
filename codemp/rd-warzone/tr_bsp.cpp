@@ -792,6 +792,65 @@ void GenerateNormalsForBSPSurface(srfBspSurface_t *cv)
 	}
 }
 
+void GenerateSmoothNormalsForSurface(srfBspSurface_t *cv)
+{
+	int numVerts = cv->numVerts;
+	int numIndexes = cv->numIndexes;
+
+	srfVert_t *verts = cv->verts;
+	
+#define __MULTIPASS_SMOOTHING__ // Looks better, but takes a lot longer...
+
+#ifdef __MULTIPASS_SMOOTHING__
+	for (int z = 0; z < 3; z++)
+#endif //__MULTIPASS_SMOOTHING__
+	{
+#pragma omp parallel for schedule(dynamic)
+		for (int i = 0; i < numVerts; i++)
+		{
+			//ri->Printf(PRINT_WARNING, "%i of %i.\n", i, numVerts);
+
+			qboolean updated = qfalse;
+			vec3_t finalNormal;
+
+			VectorCopy(verts[i].normal, finalNormal);
+
+			for (int j = 0; j < numVerts; j++)
+			{
+				if (j == i) continue;
+
+				vec3_t n2;
+
+				//if (Distance(verts[i].position, verts[j].position) > 0.0) continue;
+				if (!VectorCompare(verts[i].xyz, verts[j].xyz)) continue;
+
+				if (ValidForSmoothing(verts[i].xyz, verts[i].normal, verts[j].xyz, verts[j].normal))
+				{
+					VectorAdd(finalNormal, n2, finalNormal);
+#ifndef __MULTIPASS_SMOOTHING__
+					VectorAdd(finalNormal, n2, finalNormal);
+					VectorAdd(finalNormal, n2, finalNormal);
+					VectorAdd(finalNormal, n2, finalNormal);
+					VectorAdd(finalNormal, n2, finalNormal);
+#endif //__MULTIPASS_SMOOTHING__
+
+					updated = qtrue;
+				}
+			}
+
+			if (updated)
+			{
+				VectorNormalize(finalNormal);
+
+#pragma omp critical (__SET_SMOOTH_NORMAL__)
+				{
+					VectorCopy(finalNormal, verts[i].normal);
+				}
+			}
+		}
+	}
+}
+
 void GenerateSmoothNormalsForPacked(packedVertex_t *verts, int numVerts)
 {
 	if (!ENABLE_REGEN_SMOOTH_NORMALS)
@@ -910,10 +969,11 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, float *hdrVertColors, 
 	cv->verts = (srfVert_t *)malloc(numVerts * sizeof(cv->verts[0]));
 #else //!__FREE_WORLD_DATA__
 	cv->numIndexes = numIndexes;
-	cv->indexes = (glIndex_t *)ri->Hunk_Alloc(numIndexes * sizeof(cv->indexes[0]), h_low);
+	cv->indexes = (glIndex_t *)ri->Hunk_AllocateTempMemory(numIndexes * sizeof(cv->indexes[0]));
 
+	cv->sharedMemoryPointer = NULL;
 	cv->numVerts = numVerts;
-	cv->verts = (srfVert_t *)ri->Hunk_Alloc(numVerts * sizeof(cv->verts[0]), h_low);
+	cv->verts = (srfVert_t *)ri->Hunk_AllocateTempMemory(numVerts * sizeof(cv->verts[0]));
 #endif //__FREE_WORLD_DATA__
 
 	// copy vertexes
@@ -968,7 +1028,9 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, float *hdrVertColors, 
 			}
 			color[3] = verts[i].color[j][3] / 255.0f;
 
+#ifndef __CHEAP_VERTS__
 			R_ColorShiftLightingFloats( color, cv->verts[i].vertexColors[j], 1.0f / 255.0f );
+#endif //__CHEAP_VERTS__
 		}
 	}
 
@@ -1125,7 +1187,9 @@ static void ParseMesh ( dsurface_t *ds, drawVert_t *verts, float *hdrVertColors,
 			}
 			color[3] = verts[i].color[j][3] / 255.0f;
 
+#ifndef __CHEAP_VERTS__
 			R_ColorShiftLightingFloats( color, points[i].vertexColors[j], 1.0f / 255.0f );
+#endif //__CHEAP_VERTS__
 		}
 	}
 
@@ -1150,6 +1214,8 @@ static void ParseMesh ( dsurface_t *ds, drawVert_t *verts, float *hdrVertColors,
 #ifdef __REGENERATE_BSP_NORMALS__
 	GenerateNormalsForBSPSurface(grid);
 #endif //__REGENERATE_BSP_NORMALS__
+
+	grid->sharedMemoryPointer = NULL;
 }
 
 /*
@@ -1157,11 +1223,11 @@ static void ParseMesh ( dsurface_t *ds, drawVert_t *verts, float *hdrVertColors,
 ParseTriSurf
 ===============
 */
-static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, float *hdrVertColors, msurface_t *surf, int *indexes ) {
-	srfBspSurface_t *cv;
-	glIndex_t  *tri;
-	int             i, j;
-	int             numVerts, numIndexes, badTriangles;
+static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, float *hdrVertColors, msurface_t *surf, int *indexes, int surfID ) {
+	srfBspSurface_t	*cv;
+	glIndex_t		*tri;
+	uint32_t		i, j;
+	uint32_t		numVerts, numIndexes, badTriangles;
 
 #ifdef __Q3_FOG__
 	// get fog volume
@@ -1189,10 +1255,38 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, float *hdrVertColor
 	cv->verts = (srfVert_t *)malloc(numVerts * sizeof(cv->verts[0]));
 #else //__FREE_WORLD_DATA__
 	cv->numIndexes = numIndexes;
-	cv->indexes = (glIndex_t *)ri->Hunk_Alloc(numIndexes * sizeof(cv->indexes[0]), h_low);
+	cv->indexes = (glIndex_t *)ri->Hunk_AllocateTempMemory(numIndexes * sizeof(cv->indexes[0]));
 
-	cv->numVerts = numVerts;
-	cv->verts = (srfVert_t *)ri->Hunk_Alloc(numVerts * sizeof(cv->verts[0]), h_low);
+	/*#ifdef __BSP_USE_SHARED_MEMORY__
+		cv->numVerts = numVerts;
+
+		ri->Printf(PRINT_WARNING, "Surf %i is %.2f MB.\n", surfID, (numVerts * sizeof(cv->verts[0])) / 1024.0 / 1024.0);
+
+		//if (numVerts * sizeof(cv->verts[0]) >= 5 * 1024 * 1024)
+		{
+			cv->sharedMemoryPointer = OpenSharedMemory(va("BSPSurface%i", surfID), va("BSPSurface%iMutex", surfID), numVerts * sizeof(cv->verts[0]));
+
+			if (cv->sharedMemoryPointer)
+			{
+				cv->verts = (srfVert_t *)cv->sharedMemoryPointer->hFileView;
+			}
+			else
+			{
+				ri->Printf(PRINT_WARNING, "Surf %i ran out of shared memory, falling back to normal memory for %.2f MB.\n", surfID, (numVerts * sizeof(cv->verts[0])) / 1024.0 / 1024.0);
+				cv->sharedMemoryPointer = NULL;
+				cv->verts = (srfVert_t *)ri->Hunk_AllocateTempMemory(numVerts * sizeof(cv->verts[0]));
+			}
+		}
+		else
+		{
+			cv->sharedMemoryPointer = NULL;
+			cv->numVerts = numVerts;
+			cv->verts = (srfVert_t *)ri->Hunk_AllocateTempMemory(numVerts * sizeof(cv->verts[0]));
+		}
+	#else //!__BSP_USE_SHARED_MEMORY__*/
+		cv->numVerts = numVerts;
+		cv->verts = (srfVert_t *)ri->Hunk_AllocateTempMemory(numVerts * sizeof(cv->verts[0]));
+	//#endif //__BSP_USE_SHARED_MEMORY__
 #endif //__FREE_WORLD_DATA__
 
 	surf->data = (surfaceType_t *) cv;
@@ -1257,7 +1351,9 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, float *hdrVertColor
 			}
 			color[3] = verts[i].color[j][3] / 255.0f;
 
+#ifndef __CHEAP_VERTS__
 			R_ColorShiftLightingFloats( color, cv->verts[i].vertexColors[j], 1.0f / 255.0f );
+#endif //__CHEAP_VERTS__
 		}
 	}
 
@@ -1276,17 +1372,21 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, float *hdrVertColor
 			}
 		}
 
+		/*
+		// UQ1: Umm yeah. don't do this. it could be intentional (line).
 		if ((tri[0] == tri[1]) || (tri[1] == tri[2]) || (tri[0] == tri[2]))
 		{
 			tri -= 3;
 			badTriangles++;
 		}
+		*/
 	}
 
 	if (badTriangles)
 	{
 		ri->Printf(PRINT_WARNING, "Trisurf has bad triangles, originally shader %s %d tris %d verts, now %d tris\n", surf->shader->name, numIndexes / 3, numVerts, numIndexes / 3 - badTriangles);
 		cv->numIndexes -= badTriangles * 3;
+		numIndexes = cv->numIndexes; // UQ1: Need to also do this, since we use it just below.
 	}
 
 	//R_OptimizeMesh((uint32_t *)&cv->numVerts, (uint32_t *)&cv->numIndexes, cv->indexes, NULL);
@@ -1370,10 +1470,10 @@ static void ParseLodModelTriSurf(lodModel_t *lodModel, mdvModel_t *header, int s
 	cv->surfaceType = SF_TRIANGLES;
 
 	cv->numIndexes = numIndexes;
-	cv->indexes = (glIndex_t *)ri->Hunk_Alloc(numIndexes * sizeof(cv->indexes[0]), h_low);
+	cv->indexes = (glIndex_t *)ri->Hunk_AllocateTempMemory(numIndexes * sizeof(cv->indexes[0]));
 
 	cv->numVerts = numVerts;
-	cv->verts = (srfVert_t *)ri->Hunk_Alloc(numVerts * sizeof(cv->verts[0]), h_low);
+	cv->verts = (srfVert_t *)ri->Hunk_AllocateTempMemory(numVerts * sizeof(cv->verts[0]));
 
 	surf->data = (surfaceType_t *)cv;
 
@@ -2210,6 +2310,8 @@ void R_MovePatchSurfacesToHunk(void) {
 		hunkgrid->numVerts = grid->numVerts;
 		hunkgrid->verts = (srfVert_t *)ri->Hunk_Alloc(grid->numVerts * sizeof(srfVert_t), h_low);
 		Com_Memcpy(hunkgrid->verts, grid->verts, grid->numVerts * sizeof(srfVert_t));
+
+		hunkgrid->sharedMemoryPointer = NULL;
 #endif //__FREE_WORLD_DATA__
 
 		R_FreeSurfaceGridMesh( grid );
@@ -2630,13 +2732,19 @@ static void CopyVert(const srfVert_t * in, srfVert_t * out)
 	for(j = 0; j < 3; j++)
 	{
 		out->xyz[j]       = in->xyz[j];
+#ifndef __CHEAP_VERTS__
 		out->tangent[j]   = in->tangent[j];
 		//out->bitangent[j] = in->bitangent[j];
+#endif //__CHEAP_VERTS__
 		out->normal[j]    = in->normal[j];
+#ifndef __CHEAP_VERTS__
 		out->lightdir[j]  = in->lightdir[j];
+#endif //__CHEAP_VERTS__
 	}
 
+#ifndef __CHEAP_VERTS__
 	out->tangent[3] = in->tangent[3];
+#endif //__CHEAP_VERTS__
 
 	for(j = 0; j < 2; j++)
 	{
@@ -2644,10 +2752,12 @@ static void CopyVert(const srfVert_t * in, srfVert_t * out)
 		Com_Memcpy (out->lightmap[j], in->lightmap[j], sizeof (out->lightmap[0]));
 	}
 
+#ifndef __CHEAP_VERTS__
 	for(j = 0; j < 4; j++)
 	{
 		Com_Memcpy (out->vertexColors[j], in->vertexColors[j], sizeof (out->vertexColors[0]));
 	}
+#endif //__CHEAP_VERTS__
 }
 
 #ifdef __USE_VBO_AREAS__
@@ -2970,8 +3080,11 @@ static void R_CreateWorldVBOs(void)
 	VBO_t *vbo;
 	IBO_t *ibo;
 
-	int maxVboSize = 16 * 64 * 1024 * 1024;
-	int maxIboSize = 4 * 64 * 1024 * 1024;
+	//int maxVboSize = 16 * 64 * 1024 * 1024;
+	//int maxIboSize = 4 * 64 * 1024 * 1024;
+
+	int maxVboSize = 16 * 1024;
+	int maxIboSize = 4 * 1024;
 
 	int             startTime, endTime;
 
@@ -2983,8 +3096,10 @@ static void R_CreateWorldVBOs(void)
 #ifdef __USE_VBO_AREAS__
 	Setup_VBO_Areas();
 #endif //__USE_VBO_AREAS__
+	
+	int s;
 
-	for(surface = &s_worldData->surfaces[0]; surface < &s_worldData->surfaces[s_worldData->numsurfaces]; surface++)
+	for(s = 0, surface = &s_worldData->surfaces[0]; surface < &s_worldData->surfaces[s_worldData->numsurfaces]; surface++, s++)
 	{
 		srfBspSurface_t *bspSurf = (srfBspSurface_t *)surface->data;
 		shader_t *shader = surface->shader;
@@ -3002,19 +3117,41 @@ static void R_CreateWorldVBOs(void)
 #endif //__USE_VBO_AREAS__
 
 		if (*surface->data == SF_BAD)
+		{
+			ri->Printf(PRINT_WARNING, "World surface %i is SF_BAD.\n", s);
 			continue;
+		}
 
 		// check for this now so we can use srfBspSurface_t* universally in the rest of the function
 		if (!(*surface->data == SF_FACE || *surface->data == SF_GRID || *surface->data == SF_TRIANGLES))
-			continue;
-
-		if (shader->isPortal || shader->isSky || ShaderRequiresCPUDeforms(shader))
 		{
+			//ri->Printf(PRINT_WARNING, "World surface %i is not SF_FACE or SF_GRID or SF_TRIANGLES.\n", s);
+			continue;
+		}
+
+		if (shader->isPortal)
+		{
+			//ri->Printf(PRINT_WARNING, "World surface %i is PORTAL.\n", s);
+			continue;
+		}
+
+		if (shader->isSky)
+		{
+			//ri->Printf(PRINT_WARNING, "World surface %i is SKY.\n", s);
+			continue;
+		}
+
+		if (ShaderRequiresCPUDeforms(shader))
+		{
+			//ri->Printf(PRINT_WARNING, "World surface %i is CPU Deformed.\n", s);
 			continue;
 		}
 
 		if (!bspSurf->numIndexes || !bspSurf->numVerts)
+		{
+			ri->Printf(PRINT_WARNING, "World surface %i has either no indexes (%i) or no verts (%i).\n", s, bspSurf->numIndexes, bspSurf->numVerts);
 			continue;
+		}
 
 		numSortedSurfaces++;
 	}
@@ -3150,8 +3287,19 @@ static void R_CreateWorldVBOs(void)
 			ri->Printf(PRINT_ALL, "...calculating world VBO %i ( %i verts %i tris )\n", k, numVerts, numIndexes / 3);
 
 			// create arrays
+#ifdef _WIN32
+			hSharedMemory *vshared = OpenSharedMemory("BSPverts", "BSPvertsMutex", numVerts * sizeof(packedVertex_t));
+			hSharedMemory *ishared = OpenSharedMemory("BSPindexes", "BSPindexesMutex", numIndexes * sizeof(glIndex_t));
+
+			void *vdata = (void *)vshared->hFileView;
+			void *idata = (void *)ishared->hFileView;
+
+			verts = (packedVertex_t *)vshared->hFileView;
+			indexes = (glIndex_t *)ishared->hFileView;
+#else //!
 			verts = (packedVertex_t *)ri->Hunk_AllocateTempMemory(numVerts * sizeof(packedVertex_t));
 			indexes = (glIndex_t *)ri->Hunk_AllocateTempMemory(numIndexes * sizeof(glIndex_t));
+#endif //_WIN32
 
 			// set up indices and copy vertices
 			numVerts = 0;
@@ -3197,6 +3345,7 @@ static void R_CreateWorldVBOs(void)
 						VectorCopy2(bspSurf->verts[i].lightmap[j], vert.texcoords[1 + j]);
 					}
 
+#ifndef __CHEAP_VERTS__
 					for (int j = 0; j < MAXLIGHTMAPS; j++)
 					{
 #ifdef __VBO_PACK_COLOR__
@@ -3214,8 +3363,26 @@ static void R_CreateWorldVBOs(void)
 						//vert.colors[j] = R_VboPackTangent(bspSurf->verts[i].vertexColors[j]);
 #endif //__VBO_PACK_COLOR__
 					}
+#endif //__CHEAP_VERTS__
 
 					//vert.lightDirection = R_VboPackNormal(bspSurf->verts[i].lightdir);
+				}
+
+				//bspSurf->isWorldVBO = qtrue;
+
+				
+				// It's in a VBO/IBO now, free the crap...
+				if (bspSurf->sharedMemoryPointer)
+				{
+					CloseSharedMemory(bspSurf->sharedMemoryPointer);
+					bspSurf->sharedMemoryPointer = NULL;
+					ri->Hunk_FreeTempMemory(bspSurf->indexes);
+				}
+				else
+				{
+					ri->Hunk_FreeTempMemory(bspSurf->verts);
+					ri->Hunk_FreeTempMemory(bspSurf->indexes);
+					//ri->Printf(PRINT_WARNING, "Surf %i (%s) freed.\n", i, (*currSurf)->shader->name);
 				}
 			}
 
@@ -3265,8 +3432,13 @@ static void R_CreateWorldVBOs(void)
 #endif //__USE_VBO_AREAS__
 			}
 
+#ifdef _WIN32
+			CloseSharedMemory(vshared);
+			CloseSharedMemory(ishared);
+#else //!_WIN32
 			ri->Hunk_FreeTempMemory(indexes);
 			ri->Hunk_FreeTempMemory(verts);
+#endif //_WIN32
 
 			k++;
 		}
@@ -3448,10 +3620,14 @@ static	void R_LoadSurfaces( lump_t *surfs, lump_t *verts, lump_t *indexLump ) {
 		}
 	}
 
-	// UQ1: Alloc out->data for extra lodmodel surfaces...
-	for (i = count; i < count + lodModelSurfaceCount; i++, out++) {
-		out->data = (surfaceType_t *)ri->Hunk_Alloc(sizeof(srfBspSurface_t), h_low);
+#ifdef __VBO_LODMODELS__
+	if (lodModelSurfaceCount > 0)
+	{// UQ1: Alloc out->data for extra lodmodel surfaces...
+		for (i = count; i < count + lodModelSurfaceCount; i++, out++) {
+			out->data = (surfaceType_t *)ri->Hunk_Alloc(sizeof(srfBspSurface_t), h_low);
+		}
 	}
+#endif //__VBO_LODMODELS__
 
 	DEBUG_EndTimer(qfalse);
 
@@ -3480,10 +3656,21 @@ static	void R_LoadSurfaces( lump_t *surfs, lump_t *verts, lump_t *indexLump ) {
 			break;
 		case MST_FOLIAGE:
 		case MST_TRIANGLE_SOUP:
-			ParseTriSurf(thisIn, dv, hdrVertColors, thisOut, indexes );
+			
+			if (!thisIn->numIndexes)
+			{
+				ri->Printf(PRINT_WARNING, "Triangle soup surface %i has %u indexes in bsp data.\n", i, thisIn->numIndexes);
+			}
+
+			ParseTriSurf(thisIn, dv, hdrVertColors, thisOut, indexes, i );
 			numTriSurfs++;
 			break;
 		case MST_PLANAR:
+			if (!thisIn->numIndexes)
+			{
+				ri->Printf(PRINT_WARNING, "MST_PLANAR - surface %i has %u indexes in bsp data.\n", i, thisIn->numIndexes);
+			}
+
 			ParseFace(thisIn, dv, hdrVertColors, thisOut, indexes );
 			numFaces++;
 			break;
@@ -3608,6 +3795,18 @@ static	void R_LoadSubmodels( lump_t *l ) {
 			// Add this for limiting VBO surface creation
 			s_worldData->numWorldSurfaces = out->numSurfaces;
 		}
+
+#ifdef __REGENERATE_BSP_NORMALS__
+		/*
+		for (int s = 0; s < out->numSurfaces; s++)
+		{
+			msurface_t *surf = s_worldData->surfaces + (out->firstSurface + s);
+			srfBspSurface_t *bspSurf = (srfBspSurface_t*)surf->data;
+			GenerateNormalsForBSPSurface(bspSurf);
+			GenerateSmoothNormalsForSurface(bspSurf);
+		}
+		*/
+#endif //__REGENERATE_BSP_NORMALS__
 	}
 }
 
@@ -6008,6 +6207,7 @@ void R_MergeLeafSurfaces(void)
 				*outIboIndexes++ = bspSurf->indexes[k] + bspSurf->firstVert;
 				numIboIndexes++;
 			}
+
 			break;
 		}
 
@@ -6092,6 +6292,7 @@ void R_MergeLeafSurfaces(void)
 
 static void R_CalcVertexLightDirs( void )
 {
+#ifndef __CHEAP_VERTS__
 	int i, k;
 
 	for(k = 0; k < s_worldData->numsurfaces /* s_worldData->numWorldSurfaces */; k++)
@@ -6114,6 +6315,7 @@ static void R_CalcVertexLightDirs( void )
 				break;
 		}
 	}
+#endif //__CHEAP_VERTS__
 }
 
 #ifdef __XYC_SURFACE_SPRITES__
@@ -6439,7 +6641,25 @@ void RE_LoadWorldMapData( const char *name, bool isMainWorld ) {
 	}
 
 	// load it
-    ri->FS_ReadFile( name, &buffer.v );
+#ifdef __BSP_USE_SHARED_MEMORY__
+	buffer.v = NULL;
+
+	fileHandle_t h;
+	hSharedMemory *shared = NULL;
+	const int iBSPLen = ri->FS_FOpenFileRead(name, &h, qfalse);
+
+	if (h && iBSPLen > 0)
+	{
+		shared = OpenSharedMemory("SharedBSP", "SharedBSPMutex", iBSPLen);
+
+		buffer.v = (void *)shared->hFileView;
+
+		ri->FS_Read(buffer.v, iBSPLen, h);
+		ri->FS_FCloseFile(h);
+	}
+#else //!__BSP_USE_SHARED_MEMORY__
+    uint32_t iBSPLen = ri->FS_ReadFile( name, &buffer.v );
+#endif //__BSP_USE_SHARED_MEMORY__
 
 	if (isMainWorld)
 	{
@@ -6545,6 +6765,14 @@ void RE_LoadWorldMapData( const char *name, bool isMainWorld ) {
 	DEBUG_StartTimer("R_LoadLightGridArray", qfalse);
 	R_LoadLightGridArray( &header->lumps[LUMP_LIGHTARRAY] );
 	DEBUG_EndTimer(qfalse);
+
+#ifdef __BSP_USE_SHARED_MEMORY__
+	CloseSharedMemory(shared);
+#else //!__BSP_USE_SHARED_MEMORY__
+	// Free the buffer, ASAP, ffs...
+	ri->FS_FreeFile(buffer.v);
+	Com_Printf("R_LoadMap: BSP memory image (%.2f MB) was freed.\n", float(iBSPLen) / 1024.0 / 1024.0);
+#endif //__BSP_USE_SHARED_MEMORY__
 	
 #ifdef __XYC_SURFACE_SPRITES__
 	R_GenerateSurfaceSprites(&s_worldData);
@@ -6555,200 +6783,15 @@ void RE_LoadWorldMapData( const char *name, bool isMainWorld ) {
 	R_CalcVertexLightDirs();
 	DEBUG_EndTimer(qfalse);
 
-	// determine which parts of the map are in sunlight
-#if 0
-	if (0)
-	{
-		world_t	*w;
-
-		uint8_t *primaryLightGrid, *data;
-		int lightGridSize;
-		int i;
-
-		w = &s_worldData;
-
-		lightGridSize = w->lightGridBounds[0] * w->lightGridBounds[1] * w->lightGridBounds[2];
-		primaryLightGrid = (uint8_t *)Z_Malloc(lightGridSize * sizeof(*primaryLightGrid), TAG_GENERAL);
-
-		memset(primaryLightGrid, 0, lightGridSize * sizeof(*primaryLightGrid));
-
-		data = w->lightGridData;
-		for (i = 0; i < lightGridSize; i++, data += 8)
-		{
-			int lat, lng;
-			vec3_t gridLightDir, gridLightCol;
-
-			// skip samples in wall
-			if (!(data[0]+data[1]+data[2]+data[3]+data[4]+data[5]) )
-				continue;
-
-			gridLightCol[0] = ByteToFloat(data[3]);
-			gridLightCol[1] = ByteToFloat(data[4]);
-			gridLightCol[2] = ByteToFloat(data[5]);
-			(void)gridLightCol; // Suppress unused-but-set-variable warning
-
-			lat = data[7];
-			lng = data[6];
-			lat *= (FUNCTABLE_SIZE/256);
-			lng *= (FUNCTABLE_SIZE/256);
-
-			// decode X as cos( lat ) * sin( long )
-			// decode Y as sin( lat ) * sin( long )
-			// decode Z as cos( long )
-
-			gridLightDir[0] = tr.sinTable[(lat+(FUNCTABLE_SIZE/4))&FUNCTABLE_MASK] * tr.sinTable[lng];
-			gridLightDir[1] = tr.sinTable[lat] * tr.sinTable[lng];
-			gridLightDir[2] = tr.sinTable[(lng+(FUNCTABLE_SIZE/4))&FUNCTABLE_MASK];
-
-			// FIXME: magic number for determining if light direction is close enough to sunlight
-			if (DotProduct(gridLightDir, tr.sunDirection) > 0.75f)
-			{
-				primaryLightGrid[i] = 1;
-			}
-			else
-			{
-				primaryLightGrid[i] = 255;
-			}
-		}
-
-		if (0)
-		{
-			int i;
-			byte *buffer = (byte *)Z_Malloc(w->lightGridBounds[0] * w->lightGridBounds[1] * 3 + 18, TAG_GENERAL);
-			byte *out;
-			uint8_t *in;
-			char fileName[MAX_QPATH];
-			
-			Com_Memset (buffer, 0, 18);
-			buffer[2] = 2;		// uncompressed type
-			buffer[12] = w->lightGridBounds[0] & 255;
-			buffer[13] = w->lightGridBounds[0] >> 8;
-			buffer[14] = w->lightGridBounds[1] & 255;
-			buffer[15] = w->lightGridBounds[1] >> 8;
-			buffer[16] = 24;	// pixel size
-
-			in = primaryLightGrid;
-			for (i = 0; i < w->lightGridBounds[2]; i++)
-			{
-				int j;
-
-				sprintf(fileName, "primarylg%d.tga", i);
-
-				out = buffer + 18;
-				for (j = 0; j < w->lightGridBounds[0] * w->lightGridBounds[1]; j++)
-				{
-					if (*in == 1)
-					{
-						*out++ = 255;
-						*out++ = 255;
-						*out++ = 255;
-					}
-					else if (*in == 255)
-					{
-						*out++ = 64;
-						*out++ = 64;
-						*out++ = 64;
-					}
-					else
-					{
-						*out++ = 0;
-						*out++ = 0;
-						*out++ = 0;
-					}
-					in++;
-				}
-
-				ri->FS_WriteFile(fileName, buffer, w->lightGridBounds[0] * w->lightGridBounds[1] * 3 + 18);
-			}
-
-			Z_Free(buffer);
-		}
-
-		for (i = 0; i < w->numWorldSurfaces; i++)
-		{
-			msurface_t *surf = w->surfaces + i;
-			cullinfo_t *ci = &surf->cullinfo;
-
-			if(ci->type & CULLINFO_PLANE)
-			{
-				if (DotProduct(ci->plane.normal, tr.sunDirection) <= 0.0f)
-				{
-					//ri->Printf(PRINT_ALL, "surface %d is not oriented towards sunlight\n", i);
-					continue;
-				}
-			}
-
-			if(ci->type & CULLINFO_BOX)
-			{
-				int ibounds[2][3], x, y, z, goodSamples, numSamples;
-				vec3_t lightOrigin;
-
-				VectorSubtract( ci->bounds[0], w->lightGridOrigin, lightOrigin );
-
-				ibounds[0][0] = floor(lightOrigin[0] * w->lightGridInverseSize[0]);
-				ibounds[0][1] = floor(lightOrigin[1] * w->lightGridInverseSize[1]);
-				ibounds[0][2] = floor(lightOrigin[2] * w->lightGridInverseSize[2]);
-
-				VectorSubtract( ci->bounds[1], w->lightGridOrigin, lightOrigin );
-
-				ibounds[1][0] = ceil(lightOrigin[0] * w->lightGridInverseSize[0]);
-				ibounds[1][1] = ceil(lightOrigin[1] * w->lightGridInverseSize[1]);
-				ibounds[1][2] = ceil(lightOrigin[2] * w->lightGridInverseSize[2]);
-
-				ibounds[0][0] = CLAMP(ibounds[0][0], 0, w->lightGridSize[0]);
-				ibounds[0][1] = CLAMP(ibounds[0][1], 0, w->lightGridSize[1]);
-				ibounds[0][2] = CLAMP(ibounds[0][2], 0, w->lightGridSize[2]);
-
-				ibounds[1][0] = CLAMP(ibounds[1][0], 0, w->lightGridSize[0]);
-				ibounds[1][1] = CLAMP(ibounds[1][1], 0, w->lightGridSize[1]);
-				ibounds[1][2] = CLAMP(ibounds[1][2], 0, w->lightGridSize[2]);
-
-				/*
-				ri->Printf(PRINT_ALL, "surf %d bounds (%f %f %f)-(%f %f %f) ibounds (%d %d %d)-(%d %d %d)\n", i,
-					ci->bounds[0][0], ci->bounds[0][1], ci->bounds[0][2],
-					ci->bounds[1][0], ci->bounds[1][1], ci->bounds[1][2],
-					ibounds[0][0], ibounds[0][1], ibounds[0][2],
-					ibounds[1][0], ibounds[1][1], ibounds[1][2]);
-				*/
-
-				goodSamples = 0;
-				numSamples = 0;
-				for (x = ibounds[0][0]; x <= ibounds[1][0]; x++)
-				{
-					for (y = ibounds[0][1]; y <= ibounds[1][1]; y++)
-					{
-						for (z = ibounds[0][2]; z <= ibounds[1][2]; z++)
-						{
-							uint8_t primaryLight = primaryLightGrid[x * 8 + y * 8 * w->lightGridBounds[0] + z * 8 * w->lightGridBounds[0] * w->lightGridBounds[2]];
-
-							if (primaryLight == 0)
-								continue;
-
-							numSamples++;
-
-							if (primaryLight == 1)
-								goodSamples++;
-						}
-					}
-				}
-
-				// FIXME: magic number for determining whether object is mostly in sunlight
-				if (goodSamples > numSamples * 0.75f)
-				{
-					//ri->Printf(PRINT_ALL, "surface %d is in sunlight\n", i);
-					//surf->primaryLight = 1;
-				}
-			}
-		}
-
-		Z_Free(primaryLightGrid);
-	}
-#endif
-
 	s_worldData->dataSize = (byte *)ri->Hunk_Alloc(0, h_low) - startMarker;
 
 	// only set tr.world now that we know the entire level has loaded properly
 	tr.world = s_worldData;
+
+	// Set up water plane and glow postions...
+	DEBUG_StartTimer("R_SetupMapGlowsAndWaterPlane", qfalse);
+	R_SetupMapGlowsAndWaterPlane(tr.world);
+	DEBUG_EndTimer(qfalse);
 
 	// create static VBOS from the world
 	DEBUG_StartTimer("R_CreateWorldVBOs", qfalse);
@@ -6766,24 +6809,24 @@ void RE_LoadWorldMapData( const char *name, bool isMainWorld ) {
 	R_BindNullVBO();
 	R_BindNullIBO();
 
-    ri->FS_FreeFile( buffer.v );
+	//ri->FS_FreeFile(buffer.v);
 
 	R_FreeExtraWorldData();
 }
 
-void RT_LoadWorldMapExtras( void )
+void RT_LoadWorldMapExtras(void)
 {
 	DEBUG_StartTimer("R_LoadMapInfo", qfalse);
 	R_LoadMapInfo();
 	DEBUG_EndTimer(qfalse);
 
 	// Set up water plane and glow postions...
-	DEBUG_StartTimer("R_SetupMapGlowsAndWaterPlane", qfalse);
-	R_SetupMapGlowsAndWaterPlane(tr.worldSolid);
-	
-	if (tr.worldNonSolid)
-		R_SetupMapGlowsAndWaterPlane(tr.worldNonSolid);
-	DEBUG_EndTimer(qfalse);
+	//DEBUG_StartTimer("R_SetupMapGlowsAndWaterPlane", qfalse);
+	//R_SetupMapGlowsAndWaterPlane(tr.worldSolid);
+
+	//if (tr.worldNonSolid)
+	//	R_SetupMapGlowsAndWaterPlane(tr.worldNonSolid);
+	//DEBUG_EndTimer(qfalse);
 
 #ifndef __REALTIME_CUBEMAP__
 	// load cubemaps
@@ -6832,6 +6875,26 @@ void RT_LoadWorldMapExtras( void )
 		R_GenerateSkyCubes();
 	}
 #endif //__GENERATED_SKY_CUBES__
+
+	/*if (tr.world != NULL)
+	{
+		for (int i = 0; i < tr.world->numWorldSurfaces; i++)
+		{
+			msurface_t *surf = tr.world->surfaces + i;
+
+			//if (*surf->data == SF_FACE || *surf->data == SF_TRIANGLES)
+			if (surf->isMerged)
+			{
+				const srfBspSurface_t *bspSurf = (srfBspSurface_t *)surf->data;
+
+				if (bspSurf->isWorldVBO)
+				{// Shouldn't need this spam any more...
+					ri->Hunk_FreeTempMemory(bspSurf->verts);
+					ri->Hunk_FreeTempMemory(bspSurf->indexes);
+				}
+			}
+		}
+	}*/
 }
 
 void RE_LoadWorldMap(const char *name) {
@@ -6860,6 +6923,27 @@ void RE_LoadWorldMap(const char *name) {
 	RE_LoadWorldMapData(loadName, false);
 	tr.worldNonSolid = tr.world;
 	tr.world = NULL;
+
+	/*if (tr.worldNonSolid != NULL)
+	{
+		for (int i = 0; i < tr.worldNonSolid->numWorldSurfaces; i++)
+		{
+			msurface_t *surf = tr.worldNonSolid->surfaces + i;
+
+			//if (*surf->data == SF_FACE || *surf->data == SF_TRIANGLES)
+			if (surf->isMerged)
+			{
+				const srfBspSurface_t *bspSurf = (srfBspSurface_t *)surf->data;
+
+				//if (bspSurf->isWorldVBO)
+				{// Shouldn't need this spam any more...
+					ri->Hunk_FreeTempMemory(bspSurf->verts);
+					ri->Hunk_FreeTempMemory(bspSurf->indexes);
+					ri->Printf(PRINT_WARNING, "Surf %i (%s) freed.\n", i, surf->shader->name);
+				}
+			}
+		}
+	}*/
 
 	// Load the base map.
 	RE_LoadWorldMapData(name, true);

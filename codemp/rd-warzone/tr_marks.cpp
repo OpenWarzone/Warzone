@@ -324,10 +324,16 @@ int R_MarkFragments( int numPoints, const vec3_t *points, const vec3_t projectio
 	returnedFragments = 0;
 
 	for ( i = 0 ; i < numsurfaces ; i++ ) {
-
+		
 		if (*surfaces[i] == SF_GRID) {
 
 			cv = (srfBspSurface_t *) surfaces[i];
+
+			if (cv->vbo && cv->ibo)
+			{// UQ1: Depricated for RAM savings. Sorry!
+				continue;
+			}
+
 			for ( m = 0 ; m < cv->height - 1 ; m++ ) {
 				for ( n = 0 ; n < cv->width - 1 ; n++ ) {
 					// We triangulate the grid and chop all triangles within
@@ -409,6 +415,11 @@ int R_MarkFragments( int numPoints, const vec3_t *points, const vec3_t projectio
 
 			srfBspSurface_t *surf = ( srfBspSurface_t * ) surfaces[i];
 
+			if (surf->vbo && surf->ibo)
+			{// UQ1: Depricated for RAM savings. Sorry!
+				continue;
+			}
+
 			// check the normal of this face
 			if (DotProduct(surf->cullPlane.normal, projectionDir) > -0.5) {
 				continue;
@@ -436,6 +447,11 @@ int R_MarkFragments( int numPoints, const vec3_t *points, const vec3_t projectio
 		else if(*surfaces[i] == SF_TRIANGLES && r_marksOnTriangleMeshes->integer) {
 
 			srfBspSurface_t *surf = (srfBspSurface_t *) surfaces[i];
+
+			if (surf->vbo && surf->ibo)
+			{// UQ1: Depricated for RAM savings. Sorry!
+				continue;
+			}
 
 			for(k = 0, tri = surf->indexes; k < surf->numIndexes; k += 3, tri += 3)
 			{

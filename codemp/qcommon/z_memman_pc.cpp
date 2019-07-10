@@ -227,6 +227,7 @@ void *Z_Malloc(int iSize, memtag_t eTag, qboolean bZeroit /* = qfalse */, int iU
 			{
 				zmalloc_lock.lock();
 				gbMemFreeupOccured = qtrue;
+				Com_Printf("Z_Alloc: BSP memory image was freed.\n");
 				continue;		// we've just ditched a whole load of memory, so try again with the malloc
 			}
 			zmalloc_lock.lock();

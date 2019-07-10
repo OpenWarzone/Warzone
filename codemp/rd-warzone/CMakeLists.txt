@@ -368,6 +368,12 @@ set(MPWarzoneQcommonFiles
 source_group("qcommon" FILES ${MPWarzoneQcommonFiles})
 set(MPWarzoneFiles ${MPWarzoneFiles} ${MPWarzoneQcommonFiles})
 
+set(MPWarzoneSharedMemoryFiles
+		"${MPDir}/SharedMemory/sharedmemory.h"
+		"${MPDir}/SharedMemory/sharedmemory.cpp")
+source_group("SharedMemory" FILES ${MPWarzoneSharedMemoryFiles})
+set(MPWarzoneFiles ${MPWarzoneFiles} ${MPWarzoneSharedMemoryFiles})
+
 file(GLOB_RECURSE MPWarzoneJpegFiles "${WarzoneLibDir}/jpeg-8c/*.c" "${WarzoneLibDir}/jpeg-8c/*.h")
 source_group("jpeg-8c" FILES ${MPWarzoneJpegFiles})
 set(MPWarzoneFiles ${MPWarzoneFiles} ${MPWarzoneJpegFiles})

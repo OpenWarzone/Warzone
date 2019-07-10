@@ -2,6 +2,12 @@
 #include "cm_local.h"
 #include "qcommon/qfiles.h"
 
+#ifdef _WIN32
+#define __BSP_USE_SHARED_MEMORY__
+
+#include "../SharedMemory/sharedMemory.h"
+#endif //_WIN32
+
 void *ShaderData;
 uint32_t ShaderDataCount;
 void *LeafsData;
@@ -993,8 +999,13 @@ void CMod_LoadPlanes (lump_t *l, clipMap_t &cm, bool subBSP)
 	}
 	else
 	{
-		cm.planes = (struct cplane_s *)Hunk_Alloc((BOX_PLANES + count) * sizeof(*cm.planes), h_high);
 		cm.numPlanes = count;
+#ifdef __BSP_USE_SHARED_MEMORY__
+		hSharedMemory *sharedMemoryPointer = OpenSharedMemory("BSPSurfacePlanes", "BSPSurfacePlanesMutex", (BOX_PLANES + count) * sizeof(*cm.planes));
+		cm.planes = (struct cplane_s *)sharedMemoryPointer->hFileView;
+#else //!__BSP_USE_SHARED_MEMORY__
+		cm.planes = (struct cplane_s *)Hunk_Alloc((BOX_PLANES + count) * sizeof(*cm.planes), h_high);
+#endif //__BSP_USE_SHARED_MEMORY__
 
 		PlanesData = cm.planes;
 		PlanesDataCount = cm.numPlanes;
@@ -1338,7 +1349,36 @@ static void CM_LoadMap_Actual( const char *name, qboolean clientload, int *check
 				gpvCachedMapDiskImage = NULL;
 	}
 
-#ifndef BSPC
+#ifdef __BSP_USE_SHARED_MEMORY__
+	buf = NULL;
+	fileHandle_t h;
+	hSharedMemory *shared = NULL;
+	const int iBSPLen = FS_FOpenFileRead(name, &h, qfalse);
+
+	if (h)
+	{
+		shared = OpenSharedMemory("CMSharedBSP", "CMSharedBSPMutex", iBSPLen);
+
+		newBuff = (void *)shared->hFileView;
+
+		FS_Read(newBuff, iBSPLen, h);
+		FS_FCloseFile(h);
+
+		buf = (int*)newBuff;	// so the rest of the code works as normal
+
+		/*
+		if (&cm == &cmg)
+		{
+			gpvCachedMapDiskImage = newBuff;
+			newBuff = 0;
+		}
+		*/
+		gpvCachedMapDiskImage = NULL;
+
+		// carry on as before...
+		//
+	}
+#elif !defined(BSPC)
 	//
 	// load the file into a buffer that we either discard as usual at the bottom, or if we've got enough memory
 	//	then keep it long enough to save the renderer re-loading it (if not dedicated server),
@@ -1370,6 +1410,7 @@ static void CM_LoadMap_Actual( const char *name, qboolean clientload, int *check
 	if ( !buf ) {
 		Com_Error (ERR_DROP, "Couldn't load %s", name);
 	}
+
 
 	last_checksum = LittleLong (Com_BlockChecksum (buf, iBSPLen));
 	if ( checksum )
@@ -1438,8 +1479,28 @@ static void CM_LoadMap_Actual( const char *name, qboolean clientload, int *check
 	FS_FreeFile (buf);
 #endif
 #else //__FREE_BSP_DATA__
-	Z_Free(gpvCachedMapDiskImage);
+
+#ifdef __BSP_USE_SHARED_MEMORY__
+	CloseSharedMemory(shared);
+	buf = NULL;
 	gpvCachedMapDiskImage = NULL;
+#else //!__BSP_USE_SHARED_MEMORY__
+	if (buf == gpvCachedMapDiskImage)
+	{
+		Z_Free(buf);
+		buf = NULL;
+		gpvCachedMapDiskImage = NULL;
+	}
+	else
+	{
+		Z_Free(gpvCachedMapDiskImage);
+		gpvCachedMapDiskImage = NULL;
+		Z_Free(buf);
+		buf = NULL;
+	}
+
+	Com_Printf("CM_LoadMap: BSP memory image (%.2f MB) was freed.\n", float(iBSPLen) / 1024.0 / 1024.0);
+#endif //__BSP_USE_SHARED_MEMORY__
 #endif //__FREE_BSP_DATA__
 
 #if 0

@@ -57,7 +57,7 @@ vec3 GetMatsoDOFCA(sampler2D col, vec2 tex, float CoC)
 	vec2 tg = ((2.0 * tex - 1.0) * chroma.g) * 0.5 + 0.5;
 	vec2 tb = ((2.0 * tex - 1.0) * chroma.b) * 0.5 + 0.5;
 	
-	return color = vec3(texture2D(col, tr).r, texture2D(col, tg).g, texture2D(col, tb).b) * (1.0 - CoC);
+	return vec3(texture2D(col, tr).r, texture2D(col, tg).g, texture2D(col, tb).b) * (1.0 - CoC);
 }
 
 vec4 GetMatsoDOFBlur(int axis, vec2 coord, sampler2D SamplerHDRX)

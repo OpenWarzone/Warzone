@@ -9098,10 +9098,10 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 
 	if (shaderText)
 	{// See if it is warzone enabled by parsing it, if so, use it, otherwise try warzone generic shaders, etc...
-		if (StringContains((char *)name, "gfx/effects/sabers/saberTrail", 0)) {
+		/*if (StringContains((char *)name, "gfx/effects/sabers/saberTrail", 0)) {
 			ri->Printf(PRINT_ALL, "*PARSE SHADER* %s\n", name);
 			ri->Printf(PRINT_ALL, "%s\n", shaderText);
-		}
+		}*/
 
 		if (ParseShader(name, &shaderText))
 		{

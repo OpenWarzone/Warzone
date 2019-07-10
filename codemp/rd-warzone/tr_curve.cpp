@@ -56,10 +56,12 @@ static void LerpDrawVert( srfVert_t *a, srfVert_t *b, srfVert_t *out ) {
 		out->lightmap[i][0] = 0.5f * (a->lightmap[i][0] + b->lightmap[i][0]);
 		out->lightmap[i][1] = 0.5f * (a->lightmap[i][1] + b->lightmap[i][1]);
 
+#ifndef __CHEAP_VERTS__
 		out->vertexColors[i][0] = 0.5f * (a->vertexColors[i][0] + b->vertexColors[i][0]);
 		out->vertexColors[i][1] = 0.5f * (a->vertexColors[i][1] + b->vertexColors[i][1]);
 		out->vertexColors[i][2] = 0.5f * (a->vertexColors[i][2] + b->vertexColors[i][2]);
 		out->vertexColors[i][3] = 0.5f * (a->vertexColors[i][3] + b->vertexColors[i][3]);
+#endif //__CHEAP_VERTS__
 	}
 }
 
@@ -249,7 +251,9 @@ static void MakeMeshTangentVectors(int width, int height, srfVert_t ctrl[MAX_GRI
 			dv[0] = &ctrl2[j * width + i];
 			dv[1] = &ctrl[j][i];
 
+#ifndef __CHEAP_VERTS__
 			VectorCopy4(dv[0]->tangent, dv[1]->tangent);
+#endif //__CHEAP_VERTS__
 		}
 	}
 }

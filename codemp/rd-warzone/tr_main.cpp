@@ -368,12 +368,14 @@ qboolean R_CalcTangentVectors(srfVert_t * dv[3])
 		bary[1] = ((dv[2]->st[0] - s) * (dv[0]->st[1] - t) - (dv[0]->st[0] - s) * (dv[2]->st[1] - t)) / bb;
 		bary[2] = ((dv[0]->st[0] - s) * (dv[1]->st[1] - t) - (dv[1]->st[0] - s) * (dv[0]->st[1] - t)) / bb;
 
+#ifndef __CHEAP_VERTS__
 		dv[i]->tangent[0] = bary[0] * dv[0]->xyz[0] + bary[1] * dv[1]->xyz[0] + bary[2] * dv[2]->xyz[0];
 		dv[i]->tangent[1] = bary[0] * dv[0]->xyz[1] + bary[1] * dv[1]->xyz[1] + bary[2] * dv[2]->xyz[1];
 		dv[i]->tangent[2] = bary[0] * dv[0]->xyz[2] + bary[1] * dv[1]->xyz[2] + bary[2] * dv[2]->xyz[2];
 
 		VectorSubtract(dv[i]->tangent, dv[i]->xyz, dv[i]->tangent);
 		VectorNormalize(dv[i]->tangent);
+#endif //__CHEAP_VERTS__
 
 		// calculate t tangent vector
 		s = dv[i]->st[0];
@@ -389,9 +391,11 @@ qboolean R_CalcTangentVectors(srfVert_t * dv[3])
 		VectorSubtract(bitangent, dv[i]->xyz, bitangent);
 		VectorNormalize(bitangent);
 
+#ifndef __CHEAP_VERTS__
 		// store bitangent handedness
 		CrossProduct(dv[i]->normal, dv[i]->tangent, nxt);
 		dv[i]->tangent[3] = (DotProduct(nxt, bitangent) < 0.0f) ? -1.0f : 1.0f;
+#endif //__CHEAP_VERTS__
 
 		// debug code
 		//% Sys_FPrintf( SYS_VRB, "%d S: (%f %f %f) T: (%f %f %f)\n", i,

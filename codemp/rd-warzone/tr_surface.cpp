@@ -627,7 +627,7 @@ static void RB_SurfaceVertsAndIndexes( int numVerts, srfVert_t *verts, int numIn
 	RB_CheckVBOandIBO(tess.vbo, tess.ibo);
 
 	RB_CHECKOVERFLOW( numVerts, numIndexes );
-
+	
 	inIndex = indexes;
 	outIndex = &tess.indexes[ tess.numIndexes ];
 	for ( i = 0 ; i < numIndexes ; i++ ) {
@@ -680,8 +680,10 @@ static void RB_SurfaceVertsAndIndexes( int numVerts, srfVert_t *verts, int numIn
 	{
 		dv = verts;
 		color = tess.vertexColors[ tess.numVertexes ];
+#ifndef __CHEAP_VERTS__
 		for ( i = 0 ; i < numVerts ; i++, dv++, color+=4 )
 			VectorCopy4(dv->vertexColors[0], color);
+#endif //__CHEAP_VERTS__
 	}
 
 	//tess.dlightBits |= dlightBits;
@@ -2244,7 +2246,11 @@ static void RB_SurfaceGrid( srfBspSurface_t *srf ) {
 
 				if ( tess.shader->vertexAttribs & ATTR_COLOR )
 				{
+#ifndef __CHEAP_VERTS__
 					VectorCopy4(dv->vertexColors[0], color);
+#else //__CHEAP_VERTS__
+					VectorSet4(color, 1.0, 1.0, 1.0, 1.0);
+#endif //__CHEAP_VERTS__
 					color += 4;
 				}
 
