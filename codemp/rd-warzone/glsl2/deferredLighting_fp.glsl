@@ -239,7 +239,7 @@ vec4 positionMapAtCoord ( vec2 coord, out bool changedToWater, out vec3 original
 	changedToWater = false;
 
 	vec4 pos = textureLod(u_PositionMap, coord, 0.0);
-	originalPosition = pos.xyz;
+	/*originalPosition = pos.xyz;
 
 	if (WATER_ENABLED > 0.0)
 	{
@@ -263,7 +263,7 @@ vec4 positionMapAtCoord ( vec2 coord, out bool changedToWater, out vec3 original
 				}
 			}
 		}
-	}
+	}*/
 
 	return pos;
 }

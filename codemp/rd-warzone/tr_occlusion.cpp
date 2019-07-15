@@ -1,5 +1,9 @@
 #include "tr_local.h"
 
+extern qboolean		ENABLE_OCCLUSION_CULLING;
+extern float		OCCLUSION_CULLING_TOLERANCE;
+extern float		OCCLUSION_CULLING_TOLERANCE_FOLIAGE;
+
 extern int R_BoxOnPlaneSide(vec3_t emins, vec3_t emaxs, struct cplane_s *p);
 
 void ClosestPointInBoundingBox(const float *mins, const float *maxs, const float *inPoint, float *outPoint)
@@ -63,7 +67,7 @@ int numOcclusionQueries = 0;
 
 void RB_CheckOcclusions(void)
 {
-	if (r_occlusion->integer)
+	if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer)
 	{
 		int numComplete = 0;
 
@@ -92,15 +96,15 @@ void RB_CheckOcclusions(void)
 
 				qglGetQueryObjectuiv(occlusionCheck[i], GL_QUERY_RESULT, &result);
 
-				// r_occlusionTolerance should be between 0.0 and 0.001.. Lower is more accurate...
-				float pixelTolerance = Q_min(r_occlusionTolerance->value, 0.1) * screenPixels;
+				// OCCLUSION_CULLING_TOLERANCE should be between 0.0 and 0.001.. Lower is more accurate...
+				float pixelTolerance = Q_min(OCCLUSION_CULLING_TOLERANCE, 0.1) * screenPixels;
 
 				if (result <= 0)
 				{// Absolutely occlusion culled... Also handles non-tolerance setting...
 					continue;
 				}
 				
-				if (r_occlusionTolerance->value > 0.0 && result <= pixelTolerance)
+				if (OCCLUSION_CULLING_TOLERANCE > 0.0 && result <= pixelTolerance)
 				{// Occlusion culled...
 					continue;
 				}
@@ -117,10 +121,10 @@ void RB_CheckOcclusions(void)
 
 				numPassed++;
 
-				if (r_occlusionToleranceFoliage->value > 0.0)
+				if (OCCLUSION_CULLING_TOLERANCE_FOLIAGE > 0.0)
 				{
 					// Also do a check specific to foliages, maybe we can skip some heavy alpha draws...
-					float pixelToleranceFoliage = Q_min(r_occlusionToleranceFoliage->value, 0.3) * screenPixels;
+					float pixelToleranceFoliage = Q_min(OCCLUSION_CULLING_TOLERANCE_FOLIAGE, 0.3) * screenPixels;
 
 					if (result <= pixelToleranceFoliage)
 					{// Occlusion culled...
@@ -174,7 +178,7 @@ void RB_CheckOcclusions(void)
 			}
 		}
 
-		if (r_occlusionToleranceFoliage->value > 0.0)
+		if (OCCLUSION_CULLING_TOLERANCE_FOLIAGE > 0.0)
 		{
 			// And check the foliage one as well...
 			if (zfarFoliage < tr.distanceCull)
@@ -214,7 +218,7 @@ void RB_CheckOcclusions(void)
 
 		if (tr.occlusionZfar != zfar)
 		{// Just update when it changes...
-			tr.occlusionZfar = zfar;
+			tr.occlusionZfar = max(zfar, OCCLUSION_CULLING_MIN_DISTANCE);
 
 			if (r_occlusionDebug->integer >= 1)
 				ri->Printf(PRINT_WARNING, "zFar found at %f.\n", tr.occlusionZfar);
@@ -222,7 +226,7 @@ void RB_CheckOcclusions(void)
 
 		if (tr.occlusionZfarFoliage != zfarFoliage)
 		{// Just update when it changes...
-			tr.occlusionZfarFoliage = zfarFoliage;
+			tr.occlusionZfarFoliage = max(zfarFoliage, OCCLUSION_CULLING_MIN_DISTANCE);
 
 			if (r_occlusionDebug->integer >= 1)
 				ri->Printf(PRINT_WARNING, "zFar (foliage) found at %f.\n", tr.occlusionZfarFoliage);
@@ -294,7 +298,7 @@ void RB_OcclusionCulling(void)
 
 	if (!r_nocull->integer)
 	{
-		if (r_occlusion->integer)
+		if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer)
 		{
 			// finish any 2D drawing if needed
 			if (tess.numIndexes) {
@@ -391,6 +395,11 @@ void RB_OcclusionCulling(void)
 			
 			for (int z = occlusionRanges[0], range = 0; z <= tr.distanceCull * 1.75 && range < NUM_OCCLUSION_RANGES; z = occlusionRanges[range], range++)
 			{
+				if (z < OCCLUSION_CULLING_MIN_DISTANCE)
+				{// No point checking this one, mapinfo specified minimum range as higher...
+					continue;
+				}
+
 				occlusionRangeId[numOcclusionQueries] = range;
 
 				vec2_t texCoords[4];
@@ -441,14 +450,14 @@ void RB_OcclusionCulling(void)
 				/* Test the occlusion for this quad */
 				qglGenQueries(1, &occlusionCheck[numOcclusionQueries]);
 
-				if (r_occlusionTolerance->value > 0.0)
+				if (OCCLUSION_CULLING_TOLERANCE > 0.0)
 					qglBeginQuery(GL_SAMPLES_PASSED, occlusionCheck[numOcclusionQueries]);
 				else
 					qglBeginQuery(GL_ANY_SAMPLES_PASSED_CONSERVATIVE, occlusionCheck[numOcclusionQueries]); // This is supposebly a little faster??? I don't see it though...
 
 				RB_InstantQuad2(quadVerts, texCoords);
 
-				if (r_occlusionTolerance->value > 0.0)
+				if (OCCLUSION_CULLING_TOLERANCE > 0.0)
 					qglEndQuery(GL_SAMPLES_PASSED);
 				else
 					qglEndQuery(GL_ANY_SAMPLES_PASSED_CONSERVATIVE); // This is supposebly a little faster??? I don't see it though...

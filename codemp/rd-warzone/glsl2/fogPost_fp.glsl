@@ -20,7 +20,7 @@ uniform vec4		u_Local9;		// FOG_LAYER_BBOX
 uniform vec4		u_Local10;		// MAP_INFO_MINS[0], MAP_INFO_MINS[1], MAP_INFO_MINS[2], FOG_WORLD_FADE_ALTITUDE
 uniform vec4		u_Local11;		// MAP_INFO_MAXS[0], MAP_INFO_MAXS[1], MAP_INFO_MAXS[2], FOG_LINEAR_ENABLE
 uniform vec4		u_Local12;		// FOG_LINEAR_COLOR[0], FOG_LINEAR_COLOR[1], FOG_LINEAR_COLOR[2], FOG_LINEAR_ALPHA
-uniform vec4		u_MapInfo;		// MAP_INFO_SIZE[0], MAP_INFO_SIZE[1], MAP_INFO_SIZE[2], SUN_VISIBLE
+uniform vec4		u_MapInfo;		// MAP_INFO_SIZE[0], MAP_INFO_SIZE[1], MAP_INFO_SIZE[2], FOG_LINEAR_RANGE_POW
 
 uniform vec3		u_ViewOrigin;
 uniform vec4		u_PrimaryLightOrigin;
@@ -35,7 +35,7 @@ vec4 positionMapAtCoord ( vec2 coord )
 {
 	vec4 pos = textureLod(u_PositionMap, coord, 0.0);
 
-	if (WATER_ENABLED > 0.0)
+	/*if (WATER_ENABLED > 0.0)
 	{
 		bool isSky = (pos.a - 1.0 >= MATERIAL_SKY) ? true : false;
 
@@ -50,7 +50,7 @@ vec4 positionMapAtCoord ( vec2 coord )
 				pos.xyz = wMap.xyz;
 			}
 		}
-	}
+	}*/
 
 	return pos;
 }
@@ -269,7 +269,8 @@ void main ( void )
 		if (u_Local11.a > 0.0)
 		{
 			float depth = textureLod(u_ScreenDepthMap, var_TexCoords, 0.0).r;
-			depth = clamp(depth * 1.333, 0.0, 1.0);
+			//depth = clamp(depth * 1.333, 0.0, 1.0);
+			depth = clamp(pow(depth, u_MapInfo.a), 0.0, 1.0);
 			fogColor = mix(fogColor, clamp(u_Local12.rgb, 0.0, 1.0) * fogNightColorScale, u_Local12.a * depth);
 		}
 

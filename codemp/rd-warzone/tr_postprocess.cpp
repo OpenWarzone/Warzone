@@ -1107,7 +1107,7 @@ void RB_AddGlowShaderLights ( void )
 			if (distance > tr.distanceCull * 1.732) continue;
 
 			// If occlusion is enabled and this light is further away, skip it, obviously...
-			if (r_occlusion->integer && distance > tr.occlusionZfar) continue;
+			if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer && distance > tr.occlusionZfar) continue;
 
 			// If the list is full and this one is as far or further then the current furthest light, skip the calculations...
 			//if (farthest_light != -1 && distance >= farthest_distance && !(CLOSE_TOTAL < MAX_WORLD_GLOW_DLIGHTS)) continue;
@@ -1455,7 +1455,7 @@ qboolean RB_GenerateVolumeLightImage(void)
 	{
 		vec4_t viewInfo;
 
-		float zmax = r_occlusion->integer ? tr.occlusionOriginalZfar : backEnd.viewParms.zFar;
+		float zmax = (ENABLE_OCCLUSION_CULLING && r_occlusion->integer) ? tr.occlusionOriginalZfar : backEnd.viewParms.zFar;
 
 		float zmax2 = backEnd.viewParms.zFar;
 		float ymax2 = zmax2 * tan(backEnd.viewParms.fovY * M_PI / 360.0f);
@@ -2229,7 +2229,7 @@ void RB_WaterPost(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		/*{
 			vec4_t viewInfo;
 
-			float zmax = r_occlusion->integer ? tr.occlusionOriginalZfar : backEnd.viewParms.zFar;
+			float zmax = (ENABLE_OCCLUSION_CULLING && r_occlusion->integer) ? tr.occlusionOriginalZfar : backEnd.viewParms.zFar;
 
 			float zmax2 = backEnd.viewParms.zFar;
 			float ymax2 = zmax2 * tan(backEnd.viewParms.fovY * M_PI / 360.0f);
@@ -3386,7 +3386,7 @@ void RB_ColorCorrection(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ld
 }
 
 
-void RB_FogPostShader(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
+void RB_FogPostShader(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox, qboolean doingLinear)
 {
 	vec4_t color;
 
@@ -3463,7 +3463,7 @@ void RB_FogPostShader(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrB
 
 	{
 		vec4_t loc;
-		VectorSet4(loc, FOG_WORLD_COLOR[0], FOG_WORLD_COLOR[1], FOG_WORLD_COLOR[2], FOG_WORLD_ENABLE ? 1.0 : 0.0);
+		VectorSet4(loc, FOG_WORLD_COLOR[0], FOG_WORLD_COLOR[1], FOG_WORLD_COLOR[2], (FOG_WORLD_ENABLE && !doingLinear) ? 1.0 : 0.0);
 		GLSL_SetUniformVec4(&tr.fogPostShader, UNIFORM_LOCAL2, loc);
 	}
 
@@ -3475,7 +3475,7 @@ void RB_FogPostShader(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrB
 
 	{
 		vec4_t loc;
-		VectorSet4(loc, FOG_WORLD_CLOUDINESS, FOG_LAYER_ENABLE ? 1.0 : 0.0, FOG_LAYER_SUN_PENETRATION, FOG_LAYER_ALTITUDE_BOTTOM);
+		VectorSet4(loc, FOG_WORLD_CLOUDINESS, (FOG_LAYER_ENABLE && !doingLinear) ? 1.0 : 0.0, FOG_LAYER_SUN_PENETRATION, FOG_LAYER_ALTITUDE_BOTTOM);
 		GLSL_SetUniformVec4(&tr.fogPostShader, UNIFORM_LOCAL4, loc);
 	}
 
@@ -3509,7 +3509,7 @@ void RB_FogPostShader(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrB
 
 	{
 		vec4_t local11;
-		VectorSet4(local11, MAP_INFO_MAXS[0], MAP_INFO_MAXS[1], MAP_INFO_MAXS[2], FOG_LINEAR_ENABLE);
+		VectorSet4(local11, MAP_INFO_MAXS[0], MAP_INFO_MAXS[1], MAP_INFO_MAXS[2], (FOG_LINEAR_ENABLE && doingLinear));
 		GLSL_SetUniformVec4(&tr.fogPostShader, UNIFORM_LOCAL11, local11);
 	}
 
@@ -3521,7 +3521,7 @@ void RB_FogPostShader(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrB
 
 	{
 		vec4_t loc;
-		VectorSet4(loc, MAP_INFO_SIZE[0], MAP_INFO_SIZE[1], MAP_INFO_SIZE[2], (float)SUN_VISIBLE);
+		VectorSet4(loc, MAP_INFO_SIZE[0], MAP_INFO_SIZE[1], MAP_INFO_SIZE[2], FOG_LINEAR_RANGE_POW);
 		GLSL_SetUniformVec4(&tr.fogPostShader, UNIFORM_MAPINFO, loc);
 	}
 

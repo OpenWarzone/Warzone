@@ -840,7 +840,7 @@ static int R_GCullModel( trRefEntity_t *ent ) {
 		return CULL_OUT;
 	}
 
-	if (r_occlusion->integer && !ent->e.ignoreCull && (dist > tr.occlusionZfar || dist > tr.occlusionZfarFoliage * 1.75))
+	if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer && !ent->e.ignoreCull && (dist > tr.occlusionZfar || dist > tr.occlusionZfarFoliage * 1.75))
 	{
 		return CULL_OUT;
 	}

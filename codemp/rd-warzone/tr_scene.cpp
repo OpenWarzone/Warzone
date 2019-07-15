@@ -1450,7 +1450,7 @@ void RE_RenderScene(const refdef_t *fd) {
 			FBO_SWITCHED = qtrue;
 		}
 
-		/*if (r_occlusion->integer)
+		/*if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer)
 		{// Override occlusion for depth prepass and shadow pass...
 			tr.viewParms.zFar = tr.occlusionOriginalZfar;
 		}*/
@@ -1503,7 +1503,7 @@ void RE_RenderScene(const refdef_t *fd) {
 			VectorCopy(tr.refdef.vieworg, SHADOWMAP_LAST_VIEWORIGIN);
 		}
 
-		/*if (r_occlusion->integer)
+		/*if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer)
 		{// Set occlusion zFar again, now that depth prepass is completed...
 			tr.viewParms.zFar = tr.occlusionZfar;
 		}*/

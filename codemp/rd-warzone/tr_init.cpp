@@ -139,8 +139,6 @@ cvar_t	*r_ext_texture_filter_anisotropic;
 cvar_t	*r_ext_preferred_tc_method;
 
 cvar_t  *r_occlusion;
-cvar_t  *r_occlusionTolerance;
-cvar_t  *r_occlusionToleranceFoliage;
 cvar_t  *r_occlusionDebug;
 cvar_t  *r_areaVisDebug;
 cvar_t  *r_ext_draw_range_elements;
@@ -1483,8 +1481,6 @@ void R_Register( void )
 	r_ext_preferred_tc_method = ri->Cvar_Get( "r_ext_preferred_tc_method", "0", CVAR_ARCHIVE | CVAR_LATCH );
 
 	r_occlusion = ri->Cvar_Get( "r_occlusion", "true", CVAR_ARCHIVE);
-	r_occlusionTolerance = ri->Cvar_Get("r_occlusionTolerance", /*"0.0001"*/"0.0004", CVAR_ARCHIVE);
-	r_occlusionToleranceFoliage = ri->Cvar_Get("r_occlusionToleranceFoliage", "0.025", CVAR_ARCHIVE);
 	r_occlusionDebug = ri->Cvar_Get( "r_occlusionDebug", "0", CVAR_ARCHIVE);
 	r_areaVisDebug = ri->Cvar_Get("r_areaVisDebug", "0", CVAR_ARCHIVE);
 

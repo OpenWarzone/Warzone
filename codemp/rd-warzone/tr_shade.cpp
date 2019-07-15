@@ -1033,7 +1033,7 @@ static void ProjectPshadowVBOGLSL( void ) {
 			}
 		}
 
-		GLSL_SetUniformFloat(sp, UNIFORM_ZFAR, r_occlusion->integer ? tr.occlusionZfar : backEnd.viewParms.zFar);
+		GLSL_SetUniformFloat(sp, UNIFORM_ZFAR, (ENABLE_OCCLUSION_CULLING && r_occlusion->integer) ? tr.occlusionZfar : backEnd.viewParms.zFar);
 
 		vec4_t l3;
 		VectorSet4(l3, 0.0, 0.0, 0.0, (tr.roadsMapImage != tr.blackImage) ? 1.0 : 0.0);
@@ -1761,7 +1761,7 @@ void RB_UpdateCloseLights ( void )
 
 		if (distance > MAX_DEFERRED_LIGHT_RANGE) continue; // Don't even check at this range. Traces are costly!
 
-		if (r_occlusion->integer)
+		if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer)
 		{// Check occlusion zfar distance as well...
 			if (distance > Q_min(tr.occlusionZfar * 1.75, tr.occlusionOriginalZfar))
 			{
@@ -3201,7 +3201,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS5, vec);
 				}
 
-				GLSL_SetUniformFloat(sp, UNIFORM_ZFAR, r_occlusion->integer ? tr.occlusionZfar : backEnd.viewParms.zFar);
+				GLSL_SetUniformFloat(sp, UNIFORM_ZFAR, (ENABLE_OCCLUSION_CULLING && r_occlusion->integer) ? tr.occlusionZfar : backEnd.viewParms.zFar);
 			}
 
 			// UQ1: Used by both generic and lightall...
@@ -4565,27 +4565,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					tess.shader->cullType = CT_TWO_SIDED; // Always...
 					FBO_Bind(tr.renderWaterFbo);
 
-					float material = 0.0;
-					/*
-					if (isGlass)
-					{
-						material = 2.0;
-					}
-					else if (isPush)
-					{
-						material = 3.0;
-					}
-					else if (isPull)
-					{
-						material = 4.0;
-					}
-					else if (isCloak)
-					{
-						material = 5.0;
-					}
-					*/
 					vec4_t passInfo;
-					VectorSet4(passInfo, 0.0, WATER_WAVE_HEIGHT, material, 0.0);
+					VectorSet4(passInfo, 0.0, WATER_WAVE_HEIGHT, 0.0 /*material*/, 0.0);
 					GLSL_SetUniformVec4(sp, UNIFORM_LOCAL10, passInfo);
 				}
 				else
@@ -4753,6 +4734,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				GLSL_SetUniformVec4(sp, UNIFORM_LOCAL8, l8);
 			}
 
+			/*if (tr.viewParms.flags & VPF_DEPTHSHADOW)
+			{// Shadow draws are always 2 sided, to cull sun from behind the object.
+				GL_Cull(CT_TWO_SIDED);
+			}*/
 
 			UpdateTexCoords (pStage);
 

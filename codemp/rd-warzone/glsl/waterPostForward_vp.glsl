@@ -152,10 +152,13 @@ void main()
 	{
 #if 1
 		float pitch = normalToSlope( normal.xyz );
-		if (pitch < 0.0) pitch = -pitch;
-		//if (pitch > 16.0) var_IsWater = 2.0;
-		if (pitch > 4.0) var_IsWater = 1024.0 + (pitch / 90.0);
+		if (pitch < 0.0) 
+			pitch = -pitch;
+		
+		if (pitch > 4.0) 
+			var_IsWater = 1024.0 + (pitch / 90.0);
 #else // FIXME: use normals instead of vectoangles
+
 		/*if (normal.z <= 0.73 && normal.z >= -0.73)
 		{
 			var_Slope = 1.0;
@@ -165,9 +168,5 @@ void main()
 			var_Slope = 0.0;
 		}*/
 #endif
-	}
-	else
-	{
-		var_IsWater = material;
 	}
 }

@@ -246,6 +246,7 @@ extern int GLSL_BINDS_COUNT;
 #include <unordered_map>
 #include <string>
 #include "../qcommon/inifile.h"
+#include "tr_mapping.h"
 
 #ifdef _WIN32
 #include "win32\win_local.h"
@@ -422,8 +423,6 @@ extern cvar_t	*r_ext_texture_env_add;
 extern cvar_t	*r_ext_texture_filter_anisotropic;
 
 extern cvar_t  *r_occlusion;
-extern cvar_t  *r_occlusionTolerance;
-extern cvar_t  *r_occlusionToleranceFoliage;
 extern cvar_t  *r_occlusionDebug;
 extern cvar_t  *r_areaVisDebug;
 
@@ -3389,8 +3388,6 @@ extern	cvar_t	*r_showcluster;
 extern cvar_t	*r_gamma;
 
 extern  cvar_t  *r_occlusion;
-extern cvar_t  *r_occlusionTolerance;
-extern cvar_t  *r_occlusionToleranceFoliage;
 extern cvar_t  *r_occlusionDebug;
 extern cvar_t  *r_areaVisDebug;
 

@@ -59,6 +59,7 @@ set(MPWarzoneFiles
 	"${MPDir}/rd-warzone/tr_main.cpp"
 	"${MPDir}/rd-warzone/tr_marks.cpp"
 	"${MPDir}/rd-warzone/tr_mapping.cpp"
+	"${MPDir}/rd-warzone/tr_mapping.h"
 	"${MPDir}/rd-warzone/tr_matrix.cpp"
 	"${MPDir}/rd-warzone/tr_matrix.h"
 	"${MPDir}/rd-warzone/tr_mesh.cpp"

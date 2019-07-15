@@ -8,6 +8,8 @@ varying vec3		var_vertPos;
 varying vec3		var_Normal;
 flat varying float	var_IsWater;
 
+#define material	u_Local10.b
+
 out vec4 out_Glow;
 out vec4 out_Normal;
 out vec4 out_Position;
@@ -97,7 +99,12 @@ void main()
 	//else
 	//	out_Color = vec4(0.0059, 0.3096, 0.445, 1.0);
 
-	if (var_IsWater == 3.0 || var_IsWater == 4.0)
+	if (material == 2.0 || material == 5.0)
+	{
+		out_Position = vec4(texture(u_DiffuseMap, var_TexCoords).rgb, var_IsWater);
+		out_Color = vec4(0.0059, 0.3096, 0.445, 1.0);
+	}
+	else if (material == 3.0 || material == 4.0)
 	{
 		float dist = (0.5 - distance(var_TexCoords, vec2(0.5))) * 2.0;
 		if (dist > 0.0)
@@ -110,11 +117,6 @@ void main()
 			out_Position = vec4(0.0);
 			out_Color = vec4(0.0);
 		}
-	}
-	else if (var_IsWater >= 2.0 && var_IsWater <= 5.0)
-	{
-		out_Position = vec4(texture(u_DiffuseMap, var_TexCoords).rgb, var_IsWater);
-		out_Color = vec4(0.0059, 0.3096, 0.445, 1.0);
 	}
 	else
 	{

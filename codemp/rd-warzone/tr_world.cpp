@@ -31,7 +31,7 @@ extern int		GRASS_DISTANCE;
 void RB_CullSurfaceOcclusion(msurface_t *surf)
 {
 #ifdef __ZFAR_CULLING_ON_SURFACES__
-	if (r_occlusion->integer)
+	if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer)
 	{
 		if (surf->shader->materialType == MATERIAL_GREENLEAVES || (surf->shader->hasAlphaTestBits && !surf->shader->hasSplatMaps))
 		{// Tree leaves and alpha surfaces can be culled easier by occlusion culling...
@@ -810,7 +810,7 @@ static void R_RecursiveWorldNode(mnode_t *node, int planeBits, int dlightBits, i
 			}
 #endif
 
-			if (r_occlusion->integer && node->occluded && !(tr.viewParms.flags & VPF_DEPTHSHADOW))
+			if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer && node->occluded && !(tr.viewParms.flags & VPF_DEPTHSHADOW))
 			{
 				return;
 			}
@@ -869,7 +869,7 @@ static void R_RecursiveWorldNode(mnode_t *node, int planeBits, int dlightBits, i
 		}
 
 #ifdef __ZFAR_CULLING_ON_LEAFS__
-		if (r_occlusion->integer && node->contents != -1)
+		if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer && node->contents != -1)
 		{
 			float closestCornerDistance = 9999999.0;
 
@@ -1728,7 +1728,7 @@ void R_AddWorldSurfaces(void) {
 
 	if (!(tr.viewParms.flags & VPF_DEPTHSHADOW) && !backEnd.depthFill)
 	{
-		if (r_occlusion->integer >= 1)
+		if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer >= 1)
 		{
 			RB_CheckOcclusions();
 

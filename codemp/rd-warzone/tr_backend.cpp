@@ -1579,7 +1579,7 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 			}
 
 #ifdef __ZFAR_CULLING_ON_SURFACES__
-			if (r_occlusion->integer)
+			if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer)
 			{
 				if (!backEnd.depthFill
 					&& drawSurf->depthDrawOnly
@@ -1895,7 +1895,7 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 			}
 
 #ifdef __ZFAR_CULLING_ON_SURFACES__
-			if (r_occlusion->integer)
+			if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer)
 			{
 				if (!backEnd.depthFill
 					&& drawSurf->depthDrawOnly
@@ -2683,7 +2683,7 @@ const void	*RB_DrawSurfs( const void *data ) {
 	{
 		//FBO_t *oldFbo = glState.currentFBO;
 
-		if (r_occlusion->integer)
+		if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer)
 		{// Override occlusion for depth prepass and shadow pass...
 			//tr.viewParms.zFar = tr.occlusionOriginalZfar;
 			extern float RB_GetNextOcclusionRange(float currentRange);
@@ -2707,7 +2707,7 @@ const void	*RB_DrawSurfs( const void *data ) {
 		}
 		backEnd.depthFill = qfalse;
 
-		if (r_occlusion->integer)
+		if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer)
 		{// Set occlusion zFar again, now that depth prepass is completed...
 			tr.viewParms.zFar = tr.occlusionZfar;
 		}
@@ -3393,7 +3393,7 @@ const void *RB_PostProcess(const void *data)
 		{
 			vec4_t viewInfo;
 
-			float zmax = r_occlusion->integer ? tr.occlusionOriginalZfar : backEnd.viewParms.zFar;
+			float zmax = (ENABLE_OCCLUSION_CULLING && r_occlusion->integer) ? tr.occlusionOriginalZfar : backEnd.viewParms.zFar;
 
 			float zmax2 = backEnd.viewParms.zFar;
 			float ymax2 = zmax2 * tan(backEnd.viewParms.fovY * M_PI / 360.0f);
@@ -3677,6 +3677,14 @@ const void *RB_PostProcess(const void *data)
 		}
 #endif //__SSDM_IN_DEFERRED_SHADER__
 
+		if (!SCREEN_BLUR && FOG_POST_ENABLED && FOG_LINEAR_ENABLE)
+		{
+			DEBUG_StartTimer("Linear Fog Post", qtrue);
+			RB_FogPostShader(currentFbo, srcBox, currentOutFbo, dstBox, qtrue);
+			RB_SwapFBOs(&currentFbo, &currentOutFbo);
+			DEBUG_EndTimer(qtrue);
+		}
+
 		if (!SCREEN_BLUR && r_glslWater->integer && WATER_ENABLED)
 		{
 			DEBUG_StartTimer("Water Post", qtrue);
@@ -3687,8 +3695,8 @@ const void *RB_PostProcess(const void *data)
 
 		if (!SCREEN_BLUR && FOG_POST_ENABLED && r_fogPost->integer && !LATE_LIGHTING_ENABLED)
 		{
-			DEBUG_StartTimer("Fog Post", qtrue);
-			RB_FogPostShader(currentFbo, srcBox, currentOutFbo, dstBox);
+			DEBUG_StartTimer("Volumetric Fog Post", qtrue);
+			RB_FogPostShader(currentFbo, srcBox, currentOutFbo, dstBox, qfalse);
 			RB_SwapFBOs(&currentFbo, &currentOutFbo);
 			DEBUG_EndTimer(qtrue);
 		}
@@ -3759,8 +3767,8 @@ const void *RB_PostProcess(const void *data)
 		
 		if (!SCREEN_BLUR && FOG_POST_ENABLED && r_fogPost->integer && LATE_LIGHTING_ENABLED)
 		{
-			DEBUG_StartTimer("Fog Post", qtrue);
-			RB_FogPostShader(currentFbo, srcBox, currentOutFbo, dstBox);
+			DEBUG_StartTimer("Volumetric Fog Post", qtrue);
+			RB_FogPostShader(currentFbo, srcBox, currentOutFbo, dstBox, qfalse);
 			RB_SwapFBOs(&currentFbo, &currentOutFbo);
 			DEBUG_EndTimer(qtrue);
 		}

@@ -3016,7 +3016,7 @@ void SetVBOVisibleAreas(void)
 
 	for (int i = 0; i < MAP_AREAS.numAreas; i++)
 	{
-		if (r_occlusion->integer)
+		if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer)
 		{
 			if (R_PointInBounds(tr.refdef.vieworg, MAP_AREAS.areas[i].mins, MAP_AREAS.areas[i].maxs))
 			{// We are inside this area, always visible...

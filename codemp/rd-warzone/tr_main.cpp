@@ -891,7 +891,7 @@ void R_SetFarClip( void )
 	tr.viewParms.zFar = Com_Clamp(2048.0f, tr.distanceCull * (1.732), sqrtf( farthestCornerDistance ));
 	tr.occlusionOriginalZfar = tr.viewParms.zFar;
 
-	if (!(tr.viewParms.flags & VPF_DEPTHSHADOW) && !backEnd.depthFill && r_occlusion->integer)
+	if (!(tr.viewParms.flags & VPF_DEPTHSHADOW) && !backEnd.depthFill && ENABLE_OCCLUSION_CULLING && r_occlusion->integer)
 	{
 		if (tr.occlusionZfar <= 0.0)
 		{// For when the map just loaded and no occlusions have been done yet...
@@ -3092,7 +3092,7 @@ void R_RenderSunShadowMaps(const refdef_t *fd, int level, vec4_t sunDir, float l
 	VectorCopy4(sunDir, lightDir);
 
 	viewZNear = r_znear->value;// r_shadowCascadeZNear->value;
-	viewZFar = 4096.0;// r_shadowCascadeZFar->value;
+	viewZFar = SHADOW_ZFAR;// 4096.0;// r_shadowCascadeZFar->value;
 	float splitBias = r_shadowCascadeZBias->value;
 
 	/*if (!backEnd.viewIsOutdoors)
@@ -3359,9 +3359,9 @@ void R_RenderSunShadowMaps(const refdef_t *fd, int level, vec4_t sunDir, float l
 		shadowParms.zFar = lightviewBounds[1][0];
 
 		if (level <= 0)
-			shadowParms.maxEntityRange = 4096;// 2048;
+			shadowParms.maxEntityRange = 4096;
 		else if (level <= 1)
-			shadowParms.maxEntityRange = 8192;// 3192;
+			shadowParms.maxEntityRange = 8192;
 		else
 			shadowParms.maxEntityRange = 16384;
 
@@ -3409,7 +3409,7 @@ void R_RenderSunShadowMaps(const refdef_t *fd, int level, vec4_t sunDir, float l
 			//}
 
 			tr.world = tr.worldSolid;
-			R_AddWorldSurfaces ();
+			R_AddWorldSurfaces();
 
 			if (tr.worldNonSolid)
 			{// Set extra world data pointer, and render it...
