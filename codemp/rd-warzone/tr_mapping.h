@@ -117,6 +117,7 @@ extern qboolean			SHADOWS_FULL_SOLID;
 extern int				SHADOW_ZFAR;
 extern float			SHADOW_MINBRIGHT;
 extern float			SHADOW_MAXBRIGHT;
+extern float			SHADOW_FORCE_UPDATE_ANGLE_CHANGE;
 
 extern qboolean			FOG_POST_ENABLED;
 extern qboolean			FOG_LINEAR_ENABLE;
@@ -131,6 +132,7 @@ extern float			FOG_WORLD_WIND;
 extern float			FOG_WORLD_ALPHA;
 extern float			FOG_WORLD_FADE_ALTITUDE;
 extern qboolean			FOG_LAYER_ENABLE;
+extern qboolean			FOG_LAYER_INVERT;
 extern float			FOG_LAYER_SUN_PENETRATION;
 extern float			FOG_LAYER_ALPHA;
 extern float			FOG_LAYER_CLOUDINESS;

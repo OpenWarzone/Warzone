@@ -1483,7 +1483,7 @@ void RE_RenderScene(const refdef_t *fd) {
 
 		/* Check for forced shadow updates if viewer changes position/angles */
 		qboolean forceUpdate = qfalse;
-		if (Distance(tr.refdef.viewangles, SHADOWMAP_LAST_VIEWANGLES) > 32.0/*0.0*/)
+		if (Distance(tr.refdef.viewangles, SHADOWMAP_LAST_VIEWANGLES) > SHADOW_FORCE_UPDATE_ANGLE_CHANGE)
 			forceUpdate = qtrue;
 		else if (Distance(tr.refdef.vieworg, SHADOWMAP_LAST_VIEWORIGIN) > 256.0/*0.0*/)
 			forceUpdate = qtrue;

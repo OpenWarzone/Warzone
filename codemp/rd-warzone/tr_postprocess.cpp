@@ -3487,7 +3487,7 @@ void RB_FogPostShader(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrB
 
 	{
 		vec4_t loc;
-		VectorSet4(loc, MAP_INFO_MAXSIZE, FOG_WORLD_WIND, FOG_LAYER_CLOUDINESS, FOG_LAYER_WIND);
+		VectorSet4(loc, FOG_LAYER_INVERT ? 1.0 : 0.0, FOG_WORLD_WIND, FOG_LAYER_CLOUDINESS, FOG_LAYER_WIND);
 		GLSL_SetUniformVec4(&tr.fogPostShader, UNIFORM_LOCAL6, loc);
 	}
 

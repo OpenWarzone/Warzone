@@ -1496,9 +1496,11 @@ qboolean	SHADOWS_FULL_SOLID = qfalse;
 int			SHADOW_ZFAR = 4096;
 float		SHADOW_MINBRIGHT = 0.7;
 float		SHADOW_MAXBRIGHT = 1.0;
+float		SHADOW_FORCE_UPDATE_ANGLE_CHANGE = 32.0;
 
 qboolean	FOG_POST_ENABLED = qtrue;
 qboolean	FOG_LINEAR_ENABLE = qfalse;
+qboolean	FOG_LAYER_INVERT = qfalse;
 vec3_t		FOG_LINEAR_COLOR = { 1.0 };
 float		FOG_LINEAR_ALPHA = 0.65;
 float		FOG_LINEAR_RANGE_POW = 4.0;
@@ -1612,6 +1614,19 @@ qboolean R_SurfaceIsAllowedFoliage(int materialType)
 	return qfalse;
 }
 
+int TESSELLATION_ALLOWED_MATERIALS_NUM = 0;
+int TESSELLATION_ALLOWED_MATERIALS[MAX_FOLIAGE_ALLOWED_MATERIALS] = { 0 };
+
+qboolean R_SurfaceIsAllowedTessellation(int materialType)
+{
+	for (int i = 0; i < TESSELLATION_ALLOWED_MATERIALS_NUM; i++)
+	{
+		if (materialType == TESSELLATION_ALLOWED_MATERIALS[i]) return qtrue;
+	}
+
+	return qfalse;
+}
+
 #ifdef __OCEAN__
 extern qboolean WATER_INITIALIZED;
 extern qboolean WATER_FAST_INITIALIZED;
@@ -1700,6 +1715,25 @@ void MAPPING_LoadMapInfo(void)
 		{
 			tr.tessellationMapImage = R_FindImageFile("gfx/tessControlImage", IMGTYPE_SPLATCONTROLMAP, IMGFLAG_NOLIGHTSCALE);
 		}*/
+
+		// Parse any specified extra surface material types to add grasses to...
+		for (int m = 0; m < 8; m++)
+		{
+			char tessMaterial[64] = { 0 };
+			strcpy(tessMaterial, IniRead(mapname, "TESSELLATION", va("TERRAIN_TESSELLATION_ALLOW_MATERIAL%i", m), ""));
+
+			if (!tessMaterial || !tessMaterial[0] || tessMaterial[0] == '\0' || strlen(tessMaterial) <= 1) continue;
+
+			for (int i = 0; i < MATERIAL_LAST; i++)
+			{
+				if (!Q_stricmp(tessMaterial, materialNames[i]))
+				{// Got one, add it to the allowed list...
+					TESSELLATION_ALLOWED_MATERIALS[TESSELLATION_ALLOWED_MATERIALS_NUM] = i;
+					TESSELLATION_ALLOWED_MATERIALS_NUM++;
+					break;
+				}
+			}
+		}
 	}
 
 	//
@@ -1917,6 +1951,7 @@ void MAPPING_LoadMapInfo(void)
 		
 		if (FOG_LINEAR_ENABLE)
 		{
+			FOG_LAYER_INVERT = (atoi(IniRead(mapname, "FOG", "FOG_LAYER_INVERT", "0")) > 0) ? qtrue : qfalse;
 			FOG_LINEAR_COLOR[0] = atof(IniRead(mapname, "FOG", "FOG_LINEAR_COLOR_R", "1.0"));
 			FOG_LINEAR_COLOR[1] = atof(IniRead(mapname, "FOG", "FOG_LINEAR_COLOR_G", "1.0"));
 			FOG_LINEAR_COLOR[2] = atof(IniRead(mapname, "FOG", "FOG_LINEAR_COLOR_B", "1.0"));
@@ -1969,6 +2004,7 @@ void MAPPING_LoadMapInfo(void)
 	SHADOW_ZFAR = atoi(IniRead(mapname, "SHADOWS", "SHADOW_ZFAR", "4096"));
 	SHADOW_MINBRIGHT = atof(IniRead(mapname, "SHADOWS", "SHADOW_MINBRIGHT", "0.7"));
 	SHADOW_MAXBRIGHT = atof(IniRead(mapname, "SHADOWS", "SHADOW_MAXBRIGHT", "1.0"));
+	SHADOW_FORCE_UPDATE_ANGLE_CHANGE = atof(IniRead(mapname, "SHADOWS", "SHADOW_FORCE_UPDATE_ANGLE_CHANGE", "32.0"));
 
 	if (r_lowVram->integer)
 	{

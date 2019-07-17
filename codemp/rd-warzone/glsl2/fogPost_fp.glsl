@@ -13,7 +13,7 @@ uniform vec4		u_Local2;		// FOG_WORLD_COLOR_R, FOG_WORLD_COLOR_G, FOG_WORLD_COLO
 uniform vec4		u_Local3;		// FOG_WORLD_COLOR_SUN_R, FOG_WORLD_COLOR_SUN_G, FOG_WORLD_COLOR_SUN_B, FOG_WORLD_ALPHA
 uniform vec4		u_Local4;		// FOG_WORLD_CLOUDINESS, FOG_LAYER, FOG_LAYER_SUN_PENETRATION, FOG_LAYER_ALTITUDE_BOTTOM
 uniform vec4		u_Local5;		// FOG_LAYER_COLOR_R, FOG_LAYER_COLOR_G, FOG_LAYER_COLOR_B, FOG_LAYER_ALPHA
-uniform vec4		u_Local6;		// MAP_INFO_MAXSIZE, FOG_WORLD_WIND, FOG_LAYER_CLOUDINESS, FOG_LAYER_WIND
+uniform vec4		u_Local6;		// FOG_LAYER_INVERT, FOG_WORLD_WIND, FOG_LAYER_CLOUDINESS, FOG_LAYER_WIND
 uniform vec4		u_Local7;		// nightScale, FOG_LAYER_ALTITUDE_TOP, FOG_LAYER_ALTITUDE_FADE, WATER_ENABLED
 uniform vec4		u_Local8;		// sun color
 uniform vec4		u_Local9;		// FOG_LAYER_BBOX
@@ -55,7 +55,7 @@ vec4 positionMapAtCoord ( vec2 coord )
 	return pos;
 }
 
-#define			FOG_VOLUMETRIC_QUALITY				8/*3*///2				// 2 is just fine... Higher looks only slightly better at a much greater FPS cost.
+#define			FOG_VOLUMETRIC_QUALITY				2//6//8/*3*///2				// 2 is just fine... Higher looks only slightly better at a much greater FPS cost.
 
 //
 // World fog...
@@ -100,8 +100,9 @@ float			worldFogWindTime							= u_Time * worldFogWind * worldFogCloudiness * 20
 
 #define			FOG_LAYER_SUN_COLOR					u_Local8.rgb
 
-float			fogBottom							= FOG_LAYER_ALTITUDE_BOTTOM;
-float			fogHeight							= FOG_LAYER_ALTITUDE_TOP;
+bool			FOG_LAYER_INVERT					= (u_Local6.r > 0.0) ? true : false;
+float			fogBottom							= FOG_LAYER_INVERT ? FOG_LAYER_ALTITUDE_TOP : FOG_LAYER_ALTITUDE_BOTTOM;
+float			fogHeight							= FOG_LAYER_INVERT ? FOG_LAYER_ALTITUDE_BOTTOM : FOG_LAYER_ALTITUDE_TOP;
 float			fadeAltitude						= FOG_LAYER_ALTITUDE_FADE;
 float			fogThicknessInv						= 1. / (fogHeight - fogBottom);
 
@@ -181,16 +182,17 @@ float MapClouds(in vec3 p, bool isFullWorldFog)
 	vec3 pos = p;//normalize(p);
 
 	float wind = ((isFullWorldFog) ? worldFogWindTime : fogWindTime);
+	vec3 windFactor = vec3(-0.025, 1.0, 1.0) * wind; // x is for slower vertical - because its using 2d > 3d conversion.
 
-	pos += wind * 0.07;
+	pos += windFactor * 0.07;
 
-	float f = noise( pos, isFullWorldFog );
-	//pos = m*pos - wind * 0.3;
-	//f += 0.25 * noise( pos, isFullWorldFog );
-	//pos = m*pos - wind * 0.07;
-	//f += 0.1250 * noise( pos, isFullWorldFog );
-	//pos = m*pos + wind * 0.8;
-	//f += 0.0625 * noise( pos, isFullWorldFog );
+	float f = 0.5 * noise( pos, isFullWorldFog );
+	pos = m*pos - windFactor * 0.3;
+	f += 0.25 * noise( pos, isFullWorldFog );
+	pos = m*pos - windFactor * 0.07;
+	f += 0.1250 * noise( pos, isFullWorldFog );
+	pos = m*pos + windFactor * 0.8;
+	f += 0.0625 * noise( pos, isFullWorldFog );
 
     f = mix(0.0, f, factor);
 

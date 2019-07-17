@@ -107,6 +107,7 @@ extern float		TERRAIN_TESSELLATION_MIN_SIZE;
 
 
 qboolean RB_ShouldUseGeometryGrass(int materialType);
+qboolean RB_ShouldUseTerrainTessellation(int materialType);
 
 /*
 ==================
@@ -982,7 +983,7 @@ static void ProjectPshadowVBOGLSL( void ) {
 		if (TERRAIN_TESSELLATION_ENABLED
 			&& r_terrainTessellation->integer
 			&& r_terrainTessellationMax->value >= 2.0
-			&& (/*r_foliage->integer && GRASS_ENABLED &&*/ (tess.shader->isGrass || RB_ShouldUseGeometryGrass(tess.shader->materialType))))
+			&& (/*r_foliage->integer && GRASS_ENABLED &&*/ (tess.shader->isGrass || RB_ShouldUseTerrainTessellation(tess.shader->materialType))))
 		{// Always add tesselation to ground surfaces...
 			tess.shader->tesselation = qfalse;
 
@@ -1081,7 +1082,7 @@ static void ProjectPshadowVBOGLSL( void ) {
 		if (TERRAIN_TESSELLATION_ENABLED
 			&& r_terrainTessellation->integer
 			&& r_terrainTessellationMax->value >= 2.0
-			&& (/*r_foliage->integer && GRASS_ENABLED &&*/ (input->shader->isGrass || RB_ShouldUseGeometryGrass(input->shader->materialType))))
+			&& (/*r_foliage->integer && GRASS_ENABLED &&*/ (input->shader->isGrass || RB_ShouldUseTerrainTessellation(input->shader->materialType))))
 		{// Always add tesselation to ground surfaces...
 			useTesselation = 2;
 		}
@@ -1726,6 +1727,29 @@ qboolean RB_ShouldUseGeometryGrass (int materialType )
 	return qfalse;
 }
 
+extern qboolean R_SurfaceIsAllowedTessellation(int materialType);
+
+qboolean RB_ShouldUseTerrainTessellation(int materialType)
+{
+	if (materialType <= MATERIAL_NONE)
+	{
+		return qfalse;
+	}
+
+	if (materialType == MATERIAL_SHORTGRASS
+		|| materialType == MATERIAL_LONGGRASS)
+	{
+		return qtrue;
+	}
+
+	if (R_SurfaceIsAllowedTessellation(materialType))
+	{// *sigh* due to surfaceFlags mixing materials with other flags, we need to do it this way...
+		return qtrue;
+	}
+
+	return qfalse;
+}
+
 int			NUM_CLOSE_LIGHTS = 0;
 int			CLOSEST_LIGHTS[MAX_DEFERRED_LIGHTS] = {0};
 vec3_t		CLOSEST_LIGHTS_POSITIONS[MAX_DEFERRED_LIGHTS] = {0};
@@ -2177,7 +2201,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		if (TERRAIN_TESSELLATION_ENABLED
 			&& r_terrainTessellation->integer
 			&& r_terrainTessellationMax->value >= 2.0
-			&& (/*r_foliage->integer && GRASS_ENABLED &&*/ (tess.shader->isGrass || RB_ShouldUseGeometryGrass(tess.shader->materialType))))
+			&& (/*r_foliage->integer && GRASS_ENABLED &&*/ (tess.shader->isGrass || RB_ShouldUseTerrainTessellation(tess.shader->materialType))))
 		{// Always add tesselation to ground surfaces...
 			tess.shader->tesselation = qfalse;
 

@@ -3685,6 +3685,14 @@ const void *RB_PostProcess(const void *data)
 			DEBUG_EndTimer(qtrue);
 		}
 
+		if (!SCREEN_BLUR && FOG_POST_ENABLED && r_fogPost->integer && !LATE_LIGHTING_ENABLED && (FOG_WORLD_ENABLE || FOG_LAYER_ENABLE))
+		{
+			DEBUG_StartTimer("Volumetric Fog Post", qtrue);
+			RB_FogPostShader(currentFbo, srcBox, currentOutFbo, dstBox, qfalse);
+			RB_SwapFBOs(&currentFbo, &currentOutFbo);
+			DEBUG_EndTimer(qtrue);
+		}
+
 		if (!SCREEN_BLUR && r_glslWater->integer && WATER_ENABLED)
 		{
 			DEBUG_StartTimer("Water Post", qtrue);
@@ -3693,13 +3701,13 @@ const void *RB_PostProcess(const void *data)
 			DEBUG_EndTimer(qtrue);
 		}
 
-		if (!SCREEN_BLUR && FOG_POST_ENABLED && r_fogPost->integer && !LATE_LIGHTING_ENABLED)
+		/*if (!SCREEN_BLUR && FOG_POST_ENABLED && r_fogPost->integer && !LATE_LIGHTING_ENABLED && (FOG_WORLD_ENABLE || FOG_LAYER_ENABLE))
 		{
 			DEBUG_StartTimer("Volumetric Fog Post", qtrue);
 			RB_FogPostShader(currentFbo, srcBox, currentOutFbo, dstBox, qfalse);
 			RB_SwapFBOs(&currentFbo, &currentOutFbo);
 			DEBUG_EndTimer(qtrue);
-		}
+		}*/
 
 		if (!SCREEN_BLUR && r_multipost->integer)
 		{
@@ -3765,7 +3773,7 @@ const void *RB_PostProcess(const void *data)
 			DEBUG_EndTimer(qtrue);
 		}
 		
-		if (!SCREEN_BLUR && FOG_POST_ENABLED && r_fogPost->integer && LATE_LIGHTING_ENABLED)
+		if (!SCREEN_BLUR && FOG_POST_ENABLED && r_fogPost->integer && LATE_LIGHTING_ENABLED && (FOG_WORLD_ENABLE || FOG_LAYER_ENABLE))
 		{
 			DEBUG_StartTimer("Volumetric Fog Post", qtrue);
 			RB_FogPostShader(currentFbo, srcBox, currentOutFbo, dstBox, qfalse);
