@@ -3621,7 +3621,7 @@ const void *RB_PostProcess(const void *data)
 			}
 		}
 
-		if (SCREEN_BLUR && r_screenBlurSlow->integer)
+		/*if (SCREEN_BLUR && r_screenBlurSlow->integer)
 		{
 			if (!r_lowVram->integer)
 			{
@@ -3651,7 +3651,7 @@ const void *RB_PostProcess(const void *data)
 				RB_SwapFBOs(&currentFbo, &currentOutFbo);
 				DEBUG_EndTimer(qtrue);
 			}
-		}
+		}*/
 
 		/*if (!SCREEN_BLUR && r_hbao->integer)
 		{
@@ -3677,18 +3677,10 @@ const void *RB_PostProcess(const void *data)
 		}
 #endif //__SSDM_IN_DEFERRED_SHADER__
 
-		if (!SCREEN_BLUR && FOG_POST_ENABLED && FOG_LINEAR_ENABLE)
+		if (!SCREEN_BLUR && FOG_POST_ENABLED && r_fogPost->integer && !LATE_LIGHTING_ENABLED && (FOG_LINEAR_ENABLE || FOG_WORLD_ENABLE || FOG_LAYER_ENABLE))
 		{
-			DEBUG_StartTimer("Linear Fog Post", qtrue);
-			RB_FogPostShader(currentFbo, srcBox, currentOutFbo, dstBox, qtrue);
-			RB_SwapFBOs(&currentFbo, &currentOutFbo);
-			DEBUG_EndTimer(qtrue);
-		}
-
-		if (!SCREEN_BLUR && FOG_POST_ENABLED && r_fogPost->integer && !LATE_LIGHTING_ENABLED && (FOG_WORLD_ENABLE || FOG_LAYER_ENABLE))
-		{
-			DEBUG_StartTimer("Volumetric Fog Post", qtrue);
-			RB_FogPostShader(currentFbo, srcBox, currentOutFbo, dstBox, qfalse);
+			DEBUG_StartTimer("Fog Post", qtrue);
+			RB_FogPostShader(currentFbo, srcBox, currentOutFbo, dstBox);
 			RB_SwapFBOs(&currentFbo, &currentOutFbo);
 			DEBUG_EndTimer(qtrue);
 		}
@@ -3700,14 +3692,6 @@ const void *RB_PostProcess(const void *data)
 			RB_SwapFBOs( &currentFbo, &currentOutFbo);
 			DEBUG_EndTimer(qtrue);
 		}
-
-		/*if (!SCREEN_BLUR && FOG_POST_ENABLED && r_fogPost->integer && !LATE_LIGHTING_ENABLED && (FOG_WORLD_ENABLE || FOG_LAYER_ENABLE))
-		{
-			DEBUG_StartTimer("Volumetric Fog Post", qtrue);
-			RB_FogPostShader(currentFbo, srcBox, currentOutFbo, dstBox, qfalse);
-			RB_SwapFBOs(&currentFbo, &currentOutFbo);
-			DEBUG_EndTimer(qtrue);
-		}*/
 
 		if (!SCREEN_BLUR && r_multipost->integer)
 		{
@@ -3773,10 +3757,10 @@ const void *RB_PostProcess(const void *data)
 			DEBUG_EndTimer(qtrue);
 		}
 		
-		if (!SCREEN_BLUR && FOG_POST_ENABLED && r_fogPost->integer && LATE_LIGHTING_ENABLED && (FOG_WORLD_ENABLE || FOG_LAYER_ENABLE))
+		if (!SCREEN_BLUR && FOG_POST_ENABLED && r_fogPost->integer && LATE_LIGHTING_ENABLED && (FOG_LINEAR_ENABLE || FOG_WORLD_ENABLE || FOG_LAYER_ENABLE))
 		{
-			DEBUG_StartTimer("Volumetric Fog Post", qtrue);
-			RB_FogPostShader(currentFbo, srcBox, currentOutFbo, dstBox, qfalse);
+			DEBUG_StartTimer("Fog Post", qtrue);
+			RB_FogPostShader(currentFbo, srcBox, currentOutFbo, dstBox);
 			RB_SwapFBOs(&currentFbo, &currentOutFbo);
 			DEBUG_EndTimer(qtrue);
 		}

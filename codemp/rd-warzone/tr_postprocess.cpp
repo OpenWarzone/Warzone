@@ -834,7 +834,7 @@ void RB_BloomRays(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		GLSL_SetUniformVec4(&tr.volumeLightCombineShader, UNIFORM_LOCAL1, local1);
 	}
 
-	FBO_Blit(hdrFbo, NULL, NULL, ldrFbo, NULL, &tr.volumeLightCombineShader, colorWhite, GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO);
+	FBO_Blit(hdrFbo, NULL, NULL, ldrFbo, NULL, &tr.volumeLightCombineShader, colorWhite, 0);
 }
 
 #if 0
@@ -1541,7 +1541,7 @@ qboolean RB_VolumetricLight(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_
 		GLSL_SetUniformVec4(&tr.volumeLightCombineShader, UNIFORM_LOCAL1, local1);
 	}
 
-	FBO_Blit(hdrFbo, NULL, NULL, ldrFbo, ldrBox, &tr.volumeLightCombineShader, colorWhite, GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO);
+	FBO_Blit(hdrFbo, NULL, NULL, ldrFbo, ldrBox, &tr.volumeLightCombineShader, colorWhite, 0/*GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO*/);
 
 	//ri->Printf(PRINT_WARNING, "%i visible dlights. %i total dlights.\n", NUM_CLOSE_VLIGHTS, backEnd.refdef.num_dlights);
 	return qtrue;
@@ -2776,7 +2776,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 
 	vec4_t local2;
 	VectorSet4(local2, (MAP_REFLECTION_ENABLED || DYNAMIC_WEATHER_PUDDLE_STRENGTH > 0.0) ? 1.0 : 0.0, shadowsEnabled ? 1.0 : 0.0, SHADOW_MINBRIGHT, SHADOW_MAXBRIGHT);
-	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL2,  local2);
+	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL2, local2);
 
 	vec4_t local3;
 	VectorSet4(local3, r_testshaderValue1->value, r_testshaderValue2->value, r_testshaderValue3->value, r_testshaderValue4->value);
@@ -3386,7 +3386,7 @@ void RB_ColorCorrection(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ld
 }
 
 
-void RB_FogPostShader(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox, qboolean doingLinear)
+void RB_FogPostShader(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
 	vec4_t color;
 
@@ -3463,7 +3463,7 @@ void RB_FogPostShader(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrB
 
 	{
 		vec4_t loc;
-		VectorSet4(loc, FOG_WORLD_COLOR[0], FOG_WORLD_COLOR[1], FOG_WORLD_COLOR[2], (FOG_WORLD_ENABLE && !doingLinear) ? 1.0 : 0.0);
+		VectorSet4(loc, FOG_WORLD_COLOR[0], FOG_WORLD_COLOR[1], FOG_WORLD_COLOR[2], FOG_WORLD_ENABLE ? 1.0 : 0.0);
 		GLSL_SetUniformVec4(&tr.fogPostShader, UNIFORM_LOCAL2, loc);
 	}
 
@@ -3475,7 +3475,7 @@ void RB_FogPostShader(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrB
 
 	{
 		vec4_t loc;
-		VectorSet4(loc, FOG_WORLD_CLOUDINESS, (FOG_LAYER_ENABLE && !doingLinear) ? 1.0 : 0.0, FOG_LAYER_SUN_PENETRATION, FOG_LAYER_ALTITUDE_BOTTOM);
+		VectorSet4(loc, FOG_WORLD_CLOUDINESS, FOG_LAYER_ENABLE ? 1.0 : 0.0, FOG_LAYER_SUN_PENETRATION, FOG_LAYER_ALTITUDE_BOTTOM);
 		GLSL_SetUniformVec4(&tr.fogPostShader, UNIFORM_LOCAL4, loc);
 	}
 
@@ -3509,7 +3509,7 @@ void RB_FogPostShader(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrB
 
 	{
 		vec4_t local11;
-		VectorSet4(local11, MAP_INFO_MAXS[0], MAP_INFO_MAXS[1], MAP_INFO_MAXS[2], (FOG_LINEAR_ENABLE && doingLinear));
+		VectorSet4(local11, MAP_INFO_MAXS[0], MAP_INFO_MAXS[1], MAP_INFO_MAXS[2], FOG_LINEAR_ENABLE);
 		GLSL_SetUniformVec4(&tr.fogPostShader, UNIFORM_LOCAL11, local11);
 	}
 

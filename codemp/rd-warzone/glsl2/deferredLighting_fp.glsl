@@ -1330,6 +1330,7 @@ void main(void)
 		gl_FragColor = outColor;
 
 		gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 / GAMMA_CORRECTION));
+		gl_FragColor.a = 1.0;
 		return;
 	}
 
@@ -2011,5 +2012,6 @@ void main(void)
 	gl_FragColor = outColor;
 	
 	gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 / GAMMA_CORRECTION));
+	gl_FragColor.a = 1.0;
 }
 

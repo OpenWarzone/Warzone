@@ -1673,9 +1673,13 @@ void MAPPING_LoadMapInfo(void)
 	// Occlusion culling...
 	//
 	ENABLE_OCCLUSION_CULLING = (atoi(IniRead(mapname, "OCCLUSION CULLING", "ENABLE_OCCLUSION_CULLING", "1")) > 0) ? qtrue : qfalse;
-	OCCLUSION_CULLING_TOLERANCE = atof(IniRead(mapname, "OCCLUSION CULLING", "OCCLUSION_CULLING_TOLERANCE", "0.0004"));
-	OCCLUSION_CULLING_TOLERANCE_FOLIAGE = atof(IniRead(mapname, "OCCLUSION CULLING", "OCCLUSION_CULLING_TOLERANCE_FOLIAGE", "0.025"));
-	OCCLUSION_CULLING_MIN_DISTANCE = atoi(IniRead(mapname, "OCCLUSION CULLING", "OCCLUSION_CULLING_MIN_DISTANCE", "1024"));
+
+	if (ENABLE_OCCLUSION_CULLING)
+	{
+		OCCLUSION_CULLING_TOLERANCE = atof(IniRead(mapname, "OCCLUSION CULLING", "OCCLUSION_CULLING_TOLERANCE", "0.0004"));
+		OCCLUSION_CULLING_TOLERANCE_FOLIAGE = atof(IniRead(mapname, "OCCLUSION CULLING", "OCCLUSION_CULLING_TOLERANCE_FOLIAGE", "0.025"));
+		OCCLUSION_CULLING_MIN_DISTANCE = atoi(IniRead(mapname, "OCCLUSION CULLING", "OCCLUSION_CULLING_MIN_DISTANCE", "1024"));
+	}
 
 	//
 	// Misc effect enablers...
@@ -1701,6 +1705,7 @@ void MAPPING_LoadMapInfo(void)
 	// Tessellation...
 	//
 	TERRAIN_TESSELLATION_ENABLED = (atoi(IniRead(mapname, "TESSELLATION", "TERRAIN_TESSELLATION_ENABLED", "1")) > 0) ? qtrue : qfalse;
+	TESSELLATION_ALLOWED_MATERIALS_NUM = 0;
 
 	if (TERRAIN_TESSELLATION_ENABLED)
 	{
@@ -1748,22 +1753,14 @@ void MAPPING_LoadMapInfo(void)
 	if (!DAY_NIGHT_CYCLE_ENABLED)
 	{// Also check under SUN section...
 		dayNightEnableValue = atoi(IniRead(mapname, "SUN", "DAY_NIGHT_CYCLE_ENABLED", "0"));
-		DAY_NIGHT_CYCLE_SPEED = atof(IniRead(mapname, "SUN", "DAY_NIGHT_CYCLE_SPEED", "1.0"));
-		DAY_NIGHT_CYCLE_ENABLED = dayNightEnableValue ? qtrue : qfalse;
-		DAY_NIGHT_START_TIME = atof(IniRead(mapname, "SUN", "DAY_NIGHT_START_TIME", "0.0"));
-	}
 
-	if (dayNightEnableValue != -1 && !DAY_NIGHT_CYCLE_ENABLED)
-	{// Leave -1 in ini file to override and force it off, just in case...
-		if (StringContainsWord(mapname, "mandalore")
-			|| StringContainsWord(mapname, "endor")
-			|| StringContainsWord(mapname, "ilum")
-			|| StringContainsWord(mapname, "taanab")
-			|| StringContainsWord(mapname, "tatooine")
-			|| StringContainsWord(mapname, "scarif")
-			&& !StringContainsWord(mapname, "tatooine_nights"))
+		DAY_NIGHT_CYCLE_ENABLED = dayNightEnableValue ? qtrue : qfalse;
+
+		if (DAY_NIGHT_CYCLE_ENABLED)
 		{
-			DAY_NIGHT_CYCLE_ENABLED = qtrue;
+			DAY_NIGHT_CYCLE_SPEED = atof(IniRead(mapname, "SUN", "DAY_NIGHT_CYCLE_SPEED", "1.0"));
+			DAY_NIGHT_CYCLE_ENABLED = dayNightEnableValue ? qtrue : qfalse;
+			DAY_NIGHT_START_TIME = atof(IniRead(mapname, "SUN", "DAY_NIGHT_START_TIME", "0.0"));
 		}
 	}
 
@@ -1792,64 +1789,79 @@ void MAPPING_LoadMapInfo(void)
 	//
 	PROCEDURAL_SKY_ENABLED = (atoi(IniRead(mapname, "SKY", "PROCEDURAL_SKY_ENABLED", "0")) > 0) ? qtrue : qfalse;
 
-	PROCEDURAL_SKY_DAY_COLOR[0] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_DAY_COLOR_R", "0.2455"));
-	PROCEDURAL_SKY_DAY_COLOR[1] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_DAY_COLOR_G", "0.58"));
-	PROCEDURAL_SKY_DAY_COLOR[2] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_DAY_COLOR_B", "1.0"));
+	if (PROCEDURAL_SKY_ENABLED)
+	{
+		PROCEDURAL_SKY_DAY_COLOR[0] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_DAY_COLOR_R", "0.2455"));
+		PROCEDURAL_SKY_DAY_COLOR[1] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_DAY_COLOR_G", "0.58"));
+		PROCEDURAL_SKY_DAY_COLOR[2] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_DAY_COLOR_B", "1.0"));
 
-	PROCEDURAL_SKY_SUNSET_COLOR[0] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_SUNSET_COLOR_R", "1.0"));
-	PROCEDURAL_SKY_SUNSET_COLOR[1] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_SUNSET_COLOR_G", "0.7"));
-	PROCEDURAL_SKY_SUNSET_COLOR[2] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_SUNSET_COLOR_B", "0.2"));
-	PROCEDURAL_SKY_SUNSET_COLOR[3] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_SUNSET_STRENGTH", "2.0"));
+		PROCEDURAL_SKY_SUNSET_COLOR[0] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_SUNSET_COLOR_R", "1.0"));
+		PROCEDURAL_SKY_SUNSET_COLOR[1] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_SUNSET_COLOR_G", "0.7"));
+		PROCEDURAL_SKY_SUNSET_COLOR[2] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_SUNSET_COLOR_B", "0.2"));
+		PROCEDURAL_SKY_SUNSET_COLOR[3] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_SUNSET_STRENGTH", "2.0"));
 
-	PROCEDURAL_SKY_NIGHT_COLOR[0] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_NIGHT_COLOR_R", "1.0"));
-	PROCEDURAL_SKY_NIGHT_COLOR[1] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_NIGHT_COLOR_G", "1.0"));
-	PROCEDURAL_SKY_NIGHT_COLOR[2] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_NIGHT_COLOR_B", "1.0"));
-	PROCEDURAL_SKY_NIGHT_COLOR[3] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_NIGHT_COLOR_GLOW", "1.0"));
+		PROCEDURAL_SKY_NIGHT_COLOR[0] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_NIGHT_COLOR_R", "1.0"));
+		PROCEDURAL_SKY_NIGHT_COLOR[1] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_NIGHT_COLOR_G", "1.0"));
+		PROCEDURAL_SKY_NIGHT_COLOR[2] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_NIGHT_COLOR_B", "1.0"));
+		PROCEDURAL_SKY_NIGHT_COLOR[3] = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_NIGHT_COLOR_GLOW", "1.0"));
 
-	PROCEDURAL_SKY_NIGHT_HDR_MIN = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_NIGHT_HDR_MIN", "16.0"));
-	PROCEDURAL_SKY_NIGHT_HDR_MAX = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_NIGHT_HDR_MAX", "280.0"));
+		PROCEDURAL_SKY_NIGHT_HDR_MIN = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_NIGHT_HDR_MIN", "16.0"));
+		PROCEDURAL_SKY_NIGHT_HDR_MAX = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_NIGHT_HDR_MAX", "280.0"));
 
-	PROCEDURAL_SKY_STAR_DENSITY = atoi(IniRead(mapname, "SKY", "PROCEDURAL_SKY_STAR_DENSITY", "8"));
-	PROCEDURAL_SKY_NEBULA_FACTOR = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_NEBULA_FACTOR", "0.6"));
-	PROCEDURAL_SKY_NEBULA_SEED = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_NEBULA_SEED", "0.0"));
-	PROCEDURAL_SKY_PLANETARY_ROTATION = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_PLANETARY_ROTATION", "0.3"));
+		PROCEDURAL_SKY_STAR_DENSITY = atoi(IniRead(mapname, "SKY", "PROCEDURAL_SKY_STAR_DENSITY", "8"));
+		PROCEDURAL_SKY_NEBULA_FACTOR = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_NEBULA_FACTOR", "0.6"));
+		PROCEDURAL_SKY_NEBULA_SEED = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_NEBULA_SEED", "0.0"));
+		PROCEDURAL_SKY_PLANETARY_ROTATION = atof(IniRead(mapname, "SKY", "PROCEDURAL_SKY_PLANETARY_ROTATION", "0.3"));
+	}
 
 	PROCEDURAL_BACKGROUND_HILLS_ENABLED = (atoi(IniRead(mapname, "SKY", "PROCEDURAL_BACKGROUND_HILLS_ENABLED", PROCEDURAL_SKY_ENABLED ? "1" : "0")) > 0) ? qtrue : qfalse;
-	PROCEDURAL_BACKGROUND_HILLS_SMOOTHNESS = atof(IniRead(mapname, "SKY", "PROCEDURAL_BACKGROUND_HILLS_SMOOTHNESS", "0.4"));
-	PROCEDURAL_BACKGROUND_HILLS_UPDOWN = atof(IniRead(mapname, "SKY", "PROCEDURAL_BACKGROUND_HILLS_UPDOWN", "190.0"));
-	PROCEDURAL_BACKGROUND_HILLS_SEED = atof(IniRead(mapname, "SKY", "PROCEDURAL_BACKGROUND_HILLS_SEED", "1.0"));
 
-	PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR[0] = atof(IniRead(mapname, "SKY", "PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR_R", "0.4"));
-	PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR[1] = atof(IniRead(mapname, "SKY", "PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR_G", "0.6"));
-	PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR[2] = atof(IniRead(mapname, "SKY", "PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLORR_B", "0.3"));
+	if (PROCEDURAL_BACKGROUND_HILLS_ENABLED)
+	{
+		PROCEDURAL_BACKGROUND_HILLS_SMOOTHNESS = atof(IniRead(mapname, "SKY", "PROCEDURAL_BACKGROUND_HILLS_SMOOTHNESS", "0.4"));
+		PROCEDURAL_BACKGROUND_HILLS_UPDOWN = atof(IniRead(mapname, "SKY", "PROCEDURAL_BACKGROUND_HILLS_UPDOWN", "190.0"));
+		PROCEDURAL_BACKGROUND_HILLS_SEED = atof(IniRead(mapname, "SKY", "PROCEDURAL_BACKGROUND_HILLS_SEED", "1.0"));
 
-	PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR2[0] = atof(IniRead(mapname, "SKY", "PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR_R", "0.4"));
-	PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR2[1] = atof(IniRead(mapname, "SKY", "PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR_G", "0.5"));
-	PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR2[2] = atof(IniRead(mapname, "SKY", "PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLORR_B", "0.3"));
+		PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR[0] = atof(IniRead(mapname, "SKY", "PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR_R", "0.4"));
+		PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR[1] = atof(IniRead(mapname, "SKY", "PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR_G", "0.6"));
+		PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR[2] = atof(IniRead(mapname, "SKY", "PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLORR_B", "0.3"));
+
+		PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR2[0] = atof(IniRead(mapname, "SKY", "PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR_R", "0.4"));
+		PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR2[1] = atof(IniRead(mapname, "SKY", "PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR_G", "0.5"));
+		PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR2[2] = atof(IniRead(mapname, "SKY", "PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLORR_B", "0.3"));
+	}
 
 	//
 	// Clouds....
 	//
 	PROCEDURAL_CLOUDS_ENABLED = (atoi(IniRead(mapname, "CLOUDS", "PROCEDURAL_CLOUDS_ENABLED", "1")) > 0) ? qtrue : qfalse;
-	PROCEDURAL_CLOUDS_LAYER = (atoi(IniRead(mapname, "CLOUDS", "PROCEDURAL_CLOUDS_LAYER", "0")) > 0) ? qtrue : qfalse;
-	PROCEDURAL_CLOUDS_DYNAMIC = (atoi(IniRead(mapname, "CLOUDS", "PROCEDURAL_CLOUDS_DYNAMIC", "0")) > 0) ? qtrue : qfalse;
-	PROCEDURAL_CLOUDS_CLOUDSCALE = atof(IniRead(mapname, "CLOUDS", "PROCEDURAL_CLOUDS_CLOUDSCALE", "1.1"));
-	PROCEDURAL_CLOUDS_SPEED = atof(IniRead(mapname, "CLOUDS", "PROCEDURAL_CLOUDS_SPEED", "0.003"));
-	PROCEDURAL_CLOUDS_DARK = atof(IniRead(mapname, "CLOUDS", "PROCEDURAL_CLOUDS_DARK", "0.5"));
-	PROCEDURAL_CLOUDS_LIGHT = atof(IniRead(mapname, "CLOUDS", "PROCEDURAL_CLOUDS_LIGHT", "0.3"));
-	PROCEDURAL_CLOUDS_CLOUDCOVER = atof(IniRead(mapname, "CLOUDS", "PROCEDURAL_CLOUDS_CLOUDCOVER", "0.2"));
-	PROCEDURAL_CLOUDS_CLOUDALPHA = atof(IniRead(mapname, "CLOUDS", "PROCEDURAL_CLOUDS_CLOUDALPHA", "2.0"));
-	PROCEDURAL_CLOUDS_SKYTINT = atof(IniRead(mapname, "CLOUDS", "PROCEDURAL_CLOUDS_SKYTINT", "0.5"));
+
+	if (PROCEDURAL_CLOUDS_ENABLED)
+	{
+		PROCEDURAL_CLOUDS_LAYER = (atoi(IniRead(mapname, "CLOUDS", "PROCEDURAL_CLOUDS_LAYER", "0")) > 0) ? qtrue : qfalse;
+		PROCEDURAL_CLOUDS_DYNAMIC = (atoi(IniRead(mapname, "CLOUDS", "PROCEDURAL_CLOUDS_DYNAMIC", "0")) > 0) ? qtrue : qfalse;
+		PROCEDURAL_CLOUDS_CLOUDSCALE = atof(IniRead(mapname, "CLOUDS", "PROCEDURAL_CLOUDS_CLOUDSCALE", "1.1"));
+		PROCEDURAL_CLOUDS_SPEED = atof(IniRead(mapname, "CLOUDS", "PROCEDURAL_CLOUDS_SPEED", "0.003"));
+		PROCEDURAL_CLOUDS_DARK = atof(IniRead(mapname, "CLOUDS", "PROCEDURAL_CLOUDS_DARK", "0.5"));
+		PROCEDURAL_CLOUDS_LIGHT = atof(IniRead(mapname, "CLOUDS", "PROCEDURAL_CLOUDS_LIGHT", "0.3"));
+		PROCEDURAL_CLOUDS_CLOUDCOVER = atof(IniRead(mapname, "CLOUDS", "PROCEDURAL_CLOUDS_CLOUDCOVER", "0.2"));
+		PROCEDURAL_CLOUDS_CLOUDALPHA = atof(IniRead(mapname, "CLOUDS", "PROCEDURAL_CLOUDS_CLOUDALPHA", "2.0"));
+		PROCEDURAL_CLOUDS_SKYTINT = atof(IniRead(mapname, "CLOUDS", "PROCEDURAL_CLOUDS_SKYTINT", "0.5"));
+	}
 
 	//
 	// Aurora....
 	//
 	AURORA_ENABLED = (atoi(IniRead(mapname, "AURORA", "AURORA_ENABLED", "1")) > 0) ? qtrue : qfalse;
-	AURORA_ENABLED_DAY = (atoi(IniRead(mapname, "AURORA", "AURORA_ENABLED_DAY", "0")) > 0) ? qtrue : qfalse;
 
-	AURORA_COLOR[0] = atof(IniRead(mapname, "AURORA", "AURORA_COLOR_R", "1.0"));
-	AURORA_COLOR[1] = atof(IniRead(mapname, "AURORA", "AURORA_COLOR_G", "1.0"));
-	AURORA_COLOR[2] = atof(IniRead(mapname, "AURORA", "AURORA_COLOR_B", "1.0"));
+	if (AURORA_ENABLED)
+	{
+		AURORA_ENABLED_DAY = (atoi(IniRead(mapname, "AURORA", "AURORA_ENABLED_DAY", "0")) > 0) ? qtrue : qfalse;
+
+		AURORA_COLOR[0] = atof(IniRead(mapname, "AURORA", "AURORA_COLOR_R", "1.0"));
+		AURORA_COLOR[1] = atof(IniRead(mapname, "AURORA", "AURORA_COLOR_G", "1.0"));
+		AURORA_COLOR[2] = atof(IniRead(mapname, "AURORA", "AURORA_COLOR_B", "1.0"));
+	}
 
 	//
 	// Procedural Moss...
@@ -1860,11 +1872,15 @@ void MAPPING_LoadMapInfo(void)
 	// Procedural Snow...
 	//
 	PROCEDURAL_SNOW_ENABLED = (atoi(IniRead(mapname, "SNOW", "PROCEDURAL_SNOW_ENABLED", "0")) > 0) ? qtrue : qfalse;
-	PROCEDURAL_SNOW_ROCK_ONLY = (atoi(IniRead(mapname, "SNOW", "PROCEDURAL_SNOW_ROCK_ONLY", "0")) > 0) ? qtrue : qfalse;
-	PROCEDURAL_SNOW_HEIGHT_CURVE = atof(IniRead(mapname, "SNOW", "PROCEDURAL_SNOW_HEIGHT_CURVE", "1.0"));
-	PROCEDURAL_SNOW_LUMINOSITY_CURVE = atof(IniRead(mapname, "SNOW", "PROCEDURAL_SNOW_LUMINOSITY_CURVE", "0.35"));
-	PROCEDURAL_SNOW_BRIGHTNESS = atof(IniRead(mapname, "SNOW", "PROCEDURAL_SNOW_BRIGHTNESS", "0.5"));
-	PROCEDURAL_SNOW_LOWEST_ELEVATION = atof(IniRead(mapname, "SNOW", "PROCEDURAL_SNOW_LOWEST_ELEVATION", "-999999.9"));
+
+	if (PROCEDURAL_SNOW_ENABLED)
+	{
+		PROCEDURAL_SNOW_ROCK_ONLY = (atoi(IniRead(mapname, "SNOW", "PROCEDURAL_SNOW_ROCK_ONLY", "0")) > 0) ? qtrue : qfalse;
+		PROCEDURAL_SNOW_HEIGHT_CURVE = atof(IniRead(mapname, "SNOW", "PROCEDURAL_SNOW_HEIGHT_CURVE", "1.0"));
+		PROCEDURAL_SNOW_LUMINOSITY_CURVE = atof(IniRead(mapname, "SNOW", "PROCEDURAL_SNOW_LUMINOSITY_CURVE", "0.35"));
+		PROCEDURAL_SNOW_BRIGHTNESS = atof(IniRead(mapname, "SNOW", "PROCEDURAL_SNOW_BRIGHTNESS", "0.5"));
+		PROCEDURAL_SNOW_LOWEST_ELEVATION = atof(IniRead(mapname, "SNOW", "PROCEDURAL_SNOW_LOWEST_ELEVATION", "-999999.9"));
+	}
 
 	//
 	// Weather...
@@ -2000,15 +2016,19 @@ void MAPPING_LoadMapInfo(void)
 	// Shadows...
 	//
 	SHADOWS_ENABLED = (atoi(IniRead(mapname, "SHADOWS", "SHADOWS_ENABLED", "0")) > 0) ? qtrue : qfalse;
-	SHADOWS_FULL_SOLID = (atoi(IniRead(mapname, "SHADOWS", "SHADOWS_FULL_SOLID", "0")) > 0) ? qtrue : qfalse;
-	SHADOW_ZFAR = atoi(IniRead(mapname, "SHADOWS", "SHADOW_ZFAR", "4096"));
-	SHADOW_MINBRIGHT = atof(IniRead(mapname, "SHADOWS", "SHADOW_MINBRIGHT", "0.7"));
-	SHADOW_MAXBRIGHT = atof(IniRead(mapname, "SHADOWS", "SHADOW_MAXBRIGHT", "1.0"));
-	SHADOW_FORCE_UPDATE_ANGLE_CHANGE = atof(IniRead(mapname, "SHADOWS", "SHADOW_FORCE_UPDATE_ANGLE_CHANGE", "32.0"));
 
-	if (r_lowVram->integer)
+	if (SHADOWS_ENABLED)
 	{
-		SHADOWS_ENABLED = qfalse;
+		SHADOWS_FULL_SOLID = (atoi(IniRead(mapname, "SHADOWS", "SHADOWS_FULL_SOLID", "0")) > 0) ? qtrue : qfalse;
+		SHADOW_ZFAR = atoi(IniRead(mapname, "SHADOWS", "SHADOW_ZFAR", "4096"));
+		SHADOW_MINBRIGHT = atof(IniRead(mapname, "SHADOWS", "SHADOW_MINBRIGHT", "0.7"));
+		SHADOW_MAXBRIGHT = atof(IniRead(mapname, "SHADOWS", "SHADOW_MAXBRIGHT", "1.0"));
+		SHADOW_FORCE_UPDATE_ANGLE_CHANGE = atof(IniRead(mapname, "SHADOWS", "SHADOW_FORCE_UPDATE_ANGLE_CHANGE", "32.0"));
+
+		if (r_lowVram->integer)
+		{
+			SHADOWS_ENABLED = qfalse;
+		}
 	}
 
 	//
@@ -2016,7 +2036,7 @@ void MAPPING_LoadMapInfo(void)
 	//
 	WATER_ENABLED = (atoi(IniRead(mapname, "WATER", "WATER_ENABLED", "0")) > 0) ? qtrue : qfalse;
 
-	if (WATER_ENABLED /*&& !WATER_INITIALIZED*/)
+	if (WATER_ENABLED)
 	{
 		MAP_WATER_LEVEL = 131072.0;
 		WATER_INITIALIZED = qfalse;
@@ -2219,28 +2239,6 @@ void MAPPING_LoadMapInfo(void)
 				MOON_COUNT++;
 			}
 		}
-	}
-
-
-	if (!SHADOWS_ENABLED
-		&& (StringContainsWord(mapname, "mandalore")
-			|| StringContainsWord(mapname, "endor")
-			|| StringContainsWord(mapname, "ilum")
-			|| StringContainsWord(mapname, "taanab")
-			|| StringContainsWord(mapname, "tatooine")
-			|| StringContainsWord(mapname, "scarif"))
-		&& !StringContainsWord(mapname, "tatooine_nights"))
-	{
-		if (!r_lowVram->integer)
-		{
-			SHADOWS_ENABLED = qtrue;
-		}
-	}
-
-	if (StringContainsWord(mapname, "tatooine")
-		&& !StringContainsWord(mapname, "tatooine_nights"))
-	{
-		FOG_POST_ENABLED = qfalse;
 	}
 
 	if (AURORA_ENABLED)
