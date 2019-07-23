@@ -42,11 +42,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //#define __PERFORMANCE_DEBUG_STARTUP__
 #endif //__PERFORMANCE_DEBUG__
 
-#define __CHEAP_VERTS__
-
 // -----------------------------------------------------------------------------------------------------------------------------
 //                                               Warzone Basic Renderer Defines
 // -----------------------------------------------------------------------------------------------------------------------------
+//#define __CHEAP_VERTS__						// FIXME!!! - Remove or reduce attributes sizes to lower memory usage.
 #define __HALF_FLOAT__							// Enable half float conversion code...
 #define __GLSL_OPTIMIZER__						// Enable GLSL optimization...
 //#define __DEBUG_SHADER_LOAD__					// Enable extra GLSL shader load debugging info...
@@ -491,11 +490,8 @@ extern cvar_t  *r_glowVibrancy;
 extern cvar_t  *r_sunlightMode;
 extern cvar_t  *r_sunlightSpecular;
 extern cvar_t  *r_drawSunRays;
-extern cvar_t  *r_shadowBlurWidth;
-extern cvar_t  *r_shadowBlurStep;
 extern cvar_t  *r_shadowSamples;
 extern cvar_t  *r_shadowContrast;
-extern cvar_t  *r_shadowBlur;
 extern cvar_t  *r_shadowFilter;
 extern cvar_t  *r_shadowMapSize;
 extern cvar_t  *r_shadowCascadeZNear;
@@ -3502,11 +3498,8 @@ extern cvar_t  *r_glowVibrancy;
 extern  cvar_t  *r_sunlightMode;
 extern cvar_t  *r_sunlightSpecular;
 extern  cvar_t  *r_drawSunRays;
-extern cvar_t  *r_shadowBlurWidth;
-extern cvar_t  *r_shadowBlurStep;
 extern cvar_t  *r_shadowSamples;
 extern cvar_t  *r_shadowContrast;
-extern  cvar_t  *r_shadowBlur;
 extern  cvar_t  *r_shadowFilter;
 extern  cvar_t  *r_shadowMapSize;
 extern  cvar_t  *r_shadowCascadeZNear;

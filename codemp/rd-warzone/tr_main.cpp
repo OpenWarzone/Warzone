@@ -3092,7 +3092,7 @@ void R_RenderSunShadowMaps(const refdef_t *fd, int level, vec4_t sunDir, float l
 	VectorCopy4(sunDir, lightDir);
 
 	viewZNear = r_znear->value;// r_shadowCascadeZNear->value;
-	viewZFar = SHADOW_ZFAR;// 4096.0;// r_shadowCascadeZFar->value;
+	//viewZFar = SHADOW_ZFAR;// 4096.0;// r_shadowCascadeZFar->value;
 	float splitBias = r_shadowCascadeZBias->value;
 
 	/*if (!backEnd.viewIsOutdoors)
@@ -3123,14 +3123,14 @@ void R_RenderSunShadowMaps(const refdef_t *fd, int level, vec4_t sunDir, float l
 		case 0:
 		default:
 			splitZNear = viewZNear;
-			splitZFar = CalcSplit(viewZNear, viewZFar, 1, 3) + splitBias;
+			splitZFar = SHADOW_CASCADE1 + SHADOW_CASCADE_BIAS1; // CalcSplit(viewZNear, viewZFar, 1, 3) + splitBias;
 			break;
 		case 1:
-			splitZNear = CalcSplit(viewZNear, viewZFar, 1, 3) + splitBias;
-			splitZFar = viewZFar;
+			splitZNear = SHADOW_CASCADE1; // CalcSplit(viewZNear, viewZFar, 1, 3) + splitBias;
+			splitZFar = SHADOW_CASCADE2 + SHADOW_CASCADE_BIAS2; // viewZFar;
 			break;
 		case 2:
-			splitZNear = viewZFar;
+			splitZNear = SHADOW_CASCADE2; // viewZFar;
 			splitZFar = (backEnd.viewParms.zFar < MAP_INFO_MAXSIZE) ? backEnd.viewParms.zFar : MAP_INFO_MAXSIZE;
 			break;
 		}

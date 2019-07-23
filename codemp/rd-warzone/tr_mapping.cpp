@@ -1493,10 +1493,19 @@ float		AO_MULTBRIGHT = 1.0;
 
 qboolean	SHADOWS_ENABLED = qfalse;
 qboolean	SHADOWS_FULL_SOLID = qfalse;
-int			SHADOW_ZFAR = 4096;
+int			SHADOW_CASCADE1 = 256;
+int			SHADOW_CASCADE2 = 4096;
+int			SHADOW_CASCADE_BIAS1 = 256;
+int			SHADOW_CASCADE_BIAS2 = 1024;
+float		SHADOW_Z_ERROR_OFFSET_NEAR = 0.002;
+float		SHADOW_Z_ERROR_OFFSET_MID = 0.01;
+float		SHADOW_Z_ERROR_OFFSET_FAR = 0.03;
 float		SHADOW_MINBRIGHT = 0.7;
 float		SHADOW_MAXBRIGHT = 1.0;
 float		SHADOW_FORCE_UPDATE_ANGLE_CHANGE = 32.0;
+qboolean	SHADOW_SOFT = qtrue;
+float		SHADOW_SOFT_WIDTH = 2.0;
+float		SHADOW_SOFT_STEP = 1.0;
 
 qboolean	FOG_POST_ENABLED = qtrue;
 qboolean	FOG_LINEAR_ENABLE = qfalse;
@@ -2020,10 +2029,19 @@ void MAPPING_LoadMapInfo(void)
 	if (SHADOWS_ENABLED)
 	{
 		SHADOWS_FULL_SOLID = (atoi(IniRead(mapname, "SHADOWS", "SHADOWS_FULL_SOLID", "0")) > 0) ? qtrue : qfalse;
-		SHADOW_ZFAR = atoi(IniRead(mapname, "SHADOWS", "SHADOW_ZFAR", "4096"));
+		SHADOW_CASCADE1 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE1", "384"));
+		SHADOW_CASCADE2 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE2", "2048"));
+		SHADOW_CASCADE_BIAS1 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE_BIAS1", "32"));
+		SHADOW_CASCADE_BIAS2 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE_BIAS2", "256"));
+		SHADOW_Z_ERROR_OFFSET_NEAR = atof(IniRead(mapname, "SHADOWS", "SHADOW_Z_ERROR_OFFSET_NEAR", "0.0"));
+		SHADOW_Z_ERROR_OFFSET_MID = atof(IniRead(mapname, "SHADOWS", "SHADOW_Z_ERROR_OFFSET_MID", "0.0"));
+		SHADOW_Z_ERROR_OFFSET_FAR = atof(IniRead(mapname, "SHADOWS", "SHADOW_Z_ERROR_OFFSET_FAR", "0.0"));
 		SHADOW_MINBRIGHT = atof(IniRead(mapname, "SHADOWS", "SHADOW_MINBRIGHT", "0.7"));
 		SHADOW_MAXBRIGHT = atof(IniRead(mapname, "SHADOWS", "SHADOW_MAXBRIGHT", "1.0"));
 		SHADOW_FORCE_UPDATE_ANGLE_CHANGE = atof(IniRead(mapname, "SHADOWS", "SHADOW_FORCE_UPDATE_ANGLE_CHANGE", "32.0"));
+		SHADOW_SOFT = (atoi(IniRead(mapname, "SHADOWS", "SHADOW_SOFT", "1")) > 0) ? qtrue : qfalse;
+		SHADOW_SOFT_WIDTH = atof(IniRead(mapname, "SHADOWS", "SHADOW_SOFT_WIDTH", "2.0"));
+		SHADOW_SOFT_STEP = atof(IniRead(mapname, "SHADOWS", "SHADOW_SOFT_STEP", "1.0"));
 
 		if (r_lowVram->integer)
 		{

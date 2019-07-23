@@ -9,7 +9,7 @@ uniform mat4				u_ShadowMvp2;
 uniform mat4				u_ShadowMvp3;
 
 uniform vec4				u_Settings0;			// r_shadowSamples (numBlockerSearchSamples), SHADOW_MAP_SIZE, SHADOWS_FULL_SOLID, 0.0
-uniform vec4				u_Settings1;			// r_testshaderValue1->value, r_testshaderValue2->value, r_testshaderValue3->value, r_testshaderValue4->value
+uniform vec4				u_Settings1;			// SHADOW_Z_ERROR_OFFSET_NEAR, SHADOW_Z_ERROR_OFFSET_MID, SHADOW_Z_ERROR_OFFSET_FAR, r_testshaderValue1->value
 uniform vec3				u_ViewOrigin;
 uniform vec4				u_ViewInfo;				// zfar / znear, zfar, depthBits, znear
 
@@ -19,26 +19,39 @@ varying vec3				var_ViewDir;
 #define						SHADOW_MAP_SIZE			u_Settings0.g
 #define						SHADOWS_FULL_SOLID		u_Settings0.b
 
-#define SHADOW_Z_ERROR_OFFSET 0.01//u_Settings1.r//0.0001
+#define SHADOW_Z_ERROR_OFFSET_NEAR u_Settings1.r//0.0001//u_Settings1.r//0.0001
+#define SHADOW_Z_ERROR_OFFSET_MID u_Settings1.g//0.00001;//u_Settings1.r;//0.001//u_Settings1.r//0.0001
+#define SHADOW_Z_ERROR_OFFSET_FAR u_Settings1.b//0.01;//u_Settings1.r//0.0001
 #define MAX_SHADOW_VALUE_NORMAL 0.1
 #define MAX_SHADOW_VALUE_SOLID 0.9999999
 
-float offset_lookup(sampler2DShadow shadowmap, vec4 loc, vec2 offset, float scale, float depth)
+float offset_lookup(sampler2DShadow shadowmap, vec4 loc, vec2 offset, float scale, float depth, int cascade)
 {
 	//float result = textureProj(shadowmap, vec4(loc.xy + offset * scale * loc.w, (loc.z - u_Settings0.a), loc.w)) > 0.1 ? 1.0 : 0.0;
 	//return result;
 
+	float shadowError = SHADOW_Z_ERROR_OFFSET_NEAR;
+
+	if (cascade == 1)
+	{
+		shadowError = SHADOW_Z_ERROR_OFFSET_MID;
+	}
+	else if (cascade == 2)
+	{
+		shadowError = SHADOW_Z_ERROR_OFFSET_FAR;
+	}
+
 	if (SHADOWS_FULL_SOLID <= 0.0)
 	{
-		return textureProj(shadowmap, vec4(loc.xy + offset * scale * loc.w, (loc.z + SHADOW_Z_ERROR_OFFSET), loc.w)) > MAX_SHADOW_VALUE_NORMAL ? 1.0 : 0.0;
+		return textureProj(shadowmap, vec4(loc.xy + offset * scale * loc.w, (loc.z + shadowError), loc.w)) > MAX_SHADOW_VALUE_NORMAL ? 1.0 : 0.0;
 	}
 	else 
 	{
-		return textureProj(shadowmap, vec4(loc.xy + offset * scale * loc.w, (loc.z + SHADOW_Z_ERROR_OFFSET), loc.w));
+		return textureProj(shadowmap, vec4(loc.xy + offset * scale * loc.w, (loc.z + shadowError), loc.w));
 	}
 }
 
-float PCF(const sampler2DShadow shadowmap, const vec4 st, const float dist, float scale, float depth)
+float PCF(const sampler2DShadow shadowmap, const vec4 st, const float dist, float scale, float depth, int cascade)
 {
 	float mult;
 	vec4 sCoord = vec4(st);
@@ -51,10 +64,10 @@ float PCF(const sampler2DShadow shadowmap, const vec4 st, const float dist, floa
 
 	if (SHADOWS_FULL_SOLID <= 0.0)
 	{
-		float shadowCoeff = (offset_lookup(shadowmap, sCoord, offset + vec2(-1.5, 0.5), scale, depth) +
-			offset_lookup(shadowmap, sCoord, offset + vec2(0.5, 0.5), scale, depth) +
-			offset_lookup(shadowmap, sCoord, offset + vec2(-1.5, -1.5), scale, depth) +
-			offset_lookup(shadowmap, sCoord, offset + vec2(0.5, -1.5), scale, depth) ) 
+		float shadowCoeff = (offset_lookup(shadowmap, sCoord, offset + vec2(-1.5, 0.5), scale, depth, cascade) +
+			offset_lookup(shadowmap, sCoord, offset + vec2(0.5, 0.5), scale, depth, cascade) +
+			offset_lookup(shadowmap, sCoord, offset + vec2(-1.5, -1.5), scale, depth, cascade) +
+			offset_lookup(shadowmap, sCoord, offset + vec2(0.5, -1.5), scale, depth, cascade) ) 
 			* 0.25;
 
 		//return shadowCoeff > SHADOW_CUTOFF ? 1.0 : 0.0; // Hmm too harsh...
@@ -62,10 +75,10 @@ float PCF(const sampler2DShadow shadowmap, const vec4 st, const float dist, floa
 	}
 	else
 	{
-		if (offset_lookup(shadowmap, sCoord, offset + vec2(-1.5, 0.5), scale, depth) <= MAX_SHADOW_VALUE_SOLID) return 0.0;
-		if (offset_lookup(shadowmap, sCoord, offset + vec2(0.5, 0.5), scale, depth) <= MAX_SHADOW_VALUE_SOLID) return 0.0;
-		if (offset_lookup(shadowmap, sCoord, offset + vec2(-1.5, -1.5), scale, depth) <= MAX_SHADOW_VALUE_SOLID) return 0.0;
-		if (offset_lookup(shadowmap, sCoord, offset + vec2(0.5, -1.5), scale, depth) <= MAX_SHADOW_VALUE_SOLID) return 0.0;
+		if (offset_lookup(shadowmap, sCoord, offset + vec2(-1.5, 0.5), scale, depth, cascade) <= MAX_SHADOW_VALUE_SOLID) return 0.0;
+		if (offset_lookup(shadowmap, sCoord, offset + vec2(0.5, 0.5), scale, depth, cascade) <= MAX_SHADOW_VALUE_SOLID) return 0.0;
+		if (offset_lookup(shadowmap, sCoord, offset + vec2(-1.5, -1.5), scale, depth, cascade) <= MAX_SHADOW_VALUE_SOLID) return 0.0;
+		if (offset_lookup(shadowmap, sCoord, offset + vec2(0.5, -1.5), scale, depth, cascade) <= MAX_SHADOW_VALUE_SOLID) return 0.0;
 
 		return 1.0;
 	}
@@ -80,30 +93,32 @@ void main()
 	vec4 biasPos = vec4(u_ViewOrigin + var_ViewDir * (depth - 0.5 / u_ViewInfo.x), 1.0);
 	vec4 shadowpos = u_ShadowMvp * biasPos;
 
-	if (all(lessThanEqual(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
+	if (all(lessThan(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
 	{
 		shadowpos.xyz = shadowpos.xyz / shadowpos.w * 0.5 + 0.5;
-		result = PCF(u_ShadowMap, shadowpos, shadowpos.z, 1.0 / SHADOW_MAP_SIZE, depth);
+		result = PCF(u_ShadowMap, shadowpos, shadowpos.z, 1.0 / SHADOW_MAP_SIZE, depth, 0);
 		gl_FragColor = vec4(result, depth, 0.0, 1.0);
 		return;
 	}
 
+	biasPos.xyz -= var_ViewDir * (1.0 / u_ViewInfo.x);
 	shadowpos = u_ShadowMvp2 * biasPos;
 
-	if (all(lessThanEqual(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
+	if (all(lessThan(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
 	{
 		shadowpos.xyz = shadowpos.xyz / shadowpos.w * 0.5 + 0.5;
-		result = PCF(u_ShadowMap2, shadowpos, shadowpos.z, 1.0 / (SHADOW_MAP_SIZE * 4.0), depth);
+		result = PCF(u_ShadowMap2, shadowpos, shadowpos.z, 1.0 / (SHADOW_MAP_SIZE * 1.0), depth, 1);
 		gl_FragColor = vec4(result, depth, 0.0, 1.0);
 		return;
 	}
 
+	biasPos.xyz -= var_ViewDir * (1.0 / u_ViewInfo.x);
 	shadowpos = u_ShadowMvp3 * biasPos;
 
-	if (all(lessThanEqual(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
+	if (all(lessThan(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
 	{
 		shadowpos.xyz = shadowpos.xyz / shadowpos.w * 0.5 + 0.5;
-		result = PCF(u_ShadowMap3, shadowpos, shadowpos.z, 1.0 / (SHADOW_MAP_SIZE * 6.0), depth);
+		result = PCF(u_ShadowMap3, shadowpos, shadowpos.z, 1.0 / (SHADOW_MAP_SIZE * 2.0), depth, 2);
 		gl_FragColor = vec4(result, depth, 0.0, 1.0);
 		return;
 	}

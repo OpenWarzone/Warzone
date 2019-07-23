@@ -5185,24 +5185,28 @@ void R_CreateBuiltinImages( void ) {
 		tr.pshadowMaps[x] = R_CreateImage(va("*shadowmap%i", x), NULL, PSHADOW_MAP_SIZE / vramScaleDiv, PSHADOW_MAP_SIZE / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_DEPTH_COMPONENT24);
 	}
 
-	int shadowDepth = GL_DEPTH_COMPONENT32;
+	int shadowDepth = GL_DEPTH_COMPONENT24;// GL_DEPTH_COMPONENT32;
 	if (r_sunlightMode->integer >= 2)
 	{
 		for ( x = 0; x < 3; x++)
 		{
 			if (x >= 2)
-				tr.sunShadowDepthImage[x] = R_CreateImage(va("*sunshadowdepth%i", x), NULL, (r_shadowMapSize->integer * 3.0) / vramScaleDiv, (r_shadowMapSize->integer * 3.0) / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_NOLIGHTSCALE, shadowDepth/*hdrDepth*/);
-			else if (x >= 1)
 				tr.sunShadowDepthImage[x] = R_CreateImage(va("*sunshadowdepth%i", x), NULL, (r_shadowMapSize->integer * 2.0) / vramScaleDiv, (r_shadowMapSize->integer * 2.0) / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_NOLIGHTSCALE, shadowDepth/*hdrDepth*/);
+			else if (x >= 1)
+				tr.sunShadowDepthImage[x] = R_CreateImage(va("*sunshadowdepth%i", x), NULL, (r_shadowMapSize->integer * 1.0) / vramScaleDiv, (r_shadowMapSize->integer * 1.0) / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_NOLIGHTSCALE, shadowDepth/*hdrDepth*/);
 			else
 				tr.sunShadowDepthImage[x] = R_CreateImage(va("*sunshadowdepth%i", x), NULL, r_shadowMapSize->integer / vramScaleDiv, r_shadowMapSize->integer / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_NOLIGHTSCALE, shadowDepth/*hdrDepth*/);
 			qglTextureParameterfEXT(tr.sunShadowDepthImage[x]->texnum, GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
 			qglTextureParameterfEXT(tr.sunShadowDepthImage[x]->texnum, GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
 		}
 
-		tr.screenShadowImage = R_CreateImage("*screenShadow", NULL, (width/2.0) / vramScaleDiv, (height/2.0) / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_NOLIGHTSCALE, hdrFormat);
-		tr.screenShadowBlurTempImage = R_CreateImage("*screenShadowBlurTemp", NULL, (width / 2.0) / vramScaleDiv, (height / 2.0) / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_NOLIGHTSCALE, hdrFormat);
-		tr.screenShadowBlurImage = R_CreateImage("*screenShadowBlur", NULL, (width/2.0) / vramScaleDiv, (height/2.0) / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_NOLIGHTSCALE, hdrFormat);
+		//tr.screenShadowImage = R_CreateImage("*screenShadow", NULL, (width/2.0) / vramScaleDiv, (height/2.0) / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_NOLIGHTSCALE, hdrFormat);
+		//tr.screenShadowBlurTempImage = R_CreateImage("*screenShadowBlurTemp", NULL, (width / 2.0) / vramScaleDiv, (height / 2.0) / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_NOLIGHTSCALE, hdrFormat);
+		//tr.screenShadowBlurImage = R_CreateImage("*screenShadowBlur", NULL, (width/2.0) / vramScaleDiv, (height/2.0) / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_NOLIGHTSCALE, hdrFormat);
+
+		tr.screenShadowImage = R_CreateImage("*screenShadow", NULL, width / vramScaleDiv, height / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_NOLIGHTSCALE, hdrFormat);
+		tr.screenShadowBlurTempImage = R_CreateImage("*screenShadowBlurTemp", NULL, width / vramScaleDiv, height / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_NOLIGHTSCALE, hdrFormat);
+		tr.screenShadowBlurImage = R_CreateImage("*screenShadowBlur", NULL, width / vramScaleDiv, height / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_NOLIGHTSCALE, hdrFormat);
 	}
 
 	tr.renderSkyImage = R_CreateImage("*renderSkyCube", NULL, 2048 / vramScaleDiv, 2048 / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_MIPMAP | IMGFLAG_CUBEMAP, hdrFormat);

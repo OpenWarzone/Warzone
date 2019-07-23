@@ -1764,7 +1764,6 @@ int GUI_PostProcessUpdateUI(struct nk_context *ctx, struct media *media) {
 }
 
 void GUI_PostProcessMakeCvarList() {
-	GUI_PostProcessAddCvar(r_shadowBlur, 1);
 	GUI_PostProcessAddCvar(r_dynamicGlow, 1);
 	GUI_PostProcessAddCvar(r_bloom, 2);
 	GUI_PostProcessAddCvar(r_anamorphic, 1);

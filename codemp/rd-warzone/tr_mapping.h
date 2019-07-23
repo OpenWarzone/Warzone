@@ -114,10 +114,19 @@ extern float			AO_MULTBRIGHT;
 
 extern qboolean			SHADOWS_ENABLED;
 extern qboolean			SHADOWS_FULL_SOLID;
-extern int				SHADOW_ZFAR;
+extern int				SHADOW_CASCADE1;
+extern int				SHADOW_CASCADE2;
+extern int				SHADOW_CASCADE_BIAS1;
+extern int				SHADOW_CASCADE_BIAS2;
+extern float			SHADOW_Z_ERROR_OFFSET_NEAR;
+extern float			SHADOW_Z_ERROR_OFFSET_MID;
+extern float			SHADOW_Z_ERROR_OFFSET_FAR;
 extern float			SHADOW_MINBRIGHT;
 extern float			SHADOW_MAXBRIGHT;
 extern float			SHADOW_FORCE_UPDATE_ANGLE_CHANGE;
+extern qboolean			SHADOW_SOFT;
+extern float			SHADOW_SOFT_WIDTH;
+extern float			SHADOW_SOFT_STEP;
 
 extern qboolean			FOG_POST_ENABLED;
 extern qboolean			FOG_LINEAR_ENABLE;

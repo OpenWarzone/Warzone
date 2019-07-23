@@ -156,7 +156,6 @@ void DockPostProcess::UpdateUI() {
 }
 
 void DockPostProcess::MakeCvarList() {
-	AddCvar(r_shadowBlur, 1);
 	AddCvar(r_dynamicGlow, 1);
 	AddCvar(r_bloom, 2);
 	AddCvar(r_anamorphic, 1);

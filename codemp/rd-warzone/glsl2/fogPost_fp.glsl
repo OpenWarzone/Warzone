@@ -115,7 +115,7 @@ vec3			vBB									= vec3( fogHasBBox ? FOG_LAYER_BBOX[2] :  524288.0, fogHeight
 
 #define			eyePos								u_ViewOrigin.xzy
 
-vec3			sundir								= -normalize(u_ViewOrigin.xzy - u_PrimaryLightOrigin.xzy);
+vec3			sundir							= -normalize(u_ViewOrigin.xzy - u_PrimaryLightOrigin.xzy);
 const float		sunDiffuseStrength					= float(6.0);
 const float		sunSpecularExponent					= float(100.0);
 
@@ -241,7 +241,7 @@ vec4 RaymarchClouds(in vec3 start, in vec3 end, bool isFullWorldFog)
 	alpha      *= tstep * fogAlpha * depth;
 
 	vec3 ndir = (end - start) / l;
-	float sun = pow( clamp( dot(sundir, ndir), 0.0, 1.0 ), sunSpecularExponent );
+	float sun = pow( clamp( dot((FOG_LAYER_INVERT && isFullWorldFog) ? -sundir : sundir, ndir), 0.0, 1.0 ), sunSpecularExponent );
 	sunContrib += sun * clamp(1. - fogContrib * alpha, 0.2, 1.) * 1.0;
 
 	vec4 col;

@@ -2582,7 +2582,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 
 	if (SHADOWS_ENABLED)
 	{
-		if (r_shadowBlur->integer)
+		if (SHADOW_SOFT)
 		{
 			GLSL_SetUniformInt(shader, UNIFORM_SHADOWMAP, TB_SHADOWMAP);
 			GL_BindToTMU(tr.screenShadowBlurImage, TB_SHADOWMAP);
@@ -3586,7 +3586,7 @@ void RB_FastBlur(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 #if 0
 	{
 		vec4_t loc;
-		VectorSet4(loc, (r_shadowBlurWidth->value > 0) ? r_shadowBlurWidth->value : 1.0, (r_shadowBlurStep->value > 0) ? r_shadowBlurStep->value : 1.0, 0.0, 0.0);
+		VectorSet4(loc, SHADOW_SOFT_WIDTH, SHADOW_SOFT_STEP, 0.0, 0.0);
 		GLSL_SetUniformVec4(shader, UNIFORM_SETTINGS0, loc);
 	}
 
@@ -3602,7 +3602,7 @@ void RB_FastBlur(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 
 			{
 				vec4_t loc;
-				VectorSet4(loc, (r_shadowBlurWidth->value > 0) ? r_shadowBlurWidth->value : 1.0, (r_shadowBlurStep->value > 0) ? r_shadowBlurStep->value : 1.0, direction, 0.0);
+				VectorSet4(loc, SHADOW_SOFT_WIDTH, SHADOW_SOFT_STEP, direction, 0.0);
 				GLSL_SetUniformVec4(shader, UNIFORM_SETTINGS0, loc);
 			}
 
@@ -3614,7 +3614,7 @@ void RB_FastBlur(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 
 			{
 				vec4_t loc;
-				VectorSet4(loc, (r_shadowBlurWidth->value > 0) ? r_shadowBlurWidth->value : 1.0, (r_shadowBlurStep->value > 0) ? r_shadowBlurStep->value : 1.0, direction, 0.0);
+				VectorSet4(loc, SHADOW_SOFT_WIDTH, SHADOW_SOFT_STEP, direction, 0.0);
 				GLSL_SetUniformVec4(shader, UNIFORM_SETTINGS0, loc);
 			}
 
