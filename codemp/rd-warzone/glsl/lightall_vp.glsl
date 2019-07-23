@@ -3,7 +3,12 @@
 attribute vec2 attr_TexCoord0;
 
 attribute vec2 attr_TexCoord1;
+
+#ifdef __VBO_PACK_COLOR__
+attribute float attr_Color;
+#else //!__VBO_PACK_COLOR__
 attribute vec4 attr_Color;
+#endif //__VBO_PACK_COLOR__
 
 attribute vec3 attr_Position;
 attribute vec3 attr_Normal;
@@ -71,6 +76,10 @@ uniform vec4						u_Local12; // TERRAIN_TESS_OFFSET, GRASS_DISTANCE_FROM_ROADS, 
 
 #define TERRAIN_TESS_OFFSET			u_Local12.r
 #define GRASS_DISTANCE_FROM_ROADS	u_Local12.g
+
+#ifdef __CHEAP_VERTS__
+uniform int							u_isWorld;
+#endif //__CHEAP_VERTS__
 
 uniform vec4						u_Mins;
 uniform vec4						u_Maxs;
@@ -146,6 +155,21 @@ varying vec4	var_PrimaryLightDir;
 varying vec3	var_vertPos;
 varying vec3	var_Blending;
 varying float	var_Slope;
+
+
+
+const float VboUnpackX = 1.0/255.0;
+const float VboUnpackY = 1.0/65025.0;
+const float VboUnpackZ = 1.0/16581375.0;
+
+vec4 DecodeFloatRGBA( float v ) {
+	vec4 enc = vec4(1.0, 255.0, 65025.0, 16581375.0) * v;
+	enc = fract(enc);
+	enc -= enc.yzww * vec4(VboUnpackX, VboUnpackX, VboUnpackX,0.0);
+	return enc;
+}
+
+
 
 #define HASHSCALE1 .1031
 
@@ -355,7 +379,26 @@ vec2 ModTexCoords(vec2 st, vec3 position, vec4 texMatrix, vec4 offTurb)
 
 vec4 CalcColor(vec3 position, vec3 normal)
 {
-	vec4 color = u_VertColor * attr_Color + u_BaseColor;
+	vec4 color;
+
+#ifdef __CHEAP_VERTS__
+	if (u_isWorld > 0)
+	{
+		color = u_VertColor + u_BaseColor;
+	}
+	else
+#endif //__CHEAP_VERTS__
+	{
+//#ifdef __CHEAP_VERTS__
+//		color = u_VertColor + u_BaseColor;
+//#else //!__CHEAP_VERTS__
+	#ifdef __VBO_PACK_COLOR__
+		color = u_VertColor * DecodeFloatRGBA(attr_Color) + u_BaseColor;
+	#else //!__VBO_PACK_COLOR__
+		color = u_VertColor * attr_Color + u_BaseColor;
+	#endif //__VBO_PACK_COLOR__
+//#endif //__CHEAP_VERTS__
+	}
 	
 	if (USE_RGBA > 0.0)
 	{

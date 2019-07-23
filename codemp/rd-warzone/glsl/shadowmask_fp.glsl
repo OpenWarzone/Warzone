@@ -19,11 +19,12 @@ varying vec3				var_ViewDir;
 #define						SHADOW_MAP_SIZE			u_Settings0.g
 #define						SHADOWS_FULL_SOLID		u_Settings0.b
 
-#define SHADOW_Z_ERROR_OFFSET_NEAR u_Settings1.r//0.0001//u_Settings1.r//0.0001
-#define SHADOW_Z_ERROR_OFFSET_MID u_Settings1.g//0.00001;//u_Settings1.r;//0.001//u_Settings1.r//0.0001
-#define SHADOW_Z_ERROR_OFFSET_FAR u_Settings1.b//0.01;//u_Settings1.r//0.0001
-#define MAX_SHADOW_VALUE_NORMAL 0.1
-#define MAX_SHADOW_VALUE_SOLID 0.9999999
+#define						SHADOW_Z_ERROR_OFFSET_NEAR u_Settings1.r//0.0001//u_Settings1.r//0.0001
+#define						SHADOW_Z_ERROR_OFFSET_MID u_Settings1.g//0.00001;//u_Settings1.r;//0.001//u_Settings1.r//0.0001
+#define						SHADOW_Z_ERROR_OFFSET_FAR u_Settings1.b//0.01;//u_Settings1.r//0.0001
+
+#define						MAX_SHADOW_VALUE_NORMAL 0.1
+#define						MAX_SHADOW_VALUE_SOLID 0.9999999
 
 float offset_lookup(sampler2DShadow shadowmap, vec4 loc, vec2 offset, float scale, float depth, int cascade)
 {
@@ -101,7 +102,7 @@ void main()
 		return;
 	}
 
-	biasPos.xyz -= var_ViewDir * (1.0 / u_ViewInfo.x);
+	//biasPos.xyz -= var_ViewDir * (1.0 / u_ViewInfo.x);
 	shadowpos = u_ShadowMvp2 * biasPos;
 
 	if (all(lessThan(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
@@ -112,7 +113,7 @@ void main()
 		return;
 	}
 
-	biasPos.xyz -= var_ViewDir * (1.0 / u_ViewInfo.x);
+	//biasPos.xyz -= var_ViewDir * (1.0 / u_ViewInfo.x);
 	shadowpos = u_ShadowMvp3 * biasPos;
 
 	if (all(lessThan(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))

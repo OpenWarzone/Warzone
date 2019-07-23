@@ -175,10 +175,17 @@ void RB_AddQuadStampExt( vec3_t origin, vec3_t left, vec3_t up, float color[4], 
 
 	// constant color all the way around
 	// should this be identity and let the shader specify from entity?
+#ifdef __VBO_PACK_COLOR__
+	tess.vertexColors[ndx] = R_VboPackColor(color);
+	tess.vertexColors[ndx+1] = R_VboPackColor(color);
+	tess.vertexColors[ndx+2] = R_VboPackColor(color);
+	tess.vertexColors[ndx+3] = R_VboPackColor(color);
+#else //__VBO_PACK_COLOR__
 	VectorCopy4(color, tess.vertexColors[ndx]);
 	VectorCopy4(color, tess.vertexColors[ndx+1]);
 	VectorCopy4(color, tess.vertexColors[ndx+2]);
 	VectorCopy4(color, tess.vertexColors[ndx+3]);
+#endif //__VBO_PACK_COLOR__
 
 	tess.numVertexes += 4;
 	tess.numIndexes += 6;
@@ -594,10 +601,17 @@ static void RB_SurfacePolychain( srfPoly_t *p ) {
 
 		tess.texCoords[numv][0][0] = p->verts[i].st[0];
 		tess.texCoords[numv][0][1] = p->verts[i].st[1];
+		
+#ifdef __VBO_PACK_COLOR__
+		vec4_t color;
+		VectorSet4(color, p->verts[i].modulate[0] / 255.0f, p->verts[i].modulate[1] / 255.0f, p->verts[i].modulate[2] / 255.0f, p->verts[i].modulate[3] / 255.0f);
+		tess.vertexColors[numv] = R_VboPackColor(color);
+#else //__VBO_PACK_COLOR__
 		tess.vertexColors[numv][0] = p->verts[ i ].modulate[0] / 255.0f;
 		tess.vertexColors[numv][1] = p->verts[ i ].modulate[1] / 255.0f;
 		tess.vertexColors[numv][2] = p->verts[ i ].modulate[2] / 255.0f;
 		tess.vertexColors[numv][3] = p->verts[ i ].modulate[3] / 255.0f;
+#endif //__VBO_PACK_COLOR__
 
 		numv++;
 	}
@@ -679,10 +693,20 @@ static void RB_SurfaceVertsAndIndexes( int numVerts, srfVert_t *verts, int numIn
 	if ( tess.shader->vertexAttribs & ATTR_COLOR )
 	{
 		dv = verts;
-		color = tess.vertexColors[ tess.numVertexes ];
 #ifndef __CHEAP_VERTS__
+	#ifdef __VBO_PACK_COLOR__
+		color = &tess.vertexColors[tess.numVertexes];
+		for (i = 0; i < numVerts; i++, dv++, color++)
+			*color = R_VboPackColor(dv->vertexColors[0]);
+	#else //!__VBO_PACK_COLOR__
+		color = tess.vertexColors[tess.numVertexes];
 		for ( i = 0 ; i < numVerts ; i++, dv++, color+=4 )
 			VectorCopy4(dv->vertexColors[0], color);
+	#endif //__VBO_PACK_COLOR__
+#else
+		color = tess.vertexColors[tess.numVertexes];
+		for (i = 0; i < numVerts; i++, dv++, color += 4)
+			VectorSet4(color, 1, 1, 1, 1);
 #endif //__CHEAP_VERTS__
 	}
 
@@ -1051,14 +1075,26 @@ static void DoLine( const vec3_t start, const vec3_t end, const vec3_t up, float
 	VectorMA( start, spanWidth, up, tess.xyz[tess.numVertexes] );
 	tess.texCoords[tess.numVertexes][0][0] = 0;
 	tess.texCoords[tess.numVertexes][0][1] = 0;
+#ifdef __VBO_PACK_COLOR__
+	vec4_t col;
+	VectorCopy4(R_VboUnpackColor(tess.vertexColors[tess.numVertexes]), col);
+	VectorScale4(backEnd.currentEntity->e.shaderRGBA, 1.0f / 255.0f, col);
+	float packedCol = R_VboPackColor(col); // saves doing this multiple times...
+	tess.vertexColors[tess.numVertexes] = packedCol;
+#else //!__VBO_PACK_COLOR__
 	VectorScale4 (backEnd.currentEntity->e.shaderRGBA, 1.0f / 255.0f, tess.vertexColors[tess.numVertexes]);
+#endif //__VBO_PACK_COLOR__
 	tess.normal[tess.numVertexes] = R_TessXYZtoPackedNormals(tess.xyz[tess.numVertexes]);
 	tess.numVertexes++;
 
 	VectorMA( start, spanWidth2, up, tess.xyz[tess.numVertexes] );
 	tess.texCoords[tess.numVertexes][0][0] = 1;//backEnd.currentEntity->e.shaderTexCoord[0];
 	tess.texCoords[tess.numVertexes][0][1] = 0;
+#ifdef __VBO_PACK_COLOR__
+	tess.vertexColors[tess.numVertexes] = packedCol;
+#else //!__VBO_PACK_COLOR__
 	VectorScale4 (backEnd.currentEntity->e.shaderRGBA, 1.0f / 255.0f, tess.vertexColors[tess.numVertexes]);
+#endif //__VBO_PACK_COLOR__
 	tess.normal[tess.numVertexes] = R_TessXYZtoPackedNormals(tess.xyz[tess.numVertexes]);
 	tess.numVertexes++;
 
@@ -1066,14 +1102,22 @@ static void DoLine( const vec3_t start, const vec3_t end, const vec3_t up, float
 
 	tess.texCoords[tess.numVertexes][0][0] = 0;
 	tess.texCoords[tess.numVertexes][0][1] = 1;//backEnd.currentEntity->e.shaderTexCoord[1];
-	VectorScale4 (backEnd.currentEntity->e.shaderRGBA, 1.0f / 255.0f, tess.vertexColors[tess.numVertexes]);
+#ifdef __VBO_PACK_COLOR__
+	tess.vertexColors[tess.numVertexes] = packedCol;
+#else //!__VBO_PACK_COLOR__
+	VectorScale4(backEnd.currentEntity->e.shaderRGBA, 1.0f / 255.0f, tess.vertexColors[tess.numVertexes]);
+#endif //__VBO_PACK_COLOR__
 	tess.normal[tess.numVertexes] = R_TessXYZtoPackedNormals(tess.xyz[tess.numVertexes]);
 	tess.numVertexes++;
 
 	VectorMA( end, spanWidth2, up, tess.xyz[tess.numVertexes] );
 	tess.texCoords[tess.numVertexes][0][0] = 1;//backEnd.currentEntity->e.shaderTexCoord[0];
 	tess.texCoords[tess.numVertexes][0][1] = 1;//backEnd.currentEntity->e.shaderTexCoord[1];
-	VectorScale4 (backEnd.currentEntity->e.shaderRGBA, 1.0f / 255.0f, tess.vertexColors[tess.numVertexes]);
+#ifdef __VBO_PACK_COLOR__
+	tess.vertexColors[tess.numVertexes] = packedCol;
+#else //!__VBO_PACK_COLOR__
+	VectorScale4(backEnd.currentEntity->e.shaderRGBA, 1.0f / 255.0f, tess.vertexColors[tess.numVertexes]);
+#endif //__VBO_PACK_COLOR__
 	tess.normal[tess.numVertexes] = R_TessXYZtoPackedNormals(tess.xyz[tess.numVertexes]);
 	tess.numVertexes++;
 
@@ -1097,14 +1141,26 @@ static void DoLine2( const vec3_t start, const vec3_t end, const vec3_t up, floa
 	VectorMA( start, spanWidth, up, tess.xyz[tess.numVertexes] );
 	tess.texCoords[tess.numVertexes][0][0] = 0;
 	tess.texCoords[tess.numVertexes][0][1] = 0;
-	VectorScale4 (backEnd.currentEntity->e.shaderRGBA, 1.0f / 255.0f, tess.vertexColors[tess.numVertexes]);
+#ifdef __VBO_PACK_COLOR__
+	vec4_t col;
+	VectorCopy4(R_VboUnpackColor(tess.vertexColors[tess.numVertexes]), col);
+	VectorScale4(backEnd.currentEntity->e.shaderRGBA, 1.0f / 255.0f, col);
+	float packedCol = R_VboPackColor(col); // saves doing this multiple times...
+	tess.vertexColors[tess.numVertexes] = packedCol;
+#else //!__VBO_PACK_COLOR__
+	VectorScale4(backEnd.currentEntity->e.shaderRGBA, 1.0f / 255.0f, tess.vertexColors[tess.numVertexes]);
+#endif //__VBO_PACK_COLOR__
 	tess.normal[tess.numVertexes] = R_TessXYZtoPackedNormals(tess.xyz[tess.numVertexes]);
 	tess.numVertexes++;
 
 	VectorMA( start, -spanWidth, up, tess.xyz[tess.numVertexes] );
 	tess.texCoords[tess.numVertexes][0][0] = 1;//backEnd.currentEntity->e.shaderTexCoord[0];
 	tess.texCoords[tess.numVertexes][0][1] = 0;
-	VectorScale4 (backEnd.currentEntity->e.shaderRGBA, 1.0f / 255.0f, tess.vertexColors[tess.numVertexes]);
+#ifdef __VBO_PACK_COLOR__
+	tess.vertexColors[tess.numVertexes] = packedCol;
+#else //!__VBO_PACK_COLOR__
+	VectorScale4(backEnd.currentEntity->e.shaderRGBA, 1.0f / 255.0f, tess.vertexColors[tess.numVertexes]);
+#endif //__VBO_PACK_COLOR__
 	tess.normal[tess.numVertexes] = R_TessXYZtoPackedNormals(tess.xyz[tess.numVertexes]);
 	tess.numVertexes++;
 
@@ -1112,14 +1168,22 @@ static void DoLine2( const vec3_t start, const vec3_t end, const vec3_t up, floa
 
 	tess.texCoords[tess.numVertexes][0][0] = 0;
 	tess.texCoords[tess.numVertexes][0][1] = 1;//backEnd.currentEntity->e.shaderTexCoord[1];
-	VectorScale4 (backEnd.currentEntity->e.shaderRGBA, 1.0f / 255.0f, tess.vertexColors[tess.numVertexes]);
+#ifdef __VBO_PACK_COLOR__
+	tess.vertexColors[tess.numVertexes] = packedCol;
+#else //!__VBO_PACK_COLOR__
+	VectorScale4(backEnd.currentEntity->e.shaderRGBA, 1.0f / 255.0f, tess.vertexColors[tess.numVertexes]);
+#endif //__VBO_PACK_COLOR__
 	tess.normal[tess.numVertexes] = R_TessXYZtoPackedNormals(tess.xyz[tess.numVertexes]);
 	tess.numVertexes++;
 
 	VectorMA( end, -spanWidth2, up, tess.xyz[tess.numVertexes] );
 	tess.texCoords[tess.numVertexes][0][0] = 1;//backEnd.currentEntity->e.shaderTexCoord[0];
 	tess.texCoords[tess.numVertexes][0][1] = 1;//backEnd.currentEntity->e.shaderTexCoord[1];
-	VectorScale4 (backEnd.currentEntity->e.shaderRGBA, 1.0f / 255.0f, tess.vertexColors[tess.numVertexes]);
+#ifdef __VBO_PACK_COLOR__
+	tess.vertexColors[tess.numVertexes] = packedCol;
+#else //!__VBO_PACK_COLOR__
+	VectorScale4(backEnd.currentEntity->e.shaderRGBA, 1.0f / 255.0f, tess.vertexColors[tess.numVertexes]);
+#endif //__VBO_PACK_COLOR__
 	tess.normal[tess.numVertexes] = R_TessXYZtoPackedNormals(tess.xyz[tess.numVertexes]);
 	tess.numVertexes++;
 
@@ -1145,14 +1209,26 @@ static void DoLine_Oriented( const vec3_t start, const vec3_t end, const vec3_t 
 	VectorMA( start, spanWidth, up, tess.xyz[tess.numVertexes] );
 	tess.texCoords[tess.numVertexes][0][0] = 0;
 	tess.texCoords[tess.numVertexes][0][1] = 0;
-	VectorScale4 (backEnd.currentEntity->e.shaderRGBA, 1.0f / 255.0f, tess.vertexColors[tess.numVertexes]);
+#ifdef __VBO_PACK_COLOR__
+	vec4_t col;
+	VectorCopy4(R_VboUnpackColor(tess.vertexColors[tess.numVertexes]), col);
+	VectorScale4(backEnd.currentEntity->e.shaderRGBA, 1.0f / 255.0f, col);
+	float packedCol = R_VboPackColor(col); // saves doing this multiple times...
+	tess.vertexColors[tess.numVertexes] = packedCol;
+#else //!__VBO_PACK_COLOR__
+	VectorScale4(backEnd.currentEntity->e.shaderRGBA, 1.0f / 255.0f, tess.vertexColors[tess.numVertexes]);
+#endif //__VBO_PACK_COLOR__
 	tess.normal[tess.numVertexes] = R_TessXYZtoPackedNormals(tess.xyz[tess.numVertexes]);
 	tess.numVertexes++;
 
 	VectorMA( start, spanWidth2, up, tess.xyz[tess.numVertexes] );
 	tess.texCoords[tess.numVertexes][0][0] = 1;
 	tess.texCoords[tess.numVertexes][0][1] = 0;
-	VectorScale4 (backEnd.currentEntity->e.shaderRGBA, 1.0f / 255.0f, tess.vertexColors[tess.numVertexes]);
+#ifdef __VBO_PACK_COLOR__
+	tess.vertexColors[tess.numVertexes] = packedCol;
+#else //!__VBO_PACK_COLOR__
+	VectorScale4(backEnd.currentEntity->e.shaderRGBA, 1.0f / 255.0f, tess.vertexColors[tess.numVertexes]);
+#endif //__VBO_PACK_COLOR__
 	tess.normal[tess.numVertexes] = R_TessXYZtoPackedNormals(tess.xyz[tess.numVertexes]);
 	tess.numVertexes++;
 
@@ -1160,14 +1236,22 @@ static void DoLine_Oriented( const vec3_t start, const vec3_t end, const vec3_t 
 
 	tess.texCoords[tess.numVertexes][0][0] = 0;
 	tess.texCoords[tess.numVertexes][0][1] = backEnd.currentEntity->e.data.line.stscale;
-	VectorScale4 (backEnd.currentEntity->e.shaderRGBA, 1.0f / 255.0f, tess.vertexColors[tess.numVertexes]);
+#ifdef __VBO_PACK_COLOR__
+	tess.vertexColors[tess.numVertexes] = packedCol;
+#else //!__VBO_PACK_COLOR__
+	VectorScale4(backEnd.currentEntity->e.shaderRGBA, 1.0f / 255.0f, tess.vertexColors[tess.numVertexes]);
+#endif //__VBO_PACK_COLOR__
 	tess.normal[tess.numVertexes] = R_TessXYZtoPackedNormals(tess.xyz[tess.numVertexes]);
 	tess.numVertexes++;
 
 	VectorMA( end, spanWidth2, up, tess.xyz[tess.numVertexes] );
 	tess.texCoords[tess.numVertexes][0][0] = 1;
 	tess.texCoords[tess.numVertexes][0][1] = backEnd.currentEntity->e.data.line.stscale;
-	VectorScale4 (backEnd.currentEntity->e.shaderRGBA, 1.0f / 255.0f, tess.vertexColors[tess.numVertexes]);
+#ifdef __VBO_PACK_COLOR__
+	tess.vertexColors[tess.numVertexes] = packedCol;
+#else //!__VBO_PACK_COLOR__
+	VectorScale4(backEnd.currentEntity->e.shaderRGBA, 1.0f / 255.0f, tess.vertexColors[tess.numVertexes]);
+#endif //__VBO_PACK_COLOR__
 	tess.normal[tess.numVertexes] = R_TessXYZtoPackedNormals(tess.xyz[tess.numVertexes]);
 	tess.numVertexes++;
 
@@ -1244,7 +1328,14 @@ static void DoCylinderPart(polyVert_t *verts)
 		VectorCopy( verts->xyz, tess.xyz[tess.numVertexes] );
 		tess.texCoords[tess.numVertexes][0][0] = verts->st[0];
 		tess.texCoords[tess.numVertexes][0][1] = verts->st[1];
+#ifdef __VBO_PACK_COLOR__
+		vec4_t col;
+		VectorCopy4(R_VboUnpackColor(tess.vertexColors[tess.numVertexes]), col);
+		VectorScale4(verts->modulate, 1.0f / 255.0f, col);
+		tess.vertexColors[tess.numVertexes] = R_VboPackColor(col);
+#else //!__VBO_PACK_COLOR__
 		VectorScale4 (verts->modulate, 1.0f / 255.0f, tess.vertexColors[tess.numVertexes]);
+#endif //__VBO_PACK_COLOR__
 		tess.normal[tess.numVertexes] = R_TessXYZtoPackedNormals(tess.xyz[tess.numVertexes]);
 		tess.numVertexes++;
 		verts++;
@@ -2208,7 +2299,11 @@ static void RB_SurfaceGrid( srfBspSurface_t *srf ) {
 		normal = &tess.normal[numVertexes];
 		texCoords = tess.texCoords[numVertexes][0];
 		lightCoords = tess.texCoords[numVertexes][1];
+#ifdef __VBO_PACK_COLOR__
+		color = &tess.vertexColors[numVertexes];
+#else //!__VBO_PACK_COLOR__
 		color = tess.vertexColors[numVertexes];
+#endif //__VBO_PACK_COLOR__
 		//lightdir = &tess.lightdir[numVertexes];
 		//vDlightBits = &tess.vertexDlightBits[numVertexes];
 
@@ -2247,11 +2342,17 @@ static void RB_SurfaceGrid( srfBspSurface_t *srf ) {
 				if ( tess.shader->vertexAttribs & ATTR_COLOR )
 				{
 #ifndef __CHEAP_VERTS__
+	#ifdef __VBO_PACK_COLOR__
+					*color = R_VboPackColor(dv->vertexColors[0]);
+					color++;
+	#else //!__VBO_PACK_COLOR__
 					VectorCopy4(dv->vertexColors[0], color);
+					color += 4;
+	#endif //__VBO_PACK_COLOR__
 #else //__CHEAP_VERTS__
 					VectorSet4(color, 1.0, 1.0, 1.0, 1.0);
-#endif //__CHEAP_VERTS__
 					color += 4;
+#endif //__CHEAP_VERTS__
 				}
 
 				//*vDlightBits++ = dlightBits;

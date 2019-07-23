@@ -41,6 +41,10 @@ int numNotOccluded = 0;
 const float occlusionRanges[] =
 	{ 2048.0, 4096.0, 8192.0, 16384.0, 24576.0, 32768.0, 36864.0, 40960.0, 49152.0, 53248.0, 57344.0, 61440.0, 65536.0, 98304.0, 131072.0, 196608.0, 262144.0, 524288.0 };
 
+//#define NUM_OCCLUSION_RANGES 11
+//const float occlusionRanges[] =
+//{ 2048.0, 4096.0, 8192.0, 16384.0, 24576.0, 32768.0, 49152.0, 65536.0, 98304.0, 131072.0, 524288.0 };
+
 #define MAX_QUERIES 256
 
 float RB_GetNextOcclusionRange(float currentRange)

@@ -39,13 +39,13 @@ struct packedVertex_t
 	//uint32_t tangent;
 	vec2_t texcoords[1 + MAXLIGHTMAPS];
 #ifndef __CHEAP_VERTS__
-#ifdef __VBO_PACK_COLOR__
-	uint32_t colors[MAXLIGHTMAPS];
-#elif defined(__VBO_HALF_FLOAT_COLOR__)
-	hvec4_t colors[MAXLIGHTMAPS];
-#else //!__VBO_PACK_COLOR__
-	vec4_t colors[MAXLIGHTMAPS];
-#endif //__VBO_PACK_COLOR__
+	#ifdef __VBO_PACK_COLOR__
+		float colors[MAXLIGHTMAPS];
+	#elif defined(__VBO_HALF_FLOAT_COLOR__)
+		hvec4_t colors[MAXLIGHTMAPS];
+	#else //!__VBO_PACK_COLOR__
+		vec4_t colors[MAXLIGHTMAPS];
+	#endif //__VBO_PACK_COLOR__
 #endif //__CHEAP_VERTS__
 };
 
@@ -1005,6 +1005,9 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, float *hdrVertColors, 
 			cv->verts[i].lightmap[j][0] = FatPackU(LittleFloat(verts[i].lightmap[j][0]), realLightmapNum[j]);
 			cv->verts[i].lightmap[j][1] = FatPackV(LittleFloat(verts[i].lightmap[j][1]), realLightmapNum[j]);
 
+#ifdef __CHEAP_VERTS__
+			VectorSet4(color, 1, 1, 1, 1);
+#else //!__CHEAP_VERTS__
 			if (hdrVertColors)
 			{
 				color[0] = hdrVertColors[(ds->firstVert + i) * 3    ];
@@ -1030,7 +1033,6 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, float *hdrVertColors, 
 			}
 			color[3] = verts[i].color[j][3] / 255.0f;
 
-#ifndef __CHEAP_VERTS__
 			R_ColorShiftLightingFloats( color, cv->verts[i].vertexColors[j], 1.0f / 255.0f );
 #endif //__CHEAP_VERTS__
 		}
@@ -1083,7 +1085,7 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, float *hdrVertColors, 
 	surf->data = (surfaceType_t *)cv;
 
 	// Calculate tangent spaces
-	{
+	/*{
 		srfVert_t      *dv[3];
 
 		for(i = 0, tri = cv->indexes; i < numIndexes; i += 3, tri += 3)
@@ -1094,7 +1096,7 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, float *hdrVertColors, 
 
 			R_CalcTangentVectors(dv);
 		}
-	}
+	}*/
 }
 
 
@@ -1165,6 +1167,9 @@ static void ParseMesh ( dsurface_t *ds, drawVert_t *verts, float *hdrVertColors,
 			points[i].lightmap[j][0] = FatPackU(LittleFloat(verts[i].lightmap[j][0]), realLightmapNum[j]);
 			points[i].lightmap[j][1] = FatPackV(LittleFloat(verts[i].lightmap[j][1]), realLightmapNum[j]);
 
+#ifdef __CHEAP_VERTS__
+			VectorSet4(color, 1, 1, 1, 1);
+#else //!__CHEAP_VERTS__
 			if (hdrVertColors)
 			{
 				color[0] = hdrVertColors[(ds->firstVert + i) * 3    ];
@@ -1189,7 +1194,6 @@ static void ParseMesh ( dsurface_t *ds, drawVert_t *verts, float *hdrVertColors,
 			}
 			color[3] = verts[i].color[j][3] / 255.0f;
 
-#ifndef __CHEAP_VERTS__
 			R_ColorShiftLightingFloats( color, points[i].vertexColors[j], 1.0f / 255.0f );
 #endif //__CHEAP_VERTS__
 		}
@@ -1329,6 +1333,9 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, float *hdrVertColor
 			cv->verts[i].lightmap[j][0] = LittleFloat(verts[i].lightmap[j][0]);
 			cv->verts[i].lightmap[j][1] = LittleFloat(verts[i].lightmap[j][1]);
 
+#ifdef __CHEAP_VERTS__
+			VectorSet4(color, 1, 1, 1, 1);
+#else //!__CHEAP_VERTS__
 			if (hdrVertColors)
 			{
 				color[0] = hdrVertColors[(ds->firstVert + i) * 3    ];
@@ -1353,7 +1360,6 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, float *hdrVertColor
 			}
 			color[3] = verts[i].color[j][3] / 255.0f;
 
-#ifndef __CHEAP_VERTS__
 			R_ColorShiftLightingFloats( color, cv->verts[i].vertexColors[j], 1.0f / 255.0f );
 #endif //__CHEAP_VERTS__
 		}
@@ -1398,7 +1404,7 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, float *hdrVertColor
 #endif //__REGENERATE_BSP_NORMALS__
 
 	// Calculate tangent spaces
-	{
+	/*{
 		srfVert_t      *dv[3];
 
 		for(i = 0, tri = cv->indexes; i < numIndexes; i += 3, tri += 3)
@@ -1411,7 +1417,7 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, float *hdrVertColor
 
 			R_CalcTangentVectors(dv);
 		}
-	}
+	}*/
 }
 
 #ifdef __VBO_LODMODELS__
@@ -2735,7 +2741,7 @@ static void CopyVert(const srfVert_t * in, srfVert_t * out)
 	{
 		out->xyz[j]       = in->xyz[j];
 #ifndef __CHEAP_VERTS__
-		out->tangent[j]   = in->tangent[j];
+		//out->tangent[j]   = in->tangent[j];
 		//out->bitangent[j] = in->bitangent[j];
 #endif //__CHEAP_VERTS__
 		out->normal[j]    = in->normal[j];
@@ -2745,7 +2751,7 @@ static void CopyVert(const srfVert_t * in, srfVert_t * out)
 	}
 
 #ifndef __CHEAP_VERTS__
-	out->tangent[3] = in->tangent[3];
+	//out->tangent[3] = in->tangent[3];
 #endif //__CHEAP_VERTS__
 
 	for(j = 0; j < 2; j++)

@@ -1347,6 +1347,7 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_Dimensions", GLSL_VEC2, 1 },
 	{ "u_MapAmbient", GLSL_VEC4, 1 },
 	{ "u_zFar", GLSL_FLOAT, 1 },
+	{ "u_isWorld", GLSL_INT, 1 },
 
 	{ "u_Settings0", GLSL_VEC4, 1 },
 	{ "u_Settings1", GLSL_VEC4, 1 },
@@ -1647,6 +1648,15 @@ void GLSL_GetShaderHeader(GLenum shaderType, const GLcharARB *extra, char *dest,
 	{
 		Q_strcat(dest, size, "#define attribute in\n");
 		Q_strcat(dest, size, "#define varying out\n");
+
+#ifdef __VBO_PACK_COLOR__
+		Q_strcat(dest, size, "#define __VBO_PACK_COLOR__\n");
+#endif //__VBO_PACK_COLOR__
+
+#ifdef __CHEAP_VERTS__
+		Q_strcat(dest, size, "#define __CHEAP_VERTS__\n");
+#endif //__CHEAP_VERTS__
+
 		Q_strcat(dest, size, glslMaterialsList);
 	}
 	else if (shaderType == GL_TESS_CONTROL_SHADER)
@@ -7576,7 +7586,7 @@ void GLSL_VertexAttribPointers(uint32_t attribBits)
 		GLimp_LogComment("qglVertexAttribPointer( ATTR_INDEX_COLOR )\n");
 
 #ifdef __VBO_PACK_COLOR__
-		qglVertexAttribPointer(ATTR_INDEX_COLOR, 4, GL_UNSIGNED_INT_2_10_10_10_REV, GL_FALSE, vbo->stride_vertexcolor, BUFFER_OFFSET(vbo->ofs_vertexcolor));
+		qglVertexAttribPointer(ATTR_INDEX_COLOR, 4/*1*/, GL_FLOAT, 0, vbo->stride_vertexcolor, BUFFER_OFFSET(vbo->ofs_vertexcolor));
 #elif defined(__VBO_HALF_FLOAT_COLOR__)
 		qglVertexAttribPointer(ATTR_INDEX_COLOR, 4, GL_HALF_FLOAT, 0, vbo->stride_vertexcolor, BUFFER_OFFSET(vbo->ofs_vertexcolor));
 #else //!__VBO_PACK_COLOR__

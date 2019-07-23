@@ -419,40 +419,62 @@ void RB_RenderFlare( flare_t *f ) {
 	tess.xyz[tess.numVertexes][1] = f->windowY - size;
 	tess.texCoords[tess.numVertexes][0][0] = 0;
 	tess.texCoords[tess.numVertexes][0][1] = 0;
+
+#ifdef __VBO_PACK_COLOR__
+	vec4_t col;
+	VectorSet4(col, iColor[0] / 255.0f, iColor[1] / 255.0f, iColor[2] / 255.0f, 1.0);
+	tess.vertexColors[tess.numVertexes] = R_VboPackColor(col);
+#else //__VBO_PACK_COLOR__
 	tess.vertexColors[tess.numVertexes][0] = iColor[0] / 255.0f;
 	tess.vertexColors[tess.numVertexes][1] = iColor[1] / 255.0f;
 	tess.vertexColors[tess.numVertexes][2] = iColor[2] / 255.0f;
 	tess.vertexColors[tess.numVertexes][3] = 1.0f;
+#endif //__VBO_PACK_COLOR__
 	tess.numVertexes++;
 
 	tess.xyz[tess.numVertexes][0] = f->windowX - size;
 	tess.xyz[tess.numVertexes][1] = f->windowY + size;
 	tess.texCoords[tess.numVertexes][0][0] = 0;
 	tess.texCoords[tess.numVertexes][0][1] = 1;
+
+#ifdef __VBO_PACK_COLOR__
+	tess.vertexColors[tess.numVertexes] = R_VboPackColor(col);
+#else //__VBO_PACK_COLOR__
 	tess.vertexColors[tess.numVertexes][0] = iColor[0] / 255.0f;
 	tess.vertexColors[tess.numVertexes][1] = iColor[1] / 255.0f;
 	tess.vertexColors[tess.numVertexes][2] = iColor[2] / 255.0f;
 	tess.vertexColors[tess.numVertexes][3] = 1.0f;
+#endif //__VBO_PACK_COLOR__
 	tess.numVertexes++;
 
 	tess.xyz[tess.numVertexes][0] = f->windowX + size;
 	tess.xyz[tess.numVertexes][1] = f->windowY + size;
 	tess.texCoords[tess.numVertexes][0][0] = 1;
 	tess.texCoords[tess.numVertexes][0][1] = 1;
+
+#ifdef __VBO_PACK_COLOR__
+	tess.vertexColors[tess.numVertexes] = R_VboPackColor(col);
+#else //__VBO_PACK_COLOR__
 	tess.vertexColors[tess.numVertexes][0] = iColor[0] / 255.0f;
 	tess.vertexColors[tess.numVertexes][1] = iColor[1] / 255.0f;
 	tess.vertexColors[tess.numVertexes][2] = iColor[2] / 255.0f;
 	tess.vertexColors[tess.numVertexes][3] = 1.0f;
+#endif //__VBO_PACK_COLOR__
 	tess.numVertexes++;
 
 	tess.xyz[tess.numVertexes][0] = f->windowX + size;
 	tess.xyz[tess.numVertexes][1] = f->windowY - size;
 	tess.texCoords[tess.numVertexes][0][0] = 1;
 	tess.texCoords[tess.numVertexes][0][1] = 0;
+
+#ifdef __VBO_PACK_COLOR__
+	tess.vertexColors[tess.numVertexes] = R_VboPackColor(col);
+#else //__VBO_PACK_COLOR__
 	tess.vertexColors[tess.numVertexes][0] = iColor[0] / 255.0f;
 	tess.vertexColors[tess.numVertexes][1] = iColor[1] / 255.0f;
 	tess.vertexColors[tess.numVertexes][2] = iColor[2] / 255.0f;
 	tess.vertexColors[tess.numVertexes][3] = 1.0f;
+#endif //__VBO_PACK_COLOR__
 	tess.numVertexes++;
 
 	tess.indexes[tess.numIndexes++] = 0;

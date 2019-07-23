@@ -2002,6 +2002,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	float	deformParams[7];
 
 	int useTesselation = 0;
+	qboolean isWorld = qfalse;
 	qboolean isWater = qfalse;
 	qboolean isGrass = qfalse;
 	qboolean isVines = qfalse;
@@ -2027,6 +2028,13 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	ComputeDeformValues(&deformGen, deformParams);
 
 	ComputeFogValues(fogDistanceVector, fogDepthVector, &eyeT);
+
+#ifdef __CHEAP_VERTS__
+	if (backEnd.currentEntity == &tr.worldEntity && !tess.useInternalVBO)
+	{// World VBO's no longer contain attr_color to save memory, so we need to let the GLSL shaders know about it.
+		isWorld = qtrue;
+	}
+#endif //__CHEAP_VERTS__
 
 	//
 	// UQ1: I think we only need to do all these once, not per stage... Waste of FPS!
@@ -3226,6 +3234,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				}
 
 				GLSL_SetUniformFloat(sp, UNIFORM_ZFAR, (ENABLE_OCCLUSION_CULLING && r_occlusion->integer) ? tr.occlusionZfar : backEnd.viewParms.zFar);
+
+#ifdef __CHEAP_VERTS__
+				GLSL_SetUniformInt(sp, UNIFORM_WORLD, isWorld ? 1 : 0);
+#endif //__CHEAP_VERTS__
 			}
 
 			// UQ1: Used by both generic and lightall...
@@ -5078,6 +5090,12 @@ void RB_StageIteratorGeneric( void )
 	//
 	// Set vertex attribs and pointers
 	//
+#ifdef __CHEAP_VERTS__
+	if (backEnd.currentEntity == &tr.worldEntity && !tess.useInternalVBO && (vertexAttribs & ATTR_COLOR))
+	{// World VBO's no longer contain attr_color to save memory, so ATTR_COLOR is unneeded.
+		vertexAttribs &= ~ATTR_COLOR;
+	}
+#endif //__CHEAP_VERTS__
 	GLSL_VertexAttribsState(vertexAttribs);
 
 	//

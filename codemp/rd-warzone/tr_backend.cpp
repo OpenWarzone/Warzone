@@ -2387,10 +2387,17 @@ const void *RB_StretchPic ( const void *data ) {
 
 		VectorScale4(backEnd.color2D, 1.0f / 255.0f, color);
 
+#ifdef __VBO_PACK_COLOR__
+		tess.vertexColors[numVerts] = R_VboPackColor(color);
+		tess.vertexColors[numVerts + 1] = tess.vertexColors[numVerts];
+		tess.vertexColors[numVerts + 2] = tess.vertexColors[numVerts];
+		tess.vertexColors[numVerts + 3] = tess.vertexColors[numVerts];
+#else //__VBO_PACK_COLOR__
 		VectorCopy4(color, tess.vertexColors[numVerts]);
 		VectorCopy4(color, tess.vertexColors[numVerts + 1]);
 		VectorCopy4(color, tess.vertexColors[numVerts + 2]);
 		VectorCopy4(color, tess.vertexColors[numVerts + 3]);
+#endif //__VBO_PACK_COLOR__
 	}
 
 
@@ -2495,10 +2502,17 @@ const void *RB_RotatePic ( const void *data )
 
 		VectorScale4(backEnd.color2D, 1.0f / 255.0f, color);
 
+#ifdef __VBO_PACK_COLOR__
+		tess.vertexColors[numVerts] = R_VboPackColor(color);
+		tess.vertexColors[numVerts + 1] = tess.vertexColors[numVerts];
+		tess.vertexColors[numVerts + 2] = tess.vertexColors[numVerts];
+		tess.vertexColors[numVerts + 3] = tess.vertexColors[numVerts];
+#else //__VBO_PACK_COLOR__
 		VectorCopy4(color, tess.vertexColors[numVerts]);
 		VectorCopy4(color, tess.vertexColors[numVerts + 1]);
 		VectorCopy4(color, tess.vertexColors[numVerts + 2]);
 		VectorCopy4(color, tess.vertexColors[numVerts + 3]);
+#endif //__VBO_PACK_COLOR__
 	}
 
 	tess.xyz[numVerts][0] = m[0][0] * (-cmd->w) + m[2][0];
@@ -2602,10 +2616,17 @@ const void *RB_RotatePic2 ( const void *data )
 
 		VectorScale4(backEnd.color2D, 1.0f / 255.0f, color);
 
+#ifdef __VBO_PACK_COLOR__
+		tess.vertexColors[numVerts] = R_VboPackColor(color);
+		tess.vertexColors[numVerts + 1] = tess.vertexColors[numVerts];
+		tess.vertexColors[numVerts + 2] = tess.vertexColors[numVerts];
+		tess.vertexColors[numVerts + 3] = tess.vertexColors[numVerts];
+#else //__VBO_PACK_COLOR__
 		VectorCopy4(color, tess.vertexColors[numVerts]);
 		VectorCopy4(color, tess.vertexColors[numVerts + 1]);
 		VectorCopy4(color, tess.vertexColors[numVerts + 2]);
 		VectorCopy4(color, tess.vertexColors[numVerts + 3]);
+#endif //__VBO_PACK_COLOR__
 	}
 
 	tess.xyz[numVerts][0] = m[0][0] * (-cmd->w * 0.5f) + m[1][0] * (-cmd->h * 0.5f) + m[2][0];

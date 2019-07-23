@@ -548,14 +548,14 @@ void AddProceduralMoss(inout vec4 outColor, in vec4 position, in bool changedToW
 
 	if (moss > 0.25)
 	{
-		const vec3 colorLight = vec3(0.0, 0.65, 0.0);
+		const vec3 colorLight = vec3(0.0, 0.75, 0.0);
 		const vec3 colorDark = vec3(0.0, 0.0, 0.0);
 			
-		float mossClr = proceduralSmoothNoise(usePos.xyz * 0.25);
+		float mossClr = proceduralSmoothNoise(usePos.xyz + moss * 0.25);
 		vec3 mossColor = mix(colorDark, colorLight, mossClr*0.25);
 
 		moss = pow((moss - 0.25) * 3.0, 0.35);
-		outColor.rgb = splatblend(outColor.rgb, 1.0 - moss*0.75, mossColor, moss*0.25);
+		outColor.rgb = splatblend(outColor.rgb, 1.0 - moss*0.65, mossColor, moss*0.25);
 	}
 }
 #endif //__PROCEDURALS_IN_DEFERRED_SHADER__

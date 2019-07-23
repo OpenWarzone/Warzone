@@ -529,6 +529,10 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 		GLSL_SetUniformVec2(sp, UNIFORM_TEXTURESCALE, scale);
 
 		GLSL_SetUniformFloat(sp, UNIFORM_TIME, tr.refdef.floatTime);
+
+#ifdef __CHEAP_VERTS__
+		GLSL_SetUniformInt(sp, UNIFORM_WORLD, 1);
+#endif //__CHEAP_VERTS__
 	}
 	else
 	{
@@ -738,6 +742,10 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 		screensize[0] = nightImage->width;
 		screensize[1] = nightImage->height;
 		GLSL_SetUniformVec2(sp, UNIFORM_DIMENSIONS, screensize);
+
+#ifdef __CHEAP_VERTS__
+		GLSL_SetUniformInt(sp, UNIFORM_WORLD, 1);
+#endif //__CHEAP_VERTS__
 	}
 
 	backEnd.pc.c_skyDraws++;

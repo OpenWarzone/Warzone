@@ -45,7 +45,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // -----------------------------------------------------------------------------------------------------------------------------
 //                                               Warzone Basic Renderer Defines
 // -----------------------------------------------------------------------------------------------------------------------------
-//#define __CHEAP_VERTS__						// FIXME!!! - Remove or reduce attributes sizes to lower memory usage.
+#define __CHEAP_VERTS__							// FIXME!!! - Remove or reduce attributes sizes to lower memory usage.
+//#define __VBO_PACK_COLOR__					// Try to pack vert colors into a single float - BROKEN!
+//#define __VBO_HALF_FLOAT_COLOR__				// Try to pack vert colors into half floats - BROKEN!
 #define __HALF_FLOAT__							// Enable half float conversion code...
 #define __GLSL_OPTIMIZER__						// Enable GLSL optimization...
 //#define __DEBUG_SHADER_LOAD__					// Enable extra GLSL shader load debugging info...
@@ -134,9 +136,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #endif //__HUMANOIDS_BEND_GRASS__
 
 
-
-//#define __VBO_PACK_COLOR__
-//#define __VBO_HALF_FLOAT_COLOR__
 
 
 //
@@ -1782,6 +1781,7 @@ typedef enum
 	UNIFORM_DIMENSIONS,
 	UNIFORM_MAP_AMBIENT,
 	UNIFORM_ZFAR,
+	UNIFORM_WORLD,
 
 	UNIFORM_SETTINGS0,
 	UNIFORM_SETTINGS1,
@@ -2103,7 +2103,7 @@ typedef struct
 	vec2_t          st;
 	vec2_t          lightmap[MAXLIGHTMAPS];
 	vec3_t          normal;
-	vec4_t          tangent;
+	//vec4_t          tangent;
 	vec3_t          lightdir;
 	vec4_t			vertexColors[MAXLIGHTMAPS];
 
@@ -3805,7 +3805,11 @@ struct shaderCommands_s
 	vec4_t		xyz[SHADER_MAX_VERTEXES] QALIGN(16);
 	uint32_t	normal[SHADER_MAX_VERTEXES] QALIGN(16);
 	vec2_t		texCoords[SHADER_MAX_VERTEXES][2] QALIGN(16);
+#ifdef __VBO_PACK_COLOR__
+	float		vertexColors[SHADER_MAX_VERTEXES] QALIGN(16);
+#else //!__VBO_PACK_COLOR__
 	vec4_t		vertexColors[SHADER_MAX_VERTEXES] QALIGN(16);
+#endif //__VBO_PACK_COLOR__
 	uint32_t    lightdir[SHADER_MAX_VERTEXES] QALIGN(16);
 	//int			vertexDlightBits[SHADER_MAX_VERTEXES] QALIGN(16);
 
@@ -3993,8 +3997,8 @@ void R_VboUnpackTangent(vec4_t v, uint32_t b);
 void R_VboUnpackNormal(vec3_t v, uint32_t b);
 
 #ifdef __VBO_PACK_COLOR__
-uint32_t R_VboPackColor(vec4_t v);
-void R_VboUnpackColor(vec4_t v, uint32_t b);
+float R_VboPackColor(vec4_t v);
+float *R_VboUnpackColor(float v);
 #endif //__VBO_PACK_COLOR__
 
 #ifdef __HALF_FLOAT__

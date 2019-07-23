@@ -408,20 +408,25 @@ static void AutospriteDeform( void ) {
 			VectorSubtract( vec3_origin, left, left );
 		}
 
-	  // compensate for scale in the axes if necessary
-  	if ( backEnd.currentEntity->e.nonNormalizedAxes ) {
-      float axisLength;
-		  axisLength = VectorLength( backEnd.currentEntity->e.axis[0] );
-  		if ( !axisLength ) {
-	  		axisLength = 0;
-  		} else {
-	  		axisLength = 1.0f / axisLength;
-  		}
-      VectorScale(left, axisLength, left);
-      VectorScale(up, axisLength, up);
-    }
+		// compensate for scale in the axes if necessary
+		if (backEnd.currentEntity->e.nonNormalizedAxes) {
+			float axisLength;
+			axisLength = VectorLength(backEnd.currentEntity->e.axis[0]);
+			if (!axisLength) {
+				axisLength = 0;
+			}
+			else {
+				axisLength = 1.0f / axisLength;
+			}
+			VectorScale(left, axisLength, left);
+			VectorScale(up, axisLength, up);
+		}
 
+#ifdef __VBO_PACK_COLOR__
+		RB_AddQuadStamp(mid, left, up, R_VboUnpackColor(tess.vertexColors[i]));
+#else //!__VBO_PACK_COLOR__
 		RB_AddQuadStamp( mid, left, up, tess.vertexColors[i] );
+#endif //__VBO_PACK_COLOR__
 	}
 }
 

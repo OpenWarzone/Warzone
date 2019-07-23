@@ -1057,7 +1057,11 @@ void RB_IQMSurfaceAnim( surfaceType_t *surface ) {
 	vec4_t		*outXYZ;
 	uint32_t	*outNormal;
 	vec2_t		(*outTexCoord)[2];
+#ifdef __VBO_PACK_COLOR__
+	float	*outColor;
+#else //!__VBO_PACK_COLOR__
 	vec4_t	*outColor;
+#endif //__VBO_PACK_COLOR__
 
 	int	frame = data->num_frames ? backEnd.currentEntity->e.frame % data->num_frames : 0;
 	int	oldframe = data->num_frames ? backEnd.currentEntity->e.oldframe % data->num_frames : 0;
@@ -1157,10 +1161,16 @@ void RB_IQMSurfaceAnim( surfaceType_t *surface ) {
 			*outNormal = R_VboPackNormal(normal);
 		}
 
+#ifdef __VBO_PACK_COLOR__
+		vec4_t col;
+		VectorSet4(col, data->colors[4 * vtx + 0] / 255.0f, data->colors[4 * vtx + 1] / 255.0f, data->colors[4 * vtx + 2] / 255.0f, data->colors[4 * vtx + 3] / 255.0f);
+		*outColor = R_VboPackColor(col);
+#else //!__VBO_PACK_COLOR__
 		(*outColor)[0] = data->colors[4*vtx+0] / 255.0f;
 		(*outColor)[1] = data->colors[4*vtx+1] / 255.0f;
 		(*outColor)[2] = data->colors[4*vtx+2] / 255.0f;
 		(*outColor)[3] = data->colors[4*vtx+3] / 255.0f;
+#endif //__VBO_PACK_COLOR__
 	}
 
 	tri = data->triangles + 3 * surf->first_triangle;

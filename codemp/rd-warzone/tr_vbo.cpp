@@ -53,6 +53,7 @@ void R_VboUnpackNormal(vec3_t v, uint32_t b)
 }
 
 #ifdef __VBO_PACK_COLOR__
+/*
 uint32_t R_VboPackColor(vec4_t v)
 {
 	return (((uint32_t)(v[3] * 1.5f)) << 30)
@@ -68,7 +69,44 @@ void R_VboUnpackColor(vec4_t v, uint32_t b)
 	v[2] = ((b >> 20) & 0x3ff) / 511.5f;
 	v[3] = ((b >> 30) & 0x3)   / 1.5f;
 }
+*/
 
+const float VboPackX = 1.0 / 255.0;
+const float VboPackY = 1.0 / 65025.0;
+const float VboPackZ = 1.0 / 16581375.0;
+
+float R_VboPackColor(vec4_t rgba) {
+	vec4_t pack;
+	VectorSet4(pack, 1.0, VboPackX, VboPackY, VboPackZ);
+	return DotProduct4(rgba, pack);
+}
+
+float fract(float x)
+{
+	return x - floorf(x);
+}
+
+float *R_VboUnpackColor(float v) {
+	vec4_t enc;
+
+	VectorSet4(enc, 1.0, 255.0, 65025.0, 16581375.0);
+
+	enc[0] *= v;
+	enc[1] *= v;
+	enc[2] *= v;
+	enc[3] *= v;
+	
+	enc[0] = fract(enc[0]);
+	enc[1] = fract(enc[1]);
+	enc[2] = fract(enc[2]);
+	enc[3] = fract(enc[3]);
+
+	enc[0] -= enc[1] * VboPackX;
+	enc[1] -= enc[2] * VboPackX;
+	enc[2] -= enc[3] * VboPackX;
+
+	return enc;
+}
 #endif //__VBO_PACK_COLOR__
 
 #ifdef __HALF_FLOAT__

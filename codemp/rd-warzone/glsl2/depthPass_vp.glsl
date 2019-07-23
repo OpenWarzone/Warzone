@@ -1,7 +1,11 @@
 attribute vec2				attr_TexCoord0;
 attribute vec2				attr_TexCoord1;
 
-attribute vec4				attr_Color;
+#ifdef __VBO_PACK_COLOR__
+attribute float attr_Color;
+#else //!__VBO_PACK_COLOR__
+attribute vec4 attr_Color;
+#endif //__VBO_PACK_COLOR__
 
 attribute vec3				attr_Position;
 attribute vec3				attr_Normal;
@@ -54,6 +58,9 @@ uniform vec4						u_Local9; // testvalue0, 1, 2, 3
 #define SHADER_SKY_DIRECTION		u_Local5.b
 #define SHADER_AURORA_ENABLED		u_Local5.a
 
+#ifdef __CHEAP_VERTS__
+uniform int					u_isWorld;
+#endif //__CHEAP_VERTS__
 
 uniform float				u_Time;
 
@@ -88,6 +95,19 @@ uniform vec4				u_PrimaryLightOrigin;
 varying vec3				var_VertPos;
 varying vec2				var_TexCoords;
 varying vec4				var_Color;
+
+
+
+const float VboUnpackX = 1.0/255.0;
+const float VboUnpackY = 1.0/65025.0;
+const float VboUnpackZ = 1.0/16581375.0;
+
+vec4 DecodeFloatRGBA( float v ) {
+	vec4 enc = vec4(1.0, 255.0, 65025.0, 16581375.0) * v;
+	enc = fract(enc);
+	enc -= enc.yzww * vec4(VboUnpackX, VboUnpackX, VboUnpackX,0.0);
+	return enc;
+}
 
 
 vec3 DeformPosition(const vec3 pos, const vec3 normal, const vec2 st)
@@ -208,7 +228,22 @@ vec2 ModTexCoords(vec2 st, vec3 position, vec4 texMatrix, vec4 offTurb)
 
 vec4 CalcColor(vec3 position/*, vec3 normal*/)
 {
-	vec4 color = vec4(1.0, 1.0, 1.0, u_VertColor.a * attr_Color.a + u_BaseColor.a);
+	vec4 color;
+
+#ifdef __CHEAP_VERTS__
+	if (u_isWorld > 0)
+	{
+		color = vec4(1.0, 1.0, 1.0, u_VertColor.a + u_BaseColor.a);
+	}
+	else
+#endif //__CHEAP_VERTS__
+	{
+	#ifdef __VBO_PACK_COLOR__
+		color = vec4(1.0, 1.0, 1.0, u_VertColor.a * DecodeFloatRGBA(attr_Color).a + u_BaseColor.a);
+	#else //!__VBO_PACK_COLOR__
+		color = vec4(1.0, 1.0, 1.0, u_VertColor.a * attr_Color.a + u_BaseColor.a);
+	#endif //__VBO_PACK_COLOR__
+	}
 	
 	if (USE_RGBA > 0.0)
 	{
@@ -322,6 +357,9 @@ void main()
 		{
 			position.z -= TERRAIN_TESSELLATION_OFFSET;
 		}*/
+
+		// Lower it by the offset...
+		position.z -= TERRAIN_TESSELLATION_OFFSET;
 
 		// Just push shit away from the viewer, and get a very rough depth map prepass. Will still cull most stuff.
 		vec3 dir = normalize(u_ViewOrigin.xyz - position.xyz);
