@@ -708,8 +708,11 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 		GLSL_SetUniformInt(sp, UNIFORM_SPLATMAP2, TB_SPLATMAP2);
 		GL_BindToTMU(tr.auroraImage[1], TB_SPLATMAP2);
 
-		//GLSL_SetUniformInt(sp, UNIFORM_SPLATMAP3, TB_SPLATMAP3);
-		//GL_BindToTMU(tr.moonImage, TB_SPLATMAP3);
+		GLSL_SetUniformInt(sp, UNIFORM_SPLATMAP3, TB_SPLATMAP3);
+		GL_BindToTMU(tr.defaultSplatControlImage, TB_SPLATMAP3);
+
+		GLSL_SetUniformInt(sp, UNIFORM_ROADMAP, TB_ROADMAP);
+		GL_BindToTMU(tr.random2KImage[0], TB_ROADMAP);
 
 		//if (r_testvalue0->integer)
 			GLSL_SetUniformVec3(sp, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);

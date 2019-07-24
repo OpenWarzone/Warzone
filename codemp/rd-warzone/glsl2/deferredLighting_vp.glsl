@@ -47,6 +47,7 @@ float Hash( float p )
 	p2 += dot(p2.yx, p2.xy+19.19);
 	return fract(p2.x * p2.y);
 }
+
 float Hash(vec3 p)
 {
 	p  = fract(p * MOD3);
@@ -94,12 +95,20 @@ float FBM( vec3 p )
 
 	float f;
 	
+	/*
 	f = 0.5000 * Noise(p); p = cm*p; //p.y -= gTime*.2;
 	f += 0.2500 * Noise(p); p = cm*p; //p.y += gTime*.06;
 	f += 0.1250 * Noise(p); p = cm*p;
 	f += 0.0625   * Noise(p); p = cm*p;
 	f += 0.03125  * Noise(p); p = cm*p;
 	f += 0.015625 * Noise(p);
+	*/
+
+	f = 0.5000 * Noise(p); p = cm*p;
+	f += 0.2500 * Noise(p); p = cm*p;
+	f += 0.1250 * Noise(p); p = cm*p;
+	f += 0.0625   * Noise(p); p = cm*p;
+
 	return f;
 }
 

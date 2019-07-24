@@ -2771,6 +2771,7 @@ void R_LoadMapInfo(void)
 		tr.random2KImage[1] = R_FindImageFile("gfx/random2Ka.tga", IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE);
 	}
 
+	tr.smoothNoiseImage = R_FindImageFile("gfx/smoothNoise.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE);
 
 	//tr.ssdoNoiseImage = R_FindImageFile("gfx/ssdoNoise.png", IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE);
 

@@ -2910,6 +2910,7 @@ typedef struct trGlobals_s {
 	//image_t					*previousRenderImage;
 	image_t					*randomImage;
 	image_t					*random2KImage[2];
+	image_t					*smoothNoiseImage;
 	image_t					*defaultSplatControlImage;
 	image_t					*defaultGrassMapImage;
 	image_t					*defaultDetail;

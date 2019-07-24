@@ -9,6 +9,8 @@ uniform sampler2D										u_DiffuseMap;
 uniform sampler2D										u_OverlayMap; // Night sky image... When doing sky...
 uniform sampler2D										u_SplatMap1; // auroraImage[0]
 uniform sampler2D										u_SplatMap2; // auroraImage[1]
+uniform sampler2D										u_SplatMap3; // smoothNoiseImage
+uniform sampler2D										u_RoadMap; // random2KImage
 
 uniform int												u_MoonCount; // moons total count
 uniform sampler2D										u_MoonMaps[4]; // moon textures
@@ -176,97 +178,125 @@ vec2 EncodeNormal(vec3 n)
 }
 #endif //__ENCODE_NORMALS_RECONSTRUCT_Z__
 
-float rand(vec2 co)
+
+#define MOD2 vec2(.16632,.17369)
+#define MOD3 vec3(.16532,.17369,.15787)
+
+//--------------------------------------------------------------------------
+float Hash( float p )
 {
-    return fract(sin(dot(co.xy, vec2(12.9898,78.233))) * 43758.5453);
+	vec2 p2 = fract(vec2(p) * MOD2);
+	p2 += dot(p2.yx, p2.xy+19.19);
+	return fract(p2.x * p2.y);
 }
 
-float hash( const in float n ) {
-	return fract(sin(n)*4378.5453);
+float Hash( vec3 p )
+{
+	p  = fract(p * MOD3);
+	p += dot(p.xyz, p.yzx + 19.19);
+	return fract(p.x * p.y * p.z);
 }
 
-float pnoise(in vec3 o) 
+//--------------------------------------------------------------------------
+
+float pNoise( in vec2 x )
 {
-	vec3 p = floor(o);
-	vec3 fr = fract(o);
-		
-	float n = p.x + p.y*57.0 + p.z * 1009.0;
-
-	float a = hash(n+  0.0);
-	float b = hash(n+  1.0);
-	float c = hash(n+ 57.0);
-	float d = hash(n+ 58.0);
-	
-	float e = hash(n+  0.0 + 1009.0);
-	float f = hash(n+  1.0 + 1009.0);
-	float g = hash(n+ 57.0 + 1009.0);
-	float h = hash(n+ 58.0 + 1009.0);
-	
-	
-	vec3 fr2 = fr * fr;
-	vec3 fr3 = fr2 * fr;
-	
-	vec3 t = 3.0 * fr2 - 2.0 * fr3;
-	
-	float u = t.x;
-	float v = t.y;
-	float w = t.z;
-
-	// this last bit should be refactored to the same form as the rest :)
-	float res1 = a + (b-a)*u +(c-a)*v + (a-b+d-c)*u*v;
-	float res2 = e + (f-e)*u +(g-e)*v + (e-f+h-g)*u*v;
-	
-	float res = res1 * (1.0- w) + res2 * (w);
-	
+	vec2 p = floor(x);
+	vec2 f = fract(x);
+	f = f*f*(3.0-2.0*f);
+	float n = p.x + p.y*57.0;
+	float res = mix(mix( Hash(n+  0.0), Hash(n+  1.0),f.x),
+					mix( Hash(n+ 57.0), Hash(n+ 58.0),f.x),f.y);
 	return res;
 }
 
-const mat3 m = mat3( 0.00,  0.80,  0.60,
-                    -0.80,  0.36, -0.48,
-                    -0.60, -0.48,  0.64 );
-
-float SmoothNoise( vec3 p )
+float pNoise(in vec3 p)
 {
-#if 0
-    float f;
-    f  = 0.5000*pnoise( p ); p = m*p*2.02;
-    f += 0.2500*pnoise( p ); 
+	vec3 i = floor(p);
+	vec3 f = fract(p); 
+	f *= f * (3.0-2.0*f);
+
+	return mix(
+		mix(mix(Hash(i + vec3(0.,0.,0.)), Hash(i + vec3(1.,0.,0.)),f.x),
+			mix(Hash(i + vec3(0.,1.,0.)), Hash(i + vec3(1.,1.,0.)),f.x),
+			f.y),
+		mix(mix(Hash(i + vec3(0.,0.,1.)), Hash(i + vec3(1.,0.,1.)),f.x),
+			mix(Hash(i + vec3(0.,1.,1.)), Hash(i + vec3(1.,1.,1.)),f.x),
+			f.y),
+		f.z);
+}
+
+float tNoise(in vec2 p)
+{
+	return textureLod(u_RoadMap, p, 0.0).r;
+}
+
+float tNoise(in vec3 p)
+{
+	return textureLod(u_RoadMap, (p.xz+p.y)*0.0005, 0.0).r;
+}
+
+const mat3 mcl = mat3( 0.00,  0.80,  0.60,
+                    -0.80,  0.36, -0.48,
+                    -0.60, -0.48,  0.64 ) * 1.7;
+
+//--------------------------------------------------------------------------
+float FBM( vec3 p )
+{
+	p *= CLOUDS_CLOUDSCALE;
+
+	float f;
 	
-    return f * (1.0 / (0.5000 + 0.2500));
+#if 1
+	/* Mix of texture and procedural noises for speed */
+	p *= .000675;
+	f = 0.5000 * tNoise(p); p = mcl*p;
+	f += 0.2500 * tNoise(p); p = mcl*p;
+	f += 0.1250 * pNoise(p); p = mcl*p;
+	f += 0.0625   * pNoise(p); p = mcl*p;
+	f += 0.03125  * tNoise(p); p = mcl*p;
+	f += 0.015625 * tNoise(p);
+#elif 0
+	p *= .0001;
+	vec2 r1 = textureLod(u_RoadMap, p.xz, 2.0).rg;
+	p = p * mcl;
+	vec2 r2 = textureLod(u_RoadMap, p.xz, 1.0).rg;
+	p = p * mcl;
+	vec2 r3 = textureLod(u_RoadMap, p.xz, 0.0).rg;
+
+	f = 0.5000 * r1.r;
+	f += 0.2500 * r1.g;
+	f += 0.1250 * r2.r;
+	f += 0.0625 * r2.g;
+	f += 0.03125 * r3.r;
+	f += 0.015625 * r3.g;
+
+	f = pow(f, 1.05);
 #else
-	return pnoise(p);
+	p *= .0005;
+	f = 0.5000 * pNoise(p); p = mcl*p;
+	f += 0.2500 * pNoise(p); p = mcl*p;
+	f += 0.1250 * pNoise(p); p = mcl*p;
+	f += 0.0625 * pNoise(p);
 #endif
+
+	return f;
 }
 
-const mat2 mc = mat2(1.6, 1.2, -1.2, 1.6);
+//--------------------------------------------------------------------------
+/*float FBMSH( vec3 p )
+{
+	p *= .0005;
+	p *= CLOUDS_CLOUDSCALE;
 
-vec2 hash(vec2 p) {
-	p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
-	return -1.0 + 2.0*fract(sin(p)*43758.5453123);
-}
-
-float noise(in vec2 p) {
-	const float K1 = 0.366025404; // (sqrt(3)-1)/2;
-	const float K2 = 0.211324865; // (3-sqrt(3))/6;
-	vec2 i = floor(p + (p.x + p.y)*K1);
-	vec2 a = p - i + (i.x + i.y)*K2;
-	vec2 o = (a.x>a.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0); //vec2 of = 0.5 + 0.5*vec2(sign(a.x-a.y), sign(a.y-a.x));
-	vec2 b = a - o + K2;
-	vec2 c = a - 1.0 + 2.0*K2;
-	vec3 h = max(0.5 - vec3(dot(a, a), dot(b, b), dot(c, c)), 0.0);
-	vec3 n = h*h*h*h*vec3(dot(a, hash(i + 0.0)), dot(b, hash(i + o)), dot(c, hash(i + 1.0)));
-	return dot(n, vec3(70.0));
-}
-
-float fbm(vec2 n) {
-	float total = 0.0, amplitude = 0.1;
-	for (int i = 0; i < 7; i++) {
-		total += noise(n) * amplitude;
-		n = mc * n;
-		amplitude *= 0.4;
-	}
-	return total;
-}
+	float f;
+	
+	f = 0.5000 * pNoise(p); p = mcl*p;
+	f += 0.2500 * pNoise(p); p = mcl*p;
+	f += 0.1250 * pNoise(p); p = mcl*p;
+	f += 0.0625 * pNoise(p);
+	return f;
+}*/
 
 vec3 extra_cheap_atmosphere(vec3 raydir, vec3 skyViewDir2, vec3 sunDir, inout vec3 sunColorMod) {
 	vec3 sundir = sunDir;
@@ -322,88 +352,8 @@ float flash = 0.0;
 #define CLOUD_LOWER 2800.0
 #define CLOUD_UPPER 6800.0
 
-#define MOD2 vec2(.16632,.17369)
-#define MOD3 vec3(.16532,.17369,.15787)
-
 
 //--------------------------------------------------------------------------
-
-//--------------------------------------------------------------------------
-float Hash( float p )
-{
-	vec2 p2 = fract(vec2(p) * MOD2);
-	p2 += dot(p2.yx, p2.xy+19.19);
-	return fract(p2.x * p2.y);
-}
-float Hash(vec3 p)
-{
-	p  = fract(p * MOD3);
-	p += dot(p.xyz, p.yzx + 19.19);
-	return fract(p.x * p.y * p.z);
-}
-
-//--------------------------------------------------------------------------
-
-float Noise( in vec2 x )
-{
-	vec2 p = floor(x);
-	vec2 f = fract(x);
-	f = f*f*(3.0-2.0*f);
-	float n = p.x + p.y*57.0;
-	float res = mix(mix( Hash(n+  0.0), Hash(n+  1.0),f.x),
-					mix( Hash(n+ 57.0), Hash(n+ 58.0),f.x),f.y);
-	return res;
-}
-float Noise(in vec3 p)
-{
-    vec3 i = floor(p);
-	vec3 f = fract(p); 
-	f *= f * (3.0-2.0*f);
-
-	return mix(
-		mix(mix(Hash(i + vec3(0.,0.,0.)), Hash(i + vec3(1.,0.,0.)),f.x),
-			mix(Hash(i + vec3(0.,1.,0.)), Hash(i + vec3(1.,1.,0.)),f.x),
-			f.y),
-		mix(mix(Hash(i + vec3(0.,0.,1.)), Hash(i + vec3(1.,0.,1.)),f.x),
-			mix(Hash(i + vec3(0.,1.,1.)), Hash(i + vec3(1.,1.,1.)),f.x),
-			f.y),
-		f.z);
-}
-
-
-const mat3 mcl = mat3( 0.00,  0.80,  0.60,
-                    -0.80,  0.36, -0.48,
-                    -0.60, -0.48,  0.64 ) * 1.7;
-//--------------------------------------------------------------------------
-float FBM( vec3 p )
-{
-	p *= .0005;
-	p *= CLOUDS_CLOUDSCALE;
-
-	float f;
-	
-	f = 0.5000 * Noise(p); p = mcl*p; //p.y -= gTime*.2;
-	f += 0.2500 * Noise(p); p = mcl*p; //p.y += gTime*.06;
-	f += 0.1250 * Noise(p); p = mcl*p;
-	f += 0.0625   * Noise(p); p = mcl*p;
-	f += 0.03125  * Noise(p); p = mcl*p;
-	f += 0.015625 * Noise(p);
-	return f;
-}
-//--------------------------------------------------------------------------
-float FBMSH( vec3 p )
-{
-	p *= .0005;
-	p *= CLOUDS_CLOUDSCALE;
-
-	float f;
-	
-	f = 0.5000 * Noise(p); p = mcl*p; //p.y -= gTime*.2;
-	f += 0.2500 * Noise(p); p = mcl*p; //p.y += gTime*.06;
-	f += 0.1250 * Noise(p); p = mcl*p;
-	f += 0.0625   * Noise(p); p = mcl*p;
-	return f;
-}
 
 //--------------------------------------------------------------------------
 float MapSH(vec3 p)
@@ -467,19 +417,6 @@ vec4 GetSky(in vec3 pos,in vec3 rd, out vec2 outPos)
 		shadeSum += shade * (1.0 - shadeSum.y);
 		p += add;
 	}
-	//shadeSum.x /= 10.0;
-	//shadeSum = min(shadeSum, 1.0);
-	
-	//vec3 clouds = mix(vec3(pow(shadeSum.x, .6)), sunColour, (1.0-shadeSum.y)*.4);
-    //vec3 clouds = vec3(shadeSum.x);
-	
-	//clouds += min((1.0-sqrt(shadeSum.y)) * pow(sunAmount, 4.0), 1.0) * 2.0;
-   
-    //clouds += vec3(flash) * (shadeSum.y+shadeSum.x+.2) * .5;
-
-	//sky = mix(sky, min(clouds, 1.0), shadeSum.y);
-	
-	//return clamp(sky, 0.0, 1.0);
 
 	float final = shadeSum.x;
 	final += flash * (shadeSum.y+final+.2) * .5;
@@ -657,22 +594,21 @@ vec4 GetLightning( in vec3 position )
 
 vec3 reachForTheNebulas(in vec3 from, in vec3 dir, float level, float power) 
 {
-    vec3 color = vec3(0.0);
-    float nebula = pow(SmoothNoise(dir+vec3(PROCEDURAL_SKY_NEBULA_SEED)), 12.0 / (1.0 - clamp(PROCEDURAL_SKY_NEBULA_FACTOR, 0.0, 0.999)));
-    
-    if (nebula > 0.0)
-    {
-    	vec3 pos = (dir.xyz + dir.xzy + dir.zyx) / 3.0;
-    	vec3 randc = vec3(SmoothNoise( dir.xyz*10.0*level));
+	vec3 color = vec3(0.0);
+	float nebula = pow(pNoise(dir+vec3(PROCEDURAL_SKY_NEBULA_SEED)), 12.0 / (1.0 - clamp(PROCEDURAL_SKY_NEBULA_FACTOR, 0.0, 0.999)));
+
+	if (nebula > 0.0)
+	{
+		vec3 randc = vec3(nebula*10.0);//vec3(pNoise(dir.xyz*10.0*level));
 		color = nebula * randc;
-    }
+	}
 
 	return pow(color*2.25, vec3(power));
 }
 
 vec3 reachForTheStars(in vec3 from, in vec3 dir, float power) 
 {
-	float star = pow(SmoothNoise(dir*320.0), 48.0 - clamp(PROCEDURAL_SKY_STAR_DENSITY, 0.0, 16.0));
+	float star = pow(pNoise(dir*320.0), 48.0 - clamp(PROCEDURAL_SKY_STAR_DENSITY, 0.0, 16.0));
 	vec3 color = vec3(star);
 	return pow(color*2.25, vec3(power));
 }
@@ -690,20 +626,15 @@ void GetStars(out vec4 fragColor, in vec3 position)
 	dir.xy += dnt * PROCEDURAL_SKY_PLANETARY_ROTATION;
 
 	// Nebulae...
-	vec3 color1=clamp(reachForTheNebulas(from, dir, 1.0, 0.5) * 1.5, 0.0, 1.0) * vec3(0.0, 0.0, 1.0);
-    vec3 color2=clamp(reachForTheNebulas(from, dir, 2.0, 0.5) * 1.5, 0.0, 1.0) * vec3(0.0, 1.0, 1.0);
-	
-    vec3 color3=clamp(reachForTheNebulas(from, -dir, 2.0, 0.5) * 0.9, 0.0, 1.0) * vec3(1.0, 0.0, 0.0);
-    vec3 color4=clamp(reachForTheNebulas(from, -dir, 3.0, 0.5) * 0.7, 0.0, 1.0) * vec3(1.0, 1.0, 0.0);
-    
-    vec3 color5=clamp(reachForTheNebulas(from, dir.yxz+dir.yzx, 1.5, 0.9) * 0.9, 0.0, 1.0) * vec3(0.0, 1.0, 0.0);
-    vec3 color6=clamp(reachForTheNebulas(from, dir.yxz+dir.yzx, 2.5, 0.7) * 0.7, 0.0, 1.0) * vec3(0.25, 0.75, 0.0);
+	vec3 color1=clamp(reachForTheNebulas(from, -dir.xyz, 64.0, 0.5), 0.0, 1.0) * vec3(0.0, 0.0, 1.0);
+	//vec3 color2=clamp(reachForTheNebulas(from, -dir.zxy, 64.0, 0.7), 0.0, 1.0) * vec3(0.0, 1.0, 0.0);
+	vec3 color3=clamp(reachForTheNebulas(from, -dir.yxz, 64.0, 0.7), 0.0, 1.0) * vec3(1.0, 0.0, 0.0);
 
 	// Small stars...
 	vec3 colorStars = clamp(reachForTheStars(from, dir, 0.9), 0.0, 1.0);
 
 	// Add them all together...
-	color = color1 + color2 + color3 + color4 + color5 + color6 + colorStars;
+	color = color1 /*+ color2*/ + color3 + colorStars;
 
 	color = clamp(color, 0.0, 1.0);
 	color = pow(color, vec3(1.2));
@@ -795,12 +726,12 @@ const mat3 m3 = mat3( 0.00,  0.80,  0.60,
                      -0.60, -0.48,  0.64 );
 
 float hillsFbm( in vec3 p ) {
-    float f = 0.0;
-    f += 0.5000*SmoothNoise( p ); p = m3*p*1.22*PROCEDURAL_BACKGROUND_HILLS_SEED;
-    f += 0.2500*pnoise( p ); p = m3*p*1.53*PROCEDURAL_BACKGROUND_HILLS_SEED;
-    f += 0.1250*pnoise( p ); p = m3*p*4.01*PROCEDURAL_BACKGROUND_HILLS_SEED;
-    f += 0.0625*pnoise( p );
-    return f/0.9375;
+	float f = 0.0;
+	f += 0.5000*tNoise( p ); p = m3*p*1.22*PROCEDURAL_BACKGROUND_HILLS_SEED;
+	f += 0.2500*tNoise( p ); p = m3*p*1.53*PROCEDURAL_BACKGROUND_HILLS_SEED;
+	f += 0.1250*tNoise( p ); p = m3*p*4.01*PROCEDURAL_BACKGROUND_HILLS_SEED;
+	f += 0.0625*tNoise( p );
+	return f/0.9375;
 }
 
 // intersection functions

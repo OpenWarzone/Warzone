@@ -237,35 +237,7 @@ vec2 EncodeNormal(vec3 n)
 vec4 positionMapAtCoord ( vec2 coord, out bool changedToWater, out vec3 originalPosition )
 {
 	changedToWater = false;
-
-	vec4 pos = textureLod(u_PositionMap, coord, 0.0);
-	/*originalPosition = pos.xyz;
-
-	if (WATER_ENABLED > 0.0)
-	{
-		bool isSky = (pos.a - 1.0 >= MATERIAL_SKY) ? true : false;
-
-		vec4 wMap = textureLod(u_WaterPositionMap, coord, 0.0);
-
-		if (wMap.a > 0.0 || (wMap.a > 0.0 && isSky))
-		{
-			if ((wMap.z > pos.z || isSky) && u_ViewOrigin.z > wMap.z)
-			{
-				pos.xyz = wMap.xyz;
-
-				if (!isSky)
-				{// So we know if this is a shoreline or water in skybox...
-					changedToWater = true;
-				}
-				else
-				{// Also change the material...
-					pos.a = MATERIAL_WATER + 1.0;
-				}
-			}
-		}
-	}*/
-
-	return pos;
+	return textureLod(u_PositionMap, coord, 0.0);
 }
 
 
@@ -447,9 +419,6 @@ vec2 RB_PBR_DefaultsForMaterial(float MATERIAL_TYPE)
 	}
 
 	// TODO: Update original values with these modifications that I added after... Save time on the math, even though it's minor...
-	//specularReflectionScale = specularReflectionScale * 0.5 + 0.5;
-	//specularReflectionScale = specularReflectionScale * u_Local3.b + u_Local3.a;
-	
 	cubeReflectionScale = cubeReflectionScale * 0.75 + 0.25;
 	//cubeReflectionScale = cubeReflectionScale * u_Local3.r + u_Local3.g;
 
@@ -710,8 +679,6 @@ vec4 normalVector(vec3 color) {
 	normals.rgb = vec3(length(normals.r - normals.a), length(normals.g - normals.a), length(normals.b - normals.a));
 
 	// Contrast...
-//#define normLower ( 128.0 / 255.0 )
-//#define normUpper (255.0 / 192.0 )
 #define normLower ( 32.0 / 255.0 )
 #define normUpper (255.0 / 212.0 )
 	vec3 N = clamp((clamp(normals.rgb - normLower, 0.0, 1.0)) * normUpper, 0.0, 1.0);
@@ -728,7 +695,7 @@ float drawObject(in vec3 p){
 float cellTile(in vec3 p)
 {
     p /= 5.5;
-    // Draw four overlapping objects at various positions throughout the tile.
+
     vec4 v, d; 
     d.x = drawObject(p - vec3(.81, .62, .53));
     p.xy = vec2(p.y-p.x, p.y + p.x)*.7071;
@@ -740,10 +707,9 @@ float cellTile(in vec3 p)
 
     v.xy = min(d.xz, d.yw), v.z = min(max(d.x, d.y), max(d.z, d.w)), v.w = max(v.x, v.y); 
    
-    d.x =  min(v.z, v.w) - min(v.x, v.y); // Maximum minus second order, for that beveled Voronoi look. Range [0, 1].
-    //d.x =  min(v.x, v.y); // First order.
-        
-    return d.x*2.66; // Normalize... roughly.
+    d.x =  min(v.z, v.w) - min(v.x, v.y);
+
+    return d.x*2.66;
 }
 
 float aomap(vec3 p)
@@ -781,12 +747,12 @@ vec3 TrueHDR ( vec3 color )
 
 vec3 Vibrancy ( vec3 origcolor, float vibrancyStrength )
 {
-	vec3	lumCoeff = vec3(0.212656, 0.715158, 0.072186);  				//Calculate luma with these values
-	float	max_color = max(origcolor.r, max(origcolor.g,origcolor.b)); 	//Find the strongest color
-	float	min_color = min(origcolor.r, min(origcolor.g,origcolor.b)); 	//Find the weakest color
-	float	color_saturation = max_color - min_color; 						//Saturation is the difference between min and max
-	float	luma = dot(lumCoeff, origcolor.rgb); 							//Calculate luma (grey)
-	return mix(vec3(luma), origcolor.rgb, (1.0 + (vibrancyStrength * (1.0 - (sign(vibrancyStrength) * color_saturation))))); 	//Extrapolate between luma and original by 1 + (1-saturation) - current
+	vec3	lumCoeff = vec3(0.212656, 0.715158, 0.072186);
+	float	max_color = max(origcolor.r, max(origcolor.g,origcolor.b));
+	float	min_color = min(origcolor.r, min(origcolor.g,origcolor.b));
+	float	color_saturation = max_color - min_color;
+	float	luma = dot(lumCoeff, origcolor.rgb);
+	return mix(vec3(luma), origcolor.rgb, (1.0 + (vibrancyStrength * (1.0 - (sign(vibrancyStrength) * color_saturation)))));
 }
 
 
@@ -824,9 +790,6 @@ vec3 blinn_phong(vec3 pos, vec3 color, vec3 bump, vec3 view, vec3 light, vec3 li
 	diff *= getSpecialSauce(color);
 
 	// Specular lighting.
-	//float fre = clamp(pow(clamp(dot(bump, -view) + 1.0, 0.0, 1.0), -2.0), 0.0, 1.0);
-	//float spec = pow(max(dot(reflect(-light, bump), view), 0.0), 1.2);
-	float fre = 1.0;
 	float nvl = clamp(dot(bump, normalize(view+light)), 0.0, 1.0);
 	float spec = pow(nvl, 22.0);
 
@@ -839,7 +802,7 @@ vec3 blinn_phong(vec3 pos, vec3 color, vec3 bump, vec3 view, vec3 light, vec3 li
 		wetSpec *= 0.5;
 	}
 
-	return (lightColor * ambience) + (lightColor * diff) + (lightColor * spec * fre) + (lightColor * wetSpec);
+	return (lightColor * ambience) + (lightColor * diff) + (lightColor * spec) + (lightColor * wetSpec);
 }
 #elif defined(__NAYAR_LIGHTING__)
 float orenNayar( in vec3 n, in vec3 v, in vec3 ldir, float specPower )
@@ -1018,7 +981,7 @@ vec3 blinn_phong(vec3 pos, vec3 color, vec3 bump, vec3 view, vec3 light, vec3 li
 
 #ifdef __CLOUD_SHADOWS__
 
-#define RAY_TRACE_STEPS 2 //55
+#define RAY_TRACE_STEPS 2
 
 //float gTime;
 float cloudy = 0.0;
@@ -1087,12 +1050,20 @@ float FBM( vec3 p )
 
 	float f;
 	
-	f = 0.5000 * Noise(p); p = cm*p; //p.y -= gTime*.2;
-	f += 0.2500 * Noise(p); p = cm*p; //p.y += gTime*.06;
+	/*
+	f = 0.5000 * Noise(p); p = cm*p;
+	f += 0.2500 * Noise(p); p = cm*p;
 	f += 0.1250 * Noise(p); p = cm*p;
 	f += 0.0625   * Noise(p); p = cm*p;
 	f += 0.03125  * Noise(p); p = cm*p;
 	f += 0.015625 * Noise(p);
+	*/
+
+	f = 0.5000 * Noise(p); p = cm*p;
+	f += 0.2500 * Noise(p); p = cm*p;
+	f += 0.1250 * Noise(p); p = cm*p;
+	f += 0.0625   * Noise(p); p = cm*p;
+
 	return f;
 }
 
@@ -1100,8 +1071,6 @@ float FBM( vec3 p )
 
 float Map(vec3 p)
 {
-	//float h = -(FBM((p*vec3(0.3, 3.0, 0.3))+(u_Time*128.0))-cloudy-.6);
-	//float h = -(FBM((p*vec3(0.3, 3.0, 0.3))+(u_Time*128.0))-pow(cloudy, 0.3));
 	float h = -(FBM((p*vec3(0.3, 3.0, 0.3))+(u_Time*128.0))-cloudy-cloudShadeFactor);
 	return h;
 }
@@ -1110,22 +1079,17 @@ float Map(vec3 p)
 // Grab all sky information for a given ray from camera
 float GetCloudAlpha(in vec3 pos,in vec3 rd, out vec2 outPos)
 {
-	// Find the start and end of the cloud layer...
 	float beg = ((CLOUD_LOWER-pos.y) / rd.y);
 	float end = ((CLOUD_UPPER-pos.y) / rd.y);
 	
-	// Start position...
 	vec3 p = vec3(pos.x + rd.x * beg, 0.0, pos.z + rd.z * beg);
 	outPos = p.xz;
-    beg +=  Hash(p)*150.0;
+	beg +=  Hash(p)*150.0;
 
-	// Trace clouds through that layer...
 	float d = 0.0;
 	vec3 add = rd * ((end-beg) / float(RAY_TRACE_STEPS));
 	float shadeSum = 0.0;
 	
-	// I think this is as small as the loop can be
-	// for a reasonable cloud density illusion.
 	for (int i = 0; i < RAY_TRACE_STEPS; i++)
 	{
 		if (shadeSum >= 1.0) break;
@@ -1145,22 +1109,14 @@ float CloudShadows(vec3 position)
 	
 	vec3 cameraPos = vec3(0.0);
     vec3 dir = normalize(u_PrimaryLightOrigin.xzy - position.xzy*0.25);
-	//dir.y *= -1.0;
 	dir = normalize(vec3(dir.x, -1.0, dir.z));
 
 	vec2 pos;
 	float alpha = GetCloudAlpha(cameraPos, dir, pos);
-	//alpha *= clamp(-dir.y, 0.0, 0.75);
 
 	return (1.0 - (alpha*0.75));
 }
 #endif //__CLOUD_SHADOWS__
-
-/*
-** Contrast, saturation, brightness
-** Code of this function is from TGM's shader pack
-** http://irrlicht.sourceforge.net/phpBB2/viewtopic.php?t=21057
-*/
 
 // For all settings: 1.0 = 100% 0.5=50% 1.5 = 150%
 vec3 ContrastSaturationBrightness(vec3 color, float con, float sat, float brt)
@@ -1517,7 +1473,12 @@ void main(void)
 #endif //defined(__SCREEN_SPACE_REFLECTIONS__)
 
 
-	float diffuse = clamp(pow(clamp(dot(-sunDir.rgb, bump.rgb), 0.0, 1.0), 8.0) * 0.2 + 0.8, 0.0, 1.0);
+	float diffuse;
+	if (position.a - 1.0 == MATERIAL_GREENLEAVES)
+		diffuse = clamp(pow(clamp(dot(-sunDir.rgb, bump.rgb), 0.0, 1.0), 8.0) * 0.6 + 0.6, 0.0, 1.0);
+	else
+		diffuse = clamp(pow(clamp(dot(-sunDir.rgb, bump.rgb), 0.0, 1.0), 8.0) * 0.2 + 0.8, 0.0, 1.0);
+
 	color.rgb = outColor.rgb = outColor.rgb * diffuse;
 
 	float origColorStrength = clamp(max(color.r, max(color.g, color.b)), 0.0, 1.0) * 0.75 + 0.25;
@@ -1575,34 +1536,34 @@ void main(void)
 		if (NIGHT_SCALE > 0.0 && NIGHT_SCALE < 1.0)
 		{// Mix between night and day colors...
 			vec3 skyColorDay = textureLod(u_SkyCubeMap, reflected, lod1).rgb;
-			skyColorDay += textureLod(u_SkyCubeMap, reflected, lod2).rgb;
-			skyColorDay += textureLod(u_SkyCubeMap, reflected, lod3).rgb;
-			skyColorDay += textureLod(u_SkyCubeMap, reflected, lod4).rgb;
-			skyColorDay /= 4.0;
+			//skyColorDay += textureLod(u_SkyCubeMap, reflected, lod2).rgb;
+			//skyColorDay += textureLod(u_SkyCubeMap, reflected, lod3).rgb;
+			//skyColorDay += textureLod(u_SkyCubeMap, reflected, lod4).rgb;
+			//skyColorDay /= 4.0;
 
 			vec3 skyColorNight = textureLod(u_SkyCubeMapNight, reflected, lod1).rgb;
-			skyColorNight += textureLod(u_SkyCubeMapNight, reflected, lod2).rgb;
-			skyColorNight += textureLod(u_SkyCubeMapNight, reflected, lod3).rgb;
-			skyColorNight += textureLod(u_SkyCubeMapNight, reflected, lod4).rgb;
-			skyColorNight /= 4.0;
+			//skyColorNight += textureLod(u_SkyCubeMapNight, reflected, lod2).rgb;
+			//skyColorNight += textureLod(u_SkyCubeMapNight, reflected, lod3).rgb;
+			//skyColorNight += textureLod(u_SkyCubeMapNight, reflected, lod4).rgb;
+			//skyColorNight /= 4.0;
 
 			skyColor = mix(skyColorDay, skyColorNight, clamp(NIGHT_SCALE, 0.0, 1.0));
 		}
 		else if (NIGHT_SCALE >= 1.0)
 		{// Night only colors...
 			skyColor = textureLod(u_SkyCubeMapNight, reflected, lod1).rgb;
-			skyColor += textureLod(u_SkyCubeMapNight, reflected, lod2).rgb;
-			skyColor += textureLod(u_SkyCubeMapNight, reflected, lod3).rgb;
-			skyColor += textureLod(u_SkyCubeMapNight, reflected, lod4).rgb;
-			skyColor /= 4.0;
+			//skyColor += textureLod(u_SkyCubeMapNight, reflected, lod2).rgb;
+			//skyColor += textureLod(u_SkyCubeMapNight, reflected, lod3).rgb;
+			//skyColor += textureLod(u_SkyCubeMapNight, reflected, lod4).rgb;
+			//skyColor /= 4.0;
 		}
 		else
 		{// Day only colors...
 			skyColor = textureLod(u_SkyCubeMap, reflected, lod1).rgb;
-			skyColor += textureLod(u_SkyCubeMap, reflected, lod2).rgb;
-			skyColor += textureLod(u_SkyCubeMap, reflected, lod3).rgb;
-			skyColor += textureLod(u_SkyCubeMap, reflected, lod4).rgb;
-			skyColor /= 4.0;
+			//skyColor += textureLod(u_SkyCubeMap, reflected, lod2).rgb;
+			//skyColor += textureLod(u_SkyCubeMap, reflected, lod3).rgb;
+			//skyColor += textureLod(u_SkyCubeMap, reflected, lod4).rgb;
+			//skyColor /= 4.0;
 		}
 
 		skyColor = clamp(ContrastSaturationBrightness(skyColor, 1.0, 2.0, 0.333), 0.0, 1.0);
@@ -1617,17 +1578,6 @@ void main(void)
 #define spec_cont_2 (255.0 / 192.0)
 			specularColor = clamp((clamp(outColor.rgb - spec_cont_1, 0.0, 1.0)) * spec_cont_2, 0.0, 1.0);
 			specularColor = clamp(Vibrancy( specularColor.rgb, 1.0 ), 0.0, 1.0);
-
-			//vec3 s = (outColor.rgb + ((outColor.r+outColor.g+outColor.b) / 3.0)) * 0.5;
-			//float df = clamp(distance(outColor.rgb, vec3((outColor.r+outColor.g+outColor.b) / 3.0)), 0.0, 1.0);
-			//s = mix(s, outColor.rgb, df);
-
-			//specularColor = clamp(pow(s *2.5, vec3(1.5)), 0.0, 1.0);
-			//specularColor = vec3(df);
-			//specularColor = clamp(outColor.rgb * vec3(pow(df, 1.0-df)*8.0), 0.0, 1.0);
-			//gl_FragColor = vec4(specularColor.rgb, 1.0);
-			//return;
-
 
 #ifndef __LQ_MODE__
 #if defined(__CUBEMAPS__)
@@ -1665,12 +1615,12 @@ void main(void)
 			{
 				vec2 shinyTC = ((cubeRayDir.xy + cubeRayDir.z) / 2.0) * 0.5 + 0.5;
 
-				//vec3 shiny = textureLod(u_WaterEdgeMap, shinyTC, 5.5 - (cubeReflectionFactor * 5.5)).rgb;
-				vec3 shiny = textureLod(u_WaterEdgeMap, shinyTC, 4.0 - (cubeReflectionFactor * 4.0)).rgb;
-				shiny += textureLod(u_WaterEdgeMap, shinyTC, 5.0 - (cubeReflectionFactor * 5.0)).rgb;
-				shiny += textureLod(u_WaterEdgeMap, shinyTC, 7.0 - (cubeReflectionFactor * 7.0)).rgb;
-				shiny += textureLod(u_WaterEdgeMap, shinyTC, 10.0 - (cubeReflectionFactor * 10.0)).rgb;
-				shiny /= 4.0;
+				vec3 shiny = textureLod(u_WaterEdgeMap, shinyTC, 5.5 - (cubeReflectionFactor * 5.5)).rgb;
+				//vec3 shiny = textureLod(u_WaterEdgeMap, shinyTC, 4.0 - (cubeReflectionFactor * 4.0)).rgb;
+				//shiny += textureLod(u_WaterEdgeMap, shinyTC, 5.0 - (cubeReflectionFactor * 5.0)).rgb;
+				//shiny += textureLod(u_WaterEdgeMap, shinyTC, 7.0 - (cubeReflectionFactor * 7.0)).rgb;
+				//shiny += textureLod(u_WaterEdgeMap, shinyTC, 10.0 - (cubeReflectionFactor * 10.0)).rgb;
+				//shiny /= 4.0;
 
 				shiny = clamp(ContrastSaturationBrightness(shiny, 1.75, 1.0, 0.333), 0.0, 1.0);
 				outColor.rgb = mix(outColor.rgb, outColor.rgb + shiny.rgb, clamp(NE * cubeReflectionFactor * (origColorStrength * 0.75 + 0.25), 0.0, 1.0));
@@ -1681,12 +1631,12 @@ void main(void)
 		{
 			vec2 shinyTC = ((cubeRayDir.xy + cubeRayDir.z) / 2.0) * 0.5 + 0.5;
 
-			//vec3 shiny = textureLod(u_WaterEdgeMap, shinyTC, 5.5 - (cubeReflectionFactor * 5.5)).rgb;
-			vec3 shiny = textureLod(u_WaterEdgeMap, shinyTC, 4.0 - (cubeReflectionFactor * 4.0)).rgb;
-			shiny += textureLod(u_WaterEdgeMap, shinyTC, 5.0 - (cubeReflectionFactor * 5.0)).rgb;
-			shiny += textureLod(u_WaterEdgeMap, shinyTC, 7.0 - (cubeReflectionFactor * 7.0)).rgb;
-			shiny += textureLod(u_WaterEdgeMap, shinyTC, 10.0 - (cubeReflectionFactor * 10.0)).rgb;
-			shiny /= 4.0;
+			vec3 shiny = textureLod(u_WaterEdgeMap, shinyTC, 5.5 - (cubeReflectionFactor * 5.5)).rgb;
+			//vec3 shiny = textureLod(u_WaterEdgeMap, shinyTC, 4.0 - (cubeReflectionFactor * 4.0)).rgb;
+			//shiny += textureLod(u_WaterEdgeMap, shinyTC, 5.0 - (cubeReflectionFactor * 5.0)).rgb;
+			//shiny += textureLod(u_WaterEdgeMap, shinyTC, 7.0 - (cubeReflectionFactor * 7.0)).rgb;
+			//shiny += textureLod(u_WaterEdgeMap, shinyTC, 10.0 - (cubeReflectionFactor * 10.0)).rgb;
+			//shiny /= 4.0;
 
 			shiny = clamp(ContrastSaturationBrightness(shiny, 1.75, 1.0, 0.333), 0.0, 1.0);
 			outColor.rgb = mix(outColor.rgb, outColor.rgb + shiny.rgb, clamp(NE * cubeReflectionFactor * (origColorStrength * 0.75 + 0.25), 0.0, 1.0));
@@ -1731,9 +1681,7 @@ void main(void)
 			if (lightMult > 0.0)
 			{
 				lightColor *= lightMult;
-				//lightColor *= max(outColor.r, max(outColor.g, outColor.b)) * 0.9 + 0.1;
 				lightColor *= clamp(1.0 - NIGHT_SCALE, 0.0, 1.0); // Day->Night scaling of sunlight...
-				//lightColor = clamp(lightColor, 0.0, 0.7);
 
 				lightColor.rgb *= lightsReflectionFactor * phongFactor * origColorStrength * 8.0;
 
@@ -1842,96 +1790,6 @@ void main(void)
 #endif //defined(__SCREEN_SPACE_REFLECTIONS__)
 
 #if defined(__AMBIENT_OCCLUSION__)
-	#if 0
-	if (AO_TYPE == 1.0)
-	{// Fast AO enabled...
-		const float MAX_AO_DIST = 32.0;
-		float ao = 0.0;
-
-		float vdist1 = distance(u_ViewOrigin.xy, position.xy);
-
-		//for (int x = 1; x < 12; x++)
-		for (int x = 1; x < 6; x++)
-		{
-			//float fx = pixel.x * pow(float(x), 1.5);
-			float fx = pixel.x * float(x) * 4.0/*2.0*/;//pow(float(x), 1.25);
-
-			//for (int y = 1; y < 4; y++)
-			for (int y = 1; y < 6; y++)
-			{
-				//float fy = pixel.y * pow(float(y), 1.5);
-				float fy = pixel.y * float(y) * float(y);//pow(float(y), 1.25);
-				vec2 off = vec2(fx,fy);
-
-				if (ao < 1.0)
-				{
-					//bool changedToWater3 = false;
-					//vec3 originalPosition3;
-
-					vec4 pMap3 = texture(u_PositionMap, texCoords + off);//positionMapAtCoord(texCoords + off, changedToWater3, originalPosition3);
-					float dist = distance(position.xyz, pMap3.xyz);
-					float vdist2 = distance(u_ViewOrigin.xy, pMap3.xy);
-					
-					float vmod = vdist1 - vdist2;
-					if (vmod > 0.0)
-						vmod = 1.0 - clamp(vmod / 8.0, 0.0, 1.0);
-					else
-						vmod = 1.0;
-
-					float hdiff = pMap3.z - position.z;
-
-					if (/*dist <= MAX_AO_DIST &&*/ hdiff > 0.0)
-					{
-						//float dmod = 1.0 - clamp(dist / MAX_AO_DIST, 0.0, 1.0);
-						//float hmod = clamp(hdiff / MAX_AO_DIST, 0.0, 1.0);
-						//ao = max(ao, dmod*hmod);
-						ao = max(ao, clamp(hdiff/dist, 0.0, 1.0) * vmod);
-					}
-				}
-
-				if (ao < 1.0)
-				{
-					//bool changedToWater3 = false;
-					//vec3 originalPosition3;
-
-					vec4 pMap3 = texture(u_PositionMap, texCoords + vec2(-off.x, off.y));//positionMapAtCoord(texCoords + vec2(-off.x, off.y), changedToWater3, originalPosition3);
-					float dist = distance(position.xyz, pMap3.xyz);
-					float vdist2 = distance(u_ViewOrigin.xy, pMap3.xy);
-
-					float vmod = vdist1 - vdist2;
-					if (vmod > 0.0)
-						vmod = 1.0 - clamp(vmod / 8.0, 0.0, 1.0);
-					else
-						vmod = 1.0;
-
-					float hdiff = pMap3.z - position.z;
-
-					if (/*dist <= MAX_AO_DIST &&*/ hdiff > 0.0)
-					{
-						//float dmod = 1.0 - clamp(dist / MAX_AO_DIST, 0.0, 1.0);
-						//float hmod = clamp(hdiff / MAX_AO_DIST, 0.0, 1.0);
-						//ao = max(ao, dmod*hmod);
-						ao = max(ao, clamp(hdiff/dist, 0.0, 1.0) * vmod);
-					}
-				}
-			}
-		}
-
-		if (ao > 0.0)
-		{
-			//ao = clamp(pow(ao, 0.25), 0.0, 1.0);
-			//ao = clamp(pow(ao, 1.5), 0.0, 1.0);
-			//outColor.rgb *= 1.0 - ao;
-			ao *= norm.b * 0.5 + 0.5;
-			ao = (1.0 - ao) * 0.7 + 0.3;
-
-			//float selfShadow = clamp(pow(clamp(dot(-sunDir.rgb, bump.rgb), 0.0, 1.0), 8.0), 0.0, 1.0);
-			//ao = clamp(((ao + selfShadow) / 2.0) * AO_MULTBRIGHT + AO_MINBRIGHT, AO_MINBRIGHT, 1.0);
-			ao = clamp(ao * AO_MULTBRIGHT + AO_MINBRIGHT, AO_MINBRIGHT, 1.0);
-			outColor.rgb *= ao;
-		}
-	}
-	#else
 	if (AO_TYPE == 1.0)
 	{// Fast AO enabled...
 		float ao = calculateAO(sunDir, N * 10000.0, texCoords);
@@ -1939,7 +1797,6 @@ void main(void)
 		ao = clamp(((ao + selfShadow) / 2.0) * AO_MULTBRIGHT + AO_MINBRIGHT, AO_MINBRIGHT, 1.0);
 		outColor.rgb *= ao;
 	}
-	#endif
 #endif //defined(__AMBIENT_OCCLUSION__)
 
 #if defined(__ENHANCED_AO__)
