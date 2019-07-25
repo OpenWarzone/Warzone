@@ -36,7 +36,7 @@ uniform vec4						u_Settings0; // useTC, useDeform, useRGBA, isTextureClamped
 uniform vec4						u_Settings1; // useVertexAnim, useSkeletalAnim, blendMethod, is2D
 uniform vec4						u_Settings2; // LIGHTDEF_USE_LIGHTMAP, LIGHTDEF_USE_GLOW_BUFFER, LIGHTDEF_USE_CUBEMAP, LIGHTDEF_USE_TRIPLANAR
 uniform vec4						u_Settings3; // LIGHTDEF_USE_REGIONS, LIGHTDEF_IS_DETAIL, 0=DetailMapNormal 1=detailMapFromTC 2=detailMapFromWorld, USE_GLOW_BLEND_MODE
-uniform vec4						u_Settings4; // MAP_LIGHTMAP_MULTIPLIER, MAP_LIGHTMAP_ENHANCEMENT, 0.0, PUDDLE_STRENGTH
+uniform vec4						u_Settings4; // MAP_LIGHTMAP_MULTIPLIER, MAP_LIGHTMAP_ENHANCEMENT, SPLATMAP_SCALE_STEEP, PUDDLE_STRENGTH
 uniform vec4						u_Settings5; // MAP_COLOR_SWITCH_RG, MAP_COLOR_SWITCH_RB, MAP_COLOR_SWITCH_GB, SPLATMAP_SCALE
 
 #define USE_TC						u_Settings0.r
@@ -61,6 +61,7 @@ uniform vec4						u_Settings5; // MAP_COLOR_SWITCH_RG, MAP_COLOR_SWITCH_RB, MAP_
 
 #define MAP_LIGHTMAP_MULTIPLIER		u_Settings4.r
 #define MAP_LIGHTMAP_ENHANCEMENT	u_Settings4.g
+#define SPLATMAP_SCALE_STEEP		u_Settings4.b
 #define PUDDLE_STRENGTH				u_Settings4.a
 
 #define MAP_COLOR_SWITCH_RG			u_Settings5.r
@@ -702,7 +703,7 @@ vec4 GetDiffuse(vec2 texCoords)
 		if (SHADER_HAS_STEEPMAP > 0.0 && var_Slope > 0)
 		{// Do full slope blending... or inverted slope blending on regions.
 			float a1 = -1.0;
-			vec4 steep = GetMap(u_SteepMap, 0.0025, a1);
+			vec4 steep = GetMap(u_SteepMap, SPLATMAP_SCALE_STEEP/*0.0025*/, a1);
 			diffuse.rgb = mix(diffuse.rgb, steep.rgb, var_Slope * steep.a);
 		}
 

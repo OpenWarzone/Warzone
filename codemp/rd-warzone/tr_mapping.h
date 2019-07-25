@@ -21,7 +21,9 @@ extern qboolean			MAP_REFLECTION_ENABLED;
 extern qboolean			ENABLE_CHRISTMAS_EFFECT;
 
 extern float			STANDARD_SPLATMAP_SCALE;
+extern float			STANDARD_SPLATMAP_SCALE_STEEP;
 extern float			ROCK_SPLATMAP_SCALE;
+extern float			ROCK_SPLATMAP_SCALE_STEEP;
 
 extern qboolean			TERRAIN_TESSELLATION_ENABLED;
 extern float			TERRAIN_TESSELLATION_LEVEL;

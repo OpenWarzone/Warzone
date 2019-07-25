@@ -2030,7 +2030,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	ComputeFogValues(fogDistanceVector, fogDepthVector, &eyeT);
 
 #ifdef __CHEAP_VERTS__
-	if (backEnd.currentEntity == &tr.worldEntity && !tess.useInternalVBO)
+	if (/*backEnd.currentEntity == &tr.worldEntity &&*/ !tess.useInternalVBO)
 	{// World VBO's no longer contain attr_color to save memory, so we need to let the GLSL shaders know about it.
 		isWorld = qtrue;
 	}
@@ -3173,35 +3173,48 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					(index & LIGHTDEF_USE_TRIPLANAR) ? (input->shader->warzoneVextexSplat) ? 2.0 : 1.0 : 0.0);
 				GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS2, vec);
 
-#ifdef __USE_DETAIL_CHECKING__
 				VectorSet4(vec,
 					(index & LIGHTDEF_USE_REGIONS) ? 1.0 : 0.0,
 					(index & LIGHTDEF_IS_DETAIL) ? 1.0 : 0.0,
 					(backEnd.viewParms.flags & VPF_EMISSIVEMAP) ? 1.0 : 0.0,
 					pStage->glowBlend);
-#else //!__USE_DETAIL_CHECKING__
-				VectorSet4(vec,
-					(index & LIGHTDEF_USE_REGIONS) ? 1.0 : 0.0,
-					0.0,
-					(backEnd.viewParms.flags & VPF_EMISSIVEMAP) ? 1.0 : 0.0,
-					pStage->glowBlend);
-#endif //__USE_DETAIL_CHECKING__
 				GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS3, vec);
 
-				VectorSet4(vec,
-					MAP_LIGHTMAP_MULTIPLIER * 0.0075,
-					MAP_LIGHTMAP_ENHANCEMENT,
-					(tess.shader->hasAlphaTestBits || tess.shader->materialType == MATERIAL_GREENLEAVES) ? 1.0 : 0.0, // TODO: MATERIAL_GREENLEAVES because something isnt right with models...
-					DYNAMIC_WEATHER_PUDDLE_STRENGTH);
-				GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS4, vec);
+#ifdef __USE_REGIONS__
+				if (index & LIGHTDEF_USE_REGIONS)
+				{
+					VectorSet4(vec,
+						MAP_LIGHTMAP_MULTIPLIER * 0.0075,
+						MAP_LIGHTMAP_ENHANCEMENT,
+						STANDARD_SPLATMAP_SCALE_STEEP,
+						DYNAMIC_WEATHER_PUDDLE_STRENGTH);
+					GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS4, vec);
+				}
+				else
+#endif //__USE_REGIONS__
+					if (index & LIGHTDEF_USE_TRIPLANAR)
+					{
+						VectorSet4(vec,
+							MAP_LIGHTMAP_MULTIPLIER * 0.0075,
+							MAP_LIGHTMAP_ENHANCEMENT,
+							STANDARD_SPLATMAP_SCALE_STEEP,
+							DYNAMIC_WEATHER_PUDDLE_STRENGTH);
+						GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS4, vec);
+					}
+					else
+					{
+						VectorSet4(vec,
+							MAP_LIGHTMAP_MULTIPLIER * 0.0075,
+							MAP_LIGHTMAP_ENHANCEMENT,
+							(tess.shader->hasAlphaTestBits || tess.shader->materialType == MATERIAL_GREENLEAVES) ? 1.0 : 0.0, // TODO: MATERIAL_GREENLEAVES because something isnt right with models...
+							DYNAMIC_WEATHER_PUDDLE_STRENGTH);
+						GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS4, vec);
+					}
 
 				
 				//
 				// lightAllSplat shaders need splatmap scales and not christmas light info.
 				//
-				extern float		STANDARD_SPLATMAP_SCALE;
-				extern float		ROCK_SPLATMAP_SCALE;
-
 #ifdef __USE_REGIONS__
 				if (index & LIGHTDEF_USE_REGIONS)
 				{
@@ -5091,7 +5104,7 @@ void RB_StageIteratorGeneric( void )
 	// Set vertex attribs and pointers
 	//
 #ifdef __CHEAP_VERTS__
-	if (backEnd.currentEntity == &tr.worldEntity && !tess.useInternalVBO && (vertexAttribs & ATTR_COLOR))
+	if (/*backEnd.currentEntity == &tr.worldEntity &&*/ !tess.useInternalVBO && (vertexAttribs & ATTR_COLOR))
 	{// World VBO's no longer contain attr_color to save memory, so ATTR_COLOR is unneeded.
 		vertexAttribs &= ~ATTR_COLOR;
 	}
