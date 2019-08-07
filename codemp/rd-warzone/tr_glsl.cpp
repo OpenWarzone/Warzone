@@ -155,6 +155,11 @@ extern const char *fallbackShader_vines_vp;
 extern const char *fallbackShader_vines_cs;
 extern const char *fallbackShader_vines_es;
 extern const char *fallbackShader_vines_gs;
+extern const char *fallbackShader_mist_fp;
+extern const char *fallbackShader_mist_vp;
+extern const char *fallbackShader_mist_cs;
+extern const char *fallbackShader_mist_es;
+extern const char *fallbackShader_mist_gs;
 extern const char *fallbackShader_hbao_vp;
 extern const char *fallbackShader_hbao_fp;
 extern const char *fallbackShader_hbaoCombine_vp;
@@ -3743,6 +3748,18 @@ int GLSL_BeginLoadGPUShaders(void)
 		}
 	}
 
+	//if (r_foliage->integer)
+	{
+		attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL;
+
+		extradefines[0] = '\0';
+
+		if (!GLSL_BeginLoadGPUShader(&tr.mistShader, "mist", attribs, qtrue, qtrue, qtrue, extradefines, qtrue, "400 core", fallbackShader_mist_vp, fallbackShader_mist_fp, fallbackShader_mist_cs, fallbackShader_mist_es, fallbackShader_mist_gs))
+		{
+			ri->Error(ERR_FATAL, "Could not load mist shader!");
+		}
+	}
+
 	attribs = ATTR_POSITION | ATTR_POSITION2 | ATTR_NORMAL | ATTR_NORMAL2 | ATTR_TEXCOORD0;
 	extradefines[0] = '\0';
 
@@ -5159,6 +5176,27 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 #if defined(_DEBUG)
 		GLSL_FinishGPUShader(&tr.vinesShader);
+#endif
+
+		numEtcShaders++;
+
+
+
+
+		if (!GLSL_EndLoadGPUShader(&tr.mistShader))
+		{
+			ri->Error(ERR_FATAL, "Could not load mist shader!");
+		}
+
+		GLSL_InitUniforms(&tr.mistShader);
+
+		GLSL_BindProgram(&tr.mistShader);
+
+		// Grass/plant textures...
+		GLSL_SetUniformInt(&tr.mistShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP); // 0
+
+#if defined(_DEBUG)
+		GLSL_FinishGPUShader(&tr.mistShader);
 #endif
 
 		numEtcShaders++;
@@ -7205,6 +7243,7 @@ void GLSL_ShutdownGPUShaders(void)
 	if (r_foliage->integer)	GLSL_DeleteGPUShader(&tr.grassShader[0]);
 	if (r_foliage->integer)	GLSL_DeleteGPUShader(&tr.grassShader[1]);
 	GLSL_DeleteGPUShader(&tr.vinesShader);
+	GLSL_DeleteGPUShader(&tr.mistShader);
 	//GLSL_DeleteGPUShader(&tr.hbaoShader);
 	//GLSL_DeleteGPUShader(&tr.hbao2Shader);
 	//GLSL_DeleteGPUShader(&tr.hbaoCombineShader);

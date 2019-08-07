@@ -1601,11 +1601,13 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 				qboolean isGrass = qfalse;
 				qboolean isVines = qfalse;
 				qboolean isGroundFoliage = qfalse;
+				qboolean isMist = qfalse;
 
 				if (thisShader->isGrass || thisShader->isGroundFoliage || RB_ShouldUseGeometryGrass(thisShader->materialType))
 				{
 					isGrass = qtrue;
 					isGroundFoliage = qtrue;
+					isMist = qtrue;
 				}
 				else if (thisShader->isVines || (thisShader->materialType == MATERIAL_TREEBARK || thisShader->materialType == MATERIAL_ROCK))
 				{
@@ -1621,6 +1623,10 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 					doDraw = qtrue;
 				}
 				else if (isVines && backEnd.renderPass == RENDERPASS_VINES)
+				{
+					doDraw = qtrue;
+				}
+				else if (isMist && backEnd.renderPass == RENDERPASS_MIST)
 				{
 					doDraw = qtrue;
 				}

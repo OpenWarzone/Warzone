@@ -1589,6 +1589,17 @@ float		VINES_SURFACE_SIZE_DIVIDER = 1024.0;
 float		VINES_TYPE_UNIFORMALITY = 0.97;
 float		VINES_TYPE_UNIFORMALITY_SCALER = 0.008;
 
+qboolean	MIST_ENABLED = qfalse;
+int			MIST_DENSITY = 2;
+float		MIST_ALPHA = 0.5;
+float		MIST_HEIGHT = 48.0;
+int			MIST_DISTANCE = 2048;
+float		MIST_MAX_SLOPE = 10.0;
+float		MIST_SURFACE_MINIMUM_SIZE = 128.0;
+float		MIST_SURFACE_SIZE_DIVIDER = 1024.0;
+float		MIST_LOD_START_RANGE = 8192.0;
+image_t		*MIST_TEXTURE = NULL;
+
 int			MOON_COUNT = 0;
 qboolean	MOON_ENABLED[8] = { qfalse };
 float		MOON_SIZE[8] = { 1.0 };
@@ -2191,6 +2202,21 @@ void MAPPING_LoadMapInfo(void)
 		VINES_SURFACE_SIZE_DIVIDER = atof(IniRead(mapname, "VINES", "VINES_SURFACE_SIZE_DIVIDER", "65536.0"));
 		VINES_TYPE_UNIFORMALITY = atof(IniRead(mapname, "VINES", "VINES_TYPE_UNIFORMALITY", "0.97"));
 		VINES_TYPE_UNIFORMALITY_SCALER = atof(IniRead(mapname, "VINES", "VINES_TYPE_UNIFORMALITY_SCALER", "0.008"));
+	}
+
+	MIST_ENABLED = (atoi(IniRead(mapname, "MIST", "MIST_ENABLED", "0")) > 0) ? qtrue : qfalse;
+
+	if (MIST_ENABLED)
+	{
+		MIST_DENSITY = atoi(IniRead(mapname, "MIST", "MIST_DENSITY", "2"));
+		MIST_ALPHA = atof(IniRead(mapname, "MIST", "MIST_ALPHA", "0.5"));
+		MIST_HEIGHT = atof(IniRead(mapname, "MIST", "MIST_HEIGHT", "42.0"));
+		MIST_DISTANCE = atoi(IniRead(mapname, "MIST", "MIST_DISTANCE", "4096"));
+		MIST_MAX_SLOPE = atof(IniRead(mapname, "MIST", "MIST_MAX_SLOPE", "10.0"));
+		MIST_SURFACE_MINIMUM_SIZE = atof(IniRead(mapname, "MIST", "MIST_SURFACE_MINIMUM_SIZE", "128.0"));
+		MIST_SURFACE_SIZE_DIVIDER = atof(IniRead(mapname, "MIST", "MIST_SURFACE_SIZE_DIVIDER", "1024.0"));
+		MIST_LOD_START_RANGE = atof(IniRead(mapname, "MIST", "MIST_LOD_START_RANGE", va("%f", MIST_DISTANCE)));
+		MIST_TEXTURE = R_FindImageFile(IniRead(mapname, "MIST", "MIST_TEXTURE", "gfx/cloudtile"), IMGTYPE_COLORALPHA, IMGFLAG_NONE);
 	}
 
 	//

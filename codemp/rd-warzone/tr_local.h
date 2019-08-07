@@ -2800,6 +2800,7 @@ typedef enum {
 	RENDERPASS_GRASS,
 	RENDERPASS_GROUNDFOLIAGE,
 	RENDERPASS_VINES,
+	RENDERPASS_MIST,
 	RENDERPASS_MAX
 } renderPasses_t;
 
@@ -3138,6 +3139,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t foliageShader;
 	shaderProgram_t grassShader[2];
 	shaderProgram_t vinesShader;
+	shaderProgram_t mistShader;
 	//shaderProgram_t hbaoShader;
 	//shaderProgram_t hbao2Shader;
 	//shaderProgram_t hbaoCombineShader;

@@ -2007,6 +2007,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	qboolean isGrass = qfalse;
 	qboolean isVines = qfalse;
 	qboolean isGroundFoliage = qfalse;
+	qboolean isMist = qfalse;
 	qboolean isFur = qfalse;
 	qboolean isGlass = qfalse;
 	qboolean isPush = qfalse;
@@ -2147,6 +2148,11 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				isGroundFoliage = qtrue;
 				tess.shader->isGroundFoliage = qtrue; // Cache to speed up future checks...
 			}
+
+			if (MIST_ENABLED && MIST_TEXTURE != NULL)
+			{// TODO: It's own RB_ShouldUseGeometryMist
+				isMist = qtrue;
+			}
 		}
 		else if (r_foliage->integer
 			&& VINES_ENABLED
@@ -2166,6 +2172,12 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		{
 			isFur = qtrue;
 			tess.shader->isFur = qtrue; // Cache to speed up future checks...
+		}
+		else if (MIST_ENABLED 
+			&& MIST_TEXTURE != NULL
+			&& (tess.shader->isGrass || RB_ShouldUseGeometryGrass(tess.shader->materialType)))
+		{// TODO: It's own RB_ShouldUseGeometryMist
+			isMist = qtrue;
 		}
 	}
 
@@ -2187,6 +2199,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		return;
 	}
 	else if (!isVines && backEnd.renderPass == RENDERPASS_VINES)
+	{
+		return;
+	}
+	else if (!isMist && backEnd.renderPass == RENDERPASS_MIST)
 	{
 		return;
 	}
@@ -2706,6 +2722,14 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			if (stage > 0) return;
 
 			sp = &tr.vinesShader;
+			GLSL_BindProgram(sp);
+			multiPass = qfalse;
+		}
+		else if (isMist && backEnd.renderPass == RENDERPASS_MIST)
+		{
+			if (stage > 0) return;
+
+			sp = &tr.mistShader;
 			GLSL_BindProgram(sp);
 			multiPass = qfalse;
 		}
@@ -3655,6 +3679,52 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					ENABLE_CHRISTMAS_EFFECT ? 1.0 : 0.0);
 				GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS5, vec);
 			}
+
+			GL_Cull(CT_TWO_SIDED);
+		}
+		else if (isMist && backEnd.renderPass == RENDERPASS_MIST)
+		{
+			//stateBits = GLS_DEPTHMASK_TRUE | GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_ATEST_GT_0;
+			stateBits = GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;// | GLS_ATEST_GT_0;
+
+			RB_SetMaterialBasedProperties(sp, pStage, stage, qfalse);
+
+			GLSL_SetUniformFloat(sp, UNIFORM_TIME, tess.shaderTime);
+
+			GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+
+			GLSL_SetUniformVec3(sp, UNIFORM_VIEWORIGIN, backEnd.viewParms.ori.origin);
+
+			GLSL_SetUniformVec3(sp, UNIFORM_PLAYERORIGIN, backEnd.localPlayerOrigin);
+
+			{
+				vec2_t dimensions;
+				dimensions[0] = MIST_TEXTURE->width;
+				dimensions[1] = MIST_TEXTURE->height*VINES_HEIGHT;
+				GLSL_SetUniformVec2(sp, UNIFORM_DIMENSIONS, dimensions);
+			}
+
+			GL_BindToTMU(MIST_TEXTURE, TB_DIFFUSEMAP);
+
+			float TERRAIN_TESS_OFFSET = 0.0;
+
+			// Check if this is grass on a tessellated terrain, if so, we want to lower the verts in the vert shader by the maximum possible tessellation height...
+			if (TERRAIN_TESSELLATION_ENABLED
+				&& r_tessellation->integer
+				&& r_terrainTessellation->integer
+				&& r_terrainTessellationMax->value >= 2.0)
+			{// When tessellating terrain, we need to drop the mist down lower to allow for the offset...
+				TERRAIN_TESS_OFFSET = TERRAIN_TESSELLATION_OFFSET;
+				//GL_BindToTMU(tr.tessellationMapImage, TB_HEIGHTMAP);
+			}
+
+			vec4_t l10;
+			VectorSet4(l10, MIST_DISTANCE, TERRAIN_TESS_OFFSET, MIST_DENSITY, MIST_MAX_SLOPE);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL10, l10);
+
+			vec4_t l11;
+			VectorSet4(l11, MIST_ALPHA, 0.0, 0.0, 0.0);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL11, l11);
 
 			GL_Cull(CT_TWO_SIDED);
 		}
@@ -4722,6 +4792,16 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				{
 					vec4_t l8;
 					VectorSet4(l8, VINES_SURFACE_MINIMUM_SIZE, 0.0, VINES_HEIGHT, VINES_SURFACE_SIZE_DIVIDER);
+					GLSL_SetUniformVec4(sp, UNIFORM_LOCAL8, l8);
+				}
+
+				GL_Cull(CT_TWO_SIDED);
+			}
+			else if (isMist && backEnd.renderPass == RENDERPASS_MIST)
+			{
+				{
+					vec4_t l8;
+					VectorSet4(l8, MIST_SURFACE_MINIMUM_SIZE, MIST_LOD_START_RANGE, MIST_HEIGHT, MIST_SURFACE_SIZE_DIVIDER);
 					GLSL_SetUniformVec4(sp, UNIFORM_LOCAL8, l8);
 				}
 

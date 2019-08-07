@@ -210,6 +210,17 @@ extern float			VINES_SURFACE_SIZE_DIVIDER;
 extern float			VINES_TYPE_UNIFORMALITY;
 extern float			VINES_TYPE_UNIFORMALITY_SCALER;
 
+extern qboolean			MIST_ENABLED;
+extern int				MIST_DENSITY;
+extern float			MIST_ALPHA;
+extern float			MIST_HEIGHT;
+extern int				MIST_DISTANCE;
+extern float			MIST_MAX_SLOPE;
+extern float			MIST_SURFACE_MINIMUM_SIZE;
+extern float			MIST_SURFACE_SIZE_DIVIDER;
+extern float			MIST_LOD_START_RANGE;
+extern image_t			*MIST_TEXTURE;
+
 extern int				MOON_COUNT;
 extern qboolean			MOON_ENABLED[8];
 extern float			MOON_SIZE[8];
