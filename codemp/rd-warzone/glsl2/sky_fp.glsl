@@ -5,6 +5,9 @@
 
 #define SCREEN_MAPS_ALPHA_THRESHOLD 0.666
 
+//precision lowp int;
+//precision lowp float;
+
 uniform sampler2D										u_DiffuseMap;
 uniform sampler2D										u_OverlayMap; // Night sky image... When doing sky...
 uniform sampler2D										u_SplatMap1; // auroraImage[0]

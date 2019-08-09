@@ -687,6 +687,12 @@ void GLSL_GetShaderHeader(GLenum shaderType, const GLcharARB *extra, char *dest,
 	fbufWidthScale = 1.0f / ((float)glConfig.vidWidth * r_superSampleMultiplier->value);
 	fbufHeightScale = 1.0f / ((float)glConfig.vidHeight * r_superSampleMultiplier->value);
 
+	if (r_useLowP->integer)
+	{
+		Q_strcat(dest, size, "precision lowp int;\n");
+		Q_strcat(dest, size, "precision lowp float;\n");
+	}
+
 	if (shaderType == GL_VERTEX_SHADER)
 	{
 		Q_strcat(dest, size, "#define attribute in\n");

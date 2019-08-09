@@ -2949,7 +2949,11 @@ const void	*RB_WorldEffects( const void *data )
 		|| (backEnd.depthFill /*&& !doProceduralClouds*/)
 		|| (tr.renderCubeFbo && backEnd.viewParms.targetFbo == tr.renderCubeFbo)
 		|| (tr.renderSkyFbo && backEnd.viewParms.targetFbo == tr.renderSkyFbo)
-		|| (!RB_WeatherEnabled() && !waterEnabled && !doProceduralClouds && tr.lodModelsCount <= 0))
+		|| (!RB_WeatherEnabled() && !waterEnabled && !doProceduralClouds 
+#ifdef __LODMODEL_INSTANCING__
+			&& tr.lodModelsCount <= 0
+#endif //__LODMODEL_INSTANCING__
+			))
 	{
 		// do nothing
 		return (const void *)(cmd + 1);

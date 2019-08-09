@@ -2214,31 +2214,31 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	{
 
 	}*/
-	else if (!(isGrass || backEnd.currentEntity != &tr.worldEntity) && backEnd.renderPass == RENDERPASS_GRASS)
+	else if (!(isGrass || (!ALLOW_PROCEDURALS_ON_MODELS && backEnd.currentEntity != &tr.worldEntity)) && backEnd.renderPass == RENDERPASS_GRASS)
 	{
 		return;
 	}
-	else if (!(isGrass2 || backEnd.currentEntity != &tr.worldEntity) && backEnd.renderPass == RENDERPASS_GRASS2)
+	else if (!(isGrass2 || (!ALLOW_PROCEDURALS_ON_MODELS && backEnd.currentEntity != &tr.worldEntity)) && backEnd.renderPass == RENDERPASS_GRASS2)
 	{
 		return;
 	}
-	else if (!(isGrass3 || backEnd.currentEntity != &tr.worldEntity) && backEnd.renderPass == RENDERPASS_GRASS3)
+	else if (!(isGrass3 || (!ALLOW_PROCEDURALS_ON_MODELS && backEnd.currentEntity != &tr.worldEntity)) && backEnd.renderPass == RENDERPASS_GRASS3)
 	{
 		return;
 	}
-	else if (!(isGrass4 || backEnd.currentEntity != &tr.worldEntity) && backEnd.renderPass == RENDERPASS_GRASS4)
+	else if (!(isGrass4 || (!ALLOW_PROCEDURALS_ON_MODELS && backEnd.currentEntity != &tr.worldEntity)) && backEnd.renderPass == RENDERPASS_GRASS4)
 	{
 		return;
 	}
-	else if (!(isGroundFoliage || backEnd.currentEntity != &tr.worldEntity) && backEnd.renderPass == RENDERPASS_GROUNDFOLIAGE)
+	else if (!(isGroundFoliage || (!ALLOW_PROCEDURALS_ON_MODELS && backEnd.currentEntity != &tr.worldEntity)) && backEnd.renderPass == RENDERPASS_GROUNDFOLIAGE)
 	{
 		return;
 	}
-	else if (!(isVines || backEnd.currentEntity != &tr.worldEntity) && backEnd.renderPass == RENDERPASS_VINES)
+	else if (!(isVines || (!ALLOW_PROCEDURALS_ON_MODELS && backEnd.currentEntity != &tr.worldEntity)) && backEnd.renderPass == RENDERPASS_VINES)
 	{
 		return;
 	}
-	else if (!(isMist || backEnd.currentEntity != &tr.worldEntity) && backEnd.renderPass == RENDERPASS_MIST)
+	else if (!(isMist || (!ALLOW_PROCEDURALS_ON_MODELS && backEnd.currentEntity != &tr.worldEntity)) && backEnd.renderPass == RENDERPASS_MIST)
 	{
 		return;
 	}
@@ -2926,7 +2926,6 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			}
 
 			if (r_splatMapping->integer
-				//&& !r_lowVram->integer
 				&& (tess.shader->materialType == MATERIAL_SKYSCRAPER)
 				&& pStage->bundle[TB_STEEPMAP].image[0]
 				&& !pStage->bundle[TB_WATER_EDGE_MAP].image[0]
@@ -2938,7 +2937,6 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			}
 #ifdef __USE_REGIONS__
 			else if (r_splatMapping->integer
-				//&& !r_lowVram->integer
 				&& (tess.shader->materialType == MATERIAL_ROCK || tess.shader->materialType == MATERIAL_STONE)
 				&& (pStage->bundle[TB_STEEPMAP].image[0]
 					|| pStage->bundle[TB_WATER_EDGE_MAP].image[0]
@@ -2950,7 +2948,6 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			}
 #endif //__USE_REGIONS__
 			else if (r_splatMapping->integer
-				//&& !r_lowVram->integer
 				&& (pStage->bundle[TB_STEEPMAP].image[0]
 					|| pStage->bundle[TB_WATER_EDGE_MAP].image[0]
 					|| pStage->bundle[TB_SPLATMAP1].image[0]
@@ -3205,7 +3202,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					VectorSet4(vec,
 						MAP_LIGHTMAP_MULTIPLIER * 0.0075,
 						MAP_LIGHTMAP_ENHANCEMENT,
-						STANDARD_SPLATMAP_SCALE_STEEP,
+						ROCK_SPLATMAP_SCALE_STEEP,
 						DYNAMIC_WEATHER_PUDDLE_STRENGTH);
 					GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS4, vec);
 				}
@@ -3377,6 +3374,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformFloat(sp, UNIFORM_TIME, tess.shaderTime);
 
 			GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+			//GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
 
 			GLSL_SetUniformVec3(sp, UNIFORM_VIEWORIGIN, backEnd.viewParms.ori.origin);
 
@@ -3490,6 +3488,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformFloat(sp, UNIFORM_TIME, tess.shaderTime);
 
 			GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+			//GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
 
 			GLSL_SetUniformVec3(sp, UNIFORM_VIEWORIGIN, backEnd.viewParms.ori.origin);
 
@@ -3601,6 +3600,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformFloat(sp, UNIFORM_TIME, tess.shaderTime);
 
 			GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+			//GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
 
 			GLSL_SetUniformVec3(sp, UNIFORM_VIEWORIGIN, backEnd.viewParms.ori.origin);
 
@@ -3712,6 +3712,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformFloat(sp, UNIFORM_TIME, tess.shaderTime);
 
 			GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+			//GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
 
 			GLSL_SetUniformVec3(sp, UNIFORM_VIEWORIGIN, backEnd.viewParms.ori.origin);
 
@@ -3823,6 +3824,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformFloat(sp, UNIFORM_TIME, tess.shaderTime);
 
 			GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+			//GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
 
 			GLSL_SetUniformVec3(sp, UNIFORM_VIEWORIGIN, backEnd.viewParms.ori.origin);
 
@@ -3920,6 +3922,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformFloat(sp, UNIFORM_TIME, tess.shaderTime);
 
 			GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+			//GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
 
 			GLSL_SetUniformVec3(sp, UNIFORM_VIEWORIGIN, backEnd.viewParms.ori.origin);
 
@@ -3998,6 +4001,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformFloat(sp, UNIFORM_TIME, tess.shaderTime);
 
 			GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+			//GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
 
 			GLSL_SetUniformVec3(sp, UNIFORM_VIEWORIGIN, backEnd.viewParms.ori.origin);
 

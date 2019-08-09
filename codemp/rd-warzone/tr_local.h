@@ -578,6 +578,7 @@ extern int		max_polyverts;
 //
 extern cvar_t	*r_perf;
 extern cvar_t	*r_glslOptimize;
+extern cvar_t	*r_useLowP;
 extern cvar_t	*r_lowVram;
 extern cvar_t	*r_useStaticVBO;
 extern cvar_t	*r_volumeLightHQ;
@@ -848,6 +849,13 @@ typedef enum
 	VBO_USAGE_DYNAMIC,
 	VBO_USAGE_STREAM
 } vboUsage_t;
+
+struct VAO_t
+{
+	GLuint vboID;
+	GLuint vaoID;
+	qboolean vboIndependent = qfalse;	// marks if this VBO should be deleted at the same time as the VAO (eg: was set up by the VAO code).
+};
 
 typedef struct VBO_s
 {
@@ -3538,6 +3546,7 @@ extern cvar_t	*r_dynamicGlowSoft;
 //
 extern cvar_t	*r_perf;
 extern cvar_t	*r_glslOptimize;
+extern cvar_t	*r_useLowP;
 extern cvar_t	*r_lowVram;
 extern cvar_t	*r_useStaticVBO;
 extern cvar_t	*r_volumeLightHQ;
@@ -4030,6 +4039,10 @@ void            R_VBOList_f(void);
 
 void            RB_UpdateVBOs(unsigned int attribBits);
 
+
+VAO_t			R_CreateVAO(float* vertices, int size, VBO_t *vbo);
+void			R_PrintVAO(VAO_t vao, shaderProgram_t *sp, int size, matrix_t mvp, matrix_t model);
+void			R_FreeVAO(VAO_t vao);
 
 /*
 ============================================================

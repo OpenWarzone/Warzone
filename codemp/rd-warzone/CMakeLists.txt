@@ -84,6 +84,7 @@ set(MPWarzoneFiles
 	"${MPDir}/rd-warzone/tr_subs.cpp"
 	"${MPDir}/rd-warzone/tr_surface.cpp"
 	"${MPDir}/rd-warzone/tr_surfacesprites.cpp"
+	"${MPDir}/rd-warzone/tr_vao.cpp"
 	"${MPDir}/rd-warzone/tr_vbo.cpp"
 	"${MPDir}/rd-warzone/tr_world.cpp"
 	"${MPDir}/rd-warzone/tr_WorldEffects.cpp"

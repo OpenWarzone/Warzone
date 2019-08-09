@@ -9,6 +9,7 @@ extern qboolean			ENABLE_REGEN_SMOOTH_NORMALS;
 extern float			LEAF_ALPHA_MULTIPLIER;
 extern int				ENABLE_INDOOR_OUTDOOR_SYSTEM;
 extern int				MAP_MAX_VIS_RANGE;
+extern qboolean			ALLOW_PROCEDURALS_ON_MODELS;
 
 extern qboolean			ENABLE_OCCLUSION_CULLING;
 extern float			OCCLUSION_CULLING_TOLERANCE;
