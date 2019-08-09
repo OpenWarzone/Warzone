@@ -315,5 +315,5 @@ qboolean RB_ShouldUseGeometryGrass3(int materialType);
 qboolean RB_ShouldUseGeometryGrass4(int materialType);
 qboolean RB_ShouldUseGeometryFoliage(int materialType);
 qboolean RB_ShouldUseGeometryVines(int materialType);
-qboolean RB_ShouldUseMist(int materialType);
+qboolean RB_ShouldUseGeometryMist(int materialType);
 

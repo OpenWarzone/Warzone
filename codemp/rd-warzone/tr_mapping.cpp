@@ -1915,7 +1915,7 @@ qboolean RB_ShouldUseGeometryVines(int materialType)
 	return qfalse;
 }
 
-qboolean RB_ShouldUseMist(int materialType)
+qboolean RB_ShouldUseGeometryMist(int materialType)
 {
 	if (materialType <= MATERIAL_NONE)
 	{

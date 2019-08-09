@@ -1642,6 +1642,11 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 					isVines = qtrue;
 				}
 
+				if (RB_ShouldUseGeometryMist(thisShader->materialType))
+				{
+					isMist = qtrue;
+				}
+
 				if (isGrass && backEnd.renderPass == RENDERPASS_GRASS)
 				{
 					doDraw = qtrue;
