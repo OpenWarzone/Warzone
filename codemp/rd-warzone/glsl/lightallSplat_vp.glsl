@@ -119,7 +119,7 @@ uniform vec4  u_PrimaryLightOrigin;
 uniform vec3  u_PrimaryLightColor;
 uniform float u_PrimaryLightRadius;
 
-#if defined(USE_TESSELLATION)
+#if defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
 #ifdef USE_EDGE_TESSELLATION
 uniform sampler2D					u_RoadsControlMap;
 
@@ -131,8 +131,16 @@ uniform vec4						u_Maxs;
 #define GRASS_DISTANCE_FROM_ROADS	u_Local8.r
 
 uniform vec4 u_TesselationInfo;
+
+#if defined(USE_TESSELLATION_3D)
+uniform vec4 u_Tesselation3DInfo;
+#define uTessAlpha u_Tesselation3DInfo.xyz
+#define uRandomScale u_Tesselation3DInfo.w
+#else //!defined(USE_TESSELLATION_3D)
 #define uTessAlpha u_TesselationInfo.r
-#endif //USE_EDGE_TESSELLATION
+#endif //defined(USE_TESSELLATION_3D)
+
+#endif //defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
 
 out vec3 Normal_CS_in;
 out vec2 TexCoord_CS_in;
@@ -167,125 +175,6 @@ vec4 DecodeFloatRGBA( float v ) {
 	enc -= enc.yzww * vec4(VboUnpackX, VboUnpackX, VboUnpackX,0.0);
 	return enc;
 }
-
-
-#if 0
-vec3 DeformPosition(const vec3 pos, const vec3 normal, const vec2 st)
-{
-	float base =      u_DeformParams[0];
-	float amplitude = u_DeformParams[1];
-	float phase =     u_DeformParams[2];
-	float frequency = u_DeformParams[3];
-	float spread =    u_DeformParams[4];
-
-	if (u_DeformGen == DGEN_PROJECTION_SHADOW)
-	{
-		vec3 ground = vec3(
-			u_DeformParams[0],
-			u_DeformParams[1],
-			u_DeformParams[2]);
-		float groundDist = u_DeformParams[3];
-		vec3 lightDir = vec3(
-			u_DeformParams[4],
-			u_DeformParams[5],
-			u_DeformParams[6]);
-
-		float d = dot(lightDir, ground);
-
-		lightDir = lightDir * max(0.5 - d, 0.0) + ground;
-		d = 1.0 / dot(lightDir, ground);
-
-		vec3 lightPos = lightDir * d;
-
-		return pos - lightPos * dot(pos, ground) + groundDist;
-	}
-	else if (u_DeformGen == DGEN_BULGE)
-	{
-		phase *= st.x;
-	}
-	else // if (u_DeformGen <= DGEN_WAVE_INVERSE_SAWTOOTH)
-	{
-		phase += dot(pos.xyz, vec3(spread));
-	}
-
-	float value = phase + (u_Time * frequency);
-	float func;
-
-	if (u_DeformGen == DGEN_WAVE_SIN)
-	{
-		func = sin(value * 2.0 * M_PI);
-	}
-	else if (u_DeformGen == DGEN_WAVE_SQUARE)
-	{
-		func = sign(fract(0.5 - value));
-	}
-	else if (u_DeformGen == DGEN_WAVE_TRIANGLE)
-	{
-		func = abs(fract(value + 0.75) - 0.5) * 4.0 - 1.0;
-	}
-	else if (u_DeformGen == DGEN_WAVE_SAWTOOTH)
-	{
-		func = fract(value);
-	}
-	else if (u_DeformGen == DGEN_WAVE_INVERSE_SAWTOOTH)
-	{
-		func = (1.0 - fract(value));
-	}
-	else // if (u_DeformGen == DGEN_BULGE)
-	{
-		func = sin(value);
-	}
-
-	return pos + normal * (base + func * amplitude);
-}
-
-vec2 GenTexCoords(int TCGen, vec3 position, vec3 normal, vec3 TCGenVector0, vec3 TCGenVector1)
-{
-	vec2 tex = attr_TexCoord0;
-
-	switch (TCGen)
-	{
-		case TCGEN_LIGHTMAP:
-		case TCGEN_LIGHTMAP1:
-		case TCGEN_LIGHTMAP2:
-		case TCGEN_LIGHTMAP3:
-			tex = attr_TexCoord1;
-		break;
-
-		case TCGEN_ENVIRONMENT_MAPPED:
-		{
-			vec3 viewer = normalize(u_LocalViewOrigin - position);
-			vec2 ref = reflect(viewer, normal).yz;
-			tex.s = ref.x * -0.5 + 0.5;
-			tex.t = ref.y *  0.5 + 0.5;
-		}
-		break;
-
-		case TCGEN_VECTOR:
-		{
-			tex = vec2(dot(position, TCGenVector0), dot(position, TCGenVector1));
-		}
-		break;
-	}
-
-	return tex;
-}
-
-vec2 ModTexCoords(vec2 st, vec3 position, vec4 texMatrix, vec4 offTurb)
-{
-	float amplitude = offTurb.z;
-	float phase = offTurb.w * 2.0 * M_PI;
-	vec2 st2;
-	st2.x = st.x * texMatrix.x + (st.y * texMatrix.z + offTurb.x);
-	st2.y = st.x * texMatrix.y + (st.y * texMatrix.w + offTurb.y);
-
-	vec2 offsetPos = vec2(position.x + position.z, position.y);
-
-	vec2 texOffset = sin(offsetPos * (2.0 * M_PI / 1024.0) + vec2(phase));
-
-	return st2 + texOffset * amplitude;
-}
-#endif
 
 vec4 CalcColor(vec3 position, vec3 normal)
 {
@@ -378,6 +267,10 @@ void GetBlending(vec3 normal)
 }
 
 float normalToSlope(in vec3 normal) {
+#if 1
+	float pitch = 1.0 - (normal.z * 0.5 + 0.5);
+	return pitch * 180.0;
+#else
 	float	forward;
 	float	pitch;
 
@@ -407,7 +300,8 @@ float normalToSlope(in vec3 normal) {
 
 	pitch += 90.0f;
 
-	return pitch;
+	return length(pitch);
+#endif
 }
 
 #if defined(USE_TESSELLATION) && defined(USE_EDGE_TESSELLATION)
@@ -501,6 +395,108 @@ float OffsetForPosition(vec3 pos)
 }
 #endif //defined(USE_TESSELLATION) && defined(USE_EDGE_TESSELLATION)
 
+#if defined(USE_TESSELLATION_3D) && defined(USE_EDGE_TESSELLATION)
+#define HASHSCALE1 .1031
+
+vec3 hash(vec3 p3)
+{
+	p3 = fract(p3 * HASHSCALE1);
+	p3 += dot(p3, p3.yxz+19.19);
+	return fract((p3.xxy + p3.yxx)*p3.zyx);
+}
+
+vec3 noise( in vec3 x )
+{
+	vec3 p = floor(x);
+	vec3 f = fract(x);
+	f = f*f*(3.0-2.0*f);
+	
+	return mix(	mix(mix( hash(p+vec3(0,0,0)), 
+						hash(p+vec3(1,0,0)),f.x),
+					mix( hash(p+vec3(0,1,0)), 
+						hash(p+vec3(1,1,0)),f.x),f.y),
+				mix(mix( hash(p+vec3(0,0,1)), 
+						hash(p+vec3(1,0,1)),f.x),
+					mix( hash(p+vec3(0,1,1)), 
+						hash(p+vec3(1,1,1)),f.x),f.y),f.z);
+}
+
+const mat3 m3 = mat3( 0.00,  0.80,  0.60,
+					-0.80,  0.36, -0.48,
+					-0.60, -0.48,  0.64 );
+vec3 fbm(in vec3 q)
+{
+	vec3 f  = 0.5000*noise( q ); q = m3*q*2.01;
+	f += 0.2500*noise( q ); q = m3*q*2.02;
+	f += 0.1250*noise( q ); q = m3*q*2.03;
+	f += 0.0625*noise( q ); q = m3*q*2.04; 
+#if 0
+	f += 0.03125*noise( q ); q = m3*q*2.05; 
+	f += 0.015625*noise( q ); q = m3*q*2.06; 
+	f += 0.0078125*noise( q ); q = m3*q*2.07; 
+	f += 0.00390625*noise( q ); q = m3*q*2.08;  
+#endif
+	return vec3(f);
+}
+
+float GetRoadFactor(vec2 pixel)
+{
+	float roadScale = 1.0;
+
+	if (SHADER_HAS_SPLATMAP4 > 0.0)
+	{// Also grab the roads map, if we have one...
+		float road = texture(u_RoadsControlMap, pixel).r;
+
+		if (road > GRASS_DISTANCE_FROM_ROADS)
+		{
+			roadScale = 0.0;
+		}
+		else if (road > 0.0)
+		{
+			roadScale = 1.0 - clamp(road / GRASS_DISTANCE_FROM_ROADS, 0.0, 1.0);
+		}
+		else
+		{
+			roadScale = 1.0;
+		}
+	}
+	else
+	{
+		roadScale = 1.0;
+	}
+
+	return 1.0 - clamp(roadScale * 0.6 + 0.4, 0.0, 1.0);
+}
+
+float GetHeightmap(vec2 pixel)
+{
+	return texture(u_HeightMap, pixel).r;
+}
+
+vec2 GetMapTC(vec3 pos)
+{
+	vec2 mapSize = u_Maxs.xy - u_Mins.xy;
+	return (pos.xy - u_Mins.xy) / mapSize;
+}
+
+vec3 OffsetForPosition(vec3 pos)
+{
+	vec3 fbm3D = noise/*fbm*/(pos * uRandomScale);
+	vec2 pixel = GetMapTC(pos);
+	float roadScaleZ = GetRoadFactor(pixel);
+	float offsetScaleZ = fbm3D.z * clamp(1.0 - roadScaleZ, 0.75, 1.0);
+
+	float offsetX = fbm3D.x;
+	float offsetY = fbm3D.y;
+	float offsetZ = max(offsetScaleZ, roadScaleZ);
+	vec3 O = vec3(offsetX, offsetY, offsetZ) / (offsetX + offsetY + offsetZ);
+	O.z = offsetZ;
+	O -= 0.5;
+
+	return O * uTessAlpha;
+}
+#endif //defined(USE_TESSELLATION_3D) && defined(USE_EDGE_TESSELLATION)
+
 void main()
 {
 	vec3 position;
@@ -563,6 +559,11 @@ void main()
 	vec3 baseVertPos = position;
 	position.z += OffsetForPosition(position);
 #endif //defined(USE_TESSELLATION) && defined(USE_EDGE_TESSELLATION)
+
+#if defined(USE_TESSELLATION_3D) && defined(USE_EDGE_TESSELLATION)
+	vec3 baseVertPos = position;
+	position += OffsetForPosition(position);
+#endif //defined(USE_TESSELLATION_3D) && defined(USE_EDGE_TESSELLATION)
 
 #ifdef __HEIGHTMAP_TERRAIN_TEST__
 	position.xyz += heightMap;
@@ -627,7 +628,7 @@ void main()
 	var_Normal = normal.xyz;
 	var_Slope = 0.0;
 
-
+#if !defined(USE_TESSELLATION_3D)
 	if (USE_REGIONS > 0.0 || USE_TRIPLANAR > 0.0)
 	{
 		//
@@ -637,7 +638,6 @@ void main()
 		if (SHADER_HAS_STEEPMAP > 0.0)
 		{// Steep maps...
 			float pitch = normalToSlope(normalize(normal.xyz));
-			pitch = length(pitch);
 
 			if (pitch > 46.0 && USE_REGIONS <= 0.0)
 			{
@@ -666,15 +666,18 @@ void main()
 			}
 		}
 	}
+#endif //!defined(USE_TESSELLATION_3D)
 
 	var_Blending = vec3(0.0);
 
+#if !defined(USE_TESSELLATION_3D)
 	if (USE_REGIONS > 0.0 || USE_TRIPLANAR > 0.0)
 	{
 		GetBlending(normalize(attr_Normal.xyz * 2.0 - 1.0));
 	}
+#endif //!defined(USE_TESSELLATION_3D)
 
-#if defined(USE_TESSELLATION)
+#if defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
 #if defined(USE_EDGE_TESSELLATION)
 	WorldPos_CS_in = vec4(baseVertPos.xyz, 1.0);
 	gl_Position = vec4(position.xyz, 1.0);
@@ -691,7 +694,7 @@ void main()
 	Blending_CS_in = var_Blending;
 	envTC_CS_in = vec2(0.0);
 	Slope_CS_in = var_Slope;
-#endif
+#endif //defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
 
 	var_vertPos = position.xyz;
 

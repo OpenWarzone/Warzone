@@ -64,15 +64,27 @@ uniform vec4						u_Local9; // testvalue0, 1, 2, 3
 #define LEAF_ALPHA_MULTIPLIER		u_Local5.a
 
 
+#if defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
+in precise vec3						WorldPos_FS_in;
+in precise vec2						TexCoord_FS_in;
+
+in precise vec4						Color_FS_in;
+
+#define var_VertPos					WorldPos_FS_in
+#define var_TexCoords				TexCoord_FS_in
+#define var_Color					Color_FS_in
+#else //!defined(USE_TESSELLATION) && !defined(USE_TESSELLATION_3D)
+varying vec3						var_VertPos;
+varying vec2						var_TexCoords;
+varying vec4						var_Color;
+#endif //defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
+
+
 uniform vec2						u_Dimensions;
 uniform vec3						u_ViewOrigin;
 uniform float						u_Time;
 uniform float						u_zFar;
 
-
-varying vec3						var_VertPos;
-varying vec2						var_TexCoords;
-varying vec4						var_Color;
 
 const float							fBranchHardiness = 0.001;
 const float							fBranchSize = 128.0;

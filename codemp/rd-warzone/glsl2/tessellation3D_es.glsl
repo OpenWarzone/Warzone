@@ -34,6 +34,7 @@ uniform vec4						u_Local4; // stageNum, glowStrength, r_showsplat, glowVibrancy
 uniform vec4						u_Local8; // GRASS_DISTANCE_FROM_ROADS
 uniform vec4						u_Local9; // testvalue0, 1, 2, 3
 
+#define SHADER_HAS_STEEPMAP			u_Local2.r
 #define SHADER_HAS_SPLATMAP4		u_Local3.a
 #define GRASS_DISTANCE_FROM_ROADS	u_Local8.r
 
@@ -65,8 +66,9 @@ out float TessDepth_FS_in;
 #define Slope_GS_in Slope_FS_in
 
 uniform vec4 u_TesselationInfo;
-
-#define uTessAlpha u_TesselationInfo.r
+uniform vec4 u_Tesselation3DInfo;
+#define uTessAlpha u_Tesselation3DInfo.xyz
+#define uRandomScale u_Tesselation3DInfo.w
 
 //layout(quads, fractional_odd_spacing, ccw) in;
 layout(triangles, fractional_odd_spacing, ccw) in; // Does rend2 spew out clockwise or counter-clockwise verts???
@@ -88,35 +90,45 @@ in float Slope_ES_in[];
 
 #define HASHSCALE1 .1031
 
-float random(vec2 p)
+vec3 hash(vec3 p3)
 {
-	vec3 p3 = fract(vec3(p.xyx) * HASHSCALE1);
-	p3 += dot(p3, p3.yzx + 19.19);
-	return fract((p3.x + p3.y) * p3.z);
+	p3 = fract(p3 * HASHSCALE1);
+	p3 += dot(p3, p3.yxz+19.19);
+	return fract((p3.xxy + p3.yxx)*p3.zyx);
 }
 
-// 2D Noise based on Morgan McGuire @morgan3d
-// https://www.shadertoy.com/view/4dS3Wd
-float noise(in vec2 st) {
-	vec2 i = floor(st);
-	vec2 f = fract(st);
+vec3 noise( in vec3 x )
+{
+	vec3 p = floor(x);
+	vec3 f = fract(x);
+	f = f*f*(3.0-2.0*f);
+	
+	return mix(	mix(mix( hash(p+vec3(0,0,0)), 
+						hash(p+vec3(1,0,0)),f.x),
+					mix( hash(p+vec3(0,1,0)), 
+						hash(p+vec3(1,1,0)),f.x),f.y),
+				mix(mix( hash(p+vec3(0,0,1)), 
+						hash(p+vec3(1,0,1)),f.x),
+					mix( hash(p+vec3(0,1,1)), 
+						hash(p+vec3(1,1,1)),f.x),f.y),f.z);
+}
 
-	// Four corners in 2D of a tile
-	float a = random(i);
-	float b = random(i + vec2(1.0, 0.0));
-	float c = random(i + vec2(0.0, 1.0));
-	float d = random(i + vec2(1.0, 1.0));
-
-	// Smooth Interpolation
-
-	// Cubic Hermine Curve.  Same as SmoothStep()
-	vec2 u = f*f*(3.0 - 2.0*f);
-	// u = smoothstep(0.,1.,f);
-
-	// Mix 4 coorners percentages
-	return mix(a, b, u.x) +
-		(c - a)* u.y * (1.0 - u.x) +
-		(d - b) * u.x * u.y;
+const mat3 m3 = mat3( 0.00,  0.80,  0.60,
+					-0.80,  0.36, -0.48,
+					-0.60, -0.48,  0.64 );
+vec3 fbm(in vec3 q)
+{
+	vec3 f  = 0.5000*noise( q ); q = m3*q*2.01;
+	f += 0.2500*noise( q ); q = m3*q*2.02;
+	f += 0.1250*noise( q ); q = m3*q*2.03;
+	f += 0.0625*noise( q ); q = m3*q*2.04;
+#if 0
+	f += 0.03125*noise( q ); q = m3*q*2.05; 
+	f += 0.015625*noise( q ); q = m3*q*2.06; 
+	f += 0.0078125*noise( q ); q = m3*q*2.07; 
+	f += 0.00390625*noise( q ); q = m3*q*2.08;  
+#endif
+	return vec3(f);
 }
 
 float GetRoadFactor(vec2 pixel)
@@ -159,20 +171,68 @@ vec2 GetMapTC(vec3 pos)
 	return (pos.xy - u_Mins.xy) / mapSize;
 }
 
-float LDHeightForPosition(vec3 pos)
+vec3 OffsetForPosition(vec3 pos)
 {
-	return noise(vec2(pos.xy * 0.00875));
+	vec3 fbm3D = noise/*fbm*/(pos * uRandomScale);
+	vec2 pixel = GetMapTC(pos);
+	float roadScaleZ = GetRoadFactor(pixel);
+	float offsetScaleZ = fbm3D.z * clamp(1.0 - roadScaleZ, 0.75, 1.0);
+
+	float offsetX = fbm3D.x;
+	float offsetY = fbm3D.y;
+	float offsetZ = max(offsetScaleZ, roadScaleZ);
+	vec3 O = vec3(offsetX, offsetY, offsetZ) / (offsetX + offsetY + offsetZ);
+	O.z = offsetZ;
+	O -= 0.5;
+
+	return O * uTessAlpha;
 }
 
-float OffsetForPosition(vec3 pos)
+vec3 GetBlending(vec3 normal)
 {
-	vec2 pixel = GetMapTC(pos);
-	float roadScale = GetRoadFactor(pixel);
-	float SmoothRand = LDHeightForPosition(pos);
-	float offsetScale = SmoothRand * clamp(1.0 - roadScale, 0.75, 1.0);
+	vec3 blend_weights = abs(normal.xyz);   // Tighten up the blending zone:
+	blend_weights = (blend_weights - 0.2) * 7.0;
+	blend_weights = max(blend_weights, 0.0);      // Force weights to sum to 1.0 (very important!)
+	blend_weights /= vec3(blend_weights.x + blend_weights.y + blend_weights.z);
+	return blend_weights;
+}
 
-	float offset = max(offsetScale, roadScale) - 0.5;
-	return offset * uTessAlpha;
+float normalToSlope(in vec3 normal) {
+#if 1
+	float pitch = 1.0 - (normal.z * 0.5 + 0.5);
+	return pitch * 180.0;
+#else
+	float	forward;
+	float	pitch;
+
+	if (normal.g == 0.0 && normal.r == 0.0) {
+		if (normal.b > 0.0) {
+			pitch = 90;
+		}
+		else {
+			pitch = 270;
+		}
+	}
+	else {
+		forward = sqrt(normal.r*normal.r + normal.g*normal.g);
+		pitch = (atan(normal.b, forward) * 180 / M_PI);
+		if (pitch < 0.0) {
+			pitch += 360;
+		}
+	}
+
+	pitch = -pitch;
+
+	if (pitch > 180)
+		pitch -= 360;
+
+	if (pitch < -180)
+		pitch += 360;
+
+	pitch += 90.0f;
+
+	return length(pitch);
+#endif
 }
 
 void main()
@@ -193,44 +253,89 @@ void main()
 	TexCoord2_GS_in = gl_TessCoord[2] * TexCoord2_ES_in[0]
 		+ gl_TessCoord[0] * TexCoord2_ES_in[1]
 		+ gl_TessCoord[1] * TexCoord2_ES_in[2];
-	Blending_GS_in = gl_TessCoord[2] * Blending_ES_in[0]
+	
+	/*Blending_GS_in = gl_TessCoord[2] * Blending_ES_in[0]
 		+ gl_TessCoord[0] * Blending_ES_in[1]
 		+ gl_TessCoord[1] * Blending_ES_in[2];
+		*/
+
+	
+
+
 	/*Slope_GS_in = gl_TessCoord[2] * Slope_ES_in[0]
 		+ gl_TessCoord[0] * Slope_ES_in[1]
 		+ gl_TessCoord[1] * Slope_ES_in[2];*/
-	Slope_GS_in = Slope_ES_in[0];
-
-	TessDepth_FS_in = OffsetForPosition(WorldPos_GS_in);
-	WorldPos_GS_in.z += TessDepth_FS_in;
-
-	TessDepth_FS_in /= uTessAlpha; // want this to output between 0 and 1
+	
+	//Slope_GS_in = Slope_ES_in[0];
 
 	// normal
-	/*
-	vec3 barNormal = gl_TessCoord[2] * iNormal[0]
-		+ gl_TessCoord[0] * iNormal[1]
-		+ gl_TessCoord[1] * iNormal[2];
-		*/
-
-	//Normal_GS_in = uTessAlpha*pnNormal + (1.0 - uTessAlpha)*barNormal;
 	Normal_GS_in = gl_TessCoord[2] * iNormal[0]
 		+ gl_TessCoord[0] * iNormal[1]
 		+ gl_TessCoord[1] * iNormal[2];
 
-	/*
-	// Adjust normals based on the changes... This sucks though... it flattens them too much...
+	vec3 offset = OffsetForPosition(WorldPos_GS_in);
+	TessDepth_FS_in = offset.z;
+	WorldPos_GS_in += offset;
+
+	TessDepth_FS_in /= uTessAlpha.z; // want this to output between 0 and 1
+
+
+	
+	// Adjust final normals based on the changes...
 	vec3 pos0 = WorldPos_ES_in[0].xyz;
 	vec3 pos1 = WorldPos_ES_in[1].xyz;
 	vec3 pos2 = WorldPos_ES_in[2].xyz;
+	vec3 normal1 = normalize(cross(pos2 - pos0, pos1 - pos0));
 	pos0 += OffsetForPosition(pos0);
 	pos1 += OffsetForPosition(pos1);
 	pos2 += OffsetForPosition(pos2);
+	vec3 normal2 = normalize(cross(pos2 - pos0, pos1 - pos0));
+	vec3 ndiff = (normal1 - normal2) * 0.5; // * 0.5 to lower the lighting difference a little
 
-	vec3 normal = normalize(cross(pos2 - pos0, pos1 - pos0));
+	Normal_GS_in = normalize(Normal_GS_in + ndiff);
+	
 
-	Normal_GS_in = normalize((Normal_GS_in + normal) / 2.0);
-	*/
+
+	// Adjust blending for new normals...
+	Blending_GS_in = GetBlending(Normal_GS_in);
+
+
+
+	// Adjust slope for new normals...
+	Slope_GS_in = 0.0;
+
+	if (SHADER_HAS_STEEPMAP > 0.0)
+	{// Steep maps...
+		float pitch = normalToSlope(Normal_GS_in.xyz);
+
+		if (pitch > 46.0 && USE_REGIONS <= 0.0)
+		{
+			Slope_GS_in = clamp(pow(clamp((pitch - 46.0) / 44.0, 0.0, 1.0), 0.75), 0.0, 1.0);
+			
+			if (USE_REGIONS > 0.0)
+			{
+				Slope_GS_in = 0.0;
+			}
+			else
+			{
+				Slope_GS_in = smoothstep(0.2, 0.7, Slope_GS_in);
+			}
+		}
+		else
+		{
+			if (USE_REGIONS > 0.0)
+			{
+				Slope_GS_in = clamp(pow(clamp(pitch / 90.0, 0.0, 1.0), 2.0), 0.0, 1.0);
+				Slope_GS_in = smoothstep(0.5, 1.0, 1.0 - Slope_GS_in);
+			}
+			else
+			{
+				Slope_GS_in = 0.0;
+			}
+		}
+	}
+
+
 
 	// final position and normal
 	//vec3 finalPos = (1.0 - uTessAlpha)*barPos + uTessAlpha*pnPos;

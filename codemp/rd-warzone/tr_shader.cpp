@@ -8353,7 +8353,8 @@ static shader_t *FinishShader(void) {
 
 	if (!Q_stricmp(shader.name, "textures/system/nodraw_solid")
 		|| StringContainsWord(shader.name, "nodraw_solid")
-		|| StringContainsWord(shader.name, "collision"))
+		|| StringContainsWord(shader.name, "collision")
+		|| StringContainsWord(shader.name, "noshader"))
 	{// Make sure these are marked to not draw...
 		shader.surfaceFlags |= SURF_NODRAW;
 	}
@@ -9060,6 +9061,7 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 	if (!Q_stricmp(strippedName, "textures/system")
 		|| StringContainsWord(strippedName, "nodraw_solid")
 		|| StringContainsWord(strippedName, "collision")
+		|| StringContainsWord(shader.name, "noshader")
 		/*|| StringContainsWord(strippedName, "textures/common")*/)
 	{
 		forceShaderFileUsage = qtrue;

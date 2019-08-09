@@ -96,6 +96,10 @@ vec3 DeformPosition(const vec3 pos, const vec3 normal, const vec2 st)
 #endif
 
 float normalToSlope(in vec3 normal) {
+#if 1
+	float pitch = 1.0 - (normal.z * 0.5 + 0.5);
+	return pitch * 180.0;
+#else
 	float	forward;
 	float	pitch;
 
@@ -125,7 +129,8 @@ float normalToSlope(in vec3 normal) {
 
 	pitch += 90.0f;
 
-	return pitch;
+	return length(pitch);
+#endif
 }
 
 void main()

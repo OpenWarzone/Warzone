@@ -5549,9 +5549,11 @@ qboolean model_upload_mdxm_to_gpu(model_t *mod, qboolean isKyle) {
 				}
 			}
 
+#ifdef __MESH_OPTIMIZATION__
 			uint32_t numTris = surf->numTriangles * 3;
 			R_OptimizeMesh((uint32_t *)&surf->numVerts, (uint32_t *)&numTris, (uint32_t *)((byte *)surf + surf->ofsTriangles), NULL);
 			surf->numTriangles = numTris / 3;
+#endif //__MESH_OPTIMIZATION__
 
 			// Finally add it to the vertex buffer data
 			for ( int k = 0; k < surf->numVerts; k++ )

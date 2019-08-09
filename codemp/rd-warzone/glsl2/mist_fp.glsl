@@ -19,7 +19,7 @@ uniform vec4								u_Local3; // hasSplatMap1, hasSplatMap2, hasSplatMap3, hasSp
 uniform vec4								u_Local8; // MIST_SURFACE_MINIMUM_SIZE, MIST_DISTANCE_FROM_ROADS, MIST_HEIGHT, MIST_SURFACE_SIZE_DIVIDER
 uniform vec4								u_Local9; // testvalue0, 1, 2, 3
 uniform vec4								u_Local10; // foliageLODdistance, TERRAIN_TESS_OFFSET, MIST_DENSITY, MIST_MAX_SLOPE
-uniform vec4								u_Local11; // MIST_ALPHA, 0.0, 0.0, 0.0
+uniform vec4								u_Local11; // MIST_ALPHA, MIST_SPEED_X, MIST_SPEED_Y, 0.0
 
 #define SHADER_MAP_SIZE						u_Local1.r
 #define SHADER_SWAY							u_Local1.g
@@ -44,6 +44,7 @@ uniform vec4								u_Local11; // MIST_ALPHA, 0.0, 0.0, 0.0
 #define MIST_MAX_SLOPE						u_Local10.a
 
 #define MIST_ALPHA							u_Local11.r
+#define MIST_SPEED							u_Local11.gb
 
 #define MAP_WATER_LEVEL						SHADER_WATER_LEVEL // TODO: Use water map
 
@@ -75,7 +76,7 @@ vec4 GetMap( in sampler2D tex, float scale)
 	float xy = (vVertPosition.x + vVertPosition.y) * 0.5;
 	float z = (vVertPosition.z + xy) * 0.5;
 	vec2 tc = vec2(xy, z) * scale;
-	tc += vec2(0.02 * u_Time, -0.02 * u_Time);
+	tc += vec2(0.02 * u_Time, -0.02 * u_Time) * MIST_SPEED;
 
 	tc.x += vBasePosition.z;
 	tc.y += (vBasePosition.x+vBasePosition.y);

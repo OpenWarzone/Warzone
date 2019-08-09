@@ -519,8 +519,10 @@ qboolean R_LoadIQM( model_t *mod, void *buffer, int filesize, const char *mod_na
 	iqmData->triangles    = iqmData->jointParents + header->num_joints;
 	iqmData->names        = (char *)(iqmData->triangles + 3 * header->num_triangles);
 
+#ifdef __MESH_OPTIMIZATION__
 	uint32_t numIndexes = header->num_triangles * 3;
 	R_OptimizeMesh((uint32_t *)&iqmData->num_vertexes, &numIndexes, (uint32_t *)iqmData->triangles, NULL);
+#endif //__MESH_OPTIMIZATION__
 
 	if ( header->num_joints == 0 )
 		iqmData->jointMats = NULL;

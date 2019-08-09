@@ -11,14 +11,14 @@ uniform vec4      u_Local0;			// shadowMapSize, testshadervalues
 uniform vec4      u_Local1;			// realLightOrigin[0], realLightOrigin[1], realLightOrigin[2], usingTessellation
 uniform vec4      u_Local2;			// playerOrigin[0], playerOrigin[1], playerOrigin[2], invLightPower
 
-#if defined(USE_TESSELLATION)
+#if defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
 	in precise vec3				WorldPos_FS_in;
 	#define m_vertPos			WorldPos_FS_in
-#else //!defined(USE_TESSELLATION)
+#else //!defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
 	varying vec3				var_Position;
 	//varying vec3				var_Normal;
 	#define m_vertPos			var_Position
-#endif //defined(USE_TESSELLATION)
+#endif //defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
 
 out vec4 out_Glow;
 out vec4 out_Position;

@@ -12,23 +12,18 @@
 uniform sampler2D					u_DiffuseMap;
 uniform sampler2D					u_SteepMap;
 uniform sampler2D					u_WaterEdgeMap;
-uniform sampler2D					u_SplatControlMap;
 uniform sampler2D					u_SplatMap1;
 uniform sampler2D					u_SplatMap2;
 uniform sampler2D					u_SplatMap3;
-
+uniform sampler2D					u_SplatControlMap;
 uniform sampler2D					u_RoadsControlMap;
 uniform sampler2D					u_RoadMap;
+uniform sampler2D					u_LightMap;
+uniform sampler2D					u_NormalMap;
 
 #ifdef USE_DETAIL_TEXTURES
 uniform sampler2D					u_DetailMap;
 #endif //USE_DETAIL_TEXTURES
-
-uniform sampler2D					u_GlowMap;
-
-uniform sampler2D					u_LightMap;
-
-uniform sampler2D					u_NormalMap;
 
 uniform vec4						u_MapAmbient; // a basic light/color addition across the whole map...
 
@@ -112,7 +107,7 @@ uniform float						u_zFar;
 #define SHADER_GLOW_VIBRANCY		u_Local4.a
 
 
-#if defined(USE_TESSELLATION)
+#if defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
 
 in precise vec3				Normal_FS_in;
 in precise vec2				TexCoord_FS_in;
@@ -145,7 +140,7 @@ in float					TessDepth_FS_in;
 #define m_TessDepth			TessDepth_FS_in
 
 
-#else //!defined(USE_TESSELLATION)
+#else //!defined(USE_TESSELLATION) && !defined(USE_TESSELLATION_3D)
 
 varying vec2				var_TexCoords;
 varying vec2				var_TexCoords2;
@@ -171,7 +166,7 @@ varying float				var_Slope;
 
 #define m_TessDepth			0.0
 
-#endif //defined(USE_TESSELLATION)
+#endif //defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
 
 
 
@@ -308,6 +303,52 @@ float randZeroOne()
 {
 	return SmoothNoise(vec3(vLocalSeed.xy, 0.0) * 0.01); // * 0.01 to smooth over a larger area...
 }
+
+//#define __DEBUG_TESS_CONTROL__
+#ifdef __DEBUG_TESS_CONTROL__
+#define HASHSCALE1 .1031
+
+vec3 hash(vec3 p3)
+{
+	p3 = fract(p3 * HASHSCALE1);
+	p3 += dot(p3, p3.yxz+19.19);
+	return fract((p3.xxy + p3.yxx)*p3.zyx);
+}
+
+vec3 noise3d( in vec3 x )
+{
+	vec3 p = floor(x);
+	vec3 f = fract(x);
+	f = f*f*(3.0-2.0*f);
+	
+	return mix(	mix(mix( hash(p+vec3(0,0,0)), 
+						hash(p+vec3(1,0,0)),f.x),
+					mix( hash(p+vec3(0,1,0)), 
+						hash(p+vec3(1,1,0)),f.x),f.y),
+				mix(mix( hash(p+vec3(0,0,1)), 
+						hash(p+vec3(1,0,1)),f.x),
+					mix( hash(p+vec3(0,1,1)), 
+						hash(p+vec3(1,1,1)),f.x),f.y),f.z);
+}
+
+const mat3 m3 = mat3( 0.00,  0.80,  0.60,
+					-0.80,  0.36, -0.48,
+					-0.60, -0.48,  0.64 );
+vec3 fbm(in vec3 q)
+{
+	vec3 f  = 0.5000*noise3d( q ); q = m3*q*2.01;
+	f += 0.2500*noise3d( q ); q = m3*q*2.02;
+	f += 0.1250*noise3d( q ); q = m3*q*2.03;
+	f += 0.0625*noise3d( q ); q = m3*q*2.04;
+#if 0
+	f += 0.03125*noise3d( q ); q = m3*q*2.05; 
+	f += 0.015625*noise3d( q ); q = m3*q*2.06; 
+	f += 0.0078125*noise3d( q ); q = m3*q*2.07; 
+	f += 0.00390625*noise3d( q ); q = m3*q*2.08;  
+#endif
+	return vec3(f);
+}
+#endif //__DEBUG_TESS_CONTROL__
 
 void DepthContrast ( inout float depth )
 {
@@ -860,6 +901,18 @@ float getdiffuseLight(vec3 n, vec3 l, float p) {
 
 void main()
 {
+#ifdef __DEBUG_TESS_CONTROL__
+	if (u_Local9.r > 0.0)
+	{
+		vec3 f = noise3d/*fbm*/(m_vertPos.xyz * u_Local9.r);
+		gl_FragColor = vec4(f, 1.0);
+		out_Glow = vec4(0.0);
+		out_Position = vec4(m_vertPos.xyz, SHADER_MATERIAL_TYPE+1.0);
+		out_Normal = vec4( vec3(EncodeNormal(m_Normal.xyz), 1.0), 1.0 );
+		return;
+	}
+#endif //__DEBUG_TESS_CONTROL__
+
 	if (USE_IS2D <= 0.0 && distance(m_vertPos, u_ViewOrigin) > u_zFar)
 	{// Skip it all...
 		gl_FragColor = vec4(0.0);

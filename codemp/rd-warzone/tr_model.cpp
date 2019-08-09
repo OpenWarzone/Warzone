@@ -748,7 +748,8 @@ static qboolean R_LoadAssImp(model_t * mod, int lod, void *buffer, const char *m
 			|| sh == tr.defaultShader 
 			|| (sh->surfaceFlags & SURF_NODRAW)
 			|| (aiSurf->mName.data && aiSurf->mName.data[0] && aiSurf->mName.length && StringContainsWord(aiSurf->mName.C_Str(), "collision"))
-			|| (aiSurf->mName.data && aiSurf->mName.data[0] && aiSurf->mName.length && StringContainsWord(aiSurf->mName.C_Str(), "nodraw")))
+			|| (aiSurf->mName.data && aiSurf->mName.data[0] && aiSurf->mName.length && StringContainsWord(aiSurf->mName.C_Str(), "nodraw"))
+			|| (aiSurf->mName.data && aiSurf->mName.data[0] && aiSurf->mName.length && StringContainsWord(aiSurf->mName.C_Str(), "noshader")))
 		{// A collision surface, set it to nodraw... TODO: Generate planes?!?!?!?
 			numRemoved++;
 			continue;
@@ -964,7 +965,9 @@ static qboolean R_LoadAssImp(model_t * mod, int lod, void *buffer, const char *m
 				texcoords[j][1] = st->st[1];
 			}
 
+#ifdef __MESH_OPTIMIZATION__
 			R_OptimizeMesh((uint32_t *)&surf->numVerts, (uint32_t *)&surf->numIndexes, surf->indexes, verts);
+#endif //__MESH_OPTIMIZATION__
 
 			vboSurf->surfaceType = SF_VBO_MDVMESH;
 			vboSurf->mdvModel = mdvModel;
@@ -2309,7 +2312,9 @@ static qboolean R_LoadMD3(model_t * mod, int lod, void *buffer, const char *modN
 				texcoords[j][1] = st->st[1];
 			}
 
+#ifdef __MESH_OPTIMIZATION__
 			R_OptimizeMesh((uint32_t *)&surf->numVerts, (uint32_t *)&surf->numIndexes, surf->indexes, (vec3_t *)(data + ofs_xyz));
+#endif //__MESH_OPTIMIZATION__
 
 			vboSurf->surfaceType = SF_VBO_MDVMESH;
 			vboSurf->mdvModel = mdvModel;
@@ -2622,7 +2627,8 @@ static qboolean R_LoadMDR( model_t *mod, void *buffer, int filesize, const char 
 
 			if ((sh && (sh == tr.defaultShader || (sh->surfaceFlags & SURF_NODRAW)))
 				|| StringContainsWord(sh->name, "collision")
-				|| StringContainsWord(sh->name, "nodraw"))
+				|| StringContainsWord(sh->name, "nodraw")
+				|| StringContainsWord(sh->name, "noshader"))
 			{// A collision surface, set it to nodraw... TODO: Generate planes?!?!?!?
 				continue;
 			}

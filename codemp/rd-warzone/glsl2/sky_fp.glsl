@@ -247,7 +247,7 @@ float FBM( vec3 p )
 
 	float f;
 	
-#if 1
+#if 0
 	/* Mix of texture and procedural noises for speed */
 	p *= .000675;
 	f = 0.5000 * tNoise(p); p = mcl*p;
@@ -256,6 +256,15 @@ float FBM( vec3 p )
 	f += 0.0625   * pNoise(p); p = mcl*p;
 	f += 0.03125  * tNoise(p); p = mcl*p;
 	f += 0.015625 * tNoise(p);
+#elif 1
+	/* Mix of texture and procedural noises for speed */
+	p *= .000675;
+	f = 0.5000 * pNoise(p); p = mcl*p;
+	f += 0.2500 * pNoise(p); p = mcl*p;
+	f += 0.1250 * pNoise(p); p = mcl*p;
+	f += 0.0625   * pNoise(p); p = mcl*p;
+	f += 0.03125  * pNoise(p); p = mcl*p;
+	f += 0.015625 * pNoise(p);
 #elif 0
 	p *= .0001;
 	vec2 r1 = textureLod(u_RoadMap, p.xz, 2.0).rg;

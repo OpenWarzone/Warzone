@@ -26,8 +26,10 @@ extern float			ROCK_SPLATMAP_SCALE;
 extern float			ROCK_SPLATMAP_SCALE_STEEP;
 
 extern qboolean			TERRAIN_TESSELLATION_ENABLED;
+extern qboolean			TERRAIN_TESSELLATION_3D_ENABLED;
 extern float			TERRAIN_TESSELLATION_LEVEL;
 extern float			TERRAIN_TESSELLATION_OFFSET;
+extern float			TERRAIN_TESSELLATION_3D_OFFSET[4];
 extern float			TERRAIN_TESSELLATION_MIN_SIZE;
 
 extern qboolean			DAY_NIGHT_CYCLE_ENABLED;
@@ -186,6 +188,60 @@ extern float			GRASS_SIZE_MULTIPLIER_RARE;
 extern float			GRASS_SIZE_MULTIPLIER_UNDERWATER;
 extern float			GRASS_LOD_START_RANGE;
 
+extern qboolean			GRASS2_ENABLED;
+extern qboolean			GRASS2_UNDERWATER_ONLY;
+extern qboolean			GRASS2_RARE_PATCHES_ONLY;
+extern int				GRASS2_WIDTH_REPEATS;
+extern int				GRASS2_DENSITY;
+extern float			GRASS2_HEIGHT;
+extern int				GRASS2_DISTANCE;
+extern float			GRASS2_MAX_SLOPE;
+extern float			GRASS2_SURFACE_MINIMUM_SIZE;
+extern float			GRASS2_SURFACE_SIZE_DIVIDER;
+extern float			GRASS2_TYPE_UNIFORMALITY;
+extern float			GRASS2_TYPE_UNIFORMALITY_SCALER;
+extern float			GRASS2_DISTANCE_FROM_ROADS;
+extern float			GRASS2_SIZE_MULTIPLIER_COMMON;
+extern float			GRASS2_SIZE_MULTIPLIER_RARE;
+extern float			GRASS2_SIZE_MULTIPLIER_UNDERWATER;
+extern float			GRASS2_LOD_START_RANGE;
+
+extern qboolean			GRASS3_ENABLED;
+extern qboolean			GRASS3_UNDERWATER_ONLY;
+extern qboolean			GRASS3_RARE_PATCHES_ONLY;
+extern int				GRASS3_WIDTH_REPEATS;
+extern int				GRASS3_DENSITY;
+extern float			GRASS3_HEIGHT;
+extern int				GRASS3_DISTANCE;
+extern float			GRASS3_MAX_SLOPE;
+extern float			GRASS3_SURFACE_MINIMUM_SIZE;
+extern float			GRASS3_SURFACE_SIZE_DIVIDER;
+extern float			GRASS3_TYPE_UNIFORMALITY;
+extern float			GRASS3_TYPE_UNIFORMALITY_SCALER;
+extern float			GRASS3_DISTANCE_FROM_ROADS;
+extern float			GRASS3_SIZE_MULTIPLIER_COMMON;
+extern float			GRASS3_SIZE_MULTIPLIER_RARE;
+extern float			GRASS3_SIZE_MULTIPLIER_UNDERWATER;
+extern float			GRASS3_LOD_START_RANGE;
+
+extern qboolean			GRASS4_ENABLED;
+extern qboolean			GRASS4_UNDERWATER_ONLY;
+extern qboolean			GRASS4_RARE_PATCHES_ONLY;
+extern int				GRASS4_WIDTH_REPEATS;
+extern int				GRASS4_DENSITY;
+extern float			GRASS4_HEIGHT;
+extern int				GRASS4_DISTANCE;
+extern float			GRASS4_MAX_SLOPE;
+extern float			GRASS4_SURFACE_MINIMUM_SIZE;
+extern float			GRASS4_SURFACE_SIZE_DIVIDER;
+extern float			GRASS4_TYPE_UNIFORMALITY;
+extern float			GRASS4_TYPE_UNIFORMALITY_SCALER;
+extern float			GRASS4_DISTANCE_FROM_ROADS;
+extern float			GRASS4_SIZE_MULTIPLIER_COMMON;
+extern float			GRASS4_SIZE_MULTIPLIER_RARE;
+extern float			GRASS4_SIZE_MULTIPLIER_UNDERWATER;
+extern float			GRASS4_LOD_START_RANGE;
+
 extern qboolean			FOLIAGE_ENABLED;
 extern int				FOLIAGE_DENSITY;
 extern float			FOLIAGE_HEIGHT;
@@ -218,6 +274,8 @@ extern int				MIST_DISTANCE;
 extern float			MIST_MAX_SLOPE;
 extern float			MIST_SURFACE_MINIMUM_SIZE;
 extern float			MIST_SURFACE_SIZE_DIVIDER;
+extern float			MIST_SPEED_X;
+extern float			MIST_SPEED_Y;
 extern float			MIST_LOD_START_RANGE;
 extern image_t			*MIST_TEXTURE;
 
@@ -245,3 +303,16 @@ extern char				CURRENT_WEATHER_OPTION[256];
 #define					MAX_FOLIAGE_ALLOWED_MATERIALS 64
 extern int				FOLIAGE_ALLOWED_MATERIALS_NUM;
 extern int				FOLIAGE_ALLOWED_MATERIALS[MAX_FOLIAGE_ALLOWED_MATERIALS];
+
+
+
+
+qboolean RB_ShouldUseTerrainTessellation(int materialType);
+qboolean RB_ShouldUseGeometryGrass(int materialType);
+qboolean RB_ShouldUseGeometryGrass2(int materialType);
+qboolean RB_ShouldUseGeometryGrass3(int materialType);
+qboolean RB_ShouldUseGeometryGrass4(int materialType);
+qboolean RB_ShouldUseGeometryFoliage(int materialType);
+qboolean RB_ShouldUseGeometryVines(int materialType);
+qboolean RB_ShouldUseMist(int materialType);
+

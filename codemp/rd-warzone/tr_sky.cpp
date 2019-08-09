@@ -475,7 +475,7 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 
 	if (backEnd.depthFill)
 	{
-		shaderProgram_t *sp = &tr.shadowmapShader;
+		shaderProgram_t *sp = &tr.shadowmapShader[0];
 		vec4_t vector;
 
 		//RB_UpdateVBOs(ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL);

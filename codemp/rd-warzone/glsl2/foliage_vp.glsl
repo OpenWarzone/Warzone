@@ -40,6 +40,10 @@ uniform vec4						u_Local11; // GRASS_WIDTH_REPEATS, GRASS_MAX_SLOPE, 0.0, 0.0
 #define M_PI				3.14159265358979323846
 
 float normalToSlope(in vec3 normal) {
+#if 1
+	float pitch = 1.0 - (normal.z * 0.5 + 0.5);
+	return pitch * 180.0;
+#else
 	float	forward;
 	float	pitch;
 
@@ -69,7 +73,8 @@ float normalToSlope(in vec3 normal) {
 
 	pitch += 90.0f;
 
-	return pitch;
+	return length(pitch);
+#endif
 }
 
 bool SlopeTooGreat(vec3 normal)

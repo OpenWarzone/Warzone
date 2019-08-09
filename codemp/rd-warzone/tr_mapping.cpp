@@ -1405,8 +1405,10 @@ float		ROCK_SPLATMAP_SCALE = 0.0025;
 float		ROCK_SPLATMAP_SCALE_STEEP = 0.0025;
 
 qboolean	TERRAIN_TESSELLATION_ENABLED = qtrue;
+qboolean	TERRAIN_TESSELLATION_3D_ENABLED = qfalse;
 float		TERRAIN_TESSELLATION_LEVEL = 11.0;
-float		TERRAIN_TESSELLATION_OFFSET = 16.0;
+float		TERRAIN_TESSELLATION_OFFSET = 24.0;
+float		TERRAIN_TESSELLATION_3D_OFFSET[4] = { { 24.0 } };
 float		TERRAIN_TESSELLATION_MIN_SIZE = 512.0;
 
 qboolean	DAY_NIGHT_CYCLE_ENABLED = qfalse;
@@ -1565,6 +1567,60 @@ float		GRASS_SIZE_MULTIPLIER_RARE = 2.75;
 float		GRASS_SIZE_MULTIPLIER_UNDERWATER = 1.0;
 float		GRASS_LOD_START_RANGE = 8192.0;
 
+qboolean	GRASS2_ENABLED = qtrue;
+qboolean	GRASS2_UNDERWATER_ONLY = qfalse;
+qboolean	GRASS2_RARE_PATCHES_ONLY = qfalse;
+int			GRASS2_WIDTH_REPEATS = 0;
+int			GRASS2_DENSITY = 2;
+float		GRASS2_HEIGHT = 48.0;
+int			GRASS2_DISTANCE = 2048;
+float		GRASS2_MAX_SLOPE = 10.0;
+float		GRASS2_SURFACE_MINIMUM_SIZE = 128.0;
+float		GRASS2_SURFACE_SIZE_DIVIDER = 1024.0;
+float		GRASS2_TYPE_UNIFORMALITY = 0.97;
+float		GRASS2_TYPE_UNIFORMALITY_SCALER = 0.008;
+float		GRASS2_DISTANCE_FROM_ROADS = 0.25;
+float		GRASS2_SIZE_MULTIPLIER_COMMON = 1.0;
+float		GRASS2_SIZE_MULTIPLIER_RARE = 2.75;
+float		GRASS2_SIZE_MULTIPLIER_UNDERWATER = 1.0;
+float		GRASS2_LOD_START_RANGE = 8192.0;
+
+qboolean	GRASS3_ENABLED = qtrue;
+qboolean	GRASS3_UNDERWATER_ONLY = qfalse;
+qboolean	GRASS3_RARE_PATCHES_ONLY = qfalse;
+int			GRASS3_WIDTH_REPEATS = 0;
+int			GRASS3_DENSITY = 2;
+float		GRASS3_HEIGHT = 48.0;
+int			GRASS3_DISTANCE = 2048;
+float		GRASS3_MAX_SLOPE = 10.0;
+float		GRASS3_SURFACE_MINIMUM_SIZE = 128.0;
+float		GRASS3_SURFACE_SIZE_DIVIDER = 1024.0;
+float		GRASS3_TYPE_UNIFORMALITY = 0.97;
+float		GRASS3_TYPE_UNIFORMALITY_SCALER = 0.008;
+float		GRASS3_DISTANCE_FROM_ROADS = 0.25;
+float		GRASS3_SIZE_MULTIPLIER_COMMON = 1.0;
+float		GRASS3_SIZE_MULTIPLIER_RARE = 2.75;
+float		GRASS3_SIZE_MULTIPLIER_UNDERWATER = 1.0;
+float		GRASS3_LOD_START_RANGE = 8192.0;
+
+qboolean	GRASS4_ENABLED = qtrue;
+qboolean	GRASS4_UNDERWATER_ONLY = qfalse;
+qboolean	GRASS4_RARE_PATCHES_ONLY = qfalse;
+int			GRASS4_WIDTH_REPEATS = 0;
+int			GRASS4_DENSITY = 2;
+float		GRASS4_HEIGHT = 48.0;
+int			GRASS4_DISTANCE = 2048;
+float		GRASS4_MAX_SLOPE = 10.0;
+float		GRASS4_SURFACE_MINIMUM_SIZE = 128.0;
+float		GRASS4_SURFACE_SIZE_DIVIDER = 1024.0;
+float		GRASS4_TYPE_UNIFORMALITY = 0.97;
+float		GRASS4_TYPE_UNIFORMALITY_SCALER = 0.008;
+float		GRASS4_DISTANCE_FROM_ROADS = 0.25;
+float		GRASS4_SIZE_MULTIPLIER_COMMON = 1.0;
+float		GRASS4_SIZE_MULTIPLIER_RARE = 2.75;
+float		GRASS4_SIZE_MULTIPLIER_UNDERWATER = 1.0;
+float		GRASS4_LOD_START_RANGE = 8192.0;
+
 qboolean	FOLIAGE_ENABLED = qfalse;
 int			FOLIAGE_DENSITY = 2;
 float		FOLIAGE_HEIGHT = 24.0;
@@ -1597,6 +1653,8 @@ int			MIST_DISTANCE = 2048;
 float		MIST_MAX_SLOPE = 10.0;
 float		MIST_SURFACE_MINIMUM_SIZE = 128.0;
 float		MIST_SURFACE_SIZE_DIVIDER = 1024.0;
+float		MIST_SPEED_X = 1.0;
+float		MIST_SPEED_Y = 1.0;
 float		MIST_LOD_START_RANGE = 8192.0;
 image_t		*MIST_TEXTURE = NULL;
 
@@ -1621,10 +1679,75 @@ extern float	MAP_WATER_LEVEL;
 char		CURRENT_CLIMATE_OPTION[256] = { 0 };
 char		CURRENT_WEATHER_OPTION[256] = { 0 };
 
-#define MAX_FOLIAGE_ALLOWED_MATERIALS 64
+#define MAX_ALLOWED_MATERIALS_LIST 64
+
+int TESSELLATION_ALLOWED_MATERIALS_NUM = 0;
+int TESSELLATION_ALLOWED_MATERIALS[MAX_ALLOWED_MATERIALS_LIST] = { 0 };
+
+qboolean R_SurfaceIsAllowedTessellation(int materialType)
+{
+	for (int i = 0; i < TESSELLATION_ALLOWED_MATERIALS_NUM; i++)
+	{
+		if (materialType == TESSELLATION_ALLOWED_MATERIALS[i]) return qtrue;
+	}
+
+	return qfalse;
+}
+
+int GRASS_ALLOWED_MATERIALS_NUM = 0;
+int GRASS_ALLOWED_MATERIALS[MAX_ALLOWED_MATERIALS_LIST] = { 0 };
+
+qboolean R_SurfaceIsAllowedGrass(int materialType)
+{
+	for (int i = 0; i < GRASS_ALLOWED_MATERIALS_NUM; i++)
+	{
+		if (materialType == GRASS_ALLOWED_MATERIALS[i]) return qtrue;
+	}
+
+	return qfalse;
+}
+
+int GRASS2_ALLOWED_MATERIALS_NUM = 0;
+int GRASS2_ALLOWED_MATERIALS[MAX_ALLOWED_MATERIALS_LIST] = { 0 };
+
+qboolean R_SurfaceIsAllowedGrass2(int materialType)
+{
+	for (int i = 0; i < GRASS2_ALLOWED_MATERIALS_NUM; i++)
+	{
+		if (materialType == GRASS2_ALLOWED_MATERIALS[i]) return qtrue;
+	}
+
+	return qfalse;
+}
+
+int GRASS3_ALLOWED_MATERIALS_NUM = 0;
+int GRASS3_ALLOWED_MATERIALS[MAX_ALLOWED_MATERIALS_LIST] = { 0 };
+
+qboolean R_SurfaceIsAllowedGrass3(int materialType)
+{
+	for (int i = 0; i < GRASS3_ALLOWED_MATERIALS_NUM; i++)
+	{
+		if (materialType == GRASS3_ALLOWED_MATERIALS[i]) return qtrue;
+	}
+
+	return qfalse;
+}
+
+int GRASS4_ALLOWED_MATERIALS_NUM = 0;
+int GRASS4_ALLOWED_MATERIALS[MAX_ALLOWED_MATERIALS_LIST] = { 0 };
+
+qboolean R_SurfaceIsAllowedGrass4(int materialType)
+{
+	for (int i = 0; i < GRASS4_ALLOWED_MATERIALS_NUM; i++)
+	{
+		if (materialType == GRASS4_ALLOWED_MATERIALS[i]) return qtrue;
+	}
+
+	return qfalse;
+}
 
 int FOLIAGE_ALLOWED_MATERIALS_NUM = 0;
-int FOLIAGE_ALLOWED_MATERIALS[MAX_FOLIAGE_ALLOWED_MATERIALS] = { 0 };
+int FOLIAGE_ALLOWED_MATERIALS[MAX_ALLOWED_MATERIALS_LIST] = { 0 };
 
 qboolean R_SurfaceIsAllowedFoliage(int materialType)
 {
@@ -1636,18 +1759,183 @@ qboolean R_SurfaceIsAllowedFoliage(int materialType)
 	return qfalse;
 }
 
-int TESSELLATION_ALLOWED_MATERIALS_NUM = 0;
-int TESSELLATION_ALLOWED_MATERIALS[MAX_FOLIAGE_ALLOWED_MATERIALS] = { 0 };
+int VINES_ALLOWED_MATERIALS_NUM = 0;
+int VINES_ALLOWED_MATERIALS[MAX_ALLOWED_MATERIALS_LIST] = { 0 };
 
-qboolean R_SurfaceIsAllowedTessellation(int materialType)
+qboolean R_SurfaceIsAllowedVines(int materialType)
 {
-	for (int i = 0; i < TESSELLATION_ALLOWED_MATERIALS_NUM; i++)
+	for (int i = 0; i < VINES_ALLOWED_MATERIALS_NUM; i++)
 	{
-		if (materialType == TESSELLATION_ALLOWED_MATERIALS[i]) return qtrue;
+		if (materialType == VINES_ALLOWED_MATERIALS[i]) return qtrue;
 	}
 
 	return qfalse;
 }
+
+int MIST_ALLOWED_MATERIALS_NUM = 0;
+int MIST_ALLOWED_MATERIALS[MAX_ALLOWED_MATERIALS_LIST] = { 0 };
+
+qboolean R_SurfaceIsAllowedMist(int materialType)
+{
+	for (int i = 0; i < MIST_ALLOWED_MATERIALS_NUM; i++)
+	{
+		if (materialType == MIST_ALLOWED_MATERIALS[i]) return qtrue;
+	}
+
+	return qfalse;
+}
+
+
+qboolean RB_ShouldUseGeometryGrass(int materialType)
+{
+	if (materialType <= MATERIAL_NONE)
+	{
+		return qfalse;
+	}
+
+	if (materialType == MATERIAL_SHORTGRASS
+		|| materialType == MATERIAL_LONGGRASS)
+	{
+		return qtrue;
+	}
+
+	if (R_SurfaceIsAllowedGrass(materialType))
+	{// *sigh* due to surfaceFlags mixing materials with other flags, we need to do it this way...
+		return qtrue;
+	}
+
+	return qfalse;
+}
+
+qboolean RB_ShouldUseGeometryGrass2(int materialType)
+{
+	if (materialType <= MATERIAL_NONE)
+	{
+		return qfalse;
+	}
+
+	if (R_SurfaceIsAllowedGrass2(materialType))
+	{// *sigh* due to surfaceFlags mixing materials with other flags, we need to do it this way...
+		return qtrue;
+	}
+
+	return qfalse;
+}
+
+qboolean RB_ShouldUseGeometryGrass3(int materialType)
+{
+	if (materialType <= MATERIAL_NONE)
+	{
+		return qfalse;
+	}
+
+	if (R_SurfaceIsAllowedGrass3(materialType))
+	{// *sigh* due to surfaceFlags mixing materials with other flags, we need to do it this way...
+		return qtrue;
+	}
+
+	return qfalse;
+}
+
+qboolean RB_ShouldUseGeometryGrass4(int materialType)
+{
+	if (materialType <= MATERIAL_NONE)
+	{
+		return qfalse;
+	}
+
+	if (R_SurfaceIsAllowedGrass4(materialType))
+	{// *sigh* due to surfaceFlags mixing materials with other flags, we need to do it this way...
+		return qtrue;
+	}
+
+	return qfalse;
+}
+
+qboolean RB_ShouldUseGeometryFoliage(int materialType)
+{
+	if (materialType <= MATERIAL_NONE)
+	{
+		return qfalse;
+	}
+
+	if (materialType == MATERIAL_SHORTGRASS
+		|| materialType == MATERIAL_LONGGRASS)
+	{
+		return qtrue;
+	}
+
+	if (R_SurfaceIsAllowedGrass(materialType))
+	{// *sigh* due to surfaceFlags mixing materials with other flags, we need to do it this way...
+		return qtrue;
+	}
+
+	return qfalse;
+}
+
+qboolean RB_ShouldUseGeometryVines(int materialType)
+{
+	if (materialType <= MATERIAL_NONE)
+	{
+		return qfalse;
+	}
+
+	if (materialType == MATERIAL_TREEBARK
+		|| materialType == MATERIAL_ROCK)
+	{
+		return qtrue;
+	}
+
+	if (R_SurfaceIsAllowedVines(materialType))
+	{// *sigh* due to surfaceFlags mixing materials with other flags, we need to do it this way...
+		return qtrue;
+	}
+
+	return qfalse;
+}
+
+qboolean RB_ShouldUseTerrainTessellation(int materialType)
+{
+	if (materialType <= MATERIAL_NONE)
+	{
+		return qfalse;
+	}
+
+	if (materialType == MATERIAL_SHORTGRASS
+		|| materialType == MATERIAL_LONGGRASS)
+	{
+		return qtrue;
+	}
+
+	if (R_SurfaceIsAllowedTessellation(materialType))
+	{// *sigh* due to surfaceFlags mixing materials with other flags, we need to do it this way...
+		return qtrue;
+	}
+
+	return qfalse;
+}
+
+qboolean RB_ShouldUseMist(int materialType)
+{
+	if (materialType <= MATERIAL_NONE)
+	{
+		return qfalse;
+	}
+
+	if (materialType == MATERIAL_SHORTGRASS
+		|| materialType == MATERIAL_LONGGRASS)
+	{
+		return qtrue;
+	}
+
+	if (R_SurfaceIsAllowedTessellation(materialType))
+	{// *sigh* due to surfaceFlags mixing materials with other flags, we need to do it this way...
+		return qtrue;
+	}
+
+	return qfalse;
+}
+
 
 #ifdef __OCEAN__
 extern qboolean WATER_INITIALIZED;
@@ -1733,9 +2021,18 @@ void MAPPING_LoadMapInfo(void)
 
 	if (TERRAIN_TESSELLATION_ENABLED)
 	{
+		TERRAIN_TESSELLATION_3D_ENABLED = (atoi(IniRead(mapname, "TESSELLATION", "TERRAIN_TESSELLATION_3D_ENABLED", "0")) > 0) ? qtrue : qfalse;
 		TERRAIN_TESSELLATION_LEVEL = atof(IniRead(mapname, "TESSELLATION", "TERRAIN_TESSELLATION_LEVEL", "32.0"));
 		TERRAIN_TESSELLATION_OFFSET = atof(IniRead(mapname, "TESSELLATION", "TERRAIN_TESSELLATION_OFFSET", "24.0"));
 		TERRAIN_TESSELLATION_MIN_SIZE = atof(IniRead(mapname, "TESSELLATION", "TERRAIN_TESSELLATION_MIN_SIZE", "512.0"));
+
+		if (TERRAIN_TESSELLATION_3D_ENABLED)
+		{
+			TERRAIN_TESSELLATION_3D_OFFSET[0] = atof(IniRead(mapname, "TESSELLATION", "TERRAIN_TESSELLATION_3D_OFFSET_X", "24.0"));
+			TERRAIN_TESSELLATION_3D_OFFSET[1] = atof(IniRead(mapname, "TESSELLATION", "TERRAIN_TESSELLATION_3D_OFFSET_Y", "24.0"));
+			TERRAIN_TESSELLATION_3D_OFFSET[2] = atof(IniRead(mapname, "TESSELLATION", "TERRAIN_TESSELLATION_3D_OFFSET_Z", "24.0"));
+			TERRAIN_TESSELLATION_3D_OFFSET[3] = atof(IniRead(mapname, "TESSELLATION", "TERRAIN_TESSELLATION_3D_COORDINATE_SCALE", "0.005"));
+		}
 
 		// Fuck it, this is generic instead... I can't be fucked doing collision loading for map based ones as well, for now...
 		/*tr.tessellationMapImage = R_FindImageFile(va("maps/%s_tess.tga", currentMapName), IMGTYPE_SPLATCONTROLMAP, IMGFLAG_NOLIGHTSCALE);
@@ -2129,7 +2426,7 @@ void MAPPING_LoadMapInfo(void)
 	//
 	GRASS_ENABLED = (atoi(IniRead(mapname, "GRASS", "GRASS_ENABLED", "0")) > 0) ? qtrue : qfalse;
 
-	FOLIAGE_ALLOWED_MATERIALS_NUM = 0;
+	GRASS_ALLOWED_MATERIALS_NUM = 0;
 
 	if (GRASS_ENABLED)
 	{
@@ -2162,8 +2459,146 @@ void MAPPING_LoadMapInfo(void)
 			{
 				if (!Q_stricmp(grassMaterial, materialNames[i]))
 				{// Got one, add it to the allowed list...
-					FOLIAGE_ALLOWED_MATERIALS[FOLIAGE_ALLOWED_MATERIALS_NUM] = i;
-					FOLIAGE_ALLOWED_MATERIALS_NUM++;
+					GRASS_ALLOWED_MATERIALS[GRASS_ALLOWED_MATERIALS_NUM] = i;
+					GRASS_ALLOWED_MATERIALS_NUM++;
+					break;
+				}
+			}
+		}
+	}
+
+	//
+	// Grass 2...
+	//
+	GRASS2_ENABLED = (atoi(IniRead(mapname, "GRASS2", "GRASS_ENABLED", "0")) > 0) ? qtrue : qfalse;
+
+	GRASS2_ALLOWED_MATERIALS_NUM = 0;
+
+	if (GRASS2_ENABLED)
+	{
+		GRASS2_UNDERWATER_ONLY = (atoi(IniRead(mapname, "GRASS2", "GRASS_UNDERWATER_ONLY", "0")) > 0) ? qtrue : qfalse;
+		GRASS2_RARE_PATCHES_ONLY = (atoi(IniRead(mapname, "GRASS2", "GRASS_RARE_PATCHES_ONLY", "0")) > 0) ? qtrue : qfalse;
+		GRASS2_DENSITY = atoi(IniRead(mapname, "GRASS2", "GRASS_DENSITY", "2"));
+		GRASS2_WIDTH_REPEATS = atoi(IniRead(mapname, "GRASS2", "GRASS_WIDTH_REPEATS", "0"));
+		GRASS2_HEIGHT = atof(IniRead(mapname, "GRASS2", "GRASS_HEIGHT", "42.0"));
+		GRASS2_DISTANCE = atoi(IniRead(mapname, "GRASS2", "GRASS_DISTANCE", "4096"));
+		GRASS2_MAX_SLOPE = atof(IniRead(mapname, "GRASS2", "GRASS_MAX_SLOPE", "10.0"));
+		GRASS2_SURFACE_MINIMUM_SIZE = atof(IniRead(mapname, "GRASS2", "GRASS_SURFACE_MINIMUM_SIZE", "128.0"));
+		GRASS2_SURFACE_SIZE_DIVIDER = atof(IniRead(mapname, "GRASS2", "GRASS_SURFACE_SIZE_DIVIDER", "1024.0"));
+		GRASS2_LOD_START_RANGE = atof(IniRead(mapname, "GRASS2", "GRASS_LOD_START_RANGE", va("%f", GRASS2_DISTANCE)));
+		GRASS2_TYPE_UNIFORMALITY = atof(IniRead(mapname, "GRASS2", "GRASS_TYPE_UNIFORMALITY", "0.97"));
+		GRASS2_TYPE_UNIFORMALITY_SCALER = atof(IniRead(mapname, "GRASS2", "GRASS_TYPE_UNIFORMALITY_SCALER", "0.008"));
+		GRASS2_DISTANCE_FROM_ROADS = Q_clamp(0.0, atof(IniRead(mapname, "GRASS", "GRASS2_DISTANCE_FROM_ROADS", "0.25")), 0.9);
+		GRASS2_SIZE_MULTIPLIER_COMMON = atof(IniRead(mapname, "GRASS2", "GRASS_SIZE_MULTIPLIER_COMMON", "1.0"));
+		GRASS2_SIZE_MULTIPLIER_RARE = atof(IniRead(mapname, "GRASS2", "GRASS_SIZE_MULTIPLIER_RARE", "2.75"));
+		GRASS2_SIZE_MULTIPLIER_UNDERWATER = atof(IniRead(mapname, "GRASS2", "GRASS_SIZE_MULTIPLIER_UNDERWATER", "1.0"));
+
+		// Parse any specified extra surface material types to add grasses to...
+		for (int m = 0; m < 8; m++)
+		{
+			char grassMaterial[64] = { 0 };
+			strcpy(grassMaterial, IniRead(mapname, "GRASS2", va("GRASS_ALLOW_MATERIAL%i", m), ""));
+
+			if (!grassMaterial || !grassMaterial[0] || grassMaterial[0] == '\0' || strlen(grassMaterial) <= 1) continue;
+
+			for (int i = 0; i < MATERIAL_LAST; i++)
+			{
+				if (!Q_stricmp(grassMaterial, materialNames[i]))
+				{// Got one, add it to the allowed list...
+					GRASS2_ALLOWED_MATERIALS[GRASS2_ALLOWED_MATERIALS_NUM] = i;
+					GRASS2_ALLOWED_MATERIALS_NUM++;
+					break;
+				}
+			}
+		}
+	}
+
+	//
+	// Grass 3...
+	//
+	GRASS3_ENABLED = (atoi(IniRead(mapname, "GRASS3", "GRASS_ENABLED", "0")) > 0) ? qtrue : qfalse;
+
+	GRASS3_ALLOWED_MATERIALS_NUM = 0;
+
+	if (GRASS3_ENABLED)
+	{
+		GRASS3_UNDERWATER_ONLY = (atoi(IniRead(mapname, "GRASS3", "GRASS_UNDERWATER_ONLY", "0")) > 0) ? qtrue : qfalse;
+		GRASS3_RARE_PATCHES_ONLY = (atoi(IniRead(mapname, "GRASS3", "GRASS_RARE_PATCHES_ONLY", "0")) > 0) ? qtrue : qfalse;
+		GRASS3_DENSITY = atoi(IniRead(mapname, "GRASS3", "GRASS_DENSITY", "2"));
+		GRASS3_WIDTH_REPEATS = atoi(IniRead(mapname, "GRASS3", "GRASS_WIDTH_REPEATS", "0"));
+		GRASS3_HEIGHT = atof(IniRead(mapname, "GRASS3", "GRASS_HEIGHT", "42.0"));
+		GRASS3_DISTANCE = atoi(IniRead(mapname, "GRASS3", "GRASS_DISTANCE", "4096"));
+		GRASS3_MAX_SLOPE = atof(IniRead(mapname, "GRASS3", "GRASS_MAX_SLOPE", "10.0"));
+		GRASS3_SURFACE_MINIMUM_SIZE = atof(IniRead(mapname, "GRASS3", "GRASS_SURFACE_MINIMUM_SIZE", "128.0"));
+		GRASS3_SURFACE_SIZE_DIVIDER = atof(IniRead(mapname, "GRASS3", "GRASS_SURFACE_SIZE_DIVIDER", "1024.0"));
+		GRASS3_LOD_START_RANGE = atof(IniRead(mapname, "GRASS3", "GRASS_LOD_START_RANGE", va("%f", GRASS3_DISTANCE)));
+		GRASS3_TYPE_UNIFORMALITY = atof(IniRead(mapname, "GRASS3", "GRASS_TYPE_UNIFORMALITY", "0.97"));
+		GRASS3_TYPE_UNIFORMALITY_SCALER = atof(IniRead(mapname, "GRASS3", "GRASS_TYPE_UNIFORMALITY_SCALER", "0.008"));
+		GRASS3_DISTANCE_FROM_ROADS = Q_clamp(0.0, atof(IniRead(mapname, "GRASS3", "GRASS_DISTANCE_FROM_ROADS", "0.25")), 0.9);
+		GRASS3_SIZE_MULTIPLIER_COMMON = atof(IniRead(mapname, "GRASS3", "GRASS_SIZE_MULTIPLIER_COMMON", "1.0"));
+		GRASS3_SIZE_MULTIPLIER_RARE = atof(IniRead(mapname, "GRASS3", "GRASS_SIZE_MULTIPLIER_RARE", "2.75"));
+		GRASS3_SIZE_MULTIPLIER_UNDERWATER = atof(IniRead(mapname, "GRASS3", "GRASS_SIZE_MULTIPLIER_UNDERWATER", "1.0"));
+
+		// Parse any specified extra surface material types to add grasses to...
+		for (int m = 0; m < 8; m++)
+		{
+			char grassMaterial[64] = { 0 };
+			strcpy(grassMaterial, IniRead(mapname, "GRASS3", va("GRASS_ALLOW_MATERIAL%i", m), ""));
+
+			if (!grassMaterial || !grassMaterial[0] || grassMaterial[0] == '\0' || strlen(grassMaterial) <= 1) continue;
+
+			for (int i = 0; i < MATERIAL_LAST; i++)
+			{
+				if (!Q_stricmp(grassMaterial, materialNames[i]))
+				{// Got one, add it to the allowed list...
+					GRASS3_ALLOWED_MATERIALS[GRASS3_ALLOWED_MATERIALS_NUM] = i;
+					GRASS3_ALLOWED_MATERIALS_NUM++;
+					break;
+				}
+			}
+		}
+	}
+
+	//
+	// Grass 4...
+	//
+	GRASS4_ENABLED = (atoi(IniRead(mapname, "GRASS4", "GRASS_ENABLED", "0")) > 0) ? qtrue : qfalse;
+
+	GRASS4_ALLOWED_MATERIALS_NUM = 0;
+
+	if (GRASS4_ENABLED)
+	{
+		GRASS4_UNDERWATER_ONLY = (atoi(IniRead(mapname, "GRASS4", "GRASS_UNDERWATER_ONLY", "0")) > 0) ? qtrue : qfalse;
+		GRASS4_RARE_PATCHES_ONLY = (atoi(IniRead(mapname, "GRASS4", "GRASS_RARE_PATCHES_ONLY", "0")) > 0) ? qtrue : qfalse;
+		GRASS4_DENSITY = atoi(IniRead(mapname, "GRASS4", "GRASS_DENSITY", "2"));
+		GRASS4_WIDTH_REPEATS = atoi(IniRead(mapname, "GRASS4", "GRASS_WIDTH_REPEATS", "0"));
+		GRASS4_HEIGHT = atof(IniRead(mapname, "GRASS4", "GRASS_HEIGHT", "42.0"));
+		GRASS4_DISTANCE = atoi(IniRead(mapname, "GRASS4", "GRASS_DISTANCE", "4096"));
+		GRASS4_MAX_SLOPE = atof(IniRead(mapname, "GRASS4", "GRASS_MAX_SLOPE", "10.0"));
+		GRASS4_SURFACE_MINIMUM_SIZE = atof(IniRead(mapname, "GRASS4", "GRASS_SURFACE_MINIMUM_SIZE", "128.0"));
+		GRASS4_SURFACE_SIZE_DIVIDER = atof(IniRead(mapname, "GRASS4", "GRASS_SURFACE_SIZE_DIVIDER", "1024.0"));
+		GRASS4_LOD_START_RANGE = atof(IniRead(mapname, "GRASS4", "GRASS_LOD_START_RANGE", va("%f", GRASS4_DISTANCE)));
+		GRASS4_TYPE_UNIFORMALITY = atof(IniRead(mapname, "GRASS4", "GRASS_TYPE_UNIFORMALITY", "0.97"));
+		GRASS4_TYPE_UNIFORMALITY_SCALER = atof(IniRead(mapname, "GRASS4", "GRASS_TYPE_UNIFORMALITY_SCALER", "0.008"));
+		GRASS4_DISTANCE_FROM_ROADS = Q_clamp(0.0, atof(IniRead(mapname, "GRASS4", "GRASS_DISTANCE_FROM_ROADS", "0.25")), 0.9);
+		GRASS4_SIZE_MULTIPLIER_COMMON = atof(IniRead(mapname, "GRASS4", "GRASS_SIZE_MULTIPLIER_COMMON", "1.0"));
+		GRASS4_SIZE_MULTIPLIER_RARE = atof(IniRead(mapname, "GRASS4", "GRASS_SIZE_MULTIPLIER_RARE", "2.75"));
+		GRASS4_SIZE_MULTIPLIER_UNDERWATER = atof(IniRead(mapname, "GRASS4", "GRASS_SIZE_MULTIPLIER_UNDERWATER", "1.0"));
+
+		// Parse any specified extra surface material types to add grasses to...
+		for (int m = 0; m < 8; m++)
+		{
+			char grassMaterial[64] = { 0 };
+			strcpy(grassMaterial, IniRead(mapname, "GRASS4", va("GRASS_ALLOW_MATERIAL%i", m), ""));
+
+			if (!grassMaterial || !grassMaterial[0] || grassMaterial[0] == '\0' || strlen(grassMaterial) <= 1) continue;
+
+			for (int i = 0; i < MATERIAL_LAST; i++)
+			{
+				if (!Q_stricmp(grassMaterial, materialNames[i]))
+				{// Got one, add it to the allowed list...
+					GRASS4_ALLOWED_MATERIALS[GRASS4_ALLOWED_MATERIALS_NUM] = i;
+					GRASS4_ALLOWED_MATERIALS_NUM++;
 					break;
 				}
 			}
@@ -2187,6 +2622,27 @@ void MAPPING_LoadMapInfo(void)
 		FOLIAGE_TYPE_UNIFORMALITY = atof(IniRead(mapname, "FOLIAGE", "FOLIAGE_TYPE_UNIFORMALITY", "0.97"));
 		FOLIAGE_TYPE_UNIFORMALITY_SCALER = atof(IniRead(mapname, "FOLIAGE", "FOLIAGE_TYPE_UNIFORMALITY_SCALER", "0.008"));
 		FOLIAGE_DISTANCE_FROM_ROADS = Q_clamp(0.0, atof(IniRead(mapname, "FOLIAGE", "FOLIAGE_DISTANCE_FROM_ROADS", "0.25")), 0.9);
+
+		FOLIAGE_ALLOWED_MATERIALS_NUM = 0;
+
+		// Parse any specified extra surface material types to add grasses to...
+		for (int m = 0; m < 8; m++)
+		{
+			char allowMaterial[64] = { 0 };
+			strcpy(allowMaterial, IniRead(mapname, "FOLIAGE", va("FOLIAGE_ALLOW_MATERIAL%i", m), ""));
+
+			if (!allowMaterial || !allowMaterial[0] || allowMaterial[0] == '\0' || strlen(allowMaterial) <= 1) continue;
+
+			for (int i = 0; i < MATERIAL_LAST; i++)
+			{
+				if (!Q_stricmp(allowMaterial, materialNames[i]))
+				{// Got one, add it to the allowed list...
+					FOLIAGE_ALLOWED_MATERIALS[FOLIAGE_ALLOWED_MATERIALS_NUM] = i;
+					FOLIAGE_ALLOWED_MATERIALS_NUM++;
+					break;
+				}
+			}
+		}
 	}
 
 	VINES_ENABLED = (atoi(IniRead(mapname, "VINES", "VINES_ENABLED", "0")) > 0) ? qtrue : qfalse;
@@ -2202,6 +2658,27 @@ void MAPPING_LoadMapInfo(void)
 		VINES_SURFACE_SIZE_DIVIDER = atof(IniRead(mapname, "VINES", "VINES_SURFACE_SIZE_DIVIDER", "65536.0"));
 		VINES_TYPE_UNIFORMALITY = atof(IniRead(mapname, "VINES", "VINES_TYPE_UNIFORMALITY", "0.97"));
 		VINES_TYPE_UNIFORMALITY_SCALER = atof(IniRead(mapname, "VINES", "VINES_TYPE_UNIFORMALITY_SCALER", "0.008"));
+
+		VINES_ALLOWED_MATERIALS_NUM = 0;
+
+		// Parse any specified extra surface material types to add grasses to...
+		for (int m = 0; m < 8; m++)
+		{
+			char allowMaterial[64] = { 0 };
+			strcpy(allowMaterial, IniRead(mapname, "VINES", va("VINES_ALLOW_MATERIAL%i", m), ""));
+
+			if (!allowMaterial || !allowMaterial[0] || allowMaterial[0] == '\0' || strlen(allowMaterial) <= 1) continue;
+
+			for (int i = 0; i < MATERIAL_LAST; i++)
+			{
+				if (!Q_stricmp(allowMaterial, materialNames[i]))
+				{// Got one, add it to the allowed list...
+					VINES_ALLOWED_MATERIALS[VINES_ALLOWED_MATERIALS_NUM] = i;
+					VINES_ALLOWED_MATERIALS_NUM++;
+					break;
+				}
+			}
+		}
 	}
 
 	MIST_ENABLED = (atoi(IniRead(mapname, "MIST", "MIST_ENABLED", "0")) > 0) ? qtrue : qfalse;
@@ -2215,8 +2692,31 @@ void MAPPING_LoadMapInfo(void)
 		MIST_MAX_SLOPE = atof(IniRead(mapname, "MIST", "MIST_MAX_SLOPE", "10.0"));
 		MIST_SURFACE_MINIMUM_SIZE = atof(IniRead(mapname, "MIST", "MIST_SURFACE_MINIMUM_SIZE", "128.0"));
 		MIST_SURFACE_SIZE_DIVIDER = atof(IniRead(mapname, "MIST", "MIST_SURFACE_SIZE_DIVIDER", "1024.0"));
+		MIST_SPEED_X = atof(IniRead(mapname, "MIST", "MIST_SPEED_X", "1.0"));
+		MIST_SPEED_Y = atof(IniRead(mapname, "MIST", "MIST_SPEED_Y", "1.0"));
 		MIST_LOD_START_RANGE = atof(IniRead(mapname, "MIST", "MIST_LOD_START_RANGE", va("%f", MIST_DISTANCE)));
 		MIST_TEXTURE = R_FindImageFile(IniRead(mapname, "MIST", "MIST_TEXTURE", "gfx/cloudtile"), IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+
+		MIST_ALLOWED_MATERIALS_NUM = 0;
+
+		// Parse any specified extra surface material types to add grasses to...
+		for (int m = 0; m < 8; m++)
+		{
+			char mistMaterial[64] = { 0 };
+			strcpy(mistMaterial, IniRead(mapname, "MIST", va("MIST_ALLOW_MATERIAL%i", m), ""));
+
+			if (!mistMaterial || !mistMaterial[0] || mistMaterial[0] == '\0' || strlen(mistMaterial) <= 1) continue;
+
+			for (int i = 0; i < MATERIAL_LAST; i++)
+			{
+				if (!Q_stricmp(mistMaterial, materialNames[i]))
+				{// Got one, add it to the allowed list...
+					MIST_ALLOWED_MATERIALS[MIST_ALLOWED_MATERIALS_NUM] = i;
+					MIST_ALLOWED_MATERIALS_NUM++;
+					break;
+				}
+			}
+		}
 	}
 
 	//
@@ -2336,12 +2836,7 @@ void MAPPING_LoadMapInfo(void)
 				}
 			}
 
-			/*for (int i = 0; i < 16; i++)
-			{
-				tr.grassImage[i] = R_FindImageFile(grassImages[i], IMGTYPE_COLORALPHA, IMGFLAG_NONE);
-			}*/
-
-			tr.grassAliasImage = R_BakeTextures(grassImages, 16, "grass", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+			tr.grassAliasImage[0] = R_BakeTextures(grassImages, 16, "grass", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
 		}
 
 		char seaGrassImages[16][512] = { 0 };
@@ -2356,25 +2851,109 @@ void MAPPING_LoadMapInfo(void)
 			}
 		}
 
-		/*for (int i = 0; i < 4; i++)
+		tr.seaGrassAliasImage[0] = R_BakeTextures(seaGrassImages, 4, "seaGrass", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+	}
+
+	if ((GRASS2_ENABLED && r_foliage->integer))
+	{
+		if (!GRASS2_UNDERWATER_ONLY)
 		{
-			tr.seaGrassImage[i] = R_FindImageFile(seaGrassImages[i], IMGTYPE_COLORALPHA, IMGFLAG_NONE);
-		}*/
+			char grassImages[16][512] = { 0 };
 
-		tr.seaGrassAliasImage = R_BakeTextures(seaGrassImages, 4, "seaGrass", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+			for (int i = 0; i < 16; i++)
+			{
+				strcpy(grassImages[i], IniRead(mapname, "GRASS2", va("grassImage%i", i), "models/warzone/plants/grassblades02"));
 
-		// Grass maps... Try to load map based image first...
-		/*tr.defaultGrassMapImage = R_FindImageFile(va("maps/%s_grass.tga", currentMapName), IMGTYPE_SPLATCONTROLMAP, IMGFLAG_NOLIGHTSCALE);
+				if (!R_TextureFileExists(grassImages[i]))
+				{
+					strcpy(grassImages[i], "models/warzone/plants/grassblades02");
+				}
+			}
 
-		if (!tr.defaultGrassMapImage)
-		{// No map based image? Use default...
-			tr.defaultGrassMapImage = R_FindImageFile("gfx/grassmap.tga", IMGTYPE_SPLATCONTROLMAP, IMGFLAG_NOLIGHTSCALE);
+			tr.grassAliasImage[1] = R_BakeTextures(grassImages, 16, "grass1", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
 		}
 
-		if (!tr.defaultGrassMapImage)
-		{// No default image? Use white...
-			tr.defaultGrassMapImage = tr.whiteImage;
-		}*/
+		char seaGrassImages[16][512] = { 0 };
+
+		for (int i = 0; i < 4; i++)
+		{
+			strcpy(seaGrassImages[i], IniRead(mapname, "GRASS2", va("seaGrassImage%i", i), va("models/warzone/foliage/seagrass%i", i)));
+
+			if (!R_TextureFileExists(seaGrassImages[i]))
+			{
+				strcpy(seaGrassImages[i], "models/warzone/plants/grassblades02");
+			}
+		}
+
+		tr.seaGrassAliasImage[1] = R_BakeTextures(seaGrassImages, 4, "seaGrass1", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+	}
+
+	if ((GRASS3_ENABLED && r_foliage->integer))
+	{
+		if (!GRASS3_UNDERWATER_ONLY)
+		{
+			char grassImages[16][512] = { 0 };
+
+			for (int i = 0; i < 16; i++)
+			{
+				strcpy(grassImages[i], IniRead(mapname, "GRASS3", va("grassImage%i", i), "models/warzone/plants/grassblades02"));
+
+				if (!R_TextureFileExists(grassImages[i]))
+				{
+					strcpy(grassImages[i], "models/warzone/plants/grassblades02");
+				}
+			}
+
+			tr.grassAliasImage[2] = R_BakeTextures(grassImages, 16, "grass2", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		}
+
+		char seaGrassImages[16][512] = { 0 };
+
+		for (int i = 0; i < 4; i++)
+		{
+			strcpy(seaGrassImages[i], IniRead(mapname, "GRASS3", va("seaGrassImage%i", i), va("models/warzone/foliage/seagrass%i", i)));
+
+			if (!R_TextureFileExists(seaGrassImages[i]))
+			{
+				strcpy(seaGrassImages[i], "models/warzone/plants/grassblades02");
+			}
+		}
+
+		tr.seaGrassAliasImage[2] = R_BakeTextures(seaGrassImages, 4, "seaGrass2", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+	}
+
+	if ((GRASS4_ENABLED && r_foliage->integer))
+	{
+		if (!GRASS4_UNDERWATER_ONLY)
+		{
+			char grassImages[16][512] = { 0 };
+
+			for (int i = 0; i < 16; i++)
+			{
+				strcpy(grassImages[i], IniRead(mapname, "GRASS4", va("grassImage%i", i), "models/warzone/plants/grassblades02"));
+
+				if (!R_TextureFileExists(grassImages[i]))
+				{
+					strcpy(grassImages[i], "models/warzone/plants/grassblades02");
+				}
+			}
+
+			tr.grassAliasImage[3] = R_BakeTextures(grassImages, 16, "grass3", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		}
+
+		char seaGrassImages[16][512] = { 0 };
+
+		for (int i = 0; i < 4; i++)
+		{
+			strcpy(seaGrassImages[i], IniRead(mapname, "GRASS4", va("seaGrassImage%i", i), va("models/warzone/foliage/seagrass%i", i)));
+
+			if (!R_TextureFileExists(seaGrassImages[i]))
+			{
+				strcpy(seaGrassImages[i], "models/warzone/plants/grassblades02");
+			}
+		}
+
+		tr.seaGrassAliasImage[3] = R_BakeTextures(seaGrassImages, 4, "seaGrass3", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
 	}
 
 	if ((FOLIAGE_ENABLED && r_foliage->integer))

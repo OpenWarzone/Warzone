@@ -78,6 +78,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //#define __USE_DETAIL_MAPS__					// Enabled detail map system... Disabling for now for more FPS...
 //#define __GEOMETRY_SHADER_ALLOW_INVOCATIONS__ // Enable geometry shader invocations support. Slower because you cant set the invocations max in realtime...
 //#define __EMISSIVE_CUBE_IBL__					// Experimental IBL using glowmap cubes...
+//#define __MESH_OPTIMIZATION__					// Optimize all model's when loading. Disabled for now because it slows load time a bit.
 
 #define __ZFAR_CULLING_ON_SURFACES__			// Experimental zfar culling separation of depth prepass and render surfaces...
 //#define __ZFAR_CULLING_ON_LEAFS__				// Do zfar culling on leaf bounds, not on per surface origins...
@@ -141,10 +142,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 // Optimization stuff...
 //
-#define __RENDER_PASSES__
-
 //#define __SORT_POLYS__							// Sorts polys by shader so when they draw, they get merged...
-
 #define __MERGE_DEPTHPASS_DRAWS__				// Merges non-alpha draws in depth prepass by using defaultshader for them...
 
 #define __FX_SORTING__
@@ -1609,12 +1607,11 @@ enum
 	LIGHTDEF_USE_LIGHTMAP = 0x0001,
 	LIGHTDEF_USE_GLOW_BUFFER = 0x0002,
 	LIGHTDEF_USE_CUBEMAP = 0x0004,
-	LIGHTDEF_USE_TESSELLATION = 0x0008,
-	LIGHTDEF_USE_TRIPLANAR = 0x0010,
-	LIGHTDEF_USE_REGIONS = 0x0020,
-	LIGHTDEF_IS_DETAIL = 0x0040,
+	LIGHTDEF_USE_TRIPLANAR = 0x0008,
+	LIGHTDEF_USE_REGIONS = 0x0010,
+	LIGHTDEF_IS_DETAIL = 0x0020,
 	
-	LIGHTDEF_COUNT = 1+(LIGHTDEF_USE_LIGHTMAP | LIGHTDEF_USE_GLOW_BUFFER | LIGHTDEF_USE_CUBEMAP | LIGHTDEF_USE_TESSELLATION | LIGHTDEF_USE_TRIPLANAR | LIGHTDEF_USE_REGIONS | LIGHTDEF_IS_DETAIL)
+	LIGHTDEF_COUNT = 1+(LIGHTDEF_USE_LIGHTMAP | LIGHTDEF_USE_GLOW_BUFFER | LIGHTDEF_USE_CUBEMAP | LIGHTDEF_USE_TRIPLANAR | LIGHTDEF_USE_REGIONS | LIGHTDEF_IS_DETAIL)
 };
 
 
@@ -1811,6 +1808,7 @@ typedef enum
 	UNIFORM_MATERIAL_REFLECTIVENESS,
 
 	UNIFORM_TESSELATION_INFO,
+	UNIFORM_TESSELATION_3D_INFO,
 
 	UNIFORM_LIGHTCOUNT,
 	UNIFORM_LIGHTPOSITIONS2,
@@ -2798,6 +2796,9 @@ typedef enum {
 	RENDERPASS_NONE,
 	RENDERPASS_PSHADOWS,
 	RENDERPASS_GRASS,
+	RENDERPASS_GRASS2,
+	RENDERPASS_GRASS3,
+	RENDERPASS_GRASS4,
 	RENDERPASS_GROUNDFOLIAGE,
 	RENDERPASS_VINES,
 	RENDERPASS_MIST,
@@ -2926,9 +2927,9 @@ typedef struct trGlobals_s {
 	image_t					*waterHeightMapImage;
 	image_t					*foliageMapImage;
 	image_t					*grassImage[16];
-	image_t					*grassAliasImage;
+	image_t					*grassAliasImage[4];
 	image_t					*seaGrassImage[4];
-	image_t					*seaGrassAliasImage;
+	image_t					*seaGrassAliasImage[4];
 	image_t					*grassMaskImage[10];
 	image_t					*vinesImage[16];
 	image_t					*vinesAliasImage;
@@ -3082,9 +3083,9 @@ typedef struct trGlobals_s {
 	shaderProgram_t occlusionShader;
 	shaderProgram_t depthAdjustShader;
 	shaderProgram_t lightAllShader[3];
-	shaderProgram_t lightAllSplatShader[3];
+	shaderProgram_t lightAllSplatShader[4];
 	shaderProgram_t skyShader;
-	shaderProgram_t depthPassShader;
+	shaderProgram_t depthPassShader[4];
 	shaderProgram_t sunPassShader;
 	shaderProgram_t moonPassShader;
 	shaderProgram_t planetPassShader;
@@ -3095,8 +3096,8 @@ typedef struct trGlobals_s {
 	shaderProgram_t magicParticlesFireFlyShader;
 	shaderProgram_t portalShader;
 	shaderProgram_t menuBackgroundShader;
-	shaderProgram_t shadowmapShader;
-	shaderProgram_t pshadowShader[3];
+	shaderProgram_t shadowmapShader[4];
+	shaderProgram_t pshadowShader[4];
 	shaderProgram_t down4xShader;
 	shaderProgram_t bokehShader;
 	shaderProgram_t tonemapShader;
