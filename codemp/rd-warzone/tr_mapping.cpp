@@ -1786,6 +1786,26 @@ qboolean R_SurfaceIsAllowedMist(int materialType)
 	return qfalse;
 }
 
+qboolean RB_ShouldUseTerrainTessellation(int materialType)
+{
+	if (materialType <= MATERIAL_NONE)
+	{
+		return qfalse;
+	}
+
+	if (materialType == MATERIAL_SHORTGRASS
+		|| materialType == MATERIAL_LONGGRASS)
+	{
+		return qtrue;
+	}
+
+	if (R_SurfaceIsAllowedTessellation(materialType))
+	{// *sigh* due to surfaceFlags mixing materials with other flags, we need to do it this way...
+		return qtrue;
+	}
+
+	return qfalse;
+}
 
 qboolean RB_ShouldUseGeometryGrass(int materialType)
 {
@@ -1866,7 +1886,7 @@ qboolean RB_ShouldUseGeometryFoliage(int materialType)
 		return qtrue;
 	}
 
-	if (R_SurfaceIsAllowedGrass(materialType))
+	if (R_SurfaceIsAllowedFoliage(materialType))
 	{// *sigh* due to surfaceFlags mixing materials with other flags, we need to do it this way...
 		return qtrue;
 	}
@@ -1895,27 +1915,6 @@ qboolean RB_ShouldUseGeometryVines(int materialType)
 	return qfalse;
 }
 
-qboolean RB_ShouldUseTerrainTessellation(int materialType)
-{
-	if (materialType <= MATERIAL_NONE)
-	{
-		return qfalse;
-	}
-
-	if (materialType == MATERIAL_SHORTGRASS
-		|| materialType == MATERIAL_LONGGRASS)
-	{
-		return qtrue;
-	}
-
-	if (R_SurfaceIsAllowedTessellation(materialType))
-	{// *sigh* due to surfaceFlags mixing materials with other flags, we need to do it this way...
-		return qtrue;
-	}
-
-	return qfalse;
-}
-
 qboolean RB_ShouldUseMist(int materialType)
 {
 	if (materialType <= MATERIAL_NONE)
@@ -1929,7 +1928,7 @@ qboolean RB_ShouldUseMist(int materialType)
 		return qtrue;
 	}
 
-	if (R_SurfaceIsAllowedTessellation(materialType))
+	if (R_SurfaceIsAllowedMist(materialType))
 	{// *sigh* due to surfaceFlags mixing materials with other flags, we need to do it this way...
 		return qtrue;
 	}
