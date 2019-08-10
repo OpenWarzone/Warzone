@@ -1575,6 +1575,7 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 
 			shader_t *thisShader = tr.sortedShaders[(drawSurf->sort >> QSORT_SHADERNUM_SHIFT) & (MAX_SHADERS - 1)];
 			int64_t thisEntityNum = (drawSurf->sort >> QSORT_REFENTITYNUM_SHIFT) & REFENTITYNUM_MASK;
+			//trRefEntity_t *thisEnt = &backEnd.refdef.entities[thisEntityNum];
 
 			if (thisShader->surfaceFlags & SURF_NODRAW)
 			{// Skip nodraws completely...

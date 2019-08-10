@@ -2489,7 +2489,7 @@ void MAPPING_LoadMapInfo(void)
 		GRASS2_LOD_START_RANGE = atof(IniRead(mapname, "GRASS2", "GRASS_LOD_START_RANGE", va("%f", GRASS2_DISTANCE)));
 		GRASS2_TYPE_UNIFORMALITY = atof(IniRead(mapname, "GRASS2", "GRASS_TYPE_UNIFORMALITY", "0.97"));
 		GRASS2_TYPE_UNIFORMALITY_SCALER = atof(IniRead(mapname, "GRASS2", "GRASS_TYPE_UNIFORMALITY_SCALER", "0.008"));
-		GRASS2_DISTANCE_FROM_ROADS = Q_clamp(0.0, atof(IniRead(mapname, "GRASS", "GRASS2_DISTANCE_FROM_ROADS", "0.25")), 0.9);
+		GRASS2_DISTANCE_FROM_ROADS = Q_clamp(0.0, atof(IniRead(mapname, "GRASS2", "GRASS_DISTANCE_FROM_ROADS", "0.25")), 0.9);
 		GRASS2_SIZE_MULTIPLIER_COMMON = atof(IniRead(mapname, "GRASS2", "GRASS_SIZE_MULTIPLIER_COMMON", "1.0"));
 		GRASS2_SIZE_MULTIPLIER_RARE = atof(IniRead(mapname, "GRASS2", "GRASS_SIZE_MULTIPLIER_RARE", "2.75"));
 		GRASS2_SIZE_MULTIPLIER_UNDERWATER = atof(IniRead(mapname, "GRASS2", "GRASS_SIZE_MULTIPLIER_UNDERWATER", "1.0"));
@@ -2611,6 +2611,8 @@ void MAPPING_LoadMapInfo(void)
 	//
 	FOLIAGE_ENABLED = (atoi(IniRead(mapname, "FOLIAGE", "FOLIAGE_ENABLED", "0")) > 0) ? qtrue : qfalse;
 
+	FOLIAGE_ALLOWED_MATERIALS_NUM = 0;
+
 	if (FOLIAGE_ENABLED)
 	{
 		FOLIAGE_DENSITY = atoi(IniRead(mapname, "FOLIAGE", "FOLIAGE_DENSITY", "2"));
@@ -2623,8 +2625,6 @@ void MAPPING_LoadMapInfo(void)
 		FOLIAGE_TYPE_UNIFORMALITY = atof(IniRead(mapname, "FOLIAGE", "FOLIAGE_TYPE_UNIFORMALITY", "0.97"));
 		FOLIAGE_TYPE_UNIFORMALITY_SCALER = atof(IniRead(mapname, "FOLIAGE", "FOLIAGE_TYPE_UNIFORMALITY_SCALER", "0.008"));
 		FOLIAGE_DISTANCE_FROM_ROADS = Q_clamp(0.0, atof(IniRead(mapname, "FOLIAGE", "FOLIAGE_DISTANCE_FROM_ROADS", "0.25")), 0.9);
-
-		FOLIAGE_ALLOWED_MATERIALS_NUM = 0;
 
 		// Parse any specified extra surface material types to add grasses to...
 		for (int m = 0; m < 8; m++)
@@ -2646,7 +2646,13 @@ void MAPPING_LoadMapInfo(void)
 		}
 	}
 
+
+	//
+	// Hanging Vines...
+	//
 	VINES_ENABLED = (atoi(IniRead(mapname, "VINES", "VINES_ENABLED", "0")) > 0) ? qtrue : qfalse;
+
+	VINES_ALLOWED_MATERIALS_NUM = 0;
 
 	if (VINES_ENABLED)
 	{
@@ -2659,8 +2665,6 @@ void MAPPING_LoadMapInfo(void)
 		VINES_SURFACE_SIZE_DIVIDER = atof(IniRead(mapname, "VINES", "VINES_SURFACE_SIZE_DIVIDER", "65536.0"));
 		VINES_TYPE_UNIFORMALITY = atof(IniRead(mapname, "VINES", "VINES_TYPE_UNIFORMALITY", "0.97"));
 		VINES_TYPE_UNIFORMALITY_SCALER = atof(IniRead(mapname, "VINES", "VINES_TYPE_UNIFORMALITY_SCALER", "0.008"));
-
-		VINES_ALLOWED_MATERIALS_NUM = 0;
 
 		// Parse any specified extra surface material types to add grasses to...
 		for (int m = 0; m < 8; m++)
@@ -2682,7 +2686,12 @@ void MAPPING_LoadMapInfo(void)
 		}
 	}
 
+	//
+	// Mist...
+	//
 	MIST_ENABLED = (atoi(IniRead(mapname, "MIST", "MIST_ENABLED", "0")) > 0) ? qtrue : qfalse;
+
+	MIST_ALLOWED_MATERIALS_NUM = 0;
 
 	if (MIST_ENABLED)
 	{
@@ -2697,8 +2706,6 @@ void MAPPING_LoadMapInfo(void)
 		MIST_SPEED_Y = atof(IniRead(mapname, "MIST", "MIST_SPEED_Y", "1.0"));
 		MIST_LOD_START_RANGE = atof(IniRead(mapname, "MIST", "MIST_LOD_START_RANGE", va("%f", MIST_DISTANCE)));
 		MIST_TEXTURE = R_FindImageFile(IniRead(mapname, "MIST", "MIST_TEXTURE", "gfx/cloudtile"), IMGTYPE_COLORALPHA, IMGFLAG_NONE);
-
-		MIST_ALLOWED_MATERIALS_NUM = 0;
 
 		// Parse any specified extra surface material types to add grasses to...
 		for (int m = 0; m < 8; m++)

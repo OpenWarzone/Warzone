@@ -1964,6 +1964,14 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		return;
 	}
 
+	if (!ALLOW_PROCEDURALS_ON_MODELS 
+		&& backEnd.currentEntity != &tr.worldEntity 
+		&& backEnd.currentEntity != &backEnd.entity2D 
+		&& backEnd.renderPass != RENDERPASS_NONE)
+	{// Rendering of procedurals on model surfaces is disabled by default, but ALLOW_PROCEDURALS_ON_MODELS=1 in the [FIXES] section of mapinfo can be used to override this.
+		return;
+	}
+
 	vec4_t	fogDistanceVector, fogDepthVector = {0, 0, 0, 0};
 	float	eyeT = 0;
 	int		deformGen;
@@ -2210,35 +2218,31 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	{
 
 	}
-	/*else if (backEnd.currentEntity != &tr.worldEntity)
-	{
-
-	}*/
-	else if ((!isGrass || (!ALLOW_PROCEDURALS_ON_MODELS && backEnd.currentEntity != &tr.worldEntity)) && backEnd.renderPass == RENDERPASS_GRASS)
+	else if (!isGrass && backEnd.renderPass == RENDERPASS_GRASS)
 	{
 		return;
 	}
-	else if ((!isGrass2 || (!ALLOW_PROCEDURALS_ON_MODELS && backEnd.currentEntity != &tr.worldEntity)) && backEnd.renderPass == RENDERPASS_GRASS2)
+	else if (!isGrass2 && backEnd.renderPass == RENDERPASS_GRASS2)
 	{
 		return;
 	}
-	else if ((!isGrass3 || (!ALLOW_PROCEDURALS_ON_MODELS && backEnd.currentEntity != &tr.worldEntity)) && backEnd.renderPass == RENDERPASS_GRASS3)
+	else if (!isGrass3 && backEnd.renderPass == RENDERPASS_GRASS3)
 	{
 		return;
 	}
-	else if ((!isGrass4 || (!ALLOW_PROCEDURALS_ON_MODELS && backEnd.currentEntity != &tr.worldEntity)) && backEnd.renderPass == RENDERPASS_GRASS4)
+	else if (!isGrass4 && backEnd.renderPass == RENDERPASS_GRASS4)
 	{
 		return;
 	}
-	else if ((!isGroundFoliage || (!ALLOW_PROCEDURALS_ON_MODELS && backEnd.currentEntity != &tr.worldEntity)) && backEnd.renderPass == RENDERPASS_GROUNDFOLIAGE)
+	else if (!isGroundFoliage && backEnd.renderPass == RENDERPASS_GROUNDFOLIAGE)
 	{
 		return;
 	}
-	else if ((!isVines || (!ALLOW_PROCEDURALS_ON_MODELS && backEnd.currentEntity != &tr.worldEntity)) && backEnd.renderPass == RENDERPASS_VINES)
+	else if (!isVines && backEnd.renderPass == RENDERPASS_VINES)
 	{
 		return;
 	}
-	else if ((!isMist || (!ALLOW_PROCEDURALS_ON_MODELS && backEnd.currentEntity != &tr.worldEntity)) && backEnd.renderPass == RENDERPASS_MIST)
+	else if (!isMist && backEnd.renderPass == RENDERPASS_MIST)
 	{
 		return;
 	}
