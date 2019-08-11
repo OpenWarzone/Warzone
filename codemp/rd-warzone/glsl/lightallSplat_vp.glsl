@@ -45,20 +45,21 @@ uniform vec4				u_Settings3; // LIGHTDEF_USE_REGIONS, LIGHTDEF_IS_DETAIL
 #define USE_ISDETAIL		u_Settings3.g
 
 uniform vec4						u_Local1; // MAP_SIZE, sway, overlaySway, materialType
-uniform vec4						u_Local2; // hasSteepMap, hasWaterEdgeMap, haveNormalMap, SHADER_WATER_LEVEL
+uniform vec4						u_Local2; // hasWaterEdgeMap, haveNormalMap, 0.0, SHADER_WATER_LEVEL
 uniform vec4						u_Local3; // hasSplatMap1, hasSplatMap2, hasSplatMap3, hasSplatMap4
 uniform vec4						u_Local4; // stageNum, glowStrength, r_showsplat, 0.0
 uniform vec4						u_Local8;
 uniform vec4						u_Local9; // testvalue0, 1, 2, 3
+uniform vec4						u_Local13; // hasSteepMap, hasSteepMap1, hasSteepMap2, hasSteepMap3
 
 #define SHADER_MAP_SIZE				u_Local1.r
 #define SHADER_SWAY					u_Local1.g
 #define SHADER_OVERLAY_SWAY			u_Local1.b
 #define SHADER_MATERIAL_TYPE		u_Local1.a
 
-#define SHADER_HAS_STEEPMAP			u_Local2.r
-#define SHADER_HAS_WATEREDGEMAP		u_Local2.g
-#define SHADER_HAS_NORMALMAP		u_Local2.b
+#define SHADER_HAS_WATEREDGEMAP		u_Local2.r
+#define SHADER_HAS_NORMALMAP		u_Local2.g
+//#define UNUSED					u_Local2.b
 #define SHADER_WATER_LEVEL			u_Local2.a
 
 #define SHADER_HAS_SPLATMAP1		u_Local3.r
@@ -69,6 +70,12 @@ uniform vec4						u_Local9; // testvalue0, 1, 2, 3
 #define SHADER_STAGE_NUM			u_Local4.r
 #define SHADER_GLOW_STRENGTH		u_Local4.g
 #define SHADER_SHOW_SPLAT			u_Local4.b
+#define SHADER_GLOW_VIBRANCY		u_Local4.a
+
+#define SHADER_HAS_STEEPMAP			u_Local13.r
+#define SHADER_HAS_STEEPMAP1		u_Local13.g
+#define SHADER_HAS_STEEPMAP2		u_Local13.b
+#define SHADER_HAS_STEEPMAP3		u_Local13.a
 
 #ifdef __CHEAP_VERTS__
 uniform int					u_isWorld;

@@ -731,7 +731,6 @@ typedef enum
 	IMGTYPE_SPECULAR,
 	IMGTYPE_NORMALHEIGHT,
 	IMGTYPE_DELUXE, // normals are swizzled, deluxe are not
-	//IMGTYPE_SUBSURFACE,
 	IMGTYPE_OVERLAY,
 	IMGTYPE_STEEPMAP,
 	IMGTYPE_WATER_EDGE_MAP,
@@ -1120,16 +1119,6 @@ typedef struct {
 	qboolean		isLightmap;
 	qboolean		oneShotAnimMap;
 	qboolean		isVideoMap;
-	qboolean		normalsLoaded;
-	qboolean		normalsLoaded2;
-	qboolean		steepNormalsLoaded;
-	qboolean		steepNormalsLoaded2;
-	qboolean		specularLoaded;
-	//qboolean		subsurfaceLoaded;
-	qboolean		overlayLoaded;
-	qboolean		steepMapLoaded;
-	qboolean		steepMapLoaded2;
-	qboolean		roofMapLoaded;
 } textureBundle_t;
 
 enum
@@ -1153,22 +1142,25 @@ enum
 	TB_SKYCUBEMAPNIGHT	= 12,
 	TB_EMISSIVECUBE		= 13,
 	TB_OVERLAYMAP		= 14,
-	TB_STEEPMAP			= 15,
-	TB_WATER_EDGE_MAP	= 16,
-	TB_SPLATCONTROLMAP	= 17,
-	TB_SPLATMAP1		= 18,
-	TB_SPLATMAP2		= 19,
-	TB_SPLATMAP3		= 20,
-	TB_ROADSCONTROLMAP	= 21,
-	TB_ROADMAP			= 22,
-	TB_DETAILMAP		= 23,
-	TB_ROOFMAP			= 24,
-	TB_MOONMAP1			= 25,
-	TB_MOONMAP2			= 26,
-	TB_MOONMAP3			= 27,
-	TB_MOONMAP4			= 28,
-	TB_ENVMAP			= 29,
-	NUM_TEXTURE_BUNDLES = 30 // limit is 31 (32 max)
+	TB_WATER_EDGE_MAP	= 15,
+	TB_SPLATCONTROLMAP	= 16,
+	TB_SPLATMAP1		= 17,
+	TB_SPLATMAP2		= 18,
+	TB_SPLATMAP3		= 19,
+	TB_ROADSCONTROLMAP	= 20,
+	TB_ROADMAP			= 21,
+	TB_DETAILMAP		= 22,
+	TB_ROOFMAP			= 23,
+	TB_STEEPMAP			= 24,				// Note: Shared with moonmap1 sampler uniform. Shaders cannot use both!
+	TB_MOONMAP1			= TB_STEEPMAP,		// Note: Shared with steepmap sampler uniform. Shaders cannot use both!
+	TB_STEEPMAP1		= 25,				// Note: Shared with moonmap2 sampler uniform. Shaders cannot use both!
+	TB_MOONMAP2			= TB_STEEPMAP1,		// Note: Shared with steepmap1 sampler uniform. Shaders cannot use both!
+	TB_STEEPMAP2		= 26,				// Note: Shared with moonmap3 sampler uniform. Shaders cannot use both!
+	TB_MOONMAP3			= TB_STEEPMAP2,		// Note: Shared with steepmap2 sampler uniform. Shaders cannot use both!
+	TB_STEEPMAP3		= 27,				// Note: Shared with moonmap4 sampler uniform. Shaders cannot use both!
+	TB_MOONMAP4			= TB_STEEPMAP3,		// Note: Shared with steepmap3 sampler uniform. Shaders cannot use both!
+	TB_ENVMAP			= 28,
+	NUM_TEXTURE_BUNDLES = 29 // limit is 31 (32 max)
 };
 
 typedef enum
@@ -1179,14 +1171,6 @@ typedef enum
 	ST_NORMALMAP,
 	ST_NORMALPARALLAXMAP,
 	ST_SPECULARMAP,
-	ST_OVERLAYMAP,
-	ST_STEEPMAP,
-	ST_WATER_EDGE_MAP,
-	ST_SPLATCONTROLMAP,
-	ST_SPLATMAP1,
-	ST_SPLATMAP2,
-	ST_SPLATMAP3,
-	ST_ROOFMAP,
 	ST_GLSL
 } stageType_t;
 
@@ -1239,13 +1223,8 @@ typedef struct {
 	qboolean		isDetail;
 	qboolean		noScreenMap;
 	int				isWater;
-	bool			hasSpecular;
-	bool			hasRealNormalMap;
-	//bool			hasRealSubsurfaceMap;
-	bool			hasRealOverlayMap;
-	bool			hasRealSteepMap;
-	bool			hasRealWaterEdgeMap;
-	bool			hasRealRoofMap;
+	bool			hasSpecularMap;
+	bool			hasNormalMap;
 	
 	qboolean		glowMapped;
 	int				glowBlend;
@@ -1279,11 +1258,6 @@ typedef struct {
 	vec4_t			specularScale;
 
 	float			cubeMapScale;
-
-	/*float			subsurfaceRimScalar;
-	float			subsurfaceMaterialThickness;
-	float			subsurfaceSpecularPower;
-	vec4_t			subsurfaceExtinctionCoefficient;*/
 
 	qboolean		isSurfaceSprite;
 
@@ -1657,6 +1631,9 @@ typedef enum
 	UNIFORM_EMISSIVECUBE,
 	UNIFORM_OVERLAYMAP,
 	UNIFORM_STEEPMAP,
+	UNIFORM_STEEPMAP1,
+	UNIFORM_STEEPMAP2,
+	UNIFORM_STEEPMAP3,
 	UNIFORM_WATER_EDGE_MAP,
 	UNIFORM_SPLATCONTROLMAP,
 	UNIFORM_SPLATMAP1,
@@ -1807,6 +1784,7 @@ typedef enum
 	UNIFORM_LOCAL10,
 	UNIFORM_LOCAL11,
 	UNIFORM_LOCAL12,
+	UNIFORM_LOCAL13,
 
 	UNIFORM_MOON_COUNT,
 	UNIFORM_MOON_INFOS,

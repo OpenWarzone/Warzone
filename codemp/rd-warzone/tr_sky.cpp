@@ -1482,8 +1482,8 @@ void DrawSkyDome ( shader_t *skyShader )
 
 	GLSL_SetUniformInt(&tr.skyDomeShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
 	GL_BindToTMU(tintImage, TB_DIFFUSEMAP);
-	GLSL_SetUniformInt(&tr.skyDomeShader, UNIFORM_STEEPMAP, TB_STEEPMAP);
-	GL_BindToTMU(tint2Image, TB_STEEPMAP);
+	GLSL_SetUniformInt(&tr.skyDomeShader, UNIFORM_STEEPMAP1, TB_STEEPMAP1);
+	GL_BindToTMU(tint2Image, TB_STEEPMAP1);
 	GLSL_SetUniformInt(&tr.skyDomeShader, UNIFORM_WATER_EDGE_MAP, TB_WATER_EDGE_MAP);
 	GL_BindToTMU(sunImage, TB_WATER_EDGE_MAP);
 	GLSL_SetUniformInt(&tr.skyDomeShader, UNIFORM_SPLATMAP1, TB_SPLATMAP1);

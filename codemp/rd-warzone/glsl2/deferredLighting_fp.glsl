@@ -30,7 +30,7 @@ uniform sampler2D							u_OverlayMap;		// Real normals. Alpha channel 1.0 means 
 #endif //__USE_REAL_NORMALMAPS__
 
 #ifdef __ENHANCED_AO__
-uniform sampler2D							u_SteepMap;			// ssao image
+uniform sampler2D							u_SteepMap1;			// ssao image
 #endif //__ENHANCED_AO__
 
 #ifdef __SCREEN_SPACE_REFLECTIONS__
@@ -1814,7 +1814,7 @@ void main(void)
 				for (int y = -width; y <= width; y+=2)
 				{
 					vec2 coord = texCoords + (vec2(float(x), float(y)) * pixel);
-					msao += textureLod(u_SteepMap, coord, 0.0).x;
+					msao += textureLod(u_SteepMap1, coord, 0.0).x;
 					numSamples += 1.0;
 				}
 			}
@@ -1823,7 +1823,7 @@ void main(void)
 		}
 		else
 		{
-			msao = textureLod(u_SteepMap, texCoords, 0.0).x;
+			msao = textureLod(u_SteepMap1, texCoords, 0.0).x;
 		}
 
 		float sao = clamp(msao, 0.0, 1.0);

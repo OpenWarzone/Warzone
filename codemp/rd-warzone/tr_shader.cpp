@@ -119,7 +119,6 @@ static void ClearGlobalShader(void)
 
 		// default normal/specular
 		VectorSet4(stages[i].normalScale, 0.0f, 0.0f, 0.0f, 0.0f);
-		//VectorSet4(stages[i].subsurfaceExtinctionCoefficient, 0.0f, 0.0f, 0.0f, 0.0f);
 		VectorSet4(stages[i].specularScale, 0.0f, 0.0f, 0.0f, 0.0f); // UQ1: if not set, will fall back to material type defaults instead of cvars...
 	}
 
@@ -1897,38 +1896,6 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 
 					stage->noScreenMap = qtrue;
 				}
-				/*else if (stage->type == ST_SUBSURFACEMAP)
-				{
-					type = IMGTYPE_SUBSURFACE;
-					flags |= IMGFLAG_NOLIGHTSCALE;
-
-					stage->noScreenMap = qtrue;
-				}*/
-				else if (stage->type == ST_OVERLAYMAP)
-				{
-					type = IMGTYPE_OVERLAY;
-					//flags |= IMGFLAG_NOLIGHTSCALE;
-
-					stage->noScreenMap = qtrue;
-				}
-				else if (stage->type == ST_STEEPMAP)
-				{
-					type = IMGTYPE_STEEPMAP;
-					//flags |= IMGFLAG_NOLIGHTSCALE;
-
-					stage->noScreenMap = qtrue;
-				}
-				else if (stage->type == ST_WATER_EDGE_MAP)
-				{
-					type = IMGTYPE_WATER_EDGE_MAP;
-					//flags |= IMGFLAG_NOLIGHTSCALE;
-
-					stage->noScreenMap = qtrue;
-				}
-				else if (stage->type == ST_ROOFMAP)
-				{
-					type = IMGTYPE_ROOFMAP;
-				}
 				else
 				{
 					//if (r_genNormalMaps->integer)
@@ -2422,24 +2389,6 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 				//VectorSet4(stage->specularScale, r_baseSpecular->integer, r_baseSpecular->integer, r_baseSpecular->integer, 1.0f);
 				VectorSet4(stage->specularScale, 1.0f, 1.0f, 1.0f, 1.0f);
 			}
-			/*else if(!Q_stricmp(token, "subsurfaceMap"))
-			{
-				stage->type = ST_SUBSURFACEMAP;
-				//VectorSet4(stage->specularScale, r_baseSpecular->integer, r_baseSpecular->integer, r_baseSpecular->integer, 1.0f);
-				VectorSet4(stage->subsurfaceExtinctionCoefficient, 0.0f, 0.0f, 0.0f, 0.0f);
-			}*/
-			else if(!Q_stricmp(token, "overlayMap"))
-			{
-				stage->type = ST_OVERLAYMAP;
-			}
-			else if(!Q_stricmp(token, "steepMap"))
-			{
-				stage->type = ST_STEEPMAP;
-			}
-			else if(!Q_stricmp(token, "waterEdgeMap"))
-			{
-				stage->type = ST_WATER_EDGE_MAP;
-			}
 			else
 			{
 				ri->Printf(PRINT_WARNING, "WARNING: unknown stage parameter '%s' in shader '%s'\n", token, shader.name);
@@ -2459,70 +2408,6 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 			stage->cubeMapScale = atof( token );
 			continue;
 		}
-		/*else if (!Q_stricmp(token, "subsurfaceRimScalar"))
-		{
-			token = COM_ParseExt(text, qfalse);
-			if ( token[0] == 0 )
-			{
-				ri->Printf( PRINT_WARNING, "WARNING: missing parameter for subsurfaceRimScalar in shader '%s'\n", shader.name );
-				continue;
-			}
-			stage->subsurfaceRimScalar = atof( token );
-			continue;
-		}
-		else if (!Q_stricmp(token, "subsurfaceMaterialThickness"))
-		{
-			token = COM_ParseExt(text, qfalse);
-			if ( token[0] == 0 )
-			{
-				ri->Printf( PRINT_WARNING, "WARNING: missing parameter for subsurfaceMaterialThickness in shader '%s'\n", shader.name );
-				continue;
-			}
-			stage->subsurfaceMaterialThickness = atof( token );
-			continue;
-		}
-		else if (!Q_stricmp(token, "subsurfaceSpecularPower"))
-		{
-			token = COM_ParseExt(text, qfalse);
-			if ( token[0] == 0 )
-			{
-				ri->Printf( PRINT_WARNING, "WARNING: missing parameter for subsurfaceSpecularPower in shader '%s'\n", shader.name );
-				continue;
-			}
-			stage->subsurfaceSpecularPower = atof( token );
-			continue;
-		}
-		else if (!Q_stricmp(token, "subsurfaceExtinctionCoefficient"))
-		{
-			token = COM_ParseExt(text, qfalse);
-			if ( token[0] == 0 )
-			{
-				ri->Printf( PRINT_WARNING, "WARNING: missing parameter for subsurfaceExtinctionCoefficient in shader '%s'\n", shader.name );
-				continue;
-			}
-
-			stage->subsurfaceExtinctionCoefficient[0] = atof( token );
-
-			token = COM_ParseExt(text, qfalse);
-			if ( token[0] == 0 )
-			{
-				ri->Printf( PRINT_WARNING, "WARNING: missing parameter for subsurfaceExtinctionCoefficient in shader '%s'\n", shader.name );
-				continue;
-			}
-
-			stage->subsurfaceExtinctionCoefficient[1] = atof( token );
-
-			token = COM_ParseExt(text, qfalse);
-
-			if ( token[0] == 0 )
-			{
-				ri->Printf( PRINT_WARNING, "WARNING: missing parameter for subsurfaceExtinctionCoefficient in shader '%s'\n", shader.name );
-				continue;
-			}
-
-			stage->subsurfaceExtinctionCoefficient[2] = atof( token );
-			continue;
-		}*/
 		//
 		// specularReflectance <value>
 		//
@@ -5494,16 +5379,9 @@ qboolean R_TextureFileExists(char *name)
 	return qfalse;
 }
 
-static void CollapseStagesToLightall(shaderStage_t *diffuse,
-	shaderStage_t *normal, shaderStage_t *specular, shaderStage_t *lightmap/*, shaderStage_t *subsurface*/, shaderStage_t *overlay, shaderStage_t *steepmap, shaderStage_t *waterEdgeMap, shaderStage_t *splatControlMap, shaderStage_t *splat1, shaderStage_t *splat2, shaderStage_t *splat3/*, shaderStage_t *splat4*/, shaderStage_t *roofMap, qboolean parallax, qboolean tcgen)
+static void CollapseStagesToLightall(shaderStage_t *diffuse, shaderStage_t *normal, shaderStage_t *specular, shaderStage_t *lightmap, qboolean parallax, qboolean tcgen)
 {
 	int defs = 0;
-	qboolean hasRealNormalMap = qfalse;
-	qboolean hasRealSpecularMap = qfalse;
-	qboolean hasRealOverlayMap = qfalse;
-	qboolean hasRealSteepMap = qfalse;
-	qboolean hasRealWaterEdgeMap = qfalse;
-	qboolean hasRealRoofMap = qfalse;
 	qboolean checkNormals = qtrue;
 	qboolean checkSplats = (r_splatMapping->integer /*&& !r_lowVram->integer*/) ? qtrue : qfalse;
 
@@ -5616,14 +5494,13 @@ static void CollapseStagesToLightall(shaderStage_t *diffuse,
 	{
 		image_t *diffuseImg = diffuse->bundle[TB_DIFFUSEMAP].image[0];
 
+		diffuse->hasNormalMap = false;
+
 		if (diffuse->bundle[TB_NORMALMAP].image[0] && normal->bundle[TB_NORMALMAP].image[0] != tr.whiteImage)
 		{
 			if (diffuse->normalScale[0] == 0 && diffuse->normalScale[1] == 0 && diffuse->normalScale[2] == 0)
 				VectorSet4(diffuse->normalScale, r_baseNormalX->value, r_baseNormalY->value, 1.0f, r_baseParallax->value);
-
-			//VectorCopy4(normal->normalScale, diffuse->normalScale);
-
-			hasRealNormalMap = qtrue;
+			diffuse->hasNormalMap = true;
 		}
 		else if (normal && normal->bundle[0].image[0] && normal->bundle[0].image[0] != tr.whiteImage)
 		{
@@ -5631,11 +5508,9 @@ static void CollapseStagesToLightall(shaderStage_t *diffuse,
 			diffuse->bundle[TB_NORMALMAP] = normal->bundle[0];
 
 			VectorCopy4(normal->normalScale, diffuse->normalScale);
-
-			diffuse->bundle[TB_DIFFUSEMAP].normalsLoaded = qtrue;
-			hasRealNormalMap = qtrue;
+			diffuse->hasNormalMap = true;
 		}
-		else if (r_normalMappingReal->integer && !diffuse->bundle[TB_DIFFUSEMAP].normalsLoaded)
+		else if (r_normalMappingReal->integer)
 		{
 			char normalName[MAX_IMAGE_PATH];
 			image_t *normalImg = NULL;
@@ -5668,14 +5543,12 @@ static void CollapseStagesToLightall(shaderStage_t *diffuse,
 
 				VectorSet4(diffuse->normalScale, r_baseNormalX->value, r_baseNormalY->value, 1.0f, r_baseParallax->value);
 
-				hasRealNormalMap = qtrue;
-				diffuse->bundle[TB_DIFFUSEMAP].normalsLoaded = qtrue;
+				diffuse->hasNormalMap = true;
 			}
 #ifndef __DEFERRED_IMAGE_LOADING__
 			else
 			{// Generate one...
-				if (!diffuse->bundle[TB_DIFFUSEMAP].normalsLoaded
-					&& !shader.isPortal
+				if (!shader.isPortal
 					&& !shader.isSky
 					&& !diffuse->glow
 					&& (!diffuse->bundle[TB_NORMALMAP].image[0] || diffuse->bundle[TB_NORMALMAP].image[0] == tr.whiteImage)
@@ -5687,7 +5560,6 @@ static void CollapseStagesToLightall(shaderStage_t *diffuse,
 					&& !(diffuse->bundle[TB_DIFFUSEMAP].image[0]->flags & IMGFLAG_CUBEMAP)
 					&& diffuse->bundle[TB_DIFFUSEMAP].image[0]->type != IMGTYPE_NORMAL
 					&& diffuse->bundle[TB_DIFFUSEMAP].image[0]->type != IMGTYPE_SPECULAR
-					/*&& diffuse->bundle[TB_DIFFUSEMAP].image[0]->type != IMGTYPE_SUBSURFACE*/
 					&& diffuse->bundle[TB_DIFFUSEMAP].image[0]->type != IMGTYPE_OVERLAY
 					&& diffuse->bundle[TB_DIFFUSEMAP].image[0]->type != IMGTYPE_STEEPMAP
 					&& diffuse->bundle[TB_DIFFUSEMAP].image[0]->type != IMGTYPE_WATER_EDGE_MAP
@@ -5703,16 +5575,20 @@ static void CollapseStagesToLightall(shaderStage_t *diffuse,
 						diffuse->bundle[TB_NORMALMAP].numImageAnimations = 0;
 						diffuse->bundle[TB_NORMALMAP].image[0] = normalImg;
 
-						if (diffuse->bundle[TB_NORMALMAP].image[0] && diffuse->bundle[TB_NORMALMAP].image[0] != tr.whiteImage) diffuse->hasRealNormalMap = true;
+						if (diffuse->bundle[TB_NORMALMAP].image[0] && diffuse->bundle[TB_NORMALMAP].image[0] != tr.whiteImage) 
+							diffuse->hasNormalMap = true;
+						else
+							diffuse->hasNormalMap = false;
 
 						if (diffuse->normalScale[0] == 0 && diffuse->normalScale[1] == 0 && diffuse->normalScale[2] == 0)
 							VectorSet4(diffuse->normalScale, r_baseNormalX->value, r_baseNormalY->value, 1.0f, r_baseParallax->value);
 					}
 				}
+				else
+				{
+					diffuse->hasNormalMap = false;
+				}
 			}
-
-			if (diffuse->bundle[TB_NORMALMAP].image[0] && diffuse->bundle[TB_NORMALMAP].image[0] != tr.whiteImage)
-				diffuse->bundle[TB_DIFFUSEMAP].normalsLoaded = qtrue;
 #endif //__DEFERRED_IMAGE_LOADING__
 		}
 	}
@@ -5725,9 +5601,9 @@ static void CollapseStagesToLightall(shaderStage_t *diffuse,
 		{// Got one...
 			diffuse->bundle[TB_SPECULARMAP] = specular->bundle[0];
 			if (specular) VectorCopy4(specular->specularScale, diffuse->specularScale);
-			hasRealSpecularMap = qtrue;
+			diffuse->hasSpecularMap = true;
 		}
-		else if (!diffuse->bundle[TB_SPECULARMAP].specularLoaded)
+		else
 		{// Check if we can load one...
 			char specularName[MAX_IMAGE_PATH];
 			char specularName2[MAX_IMAGE_PATH];
@@ -5737,6 +5613,8 @@ static void CollapseStagesToLightall(shaderStage_t *diffuse,
 			COM_StripExtension( diffuseImg->imgName, specularName, sizeof( specularName ) );
 			StripCrap( specularName, specularName2, sizeof(specularName));
 			Q_strcat( specularName2, sizeof( specularName2 ), "_s" );
+
+			diffuse->hasSpecularMap = false;
 
 #ifdef __DEFERRED_IMAGE_LOADING__
 			if (R_TextureFileExists(specularName2) || R_TIL_TextureFileExists(specularName2))
@@ -5785,82 +5663,18 @@ static void CollapseStagesToLightall(shaderStage_t *diffuse,
 				diffuse->bundle[TB_SPECULARMAP].image[0] = specularImg;
 				//if (!specular) specular = diffuse;
 				if (specular) VectorCopy4(specular->specularScale, diffuse->specularScale);
-				hasRealSpecularMap = qtrue;
+				diffuse->hasSpecularMap = true;
 			}
-
-			diffuse->bundle[TB_SPECULARMAP].specularLoaded = qtrue;
 		}
 	}
-
-	/*
-	if (1 && checkNormals)
-	{
-		image_t *diffuseImg = diffuse->bundle[TB_DIFFUSEMAP].image[0];
-
-		if (diffuse->bundle[TB_SUBSURFACEMAP].image[0] && diffuse->bundle[TB_SUBSURFACEMAP].image[0] != tr.whiteImage)
-		{// Got one...
-			diffuse->bundle[TB_SUBSURFACEMAP] = specular->bundle[0];
-			if (subsurface) VectorCopy4(subsurface->subsurfaceExtinctionCoefficient, diffuse->subsurfaceExtinctionCoefficient);
-			hasRealSubsurfaceMap = qtrue;
-		}
-		else if (!diffuse->bundle[TB_SUBSURFACEMAP].subsurfaceLoaded)
-		{// Check if we can load one...
-			char specularName[MAX_IMAGE_PATH];
-			char specularName2[MAX_IMAGE_PATH];
-			image_t *specularImg;
-			int specularFlags = (diffuseImg->flags & ~(IMGFLAG_GENNORMALMAP | IMGFLAG_SRGB | IMGFLAG_CLAMPTOEDGE)) | IMGFLAG_NOLIGHTSCALE;
-
-			COM_StripExtension( diffuseImg->imgName, specularName, sizeof( specularName ) );
-			StripCrap( specularName, specularName2, sizeof(specularName));
-			Q_strcat( specularName2, sizeof( specularName2 ), "_sub" );
-
-			specularImg = R_FindImageFile(specularName2, IMGTYPE_SUBSURFACE, specularFlags | IMGFLAG_MIPMAP);
-
-			if (!specularImg)
-			{
-				COM_StripExtension( diffuseImg->imgName, specularName, sizeof( specularName ) );
-				StripCrap( specularName, specularName2, sizeof(specularName));
-				Q_strcat( specularName2, sizeof( specularName2 ), "_subsurface" );
-
-				specularImg = R_FindImageFile(specularName2, IMGTYPE_SUBSURFACE, specularFlags | IMGFLAG_MIPMAP);
-			}
-
-			if (specularImg)
-			{
-				diffuse->bundle[TB_SUBSURFACEMAP] = diffuse->bundle[0];
-				diffuse->bundle[TB_SUBSURFACEMAP].numImageAnimations = 0;
-				diffuse->bundle[TB_SUBSURFACEMAP].image[0] = specularImg;
-				if (subsurface) VectorCopy4(subsurface->subsurfaceExtinctionCoefficient, diffuse->subsurfaceExtinctionCoefficient);
-				hasRealSubsurfaceMap = qtrue;
-			}
-			else
-			{
-				VectorSet4(diffuse->subsurfaceExtinctionCoefficient, 0.0f, 0.0f, 0.0f, 0.0f);
-				hasRealSubsurfaceMap = qfalse;
-			}
-
-			diffuse->bundle[TB_SUBSURFACEMAP].subsurfaceLoaded = qtrue;
-		}
-		else
-		{
-			hasRealSubsurfaceMap = qfalse;
-		}
-	}*/
 
 	if (r_splatMapping->integer && checkSplats)
 	{
 		image_t *diffuseImg = diffuse->bundle[TB_DIFFUSEMAP].image[0];
 
-		if (steepmap && steepmap->bundle[0].image[0] && steepmap->bundle[0].image[0] != tr.whiteImage)
-		{// Got one...
-			diffuse->bundle[TB_STEEPMAP] = steepmap->bundle[0];
-			hasRealSteepMap = qtrue;
-		}
-		else if (diffuse->bundle[TB_STEEPMAP].image[0] && diffuse->bundle[TB_STEEPMAP].image[0] != tr.whiteImage)
-		{// Got one...
-			hasRealSteepMap = qtrue;
-		}
-		else if (!diffuse->bundle[TB_STEEPMAP].steepMapLoaded)
+		//
+		// SteepMap
+		//
 		{// Check if we can load one...
 			char specularName[MAX_IMAGE_PATH];
 			char specularName2[MAX_IMAGE_PATH];
@@ -5885,19 +5699,6 @@ static void CollapseStagesToLightall(shaderStage_t *diffuse,
 			{
 				specularImg = R_FindImageFile(specularName2, IMGTYPE_STEEPMAP, specularFlags | IMGFLAG_MIPMAP);
 			}
-
-			if (!specularImg)
-			{
-				memset(specularName, 0, sizeof(char)*MAX_IMAGE_PATH);
-				COM_StripExtension(diffuseImg->imgName, specularName2, sizeof(specularName2));
-				StripCrap(specularName, specularName2, sizeof(specularName2));
-				Q_strcat(specularName2, sizeof(specularName2), "_steep1");
-
-				if (R_TextureFileExists(specularName2) || R_TIL_TextureFileExists(specularName2))
-				{
-					specularImg = R_FindImageFile(specularName2, IMGTYPE_STEEPMAP, specularFlags | IMGFLAG_MIPMAP);
-				}
-			}
 #endif //__DEFERRED_IMAGE_LOADING__
 
 			if (specularImg)
@@ -5906,30 +5707,126 @@ static void CollapseStagesToLightall(shaderStage_t *diffuse,
 				diffuse->bundle[TB_STEEPMAP] = diffuse->bundle[0];
 				diffuse->bundle[TB_STEEPMAP].numImageAnimations = 0;
 				diffuse->bundle[TB_STEEPMAP].image[0] = specularImg;
-				hasRealSteepMap = qtrue;
+			}
+		}
+
+		//
+		// SteepMap1
+		//
+		{// Check if we can load one...
+			char specularName[MAX_IMAGE_PATH];
+			char specularName2[MAX_IMAGE_PATH];
+			image_t *specularImg = NULL;
+			int specularFlags = (diffuseImg->flags & ~(IMGFLAG_GENNORMALMAP | IMGFLAG_SRGB | IMGFLAG_CLAMPTOEDGE)) /*| IMGFLAG_NOLIGHTSCALE*/;
+
+			COM_StripExtension(diffuseImg->imgName, specularName, sizeof(specularName));
+			StripCrap(specularName, specularName2, sizeof(specularName));
+			Q_strcat(specularName2, sizeof(specularName2), "_steep1");
+
+#ifdef __DEFERRED_IMAGE_LOADING__
+			if (R_TextureFileExists(specularName2) || R_TIL_TextureFileExists(specularName2))
+			{
+				specularImg = R_DeferImageLoad(specularName2, IMGTYPE_STEEPMAP, specularFlags | IMGFLAG_MIPMAP);
 			}
 			else
 			{
-				hasRealSteepMap = qfalse;
+				specularImg = NULL;
 			}
+#else //!__DEFERRED_IMAGE_LOADING__
+			if (R_TextureFileExists(specularName2) || R_TIL_TextureFileExists(specularName2))
+			{
+				specularImg = R_FindImageFile(specularName2, IMGTYPE_STEEPMAP, specularFlags | IMGFLAG_MIPMAP);
+			}
+#endif //__DEFERRED_IMAGE_LOADING__
 
-			diffuse->bundle[TB_STEEPMAP].steepMapLoaded = qtrue;
-		}
-		else
-		{
-			hasRealSteepMap = qfalse;
+			if (specularImg)
+			{
+				if (r_debugSplatMaps->integer) ri->Printf(PRINT_WARNING, "+++++++++++++++ Loaded steep1 map %s [%i x %i].\n", specularName2, specularImg->width, specularImg->height);
+				diffuse->bundle[TB_STEEPMAP1] = diffuse->bundle[0];
+				diffuse->bundle[TB_STEEPMAP1].numImageAnimations = 0;
+				diffuse->bundle[TB_STEEPMAP1].image[0] = specularImg;
+			}
 		}
 
-		if (waterEdgeMap && waterEdgeMap->bundle[0].image[0] && waterEdgeMap->bundle[0].image[0] != tr.whiteImage)
-		{// Got one...
-			diffuse->bundle[TB_WATER_EDGE_MAP] = waterEdgeMap->bundle[0];
-			hasRealWaterEdgeMap = qtrue;
+		//
+		// SteepMap2
+		//
+		{// Check if we can load one...
+			char specularName[MAX_IMAGE_PATH];
+			char specularName2[MAX_IMAGE_PATH];
+			image_t *specularImg = NULL;
+			int specularFlags = (diffuseImg->flags & ~(IMGFLAG_GENNORMALMAP | IMGFLAG_SRGB | IMGFLAG_CLAMPTOEDGE)) /*| IMGFLAG_NOLIGHTSCALE*/;
+
+			COM_StripExtension(diffuseImg->imgName, specularName, sizeof(specularName));
+			StripCrap(specularName, specularName2, sizeof(specularName));
+			Q_strcat(specularName2, sizeof(specularName2), "_steep2");
+
+#ifdef __DEFERRED_IMAGE_LOADING__
+			if (R_TextureFileExists(specularName2) || R_TIL_TextureFileExists(specularName2))
+			{
+				specularImg = R_DeferImageLoad(specularName2, IMGTYPE_STEEPMAP, specularFlags | IMGFLAG_MIPMAP);
+			}
+			else
+			{
+				specularImg = NULL;
+			}
+#else //!__DEFERRED_IMAGE_LOADING__
+			if (R_TextureFileExists(specularName2) || R_TIL_TextureFileExists(specularName2))
+			{
+				specularImg = R_FindImageFile(specularName2, IMGTYPE_STEEPMAP, specularFlags | IMGFLAG_MIPMAP);
+			}
+#endif //__DEFERRED_IMAGE_LOADING__
+
+			if (specularImg)
+			{
+				if (r_debugSplatMaps->integer) ri->Printf(PRINT_WARNING, "+++++++++++++++ Loaded steep2 map %s [%i x %i].\n", specularName2, specularImg->width, specularImg->height);
+				diffuse->bundle[TB_STEEPMAP2] = diffuse->bundle[0];
+				diffuse->bundle[TB_STEEPMAP2].numImageAnimations = 0;
+				diffuse->bundle[TB_STEEPMAP2].image[0] = specularImg;
+			}
 		}
-		else if (diffuse->bundle[TB_WATER_EDGE_MAP].image[0] && diffuse->bundle[TB_WATER_EDGE_MAP].image[0] != tr.whiteImage)
-		{// Got one...
-			hasRealWaterEdgeMap = qtrue;
+
+		//
+		// SteepMap3
+		//
+		{// Check if we can load one...
+			char specularName[MAX_IMAGE_PATH];
+			char specularName2[MAX_IMAGE_PATH];
+			image_t *specularImg = NULL;
+			int specularFlags = (diffuseImg->flags & ~(IMGFLAG_GENNORMALMAP | IMGFLAG_SRGB | IMGFLAG_CLAMPTOEDGE)) /*| IMGFLAG_NOLIGHTSCALE*/;
+
+			COM_StripExtension(diffuseImg->imgName, specularName, sizeof(specularName));
+			StripCrap(specularName, specularName2, sizeof(specularName));
+			Q_strcat(specularName2, sizeof(specularName2), "_steep3");
+
+#ifdef __DEFERRED_IMAGE_LOADING__
+			if (R_TextureFileExists(specularName2) || R_TIL_TextureFileExists(specularName2))
+			{
+				specularImg = R_DeferImageLoad(specularName2, IMGTYPE_STEEPMAP, specularFlags | IMGFLAG_MIPMAP);
+			}
+			else
+			{
+				specularImg = NULL;
+			}
+#else //!__DEFERRED_IMAGE_LOADING__
+			if (R_TextureFileExists(specularName2) || R_TIL_TextureFileExists(specularName2))
+			{
+				specularImg = R_FindImageFile(specularName2, IMGTYPE_STEEPMAP, specularFlags | IMGFLAG_MIPMAP);
+			}
+#endif //__DEFERRED_IMAGE_LOADING__
+
+			if (specularImg)
+			{
+				if (r_debugSplatMaps->integer) ri->Printf(PRINT_WARNING, "+++++++++++++++ Loaded steep3 map %s [%i x %i].\n", specularName2, specularImg->width, specularImg->height);
+				diffuse->bundle[TB_STEEPMAP3] = diffuse->bundle[0];
+				diffuse->bundle[TB_STEEPMAP3].numImageAnimations = 0;
+				diffuse->bundle[TB_STEEPMAP3].image[0] = specularImg;
+			}
 		}
-		else if (!diffuse->bundle[TB_WATER_EDGE_MAP].steepMapLoaded2)
+
+		//
+		// waterEdgeMap
+		//
 		{// Check if we can load one...
 			char specularName[MAX_IMAGE_PATH];
 			char specularName2[MAX_IMAGE_PATH];
@@ -5960,19 +5857,6 @@ static void CollapseStagesToLightall(shaderStage_t *diffuse,
 				memset(specularName, 0, sizeof(char)*MAX_IMAGE_PATH);
 				COM_StripExtension(diffuseImg->imgName, specularName2, sizeof(specularName2));
 				StripCrap(specularName, specularName2, sizeof(specularName2));
-				Q_strcat(specularName2, sizeof(specularName2), "_steep2");
-
-				if (R_TextureFileExists(specularName2) || R_TIL_TextureFileExists(specularName2))
-				{
-					specularImg = R_FindImageFile(specularName2, IMGTYPE_WATER_EDGE_MAP, specularFlags | IMGFLAG_MIPMAP);
-				}
-			}
-
-			if (!specularImg)
-			{
-				memset(specularName, 0, sizeof(char)*MAX_IMAGE_PATH);
-				COM_StripExtension(diffuseImg->imgName, specularName2, sizeof(specularName2));
-				StripCrap(specularName, specularName2, sizeof(specularName2));
 				Q_strcat(specularName2, sizeof(specularName2), "_waterEdge");
 
 				specularImg = R_FindImageFile(specularName2, IMGTYPE_WATER_EDGE_MAP, specularFlags | IMGFLAG_MIPMAP);
@@ -5985,82 +5869,50 @@ static void CollapseStagesToLightall(shaderStage_t *diffuse,
 				diffuse->bundle[TB_WATER_EDGE_MAP] = diffuse->bundle[0];
 				diffuse->bundle[TB_WATER_EDGE_MAP].numImageAnimations = 0;
 				diffuse->bundle[TB_WATER_EDGE_MAP].image[0] = specularImg;
-				hasRealWaterEdgeMap = qtrue;
 			}
-			else
-			{
-				hasRealWaterEdgeMap = qfalse;
-			}
-
-			diffuse->bundle[TB_WATER_EDGE_MAP].steepMapLoaded2 = qtrue;
-		}
-		else
-		{
-			hasRealWaterEdgeMap = qfalse;
 		}
 
-		{// Roof maps...
-			if (roofMap && roofMap->bundle[0].image[0] && roofMap->bundle[0].image[0] != tr.whiteImage)
-			{// Got one...
-				diffuse->bundle[TB_ROOFMAP] = roofMap->bundle[0];
-				hasRealRoofMap = qtrue;
-				diffuse->bundle[TB_ROOFMAP].roofMapLoaded = qtrue;
-				if (r_debugSplatMaps->integer) ri->Printf(PRINT_WARNING, "+++++++++++++++ Shader roof map exists for %s [%i x %i].\n", diffuse->bundle[0].image[0]->imgName, roofMap->bundle[0].image[0]->width, roofMap->bundle[0].image[0]->height);
-			}
-			else if (!diffuse->bundle[TB_ROOFMAP].roofMapLoaded)
-			{// Check if we can load one...
-				char specularName[MAX_IMAGE_PATH];
-				char specularName2[MAX_IMAGE_PATH];
-				image_t *specularImg = NULL;
-				int specularFlags = (diffuseImg->flags & ~(IMGFLAG_GENNORMALMAP | IMGFLAG_SRGB | IMGFLAG_CLAMPTOEDGE)) /*| IMGFLAG_NOLIGHTSCALE*/;
+		//
+		// RoofMap
+		//
+		{// Check if we can load one...
+			char specularName[MAX_IMAGE_PATH];
+			char specularName2[MAX_IMAGE_PATH];
+			image_t *specularImg = NULL;
+			int specularFlags = (diffuseImg->flags & ~(IMGFLAG_GENNORMALMAP | IMGFLAG_SRGB | IMGFLAG_CLAMPTOEDGE)) /*| IMGFLAG_NOLIGHTSCALE*/;
 
-				COM_StripExtension(diffuseImg->imgName, specularName, sizeof(specularName));
-				StripCrap(specularName, specularName2, sizeof(specularName));
-				Q_strcat(specularName2, sizeof(specularName2), "_roof");
+			COM_StripExtension(diffuseImg->imgName, specularName, sizeof(specularName));
+			StripCrap(specularName, specularName2, sizeof(specularName));
+			Q_strcat(specularName2, sizeof(specularName2), "_roof");
 
 #ifdef __DEFERRED_IMAGE_LOADING__
-				if (R_TextureFileExists(specularName2) || R_TIL_TextureFileExists(specularName2))
-				{
-					specularImg = R_DeferImageLoad(specularName2, IMGTYPE_ROOFMAP, specularFlags | IMGFLAG_MIPMAP);
-				}
-				else
-				{
-					specularImg = NULL;
-				}
-#else //!__DEFERRED_IMAGE_LOADING__
-				if (R_TextureFileExists(specularName2) || R_TIL_TextureFileExists(specularName2))
-				{
-					specularImg = R_FindImageFile(specularName2, IMGTYPE_ROOFMAP, specularFlags | IMGFLAG_MIPMAP);
-				}
-#endif //__DEFERRED_IMAGE_LOADING__
-
-				if (specularImg)
-				{
-					if (r_debugSplatMaps->integer) ri->Printf(PRINT_WARNING, "+++++++++++++++ Loaded roof map %s [%i x %i].\n", specularName2, specularImg->width, specularImg->height);
-					diffuse->bundle[TB_ROOFMAP] = diffuse->bundle[0];
-					diffuse->bundle[TB_ROOFMAP].numImageAnimations = 0;
-					diffuse->bundle[TB_ROOFMAP].image[0] = specularImg;
-					hasRealRoofMap = qtrue;
-				}
-				else
-				{
-					hasRealRoofMap = qfalse;
-					//if (r_debugSplatMaps->integer) ri->Printf(PRINT_WARNING, "+++++++++++++++ FAILED TO LOAD roof map %s.\n", specularName2);
-				}
-
-				diffuse->bundle[TB_ROOFMAP].roofMapLoaded = qtrue;
+			if (R_TextureFileExists(specularName2) || R_TIL_TextureFileExists(specularName2))
+			{
+				specularImg = R_DeferImageLoad(specularName2, IMGTYPE_ROOFMAP, specularFlags | IMGFLAG_MIPMAP);
 			}
 			else
 			{
-				hasRealRoofMap = qfalse;
+				specularImg = NULL;
+			}
+#else //!__DEFERRED_IMAGE_LOADING__
+			if (R_TextureFileExists(specularName2) || R_TIL_TextureFileExists(specularName2))
+			{
+				specularImg = R_FindImageFile(specularName2, IMGTYPE_ROOFMAP, specularFlags | IMGFLAG_MIPMAP);
+			}
+#endif //__DEFERRED_IMAGE_LOADING__
+
+			if (specularImg)
+			{
+				if (r_debugSplatMaps->integer) ri->Printf(PRINT_WARNING, "+++++++++++++++ Loaded roof map %s [%i x %i].\n", specularName2, specularImg->width, specularImg->height);
+				diffuse->bundle[TB_ROOFMAP] = diffuse->bundle[0];
+				diffuse->bundle[TB_ROOFMAP].numImageAnimations = 0;
+				diffuse->bundle[TB_ROOFMAP].image[0] = specularImg;
 			}
 		}
 	
-		if (splatControlMap && splatControlMap->bundle[0].image[0] && splatControlMap->bundle[0].image[0] != tr.whiteImage)
-		{// Got one...
-			diffuse->bundle[TB_SPLATCONTROLMAP] = splatControlMap->bundle[0];
-		}
-		else
+		//
+		// SplatControl
+		//
 		{
 			// Splat Control Map - We will allow each shader to have it's own map-wide spatter control image...
 			image_t *diffuseImg = diffuse->bundle[TB_DIFFUSEMAP].image[0];
@@ -6118,11 +5970,9 @@ static void CollapseStagesToLightall(shaderStage_t *diffuse,
 			}
 		}
 
-		if (splat1 && splat1->bundle[0].image[0] && splat1->bundle[0].image[0] != tr.whiteImage)
-		{// Got one...
-			diffuse->bundle[TB_SPLATMAP1] = splat1->bundle[0];
-		}
-		else
+		//
+		// SplatMap1
+		//
 		{
 			// Splat Map #1
 			image_t *diffuseImg = diffuse->bundle[TB_DIFFUSEMAP].image[0];
@@ -6168,11 +6018,9 @@ static void CollapseStagesToLightall(shaderStage_t *diffuse,
 			}
 		}
 
-		if (splat2 && splat2->bundle[0].image[0] && splat2->bundle[0].image[0] != tr.whiteImage)
-		{// Got one...
-			diffuse->bundle[TB_SPLATMAP2] = splat2->bundle[0];
-		}
-		else
+		//
+		// SplatMap2
+		//
 		{
 			// Splat Map #2
 			image_t *diffuseImg = diffuse->bundle[TB_DIFFUSEMAP].image[0];
@@ -6218,11 +6066,9 @@ static void CollapseStagesToLightall(shaderStage_t *diffuse,
 			}
 		}
 
-		if (splat3 && splat3->bundle[0].image[0] && splat3->bundle[0].image[0] != tr.whiteImage)
-		{// Got one...
-			diffuse->bundle[TB_SPLATMAP3] = splat3->bundle[0];
-		}
-		else
+		//
+		// SplatMap3
+		//
 		{
 			// Splat Map #3
 			image_t *diffuseImg = diffuse->bundle[TB_DIFFUSEMAP].image[0];
@@ -6269,6 +6115,9 @@ static void CollapseStagesToLightall(shaderStage_t *diffuse,
 		}
 
 #if 0
+		//
+		// DetailMap
+		//
 		{
 			// Detail Map
 			image_t *diffuseImg = diffuse->bundle[TB_DIFFUSEMAP].image[0];
@@ -6326,64 +6175,6 @@ static void CollapseStagesToLightall(shaderStage_t *diffuse,
 
 	//ri->Printf(PRINT_ALL, ".\n");
 
-	if (hasRealNormalMap)
-	{
-		diffuse->hasRealNormalMap = true;
-	}
-	else
-	{
-		diffuse->hasRealNormalMap = false;
-	}
-
-	if (hasRealSpecularMap)
-	{
-		diffuse->hasSpecular = true;
-	}
-	else
-	{
-		diffuse->hasSpecular = false;
-	}
-
-	/*if (hasRealSubsurfaceMap)
-	{
-		diffuse->hasRealSubsurfaceMap = true;
-	}
-	else
-	{
-		diffuse->hasRealSubsurfaceMap = false;
-	}*/
-
-	if (hasRealOverlayMap)
-	{
-		diffuse->hasRealOverlayMap = true;
-	}
-	else
-	{
-		diffuse->hasRealOverlayMap = false;
-	}
-
-	if (hasRealSteepMap)
-	{
-		diffuse->hasRealSteepMap = true;
-	}
-	else
-	{
-		diffuse->hasRealSteepMap = false;
-	}
-
-	if (hasRealWaterEdgeMap)
-	{
-		diffuse->hasRealWaterEdgeMap = true;
-	}
-	else
-	{
-		diffuse->hasRealWaterEdgeMap = false;
-	}
-
-	if (hasRealRoofMap)
-	{
-		diffuse->hasRealRoofMap = false;
-	}
 
 	diffuse->glslShaderIndex = defs;
 }
@@ -6392,13 +6183,8 @@ static int CollapseStagesToGLSL(void)
 {
 	int i, j, numStages;
 	qboolean skip = qfalse;
-	qboolean hasRealNormalMap = qfalse;
-	qboolean hasRealSpecularMap = qfalse;
-	//qboolean hasRealSubsurfaceMap = qfalse;
-	qboolean hasRealOverlayMap = qfalse;
-	qboolean hasRealSteepMap = qfalse;
-	qboolean hasRealWaterEdgeMap = qfalse;
-	qboolean hasRealRoofMap = qfalse;
+	qboolean hasNormalMap = qfalse;
+	qboolean hasSpecularMap = qfalse;
 
 	//ri->Printf (PRINT_DEVELOPER, "Collapsing stages for shader '%s'\n", shader.name);
 
@@ -6808,7 +6594,7 @@ static int CollapseStagesToGLSL(void)
 		for (i = 0; i < MAX_SHADER_STAGES; i++)
 		{
 			shaderStage_t *pStage = &stages[i];
-			shaderStage_t *diffuse, *normal, *specular, *lightmap/*, *subsurface*/, *overlay, *steep, *steep2, *splatControl, *splat1, *splat2, *splat3/*, *splat4*/, *roofMap;
+			shaderStage_t *diffuse, *normal, *specular, *lightmap;
 			qboolean parallax, tcgen;
 
 			if (!pStage->active)
@@ -6827,17 +6613,6 @@ static int CollapseStagesToGLSL(void)
 			parallax = qfalse;
 			specular = NULL;
 			lightmap = NULL;
-			//subsurface = NULL;
-			overlay = NULL;
-			steep = NULL;
-			steep2 = NULL;
-			splatControl = NULL;
-			splat1 = NULL;
-			splat2 = NULL;
-			splat3 = NULL;
-			//splat4 = NULL;
-			roofMap = NULL;
-
 
 			// we have a diffuse map, find matching normal, specular, and lightmap
 			for (j = i + 1; j < MAX_SHADER_STAGES; j++)
@@ -6855,7 +6630,7 @@ static int CollapseStagesToGLSL(void)
 					case ST_NORMALMAP:
 						if (!normal)
 						{
-							hasRealNormalMap = qtrue;
+							hasNormalMap = qtrue;
 							normal = pStage2;
 						}
 						break;
@@ -6863,7 +6638,7 @@ static int CollapseStagesToGLSL(void)
 					case ST_NORMALPARALLAXMAP:
 						if (!normal)
 						{
-							hasRealNormalMap = qtrue;
+							hasNormalMap = qtrue;
 							normal = pStage2;
 							parallax = qtrue;
 						}
@@ -6872,67 +6647,10 @@ static int CollapseStagesToGLSL(void)
 					case ST_SPECULARMAP:
 						if (!specular)
 						{
-							hasRealSpecularMap = qtrue;
+							hasSpecularMap = qtrue;
 							specular = pStage2;
 						}
 						break;
-
-					/*case ST_SUBSURFACEMAP:
-						if (!subsurface)
-						{
-							hasRealSubsurfaceMap = qtrue;
-							subsurface = pStage2;
-						}
-						break;*/
-
-					case ST_OVERLAYMAP:
-						if (!overlay)
-						{
-							hasRealOverlayMap = qtrue;
-							overlay = pStage2;
-						}
-						break;
-
-					case ST_STEEPMAP:
-						if (!steep)
-						{
-							hasRealSteepMap = qtrue;
-							steep = pStage2;
-						}
-						break;
-
-					case ST_WATER_EDGE_MAP:
-						if (!steep2)
-						{
-							hasRealWaterEdgeMap = qtrue;
-							steep2 = pStage2;
-						}
-						break;
-
-					case ST_SPLATCONTROLMAP:
-						{
-							splatControl = pStage2;
-						}
-
-					case ST_SPLATMAP1:
-						{
-							splat1 = pStage2;
-						}
-
-					case ST_SPLATMAP2:
-						{
-							splat2 = pStage2;
-						}
-
-					case ST_SPLATMAP3:
-						{
-							splat3 = pStage2;
-						}
-
-					case ST_ROOFMAP:
-						{
-							roofMap = pStage2;
-						}
 
 					case ST_COLORMAP:
 						if (pStage2->bundle[0].tcGen >= TCGEN_LIGHTMAP &&
@@ -6958,7 +6676,7 @@ static int CollapseStagesToGLSL(void)
 				tcgen = qtrue;
 			}
 
-			CollapseStagesToLightall(diffuse, normal, specular, lightmap/*, subsurface*/, overlay, steep, steep2, splatControl, splat1, splat2, splat3/*, splat4*/, roofMap, parallax, tcgen);
+			CollapseStagesToLightall(diffuse, normal, specular, lightmap, parallax, tcgen);
 		}
 
 		// deactivate lightmap stages
@@ -7004,214 +6722,22 @@ static int CollapseStagesToGLSL(void)
 
 		if (pStage->type == ST_NORMALMAP)
 		{
-			hasRealNormalMap = qfalse;
+			hasNormalMap = qfalse;
 			pStage->active = qfalse;
 		}
 
 		if (pStage->type == ST_NORMALPARALLAXMAP)
 		{
-			hasRealNormalMap = qfalse;
+			hasNormalMap = qfalse;
 			pStage->active = qfalse;
 		}
 
 		if (pStage->type == ST_SPECULARMAP)
 		{
-			hasRealSpecularMap = qfalse;
-			pStage->active = qfalse;
-		}
-
-		/*if (pStage->type == ST_SUBSURFACEMAP)
-		{
-			hasRealSubsurfaceMap = qfalse;
-			pStage->active = qfalse;
-		}*/
-
-		if (pStage->type == ST_OVERLAYMAP)
-		{
-			hasRealOverlayMap = qfalse;
-			pStage->active = qfalse;
-		}
-
-		if (pStage->type == ST_STEEPMAP)
-		{
-			hasRealSteepMap = qfalse;
-			pStage->active = qfalse;
-		}
-
-		if (pStage->type == ST_WATER_EDGE_MAP)
-		{
-			hasRealWaterEdgeMap = qfalse;
-			pStage->active = qfalse;
-		}
-
-		if (pStage->type == ST_ROOFMAP)
-		{
-			hasRealRoofMap = qfalse;
-			pStage->active = qfalse;
-		}
-
-		if (pStage->type == ST_SPLATCONTROLMAP)
-		{
-			pStage->active = qfalse;
-		}
-
-		if (pStage->type == ST_SPLATMAP1)
-		{
-			pStage->active = qfalse;
-		}
-
-		if (pStage->type == ST_SPLATMAP2)
-		{
-			pStage->active = qfalse;
-		}
-
-		if (pStage->type == ST_SPLATMAP3)
-		{
+			hasSpecularMap = qfalse;
 			pStage->active = qfalse;
 		}
 	}
-
-#if 0
-	//
-	// Merge glow stages into diffuse stages if possible...
-	//
-	for (i = 0; i < MAX_SHADER_STAGES; i++)
-	{
-		shaderStage_t *pStage = &stages[i];
-
-		if (!pStage->active)
-			continue;
-
-		if (pStage->glowMapped)
-			continue; // Already merged...
-
-		if ((pStage->type != ST_COLORMAP && pStage->type != ST_GLSL) || pStage->glow)
-			continue;
-
-
-		/*if (!(pStage->stateBits & (GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA))
-			&& !(pStage->stateBits & (GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO))
-			&& !(pStage->stateBits & (GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE)))
-			continue;*/
-
-		for (j = 0; j < MAX_SHADER_STAGES; j++)
-		{
-			if (j == i) continue;
-
-			shaderStage_t *pStage2 = &stages[j];
-
-			if (!pStage2->active || !pStage2->glow)
-				continue;
-
-			if (pStage2->glowMapped)
-				continue; // Already merged...
-
-			/*
-			GLS_SRCBLEND_ZERO = (1 << 0),
-			GLS_SRCBLEND_ONE = (1 << 1),
-			GLS_SRCBLEND_DST_COLOR = (1 << 2),
-			GLS_SRCBLEND_ONE_MINUS_DST_COLOR = (1 << 3),
-			GLS_SRCBLEND_SRC_ALPHA = (1 << 4),
-			GLS_SRCBLEND_ONE_MINUS_SRC_ALPHA = (1 << 5),
-			GLS_SRCBLEND_DST_ALPHA = (1 << 6),
-			GLS_SRCBLEND_ONE_MINUS_DST_ALPHA = (1 << 7),
-			GLS_SRCBLEND_ALPHA_SATURATE = (1 << 8),
-
-			GLS_DSTBLEND_ZERO = (1 << 9),
-			GLS_DSTBLEND_ONE = (1 << 10),
-			GLS_DSTBLEND_SRC_COLOR = (1 << 11),
-			GLS_DSTBLEND_ONE_MINUS_SRC_COLOR = (1 << 12),
-			GLS_DSTBLEND_SRC_ALPHA = (1 << 13),
-			GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA = (1 << 14),
-			GLS_DSTBLEND_DST_ALPHA = (1 << 15),
-			GLS_DSTBLEND_ONE_MINUS_DST_ALPHA = (1 << 16),
-			*/
-
-#if 0
-			// Try to roughly mimic original blendings... very roughly...
-			if (!(pStage2->stateBits & GLS_SRCBLEND_ZERO)
-				&& !(pStage2->stateBits & GLS_SRCBLEND_ONE)
-				&& !(pStage2->stateBits & GLS_SRCBLEND_DST_COLOR)
-				&& !(pStage2->stateBits & GLS_SRCBLEND_ONE_MINUS_DST_COLOR)
-				&& !(pStage2->stateBits & GLS_SRCBLEND_SRC_ALPHA)
-				&& !(pStage2->stateBits & GLS_SRCBLEND_ONE_MINUS_SRC_ALPHA)
-				&& !(pStage2->stateBits & GLS_SRCBLEND_DST_ALPHA)
-				&& !(pStage2->stateBits & GLS_SRCBLEND_ONE_MINUS_DST_ALPHA)
-				&& !(pStage2->stateBits & GLS_SRCBLEND_ALPHA_SATURATE))
-			{
-				//pStage2->stateBits |= GLS_SRCBLEND_DST_ALPHA;
-				pStage2->stateBits |= GLS_SRCBLEND_SRC_ALPHA;
-			}
-
-			if (!(pStage2->stateBits & GLS_DSTBLEND_ZERO)
-				&& !(pStage2->stateBits & GLS_DSTBLEND_ONE)
-				&& !(pStage2->stateBits & GLS_DSTBLEND_SRC_COLOR)
-				&& !(pStage2->stateBits & GLS_DSTBLEND_ONE_MINUS_SRC_COLOR)
-				&& !(pStage2->stateBits & GLS_DSTBLEND_SRC_ALPHA)
-				&& !(pStage2->stateBits & GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA)
-				&& !(pStage2->stateBits & GLS_DSTBLEND_DST_ALPHA)
-				&& !(pStage2->stateBits & GLS_DSTBLEND_ONE_MINUS_DST_ALPHA))
-			{
-				//pStage2->stateBits |= GLS_DSTBLEND_ONE_MINUS_DST_ALPHA;
-				//pStage2->stateBits |= GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
-				pStage2->stateBits |= GLS_DSTBLEND_ZERO;
-			}
-#endif
-
-			if (!((pStage->stateBits & GLS_DSTBLEND_ZERO) || (pStage->stateBits & GLS_DSTBLEND_ONE))
-				&& !((pStage2->stateBits & GLS_DSTBLEND_ZERO) || (pStage2->stateBits & GLS_DSTBLEND_ONE)))
-			{// Cant merge this (for now)... We need a solid...
-				continue;
-			}
-
-			pStage->stateBits &= ~GLS_SRCBLEND_BITS;
-			pStage->stateBits &= ~GLS_DSTBLEND_BITS;
-			//pStage->stateBits |= GLS_SRCBLEND_SRC_ALPHA;
-			//pStage->stateBits |= GLS_DSTBLEND_ZERO;
-			
-			pStage->stateBits |= GLS_SRCBLEND_ONE;
-			pStage->stateBits |= GLS_DSTBLEND_ZERO;
-			
-			//pStage->stateBits |= GLS_SRCBLEND_SRC_ALPHA;
-			//pStage->stateBits |= GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
-
-			pStage->glowBlend = GLSL_BLEND_ALPHA;
-
-			/*
-			if (pStage2->stateBits & GLS_SRCBLEND_ONE_MINUS_SRC_ALPHA)
-				pStage->glowBlend = GLSL_BLEND_INVALPHA;
-			else if (pStage2->stateBits & GLS_SRCBLEND_DST_ALPHA)
-				pStage->glowBlend = GLSL_BLEND_DST_ALPHA;
-			else if (pStage2->stateBits & GLS_SRCBLEND_ONE_MINUS_DST_ALPHA)
-				pStage->glowBlend = GLSL_BLEND_INV_DST_ALPHA;
-			else if (pStage2->stateBits & GLS_DSTBLEND_SRC_COLOR)
-				pStage->glowBlend = GLSL_BLEND_GLOWCOLOR;
-			else if (pStage2->stateBits & GLS_DSTBLEND_ONE_MINUS_SRC_COLOR)
-				pStage->glowBlend = GLSL_BLEND_INV_GLOWCOLOR;
-			else if (pStage2->stateBits & GLS_SRCBLEND_DST_COLOR)
-				pStage->glowBlend = GLSL_BLEND_DSTCOLOR;
-			else if (pStage2->stateBits & GLS_SRCBLEND_ONE_MINUS_DST_COLOR)
-				pStage->glowBlend = GLSL_BLEND_INV_DSTCOLOR;
-			*/
-			
-
-			// Found one, merge it in and exit this loop...
-			pStage->bundle[TB_GLOWMAP] = pStage2->bundle[TB_DIFFUSEMAP];
-			pStage->glowMapped = qtrue;
-			pStage->glow = qtrue;
-			pStage->glowColorFound = pStage2->glowColorFound;
-			VectorCopy4(pStage2->glowColor, pStage->glowColor);
-			pStage->emissiveColorScale = pStage2->emissiveColorScale;
-			pStage->emissiveRadiusScale = pStage2->emissiveRadiusScale;
-			pStage->emissiveHeightScale = pStage2->emissiveHeightScale;
-			pStage->glslShaderIndex |= LIGHTDEF_USE_GLOW_BUFFER;
-
-			// Disable the old stage...
-			pStage2->active = qfalse;
-			break;
-		}
-	}
-#endif
 
 	//
 	//
@@ -7260,7 +6786,7 @@ static int CollapseStagesToGLSL(void)
 
 			if (pStage->bundle[TB_DIFFUSEMAP].tcGen >= TCGEN_LIGHTMAP && pStage->bundle[TB_DIFFUSEMAP].tcGen <= TCGEN_LIGHTMAP3)
 			{
-				if (hasRealNormalMap) pStage->hasRealNormalMap = true;
+				if (hasNormalMap) pStage->hasNormalMap = true;
 
 				pStage->glslShaderIndex = LIGHTDEF_USE_LIGHTMAP;
 				pStage->bundle[TB_LIGHTMAP] = pStage->bundle[TB_DIFFUSEMAP];
@@ -7291,8 +6817,8 @@ static int CollapseStagesToGLSL(void)
 			if (pStage->rgbGen == CGEN_LIGHTING_DIFFUSE ||
 				pStage->rgbGen == CGEN_LIGHTING_DIFFUSE_ENTITY)
 			{
-				if (hasRealNormalMap) 
-					pStage->hasRealNormalMap = true;
+				if (hasNormalMap) 
+					pStage->hasNormalMap = true;
 			}
 		}
 	}
@@ -7308,86 +6834,18 @@ static int CollapseStagesToGLSL(void)
 			continue;
 		}
 
-		if (hasRealNormalMap)
+		if (hasNormalMap)
 		{
-			stage->hasRealNormalMap = true;
+			stage->hasNormalMap = true;
 		}
 
-		if (hasRealSpecularMap)
+		if (hasSpecularMap)
 		{
-			stage->hasSpecular = true;
-		}
-
-		/*if (hasRealSubsurfaceMap)
-		{
-			stage->hasRealSubsurfaceMap = true;
-		}*/
-
-		if (hasRealOverlayMap)
-		{
-			stage->hasRealOverlayMap = true;
-		}
-
-		if (hasRealSteepMap)
-		{
-			stage->hasRealSteepMap = true;
-		}
-
-		if (hasRealWaterEdgeMap)
-		{
-			stage->hasRealWaterEdgeMap = true;
-		}
-
-		if (hasRealRoofMap)
-		{
-			stage->hasRealRoofMap = true;
+			stage->hasSpecularMap = true;
 		}
 
 		//ri->Printf (PRINT_DEVELOPER, "-> %s\n", stage->bundle[0].image[0]->imgName);
 	}
-
-#if 0
-	// Set up a value to skip stage checks later... does this even run per frame? i shoud actually check probably...
-	for (int stage = 0; stage < MAX_SHADER_STAGES; stage++)
-	{
-		shaderStage_t *pStage = shader.stages[stage];
-
-		if (!pStage)
-		{// How does this happen???
-			continue;
-		}
-
-		if (!pStage->active)
-		{// Shouldn't this be here, just in case???
-			continue;
-		}
-
-		if (pStage->stateBits & GLS_ATEST_BITS)
-		{
-			shader.hasAlphaTestBits = max(shader.hasAlphaTestBits, 1);
-		}
-
-		if (pStage->alphaGen)
-		{
-			shader.hasAlphaTestBits = max(shader.hasAlphaTestBits, 2);
-		}
-
-		if (shader.hasAlpha)
-		{
-			shader.hasAlphaTestBits = max(shader.hasAlphaTestBits, 3);
-		}
-
-		/*if (shader.cullType == CT_TWO_SIDED)
-		{
-			shader.hasAlphaTestBits = max(shader.hasAlphaTestBits, 4);
-		}*/
-	}
-
-	if (shader.hasAlphaTestBits == 0)
-	{
-		shader.hasAlphaTestBits = -1;
-	}
-#endif
 
 #if 1
 	if (r_debugShaderStages->integer && numStages >= 1 && !tr.world)
@@ -7450,38 +6908,6 @@ static int CollapseStagesToGLSL(void)
 			else if (pStage->type == ST_SPECULARMAP)
 			{
 				ri->Printf(PRINT_WARNING, "     Stage %i is SpecularMap%s.\n", i, glowMapped);
-			}
-			/*else if (pStage->type == ST_SUBSURFACEMAP)
-			{
-				ri->Printf(PRINT_WARNING, "     Stage %i is SubsurfaceMap%s.\n", i, glowMapped);
-			}*/
-			else if (pStage->type == ST_OVERLAYMAP)
-			{
-				ri->Printf(PRINT_WARNING, "     Stage %i is OverlayMap%s.\n", i, glowMapped);
-			}
-			else if (pStage->type == ST_STEEPMAP)
-			{
-				ri->Printf(PRINT_WARNING, "     Stage %i is SteepMap%s.\n", i, glowMapped);
-			}
-			else if (pStage->type == ST_WATER_EDGE_MAP)
-			{
-				ri->Printf(PRINT_WARNING, "     Stage %i is waterEdgeMap%s.\n", i, glowMapped);
-			}
-			else if (pStage->type == ST_SPLATCONTROLMAP)
-			{
-				ri->Printf(PRINT_WARNING, "     Stage %i is SplatControlMap%s.\n", i, glowMapped);
-			}
-			else if (pStage->type == ST_SPLATMAP1)
-			{
-				ri->Printf(PRINT_WARNING, "     Stage %i is SplatMap1%s.\n", i, glowMapped);
-			}
-			else if (pStage->type == ST_SPLATMAP2)
-			{
-				ri->Printf(PRINT_WARNING, "     Stage %i is SplatMap2%s.\n", i, glowMapped);
-			}
-			else if (pStage->type == ST_SPLATMAP3)
-			{
-				ri->Printf(PRINT_WARNING, "     Stage %i is SplatMap3%s.\n", i, glowMapped);
 			}
 			else if (pStage->type == ST_GLSL)
 			{
@@ -8112,99 +7538,6 @@ static shader_t *FinishShader(void) {
 			if (!pStage->bundle[0].image[0])
 			{
 				ri->Printf(PRINT_WARNING, "Shader %s has a normalparallaxmap stage with no image\n", shader.name);
-				pStage->active = qfalse;
-				stage++;
-				continue;
-			}
-			break;
-		}
-
-		/*case ST_SUBSURFACEMAP:
-		{
-			if(!pStage->bundle[0].image[0])
-			{
-				ri->Printf(PRINT_WARNING, "Shader %s has a subsurfacemap stage with no image\n", shader.name);
-				pStage->active = qfalse;
-				stage++;
-				continue;
-			}
-			break;
-		}*/
-
-		case ST_OVERLAYMAP:
-		{
-			if (!pStage->bundle[0].image[0])
-			{
-				ri->Printf(PRINT_WARNING, "Shader %s has a overlaymap stage with no image\n", shader.name);
-				pStage->active = qfalse;
-				stage++;
-				continue;
-			}
-			break;
-		}
-
-		case ST_STEEPMAP:
-		{
-			if (!pStage->bundle[0].image[0])
-			{
-				ri->Printf(PRINT_WARNING, "Shader %s has a steepmap stage with no image\n", shader.name);
-				pStage->active = qfalse;
-				stage++;
-				continue;
-			}
-			break;
-		}
-
-		case ST_WATER_EDGE_MAP:
-		{
-			if (!pStage->bundle[0].image[0])
-			{
-				ri->Printf(PRINT_WARNING, "Shader %s has a steepmap stage with no image\n", shader.name);
-				pStage->active = qfalse;
-				stage++;
-				continue;
-			}
-			break;
-		}
-
-		case ST_SPLATCONTROLMAP:
-		{
-			if (!pStage->bundle[0].image[0])
-			{
-				ri->Printf(PRINT_WARNING, "Shader %s has a splatcontrolmap stage with no image\n", shader.name);
-				pStage->active = qfalse;
-				stage++;
-				continue;
-			}
-			break;
-		}
-		case ST_SPLATMAP1:
-		{
-			if (!pStage->bundle[0].image[0])
-			{
-				ri->Printf(PRINT_WARNING, "Shader %s has a splatmap1 stage with no image\n", shader.name);
-				pStage->active = qfalse;
-				stage++;
-				continue;
-			}
-			break;
-		}
-		case ST_SPLATMAP2:
-		{
-			if (!pStage->bundle[0].image[0])
-			{
-				ri->Printf(PRINT_WARNING, "Shader %s has a splatmap2 stage with no image\n", shader.name);
-				pStage->active = qfalse;
-				stage++;
-				continue;
-			}
-			break;
-		}
-		case ST_SPLATMAP3:
-		{
-			if (!pStage->bundle[0].image[0])
-			{
-				ri->Printf(PRINT_WARNING, "Shader %s has a splatmap3 stage with no image\n", shader.name);
 				pStage->active = qfalse;
 				stage++;
 				continue;

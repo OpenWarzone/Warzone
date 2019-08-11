@@ -2443,11 +2443,13 @@ static int BSPSurfaceCompare(const void *a, const void *b)
 				continue;
 			}
 
-			if (pStage->bundle[TB_STEEPMAP].image[0]
-				|| pStage->bundle[TB_WATER_EDGE_MAP].image[0]
-				|| pStage->bundle[TB_SPLATMAP1].image[0]
+			if (pStage->bundle[TB_SPLATMAP1].image[0]
 				|| pStage->bundle[TB_SPLATMAP2].image[0]
 				|| pStage->bundle[TB_SPLATMAP3].image[0]
+				|| pStage->bundle[TB_WATER_EDGE_MAP].image[0]
+				|| pStage->bundle[TB_STEEPMAP1].image[0]
+				|| pStage->bundle[TB_STEEPMAP2].image[0]
+				|| pStage->bundle[TB_STEEPMAP3].image[0]
 				|| pStage->bundle[TB_ROOFMAP].image[0])
 			{
 				aa->shader->hasSplatMaps = 1;
@@ -2477,11 +2479,13 @@ static int BSPSurfaceCompare(const void *a, const void *b)
 				continue;
 			}
 
-			if (pStage->bundle[TB_STEEPMAP].image[0]
-				|| pStage->bundle[TB_WATER_EDGE_MAP].image[0]
-				|| pStage->bundle[TB_SPLATMAP1].image[0]
+			if (pStage->bundle[TB_SPLATMAP1].image[0]
 				|| pStage->bundle[TB_SPLATMAP2].image[0]
 				|| pStage->bundle[TB_SPLATMAP3].image[0]
+				|| pStage->bundle[TB_WATER_EDGE_MAP].image[0]
+				|| pStage->bundle[TB_STEEPMAP1].image[0]
+				|| pStage->bundle[TB_STEEPMAP2].image[0]
+				|| pStage->bundle[TB_STEEPMAP3].image[0]
 				|| pStage->bundle[TB_ROOFMAP].image[0])
 			{
 				bb->shader->hasSplatMaps = 1;
@@ -5114,14 +5118,14 @@ static void R_SetupMapGlowsAndWaterPlane( world_t *world )
 
 			for ( int stage = 0; stage < MAX_SHADER_STAGES; stage++ )
 			{
-				qboolean isBuilding = ((surf->shader->materialType) == MATERIAL_SKYSCRAPER && surf->shader->stages[stage] && surf->shader->stages[stage]->bundle[TB_STEEPMAP].image[0]) ? qtrue : qfalse;
+				qboolean isBuilding = ((surf->shader->materialType) == MATERIAL_SKYSCRAPER && surf->shader->stages[stage] && surf->shader->stages[stage]->bundle[TB_STEEPMAP1].image[0]) ? qtrue : qfalse;
 				
 				if (surf->shader->stages[stage] && (surf->shader->stages[stage]->glow || surf->shader->stages[stage]->glowMapped || isBuilding))
 				{
 					hasGlow = qtrue;
 
 					if (isBuilding)
-						VectorCopy4(surf->shader->stages[stage]->bundle[TB_STEEPMAP].image[0]->lightColor, glowColor);
+						VectorCopy4(surf->shader->stages[stage]->bundle[TB_STEEPMAP1].image[0]->lightColor, glowColor);
 					else if (surf->shader->stages[stage]->glowMapped)
 						VectorCopy4(surf->shader->stages[stage]->bundle[TB_GLOWMAP].image[0]->lightColor, glowColor);
 					else

@@ -10,11 +10,14 @@
 
 
 uniform sampler2D					u_DiffuseMap;
-uniform sampler2D					u_SteepMap;
-uniform sampler2D					u_WaterEdgeMap;
 uniform sampler2D					u_SplatMap1;
 uniform sampler2D					u_SplatMap2;
 uniform sampler2D					u_SplatMap3;
+uniform sampler2D					u_SteepMap;
+uniform sampler2D					u_SteepMap1;
+uniform sampler2D					u_SteepMap2;
+uniform sampler2D					u_SteepMap3;
+uniform sampler2D					u_WaterEdgeMap;
 uniform sampler2D					u_SplatControlMap;
 uniform sampler2D					u_RoadsControlMap;
 uniform sampler2D					u_RoadMap;
@@ -65,10 +68,11 @@ uniform vec4						u_Settings5; // MAP_COLOR_SWITCH_RG, MAP_COLOR_SWITCH_RB, MAP_
 #define SPLATMAP_SCALE				u_Settings5.a
 
 uniform vec4						u_Local1; // MAP_SIZE, sway, overlaySway, materialType
-uniform vec4						u_Local2; // hasSteepMap, hasWaterEdgeMap, haveNormalMap, SHADER_WATER_LEVEL
+uniform vec4						u_Local2; // hasWaterEdgeMap, haveNormalMap, 0.0, SHADER_WATER_LEVEL
 uniform vec4						u_Local3; // hasSplatMap1, hasSplatMap2, hasSplatMap3, hasSplatMap4
 uniform vec4						u_Local4; // stageNum, glowStrength, r_showsplat, glowVibrancy
 uniform vec4						u_Local9; // testvalue0, 1, 2, 3
+uniform vec4						u_Local13; // hasSteepMap, hasSteepMap1, hasSteepMap2, hasSteepMap3
 
 uniform vec2						u_Dimensions;
 uniform vec2						u_textureScale;
@@ -91,20 +95,25 @@ uniform float						u_zFar;
 #define SHADER_OVERLAY_SWAY			u_Local1.b
 #define SHADER_MATERIAL_TYPE		u_Local1.a
 
-#define SHADER_HAS_STEEPMAP			u_Local2.r
-#define SHADER_HAS_WATEREDGEMAP		u_Local2.g
-#define SHADER_HAS_NORMALMAP		u_Local2.b
+#define SHADER_HAS_WATEREDGEMAP		u_Local2.r
+#define SHADER_HAS_NORMALMAP		u_Local2.g
+//#define UNUSED					u_Local2.b
 #define SHADER_WATER_LEVEL			u_Local2.a
 
 #define SHADER_HAS_SPLATMAP1		u_Local3.r
 #define SHADER_HAS_SPLATMAP2		u_Local3.g
 #define SHADER_HAS_SPLATMAP3		u_Local3.b
-#define SHADER_HAS_SPLATMAP4		u_Local3.a
+#define SHADER_HAS_ROADMAP			u_Local3.a
 
 #define SHADER_STAGE_NUM			u_Local4.r
 #define SHADER_GLOW_STRENGTH		u_Local4.g
 #define SHADER_SHOW_SPLAT			u_Local4.b
 #define SHADER_GLOW_VIBRANCY		u_Local4.a
+
+#define SHADER_HAS_STEEPMAP			u_Local13.r
+#define SHADER_HAS_STEEPMAP1		u_Local13.g
+#define SHADER_HAS_STEEPMAP2		u_Local13.b
+#define SHADER_HAS_STEEPMAP3		u_Local13.a
 
 
 #if defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
@@ -416,7 +425,7 @@ bool IsRoadmapMaterial ( void )
 	return false;
 }
 
-vec4 GetControlMap( void )
+vec4 GetControlMap( bool isVertical )
 {
 	float scale = 1.0 / SHADER_MAP_SIZE; /* control scale */
 	vec4 control;
@@ -428,22 +437,15 @@ vec4 GetControlMap( void )
 	control.b = SmoothNoise(vec3((m_vertPos.xyz * scale) + offset) * 64.0);
 	//control.rgb = clamp(control.rgb * u_Local9.g, 0.0, 1.0);
 #else
-	if (USE_TRIPLANAR >= 2.0)
-	{
-		control = vec4(var_Color.rgb, 0.0);
-	}
-	else
-	{
-		float offset = (SHADER_MAP_SIZE / 2.0) * scale;
-		vec4 xaxis = texture( u_SplatControlMap, (m_vertPos.yz * scale) + offset);
-		vec4 yaxis = texture( u_SplatControlMap, (m_vertPos.xz * scale) + offset);
-		vec4 zaxis = texture( u_SplatControlMap, (m_vertPos.xy * scale) + offset);
-		control = xaxis * var_Blending.x + yaxis * var_Blending.y + zaxis * var_Blending.z;
-		control.rgb = clamp(control.rgb * 10.0, 0.0, 1.0);
-	}
+	float offset = (SHADER_MAP_SIZE / 2.0) * scale;
+	vec4 xaxis = texture( u_SplatControlMap, (m_vertPos.yz * scale) + offset);
+	vec4 yaxis = texture( u_SplatControlMap, (m_vertPos.xz * scale) + offset);
+	vec4 zaxis = texture( u_SplatControlMap, (m_vertPos.xy * scale) + offset);
+	control = xaxis * var_Blending.x + yaxis * var_Blending.y + zaxis * var_Blending.z;
+	control.rgb = clamp(control.rgb * 10.0, 0.0, 1.0);
 #endif
 
-	if (SHADER_HAS_SPLATMAP4 > 0.0 && IsRoadmapMaterial())
+	if (!isVertical && SHADER_HAS_ROADMAP > 0.0 && IsRoadmapMaterial())
 	{// Also grab the roads map, if we have one...
 		vec2 mapSize = u_Maxs.xy - u_Mins.xy;
 		vec2 pixel = (m_vertPos.xy - u_Mins.xy) / mapSize;
@@ -575,7 +577,7 @@ vec4 SmoothMix(vec3 color1, vec3 color2, float mixf)
 
 vec4 GetSplatMap(vec2 texCoords, vec4 inColor, inout float depth)
 {
-	if (SHADER_HAS_SPLATMAP1 <= 0.0 && SHADER_HAS_SPLATMAP2 <= 0.0 && SHADER_HAS_SPLATMAP3 <= 0.0 && SHADER_HAS_SPLATMAP4 <= 0.0)
+	if (SHADER_HAS_SPLATMAP1 <= 0.0 && SHADER_HAS_SPLATMAP2 <= 0.0 && SHADER_HAS_SPLATMAP3 <= 0.0 && SHADER_HAS_ROADMAP <= 0.0)
 	{
 		return inColor;
 	}
@@ -593,7 +595,7 @@ vec4 GetSplatMap(vec2 texCoords, vec4 inColor, inout float depth)
 
 	vec4 splatColor = inColor;
 
-	vec4 control = GetControlMap();
+	vec4 control = GetControlMap(false);
 
 	float scale = SPLATMAP_SCALE;
 
@@ -618,10 +620,60 @@ vec4 GetSplatMap(vec2 texCoords, vec4 inColor, inout float depth)
 		splatColor = SmoothMix(splatColor.rgb, tex.rgb, control.b * tex.a);
 	}
 
-	if (SHADER_HAS_SPLATMAP4 > 0.0 && control.a > 0.0 && IsRoadmapMaterial())
+	if (SHADER_HAS_ROADMAP > 0.0 && control.a > 0.0 && IsRoadmapMaterial())
 	{
 		vec4 tex = GetMap(u_RoadMap, scale, depth);
 		splatColor = SmoothMix(splatColor.rgb, tex.rgb, pow(control.a * 3.0, 0.5) * tex.a);
+	}
+
+	if (depth != -1.0)
+	{// Only bother calculating if requested...
+		depth = GetDepthForPixel(splatColor);
+	}
+
+	return splatColor;
+}
+
+vec4 GetSteepMap(vec2 texCoords, vec4 inColor, inout float depth)
+{
+	if (SHADER_HAS_STEEPMAP1 <= 0.0 && SHADER_HAS_STEEPMAP2 <= 0.0 && SHADER_HAS_STEEPMAP3 <= 0.0)
+	{
+		return inColor;
+	}
+
+#ifdef __USE_REGIONS__
+	if (USE_REGIONS <= 0.0 && SHADER_HAS_WATEREDGEMAP > 0.0 && m_vertPos.z <= SHADER_WATER_LEVEL)
+#else //!__USE_REGIONS__
+	if (SHADER_HAS_WATEREDGEMAP > 0.0 && m_vertPos.z <= SHADER_WATER_LEVEL)
+#endif //__USE_REGIONS__
+	{// Steep maps (water edges)... Underwater doesn't use splats for now... Except if this is using regions...
+		return inColor;
+	}
+
+	// Splat blend in all the textues using the control strengths...
+
+	vec4 splatColor = inColor;
+
+	vec4 control = GetControlMap(true);
+
+	float scale = SPLATMAP_SCALE_STEEP;
+
+	if (SHADER_HAS_STEEPMAP1 > 0.0 && control.r > 0.0)
+	{
+		vec4 tex = GetMap(u_SteepMap1, scale, depth);
+		splatColor = SmoothMix(splatColor.rgb, tex.rgb, control.r * tex.a);
+	}
+
+	if (SHADER_HAS_STEEPMAP2 > 0.0 && control.g > 0.0)
+	{
+		vec4 tex = GetMap(u_SteepMap2, scale, depth);
+		splatColor = SmoothMix(splatColor.rgb, tex.rgb, control.g * tex.a);
+	}
+
+	if (SHADER_HAS_STEEPMAP3 > 0.0 && control.b > 0.0)
+	{
+		vec4 tex = GetMap(u_SteepMap3, scale, depth);
+		splatColor = SmoothMix(splatColor.rgb, tex.rgb, control.b * tex.a);
 	}
 
 	if (depth != -1.0)
@@ -647,13 +699,25 @@ vec4 GetDiffuse2(vec2 texCoords, out float a1)
 				return vec4(var_Color.rgb, 1.0);
 			}
 
-			if (SHADER_SHOW_SPLAT > 7.0)
+			if (SHADER_SHOW_SPLAT > 10.0)
 			{
 				control = texture(u_RoadMap, texCoords);
 			}
-			else if (SHADER_SHOW_SPLAT > 6.0)
+			else if (SHADER_SHOW_SPLAT > 9.0)
 			{
 				control = texture(u_WaterEdgeMap, texCoords);
+			}
+			else if (SHADER_SHOW_SPLAT > 8.0)
+			{
+				control = texture(u_SteepMap3, texCoords);
+			}
+			else if (SHADER_SHOW_SPLAT > 7.0)
+			{
+				control = texture(u_SteepMap2, texCoords);
+			}
+			else if (SHADER_SHOW_SPLAT > 6.0)
+			{
+				control = texture(u_SteepMap1, texCoords);
 			}
 			else if (SHADER_SHOW_SPLAT > 5.0)
 			{
@@ -673,12 +737,12 @@ vec4 GetDiffuse2(vec2 texCoords, out float a1)
 			}
 			else if (SHADER_SHOW_SPLAT > 1.0)
 			{
-				control = GetControlMap();
+				control = GetControlMap(false);
 				control.rgb = control.aaa;
 			}
 			else
 			{
-				control = GetControlMap();
+				control = GetControlMap(false);
 			}
 		
 			return vec4(control.rgb, 1.0);
@@ -687,7 +751,7 @@ vec4 GetDiffuse2(vec2 texCoords, out float a1)
 		float scale = SPLATMAP_SCALE;
 
 #ifdef __USE_REGIONS__
-		if (USE_REGIONS > 0.0 && (SHADER_HAS_SPLATMAP1 > 0 || SHADER_HAS_SPLATMAP2 > 0 || SHADER_HAS_SPLATMAP3 > 0 || SHADER_HAS_SPLATMAP4 > 0))
+		if (USE_REGIONS > 0.0 && (SHADER_HAS_SPLATMAP1 > 0 || SHADER_HAS_SPLATMAP2 > 0 || SHADER_HAS_SPLATMAP3 > 0 || SHADER_HAS_ROADMAP > 0))
 		{// Regions...
 			a1 = 0.0;
 			vec4 tex = GetMap(u_DiffuseMap, scale, a1);
@@ -696,14 +760,14 @@ vec4 GetDiffuse2(vec2 texCoords, out float a1)
 		else
 #endif //__USE_REGIONS__
 		{// Tri-Planar...
-			if (USE_TRIPLANAR >= 2.0 && (SHADER_HAS_SPLATMAP1 > 0.0 || SHADER_HAS_SPLATMAP2 > 0.0 || SHADER_HAS_SPLATMAP3 > 0.0 || (SHADER_HAS_SPLATMAP4 > 0.0 && IsRoadmapMaterial())))
+			if (USE_TRIPLANAR >= 2.0 && (SHADER_HAS_SPLATMAP1 > 0.0 || SHADER_HAS_SPLATMAP2 > 0.0 || SHADER_HAS_SPLATMAP3 > 0.0 || (SHADER_HAS_ROADMAP > 0.0 && IsRoadmapMaterial())))
 			{// Steep maps (using vertex colors)...
 				// Splat mapping...
 				a1 = 0.0;
 				vec4 tex = GetMap(u_DiffuseMap, scale, a1);
 				return GetSplatMap(texCoords, tex, a1);
 			}
-			else if (SHADER_HAS_SPLATMAP1 > 0.0 || SHADER_HAS_SPLATMAP2 > 0.0 || SHADER_HAS_SPLATMAP3 > 0.0 || (SHADER_HAS_SPLATMAP4 > 0.0 && IsRoadmapMaterial()))
+			else if (SHADER_HAS_SPLATMAP1 > 0.0 || SHADER_HAS_SPLATMAP2 > 0.0 || SHADER_HAS_SPLATMAP3 > 0.0 || (SHADER_HAS_ROADMAP > 0.0 && IsRoadmapMaterial()))
 			{// Steep maps (low angles)...
 				// Splat mapping...
 				a1 = 0.0;
@@ -744,8 +808,17 @@ vec4 GetDiffuse(vec2 texCoords)
 		if (SHADER_HAS_STEEPMAP > 0.0 && var_Slope > 0)
 		{// Do full slope blending... or inverted slope blending on regions.
 			float a1 = -1.0;
-			vec4 steep = GetMap(u_SteepMap, SPLATMAP_SCALE_STEEP/*0.0025*/, a1);
-			diffuse.rgb = mix(diffuse.rgb, steep.rgb, var_Slope * steep.a);
+			vec4 steepBaseTex = GetMap(u_SteepMap, SPLATMAP_SCALE_STEEP, a1);
+
+			if (SHADER_HAS_STEEPMAP1 > 0.0 || SHADER_HAS_STEEPMAP2 > 0.0 || SHADER_HAS_STEEPMAP3 > 0.0)
+			{// Have steep splats to use, so do the splatting on those as well...
+				vec4 steep = GetSteepMap(texCoords, steepBaseTex, a1);
+				diffuse.rgb = mix(diffuse.rgb, steep.rgb, var_Slope * steep.a);
+			}
+			else
+			{
+				diffuse.rgb = mix(diffuse.rgb, steepBaseTex.rgb, var_Slope * steepBaseTex.a);
+			}
 		}
 
 		// Do water edge blending...
@@ -1157,7 +1230,7 @@ void main()
 		&& SHADER_HAS_SPLATMAP1 <= 0 
 		&& SHADER_HAS_SPLATMAP2 <= 0 
 		&& SHADER_HAS_SPLATMAP3 <= 0 
-		&& SHADER_HAS_SPLATMAP4 <= 0 
+		&& SHADER_HAS_ROADMAP <= 0 
 		&& maxColor > 0.1)
 	{// Hmm using for city buildings...
 		vec4 glowColor = gl_FragColor;

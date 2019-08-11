@@ -1569,12 +1569,15 @@ void RB_SetMaterialBasedProperties(shaderProgram_t *sp, shaderStage_t *pStage, i
 	float	materialType = 0.0;
 	float	hasOverlay = 0.0;
 	float	doSway = 0.0;
-	float	hasSteepMap = 0;
-	float	hasWaterEdgeMap = 0;
 	float	hasSplatMap1 = 0;
 	float	hasSplatMap2 = 0;
 	float	hasSplatMap3 = 0;
-	float	hasSplatMap4 = 0;
+	float	hasSteepMap = 0;
+	float	hasSteepMap1 = 0;
+	float	hasSteepMap2 = 0;
+	float	hasSteepMap3 = 0;
+	float	hasWaterEdgeMap = 0;
+	float	hasRoadMap = 0;
 	float	hasNormalMap = 0;
 	float	hasEnvMap = 0;
 
@@ -1623,6 +1626,21 @@ void RB_SetMaterialBasedProperties(shaderProgram_t *sp, shaderStage_t *pStage, i
 			hasSteepMap = 1.0;
 		}
 
+		if (pStage->bundle[TB_STEEPMAP1].image[0])
+		{
+			hasSteepMap1 = 1.0;
+		}
+
+		if (pStage->bundle[TB_STEEPMAP2].image[0])
+		{
+			hasSteepMap2 = 1.0;
+		}
+
+		if (pStage->bundle[TB_STEEPMAP3].image[0])
+		{
+			hasSteepMap3 = 1.0;
+		}
+
 		if (pStage->bundle[TB_WATER_EDGE_MAP].image[0])
 		{
 			hasWaterEdgeMap = 1.0;
@@ -1645,12 +1663,12 @@ void RB_SetMaterialBasedProperties(shaderProgram_t *sp, shaderStage_t *pStage, i
 
 		if (tr.roadsMapImage != tr.blackImage)
 		{// Seems we have roads for this map...
-			hasSplatMap4 = 1.0;
+			hasRoadMap = 1.0;
 		}
 
 		if (pStage->bundle[TB_ROOFMAP].image[0])
 		{
-			hasSteepMap = 1.0;
+			hasSteepMap1 = 1.0;
 		}
 
 		if (pStage->isFoliage)
@@ -1663,11 +1681,11 @@ void RB_SetMaterialBasedProperties(shaderProgram_t *sp, shaderStage_t *pStage, i
 		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL1, local1);
 
 		vec4_t local2;
-		VectorSet4(local2, hasSteepMap, hasWaterEdgeMap, hasNormalMap, MAP_WATER_LEVEL);
+		VectorSet4(local2, hasWaterEdgeMap, hasNormalMap, 0.0, MAP_WATER_LEVEL);
 		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL2, local2);
 
 		vec4_t local3;
-		VectorSet4(local3, hasSplatMap1, hasSplatMap2, hasSplatMap3, hasSplatMap4);
+		VectorSet4(local3, hasSplatMap1, hasSplatMap2, hasSplatMap3, hasRoadMap);
 		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL3, local3);
 
 		vec4_t local4;
@@ -1679,6 +1697,10 @@ void RB_SetMaterialBasedProperties(shaderProgram_t *sp, shaderStage_t *pStage, i
 		vec4_t local5;
 		VectorSet4(local5, hasOverlay, hasEnvMap, 0.0, LEAF_ALPHA_MULTIPLIER);
 		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL5, local5); // dayNightEnabled, nightScale, skyDirection, LEAF_ALPHA_MULTIPLIER
+
+		vec4_t local13;
+		VectorSet4(local13, hasSteepMap, hasSteepMap1, hasSteepMap2, hasSteepMap3);
+		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL13, local13);
 	}
 	else
 	{// Don't waste time on unneeded stuff... Absolute minimum shader complexity...
@@ -1693,9 +1715,10 @@ void RB_SetMaterialBasedProperties(shaderProgram_t *sp, shaderStage_t *pStage, i
 
 		vec4_t vector;
 		VectorSet4(vector, 0.0, 0.0, 0.0, 0.0);
-		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL2, vector); // hasSteepMap, hasWaterEdgeMap, hasNormalMap, MAP_WATER_LEVEL
-		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL3, vector); // hasSplatMap1, hasSplatMap2, hasSplatMap3, hasSplatMap4
+		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL2, vector); // hasWaterEdgeMap, hasNormalMap, 0.0, MAP_WATER_LEVEL
+		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL3, vector); // hasSplatMap1, hasSplatMap2, hasSplatMap3, hasRoadMap
 		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL4, vector); // stageNum, glowStrength, r_showsplat, glowVibrancy
+		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL13, vector); // hasSteepMap, hasSteepMap1, hasSteepMap2, hasSteepMap3
 		
 		vec4_t local5;
 		VectorSet4(local5, 0.0, 0.0, 0.0, LEAF_ALPHA_MULTIPLIER);
@@ -2389,6 +2412,24 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			pStage->bundle[TB_STEEPMAP].image[0] = R_LoadDeferredImage(pStage->bundle[TB_STEEPMAP].image[0]);
 		}
 
+		if (pStage->bundle[TB_STEEPMAP1].image[0]
+			&& pStage->bundle[TB_STEEPMAP1].image[0]->deferredLoad)
+		{// Load the actual image file...
+			pStage->bundle[TB_STEEPMAP1].image[0] = R_LoadDeferredImage(pStage->bundle[TB_STEEPMAP1].image[0]);
+		}
+
+		if (pStage->bundle[TB_STEEPMAP2].image[0]
+			&& pStage->bundle[TB_STEEPMAP2].image[0]->deferredLoad)
+		{// Load the actual image file...
+			pStage->bundle[TB_STEEPMAP2].image[0] = R_LoadDeferredImage(pStage->bundle[TB_STEEPMAP2].image[0]);
+		}
+
+		if (pStage->bundle[TB_STEEPMAP3].image[0]
+			&& pStage->bundle[TB_STEEPMAP3].image[0]->deferredLoad)
+		{// Load the actual image file...
+			pStage->bundle[TB_STEEPMAP3].image[0] = R_LoadDeferredImage(pStage->bundle[TB_STEEPMAP3].image[0]);
+		}
+
 		if (pStage->bundle[TB_WATER_EDGE_MAP].image[0]
 			&& pStage->bundle[TB_WATER_EDGE_MAP].image[0]->deferredLoad)
 		{// Load the actual image file...
@@ -2943,6 +2984,9 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			else if (r_splatMapping->integer
 				&& (tess.shader->materialType == MATERIAL_ROCK || tess.shader->materialType == MATERIAL_STONE)
 				&& (pStage->bundle[TB_STEEPMAP].image[0]
+					|| pStage->bundle[TB_STEEPMAP1].image[0]
+					|| pStage->bundle[TB_STEEPMAP2].image[0]
+					|| pStage->bundle[TB_STEEPMAP3].image[0]
 					|| pStage->bundle[TB_WATER_EDGE_MAP].image[0]
 					|| pStage->bundle[TB_SPLATMAP1].image[0]
 					|| pStage->bundle[TB_SPLATMAP2].image[0]
@@ -2953,6 +2997,9 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 #endif //__USE_REGIONS__
 			else if (r_splatMapping->integer
 				&& (pStage->bundle[TB_STEEPMAP].image[0]
+					|| pStage->bundle[TB_STEEPMAP1].image[0]
+					|| pStage->bundle[TB_STEEPMAP2].image[0]
+					|| pStage->bundle[TB_STEEPMAP3].image[0]
 					|| pStage->bundle[TB_WATER_EDGE_MAP].image[0]
 					|| pStage->bundle[TB_SPLATMAP1].image[0]
 					|| pStage->bundle[TB_SPLATMAP2].image[0]
@@ -4204,11 +4251,26 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 
 					if (pStage->bundle[TB_ROOFMAP].image[0])
 					{// DiffuseMap becomes the steep texture...
-						GL_BindToTMU(pStage->bundle[TB_DIFFUSEMAP].image[0], TB_STEEPMAP);
+						GL_BindToTMU(pStage->bundle[TB_DIFFUSEMAP].image[0], TB_STEEPMAP1);
 					}
 					else if (pStage->bundle[TB_STEEPMAP].image[0])
 					{
 						GL_BindToTMU(pStage->bundle[TB_STEEPMAP].image[0], TB_STEEPMAP);
+					}
+
+					if (pStage->bundle[TB_STEEPMAP1].image[0])
+					{
+						GL_BindToTMU(pStage->bundle[TB_STEEPMAP1].image[0], TB_STEEPMAP1);
+					}
+
+					if (pStage->bundle[TB_STEEPMAP2].image[0])
+					{
+						GL_BindToTMU(pStage->bundle[TB_STEEPMAP2].image[0], TB_STEEPMAP2);
+					}
+
+					if (pStage->bundle[TB_STEEPMAP3].image[0])
+					{
+						GL_BindToTMU(pStage->bundle[TB_STEEPMAP3].image[0], TB_STEEPMAP3);
 					}
 
 					if (pStage->bundle[TB_WATER_EDGE_MAP].image[0])

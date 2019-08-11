@@ -263,6 +263,9 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_EmissiveCubeMap", GLSL_INT, 1 },
 	{ "u_OverlayMap", GLSL_INT, 1 },
 	{ "u_SteepMap", GLSL_INT, 1 },
+	{ "u_SteepMap1", GLSL_INT, 1 },
+	{ "u_SteepMap2", GLSL_INT, 1 },
+	{ "u_SteepMap3", GLSL_INT, 1 },
 	{ "u_WaterEdgeMap", GLSL_INT, 1 },
 	{ "u_SplatControlMap", GLSL_INT, 1 },
 	{ "u_SplatMap1", GLSL_INT, 1 },
@@ -410,6 +413,7 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_Local10", GLSL_VEC4, 1 },
 	{ "u_Local11", GLSL_VEC4, 1 },
 	{ "u_Local12", GLSL_VEC4, 1 },
+	{ "u_Local13", GLSL_VEC4, 1 },
 
 	{ "u_MoonCount", GLSL_INT, 1 },
 	{ "u_MoonInfos", GLSL_VEC4, 4 },
@@ -3956,11 +3960,14 @@ void GLSL_EndLoadGPUShaders(int startTime)
 		GLSL_BindProgram(&tr.lightAllSplatShader[i]);
 
 		GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
-		GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_STEEPMAP, TB_STEEPMAP);
-		GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_WATER_EDGE_MAP, TB_WATER_EDGE_MAP);
 		GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_SPLATMAP1, TB_SPLATMAP1);
 		GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_SPLATMAP2, TB_SPLATMAP2);
 		GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_SPLATMAP3, TB_SPLATMAP3);
+		GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_STEEPMAP, TB_STEEPMAP);
+		GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_STEEPMAP1, TB_STEEPMAP1);
+		GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_STEEPMAP2, TB_STEEPMAP2);
+		GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_STEEPMAP3, TB_STEEPMAP3);
+		GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_WATER_EDGE_MAP, TB_WATER_EDGE_MAP);
 		GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_SPLATCONTROLMAP, TB_SPLATCONTROLMAP);
 		GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_ROADSCONTROLMAP, TB_ROADSCONTROLMAP);
 		GLSL_SetUniformInt(&tr.lightAllSplatShader[i], UNIFORM_ROADMAP, TB_ROADMAP);
@@ -6000,7 +6007,6 @@ void GLSL_EndLoadGPUShaders(int startTime)
 	GLSL_SetUniformInt(&tr.waterPostForwardShader, UNIFORM_SPECULARMAP, TB_SPECULARMAP);
 	GLSL_SetUniformInt(&tr.waterPostForwardShader, UNIFORM_SHADOWMAP, TB_SHADOWMAP);
 	GLSL_SetUniformInt(&tr.waterPostForwardShader, UNIFORM_CUBEMAP, TB_CUBEMAP);
-	//GLSL_SetUniformInt(&tr.waterPostForwardShader, UNIFORM_SUBSURFACEMAP, TB_SUBSURFACEMAP);
 
 	{
 		vec4_t viewInfo;
@@ -6051,7 +6057,6 @@ void GLSL_EndLoadGPUShaders(int startTime)
 	GLSL_SetUniformInt(&tr.waterForwardShader, UNIFORM_CUBEMAP, TB_CUBEMAP);
 	GLSL_SetUniformInt(&tr.waterForwardShader, UNIFORM_SKYCUBEMAP, TB_SKYCUBEMAP);
 	GLSL_SetUniformInt(&tr.waterForwardShader, UNIFORM_SKYCUBEMAPNIGHT, TB_SKYCUBEMAPNIGHT);
-	//GLSL_SetUniformInt(&tr.waterForwardShader, UNIFORM_SUBSURFACEMAP, TB_SUBSURFACEMAP);
 
 	{
 		vec4_t viewInfo;
@@ -6101,7 +6106,6 @@ void GLSL_EndLoadGPUShaders(int startTime)
 	GLSL_SetUniformInt(&tr.waterForwardFastShader, UNIFORM_CUBEMAP, TB_CUBEMAP);
 	GLSL_SetUniformInt(&tr.waterForwardFastShader, UNIFORM_SKYCUBEMAP, TB_SKYCUBEMAP);
 	GLSL_SetUniformInt(&tr.waterForwardFastShader, UNIFORM_SKYCUBEMAPNIGHT, TB_SKYCUBEMAPNIGHT);
-	//GLSL_SetUniformInt(&tr.waterForwardFastShader, UNIFORM_SUBSURFACEMAP, TB_SUBSURFACEMAP);
 
 	{
 		vec4_t viewInfo;

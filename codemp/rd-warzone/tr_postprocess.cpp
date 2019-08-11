@@ -2573,8 +2573,8 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 
 	if (r_ao->integer >= 2)
 	{
-		GLSL_SetUniformInt(shader, UNIFORM_STEEPMAP, TB_STEEPMAP);
-		GL_BindToTMU(tr.ssaoImage, TB_STEEPMAP);
+		GLSL_SetUniformInt(shader, UNIFORM_STEEPMAP1, TB_STEEPMAP1);
+		GL_BindToTMU(tr.ssaoImage, TB_STEEPMAP1);
 	}
 
 	GLSL_SetUniformInt(shader, UNIFORM_GLOWMAP, TB_GLOWMAP);

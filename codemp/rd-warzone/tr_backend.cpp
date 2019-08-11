@@ -1259,11 +1259,13 @@ static int RealtimeSurfaceCompare(const void *a, const void *b)
 				continue;
 			}
 
-			if (pStage->bundle[TB_STEEPMAP].image[0]
-				|| pStage->bundle[TB_WATER_EDGE_MAP].image[0]
-				|| pStage->bundle[TB_SPLATMAP1].image[0]
+			if (pStage->bundle[TB_SPLATMAP1].image[0]
 				|| pStage->bundle[TB_SPLATMAP2].image[0]
 				|| pStage->bundle[TB_SPLATMAP3].image[0]
+				|| pStage->bundle[TB_WATER_EDGE_MAP].image[0]
+				|| pStage->bundle[TB_STEEPMAP1].image[0]
+				|| pStage->bundle[TB_STEEPMAP2].image[0]
+				|| pStage->bundle[TB_STEEPMAP3].image[0]
 				|| pStage->bundle[TB_ROOFMAP].image[0])
 			{
 				shadera->hasSplatMaps = 1;
@@ -1291,15 +1293,15 @@ static int RealtimeSurfaceCompare(const void *a, const void *b)
 				continue;
 			}
 
-			if (pStage->bundle[TB_STEEPMAP].image[0]
-				|| pStage->bundle[TB_WATER_EDGE_MAP].image[0]
-				|| pStage->bundle[TB_SPLATMAP1].image[0]
+			if (pStage->bundle[TB_SPLATMAP1].image[0]
 				|| pStage->bundle[TB_SPLATMAP2].image[0]
 				|| pStage->bundle[TB_SPLATMAP3].image[0]
+				|| pStage->bundle[TB_WATER_EDGE_MAP].image[0]
+				|| pStage->bundle[TB_STEEPMAP1].image[0]
+				|| pStage->bundle[TB_STEEPMAP2].image[0]
+				|| pStage->bundle[TB_STEEPMAP3].image[0]
 				|| pStage->bundle[TB_ROOFMAP].image[0])
 			{
-				shaderb->hasSplatMaps = 1;
-			}
 			else
 			{
 				shaderb->hasSplatMaps = -1;
