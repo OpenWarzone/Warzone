@@ -4250,6 +4250,10 @@ void GLSL_EndLoadGPUShaders(int startTime)
 		GLSL_SetUniformInt(&tr.grassShader[0], UNIFORM_SPLATCONTROLMAP, TB_SPLATCONTROLMAP);
 		GLSL_SetUniformInt(&tr.grassShader[0], UNIFORM_ROADSCONTROLMAP, TB_ROADSCONTROLMAP);
 		GLSL_SetUniformInt(&tr.grassShader[0], UNIFORM_HEIGHTMAP, TB_HEIGHTMAP);
+		GLSL_SetUniformInt(&tr.grassShader[0], UNIFORM_STEEPMAP, TB_STEEPMAP);
+		GLSL_SetUniformInt(&tr.grassShader[0], UNIFORM_STEEPMAP1, TB_STEEPMAP1);
+		GLSL_SetUniformInt(&tr.grassShader[0], UNIFORM_STEEPMAP2, TB_STEEPMAP2);
+		GLSL_SetUniformInt(&tr.grassShader[0], UNIFORM_STEEPMAP3, TB_STEEPMAP3);
 
 #if defined(_DEBUG)
 		GLSL_FinishGPUShader(&tr.grassShader[0]);
@@ -4277,6 +4281,10 @@ void GLSL_EndLoadGPUShaders(int startTime)
 		GLSL_SetUniformInt(&tr.grassShader[1], UNIFORM_SPLATCONTROLMAP, TB_SPLATCONTROLMAP);
 		GLSL_SetUniformInt(&tr.grassShader[1], UNIFORM_ROADSCONTROLMAP, TB_ROADSCONTROLMAP);
 		GLSL_SetUniformInt(&tr.grassShader[1], UNIFORM_HEIGHTMAP, TB_HEIGHTMAP);
+		GLSL_SetUniformInt(&tr.grassShader[1], UNIFORM_STEEPMAP, TB_STEEPMAP);
+		GLSL_SetUniformInt(&tr.grassShader[1], UNIFORM_STEEPMAP1, TB_STEEPMAP1);
+		GLSL_SetUniformInt(&tr.grassShader[1], UNIFORM_STEEPMAP2, TB_STEEPMAP2);
+		GLSL_SetUniformInt(&tr.grassShader[1], UNIFORM_STEEPMAP3, TB_STEEPMAP3);
 
 #if defined(_DEBUG)
 		GLSL_FinishGPUShader(&tr.grassShader[1]);

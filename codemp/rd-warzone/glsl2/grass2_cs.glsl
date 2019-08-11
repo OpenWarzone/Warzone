@@ -1,6 +1,11 @@
 layout(vertices = MAX_PATCH_VERTICES) out;
 //layout(vertices = 3) out; // (1)
 
+uniform sampler2D							u_SteepMap; // Grass control map...
+uniform sampler2D							u_SteepMap1; // Map of another grass...
+uniform sampler2D							u_SteepMap2; // Map of another grass...
+uniform sampler2D							u_SteepMap3; // Map of another grass...
+
 flat in	int									vertIsSlope[];
 
 uniform vec4								u_Local1; // MAP_SIZE, sway, overlaySway, materialType
@@ -11,6 +16,7 @@ uniform vec4								u_Local9; // testvalue0, 1, 2, 3
 uniform vec4								u_Local10; // foliageLODdistance, TERRAIN_TESS_OFFSET, GRASS_DENSITY, GRASS_TYPE_UNIFORMALITY
 uniform vec4								u_Local11; // GRASS_WIDTH_REPEATS, GRASS_MAX_SLOPE, GRASS_TYPE_UNIFORMALITY_SCALER, 0.0
 uniform vec4								u_Local12; // GRASS_SIZE_MULTIPLIER_COMMON, GRASS_SIZE_MULTIPLIER_RARE, GRASS_SIZE_MULTIPLIER_UNDERWATER, 0.0
+uniform vec4								u_Local13; // HAVE_GRASS_CONTROL, HAVE_GRASS_CONTROL1, HAVE_GRASS_CONTROL2, HAVE_GRASS_CONTROL3
 
 #define SHADER_MAP_SIZE						u_Local1.r
 #define SHADER_SWAY							u_Local1.g
@@ -44,14 +50,49 @@ uniform vec4								u_Local12; // GRASS_SIZE_MULTIPLIER_COMMON, GRASS_SIZE_MULTI
 #define GRASS_SIZE_MULTIPLIER_RARE			u_Local12.g
 #define GRASS_SIZE_MULTIPLIER_UNDERWATER	u_Local12.b
 
+#define HAVE_GRASS_CONTROL					u_Local13.r
+#define HAVE_GRASS_CONTROL1					u_Local13.g
+#define HAVE_GRASS_CONTROL2					u_Local13.b
+#define HAVE_GRASS_CONTROL3					u_Local13.a
+
 #define MAP_WATER_LEVEL						SHADER_WATER_LEVEL // TODO: Use water map
 #define GRASS_TYPE_UNIFORM_WATER			0.66
 
 uniform vec3								u_ViewOrigin;
 
+uniform vec4								u_MapInfo; // MAP_INFO_SIZE[0], MAP_INFO_SIZE[1], MAP_INFO_SIZE[2], 0.0
+uniform vec4								u_Mins;
+uniform vec4								u_Maxs;
+
 //uniform float uTessLevel;
 //const float uTessLevel = 7.0;
 //float uTessLevel = (u_Local9.r > 1.0) ? u_Local9.r : 1.0;
+
+vec2 GetMapTC(vec3 pos)
+{
+	vec2 mapSize = u_Maxs.xy - u_Mins.xy;
+	return (pos.xy - u_Mins.xy) / mapSize;
+}
+
+#define GRASS_ALLOW 0.1
+
+bool CheckGrassMapPosition(vec3 pos)
+{
+	if (HAVE_GRASS_CONTROL <= 0)
+	{
+		return true;
+	}
+
+	vec2 tc = GetMapTC(pos);
+	float grass = textureLod(u_SteepMap, tc, 4.0).r; // Lod 4 to blur the map and find anything close to allowable position...
+
+	if (grass > GRASS_ALLOW)
+	{
+		return true;
+	}
+
+	return false;
+}
 
 void main() 
 {
@@ -88,6 +129,12 @@ void main()
 		return;
 	}
 #endif //__USE_UNDERWATER_ONLY__
+
+	if (!CheckGrassMapPosition(Pos))
+	{
+		gl_TessLevelOuter[0] = gl_TessLevelOuter[1] = gl_TessLevelOuter[2] = gl_TessLevelInner[0] = 0.0;// 1.0;
+		return;
+	}
 
 	// UQ1: Checked and distance is faster
 	float VertDist = distance(u_ViewOrigin, Pos);

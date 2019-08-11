@@ -1567,6 +1567,7 @@ float		GRASS_SIZE_MULTIPLIER_COMMON = 1.0;
 float		GRASS_SIZE_MULTIPLIER_RARE = 2.75;
 float		GRASS_SIZE_MULTIPLIER_UNDERWATER = 1.0;
 float		GRASS_LOD_START_RANGE = 8192.0;
+image_t		*GRASS_CONTROL_TEXTURE = NULL;
 
 qboolean	GRASS2_ENABLED = qtrue;
 qboolean	GRASS2_UNDERWATER_ONLY = qfalse;
@@ -1585,6 +1586,7 @@ float		GRASS2_SIZE_MULTIPLIER_COMMON = 1.0;
 float		GRASS2_SIZE_MULTIPLIER_RARE = 2.75;
 float		GRASS2_SIZE_MULTIPLIER_UNDERWATER = 1.0;
 float		GRASS2_LOD_START_RANGE = 8192.0;
+image_t		*GRASS2_CONTROL_TEXTURE = NULL;
 
 qboolean	GRASS3_ENABLED = qtrue;
 qboolean	GRASS3_UNDERWATER_ONLY = qfalse;
@@ -1603,6 +1605,7 @@ float		GRASS3_SIZE_MULTIPLIER_COMMON = 1.0;
 float		GRASS3_SIZE_MULTIPLIER_RARE = 2.75;
 float		GRASS3_SIZE_MULTIPLIER_UNDERWATER = 1.0;
 float		GRASS3_LOD_START_RANGE = 8192.0;
+image_t		*GRASS3_CONTROL_TEXTURE = NULL;
 
 qboolean	GRASS4_ENABLED = qtrue;
 qboolean	GRASS4_UNDERWATER_ONLY = qfalse;
@@ -1621,6 +1624,7 @@ float		GRASS4_SIZE_MULTIPLIER_COMMON = 1.0;
 float		GRASS4_SIZE_MULTIPLIER_RARE = 2.75;
 float		GRASS4_SIZE_MULTIPLIER_UNDERWATER = 1.0;
 float		GRASS4_LOD_START_RANGE = 8192.0;
+image_t		*GRASS4_CONTROL_TEXTURE = NULL;
 
 qboolean	FOLIAGE_ENABLED = qfalse;
 int			FOLIAGE_DENSITY = 2;
@@ -2447,6 +2451,8 @@ void MAPPING_LoadMapInfo(void)
 		GRASS_SIZE_MULTIPLIER_COMMON = atof(IniRead(mapname, "GRASS", "GRASS_SIZE_MULTIPLIER_COMMON", "1.0"));
 		GRASS_SIZE_MULTIPLIER_RARE = atof(IniRead(mapname, "GRASS", "GRASS_SIZE_MULTIPLIER_RARE", "2.75"));
 		GRASS_SIZE_MULTIPLIER_UNDERWATER = atof(IniRead(mapname, "GRASS", "GRASS_SIZE_MULTIPLIER_UNDERWATER", "1.0"));
+		
+		GRASS_CONTROL_TEXTURE = R_FindImageFile(IniRead(mapname, "GRASS", "GRASS_CONTROL_TEXTURE", ""), IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE);
 	
 		// Parse any specified extra surface material types to add grasses to...
 		for (int m = 0; m < 8; m++)
@@ -2494,6 +2500,8 @@ void MAPPING_LoadMapInfo(void)
 		GRASS2_SIZE_MULTIPLIER_RARE = atof(IniRead(mapname, "GRASS2", "GRASS_SIZE_MULTIPLIER_RARE", "2.75"));
 		GRASS2_SIZE_MULTIPLIER_UNDERWATER = atof(IniRead(mapname, "GRASS2", "GRASS_SIZE_MULTIPLIER_UNDERWATER", "1.0"));
 
+		GRASS2_CONTROL_TEXTURE = R_FindImageFile(IniRead(mapname, "GRASS2", "GRASS_CONTROL_TEXTURE", ""), IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE);
+
 		// Parse any specified extra surface material types to add grasses to...
 		for (int m = 0; m < 8; m++)
 		{
@@ -2540,6 +2548,8 @@ void MAPPING_LoadMapInfo(void)
 		GRASS3_SIZE_MULTIPLIER_RARE = atof(IniRead(mapname, "GRASS3", "GRASS_SIZE_MULTIPLIER_RARE", "2.75"));
 		GRASS3_SIZE_MULTIPLIER_UNDERWATER = atof(IniRead(mapname, "GRASS3", "GRASS_SIZE_MULTIPLIER_UNDERWATER", "1.0"));
 
+		GRASS3_CONTROL_TEXTURE = R_FindImageFile(IniRead(mapname, "GRASS3", "GRASS_CONTROL_TEXTURE", ""), IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE);
+
 		// Parse any specified extra surface material types to add grasses to...
 		for (int m = 0; m < 8; m++)
 		{
@@ -2585,6 +2595,8 @@ void MAPPING_LoadMapInfo(void)
 		GRASS4_SIZE_MULTIPLIER_COMMON = atof(IniRead(mapname, "GRASS4", "GRASS_SIZE_MULTIPLIER_COMMON", "1.0"));
 		GRASS4_SIZE_MULTIPLIER_RARE = atof(IniRead(mapname, "GRASS4", "GRASS_SIZE_MULTIPLIER_RARE", "2.75"));
 		GRASS4_SIZE_MULTIPLIER_UNDERWATER = atof(IniRead(mapname, "GRASS4", "GRASS_SIZE_MULTIPLIER_UNDERWATER", "1.0"));
+
+		GRASS4_CONTROL_TEXTURE = R_FindImageFile(IniRead(mapname, "GRASS4", "GRASS_CONTROL_TEXTURE", ""), IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE);
 
 		// Parse any specified extra surface material types to add grasses to...
 		for (int m = 0; m < 8; m++)
@@ -2844,7 +2856,7 @@ void MAPPING_LoadMapInfo(void)
 				}
 			}
 
-			tr.grassAliasImage[0] = R_BakeTextures(grassImages, 16, "grass", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+			tr.grassAliasImage[0] = R_BakeTextures(grassImages, 16, "grass0", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
 		}
 
 		char seaGrassImages[16][512] = { 0 };
@@ -2859,7 +2871,7 @@ void MAPPING_LoadMapInfo(void)
 			}
 		}
 
-		tr.seaGrassAliasImage[0] = R_BakeTextures(seaGrassImages, 4, "seaGrass", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		tr.seaGrassAliasImage[0] = R_BakeTextures(seaGrassImages, 4, "seaGrass0", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
 	}
 
 	if ((GRASS2_ENABLED && r_foliage->integer))

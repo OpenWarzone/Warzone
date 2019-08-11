@@ -10,6 +10,10 @@ layout(triangle_strip, max_vertices = MAX_FOLIAGES) out;
 uniform mat4								u_ModelViewProjectionMatrix;
 
 uniform sampler2D							u_RoadsControlMap;
+uniform sampler2D							u_SteepMap; // Grass control map...
+uniform sampler2D							u_SteepMap1; // Map of another grass...
+uniform sampler2D							u_SteepMap2; // Map of another grass...
+uniform sampler2D							u_SteepMap3; // Map of another grass...
 uniform sampler2D							u_HeightMap;
 
 uniform vec4								u_Local1; // MAP_SIZE, sway, overlaySway, materialType
@@ -20,6 +24,7 @@ uniform vec4								u_Local9; // testvalue0, 1, 2, 3
 uniform vec4								u_Local10; // foliageLODdistance, TERRAIN_TESS_OFFSET, 0.0, GRASS_TYPE_UNIFORMALITY
 uniform vec4								u_Local11; // GRASS_WIDTH_REPEATS, GRASS_MAX_SLOPE, GRASS_TYPE_UNIFORMALITY_SCALER, GRASS_RARE_PATCHES_ONLY
 uniform vec4								u_Local12; // GRASS_SIZE_MULTIPLIER_COMMON, GRASS_SIZE_MULTIPLIER_RARE, GRASS_SIZE_MULTIPLIER_UNDERWATER, GRASS_LOD_START_RANGE
+uniform vec4								u_Local13; // HAVE_GRASS_CONTROL, HAVE_GRASS_CONTROL1, HAVE_GRASS_CONTROL2, HAVE_GRASS_CONTROL3
 
 #define SHADER_MAP_SIZE						u_Local1.r
 #define SHADER_SWAY							u_Local1.g
@@ -54,6 +59,11 @@ uniform vec4								u_Local12; // GRASS_SIZE_MULTIPLIER_COMMON, GRASS_SIZE_MULTI
 #define GRASS_SIZE_MULTIPLIER_RARE			u_Local12.g
 #define GRASS_SIZE_MULTIPLIER_UNDERWATER	u_Local12.b
 #define GRASS_LOD_START_RANGE				u_Local12.a
+
+#define HAVE_GRASS_CONTROL					u_Local13.r
+#define HAVE_GRASS_CONTROL1					u_Local13.g
+#define HAVE_GRASS_CONTROL2					u_Local13.b
+#define HAVE_GRASS_CONTROL3					u_Local13.a
 
 #define MAP_WATER_LEVEL						SHADER_WATER_LEVEL // TODO: Use water map
 #define GRASS_TYPE_UNIFORM_WATER			0.66
@@ -318,6 +328,73 @@ float OffsetForPosition(vec3 pos)
 	return offset * TERRAIN_TESS_OFFSET;
 }
 
+#define GRASS_CULL 0.5
+#define GRASS_ALLOW 0.1
+
+bool CheckAltGrass(vec2 tc)
+{
+	if (HAVE_GRASS_CONTROL1 > 0.0)
+	{
+		float nograss = textureLod(u_SteepMap1, tc, 0.0).r; // Lod level to add a gap around other grass maps...
+
+		if (nograss > GRASS_CULL)
+		{// Another grass here...
+			return true;
+		}
+	}
+
+	if (HAVE_GRASS_CONTROL2 > 0.0)
+	{
+		float nograss = textureLod(u_SteepMap2, tc, 0.0).r; // Lod level to add a gap around other grass maps...
+
+		if (nograss > GRASS_CULL)
+		{// Another grass here...
+			return true;
+		}
+	}
+
+	if (HAVE_GRASS_CONTROL3 > 0.0)
+	{
+		float nograss = textureLod(u_SteepMap3, tc, 0.0).r; // Lod level to add a gap around other grass maps...
+
+		if (nograss > GRASS_CULL)
+		{// Another grass here...
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool CheckGrassMapPosition(vec3 pos)
+{
+	vec2 tc = GetMapTC(pos);
+
+	if (HAVE_GRASS_CONTROL <= 0)
+	{
+		if (CheckAltGrass(tc))
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	float grass = textureLod(u_SteepMap, tc, 0.0).r;
+
+	if (grass > 0.5)
+	{
+		if (CheckAltGrass(tc))
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
 void main()
 {
 	iGrassType = 0;
@@ -333,6 +410,11 @@ void main()
 
 	vec3 vGrassFieldPos = (Vert1 + Vert2 + Vert3) / 3.0;   //Center of the triangle - copy for later
 														   //-----------------------------------
+
+	if (!CheckGrassMapPosition(vGrassFieldPos))
+	{
+		return;
+	}
 
 	vLocalSeed = vGrassFieldPos;
 								// invocations support...

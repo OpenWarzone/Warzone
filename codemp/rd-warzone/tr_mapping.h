@@ -188,6 +188,7 @@ extern float			GRASS_SIZE_MULTIPLIER_COMMON;
 extern float			GRASS_SIZE_MULTIPLIER_RARE;
 extern float			GRASS_SIZE_MULTIPLIER_UNDERWATER;
 extern float			GRASS_LOD_START_RANGE;
+extern image_t			*GRASS_CONTROL_TEXTURE;
 
 extern qboolean			GRASS2_ENABLED;
 extern qboolean			GRASS2_UNDERWATER_ONLY;
@@ -206,6 +207,7 @@ extern float			GRASS2_SIZE_MULTIPLIER_COMMON;
 extern float			GRASS2_SIZE_MULTIPLIER_RARE;
 extern float			GRASS2_SIZE_MULTIPLIER_UNDERWATER;
 extern float			GRASS2_LOD_START_RANGE;
+extern image_t			*GRASS2_CONTROL_TEXTURE;
 
 extern qboolean			GRASS3_ENABLED;
 extern qboolean			GRASS3_UNDERWATER_ONLY;
@@ -224,6 +226,7 @@ extern float			GRASS3_SIZE_MULTIPLIER_COMMON;
 extern float			GRASS3_SIZE_MULTIPLIER_RARE;
 extern float			GRASS3_SIZE_MULTIPLIER_UNDERWATER;
 extern float			GRASS3_LOD_START_RANGE;
+extern image_t			*GRASS3_CONTROL_TEXTURE;
 
 extern qboolean			GRASS4_ENABLED;
 extern qboolean			GRASS4_UNDERWATER_ONLY;
@@ -242,6 +245,7 @@ extern float			GRASS4_SIZE_MULTIPLIER_COMMON;
 extern float			GRASS4_SIZE_MULTIPLIER_RARE;
 extern float			GRASS4_SIZE_MULTIPLIER_UNDERWATER;
 extern float			GRASS4_LOD_START_RANGE;
+extern image_t			*GRASS4_CONTROL_TEXTURE;
 
 extern qboolean			FOLIAGE_ENABLED;
 extern int				FOLIAGE_DENSITY;
