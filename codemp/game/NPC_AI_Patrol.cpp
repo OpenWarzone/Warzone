@@ -217,7 +217,7 @@ int NPC_FindPatrolGoalNavLib(gentity_t *NPC)
 
 #pragma omp critical
 		{
-			NavlibFindRandomPointInRadius(NPC->s.number, gWPArray[waypoint]->origin, NPC->client->navigation.goal.origin, 99999999.9);
+			FindRandomNavmeshPointInRadius(NPC->s.number, gWPArray[waypoint]->origin, NPC->client->navigation.goal.origin, 99999999.9);
 		}
 		//trap->Print("[%s] newGoal: %f %f %f.\n", NPC->client->pers.netname, NPC->client->navigation.goal.origin[0], NPC->client->navigation.goal.origin[1], NPC->client->navigation.goal.origin[2]);
 		return 1;
@@ -226,7 +226,7 @@ int NPC_FindPatrolGoalNavLib(gentity_t *NPC)
 	{
 #pragma omp critical
 		{
-			NavlibFindRandomPointOnMesh(NPC, NPC->client->navigation.goal.origin);
+			FindRandomNavmeshSpawnpoint(NPC, NPC->client->navigation.goal.origin);
 		}
 		//trap->Print("[%s] newGoal: %f %f %f.\n", NPC->client->pers.netname, NPC->client->navigation.goal.origin[0], NPC->client->navigation.goal.origin[1], NPC->client->navigation.goal.origin[2]);
 		return 1;
@@ -239,11 +239,11 @@ int NPC_FindPatrolGoalNavLib(gentity_t *NPC)
 
 #pragma omp critical
 	{
-		NavlibFindRandomPatrolPoint(NPC->s.number, NPC->client->navigation.goal.origin);
+		FindRandomNavmeshPatrolPoint(NPC->s.number, NPC->client->navigation.goal.origin);
 	}
 /*#pragma omp critical
 	{
-		NavlibFindRandomPointInRadius(NPC->s.number, NPC->r.currentOrigin, NPC->client->navigation.goal.origin, 2048.0);
+		FindRandomNavmeshPointInRadius(NPC->s.number, NPC->r.currentOrigin, NPC->client->navigation.goal.origin, 2048.0);
 	}*/
 
 	if (VectorLength(NPC->client->navigation.goal.origin) == 0 || Distance(NPC->r.currentOrigin, NPC->client->navigation.goal.origin) == 0)

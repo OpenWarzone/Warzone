@@ -32,6 +32,7 @@ void G_ClearEnemy (gentity_t *self)
 		//FIXME: set last enemy?
 	}
 
+	self->NPC->helpCallTime = 0;
 	self->enemy = NULL;
 }
 

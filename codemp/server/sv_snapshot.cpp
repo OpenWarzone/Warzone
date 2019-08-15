@@ -478,7 +478,7 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 			if (ent->s.eType != ET_MOVER 
 				&& !ent->s.isPortalEnt 
 				&& !(ent->r.svFlags & SVF_PORTAL)
-				&& (length-radius >= g_svCullDist || length-radius >= 3072.0))
+				&& (length-radius >= g_svCullDist || length-radius >= DEFAULT_ENTITY_CULL_RANGE/*3072.0*/))
 			{ //then don't add it
 				continue;
 			}

@@ -5020,10 +5020,30 @@ static void PM_SetWaterLevel( void ) {
 	if (pm->ps->clientNum >= MAX_CLIENTS)
 	{// NPCs can use current waypoint info to save CPU time on traces...
 		gentity_t *ent = &g_entities[pm->ps->clientNum];
+
+		int waterPlane = IsBelowWaterPlane(pm->ps->origin, pm->ps->viewheight);
 		
 		if (ent->enemy && ent->enemy->client && NPC_IsAlive(ent, ent->enemy))
 		{// When we have a valid enemy, always check water level so we don't drown while attacking them...
 
+		}
+		else if (waterPlane)
+		{
+			if (pm->ps->eFlags & EF_JETPACK)
+			{// Fly over :)
+				pm->waterlevel = 2;
+				pm->watertype = CONTENTS_WATER;
+			}
+			else
+			{
+				pm->waterlevel = waterPlane;
+				pm->watertype = CONTENTS_WATER;
+			}
+
+			ent->waterCheckWaterlevel = pm->waterlevel;
+			ent->waterCheckWatertype = pm->watertype;
+			VectorCopy(ent->r.currentOrigin, ent->waterCheckOrigin);
+			return;
 		}
 		else
 		{

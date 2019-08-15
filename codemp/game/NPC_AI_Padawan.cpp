@@ -131,7 +131,7 @@ int NPC_FindPadawanGoal( gentity_t *NPC )
 
 /*#pragma omp critical
 	{
-		NavlibFindRandomPointInRadius(-1, NPC->r.currentOrigin, NPC->client->navigation.goal.origin, 128.0);
+		FindRandomNavmeshPointInRadius(-1, NPC->r.currentOrigin, NPC->client->navigation.goal.origin, 128.0);
 	}
 
 	if (VectorLength(NPC->client->navigation.goal.origin) == 0 || Distance(NPC->r.currentOrigin, NPC->client->navigation.goal.origin) == 0)

@@ -276,6 +276,11 @@ typedef struct
 	int			conversationAvailable;
 	qboolean	isVehicle; // we need a sure way to tell.
 	int			originalWeapon;
+
+	int			forceWalkTime;
+
+	int			helpCallTime;
+	int			helpCallJediLevel;
 } gNPC_t;
 
 void G_SquadPathsInit(void);

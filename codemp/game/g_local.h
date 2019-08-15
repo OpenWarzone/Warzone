@@ -229,6 +229,7 @@ extern void *g2SaberInstance;
 extern qboolean gEscaping;
 extern int gEscapeTime;
 
+
 struct gentity_s {
 	//rww - entstate must be first, to correspond with the bg shared entity structure
 	entityState_t	s;				// communicated by server to clients
@@ -588,11 +589,6 @@ struct gentity_s {
 	qboolean		ladderCheckLadderForward;
 	vec3_t			ladderCheckLadderVec;
 	// UQ1: END - Trace cache stuff...
-
-#ifdef __USE_NAVMESH__
-	CompNavMeshPath		patrol;
-	CompNavMeshPos		navMeshPos;
-#endif //__USE_NAVMESH__
 
 #ifdef __PLAYER_VEHICLES__
 	qboolean		isPlayerVehicle = qfalse;
@@ -1590,6 +1586,12 @@ qboolean SpotWouldTelefrag( gentity_t *spot );
 extern gentity_t *gJMSaberEnt;
 
 //
+// g_eventsystem.cpp
+//
+void G_SetupEventAreas(void);
+void FindRandomEventSpawnpoint(team_t team, vec3_t point);
+
+//
 // g_svcmds.c
 //
 qboolean	ConsoleCommand( void );
@@ -1637,6 +1639,13 @@ void QDECL G_LogPrintf( const char *fmt, ... );
 void QDECL G_SecurityLogPrintf( const char *fmt, ... );
 void SendScoreboardMessageToAllClients( void );
 const char *G_GetStringEdString(char *refSection, char *refName);
+int IsBelowWaterPlane(vec3_t pos, float viewHeight);
+
+#if defined(__USE_NAVLIB__) || defined(__USE_NAVLIB_SPAWNPOINTS__)
+void FindRandomNavmeshSpawnpoint(gentity_t *self, vec3_t point);
+bool FindRandomNavmeshPointInRadius(int npcEntityNum, const vec3_t origin, vec3_t point, float radius);
+void FindRandomNavmeshPatrolPoint(int npcEntityNum, vec3_t point);
+#endif //defined(__USE_NAVLIB__) || defined(__USE_NAVLIB_SPAWNPOINTS__)
 
 //
 // g_client.c
@@ -1886,8 +1895,4 @@ qboolean FOLIAGE_TreeSolidBlocking(gentity_t *ent, vec3_t moveOrg);
 
 void BG_SetAnim(playerState_t *ps, animation_t *animations, int setAnimParts, int anim, int setAnimFlags);
 void G_SoundOnEnt(gentity_t *ent, soundChannel_t channel, const char *soundPath);
-
-#ifdef __USE_NAVMESH__
-void Warzone_Nav_UpdateEntity(gentity_t *ent);
-#endif //__USE_NAVMESH__
 

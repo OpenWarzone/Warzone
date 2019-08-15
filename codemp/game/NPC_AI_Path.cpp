@@ -31,6 +31,24 @@ extern int			MOVER_LIST_NUM;
 // UQ1: The maximum distance an NPC is allowed to go to get to the next link (eg: if he is trying to move further, then he is lost/fallen/etc)
 float MAX_LINK_DISTANCE = 1024.0;//512.0;
 
+qboolean NPC_IsCombatPathing(gentity_t *aiEnt)
+{
+#ifdef __USE_NAVLIB__
+	if (aiEnt->client && aiEnt->client->navigation.goal.haveGoal && aiEnt->enemy && aiEnt->enemy->client && NPC_ValidEnemy(aiEnt, aiEnt->enemy))
+	{
+		return qtrue;
+	}
+#else //!__USE_NAVLIB__
+	if (aiEnt->client && aiEnt->longTermGoal > 0 && aiEnt->longTermGoal < gWPNum && aiEnt->enemy && aiEnt->enemy->client && NPC_ValidEnemy(aiEnt, aiEnt->enemy))
+	{
+		return qtrue;
+	}
+#endif //__USE_NAVLIB__
+
+	return qfalse;
+}
+
+
 /*///////////////////////////////////////////////////
 NPC_GetNextNode
 if the bot has reached a node, this function selects the next node
@@ -40,7 +58,6 @@ right now it's being developed, feel free to experiment
 
 int NPC_GetNextNode(gentity_t *NPC)
 {
-#ifndef __USE_NAVMESH__
 	int node = WAYPOINT_NONE;
 
 	//we should never call this in BOTSTATE_MOVE with no goal
@@ -103,14 +120,10 @@ int NPC_GetNextNode(gentity_t *NPC)
 		}
 	}
 	return node;
-#else //!__USE_NAVMESH__
-	return -1;
-#endif //__USE_NAVMESH__
 }
 
 qboolean NPC_ShortenJump(gentity_t *NPC, int node)
 {
-#ifndef __USE_NAVMESH__
 	float MAX_JUMP_DISTANCE = 192.0;
 	float dist = Distance(gWPArray[node]->origin, NPC->r.currentOrigin);
 	
@@ -124,14 +137,12 @@ qboolean NPC_ShortenJump(gentity_t *NPC, int node)
 		//trap->Print("%s is shortening path using jump.\n", NPC->client->pers.netname);
 		return qtrue; // next think...
 	}
-#endif //__USE_NAVMESH__
 
 	return qfalse;
 }
 
 void NPC_ShortenPath(gentity_t *NPC)
 {
-#ifndef __USE_NAVMESH__
 #ifdef ___PATH_SHORTEN___
 	qboolean	found = qfalse;
 	int			position = -1;
@@ -174,12 +185,10 @@ void NPC_ShortenPath(gentity_t *NPC)
 		if (found) break;
 	}
 #endif //___PATH_SHORTEN___
-#endif //__USE_NAVMESH__
 }
 
 qboolean NPC_FindNewWaypoint( gentity_t *aiEnt)
 {
-#ifndef __USE_NAVMESH__
 	gentity_t	*NPC = aiEnt;
 
 	// Try to find a visible waypoint first...
@@ -207,14 +216,12 @@ qboolean NPC_FindNewWaypoint( gentity_t *aiEnt)
 	NPC->wpTravelTime = level.time + 15000;
 	NPC->wpSeenTime = level.time;
 	NPC->last_move_time = level.time;
-#endif //__USE_NAVMESH__
 
 	return qtrue; // all good, we have a new waypoint...
 }
 
 void NPC_SetEnemyGoal(gentity_t *aiEnt)
 {
-#ifndef __USE_NAVMESH__
 	qboolean IS_COVERPOINT = qfalse;
 	int			COVERPOINT_WP = -1;
 	int			COVERPOINT_OFC_WP = -1;
@@ -439,12 +446,10 @@ void NPC_SetEnemyGoal(gentity_t *aiEnt)
 	NPC->last_move_time = level.time;
 	// Delay before giving up on this new waypoint/route...
 	NPC->wpTravelTime = level.time + 15000;
-#endif //__USE_NAVMESH__
 }
 
 qboolean NPC_CopyPathFromNearbyNPC(gentity_t *aiEnt)
 {
-#ifndef __USE_NAVMESH__
 	gentity_t	*NPC = aiEnt;
 	int i = 0;
 
@@ -486,7 +491,6 @@ qboolean NPC_CopyPathFromNearbyNPC(gentity_t *aiEnt)
 		//G_Printf("NPC Waypointing Debug: NPC %i (%s) copied a %i waypoint path between waypoints %i and %i from %i (%s).", NPC->s.number, NPC->NPC_type, NPC->pathsize, NPC->wpCurrent, NPC->longTermGoal, test->s.number, test->NPC_type);
 		return qtrue;
 	}
-#endif //__USE_NAVMESH__
 
 	return qfalse;
 }
@@ -510,7 +514,7 @@ int NPC_FindGoal( gentity_t *NPC )
 
 #pragma omp critical
 		{
-			NavlibFindRandomPointInRadius(NPC->s.number, gWPArray[waypoint]->origin, NPC->client->navigation.goal.origin, 99999999.9);
+			FindRandomNavmeshPointInRadius(NPC->s.number, gWPArray[waypoint]->origin, NPC->client->navigation.goal.origin, 99999999.9);
 		}
 		//trap->Print("[%s] newGoal: %f %f %f.\n", NPC->client->pers.netname, NPC->client->navigation.goal.origin[0], NPC->client->navigation.goal.origin[1], NPC->client->navigation.goal.origin[2]);
 		return 1;
@@ -519,7 +523,7 @@ int NPC_FindGoal( gentity_t *NPC )
 	{
 #pragma omp critical
 		{
-			NavlibFindRandomPointOnMesh(NPC, NPC->client->navigation.goal.origin);
+			FindRandomNavmeshSpawnpoint(NPC, NPC->client->navigation.goal.origin);
 		}
 		//trap->Print("[%s] newGoal: %f %f %f.\n", NPC->client->pers.netname, NPC->client->navigation.goal.origin[0], NPC->client->navigation.goal.origin[1], NPC->client->navigation.goal.origin[2]);
 		return 1;
@@ -528,8 +532,8 @@ int NPC_FindGoal( gentity_t *NPC )
 	if (!G_NavmeshIsLoaded())
 		return -1;
 
-	//NavlibFindRandomPatrolPoint(NPC->s.number, NPC->client->navigation.goal.origin);
-	NavlibFindRandomPointOnMesh(NPC, NPC->client->navigation.goal.origin);
+	//FindRandomNavmeshPatrolPoint(NPC->s.number, NPC->client->navigation.goal.origin);
+	FindRandomNavmeshSpawnpoint(NPC, NPC->client->navigation.goal.origin);
 	if (VectorLength(NPC->client->navigation.goal.origin) == 0)
 		return -1;
 
@@ -537,7 +541,6 @@ int NPC_FindGoal( gentity_t *NPC )
 #endif
 #endif //__USE_NAVLIB__
 
-#ifndef __USE_NAVMESH__
 	int waypoint = irand_big(0, gWPNum-1);
 	int tries = 0;
 
@@ -550,9 +553,6 @@ int NPC_FindGoal( gentity_t *NPC )
 	}
 
 	return waypoint;
-#else //!__USE_NAVMESH__
-	return -1;
-#endif //__USE_NAVMESH__
 }
 
 int NPC_FindTeamGoal( gentity_t *NPC )
@@ -560,12 +560,11 @@ int NPC_FindTeamGoal( gentity_t *NPC )
 #ifdef __USE_NAVLIB__
 #pragma omp critical
 	{
-		NavlibFindRandomPointOnMesh(NPC, NPC->client->navigation.goal.origin);
+		FindRandomNavmeshSpawnpoint(NPC, NPC->client->navigation.goal.origin);
 	}
 	return 1;
 #endif //__USE_NAVLIB__
 
-#ifndef __USE_NAVMESH__
 	int waypoint = -1;
 	int i;
 	
@@ -607,9 +606,6 @@ int NPC_FindTeamGoal( gentity_t *NPC )
 	}
 
 	return waypoint;
-#else //!__USE_NAVMESH__
-	return -1;
-#endif //__USE_NAVMESH__
 }
 
 extern void NPC_SetNewPadawanGoalAndPath(gentity_t *aiEnt);
@@ -650,7 +646,6 @@ void NPC_SetNewGoalAndPath(gentity_t *aiEnt)
 	return;
 #endif //__USE_NAVLIB__
 
-#ifndef __USE_NAVMESH__
 	gentity_t	*NPC = aiEnt;
 	qboolean	padawanPath = qfalse;
 
@@ -750,7 +745,6 @@ void NPC_SetNewGoalAndPath(gentity_t *aiEnt)
 			return;
 		}
 	}
-#endif //__USE_NAVMESH__
 }
 
 #ifdef __USE_NAVLIB__
@@ -950,19 +944,16 @@ void NPC_ClearPathData ( gentity_t *NPC )
 	memset(&NPC->client->navigation, 0, sizeof(NPC->client->navigation));
 #endif //__USE_NAVLIB__
 
-#ifndef __USE_NAVMESH__
 	NPC->longTermGoal = -1;
 	NPC->wpCurrent = -1;
 	NPC->pathsize = -1;
 	NPC->longTermGoal = NPC->coverpointOFC = NPC->coverpointGoal = -1;
 
 	//NPC->wpSeenTime = 0;
-#endif //__USE_NAVMESH__
 }
 
 qboolean NPC_RoutingJumpWaypoint ( int wpLast, int wpCurrent )
 {
-#ifndef __USE_NAVMESH__
 	int			link = 0;
 	qboolean	found = qfalse;
 
@@ -981,14 +972,12 @@ qboolean NPC_RoutingJumpWaypoint ( int wpLast, int wpCurrent )
 	{
 		return qtrue;
 	}
-#endif //__USE_NAVMESH__
 
 	return qfalse;
 }
 
 qboolean NPC_RoutingIncreaseCost ( int wpLast, int wpCurrent )
 {
-#ifndef __USE_NAVMESH__
 	int			link = 0;
 	qboolean	found = qfalse;
 
@@ -1012,7 +1001,6 @@ qboolean NPC_RoutingIncreaseCost ( int wpLast, int wpCurrent )
 			return qtrue;
 		}
 	}
-#endif //__USE_NAVMESH__
 
 	return qfalse;
 }
@@ -1091,7 +1079,6 @@ int CheckForFunc(vec3_t org, int ignore)
 
 int WaitingForNow(gentity_t *aiEnt, vec3_t goalpos)
 { //checks if the bot is doing something along the lines of waiting for an elevator to raise up
-#ifndef __USE_NAVMESH__
 	vec3_t		xybot, xywp, a;
 #if 0
 	vec3_t		goalpos2;
@@ -1142,7 +1129,6 @@ int WaitingForNow(gentity_t *aiEnt, vec3_t goalpos)
 	{
 		aiEnt->useDebounceTime = level.time + 2000;
 	}
-#endif //__USE_NAVMESH__
 
 	return 0;
 }
@@ -1241,7 +1227,6 @@ qboolean NPC_HaveValidEnemy(gentity_t *aiEnt)
 
 void NPC_NewWaypointJump (gentity_t *aiEnt)
 {// Jumping to new waypoint...
-#ifndef __USE_NAVMESH__
 	vec3_t myOrg, wpOrg;
 	qboolean should_jump = qtrue;
 
@@ -1277,13 +1262,12 @@ void NPC_NewWaypointJump (gentity_t *aiEnt)
 		//trap->Print("NPC JUMP DEBUG: NPC_NewWaypointJump\n");
 		return;
 	}
-#endif //__USE_NAVMESH__
 }
 
 qboolean NPC_DoLiftPathing(gentity_t *NPC)
 {
 	gentity_t *aiEnt = NPC;
-#ifndef __USE_NAVMESH__
+
 	if (NPC->wpCurrent >= 0 && NPC->wpCurrent < gWPNum)
 	{
 		qboolean onMover1 = (qboolean)WaitingForNow(aiEnt, gWPArray[NPC->wpCurrent]->origin);
@@ -1359,7 +1343,6 @@ qboolean NPC_DoLiftPathing(gentity_t *NPC)
 			}
 		}
 	}
-#endif //__USE_NAVMESH__
 
 	return qfalse;
 }
@@ -1404,7 +1387,7 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 		}
 	}
 
-	G_ClearEnemy(NPC);
+	//G_ClearEnemy(NPC);
 
 	if (NPC_GetOffPlayer(NPC))
 	{// Get off of their head!
@@ -1454,8 +1437,17 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 					{
 						NavlibMoveToGoal(NPC);
 					}
-					NPC_FacePosition(NPC, NPC->client->navigation.nav.lookPos, qfalse);
-					VectorSubtract(NPC->client->navigation.nav.pos, NPC->r.currentOrigin, NPC->movedir);
+
+					if (NPC_IsCombatPathing(NPC))
+					{// When we have an enemy, look at them while moving (combat pathing)...
+						NPC_FacePosition(NPC, NPC->enemy->r.currentOrigin, qtrue);
+						VectorSubtract(NPC->client->navigation.nav.pos, NPC->r.currentOrigin, NPC->movedir);
+					}
+					else
+					{
+						NPC_FacePosition(NPC, NPC->client->navigation.nav.lookPos, qfalse);
+						VectorSubtract(NPC->client->navigation.nav.pos, NPC->r.currentOrigin, NPC->movedir);
+					}
 
 #ifndef __USE_NAVLIB_INTERNAL_MOVEMENT__
 					if (Distance(NPC->r.currentOrigin, NPC->client->navigation.goal.ent->r.currentOrigin) < 256)
@@ -1551,8 +1543,17 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 			{
 				NavlibMoveToGoal(NPC);
 			}
-			NPC_FacePosition(NPC, NPC->client->navigation.nav.lookPos, qfalse);
-			VectorSubtract(NPC->client->navigation.nav.lookPos, NPC->r.currentOrigin, NPC->movedir);
+
+			if (NPC_IsCombatPathing(NPC))
+			{// When we have an enemy, look at them while moving (combat pathing)...
+				NPC_FacePosition(NPC, NPC->enemy->r.currentOrigin, qtrue);
+				VectorSubtract(NPC->client->navigation.nav.lookPos, NPC->r.currentOrigin, NPC->movedir);
+			}
+			else
+			{
+				NPC_FacePosition(NPC, NPC->client->navigation.nav.lookPos, qfalse);
+				VectorSubtract(NPC->client->navigation.nav.lookPos, NPC->r.currentOrigin, NPC->movedir);
+			}
 			
 			if (NPC->isPadawan || NPC->s.NPC_class == CLASS_PADAWAN || NPC->s.NPC_class == CLASS_HK51)
 			{
@@ -1583,7 +1584,7 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 							vec3_t position;
 #pragma omp critical
 							{
-								NavlibFindRandomPointInRadius(-1, NPC->parent->r.currentOrigin, position, 2048.0);
+								FindRandomNavmeshPointInRadius(-1, NPC->parent->r.currentOrigin, position, 2048.0);
 							}
 
 							position[2] += 32.0;
@@ -1741,8 +1742,17 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 				{
 					NavlibMoveToGoal(NPC);
 				}
-				NPC_FacePosition(NPC, NPC->client->navigation.nav.lookPos, qfalse);
-				VectorSubtract(NPC->client->navigation.nav.lookPos, NPC->r.currentOrigin, NPC->movedir);
+
+				if (NPC_IsCombatPathing(NPC))
+				{// When we have an enemy, look at them while moving (combat pathing)...
+					NPC_FacePosition(NPC, NPC->enemy->r.currentOrigin, qtrue);
+					VectorSubtract(NPC->client->navigation.nav.lookPos, NPC->r.currentOrigin, NPC->movedir);
+				}
+				else
+				{
+					NPC_FacePosition(NPC, NPC->client->navigation.nav.lookPos, qfalse);
+					VectorSubtract(NPC->client->navigation.nav.lookPos, NPC->r.currentOrigin, NPC->movedir);
+				}
 
 #ifndef __USE_NAVLIB_INTERNAL_MOVEMENT__
 				if (Distance(NPC->r.currentOrigin, NPC->client->navigation.goal.origin) < 256)
@@ -1807,7 +1817,6 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 	}
 #endif //__USE_NAVLIB__
 
-#ifndef __USE_NAVMESH__
 	if (NPC->isPadawan)
 	{
 		if (NPC->nextPadawanWaypointThink < level.time)
@@ -2116,16 +2125,12 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 	}
 
 	VectorCopy( NPC->movedir, NPC->client->ps.moveDir );
-#else //!__USE_NAVMESH__
-	Warzone_Nav_UpdateEntity(NPC);
-#endif //__USE_NAVMESH__
 
 	return qtrue;
 }
 
 void NPC_SetNewEnemyGoalAndPath(gentity_t *aiEnt)
 {
-#ifndef __USE_NAVMESH__
 	gentity_t	*NPC = aiEnt;
 
 	if (NPC->npc_dumb_route_time > level.time)
@@ -2199,7 +2204,6 @@ void NPC_SetNewEnemyGoalAndPath(gentity_t *aiEnt)
 	NPC->wpSeenTime = level.time + 1000;//30000;
 	// Delay before giving up on this new waypoint/route...
 	NPC->wpTravelTime = level.time + 15000;
-#endif //__USE_NAVMESH__
 }
 
 extern int jediSpeechDebounceTime[FACTION_NUM_FACTIONS];//used to stop several jedi AI from speaking all at once
@@ -2264,7 +2268,6 @@ qboolean NPC_FollowEnemyRoute(gentity_t *aiEnt)
 	return NPC_FollowRoutes(NPC);
 #else //!__USE_NAVLIB__
 
-#ifndef __USE_NAVMESH__
 	if (DistanceHorizontal(NPC->r.currentOrigin, NPC->npc_previous_pos) > 3)
 	{
 		NPC->last_move_time = level.time;
@@ -2451,9 +2454,6 @@ qboolean NPC_FollowEnemyRoute(gentity_t *aiEnt)
 	if (!UQ1_UcmdMoveForDir( NPC, &aiEnt->client->pers.cmd, NPC->movedir, qfalse, gWPArray[NPC->wpCurrent]->origin )) { /*NPC_PickRandomIdleAnimantion(NPC);*/ return qtrue; }
 	VectorCopy( NPC->movedir, NPC->client->ps.moveDir );
 	//NPC_SelectMoveAnimation(qfalse);
-#else //!__USE_NAVMESH__
-	Warzone_Nav_UpdateEntity(NPC);
-#endif //__USE_NAVMESH__
 
 	return qtrue;
 #endif //__USE_NAVLIB__

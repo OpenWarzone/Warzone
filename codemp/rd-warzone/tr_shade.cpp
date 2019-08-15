@@ -3313,7 +3313,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS5, vec);
 				}
 
-				GLSL_SetUniformFloat(sp, UNIFORM_ZFAR, (ENABLE_OCCLUSION_CULLING && r_occlusion->integer) ? tr.occlusionZfar : backEnd.viewParms.zFar);
+				if (backEnd.currentEntity && backEnd.currentEntity->e.ignoreCull)
+					GLSL_SetUniformFloat(sp, UNIFORM_ZFAR, 999999.9);
+				else
+					GLSL_SetUniformFloat(sp, UNIFORM_ZFAR, (ENABLE_OCCLUSION_CULLING && r_occlusion->integer) ? tr.occlusionZfar : backEnd.viewParms.zFar);
 
 #ifdef __CHEAP_VERTS__
 				GLSL_SetUniformInt(sp, UNIFORM_WORLD, isWorld ? 1 : 0);

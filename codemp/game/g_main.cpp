@@ -827,6 +827,103 @@ void CreateSpawnpoints( void )
 	}
 }
 
+
+qboolean		EVENTS_ENABLED = qfalse;
+float			EVENT_BUFFER = 32768.0;
+float			EVENT_TRACE_SIZE = 1024.0;
+
+float			MAP_WATER_LEVEL = -999999.9;
+
+qboolean MAPPING_LoadMapInfo(void)
+{
+	vmCvar_t		mapname;
+	const char		*climateName = NULL;
+	trap->Cvar_Register(&mapname, "mapname", "", CVAR_ROM | CVAR_SERVERINFO);
+
+	EVENTS_ENABLED = (atoi(IniRead(va("maps/%s.mapInfo", mapname.string), "EVENTS", "ENABLE_EVENTS", "0")) > 0) ? qtrue : qfalse;
+	EVENT_BUFFER = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "EVENTS", "EVENT_BUFFER", "32768.0"));
+	EVENT_TRACE_SIZE = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "EVENTS", "EVENT_TRACE_SIZE", "1024.0"));
+
+	MAP_WATER_LEVEL = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "WATER", "MAP_WATER_LEVEL", "-999999.9"));
+
+	return qtrue;
+}
+
+int IsBelowWaterPlane(vec3_t pos, float viewHeight)
+{// Mimics the PM_SetWaterLevel levels for the warzone map water planes...
+	float npcUnderwaterHeight = viewHeight - MINS_Z;
+	float npcSwimHeight = npcUnderwaterHeight / 2;
+
+	if (pos[2] + MINS_Z + npcUnderwaterHeight <= MAP_WATER_LEVEL)
+	{
+		return 3;
+	}
+	else if (pos[2] + MINS_Z + npcSwimHeight <= MAP_WATER_LEVEL)
+	{
+		return 2;
+	}
+	else if (pos[2] <= MAP_WATER_LEVEL)
+	{
+		return 1;
+	}
+
+	return 0;
+}
+
+#if defined(__USE_NAVLIB__) || defined(__USE_NAVLIB_SPAWNPOINTS__)
+void FindRandomNavmeshSpawnpoint(gentity_t *self, vec3_t point)
+{
+	int tries = 0; // Can't let it hang, if the whole map happens to be underwater....
+
+	NavlibFindRandomPointOnMesh(self, point);
+
+	while (point[2] <= MAP_WATER_LEVEL && tries < 10)
+	{
+		NavlibFindRandomPointOnMesh(self, point);
+		tries++;
+	}
+}
+
+bool FindRandomNavmeshPointInRadius(int npcEntityNum, const vec3_t origin, vec3_t point, float radius)
+{
+	int tries = 0; // Can't let it hang, if the whole map happens to be underwater....
+
+	NavlibFindRandomPointInRadius(npcEntityNum, origin, point, radius);
+
+	while (point[2] <= MAP_WATER_LEVEL && tries < 10)
+	{
+		NavlibFindRandomPointInRadius(npcEntityNum, origin, point, radius);
+		tries++;
+	}
+
+	if (tries >= 10)
+		return false;
+
+	return true;
+}
+
+void FindRandomNavmeshPatrolPoint(int npcEntityNum, vec3_t point)
+{
+	int tries = 0; // Can't let it hang, if the whole map happens to be underwater....
+
+	gentity_t *npc = &g_entities[npcEntityNum];
+
+	if (!npc)
+	{// Should never be used this way, but return a completely random point.
+		FindRandomNavmeshSpawnpoint(NULL, point);
+		return;
+	}
+
+	NavlibFindRandomPointInRadius(npcEntityNum, npc->spawn_pos, point, /*256.0*/1024.0);
+
+	while (point[2] <= MAP_WATER_LEVEL && tries < 10)
+	{
+		NavlibFindRandomPointInRadius(npcEntityNum, npc->spawn_pos, point, /*256.0*/1024.0);
+		tries++;
+	}
+}
+#endif //defined(__USE_NAVLIB__) || defined(__USE_NAVLIB_SPAWNPOINTS__)
+
 /*
 ============
 G_InitGame
@@ -838,10 +935,6 @@ extern void BG_ClearVehicleParseParms(void);
 extern void NPC_PrecacheWarzoneNPCs ( void );
 extern void FOLIAGE_LoadTrees( void );
 extern void JKG_InitDamageSystem(void);
-
-#ifdef __USE_NAVMESH__
-extern void Warzone_Nav_CreateNavMesh(void);
-#endif //__USE_NAVMESH__
 
 gentity_t *SelectRandomDeathmatchSpawnPoint(qboolean isbot);
 void SP_info_jedimaster_start( gentity_t *ent );
@@ -1048,6 +1141,8 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 	FOLIAGE_LoadTrees();
 	Com_Printf ("^5-----------------------------------\n");
 
+	MAPPING_LoadMapInfo();
+
 	if ( level.gametype == GT_DUEL || level.gametype == GT_POWERDUEL )
 	{
 		G_LogPrintf("Duel Tournament Begun: kill limit %d, win limit: %d\n", fraglimit.integer, duel_fraglimit.integer );
@@ -1140,10 +1235,6 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 	NPC_PrecacheWarzoneNPCs();
 
 	JKG_InitDamageSystem();
-
-#ifdef __USE_NAVMESH__
-	Warzone_Nav_CreateNavMesh();
-#endif //__USE_NAVMESH__
 
 	//trap->Print("MAX_CONFIGSTRINGS is %i.\n", (int)MAX_CONFIGSTRINGS);
 }

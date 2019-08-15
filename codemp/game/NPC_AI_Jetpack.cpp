@@ -49,14 +49,9 @@ qboolean NPC_JetpackFallingEmergencyCheck (gentity_t *NPC)
 	return qfalse;
 }
 
-qboolean NPC_JetpackHeightCheck (gentity_t *NPC)
+qboolean NPC_JetpackHeightCheck(gentity_t *NPC)
 {
 	int i;
-
-	if (gWPNum <= 0)
-	{// If we have no waypoints, then just accept this height...
-		return qtrue;
-	}
 
 	if (NPC->npc_jetpack_height_last_check > level.time - 5000)
 	{
@@ -74,29 +69,51 @@ qboolean NPC_JetpackHeightCheck (gentity_t *NPC)
 		}
 	}
 
-	if (NPC->wpCurrent >= 0 && NPC->wpCurrent < gWPNum)
-	{// We have a waypoint, if in range of that, then let's skip the loop...
-		if (DistanceVertical(gWPArray[NPC->wpCurrent]->origin, NPC->r.currentOrigin) < 384)
+/*#ifdef __USE_NAVLIB__
+	if (G_NavmeshIsLoaded())
+	{
+		vec3_t testorg, finalorg;
+
+		if (NPC->npc_jetpack_height_last_check < level.time + 500 || VectorLength(NPC->npc_jetpack_height) == 0)
+		{// Need a new trace...
+			navlibTrace_t tr;
+			VectorCopy(NPC->r.currentOrigin, testorg);
+			testorg[2] -= 99999.9;
+			NavlibNavTrace(&tr, NPC->r.currentOrigin, testorg, NPC->s.number);
+			VectorCopy(NPC->r.currentOrigin, finalorg);
+			finalorg[2] = NPC->r.currentOrigin[2] - (tr.frac * 99999.9);
+		}
+		else
+		{// Reuse the last trace...
+			VectorCopy(NPC->npc_jetpack_height, finalorg);
+		}
+
+		if (DistanceVertical(finalorg, NPC->r.currentOrigin) < 384 && VectorLength(finalorg) != 0)
 		{// All good!
-			// Record this height so that we can skip this for loop for a while...
+		 // Record this height so that we can skip this for loop for a while...
 			NPC->npc_jetpack_height_last_check = level.time;
-			VectorCopy(gWPArray[NPC->wpCurrent]->origin, NPC->npc_jetpack_height);
+			VectorCopy(finalorg, NPC->npc_jetpack_height);
 			return qtrue;
 		}
 	}
+#endif //__USE_NAVLIB__*/
+	else
+	{// Trace...
+		vec3_t testorg, finalorg;
 
-	// I could do similar by remberring the last-time-we-were-on-the-ground position and using that, but this is more accurate...
-	for (i = 0; i < gWPNum; i++)
-	{
-		if (Distance(gWPArray[i]->origin, NPC->r.currentOrigin) < 512)
-		{
-			if (DistanceVertical(gWPArray[i]->origin, NPC->r.currentOrigin) < 384)
-			{// A waypoint is in range... We are not too high off the ground...
-				// Record this height so that we can skip this for loop for a while...
-				NPC->npc_jetpack_height_last_check = level.time;
-				VectorCopy(gWPArray[i]->origin, NPC->npc_jetpack_height);
-				return qtrue; 
-			}
+		// Need a new trace...
+		VectorCopy(NPC->r.currentOrigin, testorg);
+		testorg[2] -= 999999.9;
+		trace_t tr;
+		trap->Trace(&tr, NPC->r.currentOrigin, NULL, NULL, testorg, NPC->s.number, MASK_SOLID, qfalse, 0, 0);
+		VectorCopy(tr.endpos, finalorg);
+
+		if (DistanceVertical(finalorg, NPC->r.currentOrigin) < 384)
+		{// All good!
+		 // Record this height so that we can skip this for loop for a while...
+			NPC->npc_jetpack_height_last_check = level.time;
+			VectorCopy(finalorg, NPC->npc_jetpack_height);
+			return qtrue;
 		}
 	}
 
@@ -324,113 +341,199 @@ void NPC_JetpackTravelThink (gentity_t *aiEnt)
 		return;
 	}
 
-	if (!(self->wpCurrent >= 0 && self->wpCurrent < gWPNum))
-	{// No valid waypoint to go to... Find one...
-		self->wpCurrent = DOM_GetNearestWP(self->r.currentOrigin, self->wpCurrent);
-	}
-
-	if (!(self->wpCurrent >= 0 && self->wpCurrent < gWPNum))
-	{// Still no valid waypoint to go to... Give up...
-		return;
-	}
-	
-	if (GROUND_TIME[self->client->ps.clientNum] < level.time && NPC_IsJetpacking(self))
-	{// Land at waypoint...
-		if (DistanceHorizontal(gWPArray[self->wpCurrent]->origin, self->r.currentOrigin) < 24)
-		{// We are directly above our waypoint... Land...
-			NPC_FacePosition(aiEnt, gWPArray[self->wpCurrent]->origin, qfalse );
-			VectorSubtract( gWPArray[self->wpCurrent]->origin, self->r.currentOrigin, self->movedir );
-			UQ1_UcmdMoveForDir( self, ucmd, self->movedir, qfalse, gWPArray[self->wpCurrent]->origin );
-
-			ucmd->upmove = -50.0;
-
-			self->client->ps.eFlags |= EF_JETPACK_HOVER;
-			self->client->ps.eFlags &= ~EF_JETPACK_ACTIVE;
-			self->client->ps.eFlags &= ~EF_JETPACK_FLAMING;
-			self->s.eFlags |= EF_JETPACK_HOVER;
-			self->s.eFlags &= ~EF_JETPACK_ACTIVE;
-			self->s.eFlags &= ~EF_JETPACK_FLAMING;
-			self->client->ps.pm_type = PM_JETPACK;
-
-			VectorCopy( self->movedir, self->client->ps.moveDir );
+	if (gWPNum > 0)
+	{
+		if (!(self->wpCurrent >= 0 && self->wpCurrent < gWPNum))
+		{// No valid waypoint to go to... Find one...
+			self->wpCurrent = DOM_GetNearestWP(self->r.currentOrigin, self->wpCurrent);
 		}
-		else if (gWPArray[self->wpCurrent]->origin[2]+64 < self->r.currentOrigin[2] || !NPC_JetpackHeightCheck(self))
-		{// Our waypoint is below us... Go down...
-			NPC_FacePosition(aiEnt, gWPArray[self->wpCurrent]->origin, qfalse );
-			VectorSubtract( gWPArray[self->wpCurrent]->origin, self->r.currentOrigin, self->movedir );
-			UQ1_UcmdMoveForDir( self, ucmd, self->movedir, qfalse, gWPArray[self->wpCurrent]->origin );
 
-			ucmd->upmove = -50.0;
-
-			self->client->ps.eFlags |= EF_JETPACK_HOVER;
-			self->client->ps.eFlags &= ~EF_JETPACK_ACTIVE;
-			self->client->ps.eFlags &= ~EF_JETPACK_FLAMING;
-			self->s.eFlags |= EF_JETPACK_HOVER;
-			self->s.eFlags &= ~EF_JETPACK_ACTIVE;
-			self->s.eFlags &= ~EF_JETPACK_FLAMING;
-			self->client->ps.pm_type = PM_JETPACK;
-
-			VectorCopy( self->movedir, self->client->ps.moveDir );
+		if (!(self->wpCurrent >= 0 && self->wpCurrent < gWPNum))
+		{// Still no valid waypoint to go to... Give up...
+			return;
 		}
-		else if (gWPArray[self->wpCurrent]->origin[2]+64 > self->r.currentOrigin[2])
-		{// Our waypoint is above us... Go up...
-			NPC_FacePosition(aiEnt, gWPArray[self->wpCurrent]->origin, qfalse );
-			VectorSubtract( gWPArray[self->wpCurrent]->origin, self->r.currentOrigin, self->movedir );
-			UQ1_UcmdMoveForDir( self, ucmd, self->movedir, qfalse, gWPArray[self->wpCurrent]->origin );
 
-			ucmd->upmove = 50.0;
+		if (GROUND_TIME[self->client->ps.clientNum] < level.time && NPC_IsJetpacking(self))
+		{// Land at waypoint...
+			if (DistanceHorizontal(gWPArray[self->wpCurrent]->origin, self->r.currentOrigin) < 24)
+			{// We are directly above our waypoint... Land...
+				NPC_FacePosition(aiEnt, gWPArray[self->wpCurrent]->origin, qfalse);
+				VectorSubtract(gWPArray[self->wpCurrent]->origin, self->r.currentOrigin, self->movedir);
+				UQ1_UcmdMoveForDir(self, ucmd, self->movedir, qfalse, gWPArray[self->wpCurrent]->origin);
 
-			self->client->ps.eFlags |= EF_JETPACK_ACTIVE;
-			self->client->ps.eFlags &= ~EF_JETPACK_HOVER;
+				ucmd->upmove = -50.0;
 
-			self->s.eFlags |= EF_JETPACK_ACTIVE;
-			self->s.eFlags &= ~EF_JETPACK_HOVER;
+				self->client->ps.eFlags |= EF_JETPACK_HOVER;
+				self->client->ps.eFlags &= ~EF_JETPACK_ACTIVE;
+				self->client->ps.eFlags &= ~EF_JETPACK_FLAMING;
+				self->s.eFlags |= EF_JETPACK_HOVER;
+				self->s.eFlags &= ~EF_JETPACK_ACTIVE;
+				self->s.eFlags &= ~EF_JETPACK_FLAMING;
+				self->client->ps.pm_type = PM_JETPACK;
 
-			if (self->client->ps.velocity[2] > 100)
-			{// Also hit the afterburner...
-				self->client->ps.eFlags |= EF_JETPACK_FLAMING;
-				self->s.eFlags |= EF_JETPACK_FLAMING;
+				VectorCopy(self->movedir, self->client->ps.moveDir);
+			}
+			else if (gWPArray[self->wpCurrent]->origin[2] + 64 < self->r.currentOrigin[2] || !NPC_JetpackHeightCheck(self))
+			{// Our waypoint is below us... Go down...
+				NPC_FacePosition(aiEnt, gWPArray[self->wpCurrent]->origin, qfalse);
+				VectorSubtract(gWPArray[self->wpCurrent]->origin, self->r.currentOrigin, self->movedir);
+				UQ1_UcmdMoveForDir(self, ucmd, self->movedir, qfalse, gWPArray[self->wpCurrent]->origin);
+
+				ucmd->upmove = -50.0;
+
+				self->client->ps.eFlags |= EF_JETPACK_HOVER;
+				self->client->ps.eFlags &= ~EF_JETPACK_ACTIVE;
+				self->client->ps.eFlags &= ~EF_JETPACK_FLAMING;
+				self->s.eFlags |= EF_JETPACK_HOVER;
+				self->s.eFlags &= ~EF_JETPACK_ACTIVE;
+				self->s.eFlags &= ~EF_JETPACK_FLAMING;
+				self->client->ps.pm_type = PM_JETPACK;
+
+				VectorCopy(self->movedir, self->client->ps.moveDir);
+			}
+			else if (gWPArray[self->wpCurrent]->origin[2] + 64 > self->r.currentOrigin[2])
+			{// Our waypoint is above us... Go up...
+				NPC_FacePosition(aiEnt, gWPArray[self->wpCurrent]->origin, qfalse);
+				VectorSubtract(gWPArray[self->wpCurrent]->origin, self->r.currentOrigin, self->movedir);
+				UQ1_UcmdMoveForDir(self, ucmd, self->movedir, qfalse, gWPArray[self->wpCurrent]->origin);
+
+				ucmd->upmove = 50.0;
+
+				self->client->ps.eFlags |= EF_JETPACK_ACTIVE;
+				self->client->ps.eFlags &= ~EF_JETPACK_HOVER;
+
+				self->s.eFlags |= EF_JETPACK_ACTIVE;
+				self->s.eFlags &= ~EF_JETPACK_HOVER;
+
+				if (self->client->ps.velocity[2] > 100)
+				{// Also hit the afterburner...
+					self->client->ps.eFlags |= EF_JETPACK_FLAMING;
+					self->s.eFlags |= EF_JETPACK_FLAMING;
+				}
+				else
+				{// Turn off afterburner...
+					self->client->ps.eFlags &= ~EF_JETPACK_FLAMING;
+					self->s.eFlags &= ~EF_JETPACK_FLAMING;
+				}
+
+				self->client->ps.pm_type = PM_JETPACK;
+
+				VectorCopy(self->movedir, self->client->ps.moveDir);
 			}
 			else
-			{// Turn off afterburner...
+			{// We are at the right height... We need to hover a little over it until in range...
+				NPC_FacePosition(aiEnt, gWPArray[self->wpCurrent]->origin, qfalse);
+				VectorSubtract(gWPArray[self->wpCurrent]->origin, self->r.currentOrigin, self->movedir);
+				UQ1_UcmdMoveForDir(self, ucmd, self->movedir, qfalse, gWPArray[self->wpCurrent]->origin);
+
+				ucmd->upmove = 0.0;
+
+				self->client->ps.velocity[2] = 0;
+				self->client->ps.eFlags |= EF_JETPACK_HOVER;
+				self->client->ps.eFlags &= ~EF_JETPACK_ACTIVE;
 				self->client->ps.eFlags &= ~EF_JETPACK_FLAMING;
+				self->s.eFlags |= EF_JETPACK_HOVER;
+				self->s.eFlags &= ~EF_JETPACK_ACTIVE;
 				self->s.eFlags &= ~EF_JETPACK_FLAMING;
+
+				self->client->ps.pm_type = PM_JETPACK;
+
+				VectorCopy(self->movedir, self->client->ps.moveDir);
 			}
-
-			self->client->ps.pm_type = PM_JETPACK;
-
-			VectorCopy( self->movedir, self->client->ps.moveDir );
 		}
-		else
-		{// We are at the right height... We need to hover a little over it until in range...
-			NPC_FacePosition(aiEnt, gWPArray[self->wpCurrent]->origin, qfalse );
-			VectorSubtract( gWPArray[self->wpCurrent]->origin, self->r.currentOrigin, self->movedir );
-			UQ1_UcmdMoveForDir( self, ucmd, self->movedir, qfalse, gWPArray[self->wpCurrent]->origin );
-
-			ucmd->upmove = 0.0;
-
-			self->client->ps.velocity[2] = 0;
-			self->client->ps.eFlags |= EF_JETPACK_HOVER;
+		else if (GROUND_TIME[self->client->ps.clientNum] >= level.time || !NPC_IsJetpacking(self))
+		{// On the ground. Make sure jetpack is deactivated...
 			self->client->ps.eFlags &= ~EF_JETPACK_ACTIVE;
 			self->client->ps.eFlags &= ~EF_JETPACK_FLAMING;
-			self->s.eFlags |= EF_JETPACK_HOVER;
+			self->client->ps.eFlags &= ~EF_JETPACK_HOVER;
 			self->s.eFlags &= ~EF_JETPACK_ACTIVE;
 			self->s.eFlags &= ~EF_JETPACK_FLAMING;
-
-			self->client->ps.pm_type = PM_JETPACK;
-
-			VectorCopy( self->movedir, self->client->ps.moveDir );
+			self->s.eFlags &= ~EF_JETPACK_HOVER;
+			self->client->ps.pm_type = PM_NORMAL;
 		}
 	}
-	else if ( GROUND_TIME[self->client->ps.clientNum] >= level.time || !NPC_IsJetpacking(self) )
-	{// On the ground. Make sure jetpack is deactivated...
-		self->client->ps.eFlags &= ~EF_JETPACK_ACTIVE;
-		self->client->ps.eFlags &= ~EF_JETPACK_FLAMING;
-		self->client->ps.eFlags &= ~EF_JETPACK_HOVER;
-		self->s.eFlags &= ~EF_JETPACK_ACTIVE;
-		self->s.eFlags &= ~EF_JETPACK_FLAMING;
-		self->s.eFlags &= ~EF_JETPACK_HOVER;
-		self->client->ps.pm_type = PM_NORMAL;
+	else
+	{
+#ifdef __USE_NAVLIB__
+		if (GROUND_TIME[self->client->ps.clientNum] < level.time && NPC_IsJetpacking(self))
+		{// Land at waypoint...
+			if (self->client->navigation.goal.haveGoal)
+			{
+				NPC_FollowRoutes(self);
+
+				if (self->client->ps.groundEntityNum == ENTITYNUM_WORLD)
+				{// Land...
+					ucmd->upmove = -50.0;
+
+					self->client->ps.eFlags |= EF_JETPACK_HOVER;
+					self->client->ps.eFlags &= ~EF_JETPACK_ACTIVE;
+					self->client->ps.eFlags &= ~EF_JETPACK_FLAMING;
+					self->s.eFlags |= EF_JETPACK_HOVER;
+					self->s.eFlags &= ~EF_JETPACK_ACTIVE;
+					self->s.eFlags &= ~EF_JETPACK_FLAMING;
+					self->client->ps.pm_type = PM_JETPACK;
+
+					VectorCopy(self->movedir, self->client->ps.moveDir);
+				}
+				else if (!NPC_JetpackHeightCheck(self))
+				{// Our waypoint is below us... Go down...
+					ucmd->upmove = -50.0;
+
+					self->client->ps.eFlags |= EF_JETPACK_HOVER;
+					self->client->ps.eFlags &= ~EF_JETPACK_ACTIVE;
+					self->client->ps.eFlags &= ~EF_JETPACK_FLAMING;
+					self->s.eFlags |= EF_JETPACK_HOVER;
+					self->s.eFlags &= ~EF_JETPACK_ACTIVE;
+					self->s.eFlags &= ~EF_JETPACK_FLAMING;
+					self->client->ps.pm_type = PM_JETPACK;
+
+					VectorCopy(self->movedir, self->client->ps.moveDir);
+				}
+				else
+				{// We are at the right height... We need to hover a little over it until in range...
+					ucmd->upmove = 0.0;
+
+					self->client->ps.velocity[2] = 0;
+					self->client->ps.eFlags |= EF_JETPACK_HOVER;
+					self->client->ps.eFlags &= ~EF_JETPACK_ACTIVE;
+					self->client->ps.eFlags &= ~EF_JETPACK_FLAMING;
+					self->s.eFlags |= EF_JETPACK_HOVER;
+					self->s.eFlags &= ~EF_JETPACK_ACTIVE;
+					self->s.eFlags &= ~EF_JETPACK_FLAMING;
+
+					self->client->ps.pm_type = PM_JETPACK;
+
+					VectorCopy(self->movedir, self->client->ps.moveDir);
+				}
+			}
+			else
+			{// Hover...
+				ucmd->upmove = 0.0;
+
+				self->client->ps.velocity[2] = 0;
+				self->client->ps.eFlags |= EF_JETPACK_HOVER;
+				self->client->ps.eFlags &= ~EF_JETPACK_ACTIVE;
+				self->client->ps.eFlags &= ~EF_JETPACK_FLAMING;
+				self->s.eFlags |= EF_JETPACK_HOVER;
+				self->s.eFlags &= ~EF_JETPACK_ACTIVE;
+				self->s.eFlags &= ~EF_JETPACK_FLAMING;
+
+				self->client->ps.pm_type = PM_JETPACK;
+
+				VectorCopy(self->movedir, self->client->ps.moveDir);
+			}
+		}
+		else if (GROUND_TIME[self->client->ps.clientNum] >= level.time || !NPC_IsJetpacking(self))
+		{// On the ground. Make sure jetpack is deactivated...
+			self->client->ps.eFlags &= ~EF_JETPACK_ACTIVE;
+			self->client->ps.eFlags &= ~EF_JETPACK_FLAMING;
+			self->client->ps.eFlags &= ~EF_JETPACK_HOVER;
+			self->s.eFlags &= ~EF_JETPACK_ACTIVE;
+			self->s.eFlags &= ~EF_JETPACK_FLAMING;
+			self->s.eFlags &= ~EF_JETPACK_HOVER;
+			self->client->ps.pm_type = PM_NORMAL;
+		}
+#endif //__USE_NAVLIB__
 	}
 }
 

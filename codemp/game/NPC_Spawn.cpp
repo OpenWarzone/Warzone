@@ -1633,6 +1633,8 @@ gentity_t *NPC_Spawn_Do( gentity_t *ent )
 		return NULL;
 	}
 
+	ent->enemy = newent; // Set enemy to self initially, so we can grab it back from the damn spawn ent.
+
 	newent->isPlayerVehicle = ent->isPlayerVehicle;
 	newent->vehicleOwner = ent->vehicleOwner;
 	newent->vehicleUsedTime = ent->vehicleUsedTime;

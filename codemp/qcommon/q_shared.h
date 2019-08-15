@@ -10,14 +10,22 @@
 // q_shared.h -- included first by ALL program modules.
 // A user mod should never modify this file
 
+
+//
+// Default cull range for entities and stuff, used all through the code...
+//
+#define DEFAULT_ENTITY_CULL_RANGE 6000.0//3072.0
+
+//
+// Feature Enable/Disable Defines...
+//
+
 //#define __DEBUG_ZALLOC__
 
 #define __ENABLE_DEDICATED_CONSOLE_COLORS__			// Enable color on dedicated console...
 
 #define __MMO__
 //#define __AAS_AI_TESTING__
-
-//#define __USE_NAVMESH__
 
 #define __USE_NAVLIB__
 #ifdef __USE_NAVLIB__

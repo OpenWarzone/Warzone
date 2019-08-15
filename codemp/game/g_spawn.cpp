@@ -1438,15 +1438,9 @@ void SP_worldspawn( void )
 
 	//I want to "cull" entities out of net sends to clients to reduce
 	//net traffic on our larger open maps -rww
-#ifdef __MMO__
-	// UQ1: In MMO mode, we ALWAYS cull to less then 3072.0...
-	G_SpawnFloat("distanceCull", "3072.0", &g_cullDistance);
-	//if (g_cullDistance > 3072.0) g_cullDistance = 3072.0;
+
+	G_SpawnFloat("distanceCull", va("%s", DEFAULT_ENTITY_CULL_RANGE), &g_cullDistance);
 	trap->SetServerCull(g_cullDistance);
-#else //!__MMO__
-	G_SpawnFloat("distanceCull", "6000.0", &g_cullDistance);
-	trap->SetServerCull(g_cullDistance);
-#endif //__MMO__
 
 	G_SpawnString( "classname", "", &text );
 	if ( Q_stricmp( text, "worldspawn" ) ) {

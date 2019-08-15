@@ -832,6 +832,7 @@ static qboolean R_LoadAssImp(model_t * mod, int lod, void *buffer, const char *m
 			}
 		}
 
+#if 0
 		// calc tangent spaces
 		{
 			for (j = 0, v = surf->verts; j < (surf->numVerts * mdvModel->numFrames); j++, v++)
@@ -884,6 +885,7 @@ static qboolean R_LoadAssImp(model_t * mod, int lod, void *buffer, const char *m
 				R_CalcTbnFromNormalAndTexDirs(v->tangent, v->bitangent, v->normal, sdir, tdir);
 			}
 		}
+#endif
 
 		// find the next surface
 		surf++;

@@ -1201,6 +1201,7 @@ extern qboolean WAYPOINT_PARTOL_BAD_LIST[MAX_WPARRAY_SIZE];
 
 extern void NPC_Patrol_MakeBadList(void);
 
+
 qboolean	SPAWN_FACTIONS_CHECKED = qfalse;
 qboolean	HAVE_MANDALORIANS = qfalse;
 qboolean	HAVE_MERCS = qfalse;
@@ -1221,6 +1222,9 @@ void G_CheckMinimumNpcs(void)
 	{
 		return;
 	}
+
+	// Setup event areas, if not already done...
+	G_SetupEventAreas();
 
 #ifndef __USE_NAVLIB_SPAWNPOINTS__
 	if (gWPNum <= 0)
@@ -1392,9 +1396,10 @@ void G_CheckMinimumNpcs(void)
 			position[2] += 32; // Drop down...
 		}
 		else
-		{// Mandalorians and Mercs always spawn at random waypoints (for now)...
+		{// Imperials always spawn at random waypoints (for now)...
 #ifdef __USE_NAVLIB_SPAWNPOINTS__
-			NavlibFindRandomPointOnMesh(NULL, position);
+			// With navlib they get their own areas...
+			FindRandomEventSpawnpoint((team_t)SPAWN_TEAM, position);
 			//trap->Print("imp spawnpoint %f %f %f\n", position[0], position[1], position[2]);
 #else //!__USE_NAVLIB_SPAWNPOINTS__
 			while (gWPArray[waypoint]->inuse == false || gWPArray[waypoint]->wpIsBad == true || WAYPOINT_PARTOL_BAD_LIST[waypoint])
@@ -1477,9 +1482,10 @@ void G_CheckMinimumNpcs(void)
 			position[2] += 32; // Drop down...
 		}
 		else
-		{// Mandalorians and Mercs always spawn at random waypoints (for now)...
+		{// Rebels...
 #ifdef __USE_NAVLIB_SPAWNPOINTS__
-			NavlibFindRandomPointOnMesh(NULL, position);
+		 // With navlib they get their own areas...
+			FindRandomEventSpawnpoint((team_t)SPAWN_TEAM, position);
 			//trap->Print("reb spawnpoint %f %f %f\n", position[0], position[1], position[2]);
 #else //!__USE_NAVLIB_SPAWNPOINTS__
 			while (gWPArray[waypoint]->inuse == false || gWPArray[waypoint]->wpIsBad == true || WAYPOINT_PARTOL_BAD_LIST[waypoint])
@@ -1555,9 +1561,10 @@ void G_CheckMinimumNpcs(void)
 			}
 #endif //__ALL_JEDI_NPCS__
 
-			// Mandalorians and Mercs always spawn at random waypoints (for now)...
+			// Mandalorians always spawn at random waypoints (for now)...
 #ifdef __USE_NAVLIB_SPAWNPOINTS__
-			NavlibFindRandomPointOnMesh(NULL, position);
+			// With navlib they get their own areas...
+			FindRandomEventSpawnpoint((team_t)SPAWN_TEAM, position);
 #else //!__USE_NAVLIB_SPAWNPOINTS__
 			while (gWPArray[waypoint]->inuse == false || gWPArray[waypoint]->wpIsBad == true || WAYPOINT_PARTOL_BAD_LIST[waypoint])
 			{
@@ -1632,9 +1639,10 @@ void G_CheckMinimumNpcs(void)
 			}
 #endif //__ALL_JEDI_NPCS__
 
-			// Mandalorians and Mercs always spawn at random waypoints (for now)...
+			// Mercs always spawn at random waypoints (for now)...
 #ifdef __USE_NAVLIB_SPAWNPOINTS__
-			NavlibFindRandomPointOnMesh(NULL, position);
+			// With navlib they get their own areas...
+			FindRandomEventSpawnpoint((team_t)SPAWN_TEAM, position);
 #else //!__USE_NAVLIB_SPAWNPOINTS__
 			while (gWPArray[waypoint]->inuse == false || gWPArray[waypoint]->wpIsBad == true || WAYPOINT_PARTOL_BAD_LIST[waypoint])
 			{
@@ -1711,7 +1719,7 @@ void G_CheckMinimumNpcs(void)
 
 			// Wildlife always spawn at random waypoints (for now)...
 #ifdef __USE_NAVLIB_SPAWNPOINTS__
-			NavlibFindRandomPointOnMesh(NULL, position);
+			FindRandomNavmeshSpawnpoint(NULL, position);
 #else //!__USE_NAVLIB_SPAWNPOINTS__
 			while (gWPArray[waypoint]->inuse == false || gWPArray[waypoint]->wpIsBad == true || WAYPOINT_PARTOL_BAD_LIST[waypoint])
 			{

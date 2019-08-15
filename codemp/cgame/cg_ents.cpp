@@ -1878,6 +1878,116 @@ Ghoul2 Insert End
 
 /*
 ==================
+CG_General
+==================
+*/
+void CG_G2ServerBoneAngles(centity_t *cent);
+
+extern qboolean BG_GetRootSurfNameWithVariant(void *ghoul2, const char *rootSurfName, char *returnSurfName, int returnSize);
+
+static void CG_ServerModel(centity_t *cent) {
+	refEntity_t			ent;
+	entityState_t		*s1;
+
+	if (cent->currentState.eFlags & EF_RADAROBJECT)
+	{
+		CG_AddRadarEnt(cent);
+	}
+
+	if (cent->currentState.eFlags & EF_CLIENTSMOOTH)
+	{
+		if (cent->currentState.groundEntityNum >= ENTITYNUM_WORLD)
+		{
+			float smoothFactor = 0.5f*timescale.value;
+			int k = 0;
+			vec3_t posDif;
+
+			//Use origin smoothing since dismembered limbs use ExPhys
+			if (DistanceSquared(cent->turAngles, cent->lerpOrigin)>18000.0f)
+			{
+				VectorCopy(cent->lerpOrigin, cent->turAngles);
+			}
+
+			VectorSubtract(cent->lerpOrigin, cent->turAngles, posDif);
+
+			for (k = 0; k<3; k++)
+			{
+				cent->turAngles[k] = (cent->turAngles[k] + posDif[k] * smoothFactor);
+				cent->lerpOrigin[k] = cent->turAngles[k];
+			}
+		}
+		else
+		{ //if we're sitting on an entity like a moving plat then we don't want to smooth either
+			VectorCopy(cent->lerpOrigin, cent->turAngles);
+		}
+	}
+
+	memset(&ent, 0, sizeof(ent));
+
+	ent.shaderRGBA[0] = cent->currentState.customRGBA[0];
+	ent.shaderRGBA[1] = cent->currentState.customRGBA[1];
+	ent.shaderRGBA[2] = cent->currentState.customRGBA[2];
+	ent.shaderRGBA[3] = cent->currentState.customRGBA[3];
+
+	s1 = &cent->currentState;
+
+	if ((s1->eFlags & EF_NODRAW))
+	{
+		return;
+	}
+
+	// set frame
+	if (s1->eFlags & EF_SHADER_ANIM)
+	{
+		// Deliberately setting it up so that shader anim will completely override any kind of model animation frame setting.
+		ent.renderfx |= RF_SETANIMINDEX;
+		ent.skinNum = s1->frame;
+	}
+	else
+	{
+		ent.frame = s1->frame;
+
+	}
+	ent.oldframe = ent.frame;
+	ent.backlerp = 0;
+
+	// event ships bob up and down continuously while hoverring...
+	if (s1->generic1 == 1)
+	{
+		float scale = 0.005 + cent->currentState.number * 0.00001;
+		int bobSpeed = 256; // 4
+		float bobScale = scale * 0.1;
+		cent->lerpOrigin[2] += bobSpeed + cos((cg.time + 1000) *  bobScale) * bobSpeed;
+	}
+
+	VectorCopy(cent->lerpOrigin, ent.origin);
+	VectorCopy(cent->lerpOrigin, ent.oldorigin);
+
+	ent.hModel = cgs.gameModels[s1->modelindex];
+
+	// convert angles to axis
+	AnglesToAxis(cent->lerpAngles, ent.axis);
+
+	if (cent->currentState.iModelScale)
+	{ //if the server says we have a custom scale then set it now.
+		cent->modelScale[0] = cent->modelScale[1] = cent->modelScale[2] = cent->currentState.iModelScale;// / 100.0f;
+		VectorCopy(cent->modelScale, ent.modelScale);
+		ScaleModelAxis(&ent);
+	}
+	else
+	{
+		VectorClear(cent->modelScale);
+	}
+
+	// Event ship spawns never get culled...
+	ent.ignoreCull = qtrue;
+
+	// add to refresh list
+	AddRefEntityToScene(&ent);
+}
+
+/*
+==================
 CG_Speaker
 
 Speaker entities can automatically play sounds
@@ -3498,6 +3608,9 @@ Ghoul2 Insert End
 		break;
 	case ET_BODY:
 		CG_General( cent );
+		break;
+	case ET_SERVERMODEL:
+		CG_ServerModel(cent);
 		break;
 	}
 }

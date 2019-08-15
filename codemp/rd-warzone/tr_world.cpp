@@ -41,7 +41,7 @@ void RB_CullSurfaceOcclusion(msurface_t *surf)
 			}
 		}
 
-		if (surf->cullinfo.currentDistance > tr.occlusionZfar * 1.75)
+		if (surf->cullinfo.currentDistance > tr.occlusionZfar * 1.75 && !backEnd.currentEntity->e.ignoreCull)
 		{// Out of view range, but we still want it on depth draws...
 			surf->depthDrawOnly = qtrue;
 		}
@@ -912,7 +912,7 @@ static void R_RecursiveWorldNode(mnode_t *node, int planeBits, int dlightBits, i
 				}
 			}
 
-			if (closestCornerDistance > tr.occlusionZfar * 2.0)// * 1.75)
+			if (closestCornerDistance > tr.occlusionZfar * 2.0 && !tr.currentEntity->e.ignoreCull)// * 1.75)
 			{
 				return;
 			}

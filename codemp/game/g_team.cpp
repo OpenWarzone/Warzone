@@ -45,9 +45,15 @@ int OtherTeam(int team) {
 
 const char *TeamName(int team)  {
 	if (team==FACTION_EMPIRE)
-		return "RED";
+		return "EMPIRE";
 	else if (team==FACTION_REBEL)
-		return "BLUE";
+		return "REBEL";
+	else if (team == FACTION_MERC)
+		return "MERC";
+	else if (team == FACTION_MANDALORIAN)
+		return "MANDALORIAN";
+	else if (team == FACTION_WILDLIFE)
+		return "WILDLIFE";
 	else if (team==FACTION_SPECTATOR)
 		return "SPECTATOR";
 	return "FREE";

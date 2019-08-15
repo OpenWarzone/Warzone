@@ -79,6 +79,7 @@ set(MPGameGameFiles
 	"${MPDir}/game/g_cmds.cpp"
 	"${MPDir}/game/g_combat.cpp"
 	"${MPDir}/game/g_cvar.cpp"
+	"${MPDir}/game/g_eventsystem.cpp"
 	"${MPDir}/game/g_exphysics.cpp"
 	"${MPDir}/game/g_foliage.cpp"
 	"${MPDir}/game/g_ICARUScb.cpp"

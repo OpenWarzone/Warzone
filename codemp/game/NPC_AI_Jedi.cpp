@@ -6,6 +6,8 @@
 //#define __JEDI_TRACKING__
 //#define __EVASION_JUMPING__
 
+extern qboolean NPC_IsCombatPathing(gentity_t *aiEnt);
+
 void JEDI_Debug(gentity_t *aiEnt, char *debugText)
 {
 	if (aiEnt->s.weapon == WP_SABER) 
@@ -16,6 +18,8 @@ void JEDI_Debug(gentity_t *aiEnt, char *debugText)
 
 extern int gWPNum;
 extern wpobject_t *gWPArray[MAX_WPARRAY_SIZE];
+
+extern vmCvar_t npc_pathing;
 
 #define SABER_ATTACK_RANGE 24
 
@@ -1651,17 +1655,130 @@ static qboolean Jedi_Track( gentity_t *aiEnt)
 	return qfalse;
 }
 
+//#define __DEBUG_COMBAT_POSITIONS__
 
-void Jedi_Retreat( gentity_t *aiEnt)
+#define COMBAT_POSIITON_SELECTION_RANGE 256.0
+#define COMBAT_POSIITON_ALLOW_RANGE 2048.0
+
+qboolean Jedi_AdvanceRetreatGoalInvalid(gentity_t *aiEnt)
 {
-	if ( !TIMER_Done( aiEnt, "noRetreat" ) )
+	if (NPC_IsCombatPathing(aiEnt))
+	{
+		float distToGoal = Distance(aiEnt->client->navigation.goal.origin, aiEnt->enemy->r.currentOrigin);
+
+		if (VectorLength(aiEnt->client->navigation.goal.origin) == 0 || distToGoal > COMBAT_POSIITON_ALLOW_RANGE)
+		{
+			return qtrue;
+		}
+
+		if (GoalInRange(aiEnt, NavlibGetGoalRadius(aiEnt)))
+		{
+			return qtrue;
+		}
+
+		return qfalse;
+	}
+
+	return qtrue;
+}
+
+void Jedi_Retreat(gentity_t *aiEnt)
+{
+	if (!TIMER_Done(aiEnt, "noRetreat"))
 	{//don't actually move
 		return;
 	}
 	//FIXME: when retreating, we should probably see if we can retreat
 	//in the direction we want.  If not...?  Evade?
 	//Com_Printf( "Retreating\n" );
+
+#ifdef __USE_NAVLIB__
+	if (!aiEnt->enemy || !NPC_ValidEnemy(aiEnt, aiEnt->enemy))
+	{// No enemy, so use original JKA movement...
+		aiEnt->NPC->forceWalkTime = level.time + 100;
+		Jedi_Move(aiEnt, aiEnt->enemy, qtrue);
+	}
+	else if (aiEnt->s.weapon == WP_SABER /*&& Jedi_ClearPathToSpot(aiEnt, aiEnt->enemy->r.currentOrigin, aiEnt->enemy->s.number)*/)
+	{// Jedi go direct...
+		aiEnt->NPC->forceWalkTime = level.time + 100;
+		Jedi_Move(aiEnt, aiEnt->enemy, qtrue);
+	}
+	else if (G_NavmeshIsLoaded())
+	{
+		if (Jedi_AdvanceRetreatGoalInvalid(aiEnt))
+		{
+			NavlibSetNavMesh(aiEnt->s.number, 0);
+
+#pragma omp critical
+			{
+				FindRandomNavmeshPointInRadius(aiEnt->s.number, aiEnt->enemy->r.currentOrigin, aiEnt->client->navigation.goal.origin, COMBAT_POSIITON_SELECTION_RANGE);
+			}
+
+			float distToGoal = Distance(aiEnt->client->navigation.goal.origin, aiEnt->enemy->r.currentOrigin);
+
+			if (VectorLength(aiEnt->client->navigation.goal.origin) == 0 || distToGoal > COMBAT_POSIITON_ALLOW_RANGE)
+			{
+#ifdef __DEBUG_COMBAT_POSITIONS__
+				trap->Print("NPC %s failed to find combat retreat goal. goal %f %f %f. enemy: %f %f %f. distToGoal %f.\n", aiEnt->client->pers.netname
+					, aiEnt->client->navigation.goal.origin[0], aiEnt->client->navigation.goal.origin[1], aiEnt->client->navigation.goal.origin[2]
+					, aiEnt->enemy->r.currentOrigin[0], aiEnt->enemy->r.currentOrigin[1], aiEnt->enemy->r.currentOrigin[2], distToGoal);
+#endif //__DEBUG_COMBAT_POSITIONS__
+
+				aiEnt->client->navigation.goal.haveGoal = qfalse;
+				aiEnt->NPC->forceWalkTime = level.time + 100;
+				Jedi_Move(aiEnt, aiEnt->enemy, qtrue);
+			}
+			else
+			{
+				aiEnt->NPC->forceWalkTime = 0;
+
+#pragma omp critical
+				{
+					aiEnt->client->navigation.goal.haveGoal = (qboolean)NavlibFindRouteToTarget(aiEnt, aiEnt->client->navigation.goal, qtrue);
+				}
+
+#ifdef __DEBUG_COMBAT_POSITIONS__
+				if (aiEnt->client->navigation.goal.haveGoal)
+				{
+					trap->Print("NPC %s found a combat retreat goal. goal %f %f %f. enemy: %f %f %f. distToGoal %f.\n", aiEnt->client->pers.netname
+						, aiEnt->client->navigation.goal.origin[0], aiEnt->client->navigation.goal.origin[1], aiEnt->client->navigation.goal.origin[2]
+						, aiEnt->enemy->r.currentOrigin[0], aiEnt->enemy->r.currentOrigin[1], aiEnt->enemy->r.currentOrigin[2], distToGoal);
+				}
+				else
+				{
+					trap->Print("NPC %s failed to find combat retreat goal path. goal %f %f %f. enemy: %f %f %f. distToGoal %f.\n", aiEnt->client->pers.netname
+						, aiEnt->client->navigation.goal.origin[0], aiEnt->client->navigation.goal.origin[1], aiEnt->client->navigation.goal.origin[2]
+						, aiEnt->enemy->r.currentOrigin[0], aiEnt->enemy->r.currentOrigin[1], aiEnt->enemy->r.currentOrigin[2], distToGoal);
+				}
+#endif //__DEBUG_COMBAT_POSITIONS__
+
+				if (!aiEnt->client->navigation.goal.haveGoal)
+				{// Fallback to JKA movement...
+					aiEnt->NPC->forceWalkTime = level.time + 100;
+					Jedi_Move(aiEnt, aiEnt->enemy, qtrue);
+				}
+			}
+		}
+		else
+		{
+#ifdef __DEBUG_COMBAT_POSITIONS__
+			float distToGoal = Distance(aiEnt->client->navigation.goal.origin, aiEnt->enemy->r.currentOrigin);
+
+			trap->Print("NPC %s is heading to a combat goal. goal %f %f %f. enemy: %f %f %f. distToGoal %f.\n", aiEnt->client->pers.netname
+				, aiEnt->client->navigation.goal.origin[0], aiEnt->client->navigation.goal.origin[1], aiEnt->client->navigation.goal.origin[2]
+				, aiEnt->enemy->r.currentOrigin[0], aiEnt->enemy->r.currentOrigin[1], aiEnt->enemy->r.currentOrigin[2], distToGoal);
+#endif //__DEBUG_COMBAT_POSITIONS__
+		}
+	}
+	else
+	{
+		aiEnt->NPC->forceWalkTime = level.time + 100;
+		Jedi_Move(aiEnt, aiEnt->enemy, qtrue);
+	}
+#else //!__USE_NAVLIB__
+	aiEnt->NPC->forceWalkTime = level.time + 100;
 	Jedi_Move(aiEnt, aiEnt->enemy, qtrue );
+#endif //__USE_NAVLIB__
 }
 
 void Jedi_Advance( gentity_t *aiEnt)
@@ -1672,7 +1789,94 @@ void Jedi_Advance( gentity_t *aiEnt)
 		WP_ActivateSaber(aiEnt);
 	}
 	//Com_Printf( "Advancing\n" );
+
+#ifdef __USE_NAVLIB__
+	if (!aiEnt->enemy || !NPC_ValidEnemy(aiEnt, aiEnt->enemy))
+	{// No enemy, so use original JKA movement...
+		aiEnt->NPC->forceWalkTime = 0;
+		Jedi_Move(aiEnt, aiEnt->enemy, qfalse);
+	}
+	else if (aiEnt->s.weapon == WP_SABER /*&& Jedi_ClearPathToSpot(aiEnt, aiEnt->enemy->r.currentOrigin, aiEnt->enemy->s.number)*/)
+	{// Jedi go direct...
+		aiEnt->NPC->forceWalkTime = 0;
+		Jedi_Move(aiEnt, aiEnt->enemy, qfalse);
+	}
+	else if (G_NavmeshIsLoaded())
+	{
+		if (Jedi_AdvanceRetreatGoalInvalid(aiEnt))
+		{
+			NavlibSetNavMesh(aiEnt->s.number, 0);
+
+#pragma omp critical
+			{
+				FindRandomNavmeshPointInRadius(aiEnt->s.number, aiEnt->enemy->r.currentOrigin, aiEnt->client->navigation.goal.origin, COMBAT_POSIITON_SELECTION_RANGE);
+			}
+
+			float distToGoal = Distance(aiEnt->client->navigation.goal.origin, aiEnt->enemy->r.currentOrigin);
+
+			if (VectorLength(aiEnt->client->navigation.goal.origin) == 0 || distToGoal > COMBAT_POSIITON_ALLOW_RANGE)
+			{
+#ifdef __DEBUG_COMBAT_POSITIONS__
+				trap->Print("NPC %s failed to find combat advance goal. goal %f %f %f. enemy: %f %f %f. distToGoal: %f.\n", aiEnt->client->pers.netname
+					, aiEnt->client->navigation.goal.origin[0], aiEnt->client->navigation.goal.origin[1], aiEnt->client->navigation.goal.origin[2]
+					, aiEnt->enemy->r.currentOrigin[0], aiEnt->enemy->r.currentOrigin[1], aiEnt->enemy->r.currentOrigin[2], distToGoal);
+#endif //__DEBUG_COMBAT_POSITIONS__
+
+				aiEnt->client->navigation.goal.haveGoal = qfalse;
+				aiEnt->NPC->forceWalkTime = 0;
+				Jedi_Move(aiEnt, aiEnt->enemy, qfalse);
+			}
+			else
+			{
+				aiEnt->NPC->forceWalkTime = 0;
+
+#pragma omp critical
+				{
+					aiEnt->client->navigation.goal.haveGoal = (qboolean)NavlibFindRouteToTarget(aiEnt, aiEnt->client->navigation.goal, qtrue);
+				}
+
+#ifdef __DEBUG_COMBAT_POSITIONS__
+				if (aiEnt->client->navigation.goal.haveGoal)
+				{
+					trap->Print("NPC %s found a combat advance goal. goal %f %f %f. enemy: %f %f %f. distToGoal %f.\n", aiEnt->client->pers.netname
+						, aiEnt->client->navigation.goal.origin[0], aiEnt->client->navigation.goal.origin[1], aiEnt->client->navigation.goal.origin[2]
+						, aiEnt->enemy->r.currentOrigin[0], aiEnt->enemy->r.currentOrigin[1], aiEnt->enemy->r.currentOrigin[2], distToGoal);
+				}
+				else
+				{
+					trap->Print("NPC %s failed to find combat advance goal path. goal %f %f %f. enemy: %f %f %f. distToGoal %f.\n", aiEnt->client->pers.netname
+						, aiEnt->client->navigation.goal.origin[0], aiEnt->client->navigation.goal.origin[1], aiEnt->client->navigation.goal.origin[2]
+						, aiEnt->enemy->r.currentOrigin[0], aiEnt->enemy->r.currentOrigin[1], aiEnt->enemy->r.currentOrigin[2], distToGoal);
+				}
+#endif //__DEBUG_COMBAT_POSITIONS__
+
+				if (!aiEnt->client->navigation.goal.haveGoal)
+				{// Fallback to JKA movement...
+					aiEnt->NPC->forceWalkTime = 0;
+					Jedi_Move(aiEnt, aiEnt->enemy, qfalse);
+				}
+			}
+		}
+		else
+		{
+#ifdef __DEBUG_COMBAT_POSITIONS__
+			float distToGoal = Distance(aiEnt->client->navigation.goal.origin, aiEnt->enemy->r.currentOrigin);
+
+			trap->Print("NPC %s is heading to a combat goal. goal %f %f %f. enemy: %f %f %f. distToGoal %f.\n", aiEnt->client->pers.netname
+				, aiEnt->client->navigation.goal.origin[0], aiEnt->client->navigation.goal.origin[1], aiEnt->client->navigation.goal.origin[2]
+				, aiEnt->enemy->r.currentOrigin[0], aiEnt->enemy->r.currentOrigin[1], aiEnt->enemy->r.currentOrigin[2], distToGoal);
+#endif //__DEBUG_COMBAT_POSITIONS__
+		}
+	}
+	else
+	{
+		aiEnt->NPC->forceWalkTime = 0;
+		Jedi_Move(aiEnt, aiEnt->enemy, qfalse);
+	}
+#else //!__USE_NAVLIB__
+	aiEnt->NPC->forceWalkTime = 0;
 	Jedi_Move(aiEnt, aiEnt->enemy, qfalse );
+#endif //__USE_NAVLIB__
 
 	//TIMER_Set( NPC, "roamTime", Q_irand( 2000, 4000 ) );
 	//TIMER_Set( NPC, "attackDelay", Q_irand( 250, 500 ) );
@@ -2210,7 +2414,20 @@ static void Jedi_CombatDistance( gentity_t *aiEnt, int enemy_dist )
 	else if ( (aiEnt->s.weapon != WP_SABER && aiEnt->s.weapon != WP_MELEE)
 		&& enemy_dist <= 256.0 )
 	{//we're too damn close!
-		Jedi_Retreat(aiEnt);
+		//Jedi_Retreat(aiEnt);
+
+		if (irand(0, 8) == 0 && aiEnt->enemy && aiEnt->enemy->s.weapon == WP_SABER)
+		{
+			extern qboolean Jedi_EvasionRoll(gentity_t *aiEnt);
+			if (!Jedi_EvasionRoll(aiEnt))
+			{
+				Jedi_Retreat(aiEnt);
+			}
+		}
+		else if (aiEnt->enemy->s.weapon != WP_SABER)
+		{
+			Jedi_Retreat(aiEnt);
+		}
 	}
 	else if ( enemy_dist > 512.0 )
 	{//we're too damn far!
@@ -5962,15 +6179,19 @@ static void Jedi_Combat( gentity_t *aiEnt)
 	qboolean	enemyJumping = qfalse;
 
 	if (aiEnt->enemy && NPC_IsAlive(aiEnt, aiEnt->enemy))
+	{
 		haveEnemy = qtrue;
 
-	if (haveEnemy)
-	{
 		if (aiEnt->enemy->s.groundEntityNum == ENTITYNUM_NONE)
+		{
 			enemyJumping = qtrue;
+		}
 	}
 
-	if (!(aiEnt->enemy && NPC_IsAlive(aiEnt, aiEnt->enemy))) return;
+	if (!haveEnemy)
+	{
+		return;
+	}
 
 	//See where enemy will be 300 ms from now
 	Jedi_SetEnemyInfo(aiEnt, enemy_dest, enemy_dir, &enemy_dist, enemy_movedir, &enemy_movespeed, 300 );
@@ -5992,12 +6213,8 @@ static void Jedi_Combat( gentity_t *aiEnt)
 	}
 
 	//If we can't get straight at him
-//#ifdef __NPC_CPU_USAGE_TWEAKS__
-//	// UQ1: Testing G_ClearLOS4 here for cached results...
-//	if (enemy_dist > 256 && !G_ClearLOS4(aiEnt, aiEnt->enemy))
-//#else //!__NPC_CPU_USAGE_TWEAKS__
+#ifndef __USE_NAVLIB__
 	if ( enemy_dist > 256 && !Jedi_ClearPathToSpot(aiEnt, enemy_dest, aiEnt->enemy->s.number ))
-//#endif //__NPC_CPU_USAGE_TWEAKS__
 	{//hunt him down
 		//Com_Printf( "No Clear Path\n" );
 		if ( (NPC_ClearLOS4(aiEnt, aiEnt->enemy )||aiEnt->NPC->enemyLastSeenTime>level.time-500) && NPC_FaceEnemy(aiEnt, qtrue ) )//( NPCInfo->rank == RANK_CREWMAN || NPCInfo->rank > RANK_LT_JG ) &&
@@ -6057,6 +6274,7 @@ static void Jedi_Combat( gentity_t *aiEnt)
 			}
 		}
 	}
+#endif //__USE_NAVLIB__
 
 
 	//else, we can see him or we can't track him at all
@@ -6204,6 +6422,7 @@ static void Jedi_Combat( gentity_t *aiEnt)
 	//Make sure that we don't jump off ledges over long drops
 	Jedi_CheckJumps(aiEnt);
 
+#ifndef __USE_NAVLIB__
 	//Just make sure we don't strafe into walls or off cliffs
 	if ( !NPC_MoveDirClear(aiEnt, aiEnt->client->pers.cmd.forwardmove, aiEnt->client->pers.cmd.rightmove, qtrue ) )
 	{//uh-oh, we are going to fall or hit something
@@ -6218,6 +6437,7 @@ static void Jedi_Combat( gentity_t *aiEnt)
 		TIMER_Set( aiEnt, "strafeLeft", 0 );
 		TIMER_Set( aiEnt, "strafeRight", 0 );
 	}
+#endif //__USE_NAVLIB__
 }
 
 /*
@@ -7157,7 +7377,7 @@ static void Jedi_Attack( gentity_t *aiEnt)
 		Jedi_CheckDecreaseSaberAnimLevel(aiEnt);
 	}
 
-	if ( aiEnt->client->pers.cmd.buttons & BUTTON_ATTACK && aiEnt->client->playerTeam == NPCTEAM_ENEMY )
+	if ( aiEnt->client->pers.cmd.buttons & BUTTON_ATTACK /*&& aiEnt->client->playerTeam == NPCTEAM_ENEMY*/ )
 	{
 		if ( Q_irand( 0, aiEnt->client->ps.fd.saberAnimLevel ) > 0
 			&& Q_irand( 0, aiEnt->client->pers.maxHealth+10 ) > aiEnt->health
@@ -7797,14 +8017,15 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 	float		enemy_dist, diff;
 
 	if (aiEnt->enemy && NPC_IsAlive(aiEnt, aiEnt->enemy))
-		haveEnemy = qtrue;
-
-	if (haveEnemy)
 	{
+		haveEnemy = qtrue;
+	
 		enemy_dist = Distance(aiEnt->r.currentOrigin, aiEnt->enemy->r.currentOrigin);
 
 		if (aiEnt->enemy->s.groundEntityNum == ENTITYNUM_NONE)
+		{
 			enemyJumping = qtrue;
+		}
 	}
 	else
 	{
@@ -7971,6 +8192,147 @@ qboolean NPC_JediCheckFall ( gentity_t *aiEnt)
 	return qfalse;
 }
 
+void NPC_CallForHelpChaseSpeech(gentity_t *aiEnt)
+{
+	if (NPC_IsJedi(aiEnt))
+	{
+		G_AddVoiceEvent(aiEnt, Q_irand(EV_JCHASE1, EV_JCHASE3), 2000);
+	}
+	else if (NPC_IsBountyHunter(aiEnt))
+	{
+		G_AddVoiceEvent(aiEnt, Q_irand(EV_CHASE1, EV_CHASE3), 2000);
+	}
+	else
+	{
+		G_AddVoiceEvent(aiEnt, Q_irand(EV_CHASE1, EV_CHASE3), 2000);
+	}
+}
+
+void NPC_CreateAttackGroup(int faction, vec3_t position, gentity_t *aiEnt, gentity_t *enemy, float range)
+{
+	int addedCount = 0;
+
+	for (int i = 0; i < MAX_GENTITIES && addedCount < 4; i++)
+	{
+		gentity_t *ent = &g_entities[i];
+
+		if (!ent)
+			continue;
+
+		if (!ent->client)
+			continue;
+
+		if (ent == aiEnt)
+			continue;
+
+		if (ent->isPadawan)
+			continue;
+
+		if (ent->client->sess.sessionTeam != faction)
+			continue;
+
+		if (ent->s.eType != ET_NPC)
+			continue;
+
+		if (!NPC_IsAlive(ent, ent))
+			continue;
+
+		if (Distance(ent->r.currentOrigin, position) > range)
+			continue;
+
+		if (npc_pathing.integer == 0 && VectorLength(ent->spawn_pos) != 0 && Distance(ent->spawn_pos, position) > 6000.0)
+			continue;
+
+		if (ent->enemy && NPC_ValidEnemy(ent, ent->enemy))
+			continue; // Already has an enemy...
+
+		if (!NPC_ValidEnemy(ent, aiEnt->enemy))
+			continue;
+
+		// Looks like a valid teammate... Call them over...
+		G_SetEnemy(ent, enemy);
+
+		// So the added NPC's don't immediately call for extra help...
+		ent->NPC->helpCallTime = level.time + 15000;
+
+		addedCount++;
+	}
+}
+
+extern qboolean NPC_CanUseAdvancedFighting(gentity_t *aiEnt);
+
+void NPC_CallForHelpSpeech(gentity_t *aiEnt)
+{
+	if (NPC_IsJedi(aiEnt))
+	{
+		G_AddVoiceEvent(aiEnt, Q_irand(EV_JDETECTED1, EV_JDETECTED3), 15000 + irand(0, 30000));
+	}
+	else if (NPC_IsBountyHunter(aiEnt))
+	{
+		G_AddVoiceEvent(aiEnt, Q_irand(EV_DETECTED1, EV_DETECTED5), 15000 + irand(0, 30000));
+	}
+	else
+	{
+		if (irand(0, 1) == 1)
+			ST_Speech(aiEnt, SPEECH_DETECTED, 0);
+		else if (irand(0, 1) == 1)
+			ST_Speech(aiEnt, SPEECH_CHASE, 0);
+		else
+			ST_Speech(aiEnt, SPEECH_SIGHT, 0);
+	}
+}
+
+void NPC_CallForHelp(gentity_t *aiEnt)
+{
+	if (aiEnt->isPadawan)
+		return;
+
+	if (NPC_ValidEnemy(aiEnt, aiEnt->enemy))
+	{
+		if (NPC_IsJedi(aiEnt))
+		{// Jedi/Sith call for help based on health...
+			if (aiEnt->health < aiEnt->maxHealth * 0.75)
+			{// Call for help on low health, from a larger area...
+				NPC_CreateAttackGroup(aiEnt->client->sess.sessionTeam, aiEnt->r.currentOrigin, aiEnt, aiEnt->enemy, 1024.0);
+				NPC_CallForHelpSpeech(aiEnt);
+				aiEnt->NPC->helpCallJediLevel = 1;
+			}
+			else if (aiEnt->health < aiEnt->maxHealth * 0.5)
+			{// Call for help on low health, from a larger area...
+				NPC_CreateAttackGroup(aiEnt->client->sess.sessionTeam, aiEnt->r.currentOrigin, aiEnt, aiEnt->enemy, 2048.0);
+				NPC_CallForHelpSpeech(aiEnt);
+				aiEnt->NPC->helpCallJediLevel = 2;
+			}
+			else if (aiEnt->health < aiEnt->maxHealth * 0.25)
+			{// Call for help on low health, from a larger area...
+				NPC_CreateAttackGroup(aiEnt->client->sess.sessionTeam, aiEnt->r.currentOrigin, aiEnt, aiEnt->enemy, 4096.0);
+				NPC_CallForHelpSpeech(aiEnt);
+				aiEnt->NPC->helpCallJediLevel = 3;
+			}
+
+			return;
+		}
+
+		if (aiEnt->NPC->helpCallTime <= level.time)
+		{// Standard gunners work on a timer...
+			if (NPC_CanUseAdvancedFighting(aiEnt))
+			{// Stormies, gunners, etc... Call all their friends from the start...
+				NPC_CreateAttackGroup(aiEnt->client->sess.sessionTeam, aiEnt->r.currentOrigin, aiEnt, aiEnt->enemy, 2048.0);
+				NPC_CallForHelpSpeech(aiEnt);
+				aiEnt->NPC->helpCallTime = level.time + 15000;
+			}
+			else
+			{
+				NPC_CreateAttackGroup(aiEnt->client->sess.sessionTeam, aiEnt->r.currentOrigin, aiEnt, aiEnt->enemy, 512.0);
+				NPC_CallForHelpSpeech(aiEnt);
+				aiEnt->NPC->helpCallTime = level.time + 30000;
+			}
+
+			return;
+		}
+	}
+}
+
 void NPC_BSJedi_Default( gentity_t *aiEnt)
 {
 	if ( Jedi_InSpecialMove(aiEnt) )
@@ -8000,6 +8362,8 @@ void NPC_BSJedi_Default( gentity_t *aiEnt)
 	{
 		return;
 	}
+
+	NPC_CallForHelp(aiEnt);
 
 #if 0
 	if( !aiEnt->enemy )

@@ -4370,7 +4370,7 @@ void ClientSpawn(gentity_t *ent) {
 					vec3_t position;
 #pragma omp critical
 					{
-						NavlibFindRandomPointInRadius(-1, ent->r.currentOrigin, position, 1024.0/*2048.0*/);
+						FindRandomNavmeshPointInRadius(-1, ent->r.currentOrigin, position, 1024.0/*2048.0*/);
 					}
 
 					position[2] += 32.0;
@@ -4415,7 +4415,7 @@ void ClientSpawn(gentity_t *ent) {
 					vec3_t position;
 #pragma omp critical
 					{
-						NavlibFindRandomPointInRadius(-1, ent->r.currentOrigin, position, 1024.0/*2048.0*/);
+						FindRandomNavmeshPointInRadius(-1, ent->r.currentOrigin, position, 1024.0/*2048.0*/);
 					}
 
 					position[2] += 32.0;

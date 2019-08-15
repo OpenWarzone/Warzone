@@ -41,6 +41,7 @@ qboolean UQ_MoveDirClear( gentity_t *aiEnt, int forwardmove, int rightmove, qboo
 extern qboolean NPC_IsJetpacking ( gentity_t *self );
 extern void ST_Speech( gentity_t *self, int speechType, float failChance );
 extern void BubbleShield_Update(gentity_t *aiEnt);
+extern qboolean NPC_IsCombatPathing(gentity_t *aiEnt);
 
 // Conversations...
 extern void NPC_NPCConversation(gentity_t *aiEnt);
@@ -3440,9 +3441,29 @@ qboolean UQ1_UcmdMoveForDir ( gentity_t *self, usercmd_t *cmd, vec3_t dir, qbool
 	}
 	*/
 
+	int waterPlane = 0;
+
+	if (self && self->client)
+	{
+		waterPlane = IsBelowWaterPlane(self->client->ps.origin, self->client->ps.viewheight);
+	}
+
 	if (self->waterlevel > 0 && self->enemy && self->enemy->client && NPC_IsAlive(self, self->enemy))
 	{// When we have a valid enemy, always check water level so we don't drown while attacking them...
 
+	}
+	else if (waterPlane)
+	{
+		if (self->client->ps.eFlags & EF_JETPACK)
+		{// Fly over :)
+			pm->waterlevel = 2;
+			pm->watertype = CONTENTS_WATER;
+		}
+		else
+		{
+			pm->waterlevel = waterPlane;
+			pm->watertype = CONTENTS_WATER;
+		}
 	}
 	else if (gWPNum > 0 && self->wpCurrent >= 0 && self->wpCurrent < gWPNum)
 	{
@@ -3465,6 +3486,10 @@ qboolean UQ1_UcmdMoveForDir ( gentity_t *self, usercmd_t *cmd, vec3_t dir, qbool
 		&& NPC_IsAlive(self, self->enemy)
 		&& Distance(self->r.currentOrigin, self->enemy->r.currentOrigin) < 96.0)
 	{// Jedi always walk when in combat with saber...
+		walk = qtrue;
+	}
+	else if (self->NPC && self->NPC->forceWalkTime > level.time)
+	{// Retreating NPCs walk backwards, don't run... Because thats annoying as hell to saber users...
 		walk = qtrue;
 	}
 
@@ -3641,9 +3666,29 @@ qboolean UQ1_UcmdMoveForDir_NoAvoidance ( gentity_t *self, usercmd_t *cmd, vec3_
 	}
 	*/
 
+	int waterPlane = 0;
+
+	if (self && self->client)
+	{
+		waterPlane = IsBelowWaterPlane(self->client->ps.origin, self->client->ps.viewheight);
+	}
+
 	if (self->waterlevel > 0 && self->enemy && self->enemy->client && NPC_IsAlive(self, self->enemy))
 	{// When we have a valid enemy, always check water level so we don't drown while attacking them...
 
+	}
+	else if (waterPlane)
+	{
+		if (self->client->ps.eFlags & EF_JETPACK)
+		{// Fly over :)
+			pm->waterlevel = 2;
+			pm->watertype = CONTENTS_WATER;
+		}
+		else
+		{
+			pm->waterlevel = waterPlane;
+			pm->watertype = CONTENTS_WATER;
+		}
 	}
 	else if (gWPNum > 0 && self->wpCurrent >= 0 && self->wpCurrent < gWPNum)
 	{
@@ -3666,6 +3711,10 @@ qboolean UQ1_UcmdMoveForDir_NoAvoidance ( gentity_t *self, usercmd_t *cmd, vec3_
 		&& NPC_IsAlive(self, self->enemy)
 		&& Distance(self->r.currentOrigin, self->enemy->r.currentOrigin) < 96.0)
 	{// Jedi always walk when in combat with saber...
+		walk = qtrue;
+	}
+	else if (self->NPC && self->NPC->forceWalkTime > level.time)
+	{// Retreating NPCs walk backwards, don't run... Because thats annoying as hell to saber users...
 		walk = qtrue;
 	}
 
@@ -4017,7 +4066,7 @@ qboolean NPC_CheckNearbyPlayers(gentity_t *NPC)
 			continue;
 		}
 		
-		if (Distance(NPC->r.currentOrigin, cl->ps.origin) > 4096.0)
+		if (Distance(NPC->r.currentOrigin, cl->ps.origin) > 8192.0)
 		{
 			continue;
 		}
@@ -4246,6 +4295,7 @@ void NPC_Think ( gentity_t *self )//, int msec )
 		//
 		// Escaping water...
 		//
+#if 0
 		if (((self->waterlevel && self->watertype == CONTENTS_WATER) || self->water_escape_time > level.time) && NPC_EscapeWater(self))
 		{
 			// UQ1: Check any jetpack stuff...
@@ -4286,6 +4336,7 @@ void NPC_Think ( gentity_t *self )//, int msec )
 			NPC_CheckAllClear(aiEnt);
 			return;
 		}
+#endif
 
 		//nextthink is set before this so something in here can override it
 		if (self->s.NPC_class != CLASS_VEHICLE && !self->m_pVehicle)
@@ -4723,6 +4774,12 @@ void NPC_Think ( gentity_t *self )//, int msec )
 			else
 			{
 				//trap->Print("NPCBOT DEBUG: NPC is attacking.\n");
+
+				// If we have combat pathing, use it while we do the other stuff...
+				if (NPC_IsCombatPathing(aiEnt))
+				{
+					NPC_FollowRoutes(aiEnt);
+				}
 
 				NPC_ExecuteBState( self );
 

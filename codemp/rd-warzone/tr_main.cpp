@@ -1905,26 +1905,29 @@ static void R_AddEntitySurface (int entityNum)
 	}
 
 #if 1
-	if ((tr.viewParms.flags & VPF_SHADOWPASS) || backEnd.depthFill)
-	{// Don't draw grass and plants on shadow pass for speed...
-		if (!r_foliageShadows->integer || r_lowVram->integer)
-		{
-			switch ( ent->e.reType ) {
-			case RT_GRASS:
-			case RT_PLANT:
-			//case RT_MODEL_INSTANCED:
-				return;
-				break;
-			default:
-				break;
+	if (!ent->e.ignoreCull)
+	{
+		if ((tr.viewParms.flags & VPF_SHADOWPASS) || backEnd.depthFill)
+		{// Don't draw grass and plants on shadow pass for speed...
+			if (!r_foliageShadows->integer || r_lowVram->integer)
+			{
+				switch (ent->e.reType) {
+				case RT_GRASS:
+				case RT_PLANT:
+					//case RT_MODEL_INSTANCED:
+					return;
+					break;
+				default:
+					break;
+				}
 			}
-		}
 
-		
-		if (!LODMODEL_MAP && (tr.viewParms.flags & VPF_SHADOWPASS))
-		{// Only allow models at range to be drawn on LODMODEL_MAP maps...
-			if (ent && Distance(ent->e.origin, tr.refdef.vieworg) > tr.viewParms.maxEntityRange)
-				return; // Too far away to bother rendering to shadowmap...
+
+			if (!LODMODEL_MAP && (tr.viewParms.flags & VPF_SHADOWPASS))
+			{// Only allow models at range to be drawn on LODMODEL_MAP maps...
+				if (ent && Distance(ent->e.origin, tr.refdef.vieworg) > tr.viewParms.maxEntityRange)
+					return; // Too far away to bother rendering to shadowmap...
+			}
 		}
 	}
 #endif

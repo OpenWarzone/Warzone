@@ -101,7 +101,7 @@ qboolean S_ShouldCull ( vec3_t org, qboolean check_angles, int entityNum )
 
 	float dist = Distance(cl.snap.ps.origin, checkOrg);
 
-	if (dist > 3072.0) return qtrue; // TOO FAR! CULLED!
+	if (dist > DEFAULT_ENTITY_CULL_RANGE/*3072.0*/) return qtrue; // TOO FAR! CULLED!
 	if (s_realism->integer >= 2 && check_angles && !S_InFOV(checkOrg, cl.snap.ps.origin, cl.snap.ps.viewangles, 180.0, 180.0)) return qtrue; // NOT ON SCREEN! CULLED!
 	//if (s_realism->integer >= 3 && !CullVisible(cl.snap.ps.origin, checkOrg, cl.snap.ps.clientNum)) return qtrue; // NOT VISIBLE TO US! CULLED!
 

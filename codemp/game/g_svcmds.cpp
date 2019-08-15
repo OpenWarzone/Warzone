@@ -357,6 +357,9 @@ void	Svcmd_EntityList_f (void) {
 		case ET_TRIGGER_HURT:
 			trap->Print("ET_TRIGGER_HURT     ");
 			break;
+		case ET_SERVERMODEL:
+			trap->Print("ET_SERVERMODEL      ");
+			break;
 		case ET_FREED:
 			trap->Print("ET_FREED            ");
 			break;

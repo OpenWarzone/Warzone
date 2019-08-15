@@ -31,6 +31,9 @@ bool			navMeshLoaded = false;
 
 int				PCL_HUMANOID_NAVHANDLE = 0;
 
+extern float navmeshScale;
+extern float navmeshScaleInv;
+
 /*
 ========================
 Navigation Mesh Loading
@@ -180,17 +183,39 @@ bool Navlib::GoalInRange( gentity_t *self, float r )
 
 	if ( !NavlibTargetIsEntity( &self->client->navigation.goal ) )
 	{
-		return ( Distance( self->r.currentOrigin, self->client->navigation.nav.tpos ) < r );
+		vec3_t goalPos;
+		VectorCopy(self->client->navigation.nav.tpos, goalPos);
+
+		if (self->client->ps.eFlags & EF_JETPACK_ACTIVE)
+		{// Jetpack is active, move the goal height to our height for the distance check...
+			goalPos[2] = self->r.currentOrigin[2];
+		}
+
+		if (self->waterlevel > 1)
+		{// In water, move the goal to our height for the distance check...
+			goalPos[2] = self->r.currentOrigin[2];
+		}
+
+		return ( Distance( self->r.currentOrigin, goalPos ) < r*navmeshScale);
 	}
 
-	while ( ( ent = G_IterateEntitiesWithinRadius( ent, self->r.currentOrigin, r ) ) )
+	if ((self->client->ps.eFlags & EF_JETPACK_ACTIVE) || self->waterlevel > 1)
+	{// Jetpack or in water, move the goal height to our height for the distance check...
+		vec3_t goalPos;
+		VectorCopy(self->client->navigation.goal.ent->r.currentOrigin, goalPos);
+		goalPos[2] = self->r.currentOrigin[2];
+		return (Distance(self->r.currentOrigin, goalPos) < r*navmeshScale);
+	}
+	else
 	{
-		if ( ent == self->client->navigation.goal.ent )
+		while ((ent = G_IterateEntitiesWithinRadius(ent, self->r.currentOrigin, r*navmeshScale)))
 		{
-			return true;
+			if (ent == self->client->navigation.goal.ent)
+			{
+				return true;
+			}
 		}
 	}
-
 	return false;
 }
 

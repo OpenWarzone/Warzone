@@ -12,6 +12,7 @@ int	teamCounter[FACTION_NUM_FACTIONS];
 #define	VALID_ATTACK_CONE	2.0f	//Degrees
 extern void G_DebugPrint( int level, const char *format, ... );
 extern qboolean G_EntIsBreakable( int entityNum );
+extern vmCvar_t npc_pathing;
 
 /*
 void CalcEntitySpot ( gentity_t *ent, spot_t spot, vec3_t point )
@@ -894,6 +895,11 @@ qboolean NPC_ValidEnemy2( gentity_t *self, gentity_t *ent )
 
 	if ( ent->flags & FL_NOTARGET )
 	{//In case they're in notarget mode
+		return qfalse;
+	}
+
+	if (npc_pathing.integer == 0 && VectorLength(ent->spawn_pos) != 0 && Distance(ent->spawn_pos, self->r.currentOrigin) > 6000.0)
+	{
 		return qfalse;
 	}
 
