@@ -78,6 +78,10 @@ void R_PerformanceCounters( void ) {
 	{
 		ri->Printf(PRINT_ALL, "Lightmap surfaces skipped: %i\n", backEnd.pc.c_lightMapsSkipped);
 	}
+	else if (r_speeds->integer == 9)
+	{
+		ri->Printf(PRINT_ALL, "Tiny surfaces skipped: %i\n", backEnd.pc.c_tinySkipped);
+	}
 
 	Com_Memset( &tr.pc, 0, sizeof( tr.pc ) );
 	Com_Memset( &backEnd.pc, 0, sizeof( backEnd.pc ) );

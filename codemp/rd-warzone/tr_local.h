@@ -73,7 +73,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define __JKA_WEATHER__							// Testing JKA weather reimplementation...
 //#define __JKA_SURFACE_SPRITES__				// Testing JKA surface sprites reimplementation...
 //#define __XYC_SURFACE_SPRITES__				// Testing port of Xycaleth's surface sprite implementation...
-//#define __REALTIME_CUBEMAP__					// Render cubemap in realtime and use it...
+//#define __REALTIME_CUBEMAP__					// Render cubemap in realtime and use it... Slow as a wet week...
 //#define __GLOW_LIGHT_PVS__					// Check if lights are in PVS. Probably not worth the FPS it costs...
 //#define __USE_DETAIL_MAPS__					// Enabled detail map system... Disabling for now for more FPS...
 //#define __GEOMETRY_SHADER_ALLOW_INVOCATIONS__ // Enable geometry shader invocations support. Slower because you cant set the invocations max in realtime...
@@ -119,6 +119,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define __INDOOR_SHADOWS__						// Testing stuff...
 
 //#define __CALCULATE_LIGHTDIR_FROM_LIGHT_AVERAGES__
+
+#define __CULL_BY_RANGE_AND_SIZE__				// Experimental culling of stuff at a range it wouldn't be big enough to see anyway...
 
 #define __USE_REGIONS__
 
@@ -435,8 +437,6 @@ extern cvar_t  *r_cacheVisibleSurfaces;
 extern cvar_t  *r_mergeMultidraws;
 extern cvar_t  *r_mergeLeafSurfaces;
 
-extern cvar_t  *r_cameraExposure;
-
 extern cvar_t  *r_hdr;
 extern cvar_t  *r_postProcess;
 
@@ -446,7 +446,6 @@ extern cvar_t  *r_forceToneMapMin;
 extern cvar_t  *r_forceToneMapAvg;
 extern cvar_t  *r_forceToneMapMax;
 
-extern cvar_t  *r_autoExposure;
 extern cvar_t  *r_forceAutoExposure;
 extern cvar_t  *r_forceAutoExposureMin;
 extern cvar_t  *r_forceAutoExposureMax;
@@ -654,7 +653,6 @@ extern cvar_t  *r_ssdm;
 //extern cvar_t  *r_ssrStrength;
 //extern cvar_t  *r_sse;
 //extern cvar_t  *r_sseStrength;
-extern cvar_t  *r_colorCorrection;
 extern cvar_t  *r_steepParallax;
 extern cvar_t  *r_trueAnaglyph;
 extern cvar_t  *r_trueAnaglyphSeparation;
@@ -665,7 +663,6 @@ extern cvar_t  *r_trueAnaglyphPower;
 extern cvar_t  *r_trueAnaglyphMinDistance;
 extern cvar_t  *r_trueAnaglyphMaxDistance;
 extern cvar_t  *r_trueAnaglyphParallax;
-extern cvar_t  *r_vibrancy;
 extern cvar_t  *r_distanceBlur;
 extern cvar_t  *r_fogPost;
 extern cvar_t  *r_dayNightCycleSpeed;
@@ -1908,6 +1905,7 @@ typedef struct {
 
 #ifdef __REALTIME_CUBEMAP__
 	vec3_t		realtimeCubemapOrigin;
+	qboolean	realtimeCubemapRendered = qfalse;
 #endif //__REALTIME_CUBEMAP__
 
 	float       autoExposureMinMax[2];
@@ -2774,6 +2772,7 @@ typedef struct {
 	int     c_lightallDraws;
 	int     c_fogDraws;
 	int     c_lightMapsSkipped;
+	int     c_tinySkipped;
 
 	int		msec;			// total msec for backend run
 } backEndCounters_t;
@@ -2781,6 +2780,7 @@ typedef struct {
 typedef enum {
 	RENDERPASS_NONE,
 	RENDERPASS_PSHADOWS,
+	RENDERPASS_GRASS_PATCHES,
 	RENDERPASS_GRASS,
 	RENDERPASS_GRASS2,
 	RENDERPASS_GRASS3,
@@ -2913,6 +2913,7 @@ typedef struct trGlobals_s {
 	image_t					*waterHeightMapImage;
 	image_t					*foliageMapImage;
 	image_t					*grassImage[16];
+	image_t					*grassPatchesAliasImage;
 	image_t					*grassAliasImage[4];
 	image_t					*seaGrassImage[4];
 	image_t					*seaGrassAliasImage[4];
@@ -2922,7 +2923,6 @@ typedef struct trGlobals_s {
 	image_t					*seaVinesImage[4];
 	image_t					*seaVinesAliasImage;
 	image_t					*foliageAliasImage;
-	image_t					*paletteImage;
 	image_t					*roadsMapImage;
 	image_t					*tessellationMapImage;
 	image_t					*roadImage;
@@ -3122,8 +3122,8 @@ typedef struct trGlobals_s {
 	shaderProgram_t waterReflectionShader;
 	shaderProgram_t transparancyPostShader;
 	shaderProgram_t cloudsShader;
-	shaderProgram_t furShader;
 	shaderProgram_t foliageShader;
+	shaderProgram_t grassPatchesShader;
 	shaderProgram_t grassShader[2];
 	shaderProgram_t vinesShader;
 	shaderProgram_t mistShader;
@@ -3438,12 +3438,9 @@ extern  cvar_t  *r_forceToneMapMin;
 extern  cvar_t  *r_forceToneMapAvg;
 extern  cvar_t  *r_forceToneMapMax;
 
-extern  cvar_t  *r_autoExposure;
 extern  cvar_t  *r_forceAutoExposure;
 extern  cvar_t  *r_forceAutoExposureMin;
 extern  cvar_t  *r_forceAutoExposureMax;
-
-extern  cvar_t  *r_cameraExposure;
 
 extern  cvar_t  *r_srgb;
 
@@ -3605,7 +3602,6 @@ extern cvar_t  *r_trueAnaglyphBlue;
 extern cvar_t  *r_trueAnaglyphMinDistance;
 extern cvar_t  *r_trueAnaglyphMaxDistance;
 extern cvar_t  *r_trueAnaglyphParallax;
-extern cvar_t  *r_vibrancy;
 extern cvar_t  *r_dayNightCycleSpeed;
 extern cvar_t  *r_testshader;
 extern cvar_t  *r_testshaderValue1;

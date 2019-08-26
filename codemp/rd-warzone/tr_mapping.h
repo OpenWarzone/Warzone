@@ -21,6 +21,7 @@ extern float			DISPLACEMENT_MAPPING_STRENGTH;
 extern qboolean			MAP_REFLECTION_ENABLED;
 extern qboolean			ENABLE_CHRISTMAS_EFFECT;
 
+extern float			SPLATMAP_CONTROL_SCALE;
 extern float			STANDARD_SPLATMAP_SCALE;
 extern float			STANDARD_SPLATMAP_SCALE_STEEP;
 extern float			ROCK_SPLATMAP_SCALE;
@@ -82,6 +83,7 @@ extern float			PROCEDURAL_SNOW_LUMINOSITY_CURVE;
 extern float			PROCEDURAL_SNOW_BRIGHTNESS;
 
 extern int				MAP_TONEMAP_METHOD;
+extern float			MAP_TONEMAP_CAMERAEXPOSURE;
 extern qboolean			MAP_TONEMAP_AUTOEXPOSURE;
 extern float			MAP_TONEMAP_SPHERICAL_STRENGTH;
 extern int				LATE_LIGHTING_ENABLED;
@@ -91,6 +93,8 @@ extern int				MAP_LIGHTING_METHOD;
 extern qboolean			MAP_USE_PALETTE_ON_SKY;
 extern float			MAP_LIGHTMAP_MULTIPLIER;
 extern vec3_t			MAP_AMBIENT_CSB;
+extern float			MAP_VIBRANCY_DAY;
+extern float			MAP_VIBRANCY_NIGHT;
 extern vec3_t			MAP_AMBIENT_COLOR;
 extern float			MAP_GLOW_MULTIPLIER;
 extern vec3_t			MAP_AMBIENT_CSB_NIGHT;
@@ -107,6 +111,10 @@ extern float			MAP_EMISSIVE_RADIUS_SCALE_NIGHT;
 extern float			MAP_HDR_MIN;
 extern float			MAP_HDR_MAX;
 
+extern qboolean			MAP_COLOR_CORRECTION_ENABLED;
+extern int				MAP_COLOR_CORRECTION_METHOD;
+extern image_t			*MAP_COLOR_CORRECTION_PALETTE;
+
 extern qboolean			AURORA_ENABLED;
 extern qboolean			AURORA_ENABLED_DAY;
 extern vec3_t			AURORA_COLOR;
@@ -121,10 +129,16 @@ extern qboolean			SHADOWS_ENABLED;
 extern qboolean			SHADOWS_FULL_SOLID;
 extern int				SHADOW_CASCADE1;
 extern int				SHADOW_CASCADE2;
+extern int				SHADOW_CASCADE3;
+extern int				SHADOW_CASCADE4;
 extern int				SHADOW_CASCADE_BIAS1;
 extern int				SHADOW_CASCADE_BIAS2;
+extern int				SHADOW_CASCADE_BIAS3;
+extern int				SHADOW_CASCADE_BIAS4;
 extern float			SHADOW_Z_ERROR_OFFSET_NEAR;
 extern float			SHADOW_Z_ERROR_OFFSET_MID;
+extern float			SHADOW_Z_ERROR_OFFSET_MID2;
+extern float			SHADOW_Z_ERROR_OFFSET_MID3;
 extern float			SHADOW_Z_ERROR_OFFSET_FAR;
 extern float			SHADOW_MINBRIGHT;
 extern float			SHADOW_MAXBRIGHT;
@@ -170,6 +184,24 @@ extern vec3_t			WATER_COLOR_DEEP;
 extern float			WATER_EXTINCTION1;
 extern float			WATER_EXTINCTION2;
 extern float			WATER_EXTINCTION3;
+
+extern qboolean			GRASS_PATCHES_ENABLED;
+extern qboolean			GRASS_PATCHES_RARE_PATCHES_ONLY;
+extern int				GRASS_PATCHES_WIDTH_REPEATS;
+extern int				GRASS_PATCHES_DENSITY;
+extern int				GRASS_PATCHES_CLUMP_LAYERS;
+extern float			GRASS_PATCHES_HEIGHT;
+extern int				GRASS_PATCHES_DISTANCE;
+extern float			GRASS_PATCHES_MAX_SLOPE;
+extern float			GRASS_PATCHES_SURFACE_MINIMUM_SIZE;
+extern float			GRASS_PATCHES_SURFACE_SIZE_DIVIDER;
+extern float			GRASS_PATCHES_TYPE_UNIFORMALITY;
+extern float			GRASS_PATCHES_TYPE_UNIFORMALITY_SCALER;
+extern float			GRASS_PATCHES_DISTANCE_FROM_ROADS;
+extern float			GRASS_PATCHES_SIZE_MULTIPLIER_COMMON;
+extern float			GRASS_PATCHES_SIZE_MULTIPLIER_RARE;
+extern float			GRASS_PATCHES_LOD_START_RANGE;
+extern image_t			*GRASS_PATCHES_CONTROL_TEXTURE;
 
 extern qboolean			GRASS_ENABLED;
 extern qboolean			GRASS_UNDERWATER_ONLY;
@@ -313,6 +345,7 @@ extern int				FOLIAGE_ALLOWED_MATERIALS[MAX_FOLIAGE_ALLOWED_MATERIALS];
 
 
 qboolean RB_ShouldUseTerrainTessellation(int materialType);
+qboolean RB_ShouldUseGeometryGrassPatches(int materialType);
 qboolean RB_ShouldUseGeometryGrass(int materialType);
 qboolean RB_ShouldUseGeometryGrass2(int materialType);
 qboolean RB_ShouldUseGeometryGrass3(int materialType);

@@ -12,6 +12,7 @@
 #define __ENHANCED_AO__
 #define __SCREEN_SPACE_REFLECTIONS__
 #define __CLOUD_SHADOWS__
+//#define __SUN_SELF_SHADOW__
 
 #ifdef USE_CUBEMAPS
 	#define __CUBEMAPS__
@@ -1352,9 +1353,10 @@ void main(void)
 
 	vec3 N = norm.xyz;
 	vec3 E = normalize(u_ViewOrigin.xyz - position.xyz);
+	//vec3 sunDir = normalize(position.xyz - u_PrimaryLightOrigin.xyz);
+	vec3 sunDir = normalize(u_ViewOrigin.xyz - u_PrimaryLightOrigin.xyz);
 	vec3 rayDir = reflect(E, N);
 	vec3 cubeRayDir = reflect(E, flatNorm);
-	vec3 sunDir = normalize(position.xyz - u_PrimaryLightOrigin.xyz);
 	float NE = clamp(length(dot(N, E)), 0.0, 1.0);
 
 	float b = clamp(length(outColor.rgb/3.0), 0.0, 1.0);
@@ -1472,7 +1474,13 @@ void main(void)
 	else if (ssrReflectivePower < 0.5) ssrReflectivePower = 0.0; // cull on non-wet stuff, when theres little point...
 #endif //defined(__SCREEN_SPACE_REFLECTIONS__)
 
+#if defined(__CUBEMAPS__) && defined(REALTIME_CUBEMAPS)
+	if (isPuddle) cubeReflectionFactor = WETNESS * 3.0; // 3x - 8x seems about right...
+	else if (wetness > 0.0) cubeReflectionFactor += cubeReflectionFactor*0.333;
+#endif //defined(__CUBEMAPS__) && defined(REALTIME_CUBEMAPS)
 
+
+#ifdef __SUN_SELF_SHADOW__
 	float diffuse;
 	if (position.a - 1.0 == MATERIAL_GREENLEAVES)
 		diffuse = clamp(pow(clamp(dot(-sunDir.rgb, bump.rgb), 0.0, 1.0), 8.0) * 0.6 + 0.6, 0.0, 1.0);
@@ -1480,6 +1488,8 @@ void main(void)
 		diffuse = clamp(pow(clamp(dot(-sunDir.rgb, bump.rgb), 0.0, 1.0), 8.0) * 0.2 + 0.8, 0.0, 1.0);
 
 	color.rgb = outColor.rgb = outColor.rgb * diffuse;
+#endif //__SUN_SELF_SHADOW__
+
 
 	float origColorStrength = clamp(max(color.r, max(color.g, color.b)), 0.0, 1.0) * 0.75 + 0.25;
 
@@ -1528,42 +1538,19 @@ void main(void)
 			reflected = vec3(-reflected.y, -reflected.z, -reflected.x); // for old sky cubemap generation based on sky textures
 		}
 
-		const float lod1 = 4.0;
-		const float lod2 = 5.0;
-		const float lod3 = 7.0;
-		const float lod4 = 10.0;
-
 		if (NIGHT_SCALE > 0.0 && NIGHT_SCALE < 1.0)
 		{// Mix between night and day colors...
-			vec3 skyColorDay = textureLod(u_SkyCubeMap, reflected, lod1).rgb;
-			//skyColorDay += textureLod(u_SkyCubeMap, reflected, lod2).rgb;
-			//skyColorDay += textureLod(u_SkyCubeMap, reflected, lod3).rgb;
-			//skyColorDay += textureLod(u_SkyCubeMap, reflected, lod4).rgb;
-			//skyColorDay /= 4.0;
-
-			vec3 skyColorNight = textureLod(u_SkyCubeMapNight, reflected, lod1).rgb;
-			//skyColorNight += textureLod(u_SkyCubeMapNight, reflected, lod2).rgb;
-			//skyColorNight += textureLod(u_SkyCubeMapNight, reflected, lod3).rgb;
-			//skyColorNight += textureLod(u_SkyCubeMapNight, reflected, lod4).rgb;
-			//skyColorNight /= 4.0;
-
-			skyColor = mix(skyColorDay, skyColorNight, clamp(NIGHT_SCALE, 0.0, 1.0));
+			vec3 skyColorDay = textureLod(u_SkyCubeMap, reflected, 4.0).rgb;
+			vec3 skyColorNight = textureLod(u_SkyCubeMapNight, reflected, 4.0).rgb;
+			skyColor = mix(skyColorDay, skyColorNight, NIGHT_SCALE);
 		}
 		else if (NIGHT_SCALE >= 1.0)
 		{// Night only colors...
-			skyColor = textureLod(u_SkyCubeMapNight, reflected, lod1).rgb;
-			//skyColor += textureLod(u_SkyCubeMapNight, reflected, lod2).rgb;
-			//skyColor += textureLod(u_SkyCubeMapNight, reflected, lod3).rgb;
-			//skyColor += textureLod(u_SkyCubeMapNight, reflected, lod4).rgb;
-			//skyColor /= 4.0;
+			skyColor = textureLod(u_SkyCubeMapNight, reflected, 4.0).rgb;
 		}
 		else
 		{// Day only colors...
-			skyColor = textureLod(u_SkyCubeMap, reflected, lod1).rgb;
-			//skyColor += textureLod(u_SkyCubeMap, reflected, lod2).rgb;
-			//skyColor += textureLod(u_SkyCubeMap, reflected, lod3).rgb;
-			//skyColor += textureLod(u_SkyCubeMap, reflected, lod4).rgb;
-			//skyColor /= 4.0;
+			skyColor = textureLod(u_SkyCubeMap, reflected, 4.0).rgb;
 		}
 
 		skyColor = clamp(ContrastSaturationBrightness(skyColor, 1.0, 2.0, 0.333), 0.0, 1.0);
@@ -1573,33 +1560,49 @@ void main(void)
 
 	if (specularReflectivePower > 0.0)
 	{// If this pixel is ging to get any specular reflection, generate (PBR would instead look up image buffer) specular color, and grab any cubeMap lighting as well...
+/*
 		// Construct generic specular map by creating a greyscale, contrasted, saturation removed, color from the screen color... Then multiply by the material's default specular modifier...
 #define spec_cont_1 ( 16.0 / 255.0)
 #define spec_cont_2 (255.0 / 192.0)
 			specularColor = clamp((clamp(outColor.rgb - spec_cont_1, 0.0, 1.0)) * spec_cont_2, 0.0, 1.0);
 			specularColor = clamp(Vibrancy( specularColor.rgb, 1.0 ), 0.0, 1.0);
+*/
 
 #ifndef __LQ_MODE__
 #if defined(__CUBEMAPS__)
+#ifdef REALTIME_CUBEMAPS
+		if (CUBEMAP_ENABLED > 0.0 && cubeReflectionFactor > 0.0 && NE > 0.0 && u_CubeMapStrength > 0.0)
+		{// Cubemaps enabled...
+			float curDist = distance(u_ViewOrigin.xyz, position.xyz);
+			float cubeFade = 1.0 - clamp(curDist / CUBEMAP_CULLRANGE, 0.0, 1.0);
+			cubeFade = pow(cubeFade, 1.5);
+			
+			if (cubeFade > 0.0)
+			{
+				vec3 cubeLightColor = textureLod(u_CubeMap, cubeRayDir, /*0.0*/7.0 - (cubeReflectionFactor * 7.0)).rgb;
+				outColor.rgb = mix(outColor.rgb, outColor.rgb + cubeLightColor.rgb, clamp(NE * cubeFade * (u_CubeMapStrength * 5.0) * cubeReflectionFactor, 0.0, 1.0));
+			}
+		}
+#else //!REALTIME_CUBEMAPS
 		if (CUBEMAP_ENABLED > 0.0 && cubeReflectionFactor > 0.0 && NE > 0.0 && u_CubeMapStrength > 0.0)
 		{// Cubemaps enabled...
 			vec3 cubeLightColor = vec3(0.0);
+			float curDist = distance(u_ViewOrigin.xyz, position.xyz);
+			float cubeDist = distance(u_CubeMapInfo.xyz, position.xyz);
+			float cubeFade = (1.0 - clamp(curDist / CUBEMAP_CULLRANGE, 0.0, 1.0)) * (1.0 - clamp(cubeDist / CUBEMAP_CULLRANGE, 0.0, 1.0));
 			
 			// This used to be done in rend2 code, now done here because I need u_CubeMapInfo.xyz to be cube origin for distance checks above... u_CubeMapInfo.w is now radius.
 			vec4 cubeInfo = u_CubeMapInfo;
-			cubeInfo.xyz -= u_ViewOrigin.xyz;
+			//cubeInfo.xyz -= u_ViewOrigin.xyz;
+			cubeInfo.xyz = vec3(0.0);
 
-			cubeInfo.w = pow(distance(u_ViewOrigin.xyz, u_CubeMapInfo.xyz), 3.0);
+			cubeInfo.w = curDist;//pow(distance(u_ViewOrigin.xyz, u_CubeMapInfo.xyz), 3.0);
 
 			cubeInfo.xyz *= 1.0 / cubeInfo.w;
 			cubeInfo.w = 1.0 / cubeInfo.w;
 
 			vec3 parallax = cubeInfo.xyz + cubeInfo.w * E;
 			parallax.z *= -1.0;
-
-			float curDist = distance(u_ViewOrigin.xyz, position.xyz);
-			float cubeDist = distance(u_CubeMapInfo.xyz, position.xyz);
-			float cubeFade = (1.0 - clamp(curDist / CUBEMAP_CULLRANGE, 0.0, 1.0)) * (1.0 - clamp(cubeDist / CUBEMAP_CULLRANGE, 0.0, 1.0));
 
 			if (cubeFade > 0.0)
 			{
@@ -1609,6 +1612,7 @@ void main(void)
 				outColor.rgb = mix(outColor.rgb, outColor.rgb + cubeLightColor.rgb, clamp(NE * cubeFade * (u_CubeMapStrength * 20.0) * cubeReflectionFactor, 0.0, 1.0));
 			}
 		}
+#endif //REALTIME_CUBEMAPS
 		else
 		{
 			if (cubeReflectionFactor > 0.0 && NE > 0.0)
@@ -1616,12 +1620,6 @@ void main(void)
 				vec2 shinyTC = ((cubeRayDir.xy + cubeRayDir.z) / 2.0) * 0.5 + 0.5;
 
 				vec3 shiny = textureLod(u_WaterEdgeMap, shinyTC, 5.5 - (cubeReflectionFactor * 5.5)).rgb;
-				//vec3 shiny = textureLod(u_WaterEdgeMap, shinyTC, 4.0 - (cubeReflectionFactor * 4.0)).rgb;
-				//shiny += textureLod(u_WaterEdgeMap, shinyTC, 5.0 - (cubeReflectionFactor * 5.0)).rgb;
-				//shiny += textureLod(u_WaterEdgeMap, shinyTC, 7.0 - (cubeReflectionFactor * 7.0)).rgb;
-				//shiny += textureLod(u_WaterEdgeMap, shinyTC, 10.0 - (cubeReflectionFactor * 10.0)).rgb;
-				//shiny /= 4.0;
-
 				shiny = clamp(ContrastSaturationBrightness(shiny, 1.75, 1.0, 0.333), 0.0, 1.0);
 				outColor.rgb = mix(outColor.rgb, outColor.rgb + shiny.rgb, clamp(NE * cubeReflectionFactor * (origColorStrength * 0.75 + 0.25), 0.0, 1.0));
 			}
@@ -1632,12 +1630,6 @@ void main(void)
 			vec2 shinyTC = ((cubeRayDir.xy + cubeRayDir.z) / 2.0) * 0.5 + 0.5;
 
 			vec3 shiny = textureLod(u_WaterEdgeMap, shinyTC, 5.5 - (cubeReflectionFactor * 5.5)).rgb;
-			//vec3 shiny = textureLod(u_WaterEdgeMap, shinyTC, 4.0 - (cubeReflectionFactor * 4.0)).rgb;
-			//shiny += textureLod(u_WaterEdgeMap, shinyTC, 5.0 - (cubeReflectionFactor * 5.0)).rgb;
-			//shiny += textureLod(u_WaterEdgeMap, shinyTC, 7.0 - (cubeReflectionFactor * 7.0)).rgb;
-			//shiny += textureLod(u_WaterEdgeMap, shinyTC, 10.0 - (cubeReflectionFactor * 10.0)).rgb;
-			//shiny /= 4.0;
-
 			shiny = clamp(ContrastSaturationBrightness(shiny, 1.75, 1.0, 0.333), 0.0, 1.0);
 			outColor.rgb = mix(outColor.rgb, outColor.rgb + shiny.rgb, clamp(NE * cubeReflectionFactor * (origColorStrength * 0.75 + 0.25), 0.0, 1.0));
 		}
@@ -1646,21 +1638,19 @@ void main(void)
 	}
 
 
-	float SE = clamp(dot(/*E*/rayDir, sunDir), 0.0, 1.0);
+/*
+	float SE = clamp(dot(bump, -sunDir), 0.0, 1.0);
 	float specPower = ((clamp(SE, 0.0, 1.0) + clamp(pow(SE, 2.0), 0.0, 1.0)) * 0.5) * 0.333;
-
-
 	outColor.rgb = clamp(outColor.rgb + (specularColor.rgb * specularReflectivePower * specPower * finalShadow), 0.0, 1.0);
-
+*/
 
 	if (SKY_LIGHT_CONTRIBUTION > 0.0 && cubeReflectionFactor > 0.0)
 	{// Sky light contributions...
 #ifndef __LQ_MODE__
 		outColor.rgb = mix(outColor.rgb, outColor.rgb + skyColor, clamp(NE * SKY_LIGHT_CONTRIBUTION * cubeReflectionFactor * (origColorStrength * 0.75 + 0.25), 0.0, 1.0));
 #endif //__LQ_MODE__
-		float reflectVectorPower = pow(specularReflectivePower*NE, 16.0) * reflectionPower;
-		outColor.rgb = mix(outColor.rgb, outColor.rgb + specularColor, clamp(pow(reflectVectorPower, 2.0) * cubeReflectionFactor * (origColorStrength * 0.75 + 0.25), 0.0, 1.0));
-		//outColor.rgb = skyColor;
+		//float reflectVectorPower = pow(specularReflectivePower*NE, 16.0) * reflectionPower;
+		//outColor.rgb = mix(outColor.rgb, outColor.rgb + specularColor, clamp(pow(reflectVectorPower, 2.0) * cubeReflectionFactor * (origColorStrength * 0.75 + 0.25), 0.0, 1.0));
 	}
 
 	if (SUN_PHONG_SCALE > 0.0 && specularReflectivePower > 0.0)
@@ -1669,12 +1659,10 @@ void main(void)
 
 		float PshadowValue = 1.0 - texture(u_RoadsControlMap, texCoords).a;
 
-#define LIGHT_COLOR_POWER			4.0
-
 		if (phongFactor > 0.0 && NIGHT_SCALE < 1.0 && finalShadow > 0.0)
 		{// this is blinn phong
 			float maxBright = clamp(max(outColor.r, max(outColor.g, outColor.b)), 0.0, 1.0);
-			float power = clamp(pow(maxBright * 0.75, LIGHT_COLOR_POWER) + 0.333, 0.0, 1.0);
+			float power = clamp(pow(maxBright * 0.75, 4.0) + 0.333, 0.0, 1.0);
 			vec3 lightColor = Vibrancy(u_PrimaryLightColor.rgb, 1.0);
 			float lightMult = clamp(specularReflectivePower * power, 0.0, 1.0);
 
@@ -1708,7 +1696,7 @@ void main(void)
 			vec3 addedLight = vec3(0.0);
 			float maxBright = clamp(max(outColor.r, max(outColor.g, outColor.b)), 0.0, 1.0);
 			float power = maxBright * 0.85;
-			power = clamp(pow(power, LIGHT_COLOR_POWER) + 0.5/*0.333*/, 0.0, 1.0);
+			power = clamp(pow(power, 4.0) + 0.5, 0.0, 1.0);
 
 			if (power > 0.0)
 			{
@@ -1832,17 +1820,17 @@ void main(void)
 	}
 #endif //defined(__ENHANCED_AO__)
 
-	finalShadow = mix(finalShadow, 1.0, clamp(NIGHT_SCALE, 0.0, 1.0)); // Dampen out shadows at sunrise/sunset...
+	finalShadow = mix(finalShadow, 1.0, NIGHT_SCALE); // Dampen out shadows at sunrise/sunset...
 
 #ifdef __CLOUD_SHADOWS__
-	if (CLOUDS_SHADOWS_ENABLED == 1.0)
+	if (CLOUDS_SHADOWS_ENABLED == 1.0 && NIGHT_SCALE < 1.0)
 	{
 		finalShadow = min(finalShadow, clamp(var_CloudShadow + 0.1, 0.0, 1.0));
 	}
-	else if (CLOUDS_SHADOWS_ENABLED >= 2.0)
+	else if (CLOUDS_SHADOWS_ENABLED >= 2.0 && NIGHT_SCALE < 1.0)
 	{
 		float cShadow = CloudShadows(position.xyz) * 0.5 + 0.5;
-		cShadow = mix(cShadow, 1.0, clamp(NIGHT_SCALE, 0.0, 1.0)); // Dampen out cloud shadows at sunrise/sunset...
+		cShadow = mix(cShadow, 1.0, NIGHT_SCALE); // Dampen out cloud shadows at sunrise/sunset...
 		finalShadow = min(finalShadow, clamp(cShadow + 0.1, 0.0, 1.0));
 	}
 #endif //__CLOUD_SHADOWS__

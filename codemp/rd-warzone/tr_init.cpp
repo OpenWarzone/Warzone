@@ -155,8 +155,6 @@ cvar_t  *r_cacheVisibleSurfaces;
 cvar_t  *r_mergeMultidraws;
 cvar_t  *r_mergeLeafSurfaces;
 
-cvar_t  *r_cameraExposure;
-
 cvar_t  *r_hdr;
 cvar_t  *r_floatLightmap;
 cvar_t  *r_postProcess;
@@ -167,7 +165,6 @@ cvar_t  *r_forceToneMapMin;
 cvar_t  *r_forceToneMapAvg;
 cvar_t  *r_forceToneMapMax;
 
-cvar_t  *r_autoExposure;
 cvar_t  *r_forceAutoExposure;
 cvar_t  *r_forceAutoExposureMin;
 cvar_t  *r_forceAutoExposureMax;
@@ -377,7 +374,6 @@ cvar_t  *r_multipost;
 cvar_t  *r_screenBlurSlow;
 cvar_t  *r_screenBlurFast;
 //cvar_t  *r_hbao;
-cvar_t  *r_colorCorrection;
 cvar_t  *r_deferredLighting;
 cvar_t  *r_ssdm;
 //cvar_t  *r_ssr;
@@ -394,7 +390,6 @@ cvar_t  *r_trueAnaglyphPower;
 cvar_t  *r_trueAnaglyphMinDistance;
 cvar_t  *r_trueAnaglyphMaxDistance;
 cvar_t  *r_trueAnaglyphParallax;
-cvar_t  *r_vibrancy;
 cvar_t  *r_fxaa;
 cvar_t  *r_fxaaScanMod;
 cvar_t  *r_txaa;
@@ -1539,12 +1534,9 @@ void R_Register( void )
 	r_forceToneMapAvg = ri->Cvar_Get( "r_forceToneMapAvg", "-2.0", CVAR_CHEAT );
 	r_forceToneMapMax = ri->Cvar_Get( "r_forceToneMapMax", "0.0", CVAR_CHEAT );
 
-	r_autoExposure = ri->Cvar_Get( "r_autoExposure", "0", CVAR_ARCHIVE ); // UQ1: Disabled. Pointless.
 	r_forceAutoExposure = ri->Cvar_Get( "r_forceAutoExposure", "0", CVAR_CHEAT );
 	r_forceAutoExposureMin = ri->Cvar_Get( "r_forceAutoExposureMin", "-2.0", CVAR_CHEAT );
 	r_forceAutoExposureMax = ri->Cvar_Get( "r_forceAutoExposureMax", "2.0", CVAR_CHEAT );
-
-	r_cameraExposure = ri->Cvar_Get( "r_cameraExposure", "0", CVAR_CHEAT );
 
 	r_srgb = ri->Cvar_Get( "r_srgb", "0", CVAR_ARCHIVE | CVAR_LATCH );
 
@@ -1563,8 +1555,8 @@ void R_Register( void )
 	r_specularMapping = ri->Cvar_Get( "r_specularMapping", "0", CVAR_ARCHIVE | CVAR_LATCH );
 	r_deluxeMapping = ri->Cvar_Get( "r_deluxeMapping", "0", CVAR_ARCHIVE | CVAR_LATCH );
 	r_cubeMapping = ri->Cvar_Get( "r_cubeMapping", "0", CVAR_ARCHIVE | CVAR_LATCH );
-	r_cubeMapSize = ri->Cvar_Get( "r_cubeMapSize", "64", CVAR_ARCHIVE | CVAR_LATCH );
-	r_cubemapCullRange = ri->Cvar_Get("r_cubemapCullRange", "384.0", CVAR_ARCHIVE);
+	r_cubeMapSize = ri->Cvar_Get( "r_cubeMapSize", "512", CVAR_ARCHIVE | CVAR_LATCH );
+	r_cubemapCullRange = ri->Cvar_Get("r_cubemapCullRange", "512.0", CVAR_ARCHIVE);
 	r_cubemapStrength = ri->Cvar_Get("r_cubemapStrength", "1.25", CVAR_ARCHIVE);
    	r_deluxeSpecular = ri->Cvar_Get( "r_deluxeSpecular", "0.3", CVAR_ARCHIVE );
    	r_specularIsMetallic = ri->Cvar_Get( "r_specularIsMetallic", "0", CVAR_ARCHIVE | CVAR_LATCH );
@@ -1706,7 +1698,6 @@ void R_Register( void )
 	//r_ssrStrength = ri->Cvar_Get("r_ssrStrength", "0.05", CVAR_ARCHIVE);
 	//r_sse = ri->Cvar_Get("r_sse", "false", CVAR_ARCHIVE);
 	//r_sseStrength = ri->Cvar_Get("r_sseStrength", "0.05", CVAR_ARCHIVE);
-	r_colorCorrection = ri->Cvar_Get( "r_colorCorrection", "false", CVAR_ARCHIVE );
 	r_trueAnaglyph = ri->Cvar_Get( "r_trueAnaglyph", "0", CVAR_ARCHIVE );
 	r_trueAnaglyphSeparation = ri->Cvar_Get( "r_trueAnaglyphSeparation", "10.0", CVAR_ARCHIVE );
 	r_trueAnaglyphRed = ri->Cvar_Get( "r_trueAnaglyphRed", "0.0", CVAR_ARCHIVE );
@@ -1716,7 +1707,6 @@ void R_Register( void )
 	r_trueAnaglyphMinDistance = ri->Cvar_Get( "r_trueAnaglyphMinDistance", "0.03", CVAR_ARCHIVE );
 	r_trueAnaglyphMaxDistance = ri->Cvar_Get( "r_trueAnaglyphMaxDistance", "1.0", CVAR_ARCHIVE );
 	r_trueAnaglyphParallax = ri->Cvar_Get( "r_trueAnaglyphParallax", "11.5", CVAR_ARCHIVE );
-	r_vibrancy = ri->Cvar_Get( "r_vibrancy", "0.4", CVAR_ARCHIVE );
 	r_distanceBlur = ri->Cvar_Get( "r_distanceBlur", "0", CVAR_ARCHIVE );
 	r_fogPost = ri->Cvar_Get( "r_fogPost", "true", CVAR_ARCHIVE );
 	r_dayNightCycleSpeed = ri->Cvar_Get( "r_dayNightCycleSpeed", "0.004", CVAR_ARCHIVE );

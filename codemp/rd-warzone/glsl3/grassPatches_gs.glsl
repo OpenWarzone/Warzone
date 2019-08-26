@@ -22,8 +22,8 @@ uniform vec4								u_Local3; // hasSplatMap1, hasSplatMap2, hasSplatMap3, hasSp
 uniform vec4								u_Local8; // GRASS_SURFACE_MINIMUM_SIZE, GRASS_DISTANCE_FROM_ROADS, GRASS_HEIGHT, GRASS_SURFACE_SIZE_DIVIDER
 uniform vec4								u_Local9; // testvalue0, 1, 2, 3
 uniform vec4								u_Local10; // foliageLODdistance, TERRAIN_TESS_OFFSET, 0.0, GRASS_TYPE_UNIFORMALITY
-uniform vec4								u_Local11; // GRASS_WIDTH_REPEATS, GRASS_MAX_SLOPE, GRASS_TYPE_UNIFORMALITY_SCALER, GRASS_RARE_PATCHES_ONLY
-uniform vec4								u_Local12; // GRASS_SIZE_MULTIPLIER_COMMON, GRASS_SIZE_MULTIPLIER_RARE, GRASS_SIZE_MULTIPLIER_UNDERWATER, GRASS_LOD_START_RANGE
+uniform vec4								u_Local11; // 0.0, GRASS_MAX_SLOPE, GRASS_TYPE_UNIFORMALITY_SCALER, GRASS_RARE_PATCHES_ONLY
+uniform vec4								u_Local12; // GRASS_SIZE_MULTIPLIER_COMMON, GRASS_SIZE_MULTIPLIER_RARE, GRASS_CLUMP_LAYERS, GRASS_LOD_START_RANGE
 uniform vec4								u_Local13; // HAVE_GRASS_CONTROL, HAVE_GRASS_CONTROL1, HAVE_GRASS_CONTROL2, HAVE_GRASS_CONTROL3
 
 #define SHADER_MAP_SIZE						u_Local1.r
@@ -50,14 +50,13 @@ uniform vec4								u_Local13; // HAVE_GRASS_CONTROL, HAVE_GRASS_CONTROL1, HAVE_
 #define TERRAIN_TESS_OFFSET					u_Local10.g
 #define GRASS_TYPE_UNIFORMALITY				u_Local10.a
 
-#define GRASS_WIDTH_REPEATS					u_Local11.r
 #define GRASS_MAX_SLOPE						u_Local11.g
 #define GRASS_TYPE_UNIFORMALITY_SCALER		u_Local11.b
 #define GRASS_RARE_PATCHES_ONLY				u_Local11.a
 
 #define GRASS_SIZE_MULTIPLIER_COMMON		u_Local12.r
 #define GRASS_SIZE_MULTIPLIER_RARE			u_Local12.g
-#define GRASS_SIZE_MULTIPLIER_UNDERWATER	u_Local12.b
+#define GRASS_CLUMP_LAYERS					u_Local12.b
 #define GRASS_LOD_START_RANGE				u_Local12.a
 
 #define HAVE_GRASS_CONTROL					u_Local13.r
@@ -191,16 +190,6 @@ const vec3							vWindDirection = normalize(vec3(1.0, 1.0, 0.0));
 
 const float PIover180 = 3.1415/180.0; 
 
-const vec3 vBaseDir[] = vec3[] (
-	vec3(1.0, 0.0, 0.0),
-#ifdef THREE_WAY_GRASS_CLUMPS
-	vec3(float(cos(45.0*PIover180)), float(sin(45.0*PIover180)), 0.0f),
-	vec3(float(cos(-45.0*PIover180)), float(sin(-45.0*PIover180)), 0.0f)
-#else //!THREE_WAY_GRASS_CLUMPS
-	vec3(float(cos(90.0*PIover180)), float(sin(90.0*PIover180)), 0.0f)
-#endif //THREE_WAY_GRASS_CLUMPS
-);
-
 vec2 BakedOffsetsBegin[16] = vec2[]
 (
 	vec2( 0.0, 0.0 ),
@@ -275,6 +264,18 @@ float noise(in vec2 st) {
 	return mix(a, b, u.x) +
 		(c - a)* u.y * (1.0 - u.x) +
 		(d - b) * u.x * u.y;
+}
+
+const mat2 sMat = mat2( 0.00,  0.80,
+					-0.80,  0.36);
+
+float snoise( vec2 p )
+{
+	float f;
+	f  = 0.5000*noise( p ); p = sMat*p*2.02;
+	f += 0.2500*noise( p ); 
+	
+	return clamp(f * 1.3333333333333333333333333333333, 0.0, 1.0);
 }
 
 float GetRoadFactor(vec2 pixel)
@@ -395,6 +396,7 @@ bool CheckGrassMapPosition(vec3 pos)
 	return false;
 }
 
+
 void main()
 {
 	iGrassType = 0;
@@ -417,13 +419,7 @@ void main()
 	}
 
 	vLocalSeed = vGrassFieldPos;
-								// invocations support...
-								//	vLocalSeed = Pos*float(gl_InvocationID);
 
-	vec3 control;
-	control.r = randZeroOne();
-	control.g = randZeroOne();
-	control.b = randZeroOne();
 
 	float VertDist2 = distance(u_ViewOrigin, vGrassFieldPos);
 
@@ -440,279 +436,177 @@ void main()
 		return;
 	}
 
-	float vertDistanceScale = 1.0;
-	float falloffStart = MAX_RANGE / 1.5;
 
-	if (VertDist2 >= falloffStart)
-	{
-		float falloffEnd = MAX_RANGE - falloffStart;
-		float pDist = clamp((VertDist2 - falloffStart) / falloffEnd, 0.0, 1.0);
-		vertDistanceScale = 1.0 - pDist; // Scale down to zero size by distance...
-
-		if (vertDistanceScale <= 0.05)
-		{
-			return;
-		}
-	}
-
-	vec4 controlMap;
-
-	controlMap.rgb = control.rgb;
-	controlMap.a = 1.0;
-
-	vec2 pixel = GetMapTC(vGrassFieldPos);
+	float roadMult = 1.0;
 
 	if (SHADER_HAS_SPLATMAP4 > 0.0)
 	{// Also grab the roads map, if we have one...
-		controlMap.a = 1.0 - GetRoadFactor(pixel);
+		vec2 pixel = GetMapTC(vGrassFieldPos);
 
-		//if (controlMap.a == 0.0)
-		if (controlMap.a <= 0.7)
+		roadMult = 1.0 - GetRoadFactor(pixel);
+
+		if (roadMult <= 0.7)
 		{// Road or road edge...
 			return;
 		}
 	}
 
-	int lodLevel = 0;
+	float fSizeRandomness = clamp(randZeroOne() * 0.75 + 0.25, 0.0, 1.0);
+
+	int runs = int(GRASS_CLUMP_LAYERS);
 
 	if (VertDist2 >= GRASS_LOD_START_RANGE)
 	{
-		if (VertDist2 >= GRASS_LOD_START_RANGE * 4.0)
-		{
-			lodLevel = 3;
-		}
-		else if (VertDist2 >= GRASS_LOD_START_RANGE * 2.0)
-		{
-			lodLevel = 2;
-		}
-		else
-		{
-			lodLevel = 1;
-		}
+		runs = max(runs / 2, 1);
 	}
 
-
-	float controlMapScale = length(controlMap.rgb) / 3.0;
-	controlMapScale *= controlMapScale;
-	controlMapScale += 0.1;
-	controlMapScale = clamp(controlMapScale, 0.0, 1.0);
-
-	float fSizeRandomness = clamp(randZeroOne() * 0.25 + 0.75, 0.0, 1.0);
-	float sizeMult = 1.25;
-	float fGrassPatchHeight = 1.0;
-
-	vec2 tcOffsetBegin;
-	vec2 tcOffsetEnd;
-
-#if defined(__USE_UNDERWATER_ONLY__)
-	iGrassType = 0;
-
-	vLocalSeed = round(vGrassFieldPos * GRASS_TYPE_UNIFORMALITY_SCALER) + 1.0;
-
-	if (randZeroOne() > GRASS_TYPE_UNIFORM_WATER)
-	{// Randomize...
-		iGrassType = randomInt(0, 3);
-	}
-
-	if (heightAboveWaterLength <= 192.0)
-	{// When near water edge, reduce the size of the grass...
-		sizeMult *= clamp(heightAboveWaterLength / 192.0, 0.0, 1.0) * fSizeRandomness;
-	}
-	else
-	{// Deep underwater plants draw larger...
-		sizeMult *= clamp(1.0 + (heightAboveWaterLength / 192.0), 1.0, 16.0);
-	}
-
-	sizeMult *= GRASS_SIZE_MULTIPLIER_UNDERWATER;
-
-	tcOffsetBegin = BakedOffsetsBegin[iGrassType];
-	tcOffsetEnd = tcOffsetBegin + 0.25;
-
-	iGrassType = 1;
-#else //!defined(__USE_UNDERWATER_ONLY__)
-	if (heightAboveWater < 0.0)
+	for (int runy = -runs; runy <= runs; runy++)
 	{
-		iGrassType = 0;
-
-		vLocalSeed = round(vGrassFieldPos * GRASS_TYPE_UNIFORMALITY_SCALER) + 1.0;
-
-		if (randZeroOne() > GRASS_TYPE_UNIFORM_WATER)
-		{// Randomize...
-			iGrassType = randomInt(0, 3);
-		}
-
-		if (heightAboveWaterLength <= 192.0)
-		{// When near water edge, reduce the size of the grass...
-			sizeMult *= clamp(heightAboveWaterLength / 192.0, 0.0, 1.0) * fSizeRandomness;
-		}
-		else
-		{// Deep underwater plants draw larger...
-			sizeMult *= clamp(1.0 + (heightAboveWaterLength / 192.0), 1.0, 16.0);
-		}
-
-		sizeMult *= GRASS_SIZE_MULTIPLIER_UNDERWATER;
-
-		tcOffsetBegin = BakedOffsetsBegin[iGrassType];
-		tcOffsetEnd = tcOffsetBegin + 0.25;
-
-		// Final value set to 1 == an underwater grass...
-		iGrassType = 1;
-	}
-	else
-	{
-		iGrassType = randomInt(0, 2);
-
-		vLocalSeed = round(vGrassFieldPos * GRASS_TYPE_UNIFORMALITY_SCALER) + 1.0;
-
-		if (randZeroOne() > GRASS_TYPE_UNIFORMALITY)
-		{// Randomize...
-			iGrassType = randomInt(3, 15);
-		}
-		else if (GRASS_RARE_PATCHES_ONLY > 0.0)
-		{// If only drawing rare grasses, skip adding anything when it's not a rare...
-			return;
-		}
-
-		if (heightAboveWaterLength <= 256.0)
-		{// When near water edge, reduce the size of the grass...
-			sizeMult *= clamp(heightAboveWaterLength / 192.0, 0.0, 1.0) * fSizeRandomness;
-		}
-
-		if (iGrassType > 2 && iGrassType < 16)
-		{// Rare randomized grasses (3 -> 16 - the plants) are a bit larger then the standard grass...
-			//sizeMult *= 2.75;
-			sizeMult *= GRASS_SIZE_MULTIPLIER_RARE;
-		}
-		else
+		for (int runx = -runs; runx <= runs; runx++)
 		{
-			sizeMult *= GRASS_SIZE_MULTIPLIER_COMMON;
-		}
+			float sizeMult = 1.25;
+			//float fGrassPatchHeight = 1.5;
 
-		tcOffsetBegin = BakedOffsetsBegin[iGrassType];
-		tcOffsetEnd = tcOffsetBegin + 0.25;
+			vec2 tcOffsetBegin;
+			vec2 tcOffsetEnd;
 
-		// Final value set to 0 == an above water grass...
-		iGrassType = 0;
-	}
-#endif //defined(__USE_UNDERWATER_ONLY__)
+			int x = runx * int(GRASS_HEIGHT*0.5);
+			int y = runy * int(GRASS_HEIGHT*0.5);
+			vec3 grassPos = vGrassFieldPos.xyz + vec3(x, y, 0.0);
+			
+			iGrassType = randomInt(0, 2);
 
-	fGrassPatchHeight = clamp(controlMapScale /** vertDistanceScale*/ * 3.0, 0.0, 1.0);
+			vLocalSeed = round(grassPos * GRASS_TYPE_UNIFORMALITY_SCALER) + 1.0;
 
-	if (fGrassPatchHeight <= 0.05)
-	{
-		return;
-	}
+			if (randZeroOne() > GRASS_TYPE_UNIFORMALITY)
+			{// Randomize...
+				iGrassType = randomInt(3, 15);
+			}
+			else if (GRASS_RARE_PATCHES_ONLY > 0.0)
+			{// If only drawing rare grasses, skip adding anything when it's not a rare...
+				continue;
+			}
 
-	fGrassPatchHeight = max(fGrassPatchHeight, 0.5);
+			if (heightAboveWaterLength <= 256.0)
+			{// When near water edge, reduce the size of the grass...
+				sizeMult *= clamp(heightAboveWaterLength / 192.0, 0.0, 1.0) * fSizeRandomness;
+			}
 
-	float fGrassFinalSize = GRASS_HEIGHT * sizeMult * fSizeRandomness * controlMap.a; // controlMap.a is road edges multiplier...
+			if (iGrassType > 2 && iGrassType < 16)
+			{// Rare randomized grasses (3 -> 16 - the plants) are a bit larger then the standard grass...
+				sizeMult *= GRASS_SIZE_MULTIPLIER_RARE;
+			}
+			else
+			{
+				sizeMult *= GRASS_SIZE_MULTIPLIER_COMMON;
+			}
 
-	if (fGrassFinalSize <= GRASS_HEIGHT * 0.05)
-	{
-		return;
-	}
+			tcOffsetBegin = BakedOffsetsBegin[iGrassType];
+			tcOffsetEnd = tcOffsetBegin + 0.25;
 
-	float fWindPower = inWindPower[gl_InvocationID];
-	float randDir = sin(randZeroOne()*0.7f)*0.1f;
+			// Final value set to 0 == an above water grass...
+			iGrassType = 0;
 
-	vec3 P = vGrassFieldPos.xyz;
-	vec3 I = normalize(vec3(normalize(P.xyz - u_ViewOrigin.xyz).xy, 0.0));
+			float fGrassFinalSize = GRASS_HEIGHT * sizeMult * fSizeRandomness * roadMult;
+			fGrassFinalSize /= 1.0 + max(float(length(runx)), float(length(runy)));
+
+			/*if (fGrassFinalSize <= GRASS_HEIGHT * 0.05)
+			{
+				return;
+			}*/
+
+			float fWindPower = inWindPower[gl_InvocationID];
+			float randDir = sin(randZeroOne()*0.7f)*0.1f;
+
+			vec3 P = grassPos.xyz;
+			vec3 I = normalize(vec3(normalize(P.xyz - u_ViewOrigin.xyz).xy, 0.0));
 
 
-#ifdef THREE_WAY_GRASS_CLUMPS
-	for (int i = 0; i < 3; i++)
-#else //!THREE_WAY_GRASS_CLUMPS
-	for (int i = 0; i < 2; i++)
-#endif //THREE_WAY_GRASS_CLUMPS
-	{// Draw either 2 or 3 copies at each position at different angles...
-		if (lodLevel == 3 && i > /*0*/1) continue;
-		if (lodLevel == 2 && i > 1) continue;
-		if (lodLevel == 1 && i > 2) continue;
 
-		vec3 direction = (rotationMatrix(vec3(0, 1, 0), randDir)*vec4(vBaseDir[i], 1.0)).xyz;
-		
-		if (GRASS_WIDTH_REPEATS > 0.0) direction.xy *= GRASS_WIDTH_REPEATS;
+			float dir = (randZeroOne() * 180.0) - 90.0;
+			vec3 baseDir = vec3(float(cos(dir*PIover180)), float(sin(dir*PIover180)), 0.0f);
+			vec3 direction = (rotationMatrix(vec3(0, 1, 0), randDir)*vec4(baseDir, 1.0)).xyz;
+			
 
-		//vec3 P = vGrassFieldPos.xyz;
+			vec3 va = P - (direction * fGrassFinalSize);
+			vec3 vb = P + (direction * fGrassFinalSize);
+			vec3 vc = va + vec3(0.0, 0.0, fGrassFinalSize * sizeMult * fSizeRandomness * roadMult);
+			vec3 vd = vb + vec3(0.0, 0.0, fGrassFinalSize * sizeMult * fSizeRandomness * roadMult);
 
-		vec3 va = P - (direction * fGrassFinalSize);
-		vec3 vb = P + (direction * fGrassFinalSize);
-		vec3 vc = va + vec3(0.0, 0.0, fGrassFinalSize * fGrassPatchHeight);
-		vec3 vd = vb + vec3(0.0, 0.0, fGrassFinalSize * fGrassPatchHeight);
 
-		
-		vec3 baseNorm = normalize(cross(normalize(vb - va), normalize(vc - va)));
-		//vec3 I = normalize(vec3(normalize(P.xyz - u_ViewOrigin.xyz).xy, 0.0));
-		vec3 Nf = normalize(faceforward(baseNorm, I, baseNorm));
-		
-		vVertNormal = EncodeNormal(Nf);
+			
+			vec3 baseNorm = normalize(cross(normalize(vb - va), normalize(vc - va)));
+			vec3 Nf = normalize(faceforward(baseNorm, I, baseNorm));
+			
+			vVertNormal = EncodeNormal(Nf);
 
 #ifndef __HUMANOIDS_BEND_GRASS__ // Just the player...
-		vec3 playerOffset = vec3(0.0);
-		float distanceToPlayer = distance(u_PlayerOrigin.xy, P.xy);
-		float PLAYER_BEND_CLOSENESS = GRASS_HEIGHT * 1.5;
-		if (distanceToPlayer < PLAYER_BEND_CLOSENESS)
-		{
-			vec3 dirToPlayer = normalize(P - u_PlayerOrigin);
-			dirToPlayer.z = 0.0;
-			playerOffset = dirToPlayer * (PLAYER_BEND_CLOSENESS - distanceToPlayer);
-		}
-#else //__HUMANOIDS_BEND_GRASS__ - Any player/NPC...
-		int closestHumanoid = -1;
-		float closestHumanoidDistance = distance(u_PlayerOrigin.xy, P.xy);
-
-		for (int h = 0; h < u_HumanoidOriginsNum; h++)
-		{
-			float dist = distance(u_HumanoidOrigins[h].xy, P.xy);
-
-			if (dist < closestHumanoidDistance)
+			vec3 playerOffset = vec3(0.0);
+			float distanceToPlayer = distance(u_PlayerOrigin.xy, P.xy);
+			float PLAYER_BEND_CLOSENESS = GRASS_HEIGHT * 1.5;
+			if (distanceToPlayer < PLAYER_BEND_CLOSENESS)
 			{
-				closestHumanoid = h;
-				closestHumanoidDistance = dist;
+				vec3 dirToPlayer = normalize(P - u_PlayerOrigin);
+				dirToPlayer.z = 0.0;
+				playerOffset = dirToPlayer * (PLAYER_BEND_CLOSENESS - distanceToPlayer);
 			}
-		}
+#else //__HUMANOIDS_BEND_GRASS__ - Any player/NPC...
+			int closestHumanoid = -1;
+			float closestHumanoidDistance = distance(u_PlayerOrigin.xy, P.xy);
 
-		vec3 playerOffset = vec3(0.0);
-		float PLAYER_BEND_CLOSENESS;
-		
-		if (closestHumanoid == -1)
-			PLAYER_BEND_CLOSENESS = GRASS_HEIGHT * 1.5;
-		else
-			PLAYER_BEND_CLOSENESS = GRASS_HEIGHT * 1.25;
+			for (int h = 0; h < u_HumanoidOriginsNum; h++)
+			{
+				float dist = distance(u_HumanoidOrigins[h].xy, P.xy);
 
-		if (closestHumanoidDistance < PLAYER_BEND_CLOSENESS)
-		{
-			vec3 dirToPlayer;
+				if (dist < closestHumanoidDistance)
+				{
+					closestHumanoid = h;
+					closestHumanoidDistance = dist;
+				}
+			}
+
+			vec3 playerOffset = vec3(0.0);
+			float PLAYER_BEND_CLOSENESS;
+			
 			if (closestHumanoid == -1)
-				dirToPlayer = normalize(P - u_PlayerOrigin);
+				PLAYER_BEND_CLOSENESS = GRASS_HEIGHT * 1.5;
 			else
-				dirToPlayer = normalize(P - u_HumanoidOrigins[closestHumanoid]);
+				PLAYER_BEND_CLOSENESS = GRASS_HEIGHT * 1.25;
 
-			dirToPlayer.z = 0.0;
-			playerOffset = dirToPlayer * (PLAYER_BEND_CLOSENESS - closestHumanoidDistance);
-		}
+			if (closestHumanoidDistance < PLAYER_BEND_CLOSENESS)
+			{
+				vec3 dirToPlayer;
+				if (closestHumanoid == -1)
+					dirToPlayer = normalize(P - u_PlayerOrigin);
+				else
+					dirToPlayer = normalize(P - u_HumanoidOrigins[closestHumanoid]);
+
+				dirToPlayer.z = 0.0;
+				playerOffset = dirToPlayer * (PLAYER_BEND_CLOSENESS - closestHumanoidDistance);
+			}
 #endif //__HUMANOIDS_BEND_GRASS__
 
-		vVertPosition = va.xyz;
-		gl_Position = u_ModelViewProjectionMatrix * vec4(vVertPosition, 1.0);
-		vTexCoord = vec2(tcOffsetBegin[0], tcOffsetEnd[1]);
-		EmitVertex();
+			vVertPosition = va.xyz;
+			gl_Position = u_ModelViewProjectionMatrix * vec4(vVertPosition, 1.0);
+			vTexCoord = vec2(tcOffsetBegin[0], tcOffsetEnd[1]);
+			EmitVertex();
 
-		vVertPosition = vb.xyz;
-		gl_Position = u_ModelViewProjectionMatrix * vec4(vVertPosition, 1.0);
-		vTexCoord = vec2(tcOffsetEnd[0], tcOffsetEnd[1]);
-		EmitVertex();
+			vVertPosition = vb.xyz;
+			gl_Position = u_ModelViewProjectionMatrix * vec4(vVertPosition, 1.0);
+			vTexCoord = vec2(tcOffsetEnd[0], tcOffsetEnd[1]);
+			EmitVertex();
 
-		vVertPosition = vc.xyz + playerOffset + vWindDirection*fWindPower;
-		gl_Position = u_ModelViewProjectionMatrix * vec4(vVertPosition, 1.0);
-		vTexCoord = vec2(tcOffsetBegin[0], tcOffsetBegin[1]);
-		EmitVertex();
+			vVertPosition = vc.xyz + playerOffset + vWindDirection*fWindPower;
+			gl_Position = u_ModelViewProjectionMatrix * vec4(vVertPosition, 1.0);
+			vTexCoord = vec2(tcOffsetBegin[0], tcOffsetBegin[1]);
+			EmitVertex();
 
-		vVertPosition = vd.xyz + playerOffset + vWindDirection*fWindPower;
-		gl_Position = u_ModelViewProjectionMatrix * vec4(vVertPosition, 1.0);
-		vTexCoord = vec2(tcOffsetEnd[0], tcOffsetBegin[1]);
-		EmitVertex();
+			vVertPosition = vd.xyz + playerOffset + vWindDirection*fWindPower;
+			gl_Position = u_ModelViewProjectionMatrix * vec4(vVertPosition, 1.0);
+			vTexCoord = vec2(tcOffsetEnd[0], tcOffsetBegin[1]);
+			EmitVertex();
 
-		EndPrimitive();
+			EndPrimitive();
+		}
 	}
 }

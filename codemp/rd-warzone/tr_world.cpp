@@ -60,6 +60,10 @@ added to the sorting list.
 extern qboolean		TERRAIN_TESSELLATION_ENABLED;
 extern float		TERRAIN_TESSELLATION_LEVEL;
 
+float cullInvW = 0.0;
+float cullInvH = 0.0;
+float cullInv = 0.0;
+
 static qboolean	R_CullSurface(msurface_t *surf, int entityNum) {
 #ifdef __ZFAR_CULLING_ON_SURFACES__
 	surf->depthDrawOnly = qfalse;
@@ -96,6 +100,44 @@ static qboolean	R_CullSurface(msurface_t *surf, int entityNum) {
 		surf->cullinfo.currentDistance = Distance(tr.viewParms.ori.origin, surf->cullinfo.centerOrigin);
 		surf->cullinfo.centerDistanceTime = backEnd.refdef.time;
 	}
+
+#ifdef __CULL_BY_RANGE_AND_SIZE__
+	if (surf->shader->materialType == MATERIAL_TREEBARK 
+		&& surf->cullinfo.currentDistance > 196608.0 /* 262144 */) // Tree stumps at this range may as well be culled. should rarely be big enough to see anyway
+	{
+		return qtrue;
+	}
+
+	if (cullInvW == 0.0)
+	{// Only calculate these once...
+		cullInvW = 1.0 / glConfig.vidWidth;
+		cullInvH = 1.0 / glConfig.vidHeight;
+		cullInv = min(cullInvW, cullInvH) * 4.0; // * 4.0 to cull a little extra than a single pixel, while being not noticable.
+	}
+
+	if (surf->cullinfo.type & CULLINFO_SPHERE)
+	{
+		if (surf->cullinfo.radius / surf->cullinfo.currentDistance < cullInv)
+		{// Would be less than a pixel in size, cull it...
+			backEnd.pc.c_tinySkipped++;
+			return qtrue;
+		}
+	}
+
+	if (surf->cullinfo.type & CULLINFO_BOX)
+	{
+		if (surf->cullinfo.radius == 0.0)
+		{
+			surf->cullinfo.radius = Distance(surf->cullinfo.bounds[0], surf->cullinfo.bounds[1]);
+		}
+
+		if (surf->cullinfo.radius / surf->cullinfo.currentDistance < cullInv)
+		{// Would be less than a pixel in size, cull it...
+			backEnd.pc.c_tinySkipped++;
+			return qtrue;
+		}
+	}
+#endif //__CULL_BY_RANGE_AND_SIZE__
 
 #ifdef __INDOOR_OUTDOOR_CULLING__
 	extern qboolean INDOOR_BRUSH_FOUND;

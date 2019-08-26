@@ -1386,13 +1386,13 @@ void RB_DrawMoon(float scale, shader_t *shader) {
 
 void DrawSkyDome ( shader_t *skyShader )
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 
 	GLSL_BindProgram(&tr.skyDomeShader);
 
@@ -1516,7 +1516,7 @@ void DrawSkyDome ( shader_t *skyShader )
 	screenBox[2] = backEnd.viewParms.viewportWidth;
 	screenBox[3] = backEnd.viewParms.viewportHeight;
 
-	FBO_BlitFromTexture(tr.whiteImage, imageBox, NULL, glState.currentFBO, screenBox, &tr.skyDomeShader, NULL, 0);
+	FBO_BlitFromTexture(tr.whiteImage, imageBox, NULL, glState.currentFBO, screenBox, &tr.skyDomeShader, colorWhite/*color*/, 0);
 #endif //__OLD_SKYDOME__
 }
 

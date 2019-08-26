@@ -1524,6 +1524,7 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 	for (int type = RENDERPASS_NONE; type < RENDERPASS_MAX; type++)
 	{// Redraw the relevant scene objects so that the procedural systems can use the vert points for their stuff...
 		// Skip passes if not currenty enabled...
+		if (type == RENDERPASS_GRASS_PATCHES && !GRASS_PATCHES_ENABLED) continue;
 		if (type == RENDERPASS_GRASS && !GRASS_ENABLED) continue;
 		if (type == RENDERPASS_GRASS2 && !GRASS2_ENABLED) continue;
 		if (type == RENDERPASS_GRASS3 && !GRASS3_ENABLED) continue;
@@ -1607,6 +1608,7 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 
 			if (backEnd.renderPass != RENDERPASS_NONE)
 			{// Skip any surfs that are not of this renderPass...
+				qboolean isGrassPatches = qfalse;
 				qboolean isGrass = qfalse;
 				qboolean isGrass2 = qfalse;
 				qboolean isGrass3 = qfalse;
@@ -1614,6 +1616,11 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 				qboolean isVines = qfalse;
 				qboolean isGroundFoliage = qfalse;
 				qboolean isMist = qfalse;
+
+				if (RB_ShouldUseGeometryGrassPatches(thisShader->materialType))
+				{
+					isGrassPatches = qtrue;
+				}
 
 				if (thisShader->isGrass || RB_ShouldUseGeometryGrass(thisShader->materialType))
 				{
@@ -1650,7 +1657,11 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 					isMist = qtrue;
 				}
 
-				if (isGrass && backEnd.renderPass == RENDERPASS_GRASS)
+				if (isGrassPatches && backEnd.renderPass == RENDERPASS_GRASS_PATCHES)
+				{
+					doDraw = qtrue;
+				}
+				else if (isGrass && backEnd.renderPass == RENDERPASS_GRASS)
 				{
 					doDraw = qtrue;
 				}
@@ -3207,6 +3218,10 @@ const void *RB_PostProcess(const void *data)
 		VectorSet4(vec, SHADOW_Z_ERROR_OFFSET_NEAR, SHADOW_Z_ERROR_OFFSET_MID, SHADOW_Z_ERROR_OFFSET_FAR, r_testshaderValue1->value);
 		GLSL_SetUniformVec4(&tr.shadowmaskShader, UNIFORM_SETTINGS1, vec);
 
+		VectorSet4(vec, tr.refdef.sunShadowCascadeZfar[0], tr.refdef.sunShadowCascadeZfar[1], /*tr.refdef.sunShadowCascadeZfar[2]*/0.0, 0.0);
+		GLSL_SetUniformVec4(&tr.shadowmaskShader, UNIFORM_SETTINGS2, vec);
+		
+
 		{
 			vec4_t viewInfo;
 
@@ -3558,7 +3573,7 @@ const void *RB_PostProcess(const void *data)
 			DEBUG_EndTimer(qtrue);
 		}
 
-		if (r_colorCorrection->integer)
+		if (MAP_COLOR_CORRECTION_ENABLED)
 		{
 			DEBUG_StartTimer("Color Correction", qtrue);
 			RB_ColorCorrection(currentFbo, srcBox, currentOutFbo, dstBox);
@@ -3820,17 +3835,12 @@ const void *RB_PostProcess(const void *data)
 		// End UQ1 Added...
 		//
 
-		extern int			MAP_TONEMAP_METHOD;
-		extern qboolean		MAP_TONEMAP_AUTOEXPOSURE;
-		//extern float		MAP_TONEMAP_SPHERICAL_STRENGTH;
-
 		DEBUG_StartTimer("HDR", qtrue);
-		if (r_hdr->integer && MAP_TONEMAP_METHOD > 0 && (r_toneMap->integer || r_forceToneMap->integer))
+		if (r_hdr->integer && MAP_TONEMAP_METHOD > 0)
 		{
-			autoExposure = (qboolean)((r_autoExposure->integer && MAP_TONEMAP_AUTOEXPOSURE) || r_forceAutoExposure->integer);
-			RB_ToneMap(srcFbo, srcBox, NULL, dstBox, autoExposure);
+			RB_ToneMap(srcFbo, srcBox, NULL, dstBox, MAP_TONEMAP_AUTOEXPOSURE);
 		}
-		else if (r_cameraExposure->value == 0.0f)
+		else if (MAP_TONEMAP_METHOD <= 0 || MAP_TONEMAP_CAMERAEXPOSURE == 0.0)
 		{
 			FBO_FastBlit(srcFbo, srcBox, NULL, dstBox, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 		}
@@ -3840,7 +3850,7 @@ const void *RB_PostProcess(const void *data)
 
 			color[0] =
 			color[1] =
-			color[2] = pow(2, r_cameraExposure->value); //exp2(r_cameraExposure->value);
+			color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE); //exp2(MAP_TONEMAP_CAMERAEXPOSURE);
 			color[3] = 1.0f;
 
 			FBO_Blit(srcFbo, srcBox, NULL, NULL, dstBox, NULL, color, 0);

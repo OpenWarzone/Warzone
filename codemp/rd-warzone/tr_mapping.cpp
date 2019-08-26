@@ -1400,6 +1400,7 @@ float		DISPLACEMENT_MAPPING_STRENGTH = 18.0;
 qboolean	MAP_REFLECTION_ENABLED = qfalse;
 qboolean	ENABLE_CHRISTMAS_EFFECT = qfalse;
 
+float		SPLATMAP_CONTROL_SCALE = 1.0;
 float		STANDARD_SPLATMAP_SCALE = 0.0075;// 0.01;
 float		STANDARD_SPLATMAP_SCALE_STEEP = 0.0025;
 float		ROCK_SPLATMAP_SCALE = 0.0025;
@@ -1461,6 +1462,7 @@ float		PROCEDURAL_SNOW_LUMINOSITY_CURVE = 0.35;
 float		PROCEDURAL_SNOW_BRIGHTNESS = 0.5;
 
 int			MAP_TONEMAP_METHOD = 0;
+float		MAP_TONEMAP_CAMERAEXPOSURE = 0.0;
 qboolean	MAP_TONEMAP_AUTOEXPOSURE = qfalse;
 float		MAP_TONEMAP_SPHERICAL_STRENGTH = 1.0;
 int			LATE_LIGHTING_ENABLED = 0;
@@ -1471,6 +1473,8 @@ qboolean	MAP_USE_PALETTE_ON_SKY = qfalse;
 float		MAP_LIGHTMAP_MULTIPLIER = 1.0;
 vec3_t		MAP_AMBIENT_CSB = { 1 };
 vec3_t		MAP_AMBIENT_COLOR = { 1 };
+float		MAP_VIBRANCY_DAY = 0.4;
+float		MAP_VIBRANCY_NIGHT = 0.4;
 float		MAP_GLOW_MULTIPLIER = 1.0;
 vec3_t		MAP_AMBIENT_CSB_NIGHT = { 1 };
 vec3_t		MAP_AMBIENT_COLOR_NIGHT = { 1 };
@@ -1486,6 +1490,10 @@ float		MAP_EMISSIVE_RADIUS_SCALE_NIGHT = 1.0;
 float		MAP_HDR_MIN = 26.0;
 float		MAP_HDR_MAX = 209.0;
 
+qboolean	MAP_COLOR_CORRECTION_ENABLED = qfalse;
+int			MAP_COLOR_CORRECTION_METHOD = 0;
+image_t		*MAP_COLOR_CORRECTION_PALETTE = NULL;
+
 qboolean	AURORA_ENABLED = qtrue;
 qboolean	AURORA_ENABLED_DAY = qfalse;
 vec3_t		AURORA_COLOR = { 1.0 };
@@ -1498,13 +1506,19 @@ float		AO_MULTBRIGHT = 1.0;
 
 qboolean	SHADOWS_ENABLED = qfalse;
 qboolean	SHADOWS_FULL_SOLID = qfalse;
-int			SHADOW_CASCADE1 = 256;
-int			SHADOW_CASCADE2 = 4096;
-int			SHADOW_CASCADE_BIAS1 = 256;
-int			SHADOW_CASCADE_BIAS2 = 1024;
-float		SHADOW_Z_ERROR_OFFSET_NEAR = 0.002;
-float		SHADOW_Z_ERROR_OFFSET_MID = 0.01;
-float		SHADOW_Z_ERROR_OFFSET_FAR = 0.03;
+int			SHADOW_CASCADE1 = 384;
+int			SHADOW_CASCADE2 = 2048;
+int			SHADOW_CASCADE3 = 8192;
+int			SHADOW_CASCADE4 = 32768;
+int			SHADOW_CASCADE_BIAS1 = 32;
+int			SHADOW_CASCADE_BIAS2 = 256;
+int			SHADOW_CASCADE_BIAS3 = 1024;
+int			SHADOW_CASCADE_BIAS4 = 2048;
+float		SHADOW_Z_ERROR_OFFSET_NEAR = 0.0;
+float		SHADOW_Z_ERROR_OFFSET_MID = 0.0;
+float		SHADOW_Z_ERROR_OFFSET_MID2 = 0.0;
+float		SHADOW_Z_ERROR_OFFSET_MID3 = 0.0;
+float		SHADOW_Z_ERROR_OFFSET_FAR = 0.0;
 float		SHADOW_MINBRIGHT = 0.7;
 float		SHADOW_MAXBRIGHT = 1.0;
 float		SHADOW_FORCE_UPDATE_ANGLE_CHANGE = 32.0;
@@ -1549,6 +1563,24 @@ vec3_t		WATER_COLOR_DEEP = { 0 };
 float		WATER_EXTINCTION1 = 35.0;
 float		WATER_EXTINCTION2 = 480.0;
 float		WATER_EXTINCTION3 = 8192.0;
+
+qboolean	GRASS_PATCHES_ENABLED = qtrue;
+qboolean	GRASS_PATCHES_RARE_PATCHES_ONLY = qfalse;
+int			GRASS_PATCHES_WIDTH_REPEATS = 0;
+int			GRASS_PATCHES_DENSITY = 2;
+int			GRASS_PATCHES_CLUMP_LAYERS = 2;
+float		GRASS_PATCHES_HEIGHT = 48.0;
+int			GRASS_PATCHES_DISTANCE = 2048;
+float		GRASS_PATCHES_MAX_SLOPE = 10.0;
+float		GRASS_PATCHES_SURFACE_MINIMUM_SIZE = 128.0;
+float		GRASS_PATCHES_SURFACE_SIZE_DIVIDER = 1024.0;
+float		GRASS_PATCHES_TYPE_UNIFORMALITY = 0.97;
+float		GRASS_PATCHES_TYPE_UNIFORMALITY_SCALER = 0.008;
+float		GRASS_PATCHES_DISTANCE_FROM_ROADS = 0.25;
+float		GRASS_PATCHES_SIZE_MULTIPLIER_COMMON = 1.0;
+float		GRASS_PATCHES_SIZE_MULTIPLIER_RARE = 2.75;
+float		GRASS_PATCHES_LOD_START_RANGE = 8192.0;
+image_t		*GRASS_PATCHES_CONTROL_TEXTURE = NULL;
 
 qboolean	GRASS_ENABLED = qtrue;
 qboolean	GRASS_UNDERWATER_ONLY = qfalse;
@@ -1699,6 +1731,20 @@ qboolean R_SurfaceIsAllowedTessellation(int materialType)
 	return qfalse;
 }
 
+int GRASS_PATCHES_ALLOWED_MATERIALS_NUM = 0;
+int GRASS_PATCHES_ALLOWED_MATERIALS[MAX_ALLOWED_MATERIALS_LIST] = { 0 };
+
+qboolean R_SurfaceIsAllowedGrassPatches(int materialType)
+{
+	for (int i = 0; i < GRASS_PATCHES_ALLOWED_MATERIALS_NUM; i++)
+	{
+		if (materialType == GRASS_PATCHES_ALLOWED_MATERIALS[i]) return qtrue;
+	}
+
+	return qfalse;
+}
+
+
 int GRASS_ALLOWED_MATERIALS_NUM = 0;
 int GRASS_ALLOWED_MATERIALS[MAX_ALLOWED_MATERIALS_LIST] = { 0 };
 
@@ -1804,6 +1850,27 @@ qboolean RB_ShouldUseTerrainTessellation(int materialType)
 	}
 
 	if (R_SurfaceIsAllowedTessellation(materialType))
+	{// *sigh* due to surfaceFlags mixing materials with other flags, we need to do it this way...
+		return qtrue;
+	}
+
+	return qfalse;
+}
+
+qboolean RB_ShouldUseGeometryGrassPatches(int materialType)
+{
+	if (materialType <= MATERIAL_NONE)
+	{
+		return qfalse;
+	}
+
+	if (materialType == MATERIAL_SHORTGRASS
+		|| materialType == MATERIAL_LONGGRASS)
+	{
+		return qtrue;
+	}
+
+	if (R_SurfaceIsAllowedGrassPatches(materialType))
 	{// *sigh* due to surfaceFlags mixing materials with other flags, we need to do it this way...
 		return qtrue;
 	}
@@ -2013,6 +2080,7 @@ void MAPPING_LoadMapInfo(void)
 	//
 	// Splat Maps...
 	//
+	SPLATMAP_CONTROL_SCALE = atof(IniRead(mapname, "SPLATMAPS", "SPLATMAP_CONTROL_SCALE", "1.0"));
 	STANDARD_SPLATMAP_SCALE = atof(IniRead(mapname, "SPLATMAPS", "STANDARD_SPLATMAP_SCALE", "0.0075")); // 0.01
 	STANDARD_SPLATMAP_SCALE_STEEP = atof(IniRead(mapname, "SPLATMAPS", "STANDARD_SPLATMAP_SCALE_STEEP", "0.0025"));
 	ROCK_SPLATMAP_SCALE = atof(IniRead(mapname, "SPLATMAPS", "ROCK_SPLATMAP_SCALE", "0.0025"));
@@ -2221,6 +2289,7 @@ void MAPPING_LoadMapInfo(void)
 	// Palette...
 	//
 	MAP_TONEMAP_METHOD = atoi(IniRead(mapname, "PALETTE", "MAP_TONEMAP_METHOD", "0"));
+	MAP_TONEMAP_CAMERAEXPOSURE = atof(IniRead(mapname, "PALETTE", "MAP_TONEMAP_CAMERAEXPOSURE", "0.0"));
 	MAP_TONEMAP_AUTOEXPOSURE = (atoi(IniRead(mapname, "PALETTE", "MAP_TONEMAP_AUTOEXPOSURE", "0")) > 0) ? qtrue : qfalse;
 	MAP_TONEMAP_SPHERICAL_STRENGTH = atof(IniRead(mapname, "PALETTE", "MAP_TONEMAP_SPHERICAL_STRENGTH", "1.0"));
 
@@ -2244,6 +2313,9 @@ void MAPPING_LoadMapInfo(void)
 	MAP_AMBIENT_CSB[1] = atof(IniRead(mapname, "PALETTE", "MAP_AMBIENT_SATURATION", "1.0"));
 	MAP_AMBIENT_CSB[2] = atof(IniRead(mapname, "PALETTE", "MAP_AMBIENT_BRIGHTNESS", "1.0"));
 
+	MAP_VIBRANCY_DAY = atof(IniRead(mapname, "PALETTE", "MAP_VIBRANCY_DAY", "0.4"));
+	MAP_VIBRANCY_NIGHT = atof(IniRead(mapname, "PALETTE", "MAP_VIBRANCY_NIGHT", "0.4"));
+
 	MAP_AMBIENT_CSB_NIGHT[0] = atof(IniRead(mapname, "PALETTE", "MAP_AMBIENT_CONTRAST_NIGHT", va("%f", MAP_AMBIENT_CSB[0]*0.9)));
 	MAP_AMBIENT_CSB_NIGHT[1] = atof(IniRead(mapname, "PALETTE", "MAP_AMBIENT_SATURATION_NIGHT", va("%f", MAP_AMBIENT_CSB[1]*0.9)));
 	MAP_AMBIENT_CSB_NIGHT[2] = atof(IniRead(mapname, "PALETTE", "MAP_AMBIENT_BRIGHTNESS_NIGHT", va("%f", MAP_AMBIENT_CSB[2]*0.55)));
@@ -2260,6 +2332,40 @@ void MAPPING_LoadMapInfo(void)
 	MAP_COLOR_SWITCH_RG = (atoi(IniRead(mapname, "PALETTE", "MAP_COLOR_SWITCH_RG", "0")) > 0) ? qtrue : qfalse;
 	MAP_COLOR_SWITCH_RB = (atoi(IniRead(mapname, "PALETTE", "MAP_COLOR_SWITCH_RB", "0")) > 0) ? qtrue : qfalse;
 	MAP_COLOR_SWITCH_GB = (atoi(IniRead(mapname, "PALETTE", "MAP_COLOR_SWITCH_GB", "0")) > 0) ? qtrue : qfalse;
+
+	//
+	// Color correction (skyrim style palette based)...
+	//
+	MAP_COLOR_CORRECTION_ENABLED = (atoi(IniRead(mapname, "COLOR_CORRECTION", "COLOR_CORRECTION_ENABLED", "0")) > 0) ? qtrue : qfalse;
+
+	if (MAP_COLOR_CORRECTION_ENABLED)
+	{
+		MAP_COLOR_CORRECTION_METHOD = atoi(IniRead(mapname, "COLOR_CORRECTION", "COLOR_CORRECTION_METHOD", "0"));
+
+		char paletteName[128] = { { 0 } };
+		strcpy(paletteName, IniRead(mapname, "COLOR_CORRECTION", "COLOR_CORRECTION_TEXTURE", ""));
+
+		if (paletteName[0] != 0)
+		{
+			MAP_COLOR_CORRECTION_PALETTE = R_FindImageFile(paletteName, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_CLAMPTOEDGE);
+		}
+
+		if (!MAP_COLOR_CORRECTION_PALETTE)
+		{// Color Palette... Try to load an image with the bsp...
+			MAP_COLOR_CORRECTION_PALETTE = R_FindImageFile(va("maps/%s_palette.png", currentMapName), IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_CLAMPTOEDGE);
+		}
+
+		if (!MAP_COLOR_CORRECTION_PALETTE)
+		{// No map based image? Use default...
+			MAP_COLOR_CORRECTION_PALETTE = R_FindImageFile("gfx/palette.png", IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_CLAMPTOEDGE);
+		}
+
+		if (!MAP_COLOR_CORRECTION_PALETTE)
+		{// No default image? Force disable...
+			MAP_COLOR_CORRECTION_ENABLED = qfalse;
+		}
+	}
+
 
 	//
 	// Ambient Occlusion...
@@ -2348,10 +2454,16 @@ void MAPPING_LoadMapInfo(void)
 		SHADOWS_FULL_SOLID = (atoi(IniRead(mapname, "SHADOWS", "SHADOWS_FULL_SOLID", "0")) > 0) ? qtrue : qfalse;
 		SHADOW_CASCADE1 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE1", "384"));
 		SHADOW_CASCADE2 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE2", "2048"));
+		SHADOW_CASCADE3 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE3", "8192"));
+		SHADOW_CASCADE4 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE4", "32768"));
 		SHADOW_CASCADE_BIAS1 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE_BIAS1", "32"));
 		SHADOW_CASCADE_BIAS2 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE_BIAS2", "256"));
+		SHADOW_CASCADE_BIAS3 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE_BIAS3", "1024"));
+		SHADOW_CASCADE_BIAS4 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE_BIAS4", "2048"));
 		SHADOW_Z_ERROR_OFFSET_NEAR = atof(IniRead(mapname, "SHADOWS", "SHADOW_Z_ERROR_OFFSET_NEAR", "0.0"));
 		SHADOW_Z_ERROR_OFFSET_MID = atof(IniRead(mapname, "SHADOWS", "SHADOW_Z_ERROR_OFFSET_MID", "0.0"));
+		SHADOW_Z_ERROR_OFFSET_MID2 = atof(IniRead(mapname, "SHADOWS", "SHADOW_Z_ERROR_OFFSET_MID2", "0.0"));
+		SHADOW_Z_ERROR_OFFSET_MID3 = atof(IniRead(mapname, "SHADOWS", "SHADOW_Z_ERROR_OFFSET_MID3", "0.0"));
 		SHADOW_Z_ERROR_OFFSET_FAR = atof(IniRead(mapname, "SHADOWS", "SHADOW_Z_ERROR_OFFSET_FAR", "0.0"));
 		SHADOW_MINBRIGHT = atof(IniRead(mapname, "SHADOWS", "SHADOW_MINBRIGHT", "0.7"));
 		SHADOW_MAXBRIGHT = atof(IniRead(mapname, "SHADOWS", "SHADOW_MAXBRIGHT", "1.0"));
@@ -2425,6 +2537,52 @@ void MAPPING_LoadMapInfo(void)
 	const char		*climateName = IniRead(mapname, "CLIMATE", "CLIMATE_TYPE", "");
 	memset(CURRENT_CLIMATE_OPTION, 0, sizeof(CURRENT_CLIMATE_OPTION));
 	strncpy(CURRENT_CLIMATE_OPTION, climateName, strlen(climateName));
+
+	//
+	// Grass Patches...
+	//
+	GRASS_PATCHES_ENABLED = (atoi(IniRead(mapname, "GRASS_PATCHES", "GRASS_ENABLED", "0")) > 0) ? qtrue : qfalse;
+
+	GRASS_PATCHES_ALLOWED_MATERIALS_NUM = 0;
+
+	if (GRASS_PATCHES_ENABLED)
+	{
+		GRASS_PATCHES_RARE_PATCHES_ONLY = (atoi(IniRead(mapname, "GRASS_PATCHES", "GRASS_RARE_PATCHES_ONLY", "0")) > 0) ? qtrue : qfalse;
+		GRASS_PATCHES_DENSITY = atoi(IniRead(mapname, "GRASS_PATCHES", "GRASS_DENSITY", "2"));
+		GRASS_PATCHES_CLUMP_LAYERS = atoi(IniRead(mapname, "GRASS_PATCHES", "GRASS_CLUMP_LAYERS", "2"));
+		GRASS_PATCHES_HEIGHT = atof(IniRead(mapname, "GRASS_PATCHES", "GRASS_HEIGHT", "42.0"));
+		GRASS_PATCHES_DISTANCE = atoi(IniRead(mapname, "GRASS_PATCHES", "GRASS_DISTANCE", "4096"));
+		GRASS_PATCHES_MAX_SLOPE = atof(IniRead(mapname, "GRASS_PATCHES", "GRASS_MAX_SLOPE", "10.0"));
+		GRASS_PATCHES_SURFACE_MINIMUM_SIZE = atof(IniRead(mapname, "GRASS_PATCHES", "GRASS_SURFACE_MINIMUM_SIZE", "128.0"));
+		GRASS_PATCHES_SURFACE_SIZE_DIVIDER = atof(IniRead(mapname, "GRASS_PATCHES", "GRASS_SURFACE_SIZE_DIVIDER", "1024.0"));
+		GRASS_PATCHES_LOD_START_RANGE = atof(IniRead(mapname, "GRASS_PATCHES", "GRASS_LOD_START_RANGE", va("%f", GRASS_DISTANCE)));
+		GRASS_PATCHES_TYPE_UNIFORMALITY = atof(IniRead(mapname, "GRASS_PATCHES", "GRASS_TYPE_UNIFORMALITY", "0.97"));
+		GRASS_PATCHES_TYPE_UNIFORMALITY_SCALER = atof(IniRead(mapname, "GRASS_PATCHES", "GRASS_TYPE_UNIFORMALITY_SCALER", "0.008"));
+		GRASS_PATCHES_DISTANCE_FROM_ROADS = Q_clamp(0.0, atof(IniRead(mapname, "GRASS_PATCHES", "GRASS_DISTANCE_FROM_ROADS", "0.25")), 0.9);
+		GRASS_PATCHES_SIZE_MULTIPLIER_COMMON = atof(IniRead(mapname, "GRASS_PATCHES", "GRASS_SIZE_MULTIPLIER_COMMON", "1.0"));
+		GRASS_PATCHES_SIZE_MULTIPLIER_RARE = atof(IniRead(mapname, "GRASS_PATCHES", "GRASS_SIZE_MULTIPLIER_RARE", "2.75"));
+
+		GRASS_PATCHES_CONTROL_TEXTURE = R_FindImageFile(IniRead(mapname, "GRASS_PATCHES", "GRASS_CONTROL_TEXTURE", ""), IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE);
+
+		// Parse any specified extra surface material types to add grasses to...
+		for (int m = 0; m < 8; m++)
+		{
+			char grassMaterial[64] = { 0 };
+			strcpy(grassMaterial, IniRead(mapname, "GRASS_PATCHES", va("GRASS_ALLOW_MATERIAL%i", m), ""));
+
+			if (!grassMaterial || !grassMaterial[0] || grassMaterial[0] == '\0' || strlen(grassMaterial) <= 1) continue;
+
+			for (int i = 0; i < MATERIAL_LAST; i++)
+			{
+				if (!Q_stricmp(grassMaterial, materialNames[i]))
+				{// Got one, add it to the allowed list...
+					GRASS_PATCHES_ALLOWED_MATERIALS[GRASS_PATCHES_ALLOWED_MATERIALS_NUM] = i;
+					GRASS_PATCHES_ALLOWED_MATERIALS_NUM++;
+					break;
+				}
+			}
+		}
+	}
 
 	//
 	// Grass...
@@ -2840,6 +2998,23 @@ void MAPPING_LoadMapInfo(void)
 	//
 	// Override climate file climate options with mapInfo ones, if found...
 	//
+	if ((GRASS_PATCHES_ENABLED && r_foliage->integer))
+	{
+		char grassImages[16][512] = { 0 };
+
+		for (int i = 0; i < 16; i++)
+		{
+			strcpy(grassImages[i], IniRead(mapname, "GRASS_PATCHES", va("grassImage%i", i), "models/warzone/plants/grassblades02"));
+
+			if (!R_TextureFileExists(grassImages[i]))
+			{
+				strcpy(grassImages[i], "models/warzone/plants/grassblades02");
+			}
+		}
+
+		tr.grassPatchesAliasImage = R_BakeTextures(grassImages, 16, "grassPatches", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+	}
+
 	if ((GRASS_ENABLED && r_foliage->integer))
 	{
 		if (!GRASS_UNDERWATER_ONLY)
@@ -3431,22 +3606,6 @@ void R_LoadMapInfo(void)
 #else
 	tr.defaultSplatControlImage = R_FindImageFile("gfx/defaultSplatControl.jpg", IMGTYPE_SPLATCONTROLMAP, IMGFLAG_NOLIGHTSCALE);// tr.random2KImage[1];
 #endif
-
-	if (r_colorCorrection->integer)
-	{
-		// Color Palette... Try to load map based image first...
-		tr.paletteImage = R_FindImageFile(va("maps/%s_palette.png", currentMapName), IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_CLAMPTOEDGE);
-
-		if (!tr.paletteImage)
-		{// No map based image? Use default...
-			tr.paletteImage = R_FindImageFile("gfx/palette.png", IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_CLAMPTOEDGE);
-		}
-
-		if (!tr.paletteImage)
-		{// No default image? Use white...
-			tr.paletteImage = tr.whiteImage;
-		}
-	}
 
 	if ((r_foliage->integer && GRASS_ENABLED))
 	{

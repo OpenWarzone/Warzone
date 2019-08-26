@@ -124,7 +124,7 @@ in precise vec3				Blending_FS_in;
 flat in float				Slope_FS_in;
 
 
-#define m_Normal 			normalize(Normal_FS_in.xyz)
+vec3 m_Normal 				= normalize(gl_FrontFacing ? -Normal_FS_in.xyz : Normal_FS_in.xyz);
 
 #define m_TexCoords			TexCoord_FS_in
 #define m_envTC				envTC_FS_in
@@ -159,7 +159,7 @@ varying vec3				var_Blending;
 varying float				var_Slope;
 
 
-#define m_Normal			var_Normal
+vec3 m_Normal				= normalize(gl_FrontFacing ? -var_Normal : var_Normal);
 #define m_TexCoords			var_TexCoords
 #define m_envTC				var_envTC
 #define m_vertPos			var_vertPos

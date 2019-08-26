@@ -1691,7 +1691,7 @@ void RB_SetMaterialBasedProperties(shaderProgram_t *sp, shaderStage_t *pStage, i
 		vec4_t local4;
 		float dayNightGlowFactor = mix(MAP_GLOW_MULTIPLIER, MAP_GLOW_MULTIPLIER_NIGHT, RB_NightScale());
 		float glowPower = (backEnd.currentEntity == &tr.worldEntity) ? r_glowStrength->value * tess.shader->glowStrength * dayNightGlowFactor * pStage->glowStrength : r_glowStrength->value * tess.shader->glowStrength * pStage->glowStrength;
-		VectorSet4(local4, (float)stageNum, glowPower, r_showsplat->value, max(tess.shader->glowVibrancy, pStage->glowVibrancy) * r_glowVibrancy->value);
+		VectorSet4(local4, /*(float)stageNum*/SPLATMAP_CONTROL_SCALE, glowPower, r_showsplat->value, max(tess.shader->glowVibrancy, pStage->glowVibrancy) * r_glowVibrancy->value);
 		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL4, local4);
 
 		vec4_t local5;
@@ -2003,6 +2003,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	int useTesselation = 0;
 	qboolean isWorld = qfalse;
 	qboolean isWater = qfalse;
+	qboolean isGrassPatches = qfalse;
 	qboolean isGrass = qfalse;
 	qboolean isGrass2 = qfalse;
 	qboolean isGrass3 = qfalse;
@@ -2052,9 +2053,23 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	{
 		IS_DEPTH_PASS = 1;
 
+#if 0
+		if (r_foliage->integer
+			&& r_foliageShadows->integer
+			&& GRASS_PATCHES_ENABLED
+			&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
+			&& (RB_ShouldUseGeometryGrassPatches(tess.shader->materialType)))
+		{
+			if (r_foliageShadows->integer > 1 || GRASS_PATCHES_HEIGHT * GRASS_PATCHES_SIZE_MULTIPLIER_COMMON >= 20)
+			{// Only when foliageShadows >= 2 will we do them on grass... (unless the grass is fairly large)
+				isGrassPatches = qtrue;
+			}
+		}
+
 		if (r_foliage->integer
 			&& r_foliageShadows->integer
 			&& GRASS_ENABLED
+			&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
 			&& (tess.shader->isGrass || RB_ShouldUseGeometryGrass(tess.shader->materialType)))
 		{
 			if (r_foliageShadows->integer > 1 || GRASS_HEIGHT * GRASS_SIZE_MULTIPLIER_COMMON >= 20)
@@ -2068,6 +2083,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		if (r_foliage->integer
 			&& r_foliageShadows->integer
 			&& GRASS2_ENABLED
+			&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
 			&& RB_ShouldUseGeometryGrass2(tess.shader->materialType))
 		{
 			if (r_foliageShadows->integer > 1 || GRASS2_HEIGHT * GRASS2_SIZE_MULTIPLIER_COMMON >= 20)
@@ -2079,6 +2095,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		if (r_foliage->integer
 			&& r_foliageShadows->integer
 			&& GRASS3_ENABLED
+			&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
 			&& RB_ShouldUseGeometryGrass3(tess.shader->materialType))
 		{
 			if (r_foliageShadows->integer > 1 || GRASS3_HEIGHT * GRASS3_SIZE_MULTIPLIER_COMMON >= 20)
@@ -2090,6 +2107,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		if (r_foliage->integer
 			&& r_foliageShadows->integer
 			&& GRASS4_ENABLED
+			&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
 			&& RB_ShouldUseGeometryGrass4(tess.shader->materialType))
 		{
 			if (r_foliageShadows->integer > 1 || GRASS4_HEIGHT * GRASS4_SIZE_MULTIPLIER_COMMON >= 20)
@@ -2101,6 +2119,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		if (r_foliage->integer
 			&& r_foliageShadows->integer
 			&& FOLIAGE_ENABLED
+			&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
 			&& (tess.shader->isGroundFoliage || RB_ShouldUseGeometryFoliage(tess.shader->materialType)))
 		{
 			if (r_foliageShadows->integer > 1)
@@ -2110,10 +2129,12 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 
 			tess.shader->isGroundFoliage = qtrue; // Cache to speed up future checks...
 		}
+#endif
 
 		if (r_foliage->integer
 			&& r_foliageShadows->integer
 			&& VINES_ENABLED
+			//&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
 			&& RB_ShouldUseGeometryVines(tess.shader->materialType))
 		{
 			isVines = qtrue;
@@ -2126,10 +2147,22 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		|| (tr.viewParms.flags & VPF_SKYCUBEDAY)
 		|| (tr.viewParms.flags & VPF_SKYCUBENIGHT))
 	{
+#if 0
+		if (r_foliage->integer
+			&& r_foliageShadows->integer
+			&& GRASS_PATCHES_ENABLED
+			&& ((tr.viewParms.flags & VPF_DEPTHSHADOW) || (tr.viewParms.flags & VPF_SHADOWPASS))
+			&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
+			&& (RB_ShouldUseGeometryGrassPatches(tess.shader->materialType)))
+		{
+			isGrassPatches = qtrue;
+		}
+
 		if (r_foliage->integer
 			&& r_foliageShadows->integer
 			&& GRASS_ENABLED
 			&& ((tr.viewParms.flags & VPF_DEPTHSHADOW) || (tr.viewParms.flags & VPF_SHADOWPASS))
+			&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
 			&& (tess.shader->isGrass || RB_ShouldUseGeometryGrass(tess.shader->materialType)))
 		{
 			isGrass = qtrue;
@@ -2140,6 +2173,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			&& r_foliageShadows->integer
 			&& GRASS2_ENABLED
 			&& ((tr.viewParms.flags & VPF_DEPTHSHADOW) || (tr.viewParms.flags & VPF_SHADOWPASS))
+			&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
 			&& RB_ShouldUseGeometryGrass2(tess.shader->materialType))
 		{
 			isGrass2 = qtrue;
@@ -2149,6 +2183,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			&& r_foliageShadows->integer
 			&& GRASS3_ENABLED
 			&& ((tr.viewParms.flags & VPF_DEPTHSHADOW) || (tr.viewParms.flags & VPF_SHADOWPASS))
+			&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
 			&& RB_ShouldUseGeometryGrass3(tess.shader->materialType))
 		{
 			isGrass3 = qtrue;
@@ -2158,6 +2193,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			&& r_foliageShadows->integer
 			&& GRASS4_ENABLED
 			&& ((tr.viewParms.flags & VPF_DEPTHSHADOW) || (tr.viewParms.flags & VPF_SHADOWPASS))
+			&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
 			&& RB_ShouldUseGeometryGrass4(tess.shader->materialType))
 		{
 			isGrass4 = qtrue;
@@ -2167,16 +2203,19 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			&& r_foliageShadows->integer
 			&& FOLIAGE_ENABLED
 			&& ((tr.viewParms.flags & VPF_DEPTHSHADOW) || (tr.viewParms.flags & VPF_SHADOWPASS))
+			&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
 			&& (tess.shader->isGroundFoliage || RB_ShouldUseGeometryFoliage(tess.shader->materialType)))
 		{
 			isGroundFoliage = qtrue;
 			tess.shader->isGroundFoliage = qtrue; // Cache to speed up future checks...
 		}
+#endif
 
 		if (r_foliage->integer
 			&& r_foliageShadows->integer
 			&& VINES_ENABLED
 			&& ((tr.viewParms.flags & VPF_DEPTHSHADOW) || (tr.viewParms.flags & VPF_SHADOWPASS))
+			//&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
 			&& RB_ShouldUseGeometryVines(tess.shader->materialType))
 		{
 			isVines = qtrue;
@@ -2185,6 +2224,13 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	else
 #endif
 	{
+		if (r_foliage->integer
+			&& GRASS_PATCHES_ENABLED
+			&& (RB_ShouldUseGeometryGrassPatches(tess.shader->materialType)))
+		{
+			isGrassPatches = qtrue;
+		}
+
 		if (r_foliage->integer
 			&& GRASS_ENABLED
 			&& (tess.shader->isGrass || RB_ShouldUseGeometryGrass(tess.shader->materialType)))
@@ -2240,6 +2286,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	if (backEnd.currentEntity == &backEnd.entity2D)
 	{
 
+	}
+	else if (!isGrassPatches && backEnd.renderPass == RENDERPASS_GRASS_PATCHES)
+	{
+		return;
 	}
 	else if (!isGrass && backEnd.renderPass == RENDERPASS_GRASS)
 	{
@@ -2736,6 +2786,16 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			multiPass = qfalse;
 
 			GLSL_BindProgram(sp);
+		}
+		else if (isGrassPatches && backEnd.renderPass == RENDERPASS_GRASS_PATCHES)
+		{// Special extra pass stuff for grass...
+			if (stage > 0) return;
+
+			sp = &tr.grassPatchesShader;
+
+			GLSL_BindProgram(sp);
+
+			multiPass = qfalse;
 		}
 		else if (isGrass && backEnd.renderPass == RENDERPASS_GRASS)
 		{// Special extra pass stuff for grass...
@@ -3419,7 +3479,106 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		// Texture bindings...
 		//
 
-		if (isGrass && backEnd.renderPass == RENDERPASS_GRASS)
+		if (isGrassPatches && backEnd.renderPass == RENDERPASS_GRASS_PATCHES)
+		{// Special extra pass stuff for grass...
+			stateBits = GLS_DEPTHMASK_TRUE | GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_ATEST_GT_0;
+
+			RB_SetMaterialBasedProperties(sp, pStage, stage, qfalse);
+
+			GLSL_SetUniformFloat(sp, UNIFORM_TIME, tess.shaderTime);
+
+			GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+			//GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
+
+			GLSL_SetUniformVec3(sp, UNIFORM_VIEWORIGIN, backEnd.viewParms.ori.origin);
+
+			GLSL_SetUniformVec3(sp, UNIFORM_PLAYERORIGIN, backEnd.localPlayerOrigin);
+
+#ifdef __HUMANOIDS_BEND_GRASS__ // Bend grass for all close player/NPCs...
+			GLSL_SetUniformInt(sp, UNIFORM_HUMANOIDORIGINSNUM, backEnd.humanoidOriginsNum);
+			GLSL_SetUniformVec3xX(sp, UNIFORM_HUMANOIDORIGINS, backEnd.humanoidOrigins, backEnd.humanoidOriginsNum);
+#endif //__HUMANOIDS_BEND_GRASS__
+
+			GL_BindToTMU(tr.grassPatchesAliasImage, TB_DIFFUSEMAP);
+
+			{
+				vec2_t dimensions;
+				dimensions[0] = tr.grassPatchesAliasImage->width;
+				dimensions[1] = tr.grassPatchesAliasImage->height;
+				GLSL_SetUniformVec2(sp, UNIFORM_DIMENSIONS, dimensions);
+			}
+
+			float TERRAIN_TESS_OFFSET = 0.0;
+
+			// Check if this is grass on a tessellated terrain, if so, we want to lower the verts in the vert shader by the maximum possible tessellation height...
+			if (TERRAIN_TESSELLATION_ENABLED
+				&& r_tessellation->integer
+				&& r_terrainTessellation->integer
+				&& r_terrainTessellationMax->value >= 2.0)
+			{// When tessellating terrain, we need to drop the grasses down lower to allow for the offset...
+				TERRAIN_TESS_OFFSET = TERRAIN_TESSELLATION_OFFSET;
+				//GL_BindToTMU(tr.tessellationMapImage, TB_HEIGHTMAP);
+
+				if (useTesselation == 3)
+				{
+					TERRAIN_TESS_OFFSET = TERRAIN_TESSELLATION_3D_OFFSET[2];
+				}
+			}
+
+			vec4_t l10;
+			VectorSet4(l10, GRASS_PATCHES_DISTANCE, TERRAIN_TESS_OFFSET, GRASS_PATCHES_DENSITY, GRASS_PATCHES_TYPE_UNIFORMALITY);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL10, l10);
+
+			vec4_t l11;
+			VectorSet4(l11, GRASS_PATCHES_WIDTH_REPEATS, GRASS_PATCHES_MAX_SLOPE, GRASS_PATCHES_TYPE_UNIFORMALITY_SCALER, GRASS_PATCHES_RARE_PATCHES_ONLY ? 1.0 : 0.0);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL11, l11);
+
+			if (tr.roadsMapImage != tr.blackImage)
+			{
+				GL_BindToTMU(tr.roadsMapImage, TB_ROADSCONTROLMAP);
+			}
+			else
+			{
+				GL_BindToTMU(tr.blackImage, TB_ROADSCONTROLMAP);
+			}
+
+			{
+				vec4_t loc;
+				VectorSet4(loc, MAP_INFO_MINS[0], MAP_INFO_MINS[1], MAP_INFO_MINS[2], 0.0);
+				GLSL_SetUniformVec4(sp, UNIFORM_MINS, loc);
+
+				VectorSet4(loc, MAP_INFO_MAXS[0], MAP_INFO_MAXS[1], MAP_INFO_MAXS[2], 0.0);
+				GLSL_SetUniformVec4(sp, UNIFORM_MAXS, loc);
+
+				VectorSet4(loc, MAP_INFO_SIZE[0], MAP_INFO_SIZE[1], MAP_INFO_SIZE[2], 0.0);
+				GLSL_SetUniformVec4(sp, UNIFORM_MAPINFO, loc);
+			}
+
+			{
+				vec4_t vec;
+				VectorSet4(vec,
+					IS_DEPTH_PASS ? 1.0 : 0.0,
+					0.0,
+					0.0,
+					LEAF_ALPHA_MULTIPLIER);
+				GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS1, vec);
+			}
+
+			{
+				vec4_t vec;
+				VectorSet4(vec,
+					MAP_COLOR_SWITCH_RG ? 1.0 : 0.0,
+					MAP_COLOR_SWITCH_RB ? 1.0 : 0.0,
+					MAP_COLOR_SWITCH_GB ? 1.0 : 0.0,
+					0.0);
+				GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS5, vec);
+			}
+
+			//GL_BindToTMU( tr.defaultGrassMapImage, TB_SPLATCONTROLMAP );
+
+			GL_Cull(CT_TWO_SIDED);
+		}
+		else if (isGrass && backEnd.renderPass == RENDERPASS_GRASS)
 		{// Special extra pass stuff for grass...
 			stateBits = GLS_DEPTHMASK_TRUE | GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_ATEST_GT_0;
 
@@ -4856,7 +5015,34 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			}
 		}
 
-		if (isGrass && backEnd.renderPass == RENDERPASS_GRASS)
+		if (isGrassPatches && backEnd.renderPass == RENDERPASS_GRASS_PATCHES)
+		{
+			{
+				vec4_t l8;
+				VectorSet4(l8, GRASS_PATCHES_SURFACE_MINIMUM_SIZE, GRASS_PATCHES_DISTANCE_FROM_ROADS, GRASS_PATCHES_HEIGHT, GRASS_PATCHES_SURFACE_SIZE_DIVIDER);
+				GLSL_SetUniformVec4(sp, UNIFORM_LOCAL8, l8);
+			}
+
+			{
+				vec4_t l12;
+				VectorSet4(l12, GRASS_PATCHES_SIZE_MULTIPLIER_COMMON, GRASS_PATCHES_SIZE_MULTIPLIER_RARE, GRASS_PATCHES_CLUMP_LAYERS, GRASS_PATCHES_LOD_START_RANGE);
+				GLSL_SetUniformVec4(sp, UNIFORM_LOCAL12, l12);
+			}
+
+			GL_BindToTMU(tr.whiteImage, TB_STEEPMAP);
+			GL_BindToTMU((GRASS2_ENABLED && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? GRASS2_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP1);
+			GL_BindToTMU((GRASS3_ENABLED && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? GRASS3_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP2);
+			GL_BindToTMU((GRASS4_ENABLED && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? GRASS4_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP3);
+
+			vec4_t l13;
+			VectorSet4(l13,
+				0.0,
+				(GRASS2_ENABLED && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
+				(GRASS3_ENABLED && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
+				(GRASS4_ENABLED && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL13, l13);
+		}
+		else if (isGrass && backEnd.renderPass == RENDERPASS_GRASS)
 		{
 			{
 				vec4_t l8;
@@ -4998,10 +5184,34 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 
 			GL_Cull(CT_TWO_SIDED);
 		}
-		else if ((isGrass || isGrass2 || isGrass3 || isGrass4) && useTesselation >= 2 /*&& sp == &tr.lightAllSplatShader[2]*/)
+		else if (isGrassPatches && useTesselation >= 2)
+		{
+			vec4_t l8;
+			VectorSet4(l8, GRASS_PATCHES_DISTANCE_FROM_ROADS, 0.0, 0.0, 0.0);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL8, l8);
+		}
+		else if (isGrass && useTesselation >= 2)
 		{
 			vec4_t l8;
 			VectorSet4(l8, GRASS_DISTANCE_FROM_ROADS, 0.0, 0.0, 0.0);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL8, l8);
+		}
+		else if (isGrass2 && useTesselation >= 2)
+		{
+			vec4_t l8;
+			VectorSet4(l8, GRASS2_DISTANCE_FROM_ROADS, 0.0, 0.0, 0.0);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL8, l8);
+		}
+		else if (isGrass3 && useTesselation >= 2)
+		{
+			vec4_t l8;
+			VectorSet4(l8, GRASS3_DISTANCE_FROM_ROADS, 0.0, 0.0, 0.0);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL8, l8);
+		}
+		else if (isGrass4 && useTesselation >= 2)
+		{
+			vec4_t l8;
+			VectorSet4(l8, GRASS4_DISTANCE_FROM_ROADS, 0.0, 0.0, 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL8, l8);
 		}
 

@@ -105,6 +105,10 @@ file(GLOB MPWarzoneGLSLFiles2 "${MPDir}/rd-warzone/glsl2/*.glsl")
 source_group("renderer\\glsl2" FILES ${MPWarzoneGLSLFiles2})
 set(MPWarzoneFiles ${MPWarzoneFiles} ${MPWarzoneGLSLFiles2})
 
+file(GLOB MPWarzoneGLSLFiles3 "${MPDir}/rd-warzone/glsl3/*.glsl")
+source_group("renderer\\glsl3" FILES ${MPWarzoneGLSLFiles3})
+set(MPWarzoneFiles ${MPWarzoneFiles} ${MPWarzoneGLSLFiles3})
+
 set(MPWarzoneGhoul2Files
 	"${MPDir}/ghoul2/g2_local.h"
 	"${MPDir}/ghoul2/ghoul2_shared.h"
@@ -475,6 +479,9 @@ set(MPWarzoneFiles ${MPWarzoneFiles} ${CMAKE_CURRENT_BINARY_DIR}/glsl_shaders.cp
 source_group("renderer" FILES ${CMAKE_CURRENT_BINARY_DIR}/glsl_shaders2.cpp)
 set(MPWarzoneFiles ${MPWarzoneFiles} ${CMAKE_CURRENT_BINARY_DIR}/glsl_shaders2.cpp)
 
+source_group("renderer" FILES ${CMAKE_CURRENT_BINARY_DIR}/glsl_shaders3.cpp)
+set(MPWarzoneFiles ${MPWarzoneFiles} ${CMAKE_CURRENT_BINARY_DIR}/glsl_shaders3.cpp)
+
 set(MPWarzoneIncludeDirectories ${MPWarzoneIncludeDirectories} ${WarzoneLibDir})
 add_library(${MPWarzone} SHARED ${MPWarzoneFiles})
 
@@ -504,7 +511,8 @@ target_link_libraries(${MPWarzone} ${MPWarzoneLibraries} "../../../lib/glsl_opti
 # GLSL shader file generator
 add_executable(compact_glsl ${MPDir}/rd-warzone/glsl/compact.cpp)
 add_custom_command(
-	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/glsl_shaders.cpp ${CMAKE_CURRENT_BINARY_DIR}/glsl_shaders2.cpp
+	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/glsl_shaders.cpp ${CMAKE_CURRENT_BINARY_DIR}/glsl_shaders2.cpp ${CMAKE_CURRENT_BINARY_DIR}/glsl_shaders3.cpp
 	COMMAND compact_glsl ${CMAKE_CURRENT_BINARY_DIR}/glsl_shaders.cpp ${MPWarzoneGLSLFiles}
 	COMMAND compact_glsl ${CMAKE_CURRENT_BINARY_DIR}/glsl_shaders2.cpp ${MPWarzoneGLSLFiles2}
-	DEPENDS compact_glsl ${MPWarzoneGLSLFiles} ${MPWarzoneGLSLFiles2})
+	COMMAND compact_glsl ${CMAKE_CURRENT_BINARY_DIR}/glsl_shaders3.cpp ${MPWarzoneGLSLFiles3}
+	DEPENDS compact_glsl ${MPWarzoneGLSLFiles} ${MPWarzoneGLSLFiles2} ${MPWarzoneGLSLFiles3})

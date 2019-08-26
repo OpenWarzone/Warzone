@@ -142,9 +142,11 @@ extern const char *fallbackShader_foliage_vp;
 extern const char *fallbackShader_foliage_cs;
 extern const char *fallbackShader_foliage_es;
 extern const char *fallbackShader_foliage_gs;
-extern const char *fallbackShader_fur_fp;
-extern const char *fallbackShader_fur_vp;
-extern const char *fallbackShader_fur_gs;
+extern const char *fallbackShader_grassPatches_fp;
+extern const char *fallbackShader_grassPatches_vp;
+extern const char *fallbackShader_grassPatches_cs;
+extern const char *fallbackShader_grassPatches_es;
+extern const char *fallbackShader_grassPatches_gs;
 extern const char *fallbackShader_grass2_fp;
 extern const char *fallbackShader_grass2_vp;
 extern const char *fallbackShader_grass2_cs;
@@ -2814,16 +2816,6 @@ int GLSL_BeginLoadGPUShaders(void)
 	}
 
 
-	attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_COLOR | ATTR_NORMAL | ATTR_TEXCOORD1 | ATTR_POSITION2 | ATTR_NORMAL2 | ATTR_BONE_INDEXES | ATTR_BONE_WEIGHTS;
-
-	extradefines[0] = '\0';
-
-	if (!GLSL_BeginLoadGPUShader(&tr.furShader, "fur", attribs, qtrue, qfalse, qtrue, extradefines, qtrue, "330 core", fallbackShader_fur_vp, fallbackShader_fur_fp, NULL, NULL, fallbackShader_fur_gs))
-	{
-		ri->Error(ERR_FATAL, "Could not load fur shader!");
-	}
-
-
 	{
 		attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL;
 
@@ -2838,6 +2830,22 @@ int GLSL_BeginLoadGPUShaders(void)
 
 	if (r_foliage->integer)
 	{
+		attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL;
+
+		extradefines[0] = '\0';
+
+#ifdef __HUMANOIDS_BEND_GRASS__
+		Q_strcat(extradefines, 1024, "#define __HUMANOIDS_BEND_GRASS__\n");
+		Q_strcat(extradefines, 1024, va("#define MAX_GRASSBEND_HUMANOIDS %i\n", MAX_GRASSBEND_HUMANOIDS));
+#endif //__HUMANOIDS_BEND_GRASS__
+
+		if (!GLSL_BeginLoadGPUShader(&tr.grassPatchesShader, "grassPatches", attribs, qtrue, qtrue, qtrue, extradefines, qtrue, "400 core", fallbackShader_grassPatches_vp, fallbackShader_grassPatches_fp, fallbackShader_grassPatches_cs, fallbackShader_grassPatches_es, fallbackShader_grassPatches_gs))
+		{
+			ri->Error(ERR_FATAL, "Could not load grassPatches shader!");
+		}
+
+
+
 		attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL;
 
 		extradefines[0] = '\0';
@@ -3481,6 +3489,10 @@ int GLSL_BeginLoadGPUShaders(void)
 
 		Q_strcat(extradefines, 1024, "#define __FAST_LIGHTING__\n");
 
+#ifdef __REALTIME_CUBEMAP__
+		Q_strcat(extradefines, 1024, "#define REALTIME_CUBEMAPS\n");
+#endif //__REALTIME_CUBEMAP__
+
 		if (!GLSL_BeginLoadGPUShader(&tr.deferredLightingShader[0], "deferredLighting0", attribs, qtrue, qfalse, qfalse, extradefines, qtrue, NULL, fallbackShader_deferredLighting_vp, fallbackShader_deferredLighting_fp, NULL, NULL, NULL))
 		{
 			ri->Error(ERR_FATAL, "Could not load deferredLighting0 shader!");
@@ -3509,6 +3521,10 @@ int GLSL_BeginLoadGPUShaders(void)
 
 		Q_strcat(extradefines, 1024, "#define __NAYAR_LIGHTING__\n");
 
+#ifdef __REALTIME_CUBEMAP__
+		Q_strcat(extradefines, 1024, "#define REALTIME_CUBEMAPS\n");
+#endif //__REALTIME_CUBEMAP__
+
 		if (!GLSL_BeginLoadGPUShader(&tr.deferredLightingShader[1], "deferredLighting1", attribs, qtrue, qfalse, qfalse, extradefines, qtrue, NULL, fallbackShader_deferredLighting_vp, fallbackShader_deferredLighting_fp, NULL, NULL, NULL))
 		{
 			ri->Error(ERR_FATAL, "Could not load deferredLighting1 shader!");
@@ -3534,6 +3550,10 @@ int GLSL_BeginLoadGPUShaders(void)
 #ifdef __LIGHT_OCCLUSION__
 		Q_strcat(extradefines, 1024, "#define __LIGHT_OCCLUSION__\n");
 #endif //__LIGHT_OCCLUSION__
+
+#ifdef __REALTIME_CUBEMAP__
+		Q_strcat(extradefines, 1024, "#define REALTIME_CUBEMAPS\n");
+#endif //__REALTIME_CUBEMAP__
 
 		if (!GLSL_BeginLoadGPUShader(&tr.deferredLightingShader[2], "deferredLighting2", attribs, qtrue, qfalse, qfalse, extradefines, qtrue, NULL, fallbackShader_deferredLighting_vp, fallbackShader_deferredLighting_fp, NULL, NULL, NULL))
 		{
@@ -4188,23 +4208,6 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 
 
-	if (!GLSL_EndLoadGPUShader(&tr.furShader))
-	{
-		ri->Error(ERR_FATAL, "Could not load fur shader!");
-	}
-
-	GLSL_InitUniforms(&tr.furShader);
-
-	GLSL_BindProgram(&tr.furShader);
-	GLSL_SetUniformInt(&tr.furShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
-	GLSL_SetUniformInt(&tr.furShader, UNIFORM_SPLATCONTROLMAP, TB_SPLATCONTROLMAP);
-
-#if defined(_DEBUG)
-	GLSL_FinishGPUShader(&tr.furShader);
-#endif
-
-	numEtcShaders++;
-
 
 
 	if (!GLSL_EndLoadGPUShader(&tr.foliageShader))
@@ -4234,6 +4237,35 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 	if (r_foliage->integer)
 	{
+		if (!GLSL_EndLoadGPUShader(&tr.grassPatchesShader))
+		{
+			ri->Error(ERR_FATAL, "Could not load grassPatches shader!");
+		}
+
+		GLSL_InitUniforms(&tr.grassPatchesShader);
+
+		GLSL_BindProgram(&tr.grassPatchesShader);
+
+		// Grass/plant textures...
+		GLSL_SetUniformInt(&tr.grassPatchesShader, UNIFORM_WATER_EDGE_MAP, TB_WATER_EDGE_MAP); // 16 - Sea grass 0...
+
+																						   // Control textures...
+		GLSL_SetUniformInt(&tr.grassPatchesShader, UNIFORM_SPLATCONTROLMAP, TB_SPLATCONTROLMAP);
+		GLSL_SetUniformInt(&tr.grassPatchesShader, UNIFORM_ROADSCONTROLMAP, TB_ROADSCONTROLMAP);
+		GLSL_SetUniformInt(&tr.grassPatchesShader, UNIFORM_HEIGHTMAP, TB_HEIGHTMAP);
+		GLSL_SetUniformInt(&tr.grassPatchesShader, UNIFORM_STEEPMAP, TB_STEEPMAP);
+		GLSL_SetUniformInt(&tr.grassPatchesShader, UNIFORM_STEEPMAP1, TB_STEEPMAP1);
+		GLSL_SetUniformInt(&tr.grassPatchesShader, UNIFORM_STEEPMAP2, TB_STEEPMAP2);
+		GLSL_SetUniformInt(&tr.grassPatchesShader, UNIFORM_STEEPMAP3, TB_STEEPMAP3);
+
+#if defined(_DEBUG)
+		GLSL_FinishGPUShader(&tr.grassPatchesShader[0]);
+#endif
+
+		numEtcShaders++;
+
+
+
 		if (!GLSL_EndLoadGPUShader(&tr.grassShader[0]))
 		{
 			ri->Error(ERR_FATAL, "Could not load grass shader!");
@@ -4455,6 +4487,8 @@ void GLSL_EndLoadGPUShaders(int startTime)
 	GLSL_SetUniformInt(&tr.shadowmaskShader, UNIFORM_SHADOWMAP, TB_SPLATMAP1);
 	GLSL_SetUniformInt(&tr.shadowmaskShader, UNIFORM_SHADOWMAP2, TB_SPLATMAP2);
 	GLSL_SetUniformInt(&tr.shadowmaskShader, UNIFORM_SHADOWMAP3, TB_SPLATMAP3);
+	GLSL_SetUniformInt(&tr.shadowmaskShader, UNIFORM_STEEPMAP, TB_STEEPMAP);
+	GLSL_SetUniformInt(&tr.shadowmaskShader, UNIFORM_STEEPMAP2, TB_STEEPMAP2);
 	GLSL_SetUniformInt(&tr.shadowmaskShader, UNIFORM_GLOWMAP, TB_GLOWMAP);
 	GLSL_SetUniformInt(&tr.shadowmaskShader, UNIFORM_SPECULARMAP, TB_SPECULARMAP);
 
@@ -6348,8 +6382,8 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.waterReflectionShader);
 	GLSL_DeleteGPUShader(&tr.transparancyPostShader);
 	GLSL_DeleteGPUShader(&tr.cloudsShader);
-	GLSL_DeleteGPUShader(&tr.furShader);
 	GLSL_DeleteGPUShader(&tr.foliageShader);
+	GLSL_DeleteGPUShader(&tr.grassPatchesShader);
 	if (r_foliage->integer)	GLSL_DeleteGPUShader(&tr.grassShader[0]);
 	if (r_foliage->integer)	GLSL_DeleteGPUShader(&tr.grassShader[1]);
 	GLSL_DeleteGPUShader(&tr.vinesShader);

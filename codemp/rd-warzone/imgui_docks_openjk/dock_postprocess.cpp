@@ -175,7 +175,6 @@ void DockPostProcess::MakeCvarList() {
 	AddCvar(r_dof, 3);
 	AddCvar(r_lensflare, 1);
 	AddCvar(r_testshader, 1);
-	AddCvar(r_colorCorrection, 1);
 	AddCvar(r_esharpening, 1);
 	//AddCvar(r_esharpening2, 1);
 	//AddCvar(r_darkexpand, 1);

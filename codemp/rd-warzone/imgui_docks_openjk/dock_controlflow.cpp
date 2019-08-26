@@ -40,7 +40,6 @@ void DockControlFlow::imgui() {
 		showCvar("RB_DOF"                                                      , r_dof             );
 		showCvar("RB_LensFlare"                                                , r_lensflare       );
 		showCvar("RB_TestShader"                                               , r_testshader      );
-		showCvar("RB_ColorCorrection"                                          , r_colorCorrection );
 		showCvar("RB_DeferredLighting (LATE_LIGHTING_ENABLED == 1)"            , r_deferredLighting);
 		showCvar("RB_FogPostShader (FOG_POST_ENABLED && LATE_LIGHTING_ENABLED)", r_fogPost         );
 		showCvar("RB_DeferredLighting (LATE_LIGHTING_ENABLED >= 2)"            , r_deferredLighting);

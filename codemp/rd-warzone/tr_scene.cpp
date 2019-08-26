@@ -1532,19 +1532,31 @@ void RE_RenderScene(const refdef_t *fd) {
 #endif //__REALTIME_CUBEMAP__
 
 #ifdef __REALTIME_CUBEMAP__
-	if (r_cubeMapping->integer && !r_lowVram->integer && Distance(backEnd.refdef.vieworg, backEnd.refdef.realtimeCubemapOrigin) > 0.0)
+	if (!(fd->rdflags & RDF_NOWORLDMODEL)
+		&& r_cubeMapping->integer 
+		&& !r_lowVram->integer 
+		&& !backEnd.depthFill
+		/*&& Distance(tr.refdef.vieworg, backEnd.refdef.realtimeCubemapOrigin) > 0.0*/ /* FIXME - Skip when unneeded */)
 	{
+		vec3_t finalPos;
+		VectorCopy(tr.refdef.vieworg, finalPos);
+
+		VectorCopy(finalPos, tr.refdef.realtimeCubemapOrigin);
+		VectorCopy(finalPos, backEnd.refdef.realtimeCubemapOrigin);
+
 		for (int j = 0; j < 6; j++)
 		{
 			extern void R_RenderCubemapSideRealtime(vec3_t origin, int cubemapSide, qboolean subscene);
-			vec3_t finalPos;
-			VectorCopy(backEnd.refdef.vieworg, finalPos);
-
-			VectorCopy(finalPos, tr.refdef.realtimeCubemapOrigin);
-			VectorCopy(finalPos, backEnd.refdef.realtimeCubemapOrigin);
-
 			R_RenderCubemapSideRealtime(finalPos, j, qtrue);
 		}
+
+		//tr.refdef.realtimeCubemapRendered = qtrue;
+		//backEnd.refdef.realtimeCubemapRendered = qtrue;
+	}
+	else
+	{
+		//tr.refdef.realtimeCubemapRendered = qfalse;
+		//backEnd.refdef.realtimeCubemapRendered = qfalse;
 	}
 #endif //__REALTIME_CUBEMAP__
 

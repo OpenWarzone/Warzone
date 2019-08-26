@@ -1783,7 +1783,6 @@ void GUI_PostProcessMakeCvarList() {
 	GUI_PostProcessAddCvar(r_dof, 3);
 	GUI_PostProcessAddCvar(r_lensflare, 1);
 	GUI_PostProcessAddCvar(r_testshader, 1);
-	GUI_PostProcessAddCvar(r_colorCorrection, 1);
 	GUI_PostProcessAddCvar(r_esharpening, 1);
 	//GUI_PostProcessAddCvar(r_esharpening2, 1);
 	GUI_PostProcessAddCvar(r_darkexpand, 1);

@@ -122,7 +122,7 @@ void RB_ToneMap(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox, in
 	// tonemap
 	color[0] =
 	color[1] =
-	color[2] = pow(2, r_cameraExposure->value); //exp2(r_cameraExposure->value);
+	color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE); //exp2(MAP_TONEMAP_CAMERAEXPOSURE);
 	color[3] = 1.0f;
 
 	GLSL_BindProgram(&tr.tonemapShader);
@@ -593,13 +593,14 @@ void RB_BloomUpscale(FBO_t *sourceFBO, FBO_t *destFBO)
 
 void RB_DarkExpand(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
 	color[3] = 1.0f;
+	*/
 
 	GLSL_BindProgram(&tr.darkexpandShader);
 
@@ -614,24 +615,25 @@ void RB_DarkExpand(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		GLSL_SetUniformVec2(&tr.darkexpandShader, UNIFORM_DIMENSIONS, screensize);
 	}
 
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.darkexpandShader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.darkexpandShader, colorWhite/*color*/, 0);
 }
 
 void RB_Bloom(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t	color;
+	/*vec4_t	color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
 	color[3] = 1.0f;
+	*/
 
 	//
 	// Copy to FBO...
 	//
 	
-	FBO_BlitFromTexture(tr.glowFboScaled[0]->colorImage[0], NULL, NULL, tr.bloomRenderFBO[0], NULL, NULL, color, 0);
+	FBO_BlitFromTexture(tr.glowFboScaled[0]->colorImage[0], NULL, NULL, tr.bloomRenderFBO[0], NULL, NULL, colorWhite/*color*/, 0);
 
 	//
 	// Blur the new FBO...
@@ -659,7 +661,7 @@ void RB_Bloom(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 			GLSL_SetUniformVec2(&tr.bloomBlurShader, UNIFORM_DIMENSIONS, screensize);
 		}
 
-		FBO_Blit(currentIN, NULL, NULL, currentOUT, NULL, &tr.bloomBlurShader, color, 0);
+		FBO_Blit(currentIN, NULL, NULL, currentOUT, NULL, &tr.bloomBlurShader, colorWhite/*color*/, 0);
 
 		if (i+1 < r_bloomPasses->integer)
 		{// Flip in/out FBOs...
@@ -689,18 +691,18 @@ void RB_Bloom(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		GLSL_SetUniformVec4(&tr.bloomCombineShader, UNIFORM_LOCAL0, local0);
 	}
 
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.bloomCombineShader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.bloomCombineShader, colorWhite/*color*/, 0);
 }
 
 void RB_CreateAnamorphicImage( void )
 {
-	vec4_t	color;
+	/*vec4_t	color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 
 	vec4i_t srcBox;
 	srcBox[0] = 0;
@@ -727,18 +729,18 @@ void RB_CreateAnamorphicImage( void )
 		GLSL_SetUniformVec4(&tr.anamorphicBlurShader, UNIFORM_LOCAL0, local0);
 	}
 
-	FBO_Blit(tr.glowFboScaled[0], srcBox, NULL, tr.anamorphicRenderFBO, NULL/*dstBox*/, &tr.anamorphicBlurShader, color, 0);
+	FBO_Blit(tr.glowFboScaled[0], srcBox, NULL, tr.anamorphicRenderFBO, NULL/*dstBox*/, &tr.anamorphicBlurShader, colorWhite/*color*/, 0);
 }
 
 void RB_Anamorphic(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t	color;
+	/*vec4_t	color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 
 	//
 	// Combine the screen with the bloom'ed VBO...
@@ -759,7 +761,7 @@ void RB_Anamorphic(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		GLSL_SetUniformVec4(&tr.anamorphicCombineShader, UNIFORM_LOCAL1, local1);
 	}
 
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.anamorphicCombineShader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.anamorphicCombineShader, colorWhite/*color*/, 0);
 }
 
 void RB_BloomRays(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
@@ -840,13 +842,13 @@ void RB_BloomRays(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 #if 0
 void RB_LensFlare(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 
 	GLSL_BindProgram(&tr.lensflareShader);
 
@@ -858,20 +860,20 @@ void RB_LensFlare(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 	screensize[1] = glConfig.vidHeight * r_superSampleMultiplier->value;
 	GLSL_SetUniformVec2(&tr.lensflareShader, UNIFORM_DIMENSIONS, screensize);
 
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.lensflareShader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.lensflareShader, colorWhite/*color*/, 0);
 }
 #endif
 
 
 void RB_MultiPost(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 
 	GLSL_BindProgram(&tr.multipostShader);
 
@@ -886,7 +888,7 @@ void RB_MultiPost(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		GLSL_SetUniformVec2(&tr.multipostShader, UNIFORM_DIMENSIONS, screensize);
 	}
 
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.multipostShader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.multipostShader, colorWhite/*color*/, 0);
 }
 
 void TR_AxisToAngles ( const vec3_t axis[3], vec3_t angles )
@@ -1549,13 +1551,13 @@ qboolean RB_VolumetricLight(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_
 
 void RB_MagicDetail(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 
 	GLSL_BindProgram(&tr.magicdetailShader);
 
@@ -1594,18 +1596,18 @@ void RB_MagicDetail(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox
 		GLSL_SetUniformVec4(&tr.magicdetailShader, UNIFORM_LOCAL0, local0);
 	}
 
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.magicdetailShader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.magicdetailShader, colorWhite/*color*/, 0);
 }
 
 void RB_CellShade(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 
 	GLSL_BindProgram(&tr.cellShadeShader);
 
@@ -1624,18 +1626,18 @@ void RB_CellShade(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		GLSL_SetUniformVec2(&tr.cellShadeShader, UNIFORM_DIMENSIONS, screensize);
 	}
 
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.cellShadeShader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.cellShadeShader, colorWhite/*color*/, 0);
 }
 
 void RB_Paint(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 
 	GLSL_BindProgram(&tr.paintShader);
 
@@ -1658,18 +1660,18 @@ void RB_Paint(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		GLSL_SetUniformVec4(&tr.paintShader, UNIFORM_LOCAL0, local0);
 	}
 
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.paintShader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.paintShader, colorWhite/*color*/, 0);
 }
 
 void RB_Anaglyph(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 
 	GLSL_BindProgram(&tr.anaglyphShader);
 
@@ -1712,18 +1714,18 @@ void RB_Anaglyph(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		GLSL_SetUniformVec4(&tr.anaglyphShader, UNIFORM_LOCAL1, local1);
 	}
 
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.anaglyphShader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.anaglyphShader, colorWhite/*color*/, 0);
 }
 
 void RB_SSAO(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 
 	GLSL_BindProgram(&tr.ssaoShader);
 
@@ -1795,7 +1797,7 @@ void RB_SSAO(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		GLSL_SetUniformVec4(&tr.ssaoShader, UNIFORM_LOCAL1, local1);
 	}
 
-	FBO_Blit(hdrFbo, NULL, NULL, tr.ssaoFbo, NULL, &tr.ssaoShader, color, 0);
+	FBO_Blit(hdrFbo, NULL, NULL, tr.ssaoFbo, NULL, &tr.ssaoShader, colorWhite/*color*/, 0);
 }
 
 extern float mix(float x, float y, float a);
@@ -1817,13 +1819,13 @@ extern vec3_t		WATER_COLOR_DEEP;
 #if 0
 void RB_SSS(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 
 	//
 	// Generate occlusion map...
@@ -1888,7 +1890,7 @@ void RB_SSS(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 
 	//FBO_Blit(hdrFbo, hdrBox, NULL, tr.sssFbo1, ldrBox, &tr.sssShader, color, 0);
 	//FBO_Blit(hdrFbo, hdrBox, NULL, tr.sssFbo2, ldrBox, &tr.sssShader, color, 0);
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.sssShader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.sssShader, colorWhite/*color*/, 0);
 }
 #endif
 
@@ -2258,13 +2260,13 @@ void RB_WaterPost(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 #if 0
 void RB_HBAO(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSUREe);
+	color[3] = 1.0f;*/
 
 	shaderProgram_t *shader = &tr.hbaoShader;
 
@@ -2312,7 +2314,7 @@ void RB_HBAO(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 #define HBAO_SINGLE_PASS
 
 #if !defined(HBAO_DEBUG) && !defined(HBAO_SINGLE_PASS)
-	FBO_Blit(hdrFbo, hdrBox, NULL, tr.genericFbo2, ldrBox, shader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, tr.genericFbo2, ldrBox, shader, colorWhite/*color*/, 0);
 
 	// Combine render and hbao...
 	GLSL_BindProgram(&tr.hbaoCombineShader);
@@ -2331,22 +2333,22 @@ void RB_HBAO(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 	screensize[1] = glConfig.vidHeight * r_superSampleMultiplier->value;
 	GLSL_SetUniformVec2(&tr.hbaoCombineShader, UNIFORM_DIMENSIONS, screensize);
 
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.hbaoCombineShader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.hbaoCombineShader, colorWhite/*color*/, 0);
 #else //defined(HBAO_DEBUG) || defined(HBAO_SINGLE_PASS)
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, shader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, shader, colorWhite/*color*/, 0);
 #endif //defined(HBAO_DEBUG) || defined(HBAO_SINGLE_PASS)
 }
 #endif
 
 void RB_ESharpening(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 
 	GLSL_BindProgram(&tr.esharpeningShader);
 
@@ -2358,19 +2360,19 @@ void RB_ESharpening(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox
 	screensize[1] = glConfig.vidHeight * r_superSampleMultiplier->value;
 	GLSL_SetUniformVec2(&tr.esharpeningShader, UNIFORM_DIMENSIONS, screensize);
 	
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.esharpeningShader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.esharpeningShader, colorWhite/*color*/, 0);
 }
 
 #if 0
 void RB_ESharpening2(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 
 	GLSL_BindProgram(&tr.esharpening2Shader);
 
@@ -2382,7 +2384,7 @@ void RB_ESharpening2(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBo
 	screensize[1] = glConfig.vidHeight * r_superSampleMultiplier->value;
 	GLSL_SetUniformVec2(&tr.esharpening2Shader, UNIFORM_DIMENSIONS, screensize);
 
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.esharpening2Shader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.esharpening2Shader, colorWhite/*color*/, 0);
 }
 #endif
 
@@ -2409,13 +2411,13 @@ void RB_DofFocusDepth(void)
 
 void RB_DOF(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox, int direction)
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 	
 	shaderProgram_t *shader = &tr.dofShader[Q_clampi(0, r_dof->integer-1, 2)];
 
@@ -2475,7 +2477,7 @@ void RB_DOF(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox, int di
 		GLSL_SetUniformVec4(shader, UNIFORM_VIEWINFO, viewInfo);
 	}
 
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, shader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, shader, colorWhite/*color*/, 0);
 }
 
 extern bool RealInvertMatrix(const float m[16], float invOut[16]);
@@ -2541,13 +2543,13 @@ qboolean			DEFERRED_LIGHT_HAVE_CONEANGLES = qfalse;
 
 void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 
 	shaderProgram_t *shader = &tr.deferredLightingShader[(MAP_LIGHTING_METHOD > 2) ? 2 : MAP_LIGHTING_METHOD];
 
@@ -2624,7 +2626,39 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 		cubeMapVec[2] = 0;
 		cubeMapVec[3] = 0;
 	}
-#ifndef __REALTIME_CUBEMAP__
+#ifdef __REALTIME_CUBEMAP__
+	else if (r_cubeMapping->integer >= 1 && !r_lowVram->integer)
+	{
+		cubeMapNum = 1;// currentPlayerCubemap - 1;
+		
+		//cubeMapVec[0] = 0;// backEnd.refdef.realtimeCubemapOrigin[0];
+		//cubeMapVec[1] = 0;// backEnd.refdef.realtimeCubemapOrigin[1];
+		//cubeMapVec[2] = 0;// backEnd.refdef.realtimeCubemapOrigin[2];
+		//cubeMapVec[3] = 1.0f;
+		//cubeMapRadius = 2048.0;// tr.cubemapRadius[currentPlayerCubemap];
+		//cubeMapVec[3] = cubeMapRadius;
+
+		GLSL_SetUniformInt(shader, UNIFORM_CUBEMAP, TB_CUBEMAP);
+		GL_BindToTMU(tr.realtimeCubemap, TB_CUBEMAP);
+		GLSL_SetUniformFloat(shader, UNIFORM_CUBEMAPSTRENGTH, r_cubemapStrength->value * 0.1);
+		
+		//VectorScale4(cubeMapVec, 1.0f / cubeMapRadius/*1000.0f*/, cubeMapVec);
+		//GLSL_SetUniformVec4(shader, UNIFORM_CUBEMAPINFO, cubeMapVec);
+
+#ifdef __EMISSIVE_CUBE_IBL__
+		GLSL_SetUniformInt(shader, UNIFORM_EMISSIVECUBE, TB_EMISSIVECUBE);
+		if (r_emissiveCubes->integer && tr.emissivemaps[cubeMapNum])
+		{
+			haveEmissiveCube = qtrue;
+			GL_BindToTMU(tr.emissivemaps[cubeMapNum], TB_EMISSIVECUBE);
+		}
+		else
+		{
+			GL_BindToTMU(tr.blackCube, TB_EMISSIVECUBE);
+		}
+#endif //__EMISSIVE_CUBE_IBL__
+	}
+#else //!__REALTIME_CUBEMAP__
 	else if (tr.numCubemaps <= 1)
 	{
 		cubeMapNum = -1;
@@ -2642,33 +2676,21 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 	}
 	else
 	{
-#endif //!__REALTIME_CUBEMAP__
 		if (r_cubeMapping->integer >= 1 && !r_lowVram->integer)
 		{
 			cubeMapNum = currentPlayerCubemap - 1;
-#ifdef __REALTIME_CUBEMAP__
-			cubeMapVec[0] = backEnd.refdef.realtimeCubemapOrigin[0] - backEnd.refdef.vieworg[0];
-			cubeMapVec[1] = backEnd.refdef.realtimeCubemapOrigin[1] - backEnd.refdef.vieworg[1];
-			cubeMapVec[2] = backEnd.refdef.realtimeCubemapOrigin[2] - backEnd.refdef.vieworg[2];
-#else //!__REALTIME_CUBEMAP__
 			//cubeMapVec[0] = currentPlayerCubemapVec[0];
 			//cubeMapVec[1] = currentPlayerCubemapVec[1];
 			//cubeMapVec[2] = currentPlayerCubemapVec[2];
 			cubeMapVec[0] = tr.cubemapOrigins[cubeMapNum][0];
 			cubeMapVec[1] = tr.cubemapOrigins[cubeMapNum][1];
 			cubeMapVec[2] = tr.cubemapOrigins[cubeMapNum][2];
-#endif //__REALTIME_CUBEMAP__
 			cubeMapVec[3] = 1.0f;
 			cubeMapRadius = 2048.0;// tr.cubemapRadius[currentPlayerCubemap];
 			cubeMapVec[3] = cubeMapRadius;
 
-#ifdef __REALTIME_CUBEMAP__
-			GLSL_SetUniformInt(shader, UNIFORM_CUBEMAP, TB_CUBEMAP);
-			GL_BindToTMU(tr.realtimeCubemap, TB_CUBEMAP);
-#else //!__REALTIME_CUBEMAP__
 			GLSL_SetUniformInt(shader, UNIFORM_CUBEMAP, TB_CUBEMAP);
 			GL_BindToTMU(tr.cubemaps[cubeMapNum], TB_CUBEMAP);
-#endif //__REALTIME_CUBEMAP__
 			GLSL_SetUniformFloat(shader, UNIFORM_CUBEMAPSTRENGTH, r_cubemapStrength->value * 0.1);
 			//VectorScale4(cubeMapVec, 1.0f / cubeMapRadius/*1000.0f*/, cubeMapVec);
 			GLSL_SetUniformVec4(shader, UNIFORM_CUBEMAPINFO, cubeMapVec);
@@ -2687,6 +2709,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 #endif //__EMISSIVE_CUBE_IBL__
 		}
 	}
+#endif //__REALTIME_CUBEMAP__
 
 	{
 		NUM_CURRENT_EMISSIVE_LIGHTS = r_lowVram->integer ? min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, 8.0)) : min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, MAX_DEFERRED_LIGHTS));
@@ -2794,7 +2817,8 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL5, local5);
 
 	vec4_t local6;
-	VectorSet4(local6, AO_MINBRIGHT, AO_MULTBRIGHT, r_vibrancy->value, r_truehdr->integer ? 1.0 : 0.0);
+	float vibrancy = mix(MAP_VIBRANCY_DAY, MAP_VIBRANCY_NIGHT, RB_NightScale());
+	VectorSet4(local6, AO_MINBRIGHT, AO_MULTBRIGHT, vibrancy, r_truehdr->integer ? 1.0 : 0.0);
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL6, local6);
 
 	vec4_t local7;
@@ -2879,19 +2903,19 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 		GLSL_SetUniformVec2(shader, UNIFORM_DIMENSIONS, screensize);
 	}
 	
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, shader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, shader, colorWhite/*color*/, 0);
 }
 
 #ifndef __PROCEDURALS_IN_DEFERRED_SHADER__
 void RB_Procedural(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 
 	shaderProgram_t *shader = &tr.proceduralShader;
 
@@ -2937,19 +2961,19 @@ void RB_Procedural(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		GLSL_SetUniformVec2(shader, UNIFORM_DIMENSIONS, screensize);
 	}
 
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, shader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, shader, colorWhite/*color*/, 0);
 }
 #endif //__PROCEDURALS_IN_DEFERRED_SHADER__
 
 void RB_SSDM_Generate(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 
 	shaderProgram_t *shader = &tr.ssdmGenerateShader[r_ssdm->integer >= 2 ? 1 : 0]; // r_ssdm 1 = fast. r_ssdm 2 = quality.
 
@@ -3019,18 +3043,18 @@ void RB_SSDM_Generate(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrB
 		GLSL_SetUniformVec4(shader, UNIFORM_PRIMARYLIGHTORIGIN, out);
 	}
 
-	FBO_Blit(hdrFbo, hdrBox, NULL, tr.ssdmFbo, ldrBox, shader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, tr.ssdmFbo, ldrBox, shader, colorWhite/*color*/, 0);
 }
 
 void RB_SSDM(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 
 	GLSL_BindProgram(&tr.ssdmShader);
 
@@ -3079,19 +3103,19 @@ void RB_SSDM(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		GLSL_SetUniformVec4(&tr.ssdmShader, UNIFORM_VIEWINFO, viewInfo);
 	}
 
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.ssdmShader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.ssdmShader, colorWhite/*color*/, 0);
 }
 
 #if 0
 void RB_ScreenSpaceReflections(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 
 	GLSL_BindProgram(&tr.ssrShader);
 
@@ -3138,7 +3162,7 @@ void RB_ScreenSpaceReflections(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec
 
 	//FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.ssrShader, color, 0);
 
-	FBO_Blit(hdrFbo, NULL, NULL, tr.genericFbo2, NULL, &tr.ssrShader, color, 0);
+	FBO_Blit(hdrFbo, NULL, NULL, tr.genericFbo2, NULL, &tr.ssrShader, colorWhite/*color*/, 0);
 
 	// Combine render and hbao...
 	GLSL_BindProgram(&tr.ssrCombineShader);
@@ -3157,19 +3181,19 @@ void RB_ScreenSpaceReflections(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec
 	screensize[1] = tr.genericFBO2Image->height;// glConfig.vidHeight * r_superSampleMultiplier->value;
 	GLSL_SetUniformVec2(&tr.ssrCombineShader, UNIFORM_DIMENSIONS, screensize);
 
-	FBO_Blit(hdrFbo, NULL, NULL, ldrFbo, NULL, &tr.ssrCombineShader, color, 0);
+	FBO_Blit(hdrFbo, NULL, NULL, ldrFbo, NULL, &tr.ssrCombineShader, colorWhite/*color*/, 0);
 }
 #endif
 
 void RB_ShowNormals(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 
 	GLSL_BindProgram(&tr.showNormalsShader);
 
@@ -3199,18 +3223,18 @@ void RB_ShowNormals(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox
 		GLSL_SetUniformVec2(&tr.showNormalsShader, UNIFORM_DIMENSIONS, screensize);
 	}
 
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.showNormalsShader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.showNormalsShader, colorWhite/*color*/, 0);
 }
 
 void RB_ShowDepth(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 
 	GLSL_BindProgram(&tr.showDepthShader);
 
@@ -3233,18 +3257,18 @@ void RB_ShowDepth(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		GLSL_SetUniformVec4(&tr.showDepthShader, UNIFORM_VIEWINFO, viewInfo);
 	}
 
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.showDepthShader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.showDepthShader, colorWhite/*color*/, 0);
 }
 
 void RB_TestShader(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox, int pass_num)
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 
 	//RB_AddGlowShaderLights();
 
@@ -3261,9 +3285,6 @@ void RB_TestShader(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox,
 	
 	GLSL_SetUniformInt(&tr.testshaderShader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
 	GL_BindToTMU(tr.linearDepthImageZfar, TB_LIGHTMAP);
-
-	GLSL_SetUniformInt(&tr.testshaderShader, UNIFORM_DELUXEMAP, TB_DELUXEMAP);
-	GL_BindToTMU(tr.paletteImage, TB_DELUXEMAP);
 
 	GLSL_SetUniformInt(&tr.testshaderShader, UNIFORM_GLOWMAP, TB_GLOWMAP);
 	GL_BindToTMU(tr.glowFboScaled[0]->colorImage[0]/*tr.glowImageScaled[5]*/, TB_GLOWMAP);
@@ -3326,75 +3347,54 @@ void RB_TestShader(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox,
 		GLSL_SetUniformVec2(&tr.testshaderShader, UNIFORM_DIMENSIONS, screensize);
 	}
 	
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.testshaderShader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.testshaderShader, colorWhite/*color*/, 0);
 }
 
 void RB_ColorCorrection(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
-
-	// bloom
-	color[0] =
-		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
-
 	GLSL_BindProgram(&tr.colorCorrectionShader);
 	
 	GLSL_SetUniformInt(&tr.colorCorrectionShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
 	GL_BindToTMU(hdrFbo->colorImage[0], TB_DIFFUSEMAP);
 
 	GLSL_SetUniformInt(&tr.colorCorrectionShader, UNIFORM_DELUXEMAP, TB_DELUXEMAP);
-	GL_BindToTMU(tr.paletteImage, TB_DELUXEMAP);
+	GL_BindToTMU(MAP_COLOR_CORRECTION_PALETTE, TB_DELUXEMAP);
 
-#if 0
-	GLSL_SetUniformInt(&tr.colorCorrectionShader, UNIFORM_GLOWMAP, TB_GLOWMAP);
-	//GL_BindToTMU(tr.glowImageScaled[5], TB_GLOWMAP);
 
-	// Use the most blurred version of glow...
-	if (r_anamorphic->integer)
+	if (r_hdr->integer && MAP_TONEMAP_AUTOEXPOSURE && MAP_TONEMAP_METHOD > 0)
 	{
-		GL_BindToTMU(tr.anamorphicRenderFBOImage, TB_GLOWMAP);
-	}
-	else if (r_bloom->integer)
-	{
-		GL_BindToTMU(tr.bloomRenderFBOImage[0], TB_GLOWMAP);
+		GLSL_SetUniformInt(&tr.colorCorrectionShader, UNIFORM_LEVELSMAP, TB_LEVELSMAP);
+		GL_BindToTMU(tr.calcLevelsImage, TB_LEVELSMAP);
 	}
 	else
 	{
-		GL_BindToTMU(tr.glowFboScaled[0]->colorImage[0], TB_GLOWMAP);
+		GLSL_SetUniformInt(&tr.colorCorrectionShader, UNIFORM_LEVELSMAP, TB_LEVELSMAP);
+		GL_BindToTMU(tr.fixedLevelsImage, TB_LEVELSMAP);
 	}
-#endif
 
-#if 1
-	extern int			MAP_TONEMAP_METHOD;
-	extern qboolean		MAP_TONEMAP_AUTOEXPOSURE;
 
-	qboolean autoExposure = (qboolean)((r_autoExposure->integer && MAP_TONEMAP_AUTOEXPOSURE) || r_forceAutoExposure->integer);
+	{
+		vec4_t loc;
+		VectorSet4(loc, MAP_COLOR_CORRECTION_METHOD, r_testvalue1->value, r_testvalue2->value, r_testvalue3->value);
+		GLSL_SetUniformVec4(&tr.colorCorrectionShader, UNIFORM_LOCAL0, loc);
+	}
 
-	GLSL_SetUniformInt(&tr.colorCorrectionShader, UNIFORM_GLOWMAP, TB_GLOWMAP);
-
-	if (autoExposure)
-		GL_BindToTMU(tr.calcLevelsImage, UNIFORM_GLOWMAP);
-	else
-		GL_BindToTMU(tr.fixedLevelsImage, UNIFORM_GLOWMAP);
-#endif
 
 	GLSL_SetUniformMatrix16(&tr.colorCorrectionShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
 	
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.colorCorrectionShader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.colorCorrectionShader, colorWhite/*color*/, 0);
 }
 
 
 void RB_FogPostShader(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 
 	GLSL_BindProgram(&tr.fogPostShader);
 	
@@ -3525,18 +3525,18 @@ void RB_FogPostShader(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrB
 		GLSL_SetUniformVec4(&tr.fogPostShader, UNIFORM_MAPINFO, loc);
 	}
 
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.fogPostShader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.fogPostShader, colorWhite/*color*/, 0);
 }
 
 void RB_FastBlur(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 
 	shaderProgram_t *shader = &tr.fastBlurShader;
 
@@ -3606,7 +3606,7 @@ void RB_FastBlur(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 				GLSL_SetUniformVec4(shader, UNIFORM_SETTINGS0, loc);
 			}
 
-			FBO_Blit(pass == 0 ? tr.screenShadowFbo : tr.screenShadowBlurFbo, NULL, NULL, tr.screenShadowBlurTempFbo, NULL, shader, color, 0);
+			FBO_Blit(pass == 0 ? tr.screenShadowFbo : tr.screenShadowBlurFbo, NULL, NULL, tr.screenShadowBlurTempFbo, NULL, shader, colorWhite/*color*/, 0);
 		}
 
 		{// Blur Y...
@@ -3618,7 +3618,7 @@ void RB_FastBlur(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 				GLSL_SetUniformVec4(shader, UNIFORM_SETTINGS0, loc);
 			}
 
-			FBO_Blit(tr.screenShadowBlurTempFbo, NULL, NULL, tr.screenShadowBlurFbo, NULL, shader, color, 0);
+			FBO_Blit(tr.screenShadowBlurTempFbo, NULL, NULL, tr.screenShadowBlurFbo, NULL, shader, colorWhite/*color*/, 0);
 		}
 	}
 #endif
@@ -3628,13 +3628,13 @@ void RB_DistanceBlur(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBo
 {
 	if (r_distanceBlur->integer < 2 || r_distanceBlur->integer >= 5)
 	{// Fast blur (original)
-		vec4_t color;
+		/*vec4_t color;
 
 		// bloom
 		color[0] =
 			color[1] =
-			color[2] = pow(2, r_cameraExposure->value);
-		color[3] = 1.0f;
+			color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+		color[3] = 1.0f;*/
 
 		GLSL_BindProgram(&tr.distanceBlurShader[0]);
 
@@ -3685,18 +3685,18 @@ void RB_DistanceBlur(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBo
 			GLSL_SetUniformVec4(&tr.distanceBlurShader[0], UNIFORM_LOCAL1, loc);
 		}
 
-		FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.distanceBlurShader[0], color, 0);
+		FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.distanceBlurShader[0], colorWhite/*color*/, 0);
 	}
 	else
 	{// New matso style blur...
 		shaderProgram_t *shader = &tr.distanceBlurShader[r_distanceBlur->integer-1];
-		vec4_t color;
+		/*vec4_t color;
 
 		// bloom
 		color[0] =
 			color[1] =
-			color[2] = pow(2, r_cameraExposure->value);
-		color[3] = 1.0f;
+			color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+		color[3] = 1.0f;*/
 
 		GLSL_BindProgram(shader);
 
@@ -3761,19 +3761,19 @@ void RB_DistanceBlur(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBo
 			GLSL_SetUniformVec4(shader, UNIFORM_VIEWINFO, viewInfo);
 		}
 
-		FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, shader, color, 0);
+		FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, shader, colorWhite/*color*/, 0);
 	}
 }
 
 void RB_Underwater(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 
 	GLSL_BindProgram(&tr.underwaterShader);
 
@@ -3792,18 +3792,18 @@ void RB_Underwater(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		GLSL_SetUniformVec2(&tr.underwaterShader, UNIFORM_DIMENSIONS, screensize);
 	}
 	
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.underwaterShader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.underwaterShader, colorWhite/*color*/, 0);
 }
 
 void RB_FXAA(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
+	/*vec4_t color;
 
 	// bloom
 	color[0] =
 		color[1] =
-		color[2] = pow(2, r_cameraExposure->value);
-	color[3] = 1.0f;
+		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
+	color[3] = 1.0f;*/
 
 	GLSL_BindProgram(&tr.fxaaShader);
 
@@ -3826,7 +3826,7 @@ void RB_FXAA(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		GLSL_SetUniformVec4(&tr.fxaaShader, UNIFORM_LOCAL0, local0);
 	}
 	
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.fxaaShader, color, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.fxaaShader, colorWhite/*color*/, 0);
 }
 
 void RB_TXAA(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)

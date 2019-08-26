@@ -70,7 +70,7 @@ uniform vec4						u_Settings5; // MAP_COLOR_SWITCH_RG, MAP_COLOR_SWITCH_RB, MAP_
 uniform vec4						u_Local1; // MAP_SIZE, sway, overlaySway, materialType
 uniform vec4						u_Local2; // hasWaterEdgeMap, haveNormalMap, 0.0, SHADER_WATER_LEVEL
 uniform vec4						u_Local3; // hasSplatMap1, hasSplatMap2, hasSplatMap3, hasSplatMap4
-uniform vec4						u_Local4; // stageNum, glowStrength, r_showsplat, glowVibrancy
+uniform vec4						u_Local4; // SPLATMAP_CONTROL_SCALE, glowStrength, r_showsplat, glowVibrancy
 uniform vec4						u_Local9; // testvalue0, 1, 2, 3
 uniform vec4						u_Local13; // hasSteepMap, hasSteepMap1, hasSteepMap2, hasSteepMap3
 
@@ -105,7 +105,7 @@ uniform float						u_zFar;
 #define SHADER_HAS_SPLATMAP3		u_Local3.b
 #define SHADER_HAS_ROADMAP			u_Local3.a
 
-#define SHADER_STAGE_NUM			u_Local4.r
+#define SPLATMAP_CONTROL_SCALE		u_Local4.r
 #define SHADER_GLOW_STRENGTH		u_Local4.g
 #define SHADER_SHOW_SPLAT			u_Local4.b
 #define SHADER_GLOW_VIBRANCY		u_Local4.a
@@ -133,7 +133,7 @@ in precise vec3				Blending_FS_in;
 in float					TessDepth_FS_in;
 
 
-#define m_Normal 			normalize(Normal_FS_in.xyz)
+vec3	m_Normal 			= normalize(gl_FrontFacing ? -Normal_FS_in.xyz : Normal_FS_in.xyz);
 
 #define m_TexCoords			TexCoord_FS_in
 #define m_vertPos			WorldPos_FS_in
@@ -168,7 +168,7 @@ varying vec3				var_Blending;
 varying float				var_Slope;
 
 
-#define m_Normal			var_Normal
+vec3 m_Normal				= normalize(gl_FrontFacing ? -var_Normal : var_Normal);
 #define m_TexCoords			var_TexCoords
 #define m_vertPos			var_vertPos
 #define m_ViewDir			var_ViewDir
@@ -430,6 +430,8 @@ vec4 GetControlMap( bool isVertical )
 	float scale = 1.0 / SHADER_MAP_SIZE; /* control scale */
 	vec4 control;
 	
+	scale *= SPLATMAP_CONTROL_SCALE;
+
 #if 0
 	float offset = (SHADER_MAP_SIZE / 2.0) * scale;
 	control.r = SmoothNoise(vec3((m_vertPos.yzx * scale) + offset) * 64.0);
