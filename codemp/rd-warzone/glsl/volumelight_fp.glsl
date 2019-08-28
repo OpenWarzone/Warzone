@@ -111,11 +111,13 @@ uniform sampler2DShadow		u_ShadowMap;
 uniform sampler2DShadow		u_ShadowMap2;
 uniform sampler2DShadow		u_ShadowMap3;
 uniform sampler2DShadow		u_ShadowMap4;
+uniform sampler2DShadow		u_ShadowMap5;
 
 uniform mat4				u_ShadowMvp;
 uniform mat4				u_ShadowMvp2;
 uniform mat4				u_ShadowMvp3;
 uniform mat4				u_ShadowMvp4;
+uniform mat4				u_ShadowMvp5;
 
 uniform vec4				u_Settings0;			// r_shadowSamples (numBlockerSearchSamples), r_shadowMapSize, r_testshaderValue1->value, r_testshaderValue2->value
 uniform vec3				u_ViewOrigin;
@@ -131,8 +133,7 @@ varying vec3				var_ViewDir2;
 
 float offset_lookup(sampler2DShadow shadowmap, vec4 loc, vec2 offset, float scale)
 {
-	float result = textureProj(shadowmap, vec4(loc.xy + offset * scale * loc.w, loc.z, loc.w)) > 0.1 ? 1.0 : 0.0;
-	return result;
+	return textureProj(shadowmap, vec4(loc.xy + offset * scale * loc.w, loc.z, loc.w)) > 0.1 ? 1.0 : 0.0;
 }
 
 float PCF(const sampler2DShadow shadowmap, const vec4 st, const float dist, float scale)
@@ -185,7 +186,29 @@ float GetVolumetricShadow(void)
 		if (all(lessThanEqual(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
 		{
 			shadowpos.xyz = shadowpos.xyz / shadowpos.w * 0.5 + 0.5;
-			result += PCF(u_ShadowMap3, shadowpos, shadowpos.z, 1.0 / (r_shadowMapSize * 2.0)) > 0.9999999 ? dWeight : 0.0;
+			result += PCF(u_ShadowMap3, shadowpos, shadowpos.z, 1.0 / r_shadowMapSize) > 0.9999999 ? dWeight : 0.0;
+			dWeight -= invSamples;
+			fWeight += invSamples;
+			continue;
+		}
+
+		shadowpos = u_ShadowMvp4 * biasPos;
+
+		if (all(lessThanEqual(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
+		{
+			shadowpos.xyz = shadowpos.xyz / shadowpos.w * 0.5 + 0.5;
+			result += PCF(u_ShadowMap4, shadowpos, shadowpos.z, 1.0 / r_shadowMapSize) > 0.9999999 ? dWeight : 0.0;
+			dWeight -= invSamples;
+			fWeight += invSamples;
+			continue;
+		}
+
+		shadowpos = u_ShadowMvp5 * biasPos;
+
+		if (all(lessThanEqual(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
+		{
+			shadowpos.xyz = shadowpos.xyz / shadowpos.w * 0.5 + 0.5;
+			result += PCF(u_ShadowMap5, shadowpos, shadowpos.z, 1.0 / r_shadowMapSize) > 0.9999999 ? dWeight : 0.0;
 			dWeight -= invSamples;
 			fWeight += invSamples;
 			continue;

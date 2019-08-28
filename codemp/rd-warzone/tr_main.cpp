@@ -3129,12 +3129,20 @@ void R_RenderSunShadowMaps(const refdef_t *fd, int level, vec4_t sunDir, float l
 			splitZFar = SHADOW_CASCADE1 + SHADOW_CASCADE_BIAS1; // CalcSplit(viewZNear, viewZFar, 1, 3) + splitBias;
 			break;
 		case 1:
-			splitZNear = SHADOW_CASCADE1; // CalcSplit(viewZNear, viewZFar, 1, 3) + splitBias;
+			splitZNear = SHADOW_CASCADE1 - SHADOW_CASCADE_BIAS1; // CalcSplit(viewZNear, viewZFar, 1, 3) + splitBias;
 			splitZFar = SHADOW_CASCADE2 + SHADOW_CASCADE_BIAS2; // viewZFar;
 			break;
 		case 2:
-			splitZNear = SHADOW_CASCADE2; // viewZFar;
-			splitZFar = (backEnd.viewParms.zFar < MAP_INFO_MAXSIZE) ? backEnd.viewParms.zFar : MAP_INFO_MAXSIZE;
+			splitZNear = SHADOW_CASCADE2 - SHADOW_CASCADE_BIAS2; // CalcSplit(viewZNear, viewZFar, 1, 3) + splitBias;
+			splitZFar = SHADOW_CASCADE3 + SHADOW_CASCADE_BIAS3; // viewZFar;
+			break;
+		case 3:
+			splitZNear = SHADOW_CASCADE3 - SHADOW_CASCADE_BIAS3; // CalcSplit(viewZNear, viewZFar, 1, 3) + splitBias;
+			splitZFar = SHADOW_CASCADE4 + SHADOW_CASCADE_BIAS4; // viewZFar;
+			break;
+		case 4:
+			splitZNear = SHADOW_CASCADE4 - SHADOW_CASCADE_BIAS4; // viewZFar;
+			splitZFar = backEnd.viewParms.zFar;// MAP_INFO_MAXSIZE;
 			break;
 		}
 	}
@@ -3191,33 +3199,6 @@ void R_RenderSunShadowMaps(const refdef_t *fd, int level, vec4_t sunDir, float l
 	CrossProduct(lightViewAxis[0], lightViewAxis[1], lightViewAxis[2]);
 
 	// Create bounds for light projection using slice of view projection
-	/*if (!backEnd.viewIsOutdoors)
-	{
-		VectorCopy(fd->vieworg, lightviewBounds[0]);
-		lightviewBounds[0][0] -= splitZFar;
-		lightviewBounds[0][1] -= splitZFar;
-		lightviewBounds[0][2] = backEnd.localPlayerOrigin[2]-4096.0;
-		
-
-		VectorCopy(fd->vieworg, lightviewBounds[1]);
-		lightviewBounds[1][0] += splitZFar;
-		lightviewBounds[1][1] += splitZFar;
-		lightviewBounds[1][2] = lightOrigin[2];
-
-		if (r_testvalue2->integer)
-		{
-			VectorSet(lightViewAxis[2], 0, 0, 1);
-			CrossProduct(lightViewAxis[2], lightViewAxis[0], lightViewAxis[1]);
-			VectorNormalize(lightViewAxis[1]);
-			CrossProduct(lightViewAxis[0], lightViewAxis[1], lightViewAxis[2]);
-
-			matrix_t lightViewMatrix;
-			Matrix16View(lightViewAxis, lightOrigin, lightViewMatrix);
-			Matrix16Transform(lightViewMatrix, lightviewBounds[0], lightviewBounds[0]);
-			Matrix16Transform(lightViewMatrix, lightviewBounds[1], lightviewBounds[1]);
-		}
-	}
-	else*/
 	{
 		matrix_t lightViewMatrix;
 		vec4_t point, base, lightViewPoint;
@@ -3282,34 +3263,7 @@ void R_RenderSunShadowMaps(const refdef_t *fd, int level, vec4_t sunDir, float l
 		Matrix16Transform(lightViewMatrix, point, lightViewPoint);
 		AddPointToBounds(lightViewPoint, lightviewBounds[0], lightviewBounds[1]);
 
-#if 0
-		if (lightHeight != 999999.9)
-		{// Not the sun, use max height from the light's height...
-			if (r_testvalue1->integer < 1)
-				lightviewBounds[1][2] = lightHeight;
-			else
-				lightviewBounds[0][2] = lightHeight;
-		}
-#endif
 		
-		/*if (!backEnd.viewIsOutdoors)
-		{
-			vec4_t spot, lOrg;
-			matrix_t lightViewMatrix;
-
-			VectorCopy(lightOrigin, lOrg);
-			lOrg[3] = 1.0;
-
-			Matrix16View(lightViewAxis, lightOrigin, lightViewMatrix);
-			Matrix16Transform(lightViewMatrix, lOrg, spot);
-			lightviewBounds[1][2] = spot[2];
-		}*/
-
-		/*if (!backEnd.viewIsOutdoors)
-		{
-			//lightviewBounds[0][2] = backEnd.localPlayerOrigin[2] - 4096.0;
-			lightviewBounds[1][2] = lightOrg[2];// lightOrigin[2];
-		}*/
 
 		// Moving the Light in Texel-Sized Increments
 		// from http://msdn.microsoft.com/en-us/library/windows/desktop/ee416324%28v=vs.85%29.aspx
@@ -3397,19 +3351,9 @@ void R_RenderSunShadowMaps(const refdef_t *fd, int level, vec4_t sunDir, float l
 
 			R_SetupProjectionOrtho(&tr.viewParms, lightviewBounds);
 
-			/*if (r_testvalue0->integer == 1)
-			{
-				FBO_Bind(tr.sunShadowFbo[level]);
-				qglClearColor(1, 1, 1, 1);
-				qglClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-				qglClearDepth(1.0f);
-			}
-			else if (r_testvalue0->integer == 2)
-			{*/
-				qglClearColor(1, 1, 1, 1);
-				qglClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-				qglClearDepth(1.0f);
-			//}
+			qglClearColor(1, 1, 1, 1);
+			qglClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			qglClearDepth(1.0f);
 
 			tr.world = tr.worldSolid;
 			R_AddWorldSurfaces();
@@ -3422,17 +3366,6 @@ void R_RenderSunShadowMaps(const refdef_t *fd, int level, vec4_t sunDir, float l
 				// Restore the original pointer to solid world...
 				tr.world = tr.worldSolid;
 			}
-
-			/*extern qboolean PROCEDURAL_CLOUDS_ENABLED;
-			extern qboolean PROCEDURAL_CLOUDS_LAYER;
-
-			qboolean doProceduralClouds = (qboolean)(PROCEDURAL_CLOUDS_ENABLED && PROCEDURAL_CLOUDS_LAYER);
-
-			if (doProceduralClouds)
-			{
-				void CLOUD_LAYER_Render();
-				CLOUD_LAYER_Render();
-			}*/
 
 			if (level < 2 || LODMODEL_MAP)
 			{

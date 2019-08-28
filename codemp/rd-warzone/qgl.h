@@ -1001,6 +1001,24 @@ extern PFNGLGETQUERYIVPROC qglGetQueryiv;
 extern PFNGLGETQUERYOBJECTIVPROC qglGetQueryObjectiv;
 extern PFNGLGETQUERYOBJECTUIVPROC qglGetQueryObjectuiv;
 
+// GL_ARB_bindless_textures
+extern PFNGLGETTEXTUREHANDLEARBPROC qglGetTextureHandle;
+extern PFNGLGETTEXTURESAMPLERHANDLEARBPROC qglGetTextureSamplerHandle;
+extern PFNGLMAKETEXTUREHANDLERESIDENTARBPROC qglMakeTextureHandleResident;
+extern PFNGLMAKETEXTUREHANDLENONRESIDENTARBPROC qglMakeTextureHandleNonResident;
+extern PFNGLGETIMAGEHANDLEARBPROC qglGetImageHandle;
+extern PFNGLMAKEIMAGEHANDLERESIDENTARBPROC qglMakeImageHandleResident;
+extern PFNGLMAKEIMAGEHANDLENONRESIDENTARBPROC qglMakeImageHandleNonResident;
+extern PFNGLUNIFORMHANDLEUI64ARBPROC qglUniformHandleui64;
+extern PFNGLUNIFORMHANDLEUI64VARBPROC qglUniformHandleui64v;
+extern PFNGLPROGRAMUNIFORMHANDLEUI64ARBPROC qglProgramUniformHandleui64;
+extern PFNGLPROGRAMUNIFORMHANDLEUI64VARBPROC qglProgramUniformHandleui64v;
+extern PFNGLISTEXTUREHANDLERESIDENTARBPROC qglIsTextureHandleResident;
+extern PFNGLISIMAGEHANDLERESIDENTARBPROC qglIsImageHandleResident;
+extern PFNGLVERTEXATTRIBL1UI64ARBPROC qglVertexAttribL1ui64;
+extern PFNGLVERTEXATTRIBL1UI64VARBPROC qglVertexAttribL1ui64v;
+extern PFNGLGETVERTEXATTRIBLUI64VARBPROC qglGetVertexAttribLui64v;
+
 #ifndef GL_EXT_texture_compression_latc
 #define GL_EXT_texture_compression_latc
 #define GL_COMPRESSED_LUMINANCE_LATC1_EXT                 0x8C70
@@ -1233,3 +1251,4 @@ extern	void ( APIENTRY * qglTexSubImage3DEXT) (GLenum, GLint, GLint, GLint, GLin
 extern	void ( APIENTRY * qglTextureParameterfEXT) (GLenum, GLenum, GLenum, GLfloat);
 
 #define GL_MAX_ACTIVE_TEXTURES_ARB          0x84E2
+

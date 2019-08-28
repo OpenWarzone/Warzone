@@ -2355,6 +2355,17 @@ static bool IsPowerOfTwo ( int i )
 	return (i & (i - 1)) == 0;
 }
 
+void GL_SetupBindlessTexture(image_t *image)
+{
+	if (!image->bindlessHandle)
+	{
+		image->bindlessHandle = qglGetTextureHandle(image->texnum);
+		//ri->Printf(PRINT_WARNING, "Texture %s bindlessHandle %u.\n", image->imgName, image->bindlessHandle);
+	}
+
+	qglMakeTextureHandleResident(image->bindlessHandle);
+}
+
 /*
 ===============
 Upload32
@@ -2753,6 +2764,36 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgT
 		qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, glWrapClampMode );
 	}
 
+	if (type == IMGTYPE_SHADOW)
+	{
+		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 0.0);
+
+		//qglTextureParameterfEXT(tr.sunShadowDepthImage[x]->texnum, GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+		//qglTextureParameterfEXT(tr.sunShadowDepthImage[x]->texnum, GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, /*GL_LESS*/GL_LEQUAL);
+
+		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		//qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+		//qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+
+		/*
+		GLfloat border[] = { 0.0f,0.0f,0.0f,0.0f };
+		qglTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border);
+		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
+		*/
+
+		//qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL/*GL_LESS*/);
+	}
+
+	if (glRefConfig.bindlessTextures)
+	{
+		GL_SetupBindlessTexture(image);
+	}
+
 	//ri->Printf(PRINT_WARNING, "R_CreateImage Debug: %s. Uploaded.\n", name);
 
 	GL_SelectTexture( 0 );
@@ -2882,6 +2923,36 @@ image_t *R_CreateCubemapFromImageDatas(const char *name, byte **pic, int width, 
 
 		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, glWrapClampMode);
 		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, glWrapClampMode);
+	}
+
+	if (type == IMGTYPE_SHADOW)
+	{
+		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 0.0);
+
+		//qglTextureParameterfEXT(tr.sunShadowDepthImage[x]->texnum, GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+		//qglTextureParameterfEXT(tr.sunShadowDepthImage[x]->texnum, GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, /*GL_LESS*/GL_LEQUAL);
+
+		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		//qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+		//qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+
+		/*
+		GLfloat border[] = { 0.0f,0.0f,0.0f,0.0f };
+		qglTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border);
+		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
+		*/
+
+		//qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL/*GL_LESS*/);
+	}
+
+	if (glRefConfig.bindlessTextures)
+	{
+		GL_SetupBindlessTexture(image);
 	}
 
 	GL_SelectTexture(0);
@@ -4683,6 +4754,7 @@ void R_CreateBuiltinImages( void ) {
 		skyImagesData[z] = NULL;
 	VectorSet4(tr.greyCube->lightColor, 0.0, 0.0, 0.0, 1.0);
 	
+	tr.purpleShader = R_FindShader("gfx/colors/purple", lightmapsNone, stylesDefault, qtrue);
 
 	tr.randomImage = R_FindImageFile("gfx/random.png", IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_CLAMPTOEDGE | IMGFLAG_MIPMAP /*| IMGFLAG_NO_COMPRESSION*/);
 
@@ -4909,16 +4981,9 @@ void R_CreateBuiltinImages( void ) {
 	int shadowDepth = GL_DEPTH_COMPONENT24;// GL_DEPTH_COMPONENT32;
 	if (r_sunlightMode->integer >= 2)
 	{
-		for ( x = 0; x < 3; x++)
+		for ( x = 0; x < 5; x++)
 		{
-			if (x >= 2)
-				tr.sunShadowDepthImage[x] = R_CreateImage(va("*sunshadowdepth%i", x), NULL, (r_shadowMapSize->integer * 2.0) / vramScaleDiv, (r_shadowMapSize->integer * 2.0) / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_NOLIGHTSCALE, shadowDepth/*hdrDepth*/);
-			else if (x >= 1)
-				tr.sunShadowDepthImage[x] = R_CreateImage(va("*sunshadowdepth%i", x), NULL, (r_shadowMapSize->integer * 1.0) / vramScaleDiv, (r_shadowMapSize->integer * 1.0) / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_NOLIGHTSCALE, shadowDepth/*hdrDepth*/);
-			else
-				tr.sunShadowDepthImage[x] = R_CreateImage(va("*sunshadowdepth%i", x), NULL, r_shadowMapSize->integer / vramScaleDiv, r_shadowMapSize->integer / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_NOLIGHTSCALE, shadowDepth/*hdrDepth*/);
-			qglTextureParameterfEXT(tr.sunShadowDepthImage[x]->texnum, GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
-			qglTextureParameterfEXT(tr.sunShadowDepthImage[x]->texnum, GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+			tr.sunShadowDepthImage[x] = R_CreateImage(va("*sunshadowdepth%i", x), NULL, r_shadowMapSize->integer / vramScaleDiv, r_shadowMapSize->integer / vramScaleDiv, IMGTYPE_SHADOW, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_NOLIGHTSCALE, shadowDepth/*hdrDepth*/);
 		}
 
 		//tr.screenShadowImage = R_CreateImage("*screenShadow", NULL, (width/2.0) / vramScaleDiv, (height/2.0) / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_NOLIGHTSCALE, hdrFormat);

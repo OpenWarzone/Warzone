@@ -8,15 +8,59 @@
 //precision lowp int;
 //precision lowp float;
 
+#if defined(USE_BINDLESS_TEXTURES)
+layout(std140) uniform u_bindlessTexturesBlock
+{
+uniform sampler2D					u_DiffuseMap;
+uniform sampler2D					u_LightMap;
+uniform sampler2D					u_NormalMap;
+uniform sampler2D					u_DeluxeMap;
+uniform sampler2D					u_SpecularMap;
+uniform sampler2D					u_PositionMap;
+uniform sampler2D					u_WaterPositionMap;
+uniform sampler2D					u_WaterHeightMap;
+uniform sampler2D					u_HeightMap;
+uniform sampler2D					u_GlowMap;
+uniform sampler2D					u_EnvironmentMap;
+uniform sampler2D					u_TextureMap;
+uniform sampler2D					u_LevelsMap;
+uniform sampler2D					u_CubeMap;
+uniform sampler2D					u_SkyCubeMap;
+uniform sampler2D					u_SkyCubeMapNight;
+uniform sampler2D					u_EmissiveCubeMap;
+uniform sampler2D					u_OverlayMap;
+uniform sampler2D					u_SteepMap;
+uniform sampler2D					u_SteepMap1;
+uniform sampler2D					u_SteepMap2;
+uniform sampler2D					u_SteepMap3;
+uniform sampler2D					u_WaterEdgeMap;
+uniform sampler2D					u_SplatControlMap;
+uniform sampler2D					u_SplatMap1;
+uniform sampler2D					u_SplatMap2;
+uniform sampler2D					u_SplatMap3;
+uniform sampler2D					u_RoadsControlMap;
+uniform sampler2D					u_RoadMap;
+uniform sampler2D					u_DetailMap;
+uniform sampler2D					u_ScreenImageMap;
+uniform sampler2D					u_ScreenDepthMap;
+uniform sampler2D					u_ShadowMap;
+uniform sampler2D					u_ShadowMap2;
+uniform sampler2D					u_ShadowMap3;
+uniform sampler2D					u_ShadowMap4;
+uniform sampler2D					u_ShadowMap5;
+uniform sampler2D					u_MoonMaps[4];
+};
+#else //!defined(USE_BINDLESS_TEXTURES)
 uniform sampler2D										u_DiffuseMap;
 uniform sampler2D										u_OverlayMap; // Night sky image... When doing sky...
 uniform sampler2D										u_SplatMap1; // auroraImage[0]
 uniform sampler2D										u_SplatMap2; // auroraImage[1]
 uniform sampler2D										u_SplatMap3; // smoothNoiseImage
 uniform sampler2D										u_RoadMap; // random2KImage
+uniform sampler2D										u_MoonMaps[4]; // moon textures
+#endif //defined(USE_BINDLESS_TEXTURES)
 
 uniform int												u_MoonCount; // moons total count
-uniform sampler2D										u_MoonMaps[4]; // moon textures
 uniform vec4											u_MoonInfos[4]; // MOON_ENABLED, MOON_ROTATION_OFFSET_X, MOON_ROTATION_OFFSET_Y, MOON_SIZE
 uniform vec2											u_MoonInfos2[4]; // MOON_BRIGHTNESS, MOON_TEXTURE_SCALE
 
@@ -860,6 +904,10 @@ void main()
 	vec3 nightGlow = vec3(0.0);
 	vec3 sunColorMod = vec3(1.0);
 	vec4 sun = vec4(0.0);
+	vec4 clouds = vec4(0.0);
+#ifdef __CLOUDS__
+	float cloudiness = clamp(CLOUDS_CLOUDCOVER*0.3, 0.0, 0.3);
+#endif //__CLOUDS__
 
 	if (USE_TRIPLANAR > 0.0 || USE_REGIONS > 0.0)
 	{// Can skip nearly everything... These are always going to be solid color...
@@ -911,11 +959,32 @@ void main()
 			gl_FragColor.a = 1.0;
 		}
 
+#ifdef __CLOUDS__
+		if (CLOUDS_ENABLED > 0.0 && SHADER_SKY_DIRECTION != 5.0)
+		{// Procedural clouds are enabled...
+			float nMult = 1.0;
+			float cdMult = 1.0;
+
+			if (cloudiness >= 0.175)
+			{// Darken thick clouds...
+				cdMult = clamp(1.5 - ((cloudiness - 0.175) / 0.125), 0.0, 1.0);
+			}
+			
+			if (SHADER_DAY_NIGHT_ENABLED > 0.0 && SHADER_NIGHT_SCALE > 0.0)
+			{// Adjust cloud color at night...
+				nMult = clamp(1.5 - SHADER_NIGHT_SCALE, 0.0, 1.0);
+			}
+
+			nMult = min(cdMult, nMult);
+			clouds = Clouds(nMult);
+		}
+#endif //__CLOUDS__
+
 		GetSun(sun, var_Position);
 
 		if (sun.a > 0.0)
 		{
-			gl_FragColor = vec4(sun.rgb * sunColorMod, sun.a);
+			gl_FragColor = vec4(sun.rgb * sunColorMod, sun.a*(1.0-clouds.a));
 		}
 
 		if (SHADER_SKY_DIRECTION == 5.0 && SHADER_DAY_NIGHT_ENABLED > 0.0 && SHADER_NIGHT_SCALE >= 1.0)
@@ -1035,25 +1104,8 @@ void main()
 		}
 
 #ifdef __CLOUDS__
-		if (CLOUDS_ENABLED > 0.0 && SHADER_SKY_DIRECTION != 5.0)
+		if (CLOUDS_ENABLED > 0.0 && SHADER_SKY_DIRECTION != 5.0 && clouds.a > 0.0)
 		{// Procedural clouds are enabled...
-			float cloudiness = clamp(CLOUDS_CLOUDCOVER*0.3, 0.0, 0.3);
-			float nMult = 1.0;
-			float cdMult = 1.0;
-
-			if (cloudiness >= 0.175)
-			{// Darken thick clouds...
-				cdMult = clamp(1.5 - ((cloudiness - 0.175) / 0.125), 0.0, 1.0);
-			}
-			
-			if (SHADER_DAY_NIGHT_ENABLED > 0.0 && SHADER_NIGHT_SCALE > 0.0)
-			{// Adjust cloud color at night...
-				nMult = clamp(1.5 - SHADER_NIGHT_SCALE, 0.0, 1.0);
-			}
-
-			nMult = min(cdMult, nMult);
-			vec4 clouds = Clouds(nMult);
-
 			gl_FragColor.rgb = mix(gl_FragColor.rgb, clouds.rgb, clouds.a);
 
 #ifdef __LIGHTNING__
@@ -1112,7 +1164,7 @@ void main()
 	else
 	{
 		if (sun.a > 0.0 && terrainColor.a <= 0.0)
-			out_Glow = sun;
+			out_Glow = sun*0.3*(1.0-clouds.a);
 		else
 			out_Glow = vec4(0.0);
 	}

@@ -314,6 +314,12 @@ void RB_InstantQuad(vec4_t quadVerts[4])
 	GLSL_SetUniformMatrix16(&tr.textureColorShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
 	GLSL_SetUniformVec4(&tr.textureColorShader, UNIFORM_COLOR, colorWhite);
 
+	if (tr.textureColorShader.isBindless)
+	{
+		GLSL_SetBindlessTexture(&tr.textureColorShader, UNIFORM_DIFFUSEMAP, &tr.whiteImage, 0);
+		GLSL_BindlessUpdate(&tr.textureColorShader);
+	}
+
 	RB_InstantQuad2(quadVerts, texCoords);
 }
 
@@ -741,7 +747,7 @@ static qboolean RB_SurfaceVbo(VBO_t *vbo, IBO_t *ibo, int numVerts, int numIndex
 #endif
 
 #ifdef __MERGE_DEPTHPASS_DRAWS__
-	if (backEnd.depthFill)
+	if (backEnd.depthFill && !(backEnd.refdef.rdflags & RDF_NOWORLDMODEL))
 	{
 		if (tess.shader->hasAlphaTestBits <= 0 /*|| tess.shader->hasSplatMaps > 0*/ || tess.shader->isSky)
 		{// In depth pass, set all solid draws to defaultshader, so they can all get merged together...
@@ -752,7 +758,7 @@ static qboolean RB_SurfaceVbo(VBO_t *vbo, IBO_t *ibo, int numVerts, int numIndex
 				, tess.shader->hasSplatMaps
 				, tess.shader->isSky ? "true" : "false");*/
 
-			tess.shader = tr.defaultShader;
+			tess.shader = tr.purpleShader;
 		}
 	}
 #endif //__MERGE_DEPTHPASS_DRAWS__
@@ -977,6 +983,12 @@ static void RB_SurfaceBeam( void )
 	GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
 					
 	GLSL_SetUniformVec4(sp, UNIFORM_COLOR, colorRed);
+
+	if (tr.textureColorShader.isBindless)
+	{
+		GLSL_SetBindlessTexture(&tr.textureColorShader, UNIFORM_DIFFUSEMAP, &tr.whiteImage, 0);
+		GLSL_BindlessUpdate(&tr.textureColorShader);
+	}
 
 	R_DrawElementsVBO(tess.numIndexes, tess.firstIndex, tess.minIndex, tess.maxIndex, tess.numVertexes, qfalse);
 

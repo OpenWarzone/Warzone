@@ -1,15 +1,15 @@
-uniform sampler2D u_ShadowMap;
+uniform sampler2D						u_ShadowMap;
 
-//uniform vec3      u_LightForward;
-uniform vec3      u_LightUp;
-uniform vec3      u_LightRight;
-uniform vec4      u_LightOrigin;
-uniform float     u_LightRadius;
-uniform vec3      u_ViewOrigin;
+//uniform vec3							u_LightForward;
+uniform vec3							u_LightUp;
+uniform vec3							u_LightRight;
+uniform vec4							u_LightOrigin;
+uniform float							u_LightRadius;
+uniform vec3							u_ViewOrigin;
 
-uniform vec4      u_Local0;			// shadowMapSize, testshadervalues
-uniform vec4      u_Local1;			// realLightOrigin[0], realLightOrigin[1], realLightOrigin[2], usingTessellation
-uniform vec4      u_Local2;			// playerOrigin[0], playerOrigin[1], playerOrigin[2], invLightPower
+uniform vec4							u_Local0;			// shadowMapSize, testshadervalues
+uniform vec4							u_Local1;			// realLightOrigin[0], realLightOrigin[1], realLightOrigin[2], usingTessellation
+uniform vec4							u_Local2;			// playerOrigin[0], playerOrigin[1], playerOrigin[2], invLightPower
 
 #if defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
 	in precise vec3				WorldPos_FS_in;

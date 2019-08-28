@@ -6610,6 +6610,46 @@ typedef void (APIENTRYP PFNGLGETBUFFERPARAMETERIVPROC) (GLenum target, GLenum pn
 typedef void (APIENTRYP PFNGLGETBUFFERPOINTERVPROC) (GLenum target, GLenum pname, GLvoid* *params);
 #endif
 
+#ifndef GL_ARB_bindless_texture
+#define GL_ARB_bindless_texture 1
+typedef uint64_t GLuint64EXT;
+#define GL_UNSIGNED_INT64_ARB             0x140F
+typedef GLuint64(APIENTRYP PFNGLGETTEXTUREHANDLEARBPROC) (GLuint texture);
+typedef GLuint64(APIENTRYP PFNGLGETTEXTURESAMPLERHANDLEARBPROC) (GLuint texture, GLuint sampler);
+typedef void (APIENTRYP PFNGLMAKETEXTUREHANDLERESIDENTARBPROC) (GLuint64 handle);
+typedef void (APIENTRYP PFNGLMAKETEXTUREHANDLENONRESIDENTARBPROC) (GLuint64 handle);
+typedef GLuint64(APIENTRYP PFNGLGETIMAGEHANDLEARBPROC) (GLuint texture, GLint level, GLboolean layered, GLint layer, GLenum format);
+typedef void (APIENTRYP PFNGLMAKEIMAGEHANDLERESIDENTARBPROC) (GLuint64 handle, GLenum access);
+typedef void (APIENTRYP PFNGLMAKEIMAGEHANDLENONRESIDENTARBPROC) (GLuint64 handle);
+typedef void (APIENTRYP PFNGLUNIFORMHANDLEUI64ARBPROC) (GLint location, GLuint64 value);
+typedef void (APIENTRYP PFNGLUNIFORMHANDLEUI64VARBPROC) (GLint location, GLsizei count, const GLuint64 *value);
+typedef void (APIENTRYP PFNGLPROGRAMUNIFORMHANDLEUI64ARBPROC) (GLuint program, GLint location, GLuint64 value);
+typedef void (APIENTRYP PFNGLPROGRAMUNIFORMHANDLEUI64VARBPROC) (GLuint program, GLint location, GLsizei count, const GLuint64 *values);
+typedef GLboolean(APIENTRYP PFNGLISTEXTUREHANDLERESIDENTARBPROC) (GLuint64 handle);
+typedef GLboolean(APIENTRYP PFNGLISIMAGEHANDLERESIDENTARBPROC) (GLuint64 handle);
+typedef void (APIENTRYP PFNGLVERTEXATTRIBL1UI64ARBPROC) (GLuint index, GLuint64EXT x);
+typedef void (APIENTRYP PFNGLVERTEXATTRIBL1UI64VARBPROC) (GLuint index, const GLuint64EXT *v);
+typedef void (APIENTRYP PFNGLGETVERTEXATTRIBLUI64VARBPROC) (GLuint index, GLenum pname, GLuint64EXT *params);
+#ifdef GL_GLEXT_PROTOTYPES
+GLAPI GLuint64 APIENTRY glGetTextureHandleARB(GLuint texture);
+GLAPI GLuint64 APIENTRY glGetTextureSamplerHandleARB(GLuint texture, GLuint sampler);
+GLAPI void APIENTRY glMakeTextureHandleResidentARB(GLuint64 handle);
+GLAPI void APIENTRY glMakeTextureHandleNonResidentARB(GLuint64 handle);
+GLAPI GLuint64 APIENTRY glGetImageHandleARB(GLuint texture, GLint level, GLboolean layered, GLint layer, GLenum format);
+GLAPI void APIENTRY glMakeImageHandleResidentARB(GLuint64 handle, GLenum access);
+GLAPI void APIENTRY glMakeImageHandleNonResidentARB(GLuint64 handle);
+GLAPI void APIENTRY glUniformHandleui64ARB(GLint location, GLuint64 value);
+GLAPI void APIENTRY glUniformHandleui64vARB(GLint location, GLsizei count, const GLuint64 *value);
+GLAPI void APIENTRY glProgramUniformHandleui64ARB(GLuint program, GLint location, GLuint64 value);
+GLAPI void APIENTRY glProgramUniformHandleui64vARB(GLuint program, GLint location, GLsizei count, const GLuint64 *values);
+GLAPI GLboolean APIENTRY glIsTextureHandleResidentARB(GLuint64 handle);
+GLAPI GLboolean APIENTRY glIsImageHandleResidentARB(GLuint64 handle);
+GLAPI void APIENTRY glVertexAttribL1ui64ARB(GLuint index, GLuint64EXT x);
+GLAPI void APIENTRY glVertexAttribL1ui64vARB(GLuint index, const GLuint64EXT *v);
+GLAPI void APIENTRY glGetVertexAttribLui64vARB(GLuint index, GLenum pname, GLuint64EXT *params);
+#endif
+#endif /* GL_ARB_bindless_texture */
+
 #ifndef GL_VERSION_2_0
 #define GL_VERSION_2_0 1
 #ifdef GL_GLEXT_PROTOTYPES

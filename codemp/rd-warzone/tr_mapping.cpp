@@ -2451,26 +2451,26 @@ void MAPPING_LoadMapInfo(void)
 
 	if (SHADOWS_ENABLED)
 	{
-		SHADOWS_FULL_SOLID = (atoi(IniRead(mapname, "SHADOWS", "SHADOWS_FULL_SOLID", "0")) > 0) ? qtrue : qfalse;
-		SHADOW_CASCADE1 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE1", "384"));
-		SHADOW_CASCADE2 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE2", "2048"));
-		SHADOW_CASCADE3 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE3", "8192"));
-		SHADOW_CASCADE4 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE4", "32768"));
-		SHADOW_CASCADE_BIAS1 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE_BIAS1", "32"));
-		SHADOW_CASCADE_BIAS2 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE_BIAS2", "256"));
-		SHADOW_CASCADE_BIAS3 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE_BIAS3", "1024"));
-		SHADOW_CASCADE_BIAS4 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE_BIAS4", "2048"));
+		SHADOWS_FULL_SOLID = (atoi(IniRead(mapname, "SHADOWS", "SHADOWS_FULL_SOLID", "1")) > 0) ? qtrue : qfalse;
+		SHADOW_CASCADE1 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE1", "512"));
+		SHADOW_CASCADE2 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE2", "3192"));
+		SHADOW_CASCADE3 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE3", "12288"));
+		SHADOW_CASCADE4 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE4", "65536"));
+		SHADOW_CASCADE_BIAS1 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE_BIAS1", va("%i", SHADOW_CASCADE_BIAS1 / 2)));
+		SHADOW_CASCADE_BIAS2 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE_BIAS2", va("%i", SHADOW_CASCADE1)));
+		SHADOW_CASCADE_BIAS3 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE_BIAS3", va("%i", SHADOW_CASCADE2)));
+		SHADOW_CASCADE_BIAS4 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE_BIAS4", va("%i", SHADOW_CASCADE3)));
 		SHADOW_Z_ERROR_OFFSET_NEAR = atof(IniRead(mapname, "SHADOWS", "SHADOW_Z_ERROR_OFFSET_NEAR", "0.0"));
 		SHADOW_Z_ERROR_OFFSET_MID = atof(IniRead(mapname, "SHADOWS", "SHADOW_Z_ERROR_OFFSET_MID", "0.0"));
 		SHADOW_Z_ERROR_OFFSET_MID2 = atof(IniRead(mapname, "SHADOWS", "SHADOW_Z_ERROR_OFFSET_MID2", "0.0"));
 		SHADOW_Z_ERROR_OFFSET_MID3 = atof(IniRead(mapname, "SHADOWS", "SHADOW_Z_ERROR_OFFSET_MID3", "0.0"));
 		SHADOW_Z_ERROR_OFFSET_FAR = atof(IniRead(mapname, "SHADOWS", "SHADOW_Z_ERROR_OFFSET_FAR", "0.0"));
-		SHADOW_MINBRIGHT = atof(IniRead(mapname, "SHADOWS", "SHADOW_MINBRIGHT", "0.7"));
-		SHADOW_MAXBRIGHT = atof(IniRead(mapname, "SHADOWS", "SHADOW_MAXBRIGHT", "1.0"));
-		SHADOW_FORCE_UPDATE_ANGLE_CHANGE = atof(IniRead(mapname, "SHADOWS", "SHADOW_FORCE_UPDATE_ANGLE_CHANGE", "32.0"));
+		SHADOW_MINBRIGHT = atof(IniRead(mapname, "SHADOWS", "SHADOW_MINBRIGHT", "0.55"));
+		SHADOW_MAXBRIGHT = atof(IniRead(mapname, "SHADOWS", "SHADOW_MAXBRIGHT", "1.25"));
+		SHADOW_FORCE_UPDATE_ANGLE_CHANGE = atof(IniRead(mapname, "SHADOWS", "SHADOW_FORCE_UPDATE_ANGLE_CHANGE", "0.0"));
 		SHADOW_SOFT = (atoi(IniRead(mapname, "SHADOWS", "SHADOW_SOFT", "1")) > 0) ? qtrue : qfalse;
-		SHADOW_SOFT_WIDTH = atof(IniRead(mapname, "SHADOWS", "SHADOW_SOFT_WIDTH", "2.0"));
-		SHADOW_SOFT_STEP = atof(IniRead(mapname, "SHADOWS", "SHADOW_SOFT_STEP", "1.0"));
+		SHADOW_SOFT_WIDTH = atof(IniRead(mapname, "SHADOWS", "SHADOW_SOFT_WIDTH", "0.5"));
+		SHADOW_SOFT_STEP = atof(IniRead(mapname, "SHADOWS", "SHADOW_SOFT_STEP", "0.5"));
 
 		if (r_lowVram->integer)
 		{

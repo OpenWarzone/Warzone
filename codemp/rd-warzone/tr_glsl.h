@@ -46,7 +46,7 @@ void GLSL_AttachRenderGUITextures(void);
 void GLSL_AttachWaterTextures(void);
 bool GLSL_EndLoadGPUShader(shaderProgram_t *program);
 int GLSL_BeginLoadGPUShader(shaderProgram_t * program, const char *name,
-	int attribs, qboolean fragmentShader, qboolean tesselation, qboolean geometry, const GLcharARB *extra, qboolean addHeader,
+	int attribs, qboolean fragmentShader, qboolean tesselation, qboolean geometry, qboolean isBindless, const GLcharARB *extra, qboolean addHeader,
 	char *forceVersion, const char *fallback_vp, const char *fallback_fp, const char *fallback_cp, const char *fallback_ep, const char *fallback_gs);
 void GLSL_InitUniforms(shaderProgram_t *program);
 void GLSL_FinishGPUShader(shaderProgram_t *program);
@@ -71,5 +71,6 @@ void GLSL_BindProgram(shaderProgram_t * program);
 void GLSL_VertexAttribsState(uint32_t stateBits);
 void GLSL_UpdateTexCoordVertexAttribPointers(uint32_t attribBits);
 void GLSL_VertexAttribPointers(uint32_t attribBits);
+void GLSL_BindlessUpdate(shaderProgram_t *program);
 
 #endif

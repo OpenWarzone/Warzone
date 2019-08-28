@@ -91,6 +91,12 @@ void CQuickSpriteSystem::Flush(void)
 	GLSL_SetUniformMatrix16(&tr.textureColorShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
 	GLSL_SetUniformVec4(&tr.textureColorShader, UNIFORM_COLOR, colorWhite);
 
+	if (tr.textureColorShader.isBindless)
+	{
+		GLSL_SetBindlessTexture(&tr.textureColorShader, UNIFORM_DIFFUSEMAP, &tr.whiteImage, 0);
+		GLSL_BindlessUpdate(&tr.textureColorShader);
+	}
+
 	tess.numVertexes = 0;
 	tess.numIndexes = 0;
 	tess.firstIndex = 0;

@@ -9390,12 +9390,14 @@ static void ScanAndLoadShaderFiles( void )
 				strcpy(ext, ".mtr");
 			}
 
-			if ( ri->FS_ReadFile( filename, NULL ) <= 0 )
+			fileHandle_t f;
+			if ( /*ri->FS_ReadFile( filename, NULL ) <= 0*/ri->FS_FOpenFileRead(filename, &f, qtrue) ) // why read the whole file here ffs???
 			{
+				ri->FS_FCloseFile(f);
 				Com_sprintf( filename, sizeof( filename ), "shaders/%s", shaderFiles[i] );
 			}
 
-			ri->Printf(PRINT_WARNING, "%i: %s.\n", i, filename);
+			//ri->Printf(PRINT_WARNING, "%i: %s.\n", i, filename);
 		}
 
 		ri->Printf( PRINT_DEVELOPER, "...loading '%s'\n", filename );

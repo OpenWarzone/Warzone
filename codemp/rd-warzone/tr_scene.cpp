@@ -1491,11 +1491,13 @@ void RE_RenderScene(const refdef_t *fd) {
 		// Always update close shadows, so players/npcs moving around get shadows, even if the player's view doesn't change...
 		R_RenderSunShadowMaps(fd, 0, lightDir, lightHeight, lightOrigin);
 		R_RenderSunShadowMaps(fd, 1, lightDir, lightHeight, lightOrigin);
+		R_RenderSunShadowMaps(fd, 2, lightDir, lightHeight, lightOrigin);
+		R_RenderSunShadowMaps(fd, 3, lightDir, lightHeight, lightOrigin);
 
 		// Timed updates for distant shadows, or forced by view change...
 		if (nowTime >= NEXT_SHADOWMAP_UPDATE[0] || forceUpdate)
 		{
-			R_RenderSunShadowMaps(fd, 2, lightDir, lightHeight, lightOrigin);
+			R_RenderSunShadowMaps(fd, 4, lightDir, lightHeight, lightOrigin);
 			//NEXT_SHADOWMAP_UPDATE[0] = nowTime + 5000;
 			NEXT_SHADOWMAP_UPDATE[0] = nowTime + 10000;
 

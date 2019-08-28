@@ -475,7 +475,7 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 
 	if (backEnd.depthFill)
 	{
-		shaderProgram_t *sp = &tr.shadowmapShader[0];
+		shaderProgram_t *sp = &tr.shadowFillShader[0];
 		vec4_t vector;
 
 		//RB_UpdateVBOs(ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL);
@@ -641,11 +641,18 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 
 			GLSL_SetUniformVec4xX(sp, UNIFORM_MOON_INFOS, moonInfos, MOON_COUNT);
 			GLSL_SetUniformVec2xX(sp, UNIFORM_MOON_INFOS2, moonInfos2, MOON_COUNT);
-			GLSL_SetUniformIntxX(sp, UNIFORM_MOONMAPS, moonBundles, MOON_COUNT);
+
+			if (!sp->isBindless)
+			{
+				GLSL_SetUniformIntxX(sp, UNIFORM_MOONMAPS, moonBundles, MOON_COUNT);
+			}
 
 			for (int i = 0; i < MOON_COUNT; i++)
 			{
-				GL_BindToTMU(tr.moonImage[i], TB_MOONMAP1 + i);
+				if (sp->isBindless)
+					GLSL_SetBindlessTexture(sp, UNIFORM_MOONMAPS, tr.moonImage, i);
+				else
+					GL_BindToTMU(tr.moonImage[i], TB_MOONMAP1 + i);
 			}
 		}
 
@@ -698,21 +705,31 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 
 		GLSL_SetUniformFloat(sp, UNIFORM_TIME, tr.refdef.floatTime);
 		
-		// Night image...
-		GLSL_SetUniformInt(sp, UNIFORM_OVERLAYMAP, TB_OVERLAYMAP);
-		GL_BindToTMU(nightImage, TB_OVERLAYMAP);
+		if (sp->isBindless)
+		{
+			GLSL_SetBindlessTexture(sp, UNIFORM_OVERLAYMAP, &nightImage, 0);
+			GLSL_SetBindlessTexture(sp, UNIFORM_SPLATMAP1, &tr.auroraImage[0], 0);
+			GLSL_SetBindlessTexture(sp, UNIFORM_SPLATMAP2, &tr.auroraImage[1], 0);
+			GLSL_SetBindlessTexture(sp, UNIFORM_SPLATMAP3, &tr.defaultSplatControlImage, 0);
+			GLSL_SetBindlessTexture(sp, UNIFORM_ROADMAP, &tr.random2KImage[0], 0);
+		}
+		else
+		{
+			GLSL_SetUniformInt(sp, UNIFORM_OVERLAYMAP, TB_OVERLAYMAP);
+			GL_BindToTMU(nightImage, TB_OVERLAYMAP);
+		
+			GLSL_SetUniformInt(sp, UNIFORM_SPLATMAP1, TB_SPLATMAP1);
+			GL_BindToTMU(tr.auroraImage[0], TB_SPLATMAP1);
 
-		GLSL_SetUniformInt(sp, UNIFORM_SPLATMAP1, TB_SPLATMAP1);
-		GL_BindToTMU(tr.auroraImage[0], TB_SPLATMAP1);
+			GLSL_SetUniformInt(sp, UNIFORM_SPLATMAP2, TB_SPLATMAP2);
+			GL_BindToTMU(tr.auroraImage[1], TB_SPLATMAP2);
 
-		GLSL_SetUniformInt(sp, UNIFORM_SPLATMAP2, TB_SPLATMAP2);
-		GL_BindToTMU(tr.auroraImage[1], TB_SPLATMAP2);
+			GLSL_SetUniformInt(sp, UNIFORM_SPLATMAP3, TB_SPLATMAP3);
+			GL_BindToTMU(tr.defaultSplatControlImage, TB_SPLATMAP3);
 
-		GLSL_SetUniformInt(sp, UNIFORM_SPLATMAP3, TB_SPLATMAP3);
-		GL_BindToTMU(tr.defaultSplatControlImage, TB_SPLATMAP3);
-
-		GLSL_SetUniformInt(sp, UNIFORM_ROADMAP, TB_ROADMAP);
-		GL_BindToTMU(tr.random2KImage[0], TB_ROADMAP);
+			GLSL_SetUniformInt(sp, UNIFORM_ROADMAP, TB_ROADMAP);
+			GL_BindToTMU(tr.random2KImage[0], TB_ROADMAP);
+		}
 
 		//if (r_testvalue0->integer)
 			GLSL_SetUniformVec3(sp, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);
@@ -749,6 +766,11 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 #ifdef __CHEAP_VERTS__
 		GLSL_SetUniformInt(sp, UNIFORM_WORLD, 1);
 #endif //__CHEAP_VERTS__
+
+		if (sp->isBindless)
+		{
+			GLSL_BindlessUpdate(sp);
+		}
 	}
 
 	backEnd.pc.c_skyDraws++;

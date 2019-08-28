@@ -739,6 +739,7 @@ typedef enum
 	IMGTYPE_ROADMAP,
 	IMGTYPE_DETAILMAP,
 	IMGTYPE_ROOFMAP,
+	IMGTYPE_SHADOW,
 } imgType_t;
 
 typedef enum
@@ -767,7 +768,8 @@ typedef struct image_s {
 	char		imgName[MAX_IMAGE_PATH];		// game path, including extension
 	int			width, height;				// source image
 	int			uploadWidth, uploadHeight;	// after power of two and picmip but not including clamp to MAX_TEXTURE_SIZE
-	GLuint		texnum;					// gl texture binding
+	GLuint		texnum;						// gl texture binding
+	GLuint64	bindlessHandle;				// bindless texture handle
 
 	int			frameUsed;			// for texture usage in frame statistics
 
@@ -798,6 +800,48 @@ typedef struct image_s {
 
 	struct image_s*	next;
 } image_t;
+
+typedef struct bindlessTexturesBlock_s
+{
+	GLuint64 					u_DiffuseMap;
+	GLuint64 					u_LightMap;
+	GLuint64 					u_NormalMap;
+	GLuint64 					u_DeluxeMap;
+	GLuint64 					u_SpecularMap;
+	GLuint64 					u_PositionMap;
+	GLuint64 					u_WaterPositionMap;
+	GLuint64 					u_WaterHeightMap;
+	GLuint64 					u_HeightMap;
+	GLuint64 					u_GlowMap;
+	GLuint64 					u_EnvironmentMap;
+	GLuint64 					u_TextureMap;
+	GLuint64 					u_LevelsMap;
+	GLuint64 					u_CubeMap;
+	GLuint64 					u_SkyCubeMap;
+	GLuint64 					u_SkyCubeMapNight;
+	GLuint64 					u_EmissiveCubeMap;
+	GLuint64 					u_OverlayMap;
+	GLuint64 					u_SteepMap;
+	GLuint64 					u_SteepMap1;
+	GLuint64 					u_SteepMap2;
+	GLuint64 					u_SteepMap3;
+	GLuint64 					u_WaterEdgeMap;
+	GLuint64 					u_SplatControlMap;
+	GLuint64 					u_SplatMap1;
+	GLuint64 					u_SplatMap2;
+	GLuint64 					u_SplatMap3;
+	GLuint64 					u_RoadsControlMap;
+	GLuint64 					u_RoadMap;
+	GLuint64 					u_DetailMap;
+	GLuint64 					u_ScreenImageMap;
+	GLuint64 					u_ScreenDepthMap;
+	GLuint64 					u_ShadowMap;
+	GLuint64 					u_ShadowMap2;
+	GLuint64 					u_ShadowMap3;
+	GLuint64 					u_ShadowMap4;
+	GLuint64 					u_ShadowMap5;
+	GLuint64 					u_MoonMaps[4];
+} bindlessTexturesBlock_t;
 
 typedef struct dlight_s {
 	vec3_t	origin;
@@ -1640,8 +1684,6 @@ typedef enum
 	UNIFORM_ROADMAP,
 	UNIFORM_DETAILMAP,
 
-	UNIFORM_MOONMAPS,
-
 	UNIFORM_SCREENIMAGEMAP,
 	UNIFORM_SCREENDEPTHMAP,
 
@@ -1650,6 +1692,8 @@ typedef enum
 	UNIFORM_SHADOWMAP3,
 	UNIFORM_SHADOWMAP4,
 	UNIFORM_SHADOWMAP5,
+
+	UNIFORM_MOONMAPS,
 
 	UNIFORM_SHADOWMVP,
 	UNIFORM_SHADOWMVP2,
@@ -1844,6 +1888,13 @@ typedef struct shaderProgram_s
 	char vertexText[MAX_GLSL_LENGTH];
 	char fragText[MAX_GLSL_LENGTH];
 	int usageCount;
+
+	qboolean					isBindless;
+
+	GLuint						bindLessBindingPoint = 0;
+	bindlessTexturesBlock_t		bindlessBlock;
+	bindlessTexturesBlock_t		bindlessBlockPrevious;
+	GLuint						bindlessBlockUBO = 0;
 
 #ifdef __USE_GLSL_SHADER_CACHE__
 	qboolean binaryLoaded = qfalse;
@@ -2736,6 +2787,8 @@ typedef struct {
 	qboolean immutableTextures;
 
 	qboolean floatLightmap;
+
+	qboolean bindlessTextures;
 } glRefConfig_t;
 
 
@@ -2960,6 +3013,7 @@ typedef struct trGlobals_s {
 	image_t					*targetLevelsImage;
 	image_t					*fixedLevelsImage;
 	image_t					*sunShadowDepthImage[5];
+	image_t					*sunSoftShadowImage[5];
 	image_t                 *screenShadowImage;
 	image_t                 *screenShadowBlurTempImage;
 	image_t                 *screenShadowBlurImage;
@@ -3010,6 +3064,7 @@ typedef struct trGlobals_s {
 	FBO_t					*calcLevelsFbo;
 	FBO_t					*targetLevelsFbo;
 	FBO_t					*sunShadowFbo[5];
+	FBO_t					*sunSoftShadowFbo[5];
 	FBO_t					*screenShadowFbo;
 	FBO_t					*screenShadowBlurTempFbo;
 	FBO_t					*screenShadowBlurFbo;
@@ -3021,6 +3076,7 @@ typedef struct trGlobals_s {
 	shader_t				*shadowShader;
 	shader_t				*distortionShader;
 	shader_t				*projectionShadowShader;
+	shader_t				*purpleShader;
 
 	shader_t				*flareShader;
 	shader_t				*sunShader;
@@ -3082,7 +3138,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t magicParticlesFireFlyShader;
 	shaderProgram_t portalShader;
 	shaderProgram_t menuBackgroundShader;
-	shaderProgram_t shadowmapShader[4];
+	shaderProgram_t shadowFillShader[4];
 	shaderProgram_t pshadowShader[4];
 	shaderProgram_t down4xShader;
 	shaderProgram_t bokehShader;
@@ -3147,6 +3203,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t volumeLightInvertedShader[3];
 	shaderProgram_t volumeLightCombineShader;
 	shaderProgram_t fastBlurShader;
+	shaderProgram_t shadowBlurShader;
 	shaderProgram_t bloomRaysShader;
 	shaderProgram_t distanceBlurShader[4];
 	shaderProgram_t dofFocusDepthShader;
@@ -3675,6 +3732,7 @@ void    GL_SetProjectionMatrix(matrix_t matrix);
 void    GL_SetModelviewMatrix(matrix_t matrix);
 void	GL_TexEnv( int env );
 void	GL_Cull( int cullType );
+void	GLSL_SetBindlessTexture(shaderProgram_t *program, int uniformNum, image_t **images, int arrayID);
 
 #define LERP( a, b, w ) ( ( a ) * ( 1.0f - ( w ) ) + ( b ) * ( w ) )
 #define LUMA( red, green, blue ) ( 0.2126f * ( red ) + 0.7152f * ( green ) + 0.0722f * ( blue ) )
@@ -4431,6 +4489,7 @@ void R_AddDecals( void );
 
 image_t	*R_FindImageFile( const char *name, imgType_t type, int flags );
 image_t	*R_BakeTextures(char names[16][512], int numNames, const char *outputName, imgType_t type, int flags);
+void GL_SetupBindlessTexture(image_t *image);
 
 #ifdef __DEFERRED_IMAGE_LOADING__
 image_t	*R_DeferImageLoad(const char *name, imgType_t type, int flags);
