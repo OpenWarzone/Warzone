@@ -4754,8 +4754,6 @@ void R_CreateBuiltinImages( void ) {
 		skyImagesData[z] = NULL;
 	VectorSet4(tr.greyCube->lightColor, 0.0, 0.0, 0.0, 1.0);
 	
-	tr.purpleShader = R_FindShader("gfx/colors/purple", lightmapsNone, stylesDefault, qtrue);
-
 	tr.randomImage = R_FindImageFile("gfx/random.png", IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_CLAMPTOEDGE | IMGFLAG_MIPMAP /*| IMGFLAG_NO_COMPRESSION*/);
 
 	/*if (r_shadows->integer == 3)

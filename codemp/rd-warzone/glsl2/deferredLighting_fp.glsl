@@ -1549,7 +1549,12 @@ void main(void)
 	{
 		float shadowValue = texture(u_ShadowMap, texCoords).r;
 		float selfShadow = max(dot(flatNorm, -sunDir.rgb), 0.0);
-		//selfShadow = 1.0-pow(1.0-selfShadow, 6.0);
+
+		if (position.a - 1.0 == MATERIAL_PROCEDURALFOLIAGE)
+		{
+			selfShadow = clamp(selfShadow + 0.5, 0.0, 1.0);
+		}
+
 		shadowValue = min(shadowValue, selfShadow);
 
 		shadowValue = pow(shadowValue, 1.5);

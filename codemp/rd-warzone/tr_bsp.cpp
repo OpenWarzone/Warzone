@@ -6973,4 +6973,6 @@ void RE_LoadWorldMap(const char *name) {
 	tr.worldMapLoaded = qtrue;
 
 	RT_LoadWorldMapExtras();
+
+	tr.purpleShader = R_FindShader("gfx/colors/purple", lightmapsNone, stylesDefault, qtrue);
 }
