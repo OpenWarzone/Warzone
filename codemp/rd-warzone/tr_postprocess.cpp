@@ -343,8 +343,9 @@ qboolean RB_UpdateSunFlareVis(void)
 			if (available)
 				break;
 		}
-
+#ifdef __DEVELOPER_MODE__
 		ri->Printf(PRINT_DEVELOPER, "Waited %d iterations\n", iter);
+#endif //__DEVELOPER_MODE__
 	}
 	
 	qglGetQueryObjectuiv(tr.sunFlareQuery[tr.sunFlareQueryIndex], GL_QUERY_RESULT, &sampleCount);
@@ -1540,7 +1541,6 @@ qboolean RB_GenerateVolumeLightImage(void)
 
 qboolean RB_VolumetricLight(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	vec4_t color;
 	int NUM_VISIBLE_LIGHTS = 0;
 	int SUN_ID = -1;
 
@@ -2580,15 +2580,189 @@ extern vec3_t		CLOSEST_LIGHTS_CONEDIRECTIONS[MAX_DEFERRED_LIGHTS];
 
 qboolean			DEFERRED_LIGHT_HAVE_CONEANGLES = qfalse;
 
+void RB_FastLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
+{
+	shaderProgram_t *shader = &tr.fastLightingShader;
+
+	GLSL_BindProgram(shader);
+
+	if (shader->isBindless)
+	{
+		GLSL_SetBindlessTexture(shader, UNIFORM_DIFFUSEMAP, &hdrFbo->colorImage[0], 0);
+		GLSL_SetBindlessTexture(shader, UNIFORM_NORMALMAP, &tr.renderNormalImage, 0);
+		GLSL_SetBindlessTexture(shader, UNIFORM_POSITIONMAP, &tr.renderPositionMapImage, 0);
+		GLSL_SetBindlessTexture(shader, UNIFORM_ROADSCONTROLMAP, &tr.renderPshadowsImage, 0);
+
+		if (SHADOWS_ENABLED)
+		{
+			if (SHADOW_SOFT)
+			{
+				GLSL_SetBindlessTexture(shader, UNIFORM_SHADOWMAP, &tr.screenShadowBlurImage, 0);
+			}
+			else
+			{
+				GLSL_SetBindlessTexture(shader, UNIFORM_SHADOWMAP, &tr.screenShadowImage, 0);
+			}
+		}
+		else
+		{
+			GLSL_SetBindlessTexture(shader, UNIFORM_SHADOWMAP, &tr.whiteImage, 0);
+		}
+	}
+	else
+	{
+		GLSL_SetUniformInt(shader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+		GL_BindToTMU(hdrFbo->colorImage[0], TB_DIFFUSEMAP);
+
+		GLSL_SetUniformInt(shader, UNIFORM_NORMALMAP, TB_NORMALMAP);
+		GL_BindToTMU(tr.renderNormalImage, TB_NORMALMAP);
+
+		GLSL_SetUniformInt(shader, UNIFORM_POSITIONMAP, TB_POSITIONMAP);
+		GL_BindToTMU(tr.renderPositionMapImage, TB_POSITIONMAP);
+
+		if (SHADOWS_ENABLED)
+		{
+			if (SHADOW_SOFT)
+			{
+				GLSL_SetUniformInt(shader, UNIFORM_SHADOWMAP, TB_SHADOWMAP);
+				GL_BindToTMU(tr.screenShadowBlurImage, TB_SHADOWMAP);
+			}
+			else
+			{
+				GLSL_SetUniformInt(shader, UNIFORM_SHADOWMAP, TB_SHADOWMAP);
+				GL_BindToTMU(tr.screenShadowImage, TB_SHADOWMAP);
+			}
+		}
+		else
+		{
+			GLSL_SetUniformInt(shader, UNIFORM_SHADOWMAP, TB_SHADOWMAP);
+			GL_BindToTMU(tr.whiteImage, TB_SHADOWMAP);
+		}
+
+		GLSL_SetUniformInt(shader, UNIFORM_ROADSCONTROLMAP, TB_ROADSCONTROLMAP);
+		GL_BindToTMU(tr.renderPshadowsImage, TB_ROADSCONTROLMAP);
+	}
+
+
+	{
+		NUM_CURRENT_EMISSIVE_LIGHTS = r_lowVram->integer ? min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, 8.0)) : min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, MAX_DEFERRED_LIGHTS));
+
+		float maxDist = 0.0;
+
+		if (NUM_CURRENT_EMISSIVE_LIGHTS >= r_maxDeferredLights->integer / 2)
+		{
+			for (int i = 0; i < NUM_CURRENT_EMISSIVE_LIGHTS; i++)
+			{
+				float dist = Distance(backEnd.refdef.vieworg, CLOSEST_LIGHTS_POSITIONS[i]);
+				if (dist > maxDist)
+				{
+					maxDist = dist;
+				}
+			}
+		}
+
+		GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, NUM_CURRENT_EMISSIVE_LIGHTS);
+		GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTPOSITIONS2, CLOSEST_LIGHTS_POSITIONS, NUM_CURRENT_EMISSIVE_LIGHTS);
+		GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTCOLORS, CLOSEST_LIGHTS_COLORS, NUM_CURRENT_EMISSIVE_LIGHTS);
+		GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHTDISTANCES, CLOSEST_LIGHTS_DISTANCES, NUM_CURRENT_EMISSIVE_LIGHTS);
+		GLSL_SetUniformFloat(shader, UNIFORM_LIGHT_MAX_DISTANCE, (NUM_CURRENT_EMISSIVE_LIGHTS >= r_maxDeferredLights->integer / 2) ? maxDist : 8192.0);
+	}
+
+
+	GLSL_SetUniformMatrix16(shader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+
+
+	if (MATERIAL_SPECULAR_CHANGED)
+	{// Only update as needed..
+		GLSL_SetUniformFloatxX(shader, UNIFORM_MATERIAL_SPECULARS, MATERIAL_SPECULAR_STRENGTHS, MATERIAL_LAST);
+		MATERIAL_SPECULAR_CHANGED = qfalse;
+	}
+
+
+	GLSL_SetUniformVec3(shader, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);
+
+
+	vec3_t out;
+	float dist = 4096.0;
+	VectorMA(backEnd.refdef.vieworg, dist, backEnd.refdef.sunDir, out);
+	GLSL_SetUniformVec4(shader, UNIFORM_PRIMARYLIGHTORIGIN, out);
+
+	GLSL_SetUniformVec3(shader, UNIFORM_PRIMARYLIGHTCOLOR, backEnd.refdef.sunCol);
+
+	qboolean shadowsEnabled = qfalse;
+
+	if (!(backEnd.refdef.rdflags & RDF_NOWORLDMODEL)
+		&& r_sunlightMode->integer >= 2
+		&& tr.screenShadowFbo
+		&& SHADOWS_ENABLED
+		&& RB_NightScale() < 1.0 // Can ignore rendering shadows at night...
+		&& (r_deferredLighting->integer || r_fastLighting->integer))
+	{
+		shadowsEnabled = qtrue;
+	}
+
+	vec4_t local1;
+	VectorSet4(local1, r_blinnPhong->value * SUN_PHONG_SCALE, MAP_USE_PALETTE_ON_SKY ? 1.0 : 0.0, r_ao->integer > 0 ? 1.0 : 0.0, r_gamma->value);
+	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL1, local1);
+
+	vec4_t local2;
+	float dayNightGlowFactor = mix(MAP_EMISSIVE_COLOR_SCALE, MAP_EMISSIVE_COLOR_SCALE_NIGHT, RB_NightScale());
+	VectorSet4(local2, dayNightGlowFactor, shadowsEnabled ? 1.0 : 0.0, SHADOW_MINBRIGHT, SHADOW_MAXBRIGHT);
+	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL2, local2);
+
+	vec4_t local3;
+	VectorSet4(local3, RB_NightScale(), MAP_HDR_MIN, MAP_HDR_MAX, 0.0);
+	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL3, local3);
+
+	vec4_t local4;
+	local4[0] = DYNAMIC_WEATHER_PUDDLE_STRENGTH;
+	local4[1] = mix(MAP_AMBIENT_CSB[0], MAP_AMBIENT_CSB_NIGHT[0], RB_NightScale());
+	local4[2] = mix(MAP_AMBIENT_CSB[1], MAP_AMBIENT_CSB_NIGHT[1], RB_NightScale());
+	local4[3] = mix(MAP_AMBIENT_CSB[2], MAP_AMBIENT_CSB_NIGHT[2], RB_NightScale());
+	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL4, local4);
+
+	vec4_t local5;
+	float vibrancy = mix(MAP_VIBRANCY_DAY, MAP_VIBRANCY_NIGHT, RB_NightScale());
+	VectorSet4(local5, AO_MINBRIGHT, AO_MULTBRIGHT, vibrancy, r_truehdr->integer ? 1.0 : 0.0);
+	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL5, local5);
+
+	vec4_t local12;
+	VectorSet4(local12, r_testshaderValue1->value, r_testshaderValue2->value, r_testshaderValue3->value, r_testshaderValue4->value);
+	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL12, local12);
+
+	//
+	//
+	//
+
+	GLSL_SetUniformFloat(shader, UNIFORM_TIME, backEnd.refdef.floatTime);
+
+	{
+		vec4_t loc;
+		VectorSet4(loc, MAP_INFO_MINS[0], MAP_INFO_MINS[1], MAP_INFO_MINS[2], WATER_ENABLED ? 1.0 : 0.0);
+		GLSL_SetUniformVec4(shader, UNIFORM_MINS, loc);
+
+		VectorSet4(loc, MAP_INFO_MAXS[0], MAP_INFO_MAXS[1], MAP_INFO_MAXS[2], 0.0);
+		GLSL_SetUniformVec4(shader, UNIFORM_MAXS, loc);
+	}
+
+	{
+		vec2_t screensize;
+		screensize[0] = glConfig.vidWidth * r_superSampleMultiplier->value;
+		screensize[1] = glConfig.vidHeight * r_superSampleMultiplier->value;
+
+		GLSL_SetUniformVec2(shader, UNIFORM_DIMENSIONS, screensize);
+	}
+
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, shader, colorWhite, 0);
+}
+
 void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	/*vec4_t color;
-
-	// bloom
-	color[0] =
-		color[1] =
-		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
-	color[3] = 1.0f;*/
+	if (r_fastLighting->integer)
+	{
+		RB_FastLighting(hdrFbo, hdrBox, ldrFbo, ldrBox);
+		return;
+	}
 
 	shaderProgram_t *shader = &tr.deferredLightingShader[(MAP_LIGHTING_METHOD > 2) ? 2 : MAP_LIGHTING_METHOD];
 
@@ -2930,7 +3104,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 		&& tr.screenShadowFbo
 		&& SHADOWS_ENABLED
 		&& RB_NightScale() < 1.0 // Can ignore rendering shadows at night...
-		&& r_deferredLighting->integer)
+		&& (r_deferredLighting->integer || r_fastLighting->integer))
 		shadowsEnabled = qtrue;
 
 	vec4_t local2;

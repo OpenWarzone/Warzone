@@ -26,6 +26,7 @@ void DockControlFlow::imgui() {
 		//showCvar("if (AO_DIRECTIONAL) RB_SSDO()"                               , r_ssdo            );
 		//showCvar("RB_SSS()"                                                    , r_sss             );
 		showCvar("if (r_bloom >= 2 || r_anamorphic) RB_CreateAnamorphicImage()", r_anamorphic      );
+		showCvar("if (!LATE_LIGHTING_ENABLED) RB_FastLighting()"			   , r_fastLighting);
 		showCvar("if (!LATE_LIGHTING_ENABLED) RB_DeferredLighting()"           , r_deferredLighting);
 		//showCvar("if (r_ssr > 0 || r_sse > 0) RB_ScreenSpaceReflections()"     , r_ssr             );
 		//showCvar("RB_Underwater",r_underwater); // commented out in RB_PostProcess too
@@ -40,8 +41,10 @@ void DockControlFlow::imgui() {
 		showCvar("RB_DOF"                                                      , r_dof             );
 		showCvar("RB_LensFlare"                                                , r_lensflare       );
 		showCvar("RB_TestShader"                                               , r_testshader      );
+		showCvar("RB_FastLighting (LATE_LIGHTING_ENABLED == 1)"					, r_fastLighting);
 		showCvar("RB_DeferredLighting (LATE_LIGHTING_ENABLED == 1)"            , r_deferredLighting);
 		showCvar("RB_FogPostShader (FOG_POST_ENABLED && LATE_LIGHTING_ENABLED)", r_fogPost         );
+		showCvar("RB_FastLighting (LATE_LIGHTING_ENABLED >= 2)"					, r_fastLighting);
 		showCvar("RB_DeferredLighting (LATE_LIGHTING_ENABLED >= 2)"            , r_deferredLighting);
 		showCvar("RB_ESharpening"                                              , r_esharpening     );
 		//showCvar("RB_ESharpening2"                                             , r_esharpening2    );

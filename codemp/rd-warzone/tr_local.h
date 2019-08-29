@@ -49,7 +49,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //#define __VBO_PACK_COLOR__					// Try to pack vert colors into a single float - BROKEN!
 //#define __VBO_HALF_FLOAT_COLOR__				// Try to pack vert colors into half floats - BROKEN!
 #define __HALF_FLOAT__							// Enable half float conversion code...
-#define __GLSL_OPTIMIZER__						// Enable GLSL optimization...
+//#define __GLSL_OPTIMIZER__						// Enable GLSL optimization...
 //#define __DEBUG_SHADER_LOAD__					// Enable extra GLSL shader load debugging info...
 //#define __USE_GLSL_SHADER_CACHE__				// Enable GLSL shader binary caching...
 //#define __FREE_WORLD_DATA__					// Free verts and indexes for everything with a VBO+IBO to save ram... Would need to disable saber marks to do this though...
@@ -647,6 +647,7 @@ extern cvar_t  *r_multipost;
 extern cvar_t  *r_screenBlurSlow;
 extern cvar_t  *r_screenBlurFast;
 //extern cvar_t  *r_hbao;
+extern cvar_t  *r_fastLighting;
 extern cvar_t  *r_deferredLighting;
 extern cvar_t  *r_ssdm;
 //extern cvar_t  *r_ssr;
@@ -1862,32 +1863,35 @@ typedef enum
 // GLSL vertex and one GLSL fragment shader
 typedef struct shaderProgram_s
 {
-	char *name;
+	std::string					name;
 
-	GLuint     program;
-	GLuint     vertexShader;
-	GLuint     fragmentShader;
-	GLuint     tessControlShader;
-	GLuint     tessEvaluationShader;
-	GLuint     geometryShader;
-	uint32_t        attribs;	// vertex array attributes
+	GLuint						program;
+	GLuint						vertexShader;
+	GLuint						fragmentShader;
+	GLuint						tessControlShader;
+	GLuint						tessEvaluationShader;
+	GLuint						geometryShader;
+	uint32_t					attribs;	// vertex array attributes
 
 	// uniform parameters
-	int numUniforms;
-	GLint *uniforms;
-	short *uniformBufferOffsets;
-	char  *uniformBuffer;
+	int							numUniforms;
+	GLint						*uniforms;
+	short						*uniformBufferOffsets;
+	char						*uniformBuffer;
 
-	qboolean tesselation;
-	qboolean geometry;
+	qboolean					tesselation;
+	qboolean					geometry;
 
-	GLuint instances_mvp = 0;
-	GLuint instances_buffer = 0;
+	GLuint						instances_mvp = 0;
+	GLuint						instances_buffer = 0;
 
 	// keep the glsl source code around so we can live edit it
-	char vertexText[MAX_GLSL_LENGTH];
-	char fragText[MAX_GLSL_LENGTH];
-	int usageCount;
+	std::string					vertexText;
+	std::string					fragText;
+	std::string					tessControlText;
+	std::string					tessEvaluationText;
+	std::string					geometryText;
+	int							usageCount;
 
 	qboolean					isBindless;
 
@@ -1897,7 +1901,7 @@ typedef struct shaderProgram_s
 	GLuint						bindlessBlockUBO = 0;
 
 #ifdef __USE_GLSL_SHADER_CACHE__
-	qboolean binaryLoaded = qfalse;
+	qboolean					binaryLoaded = qfalse;
 #endif //__USE_GLSL_SHADER_CACHE__
 } shaderProgram_t;
 
@@ -3211,6 +3215,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t colorCorrectionShader;
 	shaderProgram_t showNormalsShader;
 	shaderProgram_t showDepthShader;
+	shaderProgram_t fastLightingShader;
 	shaderProgram_t deferredLightingShader[3];
 	shaderProgram_t proceduralShader;
 	shaderProgram_t ssdmShader;

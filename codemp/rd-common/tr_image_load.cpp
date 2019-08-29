@@ -37,13 +37,17 @@ qboolean R_ImageLoader_Add ( const char *extension, ImageLoaderFn imageLoader )
 {
 	if ( numImageLoaders >= MAX_IMAGE_LOADERS )
 	{
+#ifdef __DEVELOPER_MODE__
 		ri->Printf (PRINT_DEVELOPER, "R_AddImageLoader: Cannot add any more image loaders (maximum %d).\n", MAX_IMAGE_LOADERS);
+#endif //__DEVELOPER_MODE__
 		return qfalse;
 	}
 
 	if ( FindImageLoader (extension) != NULL )
 	{
+#ifdef __DEVELOPER_MODE__
 		ri->Printf (PRINT_DEVELOPER, "R_AddImageLoader: Image loader already exists for extension \"%s\".\n", extension);
+#endif //__DEVELOPER_MODE__
 		return qfalse;
 	}
 

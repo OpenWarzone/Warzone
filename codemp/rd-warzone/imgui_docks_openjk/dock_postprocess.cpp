@@ -165,6 +165,7 @@ void DockPostProcess::MakeCvarList() {
 	//AddCvar(r_ssdo, 1);
 	//AddCvar(r_sss, 1);
 	AddCvar(r_deferredLighting, 1);
+	//AddCvar(r_fastLighting, 1);
 	//AddCvar(r_ssr, 1);
 	//AddCvar(r_sse, 1);
 	AddCvar(r_magicdetail, 1);

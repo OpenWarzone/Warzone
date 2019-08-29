@@ -20,6 +20,8 @@
 // Feature Enable/Disable Defines...
 //
 
+#define __DEVELOPER_MODE__							// Use to completely disable PRINT_DEVELOPER prints for release. They are a waste of CPU time for normal users...
+
 //#define __DEBUG_ZALLOC__
 
 #define __ENABLE_DEDICATED_CONSOLE_COLORS__			// Enable color on dedicated console...
@@ -344,7 +346,9 @@ extern float forceSpeedLevels[4];
 // print levels from renderer (FIXME: set up for game / cgame?)
 typedef enum {
 	PRINT_ALL,
+#ifdef __DEVELOPER_MODE__
 	PRINT_DEVELOPER,		// only print when "developer 1"
+#endif //__DEVELOPER_MODE__
 	PRINT_WARNING,
 	PRINT_ERROR
 } printParm_t;

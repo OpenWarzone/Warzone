@@ -39,12 +39,12 @@ int GLSL_MyCompileGPUShader(GLuint program, GLuint *prevShader, const GLchar *bu
 
 void DockShaders::recompileShader() {
 		int newProgram = qglCreateProgram();
-		int retVert = GLSL_MyCompileGPUShader(newProgram, &shader->vertexShader, shader->vertexText, strlen(shader->vertexText), GL_VERTEX_SHADER);
+		int retVert = GLSL_MyCompileGPUShader(newProgram, &shader->vertexShader, shader->vertexText.c_str(), shader->vertexText.length(), GL_VERTEX_SHADER);
 		if (retVert == 0) {
 			imgui_log("Couldn't compile Vertex shader\n");
 			return;
 		}
-		int retFrag = GLSL_MyCompileGPUShader(newProgram, &shader->fragmentShader, shader->fragText, strlen(shader->fragText), GL_FRAGMENT_SHADER);
+		int retFrag = GLSL_MyCompileGPUShader(newProgram, &shader->fragmentShader, shader->fragText.c_str(), shader->fragText.length(), GL_FRAGMENT_SHADER);
 		if (retFrag == 0) {
 			imgui_log("Couldn't compile Fragment shader\n");
 			return;
@@ -97,7 +97,7 @@ void DockShaders::imgui() {
 			shaderProgram_t *shader = shaders[i];
 			if (shader == NULL)
 				continue;
-			sprintf(shader_items[i], "shaders[%d] %s prog=%d vert=%d frag=%d usagecount=%d", i, shader->name, shader->program, shader->vertexShader, shader->fragmentShader, shader->usageCount);
+			sprintf(shader_items[i], "shaders[%d] %s prog=%d vert=%d frag=%d usagecount=%d", i, shader->name.c_str(), shader->program, shader->vertexShader, shader->fragmentShader, shader->usageCount);
 			shader_items_[i] = shader_items[i];
 		}
 
@@ -132,7 +132,14 @@ void DockShaders::imgui() {
 	//ImVec2 size;
 	//size.x = ImGui::GetWindowSize();
 	ImGui::SetCursorPos(vertPosStart);
-	ImGui::InputTextMultiline("##vert", shader->vertexText, sizeof(shader->vertexText), vertPosSize, ImGuiInputTextFlags_AllowTabInput);
+
+	// Hmm imgui doesn't support std::string fields? Temp hack...
+	char vertexText[MAX_GLSL_LENGTH];
+	strcpy(vertexText, shader->vertexText.c_str());
+	if (ImGui::InputTextMultiline("##vert", vertexText, shader->vertexText.length(), vertPosSize, ImGuiInputTextFlags_AllowTabInput))
+	{
+		shader->vertexText = vertexText;
+	}
 
 	if (ImGui::IsItemActive() && ImGui::GetIO().KeyCtrl && IsKeyPressedMap(ImGuiKey_Enter, 0)) {
 		recompileShader();
@@ -143,7 +150,14 @@ void DockShaders::imgui() {
 	//ImVec2 size;
 	//size.x = ImGui::GetWindowSize();
 	ImGui::SetCursorPos(fragPosStart);
-	ImGui::InputTextMultiline("##frag", shader->fragText, sizeof(shader->fragText), fragPosSize, ImGuiInputTextFlags_AllowTabInput);
+	
+	// Hmm imgui doesn't support std::string fields? Temp hack...
+	char fragText[MAX_GLSL_LENGTH];
+	strcpy(fragText, shader->fragText.c_str());
+	if (ImGui::InputTextMultiline("##frag", fragText, shader->fragText.length(), fragPosSize, ImGuiInputTextFlags_AllowTabInput))
+	{
+		shader->fragText = fragText;
+	}
 	
 	if (ImGui::IsItemActive() && ImGui::GetIO().KeyCtrl && IsKeyPressedMap(ImGuiKey_Enter, 0)) {
 		recompileShader();

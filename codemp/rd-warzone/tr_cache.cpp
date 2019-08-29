@@ -98,7 +98,9 @@ int CCacheManager::LoadFile( const char *pFileName, void **ppFileBuffer, qboolea
 		return qfalse;
 	}
 
+#ifdef __DEVELOPER_MODE__
 	ri->Printf( PRINT_DEVELOPER, "C_LoadFile(): Loaded %s from disk\n", pFileName );
+#endif //__DEVELOPER_MODE__
 
 	return len;
 }
@@ -206,7 +208,9 @@ void CImageCacheManager::DeleteLightMaps( void )
  */
 void CCacheManager::DumpNonPure( void )
 {
+#ifdef __DEVELOPER_MODE__
 	ri->Printf( PRINT_DEVELOPER,  "CCacheManager::DumpNonPure():\n");
+#endif //__DEVELOPER_MODE__
 
 	for(assetCache_t::iterator it = cache.begin(); it != cache.end(); /* empty */ )
 	{
@@ -216,7 +220,9 @@ void CCacheManager::DumpNonPure( void )
 		if( iInPak == -1 || iChecksum != it->second.iPAKChecksum )
 		{
 			/* Erase the file because it doesn't match the checksum */
+#ifdef __DEVELOPER_MODE__
 			ri->Printf( PRINT_DEVELOPER, "Dumping none pure model \"%s\"", it->first );
+#endif //__DEVELOPER_MODE__
 
 			if( it->second.pDiskImage )
 				Z_Free( it->second.pDiskImage );
@@ -229,7 +235,9 @@ void CCacheManager::DumpNonPure( void )
 		}
 	}
 
+#ifdef __DEVELOPER_MODE__
 	ri->Printf( PRINT_DEVELOPER, "CCacheManager::DumpNonPure(): Ok\n");	
+#endif //__DEVELOPER_MODE__
 }
 
 /*
@@ -246,7 +254,9 @@ qboolean CModelCacheManager::LevelLoadEnd( qboolean bDeleteEverythingNotUsedThis
 {
 	qboolean bAtLeastOneModelFreed	= qfalse;
 
+#ifdef __DEVELOPER_MODE__
 	ri->Printf( PRINT_DEVELOPER, S_COLOR_GREEN "CModelCacheManager::LevelLoadEnd():\n");
+#endif //__DEVELOPER_MODE__
 
 	for(auto it = cache.begin(); it != cache.end(); /* empty */)
 	{
@@ -262,7 +272,9 @@ qboolean CModelCacheManager::LevelLoadEnd( qboolean bDeleteEverythingNotUsedThis
 		{
 			const char *psModelName = it->first.c_str();
 
+#ifdef __DEVELOPER_MODE__
 			ri->Printf( PRINT_DEVELOPER, S_COLOR_GREEN "Dumping \"%s\"", psModelName);
+#endif //__DEVELOPER_MODE__
 
 			if( pFile.pDiskImage )
 			{
@@ -278,7 +290,9 @@ qboolean CModelCacheManager::LevelLoadEnd( qboolean bDeleteEverythingNotUsedThis
 		}
 	}
 
+#ifdef __DEVELOPER_MODE__
 	ri->Printf( PRINT_DEVELOPER, S_COLOR_GREEN "CModelCacheManager::LevelLoadEnd(): Ok\n");	
+#endif //__DEVELOPER_MODE__
 
 	return bAtLeastOneModelFreed;
 }

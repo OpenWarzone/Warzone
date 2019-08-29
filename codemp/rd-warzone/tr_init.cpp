@@ -374,6 +374,7 @@ cvar_t  *r_multipost;
 cvar_t  *r_screenBlurSlow;
 cvar_t  *r_screenBlurFast;
 //cvar_t  *r_hbao;
+cvar_t  *r_fastLighting;
 cvar_t  *r_deferredLighting;
 cvar_t  *r_ssdm;
 //cvar_t  *r_ssr;
@@ -529,7 +530,7 @@ static void InitOpenGL( void )
 	//		- r_gamma
 	//
 
-	if ( glConfig.vidWidth * r_superSampleMultiplier->value == 0 )
+	if ( glConfig.vidWidth == 0 )
 	{
 		GLint		temp;
 
@@ -1602,7 +1603,7 @@ void R_Register( void )
 	//
 	r_perf = ri->Cvar_Get("r_perf", "0", CVAR_NONE);
 
-	r_glslOptimize = ri->Cvar_Get("r_glslOptimize", "1", CVAR_ARCHIVE | CVAR_LATCH);
+	r_glslOptimize = ri->Cvar_Get("r_glslOptimize", "0", CVAR_ARCHIVE | CVAR_LATCH);
 	r_useLowP = ri->Cvar_Get("r_useLowP", "0", CVAR_ARCHIVE | CVAR_LATCH);
 	r_lowVram = ri->Cvar_Get("r_lowVram", "0", CVAR_ARCHIVE | CVAR_LATCH);
 	r_useStaticVBO = ri->Cvar_Get("r_useStaticVBO", "1", CVAR_ARCHIVE);
@@ -1692,6 +1693,7 @@ void R_Register( void )
 	r_screenBlurSlow = ri->Cvar_Get( "r_screenBlurSlow", "1", CVAR_ARCHIVE );
 	r_screenBlurFast = ri->Cvar_Get( "r_screenBlurFast", "0", CVAR_ARCHIVE );
 	//r_hbao = ri->Cvar_Get( "r_hbao", "false", CVAR_ARCHIVE );
+	r_fastLighting = ri->Cvar_Get("r_fastLighting", "false", CVAR_ARCHIVE);
 	r_deferredLighting = ri->Cvar_Get( "r_deferredLighting", "true", CVAR_ARCHIVE );
 	r_ssdm = ri->Cvar_Get("r_ssdm", "true", CVAR_ARCHIVE);
 	//r_ssr = ri->Cvar_Get("r_ssr", "false", CVAR_ARCHIVE);
@@ -2028,12 +2030,12 @@ extern void R_InitWorldEffects(void);
 
 	RestoreGhoul2InfoArray();
 
-	extern void GUI_Init(void);
-	GUI_Init();
-
 	// print info
 	GfxInfo_f();
-	ri->Printf( PRINT_ALL, "^5----- ^7finished R_Init^5 -----\n" );
+	ri->Printf(PRINT_ALL, "^5----- ^7finished R_Init^5 -----\n");
+
+	extern void GUI_Init(void);
+	GUI_Init();
 }
 
 /*
@@ -2083,6 +2085,10 @@ void RE_Shutdown( qboolean destroyWindow, qboolean restarting ) {
 #ifdef __JKA_WEATHER__
 	R_ShutdownWorldEffects();
 #endif //__JKA_WEATHER__
+
+	extern void GUI_Shutdown(void);
+	GUI_Shutdown();
+
 	R_ShutdownFonts();
 
 	// shut down platform specific OpenGL stuff

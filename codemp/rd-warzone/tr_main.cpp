@@ -1519,7 +1519,9 @@ qboolean R_MirrorViewBySurface(drawSurf_t *drawSurf, int64_t entityNum) {
 
 	// don't recursively mirror
 	if (tr.viewParms.isPortal) {
+#ifdef __DEVELOPER_MODE__
 		ri->Printf( PRINT_DEVELOPER, "WARNING: recursive mirror/portal found\n" );
+#endif //__DEVELOPER_MODE__
 		return qfalse;
 	}
 

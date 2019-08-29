@@ -556,7 +556,9 @@ void RE_AddRefEntityToScene(const refEntity_t *ent) {
 		return;
 	}
 	if (r_numentities >= MAX_REFENTITIES) {
+#ifdef __DEVELOPER_MODE__
 		ri->Printf(PRINT_DEVELOPER, "RE_AddRefEntityToScene: Dropping refEntity, reached MAX_REFENTITIES\n");
+#endif //__DEVELOPER_MODE__
 		return;
 	}
 
@@ -1438,7 +1440,7 @@ void RE_RenderScene(const refdef_t *fd) {
 		&& !backEnd.depthFill
 		&& SHADOWS_ENABLED
 		&& RB_NightScale() < 1.0 // Can ignore rendering shadows at night...
-		&& r_deferredLighting->integer)
+		&& (r_deferredLighting->integer || r_fastLighting->integer))
 	{
 		vec4_t lightDir;
 
@@ -1592,7 +1594,7 @@ void RE_RenderScene(const refdef_t *fd) {
 		&& !backEnd.depthFill
 		&& SHADOWS_ENABLED
 		&& RB_NightScale() < 1.0 // Can ignore rendering shadows at night...
-		&& r_deferredLighting->integer)
+		&& (r_deferredLighting->integer || r_fastLighting->integer))
 	{
 		parms.flags = VPF_USESUNLIGHT;
 	}

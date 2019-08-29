@@ -3165,7 +3165,7 @@ const void *RB_PostProcess(const void *data)
 		&& !(backEnd.viewParms.flags & VPF_SHADOWPASS)
 		&& SHADOWS_ENABLED
 		&& RB_NightScale() < 1.0 // Can ignore rendering shadows at night...
-		&& r_deferredLighting->integer)
+		&& (r_deferredLighting->integer || r_fastLighting->integer))
 	{
 		FBO_t *oldFbo = glState.currentFBO;
 		shaderProgram_t *sp = &tr.shadowmaskShader;
@@ -3451,7 +3451,7 @@ const void *RB_PostProcess(const void *data)
 			}
 		}
 
-		if (!SCREEN_BLUR && r_deferredLighting->integer && !LATE_LIGHTING_ENABLED)
+		if (!SCREEN_BLUR && (r_deferredLighting->integer || r_fastLighting->integer) && !LATE_LIGHTING_ENABLED)
 		{
 			DEBUG_StartTimer("Deferred Lighting", qtrue);
 			RB_DeferredLighting(currentFbo, srcBox, currentOutFbo, dstBox);
@@ -3620,7 +3620,7 @@ const void *RB_PostProcess(const void *data)
 			DEBUG_EndTimer(qtrue);
 		}
 
-		if (!SCREEN_BLUR && r_deferredLighting->integer && LATE_LIGHTING_ENABLED == 1)
+		if (!SCREEN_BLUR && (r_deferredLighting->integer || r_fastLighting->integer) && LATE_LIGHTING_ENABLED == 1)
 		{
 			DEBUG_StartTimer("Deferred Lighting", qtrue);
 			RB_DeferredLighting(currentFbo, srcBox, currentOutFbo, dstBox);
@@ -3636,7 +3636,7 @@ const void *RB_PostProcess(const void *data)
 			DEBUG_EndTimer(qtrue);
 		}
 
-		if (!SCREEN_BLUR && r_deferredLighting->integer && LATE_LIGHTING_ENABLED >= 2)
+		if (!SCREEN_BLUR && (r_deferredLighting->integer || r_fastLighting->integer) && LATE_LIGHTING_ENABLED >= 2)
 		{
 			DEBUG_StartTimer("Deferred Lighting", qtrue);
 			RB_DeferredLighting(currentFbo, srcBox, currentOutFbo, dstBox);

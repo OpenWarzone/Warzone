@@ -1,10 +1,6 @@
 ﻿#define __PROCEDURALS_IN_DEFERRED_SHADER__
 #define __SSDM_IN_DEFERRED_SHADER__
 
-#ifdef __SSDM_IN_DEFERRED_SHADER__
-	//#define TEST_PARALLAX2
-#endif //__SSDM_IN_DEFERRED_SHADER__
-
 
 #ifndef __LQ_MODE__
 
@@ -12,7 +8,6 @@
 #define __ENHANCED_AO__
 #define __SCREEN_SPACE_REFLECTIONS__
 #define __CLOUD_SHADOWS__
-//#define __SUN_SELF_SHADOW__
 
 #ifdef USE_CUBEMAPS
 	#define __CUBEMAPS__
@@ -279,9 +274,8 @@ vec2 EncodeNormal(vec3 n)
 #endif //__ENCODE_NORMALS_RECONSTRUCT_Z__
 
 
-vec4 positionMapAtCoord ( vec2 coord, out bool changedToWater, out vec3 originalPosition )
+vec4 positionMapAtCoord ( vec2 coord )
 {
-	changedToWater = false;
 	return textureLod(u_PositionMap, coord, 0.0);
 }
 
@@ -297,15 +291,15 @@ vec2 RB_PBR_DefaultsForMaterial(float MATERIAL_TYPE)
 	{
 	case MATERIAL_WATER:			// 13			// light covering of water on a surface
 		specularReflectionScale = 0.1;
-		cubeReflectionScale = 0.7;
+		cubeReflectionScale = 0.775;
 		break;
 	case MATERIAL_SHORTGRASS:		// 5			// manicured lawn
 		specularReflectionScale = 0.0055;
-		cubeReflectionScale = 0.35;
+		cubeReflectionScale = 0.5125;
 		break;
 	case MATERIAL_LONGGRASS:		// 6			// long jungle grass
 		specularReflectionScale = 0.0065;
-		cubeReflectionScale = 0.35;
+		cubeReflectionScale = 0.5125;
 		break;
 	case MATERIAL_SAND:				// 8			// sandy beach
 		specularReflectionScale = 0.0055;
@@ -326,7 +320,7 @@ vec2 RB_PBR_DefaultsForMaterial(float MATERIAL_TYPE)
 		break;
 	case MATERIAL_TILES:			// 26			// tiled floor
 		specularReflectionScale = 0.026;
-		cubeReflectionScale = 0.15;
+		cubeReflectionScale = 0.3625;
 		break;
 	case MATERIAL_SOLIDWOOD:		// 1			// freshly cut timber
 	case MATERIAL_TREEBARK:
@@ -339,15 +333,15 @@ vec2 RB_PBR_DefaultsForMaterial(float MATERIAL_TYPE)
 		break;
 	case MATERIAL_POLISHEDWOOD:		// 3			// shiny polished wood
 		specularReflectionScale = 0.026;
-		cubeReflectionScale = 0.35;
+		cubeReflectionScale = 0.5125;
 		break;
 	case MATERIAL_SOLIDMETAL:		// 3			// solid girders
 		specularReflectionScale = 0.098;
-		cubeReflectionScale = 0.98;
+		cubeReflectionScale = 0.985;
 		break;
 	case MATERIAL_HOLLOWMETAL:		// 4			// hollow metal machines -- UQ1: Used for weapons to force lower parallax and high reflection...
 		specularReflectionScale = 0.098;
-		cubeReflectionScale = 0.98;
+		cubeReflectionScale = 0.985;
 		break;
 	case MATERIAL_DRYLEAVES:		// 19			// dried up leaves on the floor
 		specularReflectionScale = 0.0026;
@@ -355,15 +349,15 @@ vec2 RB_PBR_DefaultsForMaterial(float MATERIAL_TYPE)
 		break;
 	case MATERIAL_GREENLEAVES:		// 20			// fresh leaves still on a tree
 		specularReflectionScale = 0.0055;
-		cubeReflectionScale = 0.35;
+		cubeReflectionScale = 0.5125;
 		break;
 	case MATERIAL_PROCEDURALFOLIAGE:
 		specularReflectionScale = 0.0055;
-		cubeReflectionScale = 0.35;
+		cubeReflectionScale = 0.5125;
 		break;
 	case MATERIAL_FABRIC:			// 21			// Cotton sheets
 		specularReflectionScale = 0.0055;
-		cubeReflectionScale = 0.35;
+		cubeReflectionScale = 0.5125;
 		break;
 	case MATERIAL_CANVAS:			// 22			// tent material
 		specularReflectionScale = 0.0045;
@@ -371,11 +365,11 @@ vec2 RB_PBR_DefaultsForMaterial(float MATERIAL_TYPE)
 		break;
 	case MATERIAL_MARBLE:			// 12			// marble floors
 		specularReflectionScale = 0.025;
-		cubeReflectionScale = 0.46;
+		cubeReflectionScale = 0.595;
 		break;
 	case MATERIAL_SNOW:				// 14			// freshly laid snow
 		specularReflectionScale = 0.025;
-		cubeReflectionScale = 0.65;
+		cubeReflectionScale = 0.7375;
 		break;
 	case MATERIAL_MUD:				// 17			// wet soil
 		specularReflectionScale = 0.003;
@@ -399,7 +393,7 @@ vec2 RB_PBR_DefaultsForMaterial(float MATERIAL_TYPE)
 		break;
 	case MATERIAL_PLASTIC:			// 25			//
 		specularReflectionScale = 0.028;
-		cubeReflectionScale = 0.48;
+		cubeReflectionScale = 0.7375;
 		break;
 	case MATERIAL_PLASTER:			// 28			// drywall style plaster
 		specularReflectionScale = 0.0025;
@@ -407,15 +401,15 @@ vec2 RB_PBR_DefaultsForMaterial(float MATERIAL_TYPE)
 		break;
 	case MATERIAL_SHATTERGLASS:		// 29			// glass with the Crisis Zone style shattering
 		specularReflectionScale = 0.025;
-		cubeReflectionScale = 0.67;
+		cubeReflectionScale = 0.7525;
 		break;
 	case MATERIAL_ARMOR:			// 30			// body armor
 		specularReflectionScale = 0.055;
-		cubeReflectionScale = 0.66;
+		cubeReflectionScale = 0.745;
 		break;
 	case MATERIAL_ICE:				// 15			// packed snow/solid ice
 		specularReflectionScale = 0.045;
-		cubeReflectionScale = 0.78;
+		cubeReflectionScale = 0.835;
 		break;
 	case MATERIAL_GLASS:			// 10			//
 	case MATERIAL_DISTORTEDGLASS:
@@ -423,19 +417,19 @@ vec2 RB_PBR_DefaultsForMaterial(float MATERIAL_TYPE)
 	case MATERIAL_DISTORTEDPULL:
 	case MATERIAL_CLOAK:
 		specularReflectionScale = 0.035;
-		cubeReflectionScale = 0.70;
+		cubeReflectionScale = 0.775;
 		break;
 	case MATERIAL_BPGLASS:			// 18			// bulletproof glass
 		specularReflectionScale = 0.033;
-		cubeReflectionScale = 0.70;
+		cubeReflectionScale = 0.775;
 		break;
 	case MATERIAL_COMPUTER:			// 31			// computers/electronic equipment
 		specularReflectionScale = 0.042;
-		cubeReflectionScale = 0.68;
+		cubeReflectionScale = 0.76;
 		break;
 	case MATERIAL_PUDDLE:
 		specularReflectionScale = 0.098;
-		cubeReflectionScale = 0.098;
+		cubeReflectionScale = 0.3235;
 		break;
 	case MATERIAL_LAVA:
 		specularReflectionScale = 0.002;
@@ -455,17 +449,13 @@ vec2 RB_PBR_DefaultsForMaterial(float MATERIAL_TYPE)
 		break;
 	case MATERIAL_SKYSCRAPER:
 		specularReflectionScale = 0.055;
-		cubeReflectionScale = 0.66;
+		cubeReflectionScale = 0.745;
 		break;
 	default:
 		specularReflectionScale = 0.0075;
-		cubeReflectionScale = 0.2;
+		cubeReflectionScale = 0.4;
 		break;
 	}
-
-	// TODO: Update original values with these modifications that I added after... Save time on the math, even though it's minor...
-	cubeReflectionScale = cubeReflectionScale * 0.75 + 0.25;
-	//cubeReflectionScale = cubeReflectionScale * u_Local3.r + u_Local3.g;
 
 	if (int(MATERIAL_TYPE) < MATERIAL_LAST)
 	{// Check for game specified overrides...
@@ -555,9 +545,9 @@ vec3 splatblend(vec3 color1, float a1, vec3 color2, float a2)
 //
 // Procedural texturing variation...
 //
-void AddProceduralMoss(inout vec4 outColor, in vec4 position, in bool changedToWater, in vec3 originalPosition)
+void AddProceduralMoss(inout vec4 outColor, in vec4 position)
 {
-	vec3 usePos = changedToWater ? originalPosition.xyz : position.xyz;
+	vec3 usePos = position.xyz;
 	float moss = clamp(proceduralNoise( usePos.xyz * 0.00125 ), 0.0, 1.0);
 
 	if (moss > 0.25)
@@ -604,10 +594,6 @@ vec3 AddReflection(vec2 coord, vec4 positionMap, vec3 flatNorm, vec3 inColor, fl
 		return inColor;
 	}
 
-	//return vec3(reflectiveness, 0.0, 0.0);
-
-	bool changedToWater = false;
-	vec3 originalPosition;
 	float pixelDistance = distance(positionMap.xyz, u_ViewOrigin.xyz);
 
 	//const float scanSpeed = 48.0;// 16.0;// 5.0; // How many pixels to scan by on the 1st rough pass...
@@ -620,7 +606,7 @@ vec3 AddReflection(vec2 coord, vec4 positionMap, vec3 flatNorm, vec3 inColor, fl
 	for (float y = coord.y; y <= topY; y += ph * scanSpeed)
 	{
 		vec3 norm = DecodeNormal(textureLod(u_NormalMap, vec2(coord.x, y), 0.0).xy);
-		vec4 pMap = positionMapAtCoord(vec2(coord.x, y), changedToWater, originalPosition);
+		vec4 pMap = positionMapAtCoord(vec2(coord.x, y));
 
 		float pMapDistance = distance(pMap.xyz, u_ViewOrigin.xyz);
 
@@ -655,7 +641,7 @@ vec3 AddReflection(vec2 coord, vec4 positionMap, vec3 flatNorm, vec3 inColor, fl
 	for (float y = QLAND_Y; y <= topY && y <= QLAND_Y + (ph * scanSpeed); y += ph * 2.0)
 	{
 		vec3 norm = DecodeNormal(textureLod(u_NormalMap, vec2(coord.x, y), 0.0).xy);
-		vec4 pMap = positionMapAtCoord(vec2(coord.x, y), changedToWater, originalPosition);
+		vec4 pMap = positionMapAtCoord(vec2(coord.x, y));
 		
 		float pMapDistance = distance(pMap.xyz, u_ViewOrigin.xyz);
 
@@ -690,7 +676,7 @@ vec3 AddReflection(vec2 coord, vec4 positionMap, vec3 flatNorm, vec3 inColor, fl
 		return inColor;
 	}
 
-	vec4 pMap = positionMapAtCoord(vec2(coord.x, upPos), changedToWater, originalPosition);
+	vec4 pMap = positionMapAtCoord(vec2(coord.x, upPos));
 
 	if (pMap.a > 1.0 && pMap.xyz != vec3(0.0) && distance(pMap.xyz, u_ViewOrigin.xyz) <= pixelDistance)
 	{// The reflected pixel is closer then the original, this would be a bad reflection.
@@ -1185,48 +1171,6 @@ vec3 GetScreenPixel(inout vec2 texCoords)
 {
 #ifndef __SSDM_IN_DEFERRED_SHADER__
 	return texture(u_DiffuseMap, texCoords).rgb;
-#elif defined(TEST_PARALLAX2)
-	vec3 dMap = texture(u_RoadMap, texCoords).rgb;
-	vec3 color = texture(u_DiffuseMap, texCoords).rgb;
-
-	if (dMap.r <= 0.0 || DISPLACEMENT_STRENGTH == 0.0)
-	{
-		return color;
-	}
-	
-	float invDepth = clamp((1.0 - texture(u_ScreenDepthMap, texCoords).r) /** 2.0 - 1.0*/, 0.0, 1.0);
-
-	if (invDepth <= 0.0)
-	{
-		return color;
-	}
-
-	float Ray = dMap.x;
-	vec2 Displace = dMap.yz * 2.0 - 1.0;
-
-	vec2 distFromCenter = vec2(length(texCoords.x - 0.5), length(texCoords.y - 0.5));
-	float screenEdgeScale = clamp(max(distFromCenter.x, distFromCenter.y) * 2.0, 0.0, 1.0);
-	screenEdgeScale = 1.0 - pow(screenEdgeScale, 1.5);
-	Ray *= screenEdgeScale;
-
-	texCoords = (texCoords + Displace * Ray * invDepth);
-
-	color = texture(u_DiffuseMap, texCoords).rgb;
-	
-	/*vec3 NormalMap = texture(u_NormalMap, NewUv).xyy;
-	NormalMap = DecodeNormal(NormalMap.xy);
-
-	float Normal = clamp(dot(reflect(-View, NormalMap), LightV), 0.0, 1.0);
-
-	Normal = pow(Normal, SpecularPow) + saturate(dot(NormalMap, LightV));
-
-	float PixelLight = 1.0 - clamp(dot(IN.Attenuation, IN.Attenuation), 0.0, 1.0);
-
-	vec3 Light = PixelLight * LightColor;
-
-	return vec4(color * ((Normal * Light) + Ambient), 1.0);
-	*/
-	return color;
 #else //__SSDM_IN_DEFERRED_SHADER__
 	vec3 dMap = texture(u_RoadMap, texCoords).rgb;
 	vec3 color = texture(u_DiffuseMap, texCoords).rgb;
@@ -1285,10 +1229,7 @@ vec3 GetScreenPixel(inout vec2 texCoords)
 void main(void)
 {
 	vec2 texCoords = var_TexCoords;
-	bool changedToWater = false;
-	vec3 originalPosition;
-	vec4 position = positionMapAtCoord(texCoords, changedToWater, originalPosition);
-
+	vec4 position = positionMapAtCoord(texCoords);
 	vec4 color = vec4(GetScreenPixel(texCoords), 1.0);
 	vec4 outColor = color;
 
@@ -1397,7 +1338,6 @@ void main(void)
 
 	vec3 N = norm.xyz;
 	vec3 E = normalize(u_ViewOrigin.xyz - position.xyz);
-	//vec3 sunDir = normalize(position.xyz - u_PrimaryLightOrigin.xyz);
 	vec3 sunDir = normalize(u_ViewOrigin.xyz - u_PrimaryLightOrigin.xyz);
 	vec3 rayDir = reflect(E, N);
 	vec3 cubeRayDir = reflect(E, flatNorm);
@@ -1412,7 +1352,7 @@ void main(void)
 #ifdef __PROCEDURALS_IN_DEFERRED_SHADER__
 	if (PROCEDURAL_MOSS_ENABLED > 0.0 && (position.a - 1.0 == MATERIAL_TREEBARK || position.a - 1.0 == MATERIAL_ROCK))
 	{// Add any procedural moss...
-		AddProceduralMoss(outColor, position, changedToWater, originalPosition);
+		AddProceduralMoss(outColor, position);
 	}
 
 	if (PROCEDURAL_SNOW_ENABLED > 0.0 
@@ -1523,16 +1463,6 @@ void main(void)
 	else if (wetness > 0.0) cubeReflectionFactor += cubeReflectionFactor*0.333;
 #endif //defined(__CUBEMAPS__) && defined(REALTIME_CUBEMAPS)
 
-
-#ifdef __SUN_SELF_SHADOW__
-	float diffuse;
-	if (position.a - 1.0 == MATERIAL_GREENLEAVES)
-		diffuse = clamp(pow(clamp(dot(-sunDir.rgb, bump.rgb), 0.0, 1.0), 8.0) * 0.6 + 0.6, 0.0, 1.0);
-	else
-		diffuse = clamp(pow(clamp(dot(-sunDir.rgb, bump.rgb), 0.0, 1.0), 8.0) * 0.2 + 0.8, 0.0, 1.0);
-
-	color.rgb = outColor.rgb = outColor.rgb * diffuse;
-#endif //__SUN_SELF_SHADOW__
 
 
 	float origColorStrength = clamp(max(color.r, max(color.g, color.b)), 0.0, 1.0) * 0.75 + 0.25;
@@ -1818,7 +1748,7 @@ void main(void)
 	}
 
 #if defined(__SCREEN_SPACE_REFLECTIONS__)
-	if (REFLECTIONS_ENABLED > 0.0 && ssrReflectivePower > 0.0 && position.a - 1.0 != MATERIAL_WATER && !changedToWater)
+	if (REFLECTIONS_ENABLED > 0.0 && ssrReflectivePower > 0.0 && position.a - 1.0 != MATERIAL_WATER)
 	{
 		if (isPuddle)
 		{// Just basic water color addition for now with reflections... Maybe raindrops at some point later...

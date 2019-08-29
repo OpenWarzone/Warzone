@@ -3,11 +3,6 @@
 #define __LIGHTNING__
 #define __BACKGROUND_HILLS__
 
-#define SCREEN_MAPS_ALPHA_THRESHOLD 0.666
-
-//precision lowp int;
-//precision lowp float;
-
 #if defined(USE_BINDLESS_TEXTURES)
 layout(std140) uniform u_bindlessTexturesBlock
 {

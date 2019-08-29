@@ -226,8 +226,10 @@ void R_MDRAddAnimSurfaces( trRefEntity_t *ent, model_t *currentModel, int entity
 		|| (ent->e.oldframe >= header->numFrames)
 		|| (ent->e.oldframe < 0) )
 	{
+#ifdef __DEVELOPER_MODE__
 		ri->Printf( PRINT_DEVELOPER, "R_MDRAddAnimSurfaces: no such frame %d to %d for '%s'\n",
 			   ent->e.oldframe, ent->e.frame, currentModel->name );
+#endif //__DEVELOPER_MODE__
 		ent->e.frame = 0;
 		ent->e.oldframe = 0;
 	}

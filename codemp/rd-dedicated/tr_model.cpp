@@ -156,10 +156,12 @@ qboolean RE_RegisterModels_GetDiskFile( const char *psModelFileName, void **ppvB
 		*pqbAlreadyCached = qfalse;
 		qboolean bSuccess = !!(*ppvBuffer)?qtrue:qfalse;
 
+#ifdef __DEVELOPER_MODE__
 		if (bSuccess)
 		{
 			ri->Printf( PRINT_DEVELOPER, "RE_RegisterModels_GetDiskFile(): Disk-loading \"%s\"\n",psModelFileName);
 		}
+#endif //__DEVELOPER_MODE__
 
 		return bSuccess;
 	}
@@ -318,11 +320,15 @@ qboolean RE_RegisterModels_LevelLoadEnd(qboolean bDeleteEverythingNotUsedThisLev
 
 	assert(CachedModels);
 
+#ifdef __DEVELOPER_MODE__
 	ri->Printf( PRINT_DEVELOPER, S_COLOR_RED "RE_RegisterModels_LevelLoadEnd():\n");
+#endif //__DEVELOPER_MODE__
 
 	if (gbInsideRegisterModel)
 	{
+#ifdef __DEVELOPER_MODE__
 		ri->Printf( PRINT_DEVELOPER, "(Inside RE_RegisterModel (z_malloc recovery?), exiting...\n");
+#endif //__DEVELOPER_MODE__
 	}
 	else
 	{
@@ -349,11 +355,13 @@ qboolean RE_RegisterModels_LevelLoadEnd(qboolean bDeleteEverythingNotUsedThisLev
 			if (bDeleteThis)
 			{
 				const char *psModelName = (*itModel).first.c_str();
+#ifdef __DEVELOPER_MODE__
 				ri->Printf( PRINT_DEVELOPER, S_COLOR_RED "Dumping \"%s\"", psModelName);
 
 	#ifdef _DEBUG
 				ri->Printf( PRINT_DEVELOPER, S_COLOR_RED ", used on lvl %d\n",CachedModel.iLastLevelUsedOn);
 	#endif
+#endif //__DEVELOPER_MODE__
 
 				if (CachedModel.pModelDiskImage) {
 					Z_Free(CachedModel.pModelDiskImage);
@@ -371,7 +379,9 @@ qboolean RE_RegisterModels_LevelLoadEnd(qboolean bDeleteEverythingNotUsedThisLev
 		}
 	}
 
+#ifdef __DEVELOPER_MODE__
 	ri->Printf( PRINT_DEVELOPER, S_COLOR_RED "RE_RegisterModels_LevelLoadEnd(): Ok\n");
+#endif //__DEVELOPER_MODE__
 
 	return bAtLeastoneModelFreed;
 }
@@ -385,7 +395,9 @@ qboolean RE_RegisterModels_LevelLoadEnd(qboolean bDeleteEverythingNotUsedThisLev
 //
 static void RE_RegisterModels_DumpNonPure(void)
 {
+#ifdef __DEVELOPER_MODE__
 	ri->Printf( PRINT_DEVELOPER,  "RE_RegisterModels_DumpNonPure():\n");
+#endif //__DEVELOPER_MODE__
 
 	if(!CachedModels) {
 		return;
@@ -407,7 +419,9 @@ static void RE_RegisterModels_DumpNonPure(void)
 			{
 				// either this is not from a PAK, or it's from a non-pure one, so ditch it...
 				//
+#ifdef __DEVELOPER_MODE__
 				ri->Printf( PRINT_DEVELOPER, "Dumping none pure model \"%s\"", psModelName);
+#endif //__DEVELOPER_MODE__
 
 				if (CachedModel.pModelDiskImage) {
 					Z_Free(CachedModel.pModelDiskImage);
@@ -425,7 +439,9 @@ static void RE_RegisterModels_DumpNonPure(void)
 		}
 	}
 
+#ifdef __DEVELOPER_MODE__
 	ri->Printf( PRINT_DEVELOPER, "RE_RegisterModels_DumpNonPure(): Ok\n");
+#endif //__DEVELOPER_MODE__
 }
 
 void RE_RegisterModels_Info_f( void )
@@ -1126,7 +1142,9 @@ Ghoul2 Insert End
 	}
 
 	if ( strlen( name ) >= MAX_QPATH ) {
+#ifdef __DEVELOPER_MODE__
 		ri->Printf( PRINT_DEVELOPER, S_COLOR_RED "Model name exceeds MAX_QPATH\n" );
+#endif //__DEVELOPER_MODE__
 		return 0;
 	}
 

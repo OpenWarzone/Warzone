@@ -3794,12 +3794,14 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 	//
 	for (image=hashTable[hash]; image; image=image->next) {
 		if ( !strcmp( name, image->imgName ) ) {
+#ifdef __DEVELOPER_MODE__
 			// the white image can be used with any set of parms, but other mismatches are errors
 			if ( strcmp( name, "*white" ) ) {
 				if ( image->flags != flags ) {
 					ri->Printf( PRINT_DEVELOPER, "WARNING: reused image %s with mixed flags (%i vs %i)\n", name, image->flags, flags );
 				}
 			}
+#endif //__DEVELOPER_MODE__
 			return image;
 		}
 	}
@@ -3894,12 +3896,14 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 	//
 	for (image = hashTable[hash]; image; image = image->next) {
 		if (crcHash == image->crcHash) {
+#ifdef __DEVELOPER_MODE__
 			// the white image can be used with any set of parms, but other mismatches are errors
 			//if (strcmp(name, "*white")) {
 			//	if (image->flags != flags) {
 			//		ri->Printf(PRINT_DEVELOPER, "WARNING: reused image %s with mixed flags (%i vs %i)\n", name, image->flags, flags);
 			//	}
 			//}
+#endif //__DEVELOPER_MODE__
 
 #ifdef __TINY_IMAGE_LOADER__
 			if (isTIL)

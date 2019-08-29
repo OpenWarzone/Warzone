@@ -773,8 +773,11 @@ void QDECL SV_RefPrintf( int print_level, const char *fmt, ...) {
 		Com_Printf ("%s", msg);
 	} else if ( print_level == PRINT_WARNING ) {
 		Com_Printf (S_COLOR_YELLOW "%s", msg);		// yellow
+#ifdef __DEVELOPER_MODE__
 	} else if ( print_level == PRINT_DEVELOPER ) {
-		Com_DPrintf (S_COLOR_RED "%s", msg);		// red
+		if (com_developer->integer)
+			Com_DPrintf (S_COLOR_RED "%s", msg);		// red
+#endif //__DEVELOPER_MODE__
 	}
 }
 

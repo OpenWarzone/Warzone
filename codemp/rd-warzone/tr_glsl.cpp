@@ -210,6 +210,8 @@ extern const char *fallbackShader_showNormals_vp;
 extern const char *fallbackShader_showNormals_fp;
 extern const char *fallbackShader_showDepth_vp;
 extern const char *fallbackShader_showDepth_fp;
+extern const char *fallbackShader_fastLighting_vp;
+extern const char *fallbackShader_fastLighting_fp;
 extern const char *fallbackShader_deferredLighting_vp;
 extern const char *fallbackShader_deferredLighting_fp;
 extern const char *fallbackShader_procedural_vp;
@@ -455,7 +457,16 @@ void GLSL_PrintProgramInfoLog(GLuint object, qboolean developerOnly)
 	static char     msgPart[1024];
 	int             maxLength = 0;
 	int             i;
+#ifdef __DEVELOPER_MODE__
 	int             printLevel = developerOnly ? PRINT_DEVELOPER : PRINT_ALL;
+#else //!__DEVELOPER_MODE__
+	int             printLevel = PRINT_ALL;
+
+	if (developerOnly)
+	{
+		return;
+	}
+#endif //__DEVELOPER_MODE__
 
 	qglGetProgramiv(object, GL_INFO_LOG_LENGTH, &maxLength);
 
@@ -498,7 +509,17 @@ void GLSL_PrintShaderInfoLog(GLuint object, qboolean developerOnly)
 	static char     msgPart[1024];
 	int             maxLength = 0;
 	int             i;
+#ifdef __DEVELOPER_MODE__
 	int             printLevel = developerOnly ? PRINT_DEVELOPER : PRINT_ALL;
+#else //!__DEVELOPER_MODE__
+	int             printLevel = PRINT_ALL;
+
+	if (developerOnly)
+	{
+		return;
+	}
+#endif //__DEVELOPER_MODE__
+
 
 	qglGetShaderiv(object, GL_INFO_LOG_LENGTH, &maxLength);
 
@@ -559,68 +580,45 @@ void GLSL_PrintShaderSource(GLuint shader)
 
 qboolean ALLOW_GL_400 = qfalse;
 
-char		GLSL_MAX_VERSION[64] = { 0 };
-
 char *GLSL_GetHighestSupportedVersion(void)
 {
-	if (GLSL_MAX_VERSION[0] == '#') return GLSL_MAX_VERSION;
-
 	ALLOW_GL_400 = qfalse;
 
 	if (glRefConfig.glslMajorVersion >= 4)
 	{
-		if (glRefConfig.glslMajorVersion >= 5)
-			sprintf(GLSL_MAX_VERSION, "#version 500 core\n");
-		else if (glRefConfig.glslMajorVersion >= 4 && glRefConfig.glslMinorVersion >= 20)
-			sprintf(GLSL_MAX_VERSION, "#version 420 core\n");
-		else if (glRefConfig.glslMajorVersion >= 4 && glRefConfig.glslMinorVersion >= 10)
-			sprintf(GLSL_MAX_VERSION, "#version 410 core\n");
-		else
-			sprintf(GLSL_MAX_VERSION, "#version 400 core\n");
-
 		ALLOW_GL_400 = qtrue;
+
+		if (glRefConfig.glslMajorVersion >= 5)
+			return "#version 500 core\n";
+		else if (glRefConfig.glslMajorVersion >= 4 && glRefConfig.glslMinorVersion >= 20)
+			return "#version 420 core\n";
+		else if (glRefConfig.glslMajorVersion >= 4 && glRefConfig.glslMinorVersion >= 10)
+			return "#version 410 core\n";
+		else
+			return "#version 400 core\n";
 	}
 	else
 	{
 		// UQ1: Use the highest level of GL that is supported... Check once and record for all future glsl loading...
-		/*if (glRefConfig.glslMajorVersion >= 5)
-			sprintf(GLSL_MAX_VERSION, "#version 500 core\n");
-			else if (glRefConfig.glslMajorVersion >= 4 && glRefConfig.glslMinorVersion >= 20)
-			sprintf(GLSL_MAX_VERSION, "#version 420 core\n");
-			else if (glRefConfig.glslMajorVersion >= 4 && glRefConfig.glslMinorVersion >= 10)
-			sprintf(GLSL_MAX_VERSION, "#version 410 core\n");
-			else if (glRefConfig.glslMajorVersion >= 4)
-			sprintf(GLSL_MAX_VERSION, "#version 400 core\n");
-			else*/ if (glRefConfig.glslMajorVersion >= 4)
-			{
-				sprintf(GLSL_MAX_VERSION, "#version 400 core\n");
-				ALLOW_GL_400 = qtrue;
-			}
-			else if (glRefConfig.glslMajorVersion >= 3 && glRefConfig.glslMinorVersion >= 30)
-				sprintf(GLSL_MAX_VERSION, "#version 330\n");
-			else if (glRefConfig.glslMajorVersion >= 3 && glRefConfig.glslMinorVersion >= 20)
-				sprintf(GLSL_MAX_VERSION, "#version 320\n");
-			else if (glRefConfig.glslMajorVersion >= 3 && glRefConfig.glslMinorVersion >= 10)
-				sprintf(GLSL_MAX_VERSION, "#version 310\n");
-			else if (glRefConfig.glslMajorVersion >= 3)
-				sprintf(GLSL_MAX_VERSION, "#version 300\n");
-			else if (glRefConfig.glslMajorVersion >= 2 && glRefConfig.glslMinorVersion >= 20)
-				sprintf(GLSL_MAX_VERSION, "#version 220\n");
-			else if (glRefConfig.glslMajorVersion >= 2 && glRefConfig.glslMinorVersion >= 10)
-				sprintf(GLSL_MAX_VERSION, "#version 210\n");
-			else if (glRefConfig.glslMajorVersion >= 2)
-				sprintf(GLSL_MAX_VERSION, "#version 200\n");
-			else //if (glRefConfig.glslMinorVersion >= 50)
-				sprintf(GLSL_MAX_VERSION, "#version 150\n");
-			/*else if (glRefConfig.glslMinorVersion >= 40)
-			sprintf(GLSL_MAX_VERSION, "#version 140\n");
-			else if (glRefConfig.glslMinorVersion >= 30)
-			sprintf(GLSL_MAX_VERSION, "#version 130\n");*/
+		if (glRefConfig.glslMajorVersion >= 3 && glRefConfig.glslMinorVersion >= 30)
+			return "#version 330\n";
+		else if (glRefConfig.glslMajorVersion >= 3 && glRefConfig.glslMinorVersion >= 20)
+			return "#version 320\n";
+		else if (glRefConfig.glslMajorVersion >= 3 && glRefConfig.glslMinorVersion >= 10)
+			return "#version 310\n";
+		else if (glRefConfig.glslMajorVersion >= 3)
+			return "#version 300\n";
+		else if (glRefConfig.glslMajorVersion >= 2 && glRefConfig.glslMinorVersion >= 20)
+			return "#version 220\n";
+		else if (glRefConfig.glslMajorVersion >= 2 && glRefConfig.glslMinorVersion >= 10)
+			return "#version 210\n";
+		else if (glRefConfig.glslMajorVersion >= 2)
+			return "#version 200\n";
+		else
+			return "#version 150\n";
 	}
 
-	ri->Printf(PRINT_WARNING, "GLSL shader version set to highest available version: %s", GLSL_MAX_VERSION);
-
-	return GLSL_MAX_VERSION;
+	return "#version 150\n";
 }
 
 const char glslMaterialsList[] =
@@ -681,85 +679,83 @@ const char glslMaterialsList[] =
 "#define MATERIAL_SUN							1025\n"\
 "\n";
 
-void GLSL_GetShaderHeader(GLenum shaderType, const GLcharARB *extra, char *dest, int size, char *forceVersion, qboolean bindless)
+void GLSL_GetShaderHeader(GLenum shaderType, const GLcharARB *extra, std::string &dest, char *forceVersion, qboolean bindless)
 {
 	float fbufWidthScale, fbufHeightScale;
 
-	dest[0] = '\0';
+	//dest[0] = '\0';
 
 	if (forceVersion)
-		sprintf(dest, "#version %s\n", forceVersion);
+		dest.append(va("#version %s\n", forceVersion));
 	else
-		//Q_strcat(dest, size, "#version 150 core\n");
-		sprintf(dest, "%s", GLSL_GetHighestSupportedVersion());
+		dest.append(va("%s", GLSL_GetHighestSupportedVersion()));
 
 	fbufWidthScale = 1.0f / ((float)glConfig.vidWidth * r_superSampleMultiplier->value);
 	fbufHeightScale = 1.0f / ((float)glConfig.vidHeight * r_superSampleMultiplier->value);
 
 	if (r_useLowP->integer)
 	{
-		Q_strcat(dest, size, "precision lowp int;\n");
-		Q_strcat(dest, size, "precision lowp float;\n");
+		dest.append("precision lowp int;\n");
+		dest.append("precision lowp float;\n");
 	}
 
 	if (bindless && glRefConfig.bindlessTextures)
 	{
-		Q_strcat(dest, size, "#define USE_BINDLESS_TEXTURES\n\n");
-		Q_strcat(dest, size, "#extension GL_ARB_bindless_texture : require\n");
+		dest.append("#define USE_BINDLESS_TEXTURES\n\n");
+		dest.append("#extension GL_ARB_bindless_texture : require\n");
 	}
 
 	if (shaderType == GL_VERTEX_SHADER)
 	{
-		Q_strcat(dest, size, "#define attribute in\n");
-		Q_strcat(dest, size, "#define varying out\n");
+		dest.append("#define attribute in\n");
+		dest.append("#define varying out\n");
 
 #ifdef __VBO_PACK_COLOR__
-		Q_strcat(dest, size, "#define __VBO_PACK_COLOR__\n");
+		dest.append("#define __VBO_PACK_COLOR__\n");
 #endif //__VBO_PACK_COLOR__
 
 #ifdef __CHEAP_VERTS__
-		Q_strcat(dest, size, "#define __CHEAP_VERTS__\n");
+		dest.append("#define __CHEAP_VERTS__\n");
 #endif //__CHEAP_VERTS__
 
-		Q_strcat(dest, size, glslMaterialsList);
+		dest.append(glslMaterialsList);
 	}
 	else if (shaderType == GL_TESS_CONTROL_SHADER)
 	{
-		Q_strcat(dest, size, va("#ifndef r_FBufScale\n#define r_FBufScale vec2(%f, %f)\n#endif\n", fbufWidthScale, fbufHeightScale));
-		Q_strcat(dest, size, glslMaterialsList);
+		dest.append(va("#ifndef r_FBufScale\n#define r_FBufScale vec2(%f, %f)\n#endif\n", fbufWidthScale, fbufHeightScale));
+		dest.append(glslMaterialsList);
 
 		if (extra)
 		{
-			Q_strcat(dest, size, extra);
+			dest.append(extra);
 		}
 
 		//GLint MaxPatchVertices = 0;
 		//qglGetIntegerv(GL_MAX_PATCH_VERTICES, &MaxPatchVertices);
-		Q_strcat(dest, size, va("#define MAX_PATCH_VERTICES %i\n", 3/*MaxPatchVertices >= 16 ? 16 : 3*/));
+		dest.append(va("#define MAX_PATCH_VERTICES %i\n", 3/*MaxPatchVertices >= 16 ? 16 : 3*/));
 
 		// OK we added a lot of stuff but if we do something bad in the GLSL shaders then we want the proper line
 		// so we have to reset the line counting
-		Q_strcat(dest, size, "#line 0\n");
+		dest.append("#line 0\n");
 		return;
 	}
 	else if (shaderType == GL_TESS_EVALUATION_SHADER)
 	{
-		Q_strcat(dest, size, va("#ifndef r_FBufScale\n#define r_FBufScale vec2(%f, %f)\n#endif\n", fbufWidthScale, fbufHeightScale));
-		Q_strcat(dest, size, glslMaterialsList);
+		dest.append(va("#ifndef r_FBufScale\n#define r_FBufScale vec2(%f, %f)\n#endif\n", fbufWidthScale, fbufHeightScale));
+		dest.append(glslMaterialsList);
 
 		if (extra)
 		{
-			Q_strcat(dest, size, extra);
+			dest.append(extra);
 		}
 
-		Q_strcat(dest, size, "#ifndef M_PI\n#define M_PI 3.14159265358979323846\n#endif\n");
+		dest.append("#ifndef M_PI\n#define M_PI 3.14159265358979323846\n#endif\n");
 
 		//GLint MaxPatchVertices = 0;
 		//qglGetIntegerv(GL_MAX_PATCH_VERTICES, &MaxPatchVertices);
-		Q_strcat(dest, size, va("#define MAX_PATCH_VERTICES %i\n", 3/*MaxPatchVertices >= 16 ? 16 : 3*/));
+		dest.append(va("#define MAX_PATCH_VERTICES %i\n", 3/*MaxPatchVertices >= 16 ? 16 : 3*/));
 
-		Q_strcat(dest, size,
-			va("#ifndef deformGen_t\n"
+		dest.append(va("#ifndef deformGen_t\n"
 				"#define deformGen_t\n"
 				"#define DGEN_WAVE_SIN %i\n"
 				"#define DGEN_WAVE_SQUARE %i\n"
@@ -779,8 +775,7 @@ void GLSL_GetShaderHeader(GLenum shaderType, const GLcharARB *extra, char *dest,
 				DGEN_MOVE,
 				DGEN_PROJECTION_SHADOW));
 
-		Q_strcat(dest, size,
-			va("#ifndef tcGen_t\n"
+		dest.append(va("#ifndef tcGen_t\n"
 				"#define tcGen_t\n"
 				"#define TCGEN_LIGHTMAP %i\n"
 				"#define TCGEN_LIGHTMAP1 %i\n"
@@ -802,36 +797,35 @@ void GLSL_GetShaderHeader(GLenum shaderType, const GLcharARB *extra, char *dest,
 
 		// OK we added a lot of stuff but if we do something bad in the GLSL shaders then we want the proper line
 		// so we have to reset the line counting
-		Q_strcat(dest, size, "#line 0\n");
+		dest.append("#line 0\n");
 		return;
 	}
 	else if (shaderType == GL_GEOMETRY_SHADER)
 	{
-		Q_strcat(dest, size, va("#ifndef r_FBufScale\n#define r_FBufScale vec2(%f, %f)\n#endif\n", fbufWidthScale, fbufHeightScale));
-		Q_strcat(dest, size, glslMaterialsList);
+		dest.append(va("#ifndef r_FBufScale\n#define r_FBufScale vec2(%f, %f)\n#endif\n", fbufWidthScale, fbufHeightScale));
+		dest.append(glslMaterialsList);
 
 		if (extra)
 		{
-			Q_strcat(dest, size, extra);
+			dest.append(extra);
 		}
 
 		// OK we added a lot of stuff but if we do something bad in the GLSL shaders then we want the proper line
 		// so we have to reset the line counting
-		Q_strcat(dest, size, "#line 0\n");
+		dest.append("#line 0\n");
 		return;
 	}
 	else
 	{
-		Q_strcat(dest, size, "#define varying in\n");
+		dest.append("#define varying in\n");
 
-		Q_strcat(dest, size, "out vec4 out_Color;\n");
-		Q_strcat(dest, size, "#define gl_FragColor out_Color\n");
+		dest.append("out vec4 out_Color;\n");
+		dest.append("#define gl_FragColor out_Color\n");
 	}
 
-	Q_strcat(dest, size, "#ifndef M_PI\n#define M_PI 3.14159265358979323846\n#endif\n");
+	dest.append("#ifndef M_PI\n#define M_PI 3.14159265358979323846\n#endif\n");
 
-	Q_strcat(dest, size,
-		va("#ifndef deformGen_t\n"
+	dest.append(va("#ifndef deformGen_t\n"
 		"#define deformGen_t\n"
 		"#define DGEN_WAVE_SIN %i\n"
 		"#define DGEN_WAVE_SQUARE %i\n"
@@ -851,8 +845,7 @@ void GLSL_GetShaderHeader(GLenum shaderType, const GLcharARB *extra, char *dest,
 		DGEN_MOVE,
 		DGEN_PROJECTION_SHADOW));
 
-	Q_strcat(dest, size,
-		va("#ifndef tcGen_t\n"
+	dest.append(va("#ifndef tcGen_t\n"
 		"#define tcGen_t\n"
 		"#define TCGEN_LIGHTMAP %i\n"
 		"#define TCGEN_LIGHTMAP1 %i\n"
@@ -872,15 +865,13 @@ void GLSL_GetShaderHeader(GLenum shaderType, const GLcharARB *extra, char *dest,
 		TCGEN_FOG,
 		TCGEN_VECTOR));
 
-	Q_strcat(dest, size,
-		va("#ifndef colorGen_t\n"
+	dest.append(va("#ifndef colorGen_t\n"
 		"#define colorGen_t\n"
 		"#define CGEN_LIGHTING_DIFFUSE %i\n"
 		"#endif\n",
 		CGEN_LIGHTING_DIFFUSE));
 
-	Q_strcat(dest, size,
-		va("#ifndef alphaGen_t\n"
+	dest.append(va("#ifndef alphaGen_t\n"
 		"#define alphaGen_t\n"
 		"#define AGEN_LIGHTING_SPECULAR %i\n"
 		"#define AGEN_PORTAL %i\n"
@@ -888,8 +879,7 @@ void GLSL_GetShaderHeader(GLenum shaderType, const GLcharARB *extra, char *dest,
 		AGEN_LIGHTING_SPECULAR,
 		AGEN_PORTAL));
 
-	Q_strcat(dest, size,
-		va("#ifndef texenv_t\n"
+	dest.append(va("#ifndef texenv_t\n"
 		"#define texenv_t\n"
 		"#define TEXENV_MODULATE %i\n"
 		"#define TEXENV_ADD %i\n"
@@ -899,40 +889,39 @@ void GLSL_GetShaderHeader(GLenum shaderType, const GLcharARB *extra, char *dest,
 		GL_ADD,
 		GL_REPLACE));
 
-	Q_strcat(dest, size,
-		va("#ifndef colorGenWarzone_t\n"
+	dest.append(va("#ifndef colorGenWarzone_t\n"
 			"#define colorGenWarzone_t\n"
 			"#define CGEN_LIGHTING_WARZONE %i\n"
 			"#endif\n",
 			CGEN_LIGHTING_WARZONE));
 
 	if (!r_lowVram->integer)
-		Q_strcat(dest, size, "#define __HIGH_MTU_AVAILABLE__\n");
+		dest.append("#define __HIGH_MTU_AVAILABLE__\n");
 
 	if (r_lowVram->integer)
-		Q_strcat(dest, size, "#define __LQ_MODE__\n");
+		dest.append("#define __LQ_MODE__\n");
 
-	Q_strcat(dest, size, va("#define MAX_INSTANCED_MODEL_INSTANCES %i\n", MAX_INSTANCED_MODEL_INSTANCES));
+	dest.append(va("#define MAX_INSTANCED_MODEL_INSTANCES %i\n", MAX_INSTANCED_MODEL_INSTANCES));
 
-	Q_strcat(dest, size, va("#define MAX_DEFERRED_LIGHTS %i\n", MAX_DEFERRED_LIGHTS));
-	Q_strcat(dest, size, va("#define MAX_DEFERRED_LIGHT_RANGE %f\n", MAX_DEFERRED_LIGHT_RANGE));
+	dest.append(va("#define MAX_DEFERRED_LIGHTS %i\n", MAX_DEFERRED_LIGHTS));
+	dest.append(va("#define MAX_DEFERRED_LIGHT_RANGE %f\n", MAX_DEFERRED_LIGHT_RANGE));
 
-	Q_strcat(dest, size, va("#ifndef r_FBufScale\n#define r_FBufScale vec2(%f, %f)\n#endif\n", fbufWidthScale, fbufHeightScale));
-	Q_strcat(dest, size, glslMaterialsList);
+	dest.append(va("#ifndef r_FBufScale\n#define r_FBufScale vec2(%f, %f)\n#endif\n", fbufWidthScale, fbufHeightScale));
+	dest.append(glslMaterialsList);
 
 	if (r_normalMappingReal->integer)
 	{
-		Q_strcat(dest, size, "#define __USE_REAL_NORMALMAPS__\n");
+		dest.append("#define __USE_REAL_NORMALMAPS__\n");
 	}
 
 	if (extra)
 	{
-		Q_strcat(dest, size, extra);
+		dest.append(extra);
 	}
 
 	// OK we added a lot of stuff but if we do something bad in the GLSL shaders then we want the proper line
 	// so we have to reset the line counting
-	Q_strcat(dest, size, "#line 0\n");
+	dest.append("#line 0\n");
 }
 
 int GLSL_EnqueueCompileGPUShader(GLuint program, GLuint *prevShader, const GLchar *buffer, int size, GLenum shaderType)
@@ -949,83 +938,6 @@ int GLSL_EnqueueCompileGPUShader(GLuint program, GLuint *prevShader, const GLcha
 	*prevShader = shader;
 
 	return 1;
-}
-
-int GLSL_LoadGPUShaderText(const char *name, const char *fallback,
-	GLenum shaderType, char *dest, int destSize)
-{
-#if 0
-	// UQ1: yeah, don't need this crap.. trying to load a text file into a buffer that may be smaller? dumb!
-	char            filename[128/*MAX_QPATH*/];
-	GLcharARB      *buffer = NULL;
-	const GLcharARB *shaderText = NULL;
-	int             size;
-	int             result;
-
-	if (shaderType == GL_VERTEX_SHADER)
-	{
-		Com_sprintf(filename, sizeof(filename), "glsl/%s_vp.glsl", name);
-	}
-	else if (shaderType == GL_TESS_CONTROL_SHADER)
-	{
-		Com_sprintf(filename, sizeof(filename), "glsl/%s_cp.glsl", name);
-	}
-	else if (shaderType == GL_TESS_EVALUATION_SHADER)
-	{
-		Com_sprintf(filename, sizeof(filename), "glsl/%s_ep.glsl", name);
-	}
-	else if (shaderType == GL_GEOMETRY_SHADER)
-	{
-		Com_sprintf(filename, sizeof(filename), "glsl/%s_gs.glsl", name);
-	}
-	else
-	{
-		Com_sprintf(filename, sizeof(filename), "glsl/%s_fp.glsl", name);
-	}
-
-	ri->Printf(PRINT_DEVELOPER, "...loading '%s'\n", filename);
-	size = ri->FS_ReadFile(filename, (void **)&buffer);
-	if (!buffer || buffer[0] == 0)
-	{
-		if (fallback)
-		{
-			ri->Printf(PRINT_DEVELOPER, "couldn't load, using fallback\n");
-			shaderText = fallback;
-			size = strlen(shaderText);
-		}
-		else
-		{
-			ri->Printf(PRINT_DEVELOPER, "couldn't load!\n");
-			return 0;
-		}
-	}
-	else
-	{
-		shaderText = buffer;
-	}
-
-	if (size > destSize)
-	{
-		result = 0;
-	}
-	else
-	{
-		Q_strncpyz(dest, shaderText, size + 1);
-		result = 1;
-	}
-
-	if (buffer)
-	{
-		ri->FS_FreeFile(buffer);
-	}
-#else
-	int             result = 1;
-	const GLcharARB *shaderText = fallback;
-	int size = strlen(shaderText);
-	Q_strncpyz(dest, shaderText, size + 1);
-#endif
-
-	return result;
 }
 
 void GLSL_LinkProgram(GLuint program)
@@ -1088,20 +1000,21 @@ void GLSL_ShowProgramUniforms(shaderProgram_t *program)
 	{
 		qglGetActiveUniform(program->program, i, sizeof(uniformName), NULL, &size, &type, uniformName);
 
+#ifdef __DEVELOPER_MODE__
 		ri->Printf(PRINT_DEVELOPER, "active uniform: '%s'\n", uniformName);
+#endif //__DEVELOPER_MODE__
 	}
 
 	GLSL_BindProgram(NULL);
 }
 
-int GLSL_BeginLoadGPUShader2(shaderProgram_t * program, const char *name, int attribs, const char *vpCode, const char *fpCode, const char *cpCode, const char *epCode, const char *gsCode, qboolean bindless)
+int GLSL_BeginLoadGPUShader2(shaderProgram_t * program, std::string name, int attribs, std::string vpCode, std::string fpCode, std::string cpCode, std::string epCode, std::string gsCode, qboolean bindless)
 {
-	size_t nameBufSize = strlen(name) + 1;
-
+#ifdef __DEVELOPER_MODE__
 	ri->Printf(PRINT_DEVELOPER, "^5------- ^7GPU shader^5 -------\n");
+#endif //__DEVELOPER_MODE__
 
-	program->name = (char *)Z_Malloc(nameBufSize, TAG_GENERAL);
-	Q_strncpyz(program->name, name, nameBufSize);
+	program->name = name;
 
 	program->program = qglCreateProgram();
 	program->attribs = attribs;
@@ -1115,20 +1028,20 @@ int GLSL_BeginLoadGPUShader2(shaderProgram_t * program, const char *name, int at
 
 	program->isBindless = bindless;
 
-	
-	strncpy(program->vertexText, vpCode, sizeof(program->vertexText));
-	if (!(GLSL_EnqueueCompileGPUShader(program->program, &program->vertexShader, vpCode, strlen(vpCode), GL_VERTEX_SHADER)))
+	program->vertexText = vpCode;
+	if (!(GLSL_EnqueueCompileGPUShader(program->program, &program->vertexShader, program->vertexText.c_str(), program->vertexText.length(), GL_VERTEX_SHADER)))
 	{
-		ri->Printf(PRINT_ALL, "GLSL_BeginLoadGPUShader2: Unable to load \"%s\" as GL_VERTEX_SHADER\n", name);
+		ri->Printf(PRINT_ALL, "GLSL_BeginLoadGPUShader2: Unable to load \"%s\" as GL_VERTEX_SHADER\n", program->name.c_str());
 		qglDeleteProgram(program->program);
 		return 0;
 	}
 
-	if (cpCode)
+	program->tessControlText = cpCode;
+	if (program->tessControlText.length())
 	{
-		if (!(GLSL_EnqueueCompileGPUShader(program->program, &program->tessControlShader, cpCode, strlen(cpCode), GL_TESS_CONTROL_SHADER)))
+		if (!(GLSL_EnqueueCompileGPUShader(program->program, &program->tessControlShader, program->tessControlText.c_str(), program->tessControlText.length(), GL_TESS_CONTROL_SHADER)))
 		{
-			ri->Printf(PRINT_ALL, "GLSL_BeginLoadGPUShader2: Unable to load \"%s\" as GL_TESS_CONTROL_SHADER\n", name);
+			ri->Printf(PRINT_ALL, "GLSL_BeginLoadGPUShader2: Unable to load \"%s\" as GL_TESS_CONTROL_SHADER\n", program->name.c_str());
 			program->tessControlShader = 0;
 			qglDeleteProgram(program->program);
 			return 0;
@@ -1144,11 +1057,12 @@ int GLSL_BeginLoadGPUShader2(shaderProgram_t * program, const char *name, int at
 		program->tessControlShader = 0;
 	}
 
-	if (epCode)
+	program->tessEvaluationText = epCode;
+	if (program->tessEvaluationText.length())
 	{
-		if (!(GLSL_EnqueueCompileGPUShader(program->program, &program->tessEvaluationShader, epCode, strlen(epCode), GL_TESS_EVALUATION_SHADER)))
+		if (!(GLSL_EnqueueCompileGPUShader(program->program, &program->tessEvaluationShader, program->tessEvaluationText.c_str(), program->tessEvaluationText.length(), GL_TESS_EVALUATION_SHADER)))
 		{
-			ri->Printf(PRINT_ALL, "GLSL_BeginLoadGPUShader2: Unable to load \"%s\" as GL_TESS_EVALUATION_SHADER\n", name);
+			ri->Printf(PRINT_ALL, "GLSL_BeginLoadGPUShader2: Unable to load \"%s\" as GL_TESS_EVALUATION_SHADER\n", program->name.c_str());
 			program->tessEvaluationShader = 0;
 			qglDeleteProgram(program->program);
 			return 0;
@@ -1164,11 +1078,12 @@ int GLSL_BeginLoadGPUShader2(shaderProgram_t * program, const char *name, int at
 		program->tessEvaluationShader = 0;
 	}
 
-	if (gsCode)
+	program->geometryText = gsCode;
+	if (program->geometryText.length())
 	{
-		if (!(GLSL_EnqueueCompileGPUShader(program->program, &program->geometryShader, gsCode, strlen(gsCode), GL_GEOMETRY_SHADER)))
+		if (!(GLSL_EnqueueCompileGPUShader(program->program, &program->geometryShader, program->geometryText.c_str(), program->geometryText.length(), GL_GEOMETRY_SHADER)))
 		{
-			ri->Printf(PRINT_ALL, "GLSL_BeginLoadGPUShader2: Unable to load \"%s\" as GL_GEOMETRY_SHADER\n", name);
+			ri->Printf(PRINT_ALL, "GLSL_BeginLoadGPUShader2: Unable to load \"%s\" as GL_GEOMETRY_SHADER\n", program->name.c_str());
 			program->geometryShader = 0;
 			qglDeleteProgram(program->program);
 			return 0;
@@ -1184,12 +1099,12 @@ int GLSL_BeginLoadGPUShader2(shaderProgram_t * program, const char *name, int at
 		program->geometryShader = 0;
 	}
 
-	strncpy(program->fragText, fpCode, sizeof(program->fragText));
-	if (fpCode)
+	program->fragText = fpCode;
+	if (program->fragText.length())
 	{
-		if (!(GLSL_EnqueueCompileGPUShader(program->program, &program->fragmentShader, fpCode, strlen(fpCode), GL_FRAGMENT_SHADER)))
+		if (!(GLSL_EnqueueCompileGPUShader(program->program, &program->fragmentShader, program->fragText.c_str(), program->fragText.length(), GL_FRAGMENT_SHADER)))
 		{
-			ri->Printf(PRINT_ALL, "GLSL_BeginLoadGPUShader2: Unable to load \"%s\" as GL_FRAGMENT_SHADER\n", name);
+			ri->Printf(PRINT_ALL, "GLSL_BeginLoadGPUShader2: Unable to load \"%s\" as GL_FRAGMENT_SHADER\n", program->name.c_str());
 			qglDeleteProgram(program->program);
 			return 0;
 		}
@@ -1631,7 +1546,10 @@ int GLSL_BeginLoadGPUShader(shaderProgram_t * program, const char *name,
 {
 	qboolean bindless = qfalse;
 
-	shaders[shaders_next_id++] = program; // register the shader, so we can access them all later
+	if (shaders_next_id + 1 < 256)
+	{
+		shaders[shaders_next_id++] = program; // register the shader, so we can access them all later
+	}
 
 	if (isBindless && glRefConfig.bindlessTextures)
 	{// Only enable if the extensions required exist on the GPU...
@@ -1670,133 +1588,77 @@ int GLSL_BeginLoadGPUShader(shaderProgram_t * program, const char *name,
 	}
 #endif //__USE_GLSL_SHADER_CACHE__
 
-	char vpCode[MAX_GLSL_LENGTH];
-	char fpCode[MAX_GLSL_LENGTH];
-	char cpCode[MAX_GLSL_LENGTH];
-	char epCode[MAX_GLSL_LENGTH];
-	char gsCode[MAX_GLSL_LENGTH];
-	char *postHeader;
-	int size;
+	std::string vpCode;
+	std::string fpCode;
+	std::string cpCode;
+	std::string epCode;
+	std::string gsCode;
 
 #ifdef __DEBUG_SHADER_LOAD__
 	ri->Printf(PRINT_WARNING, "Begin GLSL load for %s.\n", name);
 #endif //__DEBUG_SHADER_LOAD__
 
-	size = sizeof(vpCode);
 	if (addHeader)
 	{
-		GLSL_GetShaderHeader(GL_VERTEX_SHADER, extra, vpCode, size, forceVersion, bindless);
-		postHeader = &vpCode[strlen(vpCode)];
-		size -= strlen(vpCode);
+		GLSL_GetShaderHeader(GL_VERTEX_SHADER, extra, vpCode, forceVersion, bindless);
+		vpCode += fallback_vp;
 	}
 	else
 	{
-		postHeader = &vpCode[0];
+		vpCode = fallback_vp;
 	}
 
-	if (!GLSL_LoadGPUShaderText(name, fallback_vp, GL_VERTEX_SHADER, postHeader, size))
-	{
-#ifdef __DEBUG_SHADER_LOAD__
-		ri->Printf(PRINT_WARNING, "GLSL_LoadGPUShaderText for %s_vp.\n", name);
-#endif //__DEBUG_SHADER_LOAD__
-		return 0;
-	}
+	//ri->Printf(PRINT_WARNING, "[%s]\n%s\n", name, vpCode.c_str());
 
 	if (tesselation && fallback_cp && fallback_cp[0])
 	{
-		size = sizeof(cpCode);
 		if (addHeader)
 		{
-			GLSL_GetShaderHeader(GL_TESS_CONTROL_SHADER, extra, cpCode, size, forceVersion, bindless);
-			postHeader = &cpCode[strlen(cpCode)];
-			size -= strlen(cpCode);
+			GLSL_GetShaderHeader(GL_TESS_CONTROL_SHADER, extra, cpCode, forceVersion, bindless);
+			cpCode += fallback_cp;
 		}
 		else
 		{
-			postHeader = &cpCode[0];
-		}
-
-		//ri->Printf(PRINT_WARNING, "Begin GLSL load GL_TESS_CONTROL_SHADER for %s.\n", name);
-
-		if (!GLSL_LoadGPUShaderText(name, fallback_cp, GL_TESS_CONTROL_SHADER, postHeader, size))
-		{
-#ifdef __DEBUG_SHADER_LOAD__
-			ri->Printf(PRINT_WARNING, "GLSL_LoadGPUShaderText for %s_cp.\n", name);
-#endif //__DEBUG_SHADER_LOAD__
-			return 0;
+			cpCode = fallback_cp;
 		}
 	}
 
 	if (tesselation && fallback_ep && fallback_ep[0])
 	{
-		size = sizeof(epCode);
 		if (addHeader)
 		{
-			GLSL_GetShaderHeader(GL_TESS_EVALUATION_SHADER, extra, epCode, size, forceVersion, bindless);
-			postHeader = &epCode[strlen(epCode)];
-			size -= strlen(epCode);
+			GLSL_GetShaderHeader(GL_TESS_EVALUATION_SHADER, extra, epCode, forceVersion, bindless);
+			epCode += fallback_ep;
 		}
 		else
 		{
-			postHeader = &epCode[0];
-		}
-
-		//ri->Printf(PRINT_WARNING, "Begin GLSL load GL_TESS_EVALUATION_SHADER for %s.\n", name);
-
-		if (!GLSL_LoadGPUShaderText(name, fallback_ep, GL_TESS_EVALUATION_SHADER, postHeader, size))
-		{
-#ifdef __DEBUG_SHADER_LOAD__
-			ri->Printf(PRINT_WARNING, "GLSL_LoadGPUShaderText for %s_ep.\n", name);
-#endif //__DEBUG_SHADER_LOAD__
-			return 0;
+			epCode = fallback_ep;
 		}
 	}
 
 	if (geometry && fallback_gs && fallback_gs[0])
 	{
-		size = sizeof(gsCode);
 		if (addHeader)
 		{
-			GLSL_GetShaderHeader(GL_GEOMETRY_SHADER, extra, gsCode, size, forceVersion, bindless);
-			postHeader = &gsCode[strlen(gsCode)];
-			size -= strlen(gsCode);
+			GLSL_GetShaderHeader(GL_GEOMETRY_SHADER, extra, gsCode, forceVersion, bindless);
+			gsCode += fallback_gs;
 		}
 		else
 		{
-			postHeader = &gsCode[0];
-		}
-
-		//ri->Printf(PRINT_WARNING, "Begin GLSL load GL_GEOMETRY_SHADER for %s.\n", name);
-
-		if (!GLSL_LoadGPUShaderText(name, fallback_gs, GL_GEOMETRY_SHADER, postHeader, size))
-		{
-#ifdef __DEBUG_SHADER_LOAD__
-			ri->Printf(PRINT_WARNING, "GLSL_LoadGPUShaderText for %s_gs.\n", name);
-#endif //__DEBUG_SHADER_LOAD__
-			return 0;
+			gsCode = fallback_gs;
 		}
 	}
 
 	if (fragmentShader)
 	{
-		size = sizeof(fpCode);
 		if (addHeader)
 		{
-			GLSL_GetShaderHeader(GL_FRAGMENT_SHADER, extra, fpCode, size, forceVersion, bindless);
-			postHeader = &fpCode[strlen(fpCode)];
-			size -= strlen(fpCode);
+			GLSL_GetShaderHeader(GL_FRAGMENT_SHADER, extra, fpCode, forceVersion, bindless);
+			fpCode += fallback_fp;
 		}
 		else
 		{
-			postHeader = &fpCode[0];
-		}
-
-		if (!GLSL_LoadGPUShaderText(name, fallback_fp, GL_FRAGMENT_SHADER, postHeader, size))
-		{
-#ifdef __DEBUG_SHADER_LOAD__
-			ri->Printf(PRINT_WARNING, "GLSL_LoadGPUShaderText for %s_fp.\n", name);
-#endif //__DEBUG_SHADER_LOAD__
-			return 0;
+			fpCode = fallback_fp;
 		}
 	}
 
@@ -1814,13 +1676,13 @@ int GLSL_BeginLoadGPUShader(shaderProgram_t * program, const char *name,
 				&& !StringContainsWord(name, "instances")
 				&& !StringContainsWord(name, "depthAdjust"))
 			{// The optimizer doesn't like lightAll and depthPass vert shaders...
-				if (vpCode)
+				if (vpCode.length())
 				{
-					glslopt_shader *sh = glslopt_optimize(ctx, kGlslOptShaderVertex, vpCode, 0);
+					glslopt_shader *sh = glslopt_optimize(ctx, kGlslOptShaderVertex, vpCode.c_str(), 0);
 					if (glslopt_get_status(sh)) {
 						const char *newSource = glslopt_get_output(sh);
-						memset(vpCode, 0, sizeof(char) * MAX_GLSL_LENGTH);
-						strcpy(vpCode, newSource);
+						vpCode.clear();
+						vpCode = newSource;
 						GLSL_PrintShaderOptimizationStats(va("%s (vert)", name), sh);
 					}
 					else {
@@ -1837,17 +1699,17 @@ int GLSL_BeginLoadGPUShader(shaderProgram_t * program, const char *name,
 				&& !StringContainsWord(name, "instances")
 				&& !StringContainsWord(name, "depthAdjust"))
 			{
-				if (fpCode)
+				if (fpCode.length())
 				{
-					glslopt_shader *sh = glslopt_optimize(ctx, kGlslOptShaderFragment, fpCode, 0);
+					glslopt_shader *sh = glslopt_optimize(ctx, kGlslOptShaderFragment, fpCode.c_str(), 0);
 					if (glslopt_get_status(sh)) {
 						const char *newSource = glslopt_get_output(sh);
 #ifdef __GLSL_OPTIMIZER_DEBUG__
 						ri->Printf(PRINT_WARNING, "strlen %i\n", strlen(newSource));
 						ri->Printf(PRINT_WARNING, "%s\n", newSource);
 #endif //__GLSL_OPTIMIZER_DEBUG__
-						memset(fpCode, 0, sizeof(char) * MAX_GLSL_LENGTH);
-						strcpy(fpCode, newSource);
+						fpCode.clear();
+						fpCode = newSource;
 						GLSL_PrintShaderOptimizationStats(va("%s (frag)", name), sh);
 					}
 					else {
@@ -1864,20 +1726,20 @@ int GLSL_BeginLoadGPUShader(shaderProgram_t * program, const char *name,
 	}
 #endif //__GLSL_OPTIMIZER__
 	
-	if (tesselation && cpCode && cpCode[0] && epCode && epCode[0])
+	if (tesselation && cpCode.length())
 	{
-		if (geometry && gsCode && gsCode[0])
-			return GLSL_BeginLoadGPUShader2(program, name, attribs, vpCode, fragmentShader ? fpCode : NULL, cpCode, epCode, gsCode, bindless);
+		if (geometry && gsCode.length())
+			return GLSL_BeginLoadGPUShader2(program, name, attribs, vpCode, fragmentShader ? fpCode : "", cpCode, epCode, gsCode, bindless);
 		else
-			return GLSL_BeginLoadGPUShader2(program, name, attribs, vpCode, fragmentShader ? fpCode : NULL, cpCode, epCode, NULL, bindless);
+			return GLSL_BeginLoadGPUShader2(program, name, attribs, vpCode, fragmentShader ? fpCode : "", cpCode, epCode, "", bindless);
 	}
-	else if (geometry && gsCode && gsCode[0])
+	else if (geometry && gsCode.length())
 	{
-		return GLSL_BeginLoadGPUShader2(program, name, attribs, vpCode, fragmentShader ? fpCode : NULL, NULL, NULL, gsCode, bindless);
+		return GLSL_BeginLoadGPUShader2(program, name, attribs, vpCode, fragmentShader ? fpCode : "", "", "", gsCode.c_str(), bindless);
 	}
 	else
 	{
-		return GLSL_BeginLoadGPUShader2(program, name, attribs, vpCode, fragmentShader ? fpCode : NULL, NULL, NULL, NULL, bindless);
+		return GLSL_BeginLoadGPUShader2(program, name, attribs, vpCode, fragmentShader ? fpCode : "", "", "", "", bindless);
 	}
 }
 
@@ -2575,7 +2437,7 @@ void GLSL_DeleteGPUShader(shaderProgram_t *program)
 	{
 		qglDeleteProgram(program->program);
 
-		Z_Free(program->name);
+		program->name.clear();
 		Z_Free(program->uniformBuffer);
 		Z_Free(program->uniformBufferOffsets);
 		Z_Free(program->uniforms);
@@ -2588,7 +2450,7 @@ int GLSL_BeginLoadGPUShaders(void)
 {
 	int startTime;
 	int i;
-	char extradefines[1024];
+	char extradefines[1024] = { { 0 } };
 	int attribs;
 
 	ri->Printf(PRINT_ALL, "^5------- ^7GLSL_InitGPUShaders^5 -------\n");
@@ -3696,6 +3558,21 @@ int GLSL_BeginLoadGPUShaders(void)
 		extradefines[0] = '\0';
 
 		if (r_sunlightMode->integer >= 2)
+		{
+			Q_strcat(extradefines, 1024, "#define USE_SHADOWMAP\n");
+		}
+
+		if (!GLSL_BeginLoadGPUShader(&tr.fastLightingShader, "fastLighting", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_fastLighting_vp, fallbackShader_fastLighting_fp, NULL, NULL, NULL))
+		{
+			ri->Error(ERR_FATAL, "Could not load fastLighting shader!");
+		}
+	}
+
+	{
+		attribs = ATTR_POSITION | ATTR_TEXCOORD0;
+		extradefines[0] = '\0';
+
+		if (r_sunlightMode->integer >= 2)
 			Q_strcat(extradefines, 1024, "#define USE_SHADOWMAP\n");
 
 		if (r_cubeMapping->integer)
@@ -4041,7 +3918,7 @@ int GLSL_BeginLoadGPUShaders(void)
 void GLSL_EndLoadGPUShaders(int startTime)
 {
 	int i;
-	int numGenShaders = 0, numLightShaders = 0, numEtcShaders = 0;
+	int numLightShaders = 0, numEtcShaders = 0;
 
 	if (!GLSL_EndLoadGPUShader(&tr.textureColorShader))
 	{
@@ -5536,6 +5413,31 @@ void GLSL_EndLoadGPUShaders(int startTime)
 #endif //__PROCEDURALS_IN_DEFERRED_SHADER__
 
 	{
+		if (!GLSL_EndLoadGPUShader(&tr.fastLightingShader))
+		{
+			ri->Error(ERR_FATAL, "Could not load deferredLightingshader0!");
+		}
+
+		GLSL_InitUniforms(&tr.fastLightingShader);
+
+		GLSL_BindProgram(&tr.fastLightingShader);
+
+		GLSL_SetUniformInt(&tr.fastLightingShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+		GLSL_SetUniformInt(&tr.fastLightingShader, UNIFORM_POSITIONMAP, TB_POSITIONMAP);
+		GLSL_SetUniformInt(&tr.fastLightingShader, UNIFORM_NORMALMAP, TB_NORMALMAP);
+		GLSL_SetUniformInt(&tr.fastLightingShader, UNIFORM_SHADOWMAP, TB_SHADOWMAP);
+		GLSL_SetUniformInt(&tr.fastLightingShader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
+		GLSL_SetUniformInt(&tr.fastLightingShader, UNIFORM_CUBEMAP, TB_CUBEMAP);
+		GLSL_SetUniformInt(&tr.fastLightingShader, UNIFORM_HEIGHTMAP, TB_HEIGHTMAP);
+
+#if defined(_DEBUG)
+		GLSL_FinishGPUShader(&tr.fastLightingShader);
+#endif
+
+		numEtcShaders++;
+	}
+
+	{
 		if (!GLSL_EndLoadGPUShader(&tr.deferredLightingShader[0]))
 		{
 			ri->Error(ERR_FATAL, "Could not load deferredLightingshader0!");
@@ -6482,8 +6384,8 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 	GLSL_BindProgram(NULL);
 
-	ri->Printf(PRINT_ALL, "loaded %i GLSL shaders (%i gen %i light %i etc) in %5.2f seconds\n",
-		numGenShaders + numLightShaders + numEtcShaders, numGenShaders, numLightShaders,
+	ri->Printf(PRINT_ALL, "loaded %i GLSL shaders (%i light %i etc) in %5.2f seconds\n",
+		numLightShaders + numEtcShaders, numLightShaders,
 		numEtcShaders, (ri->Milliseconds() - startTime) / 1000.0);
 }
 
@@ -6639,6 +6541,7 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.colorCorrectionShader);
 	GLSL_DeleteGPUShader(&tr.showNormalsShader);
 	GLSL_DeleteGPUShader(&tr.showDepthShader);
+	GLSL_DeleteGPUShader(&tr.fastLightingShader);
 	GLSL_DeleteGPUShader(&tr.deferredLightingShader[0]);
 	GLSL_DeleteGPUShader(&tr.deferredLightingShader[1]);
 	GLSL_DeleteGPUShader(&tr.deferredLightingShader[2]);
@@ -6673,12 +6576,12 @@ void GLSL_BindProgram(shaderProgram_t * program)
 			char to[256] = { 0 };
 
 			if (glState.currentProgram)
-				strcpy(from, glState.currentProgram->name);
+				strcpy(from, glState.currentProgram->name.c_str());
 			else
 				strcpy(from, "NULL");
 
 			if (program)
-				strcpy(to, program->name);
+				strcpy(to, program->name.c_str());
 			else
 				strcpy(to, "NULL");
 

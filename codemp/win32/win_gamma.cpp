@@ -114,7 +114,9 @@ void GLimp_SetGamma( unsigned char red[256], unsigned char green[256], unsigned 
 	vinfo.dwOSVersionInfoSize = sizeof(vinfo);
 	GetVersionEx( &vinfo );
 	if ( vinfo.dwMajorVersion >= 5 && vinfo.dwPlatformId == VER_PLATFORM_WIN32_NT ) {
+#ifdef __DEVELOPER_MODE__
 		ri->Printf( PRINT_DEVELOPER, "performing gamma clamp.\n" );
+#endif //__DEVELOPER_MODE__
 		for ( j = 0 ; j < 3 ; j++ ) {
 			for ( i = 0 ; i < 128 ; i++ ) {
 				if ( table[j][i] > ( (128+i) << 8 ) ) {
@@ -126,7 +128,9 @@ void GLimp_SetGamma( unsigned char red[256], unsigned char green[256], unsigned 
 			}
 		}
 	} else {
+#ifdef __DEVELOPER_MODE__
 		ri->Printf( PRINT_DEVELOPER, "skipping gamma clamp.\n" );
+#endif //__DEVELOPER_MODE__
 	}
 
 	// enforce constantly increasing

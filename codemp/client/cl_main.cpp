@@ -927,7 +927,9 @@ void CL_Disconnect_f( void ) {
 	SCR_StopCinematic();
 	Cvar_Set("ui_singlePlayerActive", "0");
 	if ( cls.state != CA_DISCONNECTED && cls.state != CA_CINEMATIC ) {
-		Com_Error (ERR_DISCONNECT, "Disconnected from server");
+		//Com_Error (ERR_DISCONNECT, "Disconnected from server");
+		Com_Printf("Disconnected from server");
+		CL_Disconnect(qtrue);
 	}
 }
 
@@ -2282,8 +2284,11 @@ void QDECL CL_RefPrintf( int print_level, const char *fmt, ...) {
 		Com_Printf ("%s", msg);
 	} else if ( print_level == PRINT_WARNING ) {
 		Com_Printf (S_COLOR_YELLOW "%s", msg);		// yellow
+#ifdef __DEVELOPER_MODE__
 	} else if ( print_level == PRINT_DEVELOPER ) {
-		Com_DPrintf (S_COLOR_RED "%s", msg);		// red
+		if (com_developer->integer)
+			Com_DPrintf (S_COLOR_RED "%s", msg);		// red
+#endif //__DEVELOPER_MODE__
 	}
 }
 

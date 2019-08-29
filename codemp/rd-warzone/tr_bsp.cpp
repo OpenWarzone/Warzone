@@ -983,6 +983,7 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, float *hdrVertColors, 
 	ClearBounds(surf->cullinfo.bounds[0], surf->cullinfo.bounds[1]);
 	verts += LittleLong(ds->firstVert);
 
+#pragma omp parallel for schedule(dynamic)
 	for(i = 0; i < numVerts; i++)
 	{
 		vec4_t color;
@@ -1147,6 +1148,7 @@ static void ParseMesh ( dsurface_t *ds, drawVert_t *verts, float *hdrVertColors,
 	verts += LittleLong( ds->firstVert );
 	numPoints = width * height;
 
+#pragma omp parallel for schedule(dynamic)
 	for(i = 0; i < numPoints; i++)
 	{
 		vec4_t color;
@@ -1232,7 +1234,8 @@ ParseTriSurf
 static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, float *hdrVertColors, msurface_t *surf, int *indexes, int surfID ) {
 	srfBspSurface_t	*cv;
 	glIndex_t		*tri;
-	uint32_t		i, j;
+	//uint32_t		i, j;
+	int64_t			i;
 	uint32_t		numVerts, numIndexes, badTriangles;
 
 #ifdef __Q3_FOG__
@@ -1302,11 +1305,12 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, float *hdrVertColor
 	ClearBounds(surf->cullinfo.bounds[0], surf->cullinfo.bounds[1]);
 	verts += LittleLong(ds->firstVert);
 
+#pragma omp parallel for schedule(dynamic)
 	for(i = 0; i < numVerts; i++)
 	{
 		vec4_t color;
 
-		for(j = 0; j < 3; j++)
+		for(int j = 0; j < 3; j++)
 		{
 			cv->verts[i].xyz[j] = LittleFloat(verts[i].xyz[j]);
 			cv->verts[i].normal[j] = LittleFloat(verts[i].normal[j]);
@@ -1323,12 +1327,12 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, float *hdrVertColor
 		*/
 		AddPointToBounds( cv->verts[i].xyz, surf->cullinfo.bounds[0], surf->cullinfo.bounds[1] );
 
-		for(j = 0; j < 2; j++)
+		for(int j = 0; j < 2; j++)
 		{
 			cv->verts[i].st[j] = LittleFloat(verts[i].st[j]);
 		}
 
-		for ( j = 0; j < MAXLIGHTMAPS; j++ )
+		for (int j = 0; j < MAXLIGHTMAPS; j++)
 		{
 			cv->verts[i].lightmap[j][0] = LittleFloat(verts[i].lightmap[j][0]);
 			cv->verts[i].lightmap[j][1] = LittleFloat(verts[i].lightmap[j][1]);
@@ -1370,7 +1374,7 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, float *hdrVertColor
 	indexes += LittleLong(ds->firstIndex);
 	for(i = 0, tri = cv->indexes; i < numIndexes; i += 3, tri += 3)
 	{
-		for(j = 0; j < 3; j++)
+		for(int j = 0; j < 3; j++)
 		{
 			tri[j] = LittleLong(indexes[i + j]);
 
@@ -1651,10 +1655,11 @@ FIXME: write generalized version that also avoids cracks between a patch and one
 =================
 */
 void R_FixSharedVertexLodError_r( int start, srfBspSurface_t *grid1 ) {
-	int j, k, l, m, n, offset1, offset2, touch;
 	srfBspSurface_t *grid2;
 
-	for ( j = start; j < s_worldData->numsurfaces; j++ ) {
+	for ( int j = start; j < s_worldData->numsurfaces; j++ ) {
+		int k, l, m, n, offset1, offset2, touch;
+
 		//
 		grid2 = (srfBspSurface_t *) s_worldData->surfaces[j].data;
 		// if this surface is not a grid

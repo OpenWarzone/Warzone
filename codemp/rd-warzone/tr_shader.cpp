@@ -6186,7 +6186,9 @@ static int CollapseStagesToGLSL(void)
 	qboolean hasNormalMap = qfalse;
 	qboolean hasSpecularMap = qfalse;
 
+#ifdef __DEVELOPER_MODE__
 	//ri->Printf (PRINT_DEVELOPER, "Collapsing stages for shader '%s'\n", shader.name);
+#endif //__DEVELOPER_MODE__
 
 #define EXPERIMENTAL_MERGE_STUFF
 	
@@ -6195,11 +6197,15 @@ static int CollapseStagesToGLSL(void)
 	if (shader.numDeforms != 0)
 	{
 		skip = qtrue;
+#ifdef __DEVELOPER_MODE__
 		//ri->Printf (PRINT_DEVELOPER, "> Shader has vertex deformations. Aborting stage collapsing\n");
+#endif //__DEVELOPER_MODE__
 	}
 #endif //EXPERIMENTAL_MERGE_STUFF
 
+#ifdef __DEVELOPER_MODE__
 	//ri->Printf (PRINT_DEVELOPER, "> Original shader stage order:\n");
+#endif //__DEVELOPER_MODE__
 
 /*
 	for ( int i = 0; i < MAX_SHADER_STAGES; i++ )
@@ -6211,7 +6217,9 @@ static int CollapseStagesToGLSL(void)
 			continue;
 		}
 
+#ifdef __DEVELOPER_MODE__
 		ri->Printf (PRINT_DEVELOPER, "-> %s\n", stage->bundle[0].image[0]->imgName);
+#endif //__DEVELOPER_MODE__
 	}
 */
 
@@ -6241,9 +6249,11 @@ static int CollapseStagesToGLSL(void)
 				stages[0].stateBits = stateBits0;
 				stages[1].stateBits = stateBits1;
 
+#ifdef __DEVELOPER_MODE__
 				//ri->Printf (PRINT_DEVELOPER, "> Swapped first and second stage.\n");
 				//ri->Printf (PRINT_DEVELOPER, "-> First stage is now: %s\n", stages[0].bundle[0].image[0]->imgName);
 				//ri->Printf (PRINT_DEVELOPER, "-> Second stage is now: %s\n", stages[1].bundle[0].image[0]->imgName);
+#endif //__DEVELOPER_MODE__
 			}
 		}
 	}
@@ -6657,7 +6667,9 @@ static int CollapseStagesToGLSL(void)
 							pStage2->bundle[0].tcGen <= TCGEN_LIGHTMAP3 &&
 							pStage2->rgbGen != CGEN_EXACT_VERTEX)
 						{
+#ifdef __DEVELOPER_MODE__
 							//ri->Printf (PRINT_DEVELOPER, "> Setting lightmap for %s to %s\n", pStage->bundle[0].image[0]->imgName, pStage2->bundle[0].image[0]->imgName);
+#endif //__DEVELOPER_MODE__
 							lightmap = pStage2;
 							lightmaps[j] = NULL;
 						}
@@ -6823,7 +6835,9 @@ static int CollapseStagesToGLSL(void)
 		}
 	}
 
+#ifdef __DEVELOPER_MODE__
 	//ri->Printf (PRINT_DEVELOPER, "> New shader stage order:\n");
+#endif //__DEVELOPER_MODE__
 
 	for ( int i = 0; i < MAX_SHADER_STAGES; i++ )
 	{
@@ -6844,7 +6858,9 @@ static int CollapseStagesToGLSL(void)
 			stage->hasSpecularMap = true;
 		}
 
+#ifdef __DEVELOPER_MODE__
 		//ri->Printf (PRINT_DEVELOPER, "-> %s\n", stage->bundle[0].image[0]->imgName);
+#endif //__DEVELOPER_MODE__
 	}
 
 #if 1
@@ -7664,7 +7680,9 @@ static shader_t *FinishShader(void) {
 
 	if ((shader.lightmapIndex[0] || shader.lightmapIndex[1] || shader.lightmapIndex[2] || shader.lightmapIndex[3]) && !hasLightmapStage)
 	{
+#ifdef __DEVELOPER_MODE__
 		ri->Printf(PRINT_DEVELOPER, "WARNING: shader '%s' has lightmap but no lightmap stage!\n", shader.name);
+#endif //__DEVELOPER_MODE__
 		// Don't set this, it will just add duplicate shaders to the hash
 		//shader.lightmapIndex = LIGHTMAP_NONE;
 	}
@@ -8894,7 +8912,9 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 #endif //__DEFERRED_IMAGE_LOADING__
 
 	if (!image) {
+#ifdef __DEVELOPER_MODE__
 		ri->Printf(PRINT_DEVELOPER, "Couldn't find image file for shader %s\n", name);
+#endif //__DEVELOPER_MODE__
 		shader.defaultShader = qtrue;
 		//findshader_lock.unlock();
 		return FinishShader();
@@ -9400,7 +9420,9 @@ static void ScanAndLoadShaderFiles( void )
 			//ri->Printf(PRINT_WARNING, "%i: %s.\n", i, filename);
 		}
 
+#ifdef __DEVELOPER_MODE__
 		ri->Printf( PRINT_DEVELOPER, "...loading '%s'\n", filename );
+#endif //__DEVELOPER_MODE__
 		summand = ri->FS_ReadFile( filename, (void **)&buffers[i] );
 
 		if ( !buffers[i] )

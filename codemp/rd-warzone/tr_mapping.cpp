@@ -2456,7 +2456,7 @@ void MAPPING_LoadMapInfo(void)
 		SHADOW_CASCADE2 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE2", "3192"));
 		SHADOW_CASCADE3 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE3", "12288"));
 		SHADOW_CASCADE4 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE4", "65536"));
-		SHADOW_CASCADE_BIAS1 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE_BIAS1", va("%i", SHADOW_CASCADE_BIAS1 / 2)));
+		SHADOW_CASCADE_BIAS1 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE_BIAS1", va("%i", SHADOW_CASCADE1 / 2)));
 		SHADOW_CASCADE_BIAS2 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE_BIAS2", va("%i", SHADOW_CASCADE1)));
 		SHADOW_CASCADE_BIAS3 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE_BIAS3", va("%i", SHADOW_CASCADE2)));
 		SHADOW_CASCADE_BIAS4 = atoi(IniRead(mapname, "SHADOWS", "SHADOW_CASCADE_BIAS4", va("%i", SHADOW_CASCADE3)));
@@ -2971,6 +2971,11 @@ void MAPPING_LoadMapInfo(void)
 	{
 		tr.auroraImage[0] = R_FindImageFile("gfx/misc/aurora1", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
 		tr.auroraImage[1] = R_FindImageFile("gfx/misc/aurora2", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+	}
+	else
+	{
+		tr.auroraImage[0] = tr.blackImage;
+		tr.auroraImage[1] = tr.blackImage;
 	}
 
 	if (MAP_MAX_VIS_RANGE && tr.distanceCull != MAP_MAX_VIS_RANGE)

@@ -885,9 +885,11 @@ void R_AddIQMSurfaces( trRefEntity_t *ent, model_t *currentModel, int entityNum,
 	     || (ent->e.frame < 0)
 	     || (ent->e.oldframe >= data->num_frames)
 	     || (ent->e.oldframe < 0) ) {
+#ifdef __DEVELOPER_MODE__
 		ri->Printf( PRINT_DEVELOPER, "R_AddIQMSurfaces: no such frame %d to %d for '%s'\n",
 			   ent->e.oldframe, ent->e.frame,
 			   currentModel->name );
+#endif //__DEVELOPER_MODE__
 		ent->e.frame = 0;
 		ent->e.oldframe = 0;
 	}

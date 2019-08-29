@@ -1772,6 +1772,7 @@ void GUI_PostProcessMakeCvarList() {
 	GUI_PostProcessAddCvar(r_cartoon, 3);
 	//GUI_PostProcessAddCvar(r_ssdo, 1);
 	//GUI_PostProcessAddCvar(r_sss, 1);
+	//GUI_PostProcessAddCvar(r_fastLighting, 1);
 	GUI_PostProcessAddCvar(r_deferredLighting, 1);
 	//GUI_PostProcessAddCvar(r_ssr, 1);
 	//GUI_PostProcessAddCvar(r_sse, 1);
@@ -3676,8 +3677,18 @@ void GUI_InitSkin()
 }
 #endif
 
+void GUI_Shutdown(void);
+
+qboolean GUI_Initialized = qfalse;
+
 void GUI_Init(void)
 {
+	if (GUI_Initialized)
+	{
+		//GUI_Shutdown();
+		return;
+	}
+
 	ri->Printf(PRINT_WARNING, "GUI_Init: Begin.\n");
 
 	/* OpenGL */
@@ -3815,10 +3826,15 @@ void GUI_Init(void)
 	}
 
 	ri->Printf(PRINT_WARNING, "GUI_Init: Textures Initialized.\n");
+
+	GUI_Initialized = qtrue;
 }
 
 void GUI_Shutdown(void)
 {
+	if (!GUI_Initialized)
+		return;
+
 	qglDeleteTextures(1, (const GLuint*)&GUI_media.unchecked.handle.id);
 	qglDeleteTextures(1, (const GLuint*)&GUI_media.checked.handle.id);
 	qglDeleteTextures(1, (const GLuint*)&GUI_media.rocket.handle.id);
@@ -3846,10 +3862,40 @@ void GUI_Shutdown(void)
 	qglDeleteTextures(1, (const GLuint*)&GUI_media.skin);
 #endif
 
+	// Warzone window Icons...
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.iconMainMenu);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.iconAbilities);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.iconCharacter);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.iconInventory);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.iconPowers);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.iconRadio);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.iconSettings);
+
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.inventoryBlank);
+
+	{// Geneate a fake inventory list for testing...
+		for (int i = 0; i < 64; ++i)
+		{
+			for (int quality = 0; quality < 7; quality++)
+			{
+				qglDeleteTextures(1, (const GLuint*)&GUI_media.inventory[i][quality]);
+			}
+		}
+	}
+
+	{// Geneate a fake powers list for testing...
+		for (int i = 0; i < 64; ++i)
+		{
+			qglDeleteTextures(1, (const GLuint*)&GUI_media.forcePowers[i]);
+		}
+	}
+
 	nk_font_atlas_clear(&GUI_atlas);
 	nk_free(&GUI_ctx);
 
 	device_shutdown(&GUI_device);
+
+	GUI_Initialized = qfalse;
 }
 
 void NuklearUI_Main(void)
