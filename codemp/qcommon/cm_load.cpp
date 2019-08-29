@@ -1000,12 +1000,21 @@ void CMod_LoadPlanes (lump_t *l, clipMap_t &cm, bool subBSP)
 	else
 	{
 		cm.numPlanes = count;
-#ifdef __BSP_USE_SHARED_MEMORY__
+/*#ifdef __BSP_USE_SHARED_MEMORY__
 		hSharedMemory *sharedMemoryPointer = OpenSharedMemory("BSPSurfacePlanes", "BSPSurfacePlanesMutex", (BOX_PLANES + count) * sizeof(*cm.planes));
-		cm.planes = (struct cplane_s *)sharedMemoryPointer->hFileView;
-#else //!__BSP_USE_SHARED_MEMORY__
+		if (sharedMemoryPointer)
+		{
+			cm.planes = (struct cplane_s *)sharedMemoryPointer->hFileView;
+			cm.planesAreSharedMemory = qtrue;
+		}
+		else
+		{
+			cm.planes = (struct cplane_s *)Hunk_Alloc((BOX_PLANES + count) * sizeof(*cm.planes), h_high);
+			cm.planesAreSharedMemory = qfalse;
+		}
+#else //!__BSP_USE_SHARED_MEMORY__*/
 		cm.planes = (struct cplane_s *)Hunk_Alloc((BOX_PLANES + count) * sizeof(*cm.planes), h_high);
-#endif //__BSP_USE_SHARED_MEMORY__
+//#endif //__BSP_USE_SHARED_MEMORY__
 
 		PlanesData = cm.planes;
 		PlanesDataCount = cm.numPlanes;
