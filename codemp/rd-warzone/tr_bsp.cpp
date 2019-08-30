@@ -748,7 +748,6 @@ void GenerateNormalsForBSPSurface(srfBspSurface_t *cv)
 
 	//ri->Printf(PRINT_WARNING, "Regenerating BSP surface normals.\n");
 
-//#pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i < cv->numIndexes; i += 3)
 	{
 		int tri[3];
@@ -807,7 +806,7 @@ void GenerateSmoothNormalsForSurface(srfBspSurface_t *cv)
 	for (int z = 0; z < 3; z++)
 #endif //__MULTIPASS_SMOOTHING__
 	{
-#pragma omp parallel for schedule(dynamic)
+//#pragma omp parallel for schedule(dynamic)
 		for (int i = 0; i < numVerts; i++)
 		{
 			//ri->Printf(PRINT_WARNING, "%i of %i.\n", i, numVerts);
@@ -866,7 +865,7 @@ void GenerateSmoothNormalsForPacked(packedVertex_t *verts, int numVerts)
 	for (int z = 0; z < 3; z++)
 #endif //__MULTIPASS_SMOOTHING__
 	{
-#pragma omp parallel for schedule(dynamic)
+//#pragma omp parallel for schedule(dynamic)
 		for (int i = 0; i < numVerts; i++)
 		{
 			//ri->Printf(PRINT_WARNING, "%i of %i.\n", i, numVerts);
@@ -983,7 +982,7 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, float *hdrVertColors, 
 	ClearBounds(surf->cullinfo.bounds[0], surf->cullinfo.bounds[1]);
 	verts += LittleLong(ds->firstVert);
 
-#pragma omp parallel for schedule(dynamic)
+//#pragma omp parallel for schedule(dynamic)
 	for(i = 0; i < numVerts; i++)
 	{
 		vec4_t color;
@@ -1148,7 +1147,7 @@ static void ParseMesh ( dsurface_t *ds, drawVert_t *verts, float *hdrVertColors,
 	verts += LittleLong( ds->firstVert );
 	numPoints = width * height;
 
-#pragma omp parallel for schedule(dynamic)
+//#pragma omp parallel for schedule(dynamic)
 	for(i = 0; i < numPoints; i++)
 	{
 		vec4_t color;
@@ -1305,7 +1304,7 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, float *hdrVertColor
 	ClearBounds(surf->cullinfo.bounds[0], surf->cullinfo.bounds[1]);
 	verts += LittleLong(ds->firstVert);
 
-#pragma omp parallel for schedule(dynamic)
+//#pragma omp parallel for schedule(dynamic)
 	for(i = 0; i < numVerts; i++)
 	{
 		vec4_t color;
@@ -2249,7 +2248,6 @@ void R_StitchAllPatches( void ) {
 	{
 		stitched = qfalse;
 
-//#pragma omp parallel for schedule(dynamic)
 		for ( i = 0; i < s_worldData->numsurfaces; i++ ) {
 			//
 			srfBspSurface_t *grid1 = (srfBspSurface_t *) s_worldData->surfaces[i].data;
@@ -5065,7 +5063,6 @@ static void R_SetupMapGlowsAndWaterPlane( world_t *world )
 		setupWaterLevel = qtrue;
 	}
 
-//#pragma omp parallel for schedule(dynamic) ordered
 	for (int i = 0; i < w->numsurfaces; i++)
 	{// Get a count of how many we need... Add them to temp list if not too close to another...
 		msurface_t *surf =	&w->surfaces[i];
