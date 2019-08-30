@@ -1,6 +1,54 @@
-#define __USING_SHADOW_MAP__
+#if defined(USE_BINDLESS_TEXTURES)
+layout(std140) uniform u_bindlessTexturesBlock
+{
+uniform sampler2D					u_DiffuseMap;
+uniform sampler2D					u_LightMap;
+uniform sampler2D					u_NormalMap;
+uniform sampler2D					u_DeluxeMap;
+uniform sampler2D					u_SpecularMap;
+uniform sampler2D					u_PositionMap;
+uniform sampler2D					u_WaterPositionMap;
+uniform sampler2D					u_WaterHeightMap;
+uniform sampler2D					u_HeightMap;
+uniform sampler2D					u_GlowMap;
+uniform sampler2D					u_EnvironmentMap;
+uniform sampler2D					u_TextureMap;
+uniform sampler2D					u_LevelsMap;
+uniform sampler2D					u_CubeMap;
+uniform sampler2D					u_SkyCubeMap;
+uniform sampler2D					u_SkyCubeMapNight;
+uniform sampler2D					u_EmissiveCubeMap;
+uniform sampler2D					u_OverlayMap;
+uniform sampler2D					u_SteepMap;
+uniform sampler2D					u_SteepMap1;
+uniform sampler2D					u_SteepMap2;
+uniform sampler2D					u_SteepMap3;
+uniform sampler2D					u_WaterEdgeMap;
+uniform sampler2D					u_SplatControlMap;
+uniform sampler2D					u_SplatMap1;
+uniform sampler2D					u_SplatMap2;
+uniform sampler2D					u_SplatMap3;
+uniform sampler2D					u_RoadsControlMap;
+uniform sampler2D					u_RoadMap;
+uniform sampler2D					u_DetailMap;
+uniform sampler2D					u_ScreenImageMap;
+uniform sampler2D					u_ScreenDepthMap;
+uniform sampler2DShadow				u_ShadowMap;
+uniform sampler2DShadow				u_ShadowMap2;
+uniform sampler2DShadow				u_ShadowMap3;
+uniform sampler2DShadow				u_ShadowMap4;
+uniform sampler2DShadow				u_ShadowMap5;
+uniform sampler2D					u_MoonMaps[4];
+};
+#else //!defined(USE_BINDLESS_TEXTURES)
+uniform sampler2D					u_DiffuseMap;
 
-uniform sampler2D				u_ScreenDepthMap;
+uniform sampler2DShadow				u_ShadowMap;
+uniform sampler2DShadow				u_ShadowMap2;
+uniform sampler2DShadow				u_ShadowMap3;
+uniform sampler2DShadow				u_ShadowMap4;
+uniform sampler2DShadow				u_ShadowMap5;
+#endif //defined(USE_BINDLESS_TEXTURES)
 
 uniform vec4					u_Local0; // r_lensflare, 0.0, r_volumeLightStrength * SUN_VOLUMETRIC_SCALE, SUN_VOLUMETRIC_FALLOFF
 uniform vec4					u_Local1; // nightScale, isVolumelightShader, 0.0, 0.0
@@ -32,86 +80,6 @@ const float fVolumetricFalloffRange = 0.4;
 uniform vec3				u_vlightColors;
 
 uniform vec2				u_vlightPositions;
-
-#ifndef __USING_SHADOW_MAP__
-//uniform vec2				u_vlightPositions;
-
-varying vec2				var_TexCoords;
-
-void main ( void )
-{
-	if (NIGHT_FACTOR >= 1.0)
-	{// Night...
-		gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-		return;
-	}
-
-	vec3	totalColor = vec3(0.0, 0.0, 0.0);
-	vec3	lightColor = u_vlightColors * 1.5;
-
-	if (NIGHT_FACTOR > 0.0)
-	{// Adjust the sun color at sunrise/sunset...
-		vec3 sunsetSun = vec3(2.0, 0.3, 0.1);
-		lightColor = mix(lightColor, sunsetSun, NIGHT_FACTOR/*pow(NIGHT_FACTOR, u_Local1.g)*/);
-	}
-
-	float dist = length(var_TexCoords - u_vlightPositions);
-	float fall = pow(clamp((2.0 - dist) / 2.0, 0.0, 1.0), 2.0);
-
-	float	lens = 0.0;
-	vec2	texCoord = var_TexCoords;
-	vec2	deltaTexCoord = (texCoord.xy - u_vlightPositions);
-
-	deltaTexCoord *= 1.0 / float(float(iVolumetricSamples) * fVolumetricDensity);
-
-	float illuminationDecay = 1.0;
-
-//#pragma unroll iVolumetricSamples
-	for(int g = 0; g < iVolumetricSamples; g++)
-	{
-		texCoord -= deltaTexCoord;
-
-		if (texCoord.x >= 0.0 && texCoord.x <= 1.0 && texCoord.y >= 0.0 && texCoord.y <= 1.0)
-		{// Don't bother with lookups outside screen area...
-			float linDepth = textureLod(u_ScreenDepthMap, texCoord.xy, 0.0).r;
-			lens += linDepth * illuminationDecay * fVolumetricWeight;
-		}
-
-		illuminationDecay *= fVolumetricDecay;
-
-		if (illuminationDecay <= 0.0)
-			break;
-	}
-
-	totalColor += clamp(lightColor * (lens * 0.05) * pow(fall, u_Local0.a), 0.0, 1.0);
-
-	totalColor.rgb += u_vlightColors * 0.05;
-
-	totalColor.rgb *= VOLUMETRIC_STRENGTH * 1.5125;
-
-	// Amplify contrast...
-#define lightLower ( 64.0 / 255.0 )
-#define lightUpper ( 255.0 / 64.0 )
-	totalColor.rgb = clamp((totalColor.rgb - lightLower) * lightUpper, 0.0, 1.0);
-
-	if (NIGHT_FACTOR > 0.0)
-	{// Sunset, Sunrise, and Night times... Scale down screen color, before adding lighting...
-		vec3 nightColor = vec3(0.0);
-		totalColor.rgb = mix(totalColor.rgb, nightColor, NIGHT_FACTOR);
-	}
-
-	gl_FragColor = vec4(totalColor, 1.0);
-}
-
-#else //__USING_SHADOW_MAP__
-
-uniform sampler2D			u_PositionMap;
-
-uniform sampler2DShadow		u_ShadowMap;
-uniform sampler2DShadow		u_ShadowMap2;
-uniform sampler2DShadow		u_ShadowMap3;
-uniform sampler2DShadow		u_ShadowMap4;
-uniform sampler2DShadow		u_ShadowMap5;
 
 uniform mat4				u_ShadowMvp;
 uniform mat4				u_ShadowMvp2;
@@ -153,7 +121,7 @@ float GetVolumetricShadow(void)
 	float fWeight = 0.0;
 	float dWeight = 1.0;
 	float invSamples = 1.0 / float(iVolumetricSamples);
-	float sceneDepth = texture(u_ScreenDepthMap, var_DepthTex).x * 0.4;
+	float sceneDepth = texture(u_DiffuseMap, var_DepthTex).x * 0.4;
 
 	for (int i = 0; i < iVolumetricSamples; i++)
 	{
@@ -284,7 +252,6 @@ void main()
 	shadow = clamp((shadow - lightLower2) * lightUpper2, 0.0, 1.0);
 
 	shadow = pow(shadow, 1.333); // a little more smoothness/contrast...
-	//shadow = smoothstep(0.0, 1.0, pow(shadow, 1.333)); // a little more smoothness/contrast...
 
 	vec3 totalColor = sunColor * shadow;
 
@@ -300,11 +267,6 @@ void main()
 	totalColor *= fall;
 
 	totalColor.rgb *= VOLUMETRIC_STRENGTH;// * 1.5125;
-	
-	// Amplify contrast...
-//#define lightLower ( 512.0 / 255.0 )
-//#define lightUpper ( 255.0 / 4096.0 )
-//	totalColor.rgb = clamp((totalColor.rgb - lightLower) * lightUpper, 0.0, 1.0);
 
 	if (NIGHT_FACTOR > 0.0)
 	{// Sunrise/Sunset - Scale down screen color, before adding lighting...
@@ -320,6 +282,3 @@ void main()
 
 	gl_FragColor = vec4(totalColor, 1.0);
 }
-
-#endif //__USING_SHADOW_MAP__
-

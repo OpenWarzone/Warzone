@@ -250,6 +250,12 @@ static void DrawTris (shaderCommands_t *input) {
 		GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
 		GLSL_SetUniformVec4(sp, UNIFORM_COLOR, /*colorWhite*/colorYellow);
 
+		if (tr.textureColorShader.isBindless)
+		{
+			GLSL_SetBindlessTexture(&tr.textureColorShader, UNIFORM_DIFFUSEMAP, &tr.whiteImage, 0);
+			GLSL_BindlessUpdate(&tr.textureColorShader);
+		}
+
 		if (input->multiDrawPrimitives)
 		{
 			R_DrawMultiElementsVBO(input->multiDrawPrimitives, input->multiDrawMinIndex, input->multiDrawMaxIndex, input->multiDrawNumIndexes, input->multiDrawFirstIndex, input->numVertexes, qfalse);
@@ -1191,10 +1197,12 @@ static void ProjectPshadowVBOGLSL( void ) {
 
 		if (sp->isBindless)
 		{
-			GLSL_SetBindlessTexture(sp, UNIFORM_DIFFUSEMAP, &tr.pshadowMaps[l], 0);
+			GLSL_SetBindlessTexture(sp, UNIFORM_SHADOWMAP, &tr.pshadowMaps[l], 0);
+			GLSL_BindlessUpdate(sp);
 		}
 		else
 		{
+			GLSL_SetUniformInt(sp, UNIFORM_SHADOWMAP, TB_DIFFUSEMAP);
 			GL_BindToTMU(tr.pshadowMaps[l], TB_DIFFUSEMAP);
 		}
 
@@ -2699,7 +2707,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 
 			GLSL_BindProgram(sp);
 		}
-		else if (r_proceduralSun->integer && tess.shader == tr.sunShader)
+		/*else if (r_proceduralSun->integer && tess.shader == tr.sunShader)
 		{// Special case for procedural sun...
 			if (IS_DEPTH_PASS) return;
 			if (stage > 0) return;
@@ -2711,7 +2719,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			multiPass = qfalse;
 
 			GLSL_BindProgram(sp);
-		}
+		}*/
 		else if (tess.shader->materialType == MATERIAL_MENU_BACKGROUND)
 		{
 			// Special case for procedural menu background...
@@ -5908,6 +5916,8 @@ static void RB_RenderShadowmap(shaderCommands_t *input)
 					{
 						GLSL_SetBindlessTexture(sp, UNIFORM_ROADSCONTROLMAP, &tr.blackImage, 0);
 					}
+
+					GLSL_BindlessUpdate(sp);
 				}
 				else
 				{

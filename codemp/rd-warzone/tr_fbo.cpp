@@ -1255,15 +1255,6 @@ void FBO_BlitFromTexture(struct image_s *src, vec4i_t inSrcBox, vec2_t inSrcTexS
 
 	qglDisable( GL_CULL_FACE );
 
-	if (shaderProgram->isBindless)
-	{
-		GLSL_SetBindlessTexture(shaderProgram, UNIFORM_DIFFUSEMAP, &src, 0);
-	}
-	else
-	{
-		GL_BindToTMU(src, TB_COLORMAP);
-	}
-
 	VectorSet4(quadVerts[0], dstBox[0], dstBox[1], 0, 1);
 	VectorSet4(quadVerts[1], dstBox[2], dstBox[1], 0, 1);
 	VectorSet4(quadVerts[2], dstBox[2], dstBox[3], 0, 1);
@@ -1283,9 +1274,15 @@ void FBO_BlitFromTexture(struct image_s *src, vec4i_t inSrcBox, vec2_t inSrcTexS
 
 	if (shaderProgram->isBindless)
 	{
+		GLSL_SetBindlessTexture(shaderProgram, UNIFORM_DIFFUSEMAP, &src, 0);
 		GLSL_BindlessUpdate(shaderProgram);
 	}
-	
+	else
+	{
+		GLSL_SetUniformInt(shaderProgram, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+		GL_BindToTMU(src, TB_DIFFUSEMAP);
+	}
+
 	GLSL_SetUniformMatrix16(shaderProgram, UNIFORM_MODELVIEWPROJECTIONMATRIX, projection);
 	GLSL_SetUniformVec4(shaderProgram, UNIFORM_COLOR, color);
 	GLSL_SetUniformVec2(shaderProgram, UNIFORM_INVTEXRES, invTexRes);

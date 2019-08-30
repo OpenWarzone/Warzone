@@ -1480,6 +1480,10 @@ void main(void)
 		float shadowValue = texture(u_ShadowMap, texCoords).r;
 		float selfShadow = max(dot(flatNorm, -sunDir.rgb), 0.0);
 
+		if (position.a - 1.0 == MATERIAL_GREENLEAVES)
+		{
+			selfShadow = clamp(selfShadow + 0.5, 0.0, 1.0);
+		}
 		if (position.a - 1.0 == MATERIAL_PROCEDURALFOLIAGE)
 		{
 			selfShadow = clamp(selfShadow + 0.5, 0.0, 1.0);

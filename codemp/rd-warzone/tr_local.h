@@ -1885,12 +1885,15 @@ typedef struct shaderProgram_s
 	GLuint						instances_mvp = 0;
 	GLuint						instances_buffer = 0;
 
-	// keep the glsl source code around so we can live edit it
 	std::string					vertexText;
 	std::string					fragText;
 	std::string					tessControlText;
 	std::string					tessEvaluationText;
 	std::string					geometryText;
+
+	// keep the glsl source code around so we can live edit it
+	char						vertexTextChar[MAX_GLSL_LENGTH];
+	char						fragTextChar[MAX_GLSL_LENGTH];
 	int							usageCount;
 
 	qboolean					isBindless;
@@ -3132,9 +3135,9 @@ typedef struct trGlobals_s {
 	shaderProgram_t lightAllSplatShader[4];
 	shaderProgram_t skyShader;
 	shaderProgram_t depthPassShader[4];
-	shaderProgram_t sunPassShader;
-	shaderProgram_t moonPassShader;
-	shaderProgram_t planetPassShader;
+	//shaderProgram_t sunPassShader;
+	//shaderProgram_t moonPassShader;
+	//shaderProgram_t planetPassShader;
 	shaderProgram_t fireShader;
 	shaderProgram_t smokeShader;
 	shaderProgram_t magicParticlesShader;
@@ -3144,13 +3147,13 @@ typedef struct trGlobals_s {
 	shaderProgram_t menuBackgroundShader;
 	shaderProgram_t shadowFillShader[4];
 	shaderProgram_t pshadowShader[4];
-	shaderProgram_t down4xShader;
+	//shaderProgram_t down4xShader;
 	shaderProgram_t bokehShader;
 	shaderProgram_t tonemapShader;
 	shaderProgram_t calclevels4xShader[2];
 	shaderProgram_t shadowmaskShader;
 	shaderProgram_t ssaoShader;
-	shaderProgram_t depthBlurShader[2];
+	//shaderProgram_t depthBlurShader[2];
 	shaderProgram_t testcubeShader;
 	shaderProgram_t gaussianBlurShader[2];
 	shaderProgram_t glowCompositeShader;

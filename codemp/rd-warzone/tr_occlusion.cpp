@@ -265,8 +265,16 @@ void RB_MoveSky(void)
 
 	GLSL_BindProgram(shader);
 
-	GLSL_SetUniformInt(shader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
-	GL_BindToTMU(tr.genericDepthImage, TB_LIGHTMAP);
+	if (shader->isBindless)
+	{
+		GLSL_SetBindlessTexture(shader, UNIFORM_SCREENDEPTHMAP, &tr.genericDepthImage, 0);
+		GLSL_BindlessUpdate(shader);
+	}
+	else
+	{
+		GLSL_SetUniformInt(shader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
+		GL_BindToTMU(tr.genericDepthImage, TB_LIGHTMAP);
+	}
 
 	GLSL_SetUniformMatrix16(shader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
 
@@ -346,8 +354,16 @@ void RB_OcclusionCulling(void)
 			GLSL_SetUniformMatrix16(&tr.occlusionShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
 			GLSL_SetUniformVec4(&tr.occlusionShader, UNIFORM_COLOR, colorWhite);
 
-			GLSL_SetUniformInt(&tr.occlusionShader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
-			GL_BindToTMU(tr.renderDepthImage, TB_LIGHTMAP);
+			/*if (tr.occlusionShader.isBindless)
+			{
+				GLSL_SetBindlessTexture(&tr.occlusionShader, UNIFORM_SCREENDEPTHMAP, &tr.renderDepthImage, 0);
+				GLSL_BindlessUpdate(&tr.occlusionShader);
+			}
+			else
+			{
+				GLSL_SetUniformInt(&tr.occlusionShader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
+				GL_BindToTMU(tr.renderDepthImage, TB_LIGHTMAP);
+			}*/
 
 			GL_State(GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_DEPTHFUNC_LESS);
 

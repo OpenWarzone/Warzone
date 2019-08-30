@@ -179,8 +179,8 @@ vec4 GetNormal ( vec2 coord )
 #elif defined(SAMPLEMAT_NORMALS)
 	// Mix methods...
 	float fNormalScale = 10.0;//2.0;
-	C_Sample sample = SampleMaterial(coord.xy, u_DiffuseMap,  u_Dimensions, fNormalScale);
-	vec3 bumpMap = sample.vNormal;
+	C_Sample sam = SampleMaterial(coord.xy, u_DiffuseMap,  u_Dimensions, fNormalScale);
+	vec3 bumpMap = sam.vNormal;
 #endif
 
 #if defined(ENHANCED_NORMALS) && defined(BUMPY_NORMALS) && defined(SAMPLEMAT_NORMALS)

@@ -41,8 +41,8 @@ uniform sampler2DShadow				u_ShadowMap5;
 uniform sampler2D					u_MoonMaps[4];
 };
 #else //!defined(USE_BINDLESS_TEXTURES)
-uniform sampler2D	u_DiffuseMap;
-uniform sampler2D	u_NormalMap;
+uniform sampler2D					u_DiffuseMap;
+uniform sampler2D					u_NormalMap;
 #endif //defined(USE_BINDLESS_TEXTURES)
 
 uniform vec2		u_Dimensions;
@@ -71,7 +71,7 @@ float rand(vec2 co) {
 
 void main()
 {
-	//vec3 diffuseColor = textureLod(u_DiffuseMap, vec2(var_ScreenTex.x, 1.0-var_ScreenTex.y), 0.0).rgb;
+	//vec3 diffuseColor = texture(u_DiffuseMap, var_ScreenTex).rgb;
 	vec3 diffuseColor = texture(u_DiffuseMap, u_Local1.g > 0.0 ? clamp(vec2(var_ScreenTex.x, 1.0-var_ScreenTex.y), 0.0, 1.0) : var_ScreenTex).rgb;
 	
 #if defined(BLUR_WIDTH)
@@ -99,7 +99,6 @@ void main()
 	volumeLight /= numSamples;
 
 #else
-	//vec3 volumeLight = textureLod(u_NormalMap, var_ScreenTex, 0.0).rgb;
 	vec3 volumeLight = texture(u_NormalMap, var_ScreenTex).rgb;
 #endif
 

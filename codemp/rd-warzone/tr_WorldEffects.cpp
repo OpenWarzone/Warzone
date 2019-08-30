@@ -1735,15 +1735,27 @@ public:
 		}
 
 		shaderProgram_t *shader = &tr.weatherShader;
+
 		GLSL_BindProgram(shader);
+
 		GLSL_SetUniformMatrix16(shader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
 		GLSL_SetUniformVec4(shader, UNIFORM_COLOR, colorWhite);
 
-		GLSL_SetUniformInt(shader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
-		GL_BindToTMU(mImage, TB_DIFFUSEMAP);
+		if (shader->isBindless)
+		{
+			GLSL_SetBindlessTexture(shader, UNIFORM_DIFFUSEMAP, &mImage, 0);
+			GLSL_SetBindlessTexture(shader, UNIFORM_HEIGHTMAP, &tr.waterHeightMapImage, 0);
 
-		GLSL_SetUniformInt(shader, UNIFORM_HEIGHTMAP, TB_HEIGHTMAP);
-		GL_BindToTMU(tr.waterHeightMapImage, TB_HEIGHTMAP);
+			GLSL_BindlessUpdate(shader);
+		}
+		else
+		{
+			GLSL_SetUniformInt(shader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+			GL_BindToTMU(mImage, TB_DIFFUSEMAP);
+
+			GLSL_SetUniformInt(shader, UNIFORM_HEIGHTMAP, TB_HEIGHTMAP);
+			GL_BindToTMU(tr.waterHeightMapImage, TB_HEIGHTMAP);
+		}
 
 		{
 			extern vec3_t MAP_INFO_MINS;

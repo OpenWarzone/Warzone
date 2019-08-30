@@ -49,7 +49,7 @@ void DockControlFlow::imgui() {
 		showCvar("RB_ESharpening"                                              , r_esharpening     );
 		//showCvar("RB_ESharpening2"                                             , r_esharpening2    );
 		showCvar("RB_DarkExpand"                                               , r_darkexpand      );
-		showCvar("RB_DistanceBlur"                                             , r_distanceBlur    );
+		//showCvar("RB_DistanceBlur"                                             , r_distanceBlur    );
 		showCvar("Bloom"                                                       , r_bloom           );
 		showCvar("Anamorphic"                                                  , r_anamorphic      );
 		showCvar("RB_VolumetricLight (r_dynamiclight != 0)"                    , r_volumeLight     );
