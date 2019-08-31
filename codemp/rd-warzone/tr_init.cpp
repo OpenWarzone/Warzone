@@ -211,6 +211,10 @@ cvar_t  *r_proceduralSun;
 cvar_t  *r_proceduralSunScale;
 cvar_t  *r_glowStrength;
 cvar_t  *r_glowVibrancy;
+cvar_t	*r_glowMultiplierR;
+cvar_t	*r_glowMultiplierG;
+cvar_t	*r_glowMultiplierB;
+cvar_t	*r_glowMultiplierA;
 cvar_t  *r_sunlightMode;
 cvar_t  *r_sunlightSpecular;
 cvar_t  *r_drawSunRays;
@@ -1577,6 +1581,10 @@ void R_Register( void )
 
 	r_glowStrength = ri->Cvar_Get("r_glowStrength", "1.0", CVAR_ARCHIVE);
 	r_glowVibrancy = ri->Cvar_Get("r_glowVibrancy", "1.0", CVAR_ARCHIVE);
+	r_glowMultiplierR = ri->Cvar_Get("r_glowMultiplierR", "1.0", CVAR_NONE);
+	r_glowMultiplierG = ri->Cvar_Get("r_glowMultiplierG", "1.0", CVAR_NONE);
+	r_glowMultiplierB = ri->Cvar_Get("r_glowMultiplierB", "1.0", CVAR_NONE);
+	r_glowMultiplierA = ri->Cvar_Get("r_glowMultiplierA", "1.0", CVAR_NONE);
 
 	r_dlightShadows = ri->Cvar_Get( "r_dlightShadows", "0", CVAR_ARCHIVE );
 	r_forceSun = ri->Cvar_Get( "r_forceSun", "0", CVAR_ARCHIVE | CVAR_LATCH );

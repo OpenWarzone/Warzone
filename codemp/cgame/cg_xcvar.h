@@ -234,7 +234,7 @@ XCVAR_DEF(cg_foliagePlantSize,						"0",				NULL, CVAR_ARCHIVE)
 XCVAR_DEF(cg_atmosphericFrameParticleOverride,		"0",				NULL, CVAR_ARCHIVE)
 // 3D saber bolt settings... Will remove later in development and hard code, these are for stoiss to adjust...
 XCVAR_DEF(cg_saberLengthMult, "1.25", NULL, CVAR_ARCHIVE)
-XCVAR_DEF(cg_saberRadiusMult, "0.8", NULL, CVAR_ARCHIVE)
+XCVAR_DEF(cg_saberRadiusMult, "0.65", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(cg_saberGlowRadius, "512.0", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(cg_saberGlowRadiusMult, "0.00333", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(cg_saberGlowAlphalevel, "255.0", NULL, CVAR_ARCHIVE)

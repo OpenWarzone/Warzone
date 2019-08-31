@@ -483,6 +483,10 @@ extern cvar_t  *r_proceduralSun;
 extern cvar_t  *r_proceduralSunScale;
 extern cvar_t  *r_glowStrength;
 extern cvar_t  *r_glowVibrancy;
+extern cvar_t  *r_glowMultiplierR;
+extern cvar_t  *r_glowMultiplierG;
+extern cvar_t  *r_glowMultiplierB;
+extern cvar_t  *r_glowMultiplierA;
 extern cvar_t  *r_sunlightMode;
 extern cvar_t  *r_sunlightSpecular;
 extern cvar_t  *r_drawSunRays;
@@ -1314,6 +1318,8 @@ typedef struct {
 	float			glowVibrancy;
 	qboolean		glowNoMerge;
 
+	vec4_t			glowMultiplierRGBA;
+
 	vec3_t			particleColor;
 
 	vec3_t			portalColor1;
@@ -1852,6 +1858,8 @@ typedef enum
 	UNIFORM_VLIGHTPOSITIONS,
 	UNIFORM_VLIGHTDISTANCES,
 	UNIFORM_VLIGHTCOLORS,
+
+	UNIFORM_GLOWMULTIPLIER,
 
 	UNIFORM_SAMPLES,
 	//UNIFORM_SSDO_KERNEL,
@@ -3547,6 +3555,10 @@ extern cvar_t  *r_proceduralSun;
 extern cvar_t  *r_proceduralSunScale;
 extern cvar_t  *r_glowStrength;
 extern cvar_t  *r_glowVibrancy;
+extern cvar_t  *r_glowMultiplierR;
+extern cvar_t  *r_glowMultiplierG;
+extern cvar_t  *r_glowMultiplierB;
+extern cvar_t  *r_glowMultiplierA;
 extern  cvar_t  *r_sunlightMode;
 extern cvar_t  *r_sunlightSpecular;
 extern  cvar_t  *r_drawSunRays;

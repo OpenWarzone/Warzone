@@ -447,6 +447,8 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_vlightDistances", GLSL_FLOAT, 1 },
 	{ "u_vlightColors", GLSL_VEC3, 1 },
 
+	{ "u_GlowMultiplier", GLSL_VEC4, 1 },
+
 	{ "u_Samples", GLSL_INT, 1 },
 	//{ "u_SsdoKernel", GLSL_VEC3, 32 },
 };

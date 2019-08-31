@@ -3410,6 +3410,20 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 #endif //__CHEAP_VERTS__
 			}
 
+			if (pStage->glow)
+			{
+				if (r_glowMultiplierR->value != 1.0 || r_glowMultiplierG->value != 1.0 || r_glowMultiplierB->value != 1.0 || r_glowMultiplierA->value != 1.0)
+				{
+					vec4_t glowMultiplierRGBA;
+					VectorSet4(glowMultiplierRGBA, r_glowMultiplierR->value, r_glowMultiplierG->value, r_glowMultiplierB->value, r_glowMultiplierA->value);
+					GLSL_SetUniformVec4(sp, UNIFORM_GLOWMULTIPLIER, glowMultiplierRGBA);
+				}
+				else
+				{
+					GLSL_SetUniformVec4(sp, UNIFORM_GLOWMULTIPLIER, pStage->glowMultiplierRGBA);
+				}
+			}
+
 			// UQ1: Used by both generic and lightall...
 			RB_SetStageImageDimensions(sp, pStage);
 			RB_SetMaterialBasedProperties(sp, pStage, stage, IS_DEPTH_PASS);

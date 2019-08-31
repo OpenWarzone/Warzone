@@ -1732,6 +1732,11 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 	stage->glowVibrancy = 0.0;
 	stage->glowNoMerge = qfalse;
 
+	stage->glowMultiplierRGBA[0] = 1.0;
+	stage->glowMultiplierRGBA[1] = 1.0;
+	stage->glowMultiplierRGBA[2] = 1.0;
+	stage->glowMultiplierRGBA[3] = 1.0;
+
 	stage->emissiveRadiusScale = 1.0;
 	stage->emissiveColorScale = 1.5;
 
@@ -2841,6 +2846,22 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 				continue;
 			}
 			stage->glowVibrancy = atof(token);
+			continue;
+		}
+		else if (Q_stricmp(token, "glowMultiplierRGBA") == 0)
+		{
+			vec4_t	color;
+			color[0] = 1.0;
+			color[1] = 1.0;
+			color[2] = 1.0;
+			color[3] = 1.0;
+
+			ParseVector(text, 4, color);
+
+			stage->glowMultiplierRGBA[0] = color[0];
+			stage->glowMultiplierRGBA[1] = color[1];
+			stage->glowMultiplierRGBA[2] = color[2];
+			stage->glowMultiplierRGBA[3] = color[3];
 			continue;
 		}
 		else if (!Q_stricmp(token, "glowNoMerge"))

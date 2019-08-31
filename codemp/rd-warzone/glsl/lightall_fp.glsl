@@ -118,6 +118,7 @@ uniform vec4						u_Mins;
 uniform vec4						u_Maxs;
 
 uniform vec3						u_ColorMod;
+uniform vec4						u_GlowMultiplier;
 
 uniform float						u_Time;
 
@@ -1221,7 +1222,7 @@ void main()
 		glowColor.rgb *= glowColor.a;
 
 		glowColor.a = clamp(glowColor.a, 0.0, 1.0);
-		out_Glow = glowColor;
+		out_Glow = glowColor * u_GlowMultiplier;
 		
 		//out_Glow.rgb = clamp(out_Glow.rgb, 0.0, 2.0); // cap stregnth for the sake of the buffer
 
@@ -1283,7 +1284,7 @@ void main()
 			glowColor.a = 0.0;
 
 		glowColor.a = clamp(glowColor.a, 0.0, 1.0);
-		out_Glow = glowColor;
+		out_Glow = glowColor * u_GlowMultiplier;
 
 		//out_Glow.rgb = clamp(out_Glow.rgb, 0.0, 2.0); // cap stregnth for the sake of the buffer
 
