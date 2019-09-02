@@ -1,5 +1,3 @@
-uniform mat4		u_ModelViewProjectionMatrix;
-
 #if defined(USE_BINDLESS_TEXTURES)
 layout(std140) uniform u_bindlessTexturesBlock
 {
@@ -43,17 +41,17 @@ uniform sampler2D					u_ShadowMap5;
 uniform sampler2D					u_MoonMaps[4];
 };
 #else //!defined(USE_BINDLESS_TEXTURES)
-uniform sampler2D	u_DiffuseMap;			// backBufferMap
-uniform sampler2D	u_PositionMap;			// position map
-uniform sampler2D	u_WaterPositionMap;		// transparancy map
+uniform sampler2D					u_DiffuseMap;			// backBufferMap
+uniform sampler2D					u_PositionMap;			// position map
+uniform sampler2D					u_WaterPositionMap;		// transparancy map
 #endif //defined(USE_BINDLESS_TEXTURES)
 
 
-uniform vec4		u_Local0;				// testvalue0, testvalue1, testvalue2, testvalue3
-uniform vec2		u_Dimensions;
+uniform vec4						u_Local0;				// testvalue0, testvalue1, testvalue2, testvalue3
+uniform vec2						u_Dimensions;
 
-varying vec2		var_TexCoords;
-varying vec3		var_ViewDir;
+varying vec2						var_TexCoords;
+varying vec3						var_ViewDir;
 
 float hash( const in float n ) {
 	return fract(sin(n)*4378.5453);
@@ -145,7 +143,7 @@ void main ( void )
 		const vec3 keyColor = vec3(0.051,0.639,0.149);
 
 		vec2 uv = var_TexCoords;
-		vec3 colorDelta = transparancyMap.xzy/*texture(u_DetailMap, uv).rgb*/ - keyColor.rgb;
+		vec3 colorDelta = transparancyMap.xzy - keyColor.rgb;
 		float factor = length(colorDelta) * u_Local0.r;
 		uv += (factor * colorDelta.rb) / 8.0;
 		color.rgb = texture(u_DiffuseMap, uv, factor * 1.5).rgb;

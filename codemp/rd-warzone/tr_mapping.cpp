@@ -1389,6 +1389,7 @@ float		LEAF_ALPHA_MULTIPLIER = 1.75;
 int			ENABLE_INDOOR_OUTDOOR_SYSTEM = 0;
 int			MAP_MAX_VIS_RANGE = 0;
 qboolean	ALLOW_PROCEDURALS_ON_MODELS;
+qboolean	ALLOW_HUGE_WORLD_VBO = qtrue;
 
 qboolean	ENABLE_OCCLUSION_CULLING = qtrue;
 float		OCCLUSION_CULLING_TOLERANCE = 0.0004;
@@ -2044,6 +2045,7 @@ void MAPPING_LoadMapInfo(void)
 	ENABLE_REGEN_SMOOTH_NORMALS = (atoi(IniRead(mapname, "FIXES", "ENABLE_REGEN_SMOOTH_NORMALS", "0"))) ? qtrue : qfalse;
 	LEAF_ALPHA_MULTIPLIER = atof(IniRead(mapname, "FIXES", "LEAF_ALPHA_MULTIPLIER", "1.75"));
 	ALLOW_PROCEDURALS_ON_MODELS = (atoi(IniRead(mapname, "FIXES", "ALLOW_PROCEDURALS_ON_MODELS", "0")) > 0) ? qtrue : qfalse;
+	ALLOW_HUGE_WORLD_VBO = (atoi(IniRead(mapname, "FIXES", "ALLOW_HUGE_WORLD_VBO", "1")) > 0) ? qtrue : qfalse;
 
 	/*if (!ENABLE_REGEN_SMOOTH_NORMALS && StringContainsWord(currentMapName, "mp/")) 
 	{// Meh, always regen them on base mp maps...

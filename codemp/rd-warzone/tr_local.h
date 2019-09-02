@@ -2841,6 +2841,7 @@ typedef struct {
 	int     c_fogDraws;
 	int     c_lightMapsSkipped;
 	int     c_tinySkipped;
+	int     c_transparancyDraws;
 
 	int		msec;			// total msec for backend run
 } backEndCounters_t;

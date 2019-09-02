@@ -3100,6 +3100,12 @@ static void R_CreateWorldVBOs(void)
 
 	int maxVboSize = 16 * 1024;
 	int maxIboSize = 4 * 1024;
+	
+	if (ALLOW_HUGE_WORLD_VBO)
+	{
+		maxVboSize = 16 * 64 * 1024 * 1024;
+		maxIboSize = 4 * 64 * 1024 * 1024;
+	}
 
 	int             startTime, endTime;
 

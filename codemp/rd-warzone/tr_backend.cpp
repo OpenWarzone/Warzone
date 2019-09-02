@@ -3781,31 +3781,10 @@ const void *RB_PostProcess(const void *data)
 			}
 		}
 
-		if (!SCREEN_BLUR)
+		if (!SCREEN_BLUR && backEnd.pc.c_transparancyDraws > 0)
 		{
 			DEBUG_StartTimer("Transparancy Post", qtrue);
 			RB_TransparancyPost(currentFbo, srcBox, currentOutFbo, dstBox);
-			RB_SwapFBOs(&currentFbo, &currentOutFbo);
-			DEBUG_EndTimer(qtrue);
-		}
-
-		/*
-		if (!SCREEN_BLUR && r_fxaa->integer)
-		{
-			for (int pass = 0; pass < r_fxaa->integer; pass++)
-			{
-				DEBUG_StartTimer("FXAA", qtrue);
-				RB_FXAA(currentFbo, srcBox, currentOutFbo, dstBox);
-				RB_SwapFBOs(&currentFbo, &currentOutFbo);
-				DEBUG_EndTimer(qtrue);
-			}
-		}
-		*/
-
-		if (!SCREEN_BLUR && r_txaa->integer)
-		{
-			DEBUG_StartTimer("TXAA", qtrue);
-			RB_TXAA(currentFbo, srcBox, currentOutFbo, dstBox);
 			RB_SwapFBOs(&currentFbo, &currentOutFbo);
 			DEBUG_EndTimer(qtrue);
 		}
@@ -3834,45 +3813,32 @@ const void *RB_PostProcess(const void *data)
 			DEBUG_EndTimer(qtrue);
 		}
 
-		extern qboolean menuOpen;
-		//if (menuOpen)
+		/*if (!SCREEN_BLUR && r_txaa->integer) // meh. disabled. too blurry
 		{
-			FBO_BlitFromTexture(tr.renderGUIImage, srcBox, NULL, currentFbo, dstBox, NULL, NULL, GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA);
-		}
-
-#if 0
-		if (SCREEN_BLUR_MENU)
-		{
-			// Blur some times
-			float	spread = 1.0f;
-			int		numPasses = 8;
-
-			DEBUG_StartTimer("Menu Blur", qtrue);
-			for (int i = 0; i < numPasses; i++)
-			{
-				RB_GaussianBlur(currentFbo, tr.genericFbo2, currentOutFbo, spread);
-				RB_SwapFBOs(&currentFbo, &currentOutFbo);
-				spread += 0.6f * 0.25f;
-			}
+			DEBUG_StartTimer("TXAA", qtrue);
+			//RB_TXAA(currentFbo, srcBox, currentOutFbo, dstBox);
+			RB_TXAA(currentFbo, srcBox, srcFbo, dstBox);
+			RB_SwapFBOs(&currentFbo, &currentOutFbo);
 			DEBUG_EndTimer(qtrue);
 		}
-#endif
+		else*/ if (!SCREEN_BLUR && (r_fxaa->integer || r_txaa->integer))
+		{
+			DEBUG_StartTimer("FXAA", qtrue);
+			//RB_FXAA(currentFbo, srcBox, currentOutFbo, dstBox);
+			RB_FXAA(currentFbo, srcBox, srcFbo, dstBox);
+			RB_SwapFBOs(&currentFbo, &currentOutFbo);
+			DEBUG_EndTimer(qtrue);
+		}
+		else
+		{
+			DEBUG_StartTimer("Final Blit", qtrue);
+			FBO_FastBlit(currentFbo, NULL, srcFbo, NULL, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+			DEBUG_EndTimer(qtrue);
+		}
+
 
 		ALLOW_NULL_FBO_BIND = qtrue;
 
-		DEBUG_StartTimer("Final Blit", qtrue);
-		FBO_FastBlit(currentFbo, NULL, srcFbo, NULL, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-		DEBUG_EndTimer(qtrue);
-
-		DEBUG_StartTimer("OcclusionCulling", qtrue);
-		RB_OcclusionCulling();
-		DEBUG_EndTimer(qtrue);
-
-		//FBO_Bind(srcFbo);
-
-		//
-		// End UQ1 Added...
-		//
 
 		DEBUG_StartTimer("HDR", qtrue);
 		if (r_hdr->integer && MAP_TONEMAP_METHOD > 0)
@@ -4031,6 +3997,16 @@ const void *RB_PostProcess(const void *data)
 		FBO_BlitFromTexture(tr.waterReflectionRenderImage, NULL, NULL, NULL, dstBox, NULL, NULL, 0);
 	}
 #endif
+
+	DEBUG_StartTimer("OcclusionCulling", qtrue);
+	RB_OcclusionCulling();
+	DEBUG_EndTimer(qtrue);
+
+
+	{// Add UI to final screen image...
+		FBO_BlitFromTexture(tr.renderGUIImage, srcBox, NULL, NULL, dstBox, NULL, NULL, GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA);
+	}
+
 
 	if (r_superSampleMultiplier->value > 1.0)
 	{

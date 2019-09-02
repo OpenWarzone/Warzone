@@ -1842,24 +1842,26 @@ qboolean GLSL_CompareIntBuffers(const int *buffer1, int *buffer2, int numElement
 	return qtrue;
 }
 
+//#define __BINDLESS_OFFSETS__
+
 GLuint CURRENT_BINDING_POINT = 1;
 
-void GLSL_BindlessUpdate(shaderProgram_t *program)
+void GLSL_BindlessInitialize(shaderProgram_t *program)
 {
 	if (!program->isBindless)
 	{
 		return;
 	}
 
-	GLuint index = qglGetUniformBlockIndex(program->program, "u_bindlessTexturesBlock");
-
 	if (program->bindLessBindingPoint <= 0)
 	{// Create a new buffer, if we have not yet...
+		GLuint index = qglGetUniformBlockIndex(program->program, "u_bindlessTexturesBlock");
+
 		program->bindLessBindingPoint = CURRENT_BINDING_POINT;
 		CURRENT_BINDING_POINT++;
 
 		qglUniformBlockBinding(program->program, index, program->bindLessBindingPoint);
-		
+
 		qglGenBuffers(1, &program->bindlessBlockUBO);
 		qglBindBuffer(GL_UNIFORM_BUFFER, program->bindlessBlockUBO);
 		qglBufferData(GL_UNIFORM_BUFFER, sizeof(program->bindlessBlock), NULL, GL_DYNAMIC_DRAW/*GL_STREAM_DRAW*/);
@@ -1872,7 +1874,18 @@ void GLSL_BindlessUpdate(shaderProgram_t *program)
 
 		qglBindBufferRange(GL_UNIFORM_BUFFER, index, program->bindlessBlockUBO, 0, sizeof(program->bindlessBlock));
 	}
+}
 
+void GLSL_BindlessUpdate(shaderProgram_t *program)
+{
+	if (!program->isBindless)
+	{
+		return;
+	}
+
+	GLSL_BindlessInitialize(program);
+
+#ifndef __BINDLESS_OFFSETS__
 	if (!memcmp(&program->bindlessBlock, &program->bindlessBlockPrevious, sizeof(program->bindlessBlock)))
 	{// Has not changed...
 		return;
@@ -1884,19 +1897,288 @@ void GLSL_BindlessUpdate(shaderProgram_t *program)
 
 	// Update our previous copy buffer so we can skip updates...
 	memcpy(&program->bindlessBlock, &program->bindlessBlockPrevious, sizeof(program->bindlessBlock));
+#else //!__BINDLESS_OFFSETS__
+	bindlessTexturesBlock_t *block = &program->bindlessBlock;
+	bindlessTexturesBlock_t *blockPrevious = &program->bindlessBlockPrevious;
+
+	qglBindBuffer(GL_UNIFORM_BUFFER, program->bindlessBlockUBO);
+
+	for (int uniformNum = UNIFORM_DIFFUSEMAP; uniformNum <= UNIFORM_MOONMAPS; uniformNum++)
+	{
+		size_t offset = 0;
+
+		switch (uniformNum)
+		{
+		case UNIFORM_DIFFUSEMAP:
+			if (block->u_DiffuseMap == blockPrevious->u_DiffuseMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_DiffuseMap);
+			break;
+		case UNIFORM_LIGHTMAP:
+			if (block->u_LightMap == blockPrevious->u_LightMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_LightMap);
+			break;
+		case UNIFORM_NORMALMAP:
+			if (block->u_NormalMap == blockPrevious->u_NormalMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_NormalMap);
+			break;
+		case UNIFORM_DELUXEMAP:
+			if (block->u_DeluxeMap == blockPrevious->u_DeluxeMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_DeluxeMap);
+			break;
+		case UNIFORM_SPECULARMAP:
+			if (block->u_SpecularMap == blockPrevious->u_SpecularMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_SpecularMap);
+			break;
+		case UNIFORM_POSITIONMAP:
+			if (block->u_PositionMap == blockPrevious->u_PositionMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_PositionMap);
+			break;
+		case UNIFORM_WATERPOSITIONMAP:
+			if (block->u_WaterPositionMap == blockPrevious->u_WaterPositionMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_WaterPositionMap);
+			break;
+		case UNIFORM_WATERHEIGHTMAP:
+			if (block->u_WaterHeightMap == blockPrevious->u_WaterHeightMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_WaterHeightMap);
+			break;
+		case UNIFORM_HEIGHTMAP:
+			if (block->u_HeightMap == blockPrevious->u_HeightMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_HeightMap);
+			break;
+		case UNIFORM_GLOWMAP:
+			if (block->u_GlowMap == blockPrevious->u_GlowMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_GlowMap);
+			break;
+		case UNIFORM_ENVMAP:
+			if (block->u_EnvironmentMap == blockPrevious->u_EnvironmentMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_EnvironmentMap);
+			break;
+		case UNIFORM_TEXTUREMAP:
+			if (block->u_TextureMap == blockPrevious->u_TextureMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_TextureMap);
+			break;
+		case UNIFORM_LEVELSMAP:
+			if (block->u_LevelsMap == blockPrevious->u_LevelsMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_LevelsMap);
+			break;
+		case UNIFORM_CUBEMAP:
+			if (block->u_CubeMap == blockPrevious->u_CubeMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_CubeMap);
+			break;
+		case UNIFORM_SKYCUBEMAP:
+			if (block->u_SkyCubeMap == blockPrevious->u_SkyCubeMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_SkyCubeMap);
+			break;
+		case UNIFORM_SKYCUBEMAPNIGHT:
+			if (block->u_SkyCubeMapNight == blockPrevious->u_SkyCubeMapNight)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_SkyCubeMapNight);
+			break;
+		case UNIFORM_EMISSIVECUBE:
+			if (block->u_EmissiveCubeMap == blockPrevious->u_EmissiveCubeMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_EmissiveCubeMap);
+			break;
+		case UNIFORM_OVERLAYMAP:
+			if (block->u_OverlayMap == blockPrevious->u_OverlayMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_OverlayMap);
+			break;
+		case UNIFORM_STEEPMAP:
+			if (block->u_SteepMap == blockPrevious->u_SteepMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_SteepMap);
+			break;
+		case UNIFORM_STEEPMAP1:
+			if (block->u_SteepMap1 == blockPrevious->u_SteepMap1)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_SteepMap1);
+			break;
+		case UNIFORM_STEEPMAP2:
+			if (block->u_SteepMap2 == blockPrevious->u_SteepMap2)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_SteepMap2);
+			break;
+		case UNIFORM_STEEPMAP3:
+			if (block->u_SteepMap3 == blockPrevious->u_SteepMap3)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_SteepMap3);
+			break;
+		case UNIFORM_WATER_EDGE_MAP:
+			if (block->u_WaterEdgeMap == blockPrevious->u_WaterEdgeMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_WaterEdgeMap);
+			break;
+		case UNIFORM_SPLATCONTROLMAP:
+			if (block->u_SplatControlMap == blockPrevious->u_SplatControlMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_SplatControlMap);
+			break;
+		case UNIFORM_SPLATMAP1:
+			if (block->u_SplatMap1 == blockPrevious->u_SplatMap1)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_SplatMap1);
+			break;
+		case UNIFORM_SPLATMAP2:
+			if (block->u_SplatMap2 == blockPrevious->u_SplatMap2)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_SplatMap2);
+			break;
+		case UNIFORM_SPLATMAP3:
+			if (block->u_SplatMap3 == blockPrevious->u_SplatMap3)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_SplatMap3);
+			break;
+		case UNIFORM_ROADSCONTROLMAP:
+			if (block->u_RoadsControlMap == blockPrevious->u_RoadsControlMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_RoadsControlMap);
+			break;
+		case UNIFORM_ROADMAP:
+			if (block->u_RoadMap == blockPrevious->u_RoadMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_RoadMap);
+			break;
+		case UNIFORM_DETAILMAP:
+			if (block->u_DetailMap == blockPrevious->u_DetailMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_DetailMap);
+			break;
+		case UNIFORM_SCREENIMAGEMAP:
+			if (block->u_ScreenImageMap == blockPrevious->u_ScreenImageMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_ScreenImageMap);
+			break;
+		case UNIFORM_SCREENDEPTHMAP:
+			if (block->u_ScreenDepthMap == blockPrevious->u_ScreenDepthMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_ScreenDepthMap);
+			break;
+		case UNIFORM_SHADOWMAP:
+			if (block->u_ShadowMap == blockPrevious->u_ShadowMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_ShadowMap);
+			break;
+		case UNIFORM_SHADOWMAP2:
+			if (block->u_ShadowMap2 == blockPrevious->u_ShadowMap2)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_ShadowMap2);
+			break;
+		case UNIFORM_SHADOWMAP3:
+			if (block->u_ShadowMap3 == blockPrevious->u_ShadowMap3)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_ShadowMap3);
+			break;
+		case UNIFORM_SHADOWMAP4:
+			if (block->u_ShadowMap4 == blockPrevious->u_ShadowMap4)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_ShadowMap4);
+			break;
+		case UNIFORM_SHADOWMAP5:
+			if (block->u_ShadowMap5 == blockPrevious->u_ShadowMap5)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_ShadowMap5);
+			break;
+		case UNIFORM_MOONMAPS:
+			{
+				if (block->u_MoonMaps[0] != blockPrevious->u_MoonMaps[0]
+					&& block->u_MoonMaps[1] == blockPrevious->u_MoonMaps[1]
+					&& block->u_MoonMaps[2] == blockPrevious->u_MoonMaps[2]
+					&& block->u_MoonMaps[3] == blockPrevious->u_MoonMaps[3])
+					continue;
+
+				offset = offsetof(bindlessTexturesBlock_t, u_MoonMaps);
+
+				qglBufferSubData(GL_UNIFORM_BUFFER, offset, sizeof(GLuint64) * 4, &program->bindlessBlock);
+				memcpy(&program->bindlessBlockPrevious + offset, &program->bindlessBlock + offset, sizeof(GLuint64) * 4);
+
+				continue;
+			}
+			break;
+		}
+
+		qglBufferSubData(GL_UNIFORM_BUFFER, offset, sizeof(GLuint64), &program->bindlessBlock);
+		memcpy(&program->bindlessBlockPrevious + offset, &program->bindlessBlock + offset, sizeof(GLuint64));
+	}
+
+	qglBindBuffer(GL_UNIFORM_BUFFER, 0);
+#endif //__BINDLESS_OFFSETS__
 }
 
 void GLSL_SetBindlessTexture(shaderProgram_t *program, int uniformNum, image_t **images, int arrayID)
 {
 	if (program->isBindless && uniformNum >= UNIFORM_DIFFUSEMAP && uniformNum <= UNIFORM_MOONMAPS)
 	{// When using bindless textures, we simply set the appropriate array value...
-		bindlessTexturesBlock_t *block = &program->bindlessBlock;
-
 		if (!images || !images[0])
 		{
 			ri->Printf(PRINT_WARNING, "GLSL_SetBindlessTexture: Fix ya code doofus, you set a NULL texture for uniform %i.\n", uniformNum);
 			return;
 		}
+
+		/*shaderProgram_t *origProgram = NULL;
+
+		if (glState.currentProgram != program)
+		{
+			origProgram = glState.currentProgram;
+
+			GLSL_BindProgram(program);
+		}*/
+
+		GLSL_BindlessInitialize(program);
+
+		bindlessTexturesBlock_t *block = &program->bindlessBlock;
 
 		GLuint64 bindlessHandle = images[0]->bindlessHandle;
 		
@@ -2023,7 +2305,15 @@ void GLSL_SetBindlessTexture(shaderProgram_t *program, int uniformNum, image_t *
 			block->u_MoonMaps[arrayID] = bindlessHandle;
 			break;
 		}
-		return;
+
+#ifdef __BINDLESS_OFFSETS__
+		GLSL_BindlessUpdate(program);
+#endif //__BINDLESS_OFFSETS__
+
+		/*if (origProgram)
+		{
+			GLSL_BindProgram(origProgram);
+		}*/
 	}
 }
 
@@ -3413,7 +3703,7 @@ int GLSL_BeginLoadGPUShaders(void)
 	attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL;
 	extradefines[0] = '\0';
 
-	if(!GLSL_BeginLoadGPUShader(&tr.transparancyPostShader, "transparancyPost", attribs, qtrue, qfalse, qfalse, qfalse, extradefines, qtrue, NULL, fallbackShader_transparancyPost_vp, fallbackShader_transparancyPost_fp, NULL, NULL, NULL))
+	if(!GLSL_BeginLoadGPUShader(&tr.transparancyPostShader, "transparancyPost", attribs, qtrue, qfalse, qfalse, qfalse/*qtrue*/, extradefines, qtrue, NULL, fallbackShader_transparancyPost_vp, fallbackShader_transparancyPost_fp, NULL, NULL, NULL))
 	{
 		ri->Error(ERR_FATAL, "Could not load transparancyPost shader!");
 	}
@@ -3751,6 +4041,7 @@ int GLSL_BeginLoadGPUShaders(void)
 		ri->Error(ERR_FATAL, "Could not load esharpening2 shader!");
 	}*/
 
+
 	attribs = ATTR_POSITION | ATTR_TEXCOORD0;
 	extradefines[0] = '\0';
 
@@ -3758,6 +4049,7 @@ int GLSL_BeginLoadGPUShaders(void)
 	{
 		ri->Error(ERR_FATAL, "Could not load fxaa shader!");
 	}
+
 
 	attribs = ATTR_POSITION | ATTR_TEXCOORD0;
 	extradefines[0] = '\0';
@@ -3835,7 +4127,7 @@ int GLSL_BeginLoadGPUShaders(void)
 #endif //__OCEAN__
 	extradefines[0] = '\0';
 
-	if (!GLSL_BeginLoadGPUShader(&tr.waterForwardFastShader, "waterForwardFast", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_waterForwardFast_vp, fallbackShader_waterForwardFast_fp, NULL, NULL, NULL))
+	if (!GLSL_BeginLoadGPUShader(&tr.waterForwardFastShader, "waterForwardFast", attribs, qtrue, qfalse, qfalse, qfalse/*qtrue*/, extradefines, qtrue, NULL, fallbackShader_waterForwardFast_vp, fallbackShader_waterForwardFast_fp, NULL, NULL, NULL))
 	{
 		ri->Error(ERR_FATAL, "Could not load waterForwardFast shader!");
 	}
@@ -5880,7 +6172,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 	*/
 
 
-	//fxaaShader
+	
 	if (!GLSL_EndLoadGPUShader(&tr.fxaaShader))
 	{
 		ri->Error(ERR_FATAL, "Could not load fxaa shader!");
@@ -5920,7 +6212,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 #endif
 
 	numEtcShaders++;
-
+	
 
 
 	if (!GLSL_EndLoadGPUShader(&tr.txaaShader))

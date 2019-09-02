@@ -163,7 +163,6 @@ void main()
 		if (pitch > 4.0) 
 			var_IsWater = 1024.0 + (pitch / 90.0);
 #else // FIXME: use normals instead of vectoangles
-
 		/*if (normal.z <= 0.73 && normal.z >= -0.73)
 		{
 			var_Slope = 1.0;

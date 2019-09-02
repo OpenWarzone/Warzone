@@ -3056,39 +3056,46 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 
 		float maxDist = 0.0;
 
-		if (NUM_CURRENT_EMISSIVE_LIGHTS >= r_maxDeferredLights->integer / 2)
+		if (NUM_CURRENT_EMISSIVE_LIGHTS > 0)
 		{
-			for (int i = 0; i < NUM_CURRENT_EMISSIVE_LIGHTS; i++)
+			if (NUM_CURRENT_EMISSIVE_LIGHTS >= r_maxDeferredLights->integer / 2)
 			{
-				float dist = Distance(backEnd.refdef.vieworg, CLOSEST_LIGHTS_POSITIONS[i]);
-				if (dist > maxDist)
+				for (int i = 0; i < NUM_CURRENT_EMISSIVE_LIGHTS; i++)
 				{
-					maxDist = dist;
+					float dist = Distance(backEnd.refdef.vieworg, CLOSEST_LIGHTS_POSITIONS[i]);
+					if (dist > maxDist)
+					{
+						maxDist = dist;
+					}
 				}
 			}
-		}
 
-		DEFERRED_LIGHT_HAVE_CONEANGLES = qfalse;
+			DEFERRED_LIGHT_HAVE_CONEANGLES = qfalse;
 
-		for (int i = 0; i < NUM_CURRENT_EMISSIVE_LIGHTS; i++)
-		{
-			if (CLOSEST_LIGHTS_CONEANGLES[i] != 0.0)
+			for (int i = 0; i < NUM_CURRENT_EMISSIVE_LIGHTS; i++)
 			{
-				DEFERRED_LIGHT_HAVE_CONEANGLES = qtrue;
-				break;
+				if (CLOSEST_LIGHTS_CONEANGLES[i] != 0.0)
+				{
+					DEFERRED_LIGHT_HAVE_CONEANGLES = qtrue;
+					break;
+				}
 			}
-		}
 
-		GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, NUM_CURRENT_EMISSIVE_LIGHTS);
-		GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTPOSITIONS2, CLOSEST_LIGHTS_POSITIONS, NUM_CURRENT_EMISSIVE_LIGHTS);
-		GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTCOLORS, CLOSEST_LIGHTS_COLORS, NUM_CURRENT_EMISSIVE_LIGHTS);
-		GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHTDISTANCES, CLOSEST_LIGHTS_DISTANCES, NUM_CURRENT_EMISSIVE_LIGHTS);
-		if (DEFERRED_LIGHT_HAVE_CONEANGLES)
-		{
-			GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHT_CONEANGLES, CLOSEST_LIGHTS_CONEANGLES, NUM_CURRENT_EMISSIVE_LIGHTS);
-			GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHT_CONEDIRECTIONS, CLOSEST_LIGHTS_CONEDIRECTIONS, NUM_CURRENT_EMISSIVE_LIGHTS);
+			GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, NUM_CURRENT_EMISSIVE_LIGHTS);
+			GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTPOSITIONS2, CLOSEST_LIGHTS_POSITIONS, NUM_CURRENT_EMISSIVE_LIGHTS);
+			GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTCOLORS, CLOSEST_LIGHTS_COLORS, NUM_CURRENT_EMISSIVE_LIGHTS);
+			GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHTDISTANCES, CLOSEST_LIGHTS_DISTANCES, NUM_CURRENT_EMISSIVE_LIGHTS);
+			if (DEFERRED_LIGHT_HAVE_CONEANGLES)
+			{
+				GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHT_CONEANGLES, CLOSEST_LIGHTS_CONEANGLES, NUM_CURRENT_EMISSIVE_LIGHTS);
+				GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHT_CONEDIRECTIONS, CLOSEST_LIGHTS_CONEDIRECTIONS, NUM_CURRENT_EMISSIVE_LIGHTS);
+			}
+			GLSL_SetUniformFloat(shader, UNIFORM_LIGHT_MAX_DISTANCE, (NUM_CURRENT_EMISSIVE_LIGHTS >= r_maxDeferredLights->integer / 2) ? maxDist : 8192.0);
 		}
-		GLSL_SetUniformFloat(shader, UNIFORM_LIGHT_MAX_DISTANCE, (NUM_CURRENT_EMISSIVE_LIGHTS >= r_maxDeferredLights->integer / 2) ? maxDist : 8192.0);
+		else
+		{
+			GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, 0);
+		}
 	}
 
 
@@ -3170,17 +3177,6 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 	//
 	// PCLOUDS
 	//
-	extern qboolean		PROCEDURAL_CLOUDS_LAYER;
-	extern qboolean		PROCEDURAL_CLOUDS_ENABLED;
-	extern qboolean		PROCEDURAL_CLOUDS_DYNAMIC;
-	extern float		PROCEDURAL_CLOUDS_CLOUDSCALE;
-	extern float		PROCEDURAL_CLOUDS_SPEED;
-	extern float		PROCEDURAL_CLOUDS_DARK;
-	extern float		PROCEDURAL_CLOUDS_LIGHT;
-	extern float		PROCEDURAL_CLOUDS_CLOUDCOVER;
-	extern float		PROCEDURAL_CLOUDS_CLOUDALPHA;
-	extern float		PROCEDURAL_CLOUDS_SKYTINT;
-
 	extern float		DYNAMIC_WEATHER_CLOUDCOVER;
 	extern float		DYNAMIC_WEATHER_CLOUDSCALE;
 
@@ -4120,16 +4116,9 @@ void RB_Underwater(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.underwaterShader, colorWhite/*color*/, 0);
 }
 
+
 void RB_FXAA(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	/*vec4_t color;
-
-	// bloom
-	color[0] =
-		color[1] =
-		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
-	color[3] = 1.0f;*/
-
 	GLSL_BindProgram(&tr.fxaaShader);
 
 	GLSL_SetUniformInt(&tr.fxaaShader, UNIFORM_LEVELSMAP, TB_LEVELSMAP);
@@ -4151,8 +4140,9 @@ void RB_FXAA(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		GLSL_SetUniformVec4(&tr.fxaaShader, UNIFORM_LOCAL0, local0);
 	}
 	
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.fxaaShader, colorWhite/*color*/, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.fxaaShader, colorWhite, 0);
 }
+
 
 void RB_TXAA(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
@@ -4174,7 +4164,7 @@ void RB_TXAA(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		GLSL_SetUniformVec2(&tr.txaaShader, UNIFORM_DIMENSIONS, screensize);
 	}
 
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.fxaaShader, colorWhite, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.txaaShader, colorWhite, 0);
 
 	// Copy the output to previous image for usage next frame...
 	FBO_FastBlit(ldrFbo, ldrBox, tr.txaaPreviousFBO, ldrBox, GL_COLOR_BUFFER_BIT, GL_NEAREST);
