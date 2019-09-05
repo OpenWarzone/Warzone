@@ -25,6 +25,8 @@ extern qboolean			ENABLE_CHRISTMAS_EFFECT;
 extern float			SPLATMAP_CONTROL_SCALE;
 extern float			STANDARD_SPLATMAP_SCALE;
 extern float			STANDARD_SPLATMAP_SCALE_STEEP;
+extern float			SPLATMAP_SCALE_WATEREDGE1;
+extern float			SPLATMAP_SCALE_WATEREDGE2;
 extern float			ROCK_SPLATMAP_SCALE;
 extern float			ROCK_SPLATMAP_SCALE_STEEP;
 
@@ -222,6 +224,13 @@ extern float			GRASS_SIZE_MULTIPLIER_RARE;
 extern float			GRASS_SIZE_MULTIPLIER_UNDERWATER;
 extern float			GRASS_LOD_START_RANGE;
 extern image_t			*GRASS_CONTROL_TEXTURE;
+extern qboolean			FAKE_GRASS_ENABLED;
+extern float			FAKE_GRASS_SCALE;
+extern float			FAKE_GRASS_SCALE_UNDERWATER;
+extern float			FAKE_GRASS_MINALPHA;
+extern float			FAKE_GRASS_MINALPHA_UNDERWATER;
+extern float			FAKE_GRASS_COLORMULT;
+extern float			FAKE_GRASS_COLORMULT_UNDERWATER;
 
 extern qboolean			GRASS2_ENABLED;
 extern qboolean			GRASS2_UNDERWATER_ONLY;

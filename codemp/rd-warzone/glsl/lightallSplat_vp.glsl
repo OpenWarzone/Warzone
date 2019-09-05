@@ -96,6 +96,9 @@ uniform vec4						u_Local4; // stageNum, glowStrength, r_showsplat, 0.0
 uniform vec4						u_Local8;
 uniform vec4						u_Local9; // testvalue0, 1, 2, 3
 uniform vec4						u_Local13; // hasSteepMap, hasSteepMap1, hasSteepMap2, hasSteepMap3
+uniform vec4						u_Local14; // grassAliasImage
+uniform vec4						u_Local15; // seaGrassAliasImage
+uniform vec4						u_Local16; // GRASS_ENABLED, GRASS_DISTANCE, GRASS_MAX_SLOPE, 0.0
 
 #define SHADER_MAP_SIZE				u_Local1.r
 #define SHADER_SWAY					u_Local1.g
@@ -121,6 +124,10 @@ uniform vec4						u_Local13; // hasSteepMap, hasSteepMap1, hasSteepMap2, hasStee
 #define SHADER_HAS_STEEPMAP1		u_Local13.g
 #define SHADER_HAS_STEEPMAP2		u_Local13.b
 #define SHADER_HAS_STEEPMAP3		u_Local13.a
+
+#define GRASS_ENABLED				u_Local16.r
+#define GRASS_DISTANCE				u_Local16.g
+#define GRASS_MAX_SLOPE				u_Local16.b
 
 #ifdef __CHEAP_VERTS__
 uniform int					u_isWorld;
@@ -202,6 +209,7 @@ out vec2 TexCoord2_CS_in;
 out vec3 Blending_CS_in;
 out vec2 envTC_CS_in;
 out float Slope_CS_in;
+out float GrassSlope_CS_in;
 #endif
 
 varying vec2	var_TexCoords;
@@ -213,6 +221,7 @@ varying vec4	var_PrimaryLightDir;
 varying vec3	var_vertPos;
 varying vec3	var_Blending;
 varying float	var_Slope;
+varying float	var_GrassSlope;
 
 
 const float VboUnpackX = 1.0/255.0;
@@ -565,45 +574,9 @@ void main()
 	}
 #endif //__HEIGHTMAP_TERRAIN_TEST__
 
-#if 0
-	if (USE_VERTEX_ANIM == 1.0)
-	{
-		//position  = mix(attr_Position,    attr_Position2,    u_VertexLerp);
-		//normal    = mix(attr_Normal,      attr_Normal2,      u_VertexLerp) * 2.0 - 1.0;
-		position  = attr_Position;
-		normal    = attr_Normal * 2.0 - 1.0;
-	}
-	else if (USE_SKELETAL_ANIM == 1.0)
-	{
-		vec4 position4 = vec4(0.0);
-		vec4 normal4 = vec4(0.0);
-		vec4 originalPosition = vec4(attr_Position, 1.0);
-		vec4 originalNormal = vec4(attr_Normal * 2.0 - 1.0, 0.0);
+	position  = attr_Position;
+	normal    = attr_Normal * 2.0 - 1.0;
 
-		for (int i = 0; i < 4; i++)
-		{
-			int boneIndex = int(attr_BoneIndexes[i]);
-
-			if (boneIndex >= MAX_GLM_BONEREFS)
-			{// Skip...
-
-			}
-			else
-			{
-				position4 += (u_BoneMatrices[boneIndex] * originalPosition) * attr_BoneWeights[i];
-				normal4 += (u_BoneMatrices[boneIndex] * originalNormal) * attr_BoneWeights[i];
-			}
-		}
-
-		position = position4.xyz;
-		normal = normalize(normal4.xyz);
-	}
-	else
-#endif
-	{
-		position  = attr_Position;
-		normal    = attr_Normal * 2.0 - 1.0;
-	}
 
 #if defined(USE_TESSELLATION) && defined(USE_EDGE_TESSELLATION)
 	vec3 baseVertPos = position;
@@ -677,6 +650,7 @@ void main()
 	var_ViewDir = u_ViewOrigin - position;
 	var_Normal = normal.xyz;
 	var_Slope = 0.0;
+	var_GrassSlope = 0.0;
 
 #if !defined(USE_TESSELLATION_3D)
 	if (USE_REGIONS > 0.0 || USE_TRIPLANAR > 0.0)
@@ -685,10 +659,17 @@ void main()
 		// Steep Maps...
 		//
 
+		float pitch = 0.0;
+
+		if (SHADER_HAS_STEEPMAP > 0.0 || (GRASS_ENABLED > 0.0 && USE_TRIPLANAR > 0.0))
+		{
+			pitch = normalToSlope(normalize(normal.xyz));
+		}
+		
+		var_GrassSlope = length(pitch);
+
 		if (SHADER_HAS_STEEPMAP > 0.0)
 		{// Steep maps...
-			float pitch = normalToSlope(normalize(normal.xyz));
-
 			if (pitch > 46.0 && USE_REGIONS <= 0.0)
 			{
 				var_Slope = clamp(pow(clamp((pitch - 46.0) / 44.0, 0.0, 1.0), 0.75), 0.0, 1.0);
@@ -744,6 +725,7 @@ void main()
 	Blending_CS_in = var_Blending;
 	envTC_CS_in = vec2(0.0);
 	Slope_CS_in = var_Slope;
+	GrassSlope_CS_in = var_GrassSlope;
 #endif //defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
 
 	var_vertPos = position.xyz;

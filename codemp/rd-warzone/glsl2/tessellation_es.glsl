@@ -92,6 +92,7 @@ out precise vec4 PrimaryLightDir_FS_in;
 out precise vec2 TexCoord2_FS_in;
 out precise vec3 Blending_FS_in;
 /*flat*/ out float Slope_FS_in;
+/*flat*/ out float GrassSlope_FS_in;
 out float TessDepth_FS_in;
 
 #define WorldPos_GS_in WorldPos_FS_in
@@ -104,6 +105,7 @@ out float TessDepth_FS_in;
 #define TexCoord2_GS_in TexCoord2_FS_in
 #define Blending_GS_in Blending_FS_in
 #define Slope_GS_in Slope_FS_in
+#define GrassSlope_GS_in GrassSlope_FS_in
 #define TessDepth_GS_in TessDepth_FS_in
 
 // PN patch data
@@ -144,6 +146,7 @@ in precise vec4 PrimaryLightDir_ES_in[];
 in precise vec2 TexCoord2_ES_in[];
 in precise vec3 Blending_ES_in[];
 in float Slope_ES_in[];
+in float GrassSlope_ES_in[];
 
 #define b300    gl_in[0].gl_Position.xyz
 #define b030    gl_in[1].gl_Position.xyz
@@ -363,6 +366,9 @@ void main()
 	Slope_GS_in = gl_TessCoord[2] * Slope_ES_in[0]
 		+ gl_TessCoord[0] * Slope_ES_in[1]
 		+ gl_TessCoord[1] * Slope_ES_in[2];
+	GrassSlope_GS_in = gl_TessCoord[2] * GrassSlope_ES_in[0]
+		+ gl_TessCoord[0] * GrassSlope_ES_in[1]
+		+ gl_TessCoord[1] * GrassSlope_ES_in[2];
 
 	// normal
 	vec3 barNormal = gl_TessCoord[2] * iNormal[0]

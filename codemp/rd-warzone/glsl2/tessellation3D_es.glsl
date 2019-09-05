@@ -77,10 +77,15 @@ uniform vec4						u_Local3; // hasSplatMap1, hasSplatMap2, hasSplatMap3, hasSpla
 uniform vec4						u_Local4; // stageNum, glowStrength, r_showsplat, glowVibrancy
 uniform vec4						u_Local8; // GRASS_DISTANCE_FROM_ROADS
 uniform vec4						u_Local9; // testvalue0, 1, 2, 3
+uniform vec4						u_Local16; // GRASS_ENABLED, GRASS_DISTANCE, GRASS_MAX_SLOPE, 0.0
 
 #define SHADER_HAS_STEEPMAP			u_Local2.r
 #define SHADER_HAS_SPLATMAP4		u_Local3.a
 #define GRASS_DISTANCE_FROM_ROADS	u_Local8.r
+
+#define GRASS_ENABLED				u_Local16.r
+#define GRASS_DISTANCE				u_Local16.g
+#define GRASS_MAX_SLOPE				u_Local16.b
 
 uniform float	u_Time;
 
@@ -97,6 +102,7 @@ out precise vec4 PrimaryLightDir_FS_in;
 out precise vec2 TexCoord2_FS_in;
 out precise vec3 Blending_FS_in;
 /*flat*/ out float Slope_FS_in;
+/*flat*/ out float GrassSlope_FS_in;
 out float TessDepth_FS_in;
 
 #define WorldPos_GS_in WorldPos_FS_in
@@ -108,6 +114,7 @@ out float TessDepth_FS_in;
 #define TexCoord2_GS_in TexCoord2_FS_in
 #define Blending_GS_in Blending_FS_in
 #define Slope_GS_in Slope_FS_in
+#define GrassSlope_GS_in GrassSlope_FS_in
 
 uniform vec4 u_TesselationInfo;
 uniform vec4 u_Tesselation3DInfo;
@@ -131,6 +138,7 @@ in precise vec4 PrimaryLightDir_ES_in[];
 in precise vec2 TexCoord2_ES_in[];
 in precise vec3 Blending_ES_in[];
 in float Slope_ES_in[];
+in float GrassSlope_ES_in[];
 
 #define HASHSCALE1 .1031
 
@@ -347,10 +355,13 @@ void main()
 
 	// Adjust slope for new normals...
 	Slope_GS_in = 0.0;
+	GrassSlope_GS_in = 0.0;
 
-	if (SHADER_HAS_STEEPMAP > 0.0)
+	if (SHADER_HAS_STEEPMAP > 0.0 || (GRASS_ENABLED > 0.0 && USE_TRIPLANAR > 0.0))
 	{// Steep maps...
 		float pitch = normalToSlope(Normal_GS_in.xyz);
+
+		GrassSlope_GS_in = pitch;
 
 		if (pitch > 46.0 && USE_REGIONS <= 0.0)
 		{

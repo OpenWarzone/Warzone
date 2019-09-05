@@ -74,7 +74,7 @@ uniform sampler2D					u_DetailMap;
 uniform vec4						u_MapAmbient; // a basic light/color addition across the whole map...
 
 uniform vec4						u_Settings0; // useTC, useDeform, useRGBA, isTextureClamped
-uniform vec4						u_Settings1; // useVertexAnim, useSkeletalAnim, blendMethod, is2D
+uniform vec4						u_Settings1; // useVertexAnim, SPLATMAP_SCALE_WATEREDGE1, SPLATMAP_SCALE_WATEREDGE2, is2D
 uniform vec4						u_Settings2; // LIGHTDEF_USE_LIGHTMAP, LIGHTDEF_USE_GLOW_BUFFER, LIGHTDEF_USE_CUBEMAP, LIGHTDEF_USE_TRIPLANAR
 uniform vec4						u_Settings3; // LIGHTDEF_USE_REGIONS, LIGHTDEF_IS_DETAIL, 0=DetailMapNormal 1=detailMapFromTC 2=detailMapFromWorld, USE_GLOW_BLEND_MODE
 uniform vec4						u_Settings4; // MAP_LIGHTMAP_MULTIPLIER, MAP_LIGHTMAP_ENHANCEMENT, SPLATMAP_SCALE_STEEP, PUDDLE_STRENGTH
@@ -86,8 +86,8 @@ uniform vec4						u_Settings5; // MAP_COLOR_SWITCH_RG, MAP_COLOR_SWITCH_RB, MAP_
 #define USE_TEXTURECLAMP			u_Settings0.a
 
 #define USE_VERTEX_ANIM				u_Settings1.r
-#define USE_SKELETAL_ANIM			u_Settings1.g
-#define USE_BLEND					u_Settings1.b
+#define SPLATMAP_SCALE_WATEREDGE1	u_Settings1.g
+#define SPLATMAP_SCALE_WATEREDGE2	u_Settings1.b
 #define USE_IS2D					u_Settings1.a
 
 #define USE_LIGHTMAP				u_Settings2.r
@@ -111,11 +111,16 @@ uniform vec4						u_Settings5; // MAP_COLOR_SWITCH_RG, MAP_COLOR_SWITCH_RB, MAP_
 #define SPLATMAP_SCALE				u_Settings5.a
 
 uniform vec4						u_Local1; // MAP_SIZE, sway, overlaySway, materialType
-uniform vec4						u_Local2; // hasWaterEdgeMap, haveNormalMap, 0.0, SHADER_WATER_LEVEL
+uniform vec4						u_Local2; // hasWaterEdgeMap, haveNormalMap, WATER_WAVE_HEIGHT, SHADER_WATER_LEVEL
 uniform vec4						u_Local3; // hasSplatMap1, hasSplatMap2, hasSplatMap3, hasSplatMap4
 uniform vec4						u_Local4; // SPLATMAP_CONTROL_SCALE, glowStrength, r_showsplat, glowVibrancy
 uniform vec4						u_Local9; // testvalue0, 1, 2, 3
 uniform vec4						u_Local13; // hasSteepMap, hasSteepMap1, hasSteepMap2, hasSteepMap3
+uniform vec4						u_Local14; // grassAliasImage
+uniform vec4						u_Local15; // seaGrassAliasImage
+uniform vec4						u_Local16; // GRASS_ENABLED, GRASS_DISTANCE, GRASS_MAX_SLOPE, FAKE_GRASS_MINALPHA
+uniform vec4						u_Local17; // FAKE_GRASS_SCALE, FAKE_GRASS_SCALE_UNDERWATER, FAKE_GRASS_COLORMULT, FAKE_GRASS_COLORMULT_UNDERWATER
+uniform vec4						u_Local18; // FAKE_GRASS_MINALPHA_UW, FAKE_GRASS_UW_SIZE, 0.0, 0.0
 
 uniform vec2						u_Dimensions;
 uniform vec2						u_textureScale;
@@ -140,7 +145,7 @@ uniform float						u_zFar;
 
 #define SHADER_HAS_WATEREDGEMAP		u_Local2.r
 #define SHADER_HAS_NORMALMAP		u_Local2.g
-//#define UNUSED					u_Local2.b
+#define SHADER_WAVE_HEIGHT			u_Local2.b
 #define SHADER_WATER_LEVEL			u_Local2.a
 
 #define SHADER_HAS_SPLATMAP1		u_Local3.r
@@ -158,6 +163,18 @@ uniform float						u_zFar;
 #define SHADER_HAS_STEEPMAP2		u_Local13.b
 #define SHADER_HAS_STEEPMAP3		u_Local13.a
 
+#define GRASS_ENABLED				u_Local16.r
+#define GRASS_DISTANCE				u_Local16.g
+#define GRASS_MAX_SLOPE				u_Local16.b
+#define FAKE_GRASS_MINALPHA			u_Local16.a
+
+#define FAKE_GRASS_SCALE			u_Local17.r
+#define FAKE_GRASS_SCALE_UNDERWATER	u_Local17.g
+#define FAKE_GRASS_MULT				u_Local17.b
+#define FAKE_GRASS_MULT_UNDERWATER	u_Local17.a
+
+#define FAKE_GRASS_MINALPHA_UW		u_Local18.r
+#define FAKE_GRASS_UW_SIZE			u_Local18.g
 
 #if defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
 
@@ -172,6 +189,7 @@ in precise vec2				TexCoord2_FS_in;
 
 in precise vec3				Blending_FS_in;
 /*flat*/ in float				Slope_FS_in;
+/*flat*/ in float				GrassSlope_FS_in;
 
 in float					TessDepth_FS_in;
 
@@ -188,6 +206,7 @@ vec3	m_Normal 			= normalize(gl_FrontFacing ? -Normal_FS_in.xyz : Normal_FS_in.x
 
 #define var_Blending		Blending_FS_in
 #define var_Slope			Slope_FS_in
+#define var_GrassSlope		GrassSlope_FS_in
 
 #define m_TessDepth			TessDepth_FS_in
 
@@ -209,6 +228,7 @@ varying vec3				var_ViewDir;
 
 varying vec3				var_Blending;
 varying float				var_Slope;
+varying float				var_GrassSlope;
 
 
 vec3 m_Normal				= normalize(gl_FrontFacing ? -var_Normal : var_Normal);
@@ -843,7 +863,7 @@ float Raverage_approx(float n)
     return -0.0095*n6 + 0.1134*n5 - 0.5639*n4 + 1.4968*n3 - 2.2538*n2 + 1.9795*n - 0.7566;
 }
 
-vec4 GetDiffuse(vec2 texCoords)
+vec4 GetDiffuse(vec2 texCoords, inout bool isFakeGrass)
 {
 	float diffuseA = 0.0;
 	vec4 diffuse = GetDiffuse2(texCoords, diffuseA);
@@ -867,51 +887,59 @@ vec4 GetDiffuse(vec2 texCoords)
 		}
 
 		// Do water edge blending...
-		float waterBlendMaxZ = SHADER_WATER_LEVEL + 192.0;
-		float waterBlendMaxHeight = 192.0;
+		vLocalSeed = m_vertPos.xyz;
+		float ABOVEWATER_BLEND_RANGE = (SHADER_WAVE_HEIGHT*3.0) + ((SHADER_WAVE_HEIGHT*2.0) * (randZeroOne() * 0.5 + 0.5));
+		float UNDERWATER_BLEND_RANGE = (SHADER_WAVE_HEIGHT*3.0) + ((SHADER_WAVE_HEIGHT*6.0) * (randZeroOne() * 0.5 + 0.5));
+		float BELOW_WATER_BLEND_START = (SHADER_WAVE_HEIGHT*2.0);
+		float BELOW_WATER_BLEND_Z = SHADER_WATER_LEVEL - BELOW_WATER_BLEND_START;
+		float BELOW_WATER_BLEND_BOTTOM = SHADER_WATER_LEVEL - UNDERWATER_BLEND_RANGE;
+
+
+		float waterBlendMaxZ = SHADER_WATER_LEVEL + ABOVEWATER_BLEND_RANGE;
+		float waterBlendMaxHeight = ABOVEWATER_BLEND_RANGE;
+
 
 		if (SHADER_HAS_WATEREDGEMAP > 0.0 && USE_REGIONS <= 0.0 && m_vertPos.z <= waterBlendMaxZ)
 		{// Steep maps (water edges)...
-			vLocalSeed = m_vertPos.xyz;
-			float pixRandom = randZeroOne();
-
-			waterBlendMaxHeight = 64.0 + (pixRandom * 128.0);
-			waterBlendMaxZ = SHADER_WATER_LEVEL + waterBlendMaxHeight;
-
 			float mixVal = 1.0 - clamp(max(waterBlendMaxZ - m_vertPos.z, 0.0) / waterBlendMaxHeight, 0.0, 1.0);
 
 			float a1 = 0.0;
-			vec4 tex1 = GetMap(u_WaterEdgeMap, 0.0075, a1);
+			float a1b = 0.0;
+			vec4 tex1 = GetMap(u_WaterEdgeMap, SPLATMAP_SCALE_WATEREDGE1, a1);
+			vec4 tex1b = GetMap(u_WaterEdgeMap, SPLATMAP_SCALE_WATEREDGE2, a1b);
 			a1 = clamp(a1, 0.0, 1.0);
+			a1b = clamp(a1b, 0.0, 1.0);
 
-			if (m_vertPos.z <= SHADER_WATER_LEVEL - 64.0)
-			{// Underwater... Wetness...
-				const float nl = 1.33283;
-				// lower layer
-				const float nr = 2.0;
+#ifdef __USE_FULL_SPLAT_BLENDFUNC__
+			tex1 = vec4(splatblend(tex1, a1, tex1b, a1b, 1.0);
+#else //!__USE_FULL_SPLAT_BLENDFUNC__
+			tex1 = SmoothMix(tex1.rgb, tex1b.rgb, a1);
+#endif //__USE_FULL_SPLAT_BLENDFUNC__
 
-				float p = 1.0-1.0/(nl*nl)*(1.0-Raverage_approx(nl));
-				vec3 aD = 1.0 - tex1.rgb;
-				vec3 aW0 = aD * (1.0 - Raverage_approx(nr/nl))/(1.0-Raverage_approx(nr));
-				vec3 aW1 = aD;
-				vec3 aW = (1.0-aD)*aW0 +  aD*aW1;
-				vec3 A = (1.0-Raverage_approx(nl))*aW/(1.0-p*(1.0-aW));
-				vec3 wetDiffuse = 1.0-A;
-				tex1.rgb = wetDiffuse.rgb;
-			}
+			a1 = clamp(max(a1, a1b), 0.0, 1.0);
 
 			// Smoothed wet edge around water... Done as well because just doing pure lod lookups looks grainy and shit...
 			float lodLevel = 0.0;
 
-			if (m_vertPos.z < SHADER_WATER_LEVEL + 128.0 && m_vertPos.z > SHADER_WATER_LEVEL - 64.0)
+			if (m_vertPos.z < waterBlendMaxZ && m_vertPos.z > BELOW_WATER_BLEND_Z)
 			{// Above water, add wet blurred edge...
-				float lodLevel = 1.0 - clamp(max(m_vertPos.z - (SHADER_WATER_LEVEL - 64.0), 0.0) / 192.0, 0.0, 1.0);
+				float lodLevel = 1.0 - clamp(max(m_vertPos.z - BELOW_WATER_BLEND_Z, 0.0) / (BELOW_WATER_BLEND_START + ABOVEWATER_BLEND_RANGE), 0.0, 1.0);
 
 				float wLodLevel = lodLevel;
 				lodLevel = pow(clamp(lodLevel * 1.5, 0.0, 1.0), 6.0);
 
 				float a3 = 0.0;
-				vec4 lCol = GetMapLod(u_WaterEdgeMap, 0.0075, a3, 16.0);
+				float a3b = 0.0;
+				vec4 lCol = GetMapLod(u_WaterEdgeMap, SPLATMAP_SCALE_WATEREDGE1, a3, 16.0);
+				vec4 lColb = GetMapLod(u_WaterEdgeMap, SPLATMAP_SCALE_WATEREDGE2, a3b, 16.0);
+				a3 = clamp(a1, 0.0, 1.0);
+				a3b = clamp(a1b, 0.0, 1.0);
+#ifdef __USE_FULL_SPLAT_BLENDFUNC__
+				lCol = vec4(splatblend(lCol, a3, lColb, a3b, 1.0);
+#else //!__USE_FULL_SPLAT_BLENDFUNC__
+				lCol = SmoothMix(lCol.rgb, lColb.rgb, a3);
+#endif //__USE_FULL_SPLAT_BLENDFUNC__
+
 				float lMix = clamp(a1 * 10.0, 0.0, 1.0);
 
 				//
@@ -933,16 +961,25 @@ vec4 GetDiffuse(vec2 texCoords)
 				
 				tex1.rgb = mix(tex1.rgb, lCol.rgb, lodLevel * lMix);
 			}
-			else if (m_vertPos.z <= SHADER_WATER_LEVEL - 64.0 && m_vertPos.z > SHADER_WATER_LEVEL - 96.0)
+			else if (m_vertPos.z <= BELOW_WATER_BLEND_Z && m_vertPos.z > BELOW_WATER_BLEND_BOTTOM)
 			{// Just under water a little... Blend back to normal...
-				float lodLevel = clamp(max(m_vertPos.z - (SHADER_WATER_LEVEL - 96.0), 0.0) / 32.0, 0.0, 1.0);
+				float lodLevel = clamp(max(m_vertPos.z - BELOW_WATER_BLEND_BOTTOM, 0.0) / (UNDERWATER_BLEND_RANGE - BELOW_WATER_BLEND_START), 0.0, 1.0);
 
 				float wLodLevel = lodLevel;
-				lodLevel = pow(clamp(lodLevel * 1.5, 0.0, 1.0), 6.0);
 
 				float a3 = 0.0;
-				vec4 lCol = GetMapLod(u_WaterEdgeMap, 0.0075, a3, 16.0);
-				float lMix = clamp(a1 * 10.0, 0.0, 1.0);
+				float a3b = 0.0;
+				vec4 lCol = GetMapLod(u_WaterEdgeMap, SPLATMAP_SCALE_WATEREDGE1, a3, 16.0);
+				vec4 lColb = GetMapLod(u_WaterEdgeMap, SPLATMAP_SCALE_WATEREDGE2, a3b, 16.0);
+				a3 = clamp(a1, 0.0, 1.0);
+				a3b = clamp(a1b, 0.0, 1.0);
+#ifdef __USE_FULL_SPLAT_BLENDFUNC__
+				lCol = vec4(splatblend(lCol, a3, lColb, a3b, 1.0);
+#else //!__USE_FULL_SPLAT_BLENDFUNC__
+				lCol = SmoothMix(lCol.rgb, lColb.rgb, a3);
+#endif //__USE_FULL_SPLAT_BLENDFUNC__
+
+				float lMix = clamp(pow(lodLevel, 0.5), 0.0, 1.0);
 
 				//
 				// Wetness...
@@ -958,10 +995,24 @@ vec4 GetDiffuse(vec2 texCoords)
 				vec3 aW = (1.0-aD)*aW0 +  aD*aW1;
 				vec3 A = (1.0-Raverage_approx(nl))*aW/(1.0-p*(1.0-aW));
 				vec3 wetDiffuse = 1.0-A;
-				float wetMix = 1.0 - pow(1.0 - clamp(wLodLevel - 0.7, 0.0, 1.0), 16.0);
 				lCol.rgb = wetDiffuse.rgb;
 
-				tex1.rgb = mix(tex1.rgb, lCol.rgb, lodLevel * lMix);
+				tex1.rgb = mix(tex1.rgb, lCol.rgb, lMix);
+			}
+			else if (m_vertPos.z <= BELOW_WATER_BLEND_BOTTOM)
+			{// Underwater... Wetness...
+				const float nl = 1.33283;
+				// lower layer
+				const float nr = 2.0;
+
+				float p = 1.0-1.0/(nl*nl)*(1.0-Raverage_approx(nl));
+				vec3 aD = 1.0 - tex1.rgb;
+				vec3 aW0 = aD * (1.0 - Raverage_approx(nr/nl))/(1.0-Raverage_approx(nr));
+				vec3 aW1 = aD;
+				vec3 aW = (1.0-aD)*aW0 +  aD*aW1;
+				vec3 A = (1.0-Raverage_approx(nl))*aW/(1.0-p*(1.0-aW));
+				vec3 wetDiffuse = 1.0-A;
+				tex1.rgb = wetDiffuse.rgb;
 			}
 
 #ifdef __USE_FULL_SPLAT_BLENDFUNC__
@@ -970,6 +1021,37 @@ vec4 GetDiffuse(vec2 texCoords)
 #else //!__USE_FULL_SPLAT_BLENDFUNC__
 			diffuse = SmoothMix(tex1.rgb, diffuse.rgb, max(mixVal, a1 * mixVal));
 #endif //__USE_FULL_SPLAT_BLENDFUNC__
+		}
+
+		if (GRASS_ENABLED > 0.0 && USE_TRIPLANAR > 0.0 && var_GrassSlope < GRASS_MAX_SLOPE)
+		{
+			float dist = distance(u_ViewOrigin.xyz, m_vertPos.xyz);
+			float gAlpha = clamp(dist / (GRASS_DISTANCE * 0.75), 0.0, 1.0);
+
+			if (u_Local14.a > 0.0 && m_vertPos.z >= waterBlendMaxZ && gAlpha > 0.0)
+			{// Fake above water distant grass...
+				float g = noise(m_vertPos * FAKE_GRASS_SCALE);
+				if (g > FAKE_GRASS_MINALPHA)
+				{
+					vec4 gColor = vec4(u_Local14.rgb * FAKE_GRASS_MULT, u_Local14.a);
+					diffuse = mix(diffuse, gColor, gAlpha * (g * 0.5 + 0.5));
+					isFakeGrass = true;
+				}
+			}
+
+			float UNDERWATER_GRASS_BLEND_RANGE = (SHADER_WAVE_HEIGHT*2.0) + (SHADER_WAVE_HEIGHT * (randZeroOne() * 0.5 + 0.5));
+			float UNDERWATER_GRASS_BLEND_START = (SHADER_WATER_LEVEL - UNDERWATER_GRASS_BLEND_RANGE) - FAKE_GRASS_UW_SIZE;
+
+			if (u_Local15.a > 0.0 && m_vertPos.z <= UNDERWATER_GRASS_BLEND_START && gAlpha > 0.0)
+			{// Fake below water distant grass...
+				float g = noise(m_vertPos * FAKE_GRASS_SCALE_UNDERWATER);
+				if (g > FAKE_GRASS_MINALPHA_UW)
+				{
+					vec4 gColor = vec4(u_Local15.rgb * FAKE_GRASS_MULT_UNDERWATER, u_Local15.a);
+					diffuse = mix(diffuse, gColor, gAlpha * (g * 0.5 + 0.5));
+					isFakeGrass = true;
+				}
+			}
 		}
 	}
 
@@ -1061,7 +1143,8 @@ void main()
 		colorMap = vec4(1.0);
 	}
 
-	vec4 diffuse = GetDiffuse(texCoords);
+	bool isFakeGrass = false;
+	vec4 diffuse = GetDiffuse(texCoords, isFakeGrass);
 
 	// Alter colors by shader's colormod setting...
 	diffuse.rgb += diffuse.rgb * u_ColorMod.rgb;
@@ -1071,6 +1154,11 @@ void main()
 
 
 	vec3 N = normalize(m_Normal.xyz);
+
+	if (isFakeGrass)
+	{// Fake vertical...
+		N = normalize(vec3(m_Normal.xy, 0.0));
+	}
 
 #ifdef __USE_REAL_NORMALMAPS__
 	vec4 norm = vec4(0.0);
@@ -1243,7 +1331,11 @@ void main()
 	// Wetness testing...
 	float FINAL_MATERIAL = SHADER_MATERIAL_TYPE+1.0;
 
-	if (PUDDLE_STRENGTH > 0.0)
+	if (isFakeGrass)
+	{// Fake foliage...
+		FINAL_MATERIAL = MATERIAL_PROCEDURALFOLIAGE+1.0;
+	}
+	else if (PUDDLE_STRENGTH > 0.0)
 	{// Rain wetness...
 		const float nl = 1.33283;
 		// lower layer
@@ -1259,11 +1351,11 @@ void main()
 		gl_FragColor.rgb = mix(gl_FragColor.rgb, wetDiffuse.rgb, clamp(PUDDLE_STRENGTH * 5.0, 0.0, 1.0));
 		gl_FragColor.rgb = mix(gl_FragColor.rgb, wetDiffuse.rgb, clamp(PUDDLE_STRENGTH * 5.0, 0.0, 1.0));
 		//gl_FragColor.rgb = max(gl_FragColor.rgb - mix(0.0, 0.1, PUDDLE_STRENGTH), 0.0);
-	}
 
-	if (PUDDLE_STRENGTH > 0.0 && !(m_TessDepth > mix(-0.5, -0.2, PUDDLE_STRENGTH)) && N.z * 0.5 + 0.5 >= 0.9999)
-	{// Rain puddles...
-		FINAL_MATERIAL = MATERIAL_PUDDLE+1;
+		if (!(m_TessDepth > mix(-0.5, -0.2, PUDDLE_STRENGTH)) && N.z * 0.5 + 0.5 >= 0.9999)
+		{// Rain puddles...
+			FINAL_MATERIAL = MATERIAL_PUDDLE+1;
+		}
 	}
 
 	//if (u_Local9.r > 0.0 && FINAL_MATERIAL == MATERIAL_PUDDLE+1)

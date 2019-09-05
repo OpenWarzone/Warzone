@@ -490,8 +490,8 @@ vec3 hsv2rgb(vec3 c)
 // Performance is a real consideration of hash functions since ray-marching is already so heavy.
 float hash( vec2 p ) {
     float h = dot(p,vec2(127.1,311.7));	
-    return fract(sin(h)*83758.5453123);
-	//return fract(sin(h)*4378.5453);
+    //return fract(sin(h)*83758.5453123);
+	return fract(sin(h)*4378.5453);
 }
 
 // bteitler: A 2D psuedo-random wave / terrain function.  This is actually a poor name in my opinion,
@@ -553,12 +553,13 @@ vec3 getSkyColor(vec3 e) {
 // bteitler: TLDR is that this passes a low frequency random terrain through a 2D symmetric wave function that looks like this:
 // http://www.wolframalpha.com/input/?i=%7B1-%7B%7B%7BAbs%5BCos%5B0.16x%5D%5D+%2B+Abs%5BCos%5B0.16x%5D%5D+%28%281.+-+Abs%5BSin%5B0.16x%5D%5D%29+-+Abs%5BCos%5B0.16x%5D%5D%29%7D+*+%7BAbs%5BCos%5B0.16y%5D%5D+%2B+Abs%5BCos%5B0.16y%5D%5D+%28%281.+-+Abs%5BSin%5B0.16y%5D%5D%29+-+Abs%5BCos%5B0.16y%5D%5D%29%7D%7D%5E0.65%7D%7D%5E4+from+-20+to+20
 // The <choppy> parameter affects the wave shape.
-float sea_octave(vec2 uv, float choppy) {
+float sea_octave(vec2 uv, float choppy, vec3 p) {
     // bteitler: Add the smoothed 2D terrain / wave function to the input coordinates
     // which are going to be our X and Z world coordinates.  It may be unclear why we are doing this.
     // This value is about to be passed through a wave function.  So we have a smoothed psuedo random height
     // field being added to our (X, Z) coordinates, and then fed through yet another wav function below.
     uv += noise(uv);
+	//uv += noise(p.xz);
     // Note that you could simply return noise(uv) here and it would take on the characteristics of our 
     // noise interpolation function u and would be a reasonable heightmap for terrain.  
     // However, that isn't the shape we want in the end for an ocean with waves, so it will be fed through
@@ -608,7 +609,7 @@ float map(vec3 p) {
     float d, h = 0.0;    
     for(int i = 0; i < ITER_GEOMETRY; i++) {
         // bteitler: start out with our 2D symmetric wave at the current frequency
-    	d = sea_octave((uv+SEA_TIME)*freq,choppy);
+    	d = sea_octave((uv+SEA_TIME)*freq,choppy,p);
         // bteitler: stack wave ontop of itself at an offset that varies over time for more height and wave pattern variance
     	//d += sea_octave((uv-SEA_TIME)*freq,choppy);
 
@@ -646,9 +647,9 @@ float map_detailed(vec3 p) {
     float d, h = 0.0;    
     for(int i = 0; i < ITER_FRAGMENT; i++) {
         // bteitler: start out with our 2D symmetric wave at the current frequency
-    	d = sea_octave((uv+SEA_TIME)*freq,choppy);
+    	d = sea_octave((uv+SEA_TIME)*freq,choppy,p);
         // bteitler: stack wave ontop of itself at an offset that varies over time for more height and wave pattern variance
-    	d += sea_octave((uv-SEA_TIME)*freq,choppy);
+    	d += sea_octave((uv-SEA_TIME)*freq,choppy,p);
         
         h += d * amp; // bteitler: Bump our height by the current wave function
         
@@ -842,7 +843,8 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
     vec3 p;
     heightMapTracing(ori, dir, p);
 
-	if (p.y > mapLevel)
+	float wdepth = mapLevel - p.y;
+	if (wdepth <= 0.0)
 	{
 		return;
 	}
@@ -860,10 +862,13 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
     // the camera should be calculated with high resolution, and normals far from the camera should be calculated with low resolution
     // The reason to do this is that specular effects (or non linear normal based lighting effects) become fairly random at
     // far distances and low resolutions and can cause unpleasant shimmering during motion.
-    vec3 n = getNormal(p, 
-             dot(dist2,dist2)   // bteitler: Think of this as inverse resolution, so far distances get bigger at an expnential rate
-                * EPSILON_NRM // bteitler: Just a resolution constant.. could easily be tweaked to artistic content
-           );
+    //vec3 n = getNormal(p, 
+    //         dot(dist2,dist2)   // bteitler: Think of this as inverse resolution, so far distances get bigger at an expnential rate
+    //            * EPSILON_NRM // bteitler: Just a resolution constant.. could easily be tweaked to artistic content
+    //       );
+	// UQ1: Smooth out the normals over range to remove the aliasing...
+	float d = length(dist);
+	vec3 n = getNormal(p, pow(d / 96.0, 1.333));
 
 	vec3 finalPos = p.xyz;
 
@@ -904,7 +909,7 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
 
     // CaliCoastReplay:  Get the sky and sea colors
 	//vec3 skyColor = getSkyColor(dir);
-	float refStr = (1.0 - clamp((depthN * pow(1.0-waterClarity, 5.0)) / visibility, 0.0, 1.0));
+	float refStr = (1.0 - clamp((depthN * pow(1.0-waterClarity, 5.0)) / visibility, 0.0, 1.0)) * 0.5 + 0.5;
     vec3 seaColor = getSeaColor(p,n,light,dir,dist,lightColor,refStr*0.5,refraction);
 	if (pixelIsUnderWater) refStr = 0.5;
 	seaColor = mix(seaColor, refraction, refStr);
@@ -1039,42 +1044,69 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
 	}
 #endif //defined(USE_REFLECTION) && !defined(__LQ_MODE__)
 
-	/*
-	bool foamAdded = false;
-	bool whitecapAdded = false;
-	vec4 foam = vec4(0.0);
-	float foamLength = 0.0;
-	float foamPower = clamp(pow(1.0 - height, 1.25), 0.0, 1.0);
-	foamPower *= depthN / 48.0;
-
-	if (depth2 < foamExistence.x)
+	float fHeight = waveHeight * 0.05;
+	if (wdepth < fHeight)
 	{
-		foam = GetFoamMap(waterMap.xzy);
-		foamAdded = true;
-	}
-	else if (depth2 < foamExistence.y)
-	{
-		foam = mix(GetFoamMap(waterMap.xzy), vec4(0.0), (depth2 - foamExistence.x) / (foamExistence.y - foamExistence.x));
-		foamAdded = true;
-	}
-
-	if (waveHeight - foamExistence.z > 0.0001)
-	{
-		float fPow = clamp((finalPos.y - (waterMapUpper.y + foamExistence.z)) / (waveHeight - foamExistence.z), 0.0, 1.0);
-		foam += GetFoamMap(waterMap.xzy + foamExistence.z) * fPow;
-		if (fPow > 0.0)
+		float f = 1.0 - clamp(wdepth / fHeight, 0.0, 1.0);
+		vec4 foam = GetFoamMap(waterMap.xzy+n.xzy*8.0);
+		foam.a *= pow(f, 4.0);
+		if (foam.a > 0.0)
 		{
-			whitecapAdded = true;
+			fragColor.rgb = mix(fragColor.rgb, foam.rgb, foam.a);
 		}
 	}
 
-	if (foam.a <= 0.0) foam = vec4(0.0);
+	// add white caps...
+	float chopheight = height*n.y*0.915*noise(finalPos.xz*0.005)*1.075;
+	float whiteCaps = pow(clamp(chopheight, 0.0, 1.0), 16.0);
+	whiteCaps = clamp(whiteCaps, 0.0, 1.0);
 
-	if (foamAdded || whitecapAdded)
+	if (whiteCaps > 0.0)
 	{
-		fragColor.rgb = clamp(fragColor.rgb + (foam.rgb * foamPower), 0.0, 1.0);
+		float wcMap = SmoothNoise( (finalPos.xzy+SEA_TIME)*0.00025 );
+		wcMap = clamp(wcMap, 0.0, 1.0);
+
+		fragColor.rgb = fragColor.rgb + (wcMap * whiteCaps);
 	}
-	*/
+
+#if 1
+	if (USE_OCEAN > 0.0)
+	{// add breaking waves
+		float aboveSeabed = 0.0;
+
+		if (HAVE_HEIGHTMAP > 0.0)
+		{
+			float hMap = GetHeightMap(finalPos.xzy);
+			aboveSeabed = (1.0 - clamp(hMap / 256.0, 0.0, 1.0));
+		}
+		else
+		{
+			aboveSeabed = (1.0 - clamp(length(finalPos.y - positionMap.y) / 256.0, 0.0, 1.0));
+		}
+
+		float breakingWave = pow(clamp(clamp(height - 0.333, 0.0, 1.0) + clamp((height * chopheight) - 0.25, 0.0, 1.0), 0.0, 1.0), 8.0) * aboveSeabed * max(n.x * 0.5 + 0.5, n.z * 0.5 + 0.5);
+		breakingWave = clamp(breakingWave, 0.0, 1.0);
+
+		if (breakingWave > 0.0)
+		{
+			float breakingMap = max(SmoothNoise( finalPos.xzy*0.005 ), SmoothNoise( finalPos.xzy*0.01 ));
+			breakingMap = pow(clamp(breakingMap, 0.0, 1.0), 2.0);
+
+			fragColor.rgb = fragColor.rgb + (breakingMap * pow(breakingWave, 0.35) * pow(aboveSeabed, clamp(1.0 - aboveSeabed, 0.1, 1.0)));
+
+			float breakingWhiteCaps = pow(clamp((breakingWave * 0.25) + chopheight * 0.975, 0.0, 1.0), 4.0);
+			breakingWhiteCaps = clamp(breakingWhiteCaps, 0.0, 1.0);
+
+			if (breakingWhiteCaps > 0.0)
+			{
+				float wcMap = SmoothNoise( finalPos.xzy*0.0005 );
+				wcMap = clamp(wcMap, 0.0, 1.0);
+
+				fragColor.rgb = fragColor.rgb + (wcMap * breakingWhiteCaps);
+			}
+		}
+	}
+#endif
 }
 
 void main ( void )

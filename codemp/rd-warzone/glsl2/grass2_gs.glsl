@@ -1,4 +1,5 @@
 #define THREE_WAY_GRASS_CLUMPS // 3 way probably gives better coverage, at extra cost... otherwise 2 way X shape... 
+//#define FAKE_LOD
 
 #define MAX_FOLIAGES					85
 
@@ -58,6 +59,10 @@ uniform sampler2D							u_HeightMap;
 #endif //defined(USE_BINDLESS_TEXTURES)
 
 uniform mat4								u_ModelViewProjectionMatrix;
+
+uniform vec4								u_Settings1; // IS_DEPTH_PASS, 0.0, 0.0, LEAF_ALPHA_MULTIPLIER
+
+#define IS_DEPTH_PASS						u_Settings1.r
 
 uniform vec4								u_Local1; // MAP_SIZE, sway, overlaySway, materialType
 uniform vec4								u_Local2; // hasSteepMap, hasWaterEdgeMap, haveNormalMap, SHADER_WATER_LEVEL
@@ -440,6 +445,8 @@ bool CheckGrassMapPosition(vec3 pos)
 
 void main()
 {
+	bool fakeLOD = false;
+
 	iGrassType = 0;
 
 	//
@@ -470,31 +477,47 @@ void main()
 
 	float VertDist2 = distance(u_ViewOrigin, vGrassFieldPos);
 
-	if (VertDist2 >= MAX_RANGE)
+	float CULL_RANGE = MAX_RANGE;
+
+	if (vGrassFieldPos.z < MAP_WATER_LEVEL)
+	{
+		CULL_RANGE = MAX_RANGE * 1.0/*2.0*/;
+	}
+
+
+	if (VertDist2 >= CULL_RANGE)
 	{// Too far from viewer... Cull...
+#ifdef FAKE_LOD
+		fakeLOD = true;
+#else //!FAKE_LOD
 		return;
+#endif //FAKE_LOD
 	}
 
 	float heightAboveWater = vGrassFieldPos.z - MAP_WATER_LEVEL;
 	float heightAboveWaterLength = length(heightAboveWater);
 
-	if (heightAboveWaterLength <= 128.0)
+	if (heightAboveWaterLength <= 256.0/*192.0*//*128.0*/)
 	{// Too close to water edge...
 		return;
 	}
 
 	float vertDistanceScale = 1.0;
-	float falloffStart = MAX_RANGE / 1.5;
+	float falloffStart = CULL_RANGE / 1.5;
 
 	if (VertDist2 >= falloffStart)
 	{
-		float falloffEnd = MAX_RANGE - falloffStart;
+		float falloffEnd = CULL_RANGE - falloffStart;
 		float pDist = clamp((VertDist2 - falloffStart) / falloffEnd, 0.0, 1.0);
 		vertDistanceScale = 1.0 - pDist; // Scale down to zero size by distance...
 
 		if (vertDistanceScale <= 0.05)
 		{
+#ifdef FAKE_LOD
+			fakeLOD = true;
+#else //!FAKE_LOD
 			return;
+#endif //FAKE_LOD
 		}
 	}
 
@@ -515,6 +538,52 @@ void main()
 			return;
 		}
 	}
+
+#ifdef FAKE_LOD
+	if (VertDist2 >= CULL_RANGE * 0.5)
+	{// Fake grasses in the distance... Flat...
+		if (fakeLOD && IS_DEPTH_PASS > 0.0)
+		{// Don't draw anything for these lods...
+			return;
+		}
+
+		if (heightAboveWater < 0.0)
+		{
+			// Final value set to 3 == an underwater grass lod...
+			iGrassType = 3;
+		}
+		else
+		{
+			// Final value set to 2 == an abovewater grass lod...
+			iGrassType = 2;
+		}
+
+		//vec3 baseNorm = normalize(cross(normalize(Vert2 - Vert1), normalize(Vert3 - Vert1)));
+		vVertNormal = vec2(0.0);//EncodeNormal(baseNorm);
+
+		vVertPosition = Vert1;
+		gl_Position = u_ModelViewProjectionMatrix * vec4(vVertPosition, 1.0);
+		vTexCoord = vec2(0.0);
+		EmitVertex();
+
+		vVertPosition = Vert2;
+		gl_Position = u_ModelViewProjectionMatrix * vec4(vVertPosition, 1.0);
+		vTexCoord = vec2(0.0);
+		EmitVertex();
+
+		vVertPosition = Vert3;
+		gl_Position = u_ModelViewProjectionMatrix * vec4(vVertPosition, 1.0);
+		vTexCoord = vec2(0.0);
+		EmitVertex();
+
+		EndPrimitive();
+
+		if (fakeLOD)
+		{
+			return;
+		}
+	}
+#endif //FAKE_LOD
 
 	int lodLevel = 0;
 
@@ -557,14 +626,14 @@ void main()
 		iGrassType = randomInt(0, 3);
 	}
 
-	if (heightAboveWaterLength <= 192.0)
+	/*if (heightAboveWaterLength <= 192.0)
 	{// When near water edge, reduce the size of the grass...
 		sizeMult *= clamp(heightAboveWaterLength / 192.0, 0.0, 1.0) * fSizeRandomness;
 	}
 	else
 	{// Deep underwater plants draw larger...
 		sizeMult *= clamp(1.0 + (heightAboveWaterLength / 192.0), 1.0, 16.0);
-	}
+	}*/
 
 	sizeMult *= GRASS_SIZE_MULTIPLIER_UNDERWATER;
 
@@ -584,14 +653,14 @@ void main()
 			iGrassType = randomInt(0, 3);
 		}
 
-		if (heightAboveWaterLength <= 192.0)
+		/*if (heightAboveWaterLength <= 192.0)
 		{// When near water edge, reduce the size of the grass...
 			sizeMult *= clamp(heightAboveWaterLength / 192.0, 0.0, 1.0) * fSizeRandomness;
 		}
 		else
 		{// Deep underwater plants draw larger...
 			sizeMult *= clamp(1.0 + (heightAboveWaterLength / 192.0), 1.0, 16.0);
-		}
+		}*/
 
 		sizeMult *= GRASS_SIZE_MULTIPLIER_UNDERWATER;
 

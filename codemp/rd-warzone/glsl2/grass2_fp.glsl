@@ -1,3 +1,5 @@
+//#define FAKE_LOD
+
 #if defined(USE_BINDLESS_TEXTURES)
 layout(std140) uniform u_bindlessTexturesBlock
 {
@@ -182,6 +184,46 @@ vec4 DecodeFloatRGBA( float v ) {
   return enc;
 }
 
+float hash( const in float n ) {
+	return fract(sin(n)*4378.5453);
+}
+
+float noise(in vec3 o) 
+{
+	vec3 p = floor(o);
+	vec3 fr = fract(o);
+		
+	float n = p.x + p.y*57.0 + p.z * 1009.0;
+
+	float a = hash(n+  0.0);
+	float b = hash(n+  1.0);
+	float c = hash(n+ 57.0);
+	float d = hash(n+ 58.0);
+	
+	float e = hash(n+  0.0 + 1009.0);
+	float f = hash(n+  1.0 + 1009.0);
+	float g = hash(n+ 57.0 + 1009.0);
+	float h = hash(n+ 58.0 + 1009.0);
+	
+	
+	vec3 fr2 = fr * fr;
+	vec3 fr3 = fr2 * fr;
+	
+	vec3 t = 3.0 * fr2 - 2.0 * fr3;
+	
+	float u = t.x;
+	float v = t.y;
+	float w = t.z;
+
+	// this last bit should be refactored to the same form as the rest :)
+	float res1 = a + (b-a)*u +(c-a)*v + (a-b+d-c)*u*v;
+	float res2 = e + (f-e)*u +(g-e)*v + (e-f+h-g)*u*v;
+	
+	float res = res1 * (1.0- w) + res2 * (w);
+	
+	return res;
+}
+
 bool isDithered(vec2 pos, float alpha)
 {
 	pos *= u_Dimensions.xy * 12.0;
@@ -221,7 +263,18 @@ void main()
 #else //!defined(__USE_UNDERWATER_ONLY__)
 	if (IS_DEPTH_PASS > 0.0)
 	{
-		if (iGrassType >= 1)
+#ifdef FAKE_LOD
+		if (iGrassType == 3)
+		{// Below water grass lod...
+			diffuse = vec4(0.0);
+		}
+		else if (iGrassType == 2)
+		{// Above water grass lod...
+			diffuse = vec4(0.0);
+		}
+		else 
+#endif //FAKE_LOD
+		if (iGrassType == 1)
 		{
 			diffuse = vec4(1.0, 1.0, 1.0, texture(u_WaterEdgeMap, tc).a);
 		}
@@ -230,13 +283,48 @@ void main()
 			diffuse = vec4(1.0, 1.0, 1.0, texture(u_DiffuseMap, tc).a);
 		}
 	}
-	else if (iGrassType >= 1)
-	{
-		diffuse = texture(u_WaterEdgeMap, tc);
-	}
 	else
 	{
-		diffuse = texture(u_DiffuseMap, tc);
+#ifdef FAKE_LOD
+	#define LOD_COORD_MULT_X u_Local9.r
+	#define LOD_COORD_MULT_Y u_Local9.g
+
+		if (iGrassType == 3)
+		{// Below water grass lod...
+			//tc.x = noise(vVertPosition.xyz*LOD_COORD_MULT) * 0.03 + 0.10;
+			//tc.y = noise(vVertPosition.yzx*LOD_COORD_MULT) * 0.03 + 0.10;
+			//vec2 p = vec2(vVertPosition.xy)*LOD_COORD_MULT;
+			vec3 dir = normalize(u_ViewOrigin - vVertPosition);
+			vec2 p = vec2(vVertPosition.x+vVertPosition.y*LOD_COORD_MULT_X, dir.z*LOD_COORD_MULT_Y);
+			vec2 paramU = vec2(0.05, 0.125);
+			vec2 paramV = vec2(0.05, 0.125);
+			tc.x = fract(p.x) * paramU.x + paramU.y;
+			tc.y = fract(p.y) * paramV.x + paramV.y;
+			diffuse = texture(u_WaterEdgeMap, tc);
+		}
+		else if (iGrassType == 2)
+		{// Above water grass lod...
+			//tc.x = noise(vVertPosition.xyz*LOD_COORD_MULT) * 0.03 + 0.10;
+			//tc.y = noise(vVertPosition.yzx*LOD_COORD_MULT) * 0.03 + 0.10;
+			//vec2 p = vec2(vVertPosition.xy)*LOD_COORD_MULT;
+			vec3 dir = normalize(u_ViewOrigin - vVertPosition);
+			vec2 p = vec2(vVertPosition.x+vVertPosition.y*LOD_COORD_MULT_X, dir.z*LOD_COORD_MULT_Y);
+			vec2 paramU = vec2(0.05, 0.125);
+			vec2 paramV = vec2(0.05, 0.125);
+			tc.x = fract(p.x) * paramU.x + paramU.y;
+			tc.y = fract(p.y) * paramV.x + paramV.y;
+			diffuse = texture(u_DiffuseMap, tc);
+		}
+		else 
+#endif //FAKE_LOD
+		if (iGrassType == 1)
+		{
+			diffuse = texture(u_WaterEdgeMap, tc);
+		}
+		else
+		{
+			diffuse = texture(u_DiffuseMap, tc);
+		}
 	}
 #endif //defined(__USE_UNDERWATER_ONLY__)
 
@@ -256,14 +344,27 @@ void main()
 	}
 
 	// Amp up alphas on tree leafs, etc, so they draw at range instead of being blurred out...
-	diffuse.a = clamp(diffuse.a * 1.15/*LEAF_ALPHA_MULTIPLIER*/, 0.0, 1.0);
+	diffuse.a = clamp(diffuse.a * 1.15, 0.0, 1.0);
 
+#ifdef FAKE_LOD
+	if (iGrassType >= 2 && diffuse.a > 0.5)
+	{// Lods...
+		diffuse.a = 1.0;
+	}
+	else 
+#endif //FAKE_LOD
 	if (diffuse.a > 0.5)
 	{
-#if 1
+		float CULL_RANGE = MAX_RANGE;
+
+		if (vVertPosition.z < SHADER_WATER_LEVEL)
+		{
+			CULL_RANGE = MAX_RANGE * 1.0/*2.0*/;
+		}
+
 		// Screen-door transparancy on distant and extremely close grasses...
 		float dist = distance(vVertPosition, u_ViewOrigin);
-		float alpha = 1.0 - (dist / MAX_RANGE);
+		float alpha = 1.0 - (dist / CULL_RANGE);
 		float afar = clamp(alpha * 2.0, 0.0, 1.0);
 		float anear = clamp(dist / 48.0, 0.0, 1.0);
 
@@ -279,20 +380,30 @@ void main()
 		{
 			diffuse.a = 1.0;
 		}
-#else
-		diffuse.a = 1.0;
-#endif
 	}
 	else
 	{
 		diffuse.a = 0.0;
 	}
 
-	if (diffuse.a > 0.05/*0.5*/)
-	{
-		gl_FragColor = vec4(diffuse.rgb, diffuse.a/*1.0*/);
+#ifdef FAKE_LOD
+	if (iGrassType >= 2 && diffuse.a > 0.05)
+	{// Lods...
+		gl_FragColor = diffuse;
 		out_Glow = vec4(0.0);
-		out_Normal = vec4(vVertNormal.xy/*EncodeNormal(DecodeNormal(vVertNormal.xy))*/, 0.0, 1.0);
+		out_Normal = vec4(0.0);
+#ifdef __USE_REAL_NORMALMAPS__
+		out_NormalDetail = vec4(0.0);
+#endif //__USE_REAL_NORMALMAPS__
+		out_Position = vec4(vVertPosition, MATERIAL_PROCEDURALFOLIAGE+1.0);
+	}
+	else 
+#endif //FAKE_LOD
+	if (diffuse.a > 0.05)
+	{
+		gl_FragColor = diffuse;
+		out_Glow = vec4(0.0);
+		out_Normal = vec4(vVertNormal.xy, 0.0, 1.0);
 #ifdef __USE_REAL_NORMALMAPS__
 		out_NormalDetail = vec4(0.0);
 #endif //__USE_REAL_NORMALMAPS__

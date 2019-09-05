@@ -4229,7 +4229,7 @@ int R_GetBakedTextureForOffset(vec2_t offset, int numTextures)
 	return 0;
 }
 
-image_t	*R_BakeTextures(char names[16][512], int numNames, const char *outputName, imgType_t type, int flags)
+image_t	*R_BakeTextures(char names[16][512], int numNames, const char *outputName, imgType_t type, int flags, qboolean isGrass)
 {
 	image_t		*image;
 	
@@ -4461,31 +4461,38 @@ image_t	*R_BakeTextures(char names[16][512], int numNames, const char *outputNam
 		}
 	}
 
-	for (int i = 0; i < numNames; i++)
-	{
-		// Add up the average colors, so we can get the final average...
-		finalAvgColor[0] += avgColors[i][0];
-		finalAvgColor[1] += avgColors[i][1];
-		finalAvgColor[2] += avgColors[i][2];
-
-		// Free memory from original images...
-#ifdef __TINY_IMAGE_LOADER__
-		if (isTilImage[i])
-		{
-			if (tImages[i])
-			{
-				til::TIL_Release(tImages[i]);
-				pics[i] = NULL;
-			}
-		}
-		else
-#endif
-			Z_Free(pics[i]);
+	if (isGrass)
+	{// We only want the average color of the main grass texture to use for fake distant grass...
+		VectorCopy(avgColors[0], finalAvgColor);
 	}
+	else
+	{
+		for (int i = 0; i < numNames; i++)
+		{
+			// Add up the average colors, so we can get the final average...
+			finalAvgColor[0] += avgColors[i][0];
+			finalAvgColor[1] += avgColors[i][1];
+			finalAvgColor[2] += avgColors[i][2];
 
-	finalAvgColor[0] /= numNames;
-	finalAvgColor[1] /= numNames;
-	finalAvgColor[2] /= numNames;
+			// Free memory from original images...
+#ifdef __TINY_IMAGE_LOADER__
+			if (isTilImage[i])
+			{
+				if (tImages[i])
+				{
+					til::TIL_Release(tImages[i]);
+					pics[i] = NULL;
+				}
+			}
+			else
+#endif
+				Z_Free(pics[i]);
+		}
+
+		finalAvgColor[0] /= numNames;
+		finalAvgColor[1] /= numNames;
+		finalAvgColor[2] /= numNames;
+	}
 
 	if (r_mipMapTextures->integer)
 		flags |= IMGFLAG_MIPMAP;

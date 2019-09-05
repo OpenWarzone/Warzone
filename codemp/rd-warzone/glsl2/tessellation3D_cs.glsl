@@ -22,6 +22,7 @@ in vec4 PrimaryLightDir_CS_in[];
 in vec2 TexCoord2_CS_in[];
 in vec3 Blending_CS_in[];
 in float Slope_CS_in[];
+in float GrassSlope_CS_in[];
 
 // tessellation levels
 out vec4 WorldPos_ES_in[MAX_PATCH_VERTICES];
@@ -32,6 +33,7 @@ out vec4 PrimaryLightDir_ES_in[MAX_PATCH_VERTICES];
 out vec2 TexCoord2_ES_in[MAX_PATCH_VERTICES];
 out vec3 Blending_ES_in[MAX_PATCH_VERTICES];
 out float Slope_ES_in[MAX_PATCH_VERTICES];
+out float GrassSlope_ES_in[MAX_PATCH_VERTICES];
 
 void main()
 {
@@ -44,6 +46,7 @@ void main()
 	TexCoord2_ES_in[gl_InvocationID] = TexCoord2_CS_in[gl_InvocationID];
 	Blending_ES_in[gl_InvocationID] = Blending_CS_in[gl_InvocationID];
 	Slope_ES_in[gl_InvocationID] = Slope_CS_in[gl_InvocationID];
+	GrassSlope_ES_in[gl_InvocationID] = GrassSlope_CS_in[gl_InvocationID];
 
 	float gTessellationLevelInner = u_TesselationInfo.g;
 	float gTessellationLevelOuter = u_TesselationInfo.b;

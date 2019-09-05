@@ -1833,6 +1833,13 @@ typedef enum
 	UNIFORM_LOCAL11,
 	UNIFORM_LOCAL12,
 	UNIFORM_LOCAL13,
+	UNIFORM_LOCAL14,
+	UNIFORM_LOCAL15,
+	UNIFORM_LOCAL16,
+	UNIFORM_LOCAL17,
+	UNIFORM_LOCAL18,
+	UNIFORM_LOCAL19,
+	UNIFORM_LOCAL20,
 
 	UNIFORM_MOON_COUNT,
 	UNIFORM_MOON_INFOS,
@@ -4509,7 +4516,7 @@ void RE_AddDecalToScene ( qhandle_t shader, const vec3_t origin, const vec3_t di
 void R_AddDecals( void );
 
 image_t	*R_FindImageFile( const char *name, imgType_t type, int flags );
-image_t	*R_BakeTextures(char names[16][512], int numNames, const char *outputName, imgType_t type, int flags);
+image_t	*R_BakeTextures(char names[16][512], int numNames, const char *outputName, imgType_t type, int flags, qboolean isGrass);
 void GL_SetupBindlessTexture(image_t *image);
 
 #ifdef __DEFERRED_IMAGE_LOADING__

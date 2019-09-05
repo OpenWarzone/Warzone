@@ -94,8 +94,8 @@ uniform vec4						u_Local3; // hasSplatMap1, hasSplatMap2, hasSplatMap3, hasSpla
 uniform vec4						u_Local4; // stageNum, glowStrength, r_showsplat, 0.0
 uniform vec4						u_Local5; // SHADER_HAS_OVERLAY, SHADER_ENVMAP_STRENGTH, 0.0, 0.0
 uniform vec4						u_Local9; // testvalue0, 1, 2, 3
-
 uniform vec4						u_Local12; // TERRAIN_TESS_OFFSET, GRASS_DISTANCE_FROM_ROADS, 0.0, 0.0
+uniform vec4						u_Local16; // GRASS_ENABLED, GRASS_DISTANCE, GRASS_MAX_SLOPE, 0.0
 
 #define SHADER_MAP_SIZE				u_Local1.r
 #define SHADER_SWAY					u_Local1.g
@@ -120,6 +120,10 @@ uniform vec4						u_Local12; // TERRAIN_TESS_OFFSET, GRASS_DISTANCE_FROM_ROADS, 
 
 #define TERRAIN_TESS_OFFSET			u_Local12.r
 #define GRASS_DISTANCE_FROM_ROADS	u_Local12.g
+
+#define GRASS_ENABLED				u_Local16.r
+#define GRASS_DISTANCE				u_Local16.g
+#define GRASS_MAX_SLOPE				u_Local16.b
 
 #ifdef __CHEAP_VERTS__
 uniform int							u_isWorld;
@@ -187,6 +191,7 @@ out vec4 PrimaryLightDir_CS_in;
 out vec2 TexCoord2_CS_in;
 out vec3 Blending_CS_in;
 out float Slope_CS_in;
+out float GrassSlope_CS_in;
 #endif
 
 varying vec2	var_TexCoords;
@@ -199,6 +204,7 @@ varying vec4	var_PrimaryLightDir;
 varying vec3	var_vertPos;
 varying vec3	var_Blending;
 varying float	var_Slope;
+varying float	var_GrassSlope;
 
 
 
@@ -501,6 +507,11 @@ float CalcFog(vec3 position)
 }
 #endif
 
+float normalToSlope(in vec3 normal) {
+	float pitch = 1.0 - (normal.z * 0.5 + 0.5);
+	return pitch * 180.0;
+}
+
 void main()
 {
 	vec3 position;
@@ -631,6 +642,18 @@ void main()
 	var_ViewDir = u_ViewOrigin - position;
 	var_Normal = normal.xyz;
 	var_Slope = 0.0;
+	var_GrassSlope = 0.0;
+
+	/*
+	float pitch = 0.0;
+
+	if (GRASS_ENABLED > 0.0 && (SHADER_MATERIAL_TYPE == MATERIAL_SHORTGRASS || SHADER_MATERIAL_TYPE == MATERIAL_LONGGRASS))
+	{
+		pitch = normalToSlope(normalize(normal.xyz));
+	}
+		
+	var_GrassSlope = length(pitch);
+	*/
 
 #if defined(USE_TESSELLATION)
 	WorldPos_CS_in = vec4(position.xyz, 1.0);
@@ -643,6 +666,7 @@ void main()
 	TexCoord2_CS_in = var_TexCoords2;
 	Blending_CS_in = var_Blending;
 	Slope_CS_in = var_Slope;
+	GrassSlope_CS_in = var_GrassSlope;
 	gl_Position = vec4(position.xyz, 1.0);
 #endif
 

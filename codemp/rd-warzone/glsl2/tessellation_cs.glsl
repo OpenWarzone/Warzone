@@ -21,6 +21,7 @@ in vec4 PrimaryLightDir_CS_in[];
 in vec2 TexCoord2_CS_in[];
 in vec3 Blending_CS_in[];
 in float Slope_CS_in[];
+in float GrassSlope_CS_in[];
 
 
 // PN patch data
@@ -52,6 +53,7 @@ out vec4 PrimaryLightDir_ES_in[MAX_PATCH_VERTICES];
 out vec2 TexCoord2_ES_in[MAX_PATCH_VERTICES];
 out vec3 Blending_ES_in[MAX_PATCH_VERTICES];
 out float Slope_ES_in[MAX_PATCH_VERTICES];
+out float GrassSlope_ES_in[MAX_PATCH_VERTICES];
 
 float GetTessLevel(float Distance0, float Distance1)
 {
@@ -96,6 +98,7 @@ void main()
 	TexCoord2_ES_in[gl_InvocationID] = TexCoord2_CS_in[gl_InvocationID];
 	Blending_ES_in[gl_InvocationID] = Blending_CS_in[gl_InvocationID];
 	Slope_ES_in[gl_InvocationID] = Slope_CS_in[gl_InvocationID];
+	GrassSlope_ES_in[gl_InvocationID] = GrassSlope_CS_in[gl_InvocationID];
 
 	// set base 
 	float P0 = gl_in[0].gl_Position[gl_InvocationID];

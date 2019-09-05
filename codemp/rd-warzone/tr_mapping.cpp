@@ -1404,6 +1404,8 @@ qboolean	ENABLE_CHRISTMAS_EFFECT = qfalse;
 float		SPLATMAP_CONTROL_SCALE = 1.0;
 float		STANDARD_SPLATMAP_SCALE = 0.0075;// 0.01;
 float		STANDARD_SPLATMAP_SCALE_STEEP = 0.0025;
+float		SPLATMAP_SCALE_WATEREDGE1 = 0.0075;
+float		SPLATMAP_SCALE_WATEREDGE2 = 0.0025;
 float		ROCK_SPLATMAP_SCALE = 0.0025;
 float		ROCK_SPLATMAP_SCALE_STEEP = 0.0025;
 
@@ -1601,6 +1603,13 @@ float		GRASS_SIZE_MULTIPLIER_RARE = 2.75;
 float		GRASS_SIZE_MULTIPLIER_UNDERWATER = 1.0;
 float		GRASS_LOD_START_RANGE = 8192.0;
 image_t		*GRASS_CONTROL_TEXTURE = NULL;
+qboolean	FAKE_GRASS_ENABLED = qfalse;
+float		FAKE_GRASS_SCALE = 0.075;
+float		FAKE_GRASS_SCALE_UNDERWATER = 0.075;
+float		FAKE_GRASS_MINALPHA = 0.35;
+float		FAKE_GRASS_MINALPHA_UNDERWATER = 0.15;
+float		FAKE_GRASS_COLORMULT = 0.3;
+float		FAKE_GRASS_COLORMULT_UNDERWATER = 0.3;
 
 qboolean	GRASS2_ENABLED = qtrue;
 qboolean	GRASS2_UNDERWATER_ONLY = qfalse;
@@ -2085,6 +2094,8 @@ void MAPPING_LoadMapInfo(void)
 	SPLATMAP_CONTROL_SCALE = atof(IniRead(mapname, "SPLATMAPS", "SPLATMAP_CONTROL_SCALE", "1.0"));
 	STANDARD_SPLATMAP_SCALE = atof(IniRead(mapname, "SPLATMAPS", "STANDARD_SPLATMAP_SCALE", "0.0075")); // 0.01
 	STANDARD_SPLATMAP_SCALE_STEEP = atof(IniRead(mapname, "SPLATMAPS", "STANDARD_SPLATMAP_SCALE_STEEP", "0.0025"));
+	SPLATMAP_SCALE_WATEREDGE1 = atof(IniRead(mapname, "SPLATMAPS", "SPLATMAP_SCALE_WATEREDGE1", "0.0075"));
+	SPLATMAP_SCALE_WATEREDGE2 = atof(IniRead(mapname, "SPLATMAPS", "SPLATMAP_SCALE_WATEREDGE2", "0.0025"));
 	ROCK_SPLATMAP_SCALE = atof(IniRead(mapname, "SPLATMAPS", "ROCK_SPLATMAP_SCALE", "0.0025"));
 	ROCK_SPLATMAP_SCALE_STEEP = atof(IniRead(mapname, "SPLATMAPS", "ROCK_SPLATMAP_SCALE_STEEP", "0.0025"));
 
@@ -2611,6 +2622,14 @@ void MAPPING_LoadMapInfo(void)
 		GRASS_SIZE_MULTIPLIER_COMMON = atof(IniRead(mapname, "GRASS", "GRASS_SIZE_MULTIPLIER_COMMON", "1.0"));
 		GRASS_SIZE_MULTIPLIER_RARE = atof(IniRead(mapname, "GRASS", "GRASS_SIZE_MULTIPLIER_RARE", "2.75"));
 		GRASS_SIZE_MULTIPLIER_UNDERWATER = atof(IniRead(mapname, "GRASS", "GRASS_SIZE_MULTIPLIER_UNDERWATER", "1.0"));
+
+		FAKE_GRASS_ENABLED = (atoi(IniRead(mapname, "GRASS", "FAKE_GRASS_ENABLED", "1")) > 0) ? qtrue : qfalse;
+		FAKE_GRASS_SCALE = atof(IniRead(mapname, "GRASS", "FAKE_GRASS_SCALE", "0.075"));
+		FAKE_GRASS_SCALE_UNDERWATER = atof(IniRead(mapname, "GRASS", "FAKE_GRASS_SCALE_UNDERWATER", "0.075"));
+		FAKE_GRASS_MINALPHA = atof(IniRead(mapname, "GRASS", "FAKE_GRASS_MINALPHA", "0.35"));
+		FAKE_GRASS_MINALPHA_UNDERWATER = atof(IniRead(mapname, "GRASS", "FAKE_GRASS_MINALPHA_UNDERWATER", "0.35"));
+		FAKE_GRASS_COLORMULT = atof(IniRead(mapname, "GRASS", "FAKE_GRASS_COLORMULT", "0.45"));
+		FAKE_GRASS_COLORMULT_UNDERWATER = atof(IniRead(mapname, "GRASS", "FAKE_GRASS_COLORMULT_UNDERWATER", "0.35"));
 		
 		GRASS_CONTROL_TEXTURE = R_FindImageFile(IniRead(mapname, "GRASS", "GRASS_CONTROL_TEXTURE", ""), IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE);
 	
@@ -3019,7 +3038,7 @@ void MAPPING_LoadMapInfo(void)
 			}
 		}
 
-		tr.grassPatchesAliasImage = R_BakeTextures(grassImages, 16, "grassPatches", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		tr.grassPatchesAliasImage = R_BakeTextures(grassImages, 16, "grassPatches", IMGTYPE_COLORALPHA, IMGFLAG_NONE, qtrue);
 	}
 
 	if ((GRASS_ENABLED && r_foliage->integer))
@@ -3038,7 +3057,7 @@ void MAPPING_LoadMapInfo(void)
 				}
 			}
 
-			tr.grassAliasImage[0] = R_BakeTextures(grassImages, 16, "grass0", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+			tr.grassAliasImage[0] = R_BakeTextures(grassImages, 16, "grass0", IMGTYPE_COLORALPHA, IMGFLAG_NONE, qtrue);
 		}
 
 		char seaGrassImages[16][512] = { 0 };
@@ -3053,7 +3072,7 @@ void MAPPING_LoadMapInfo(void)
 			}
 		}
 
-		tr.seaGrassAliasImage[0] = R_BakeTextures(seaGrassImages, 4, "seaGrass0", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		tr.seaGrassAliasImage[0] = R_BakeTextures(seaGrassImages, 4, "seaGrass0", IMGTYPE_COLORALPHA, IMGFLAG_NONE, qtrue);
 	}
 
 	if ((GRASS2_ENABLED && r_foliage->integer))
@@ -3072,7 +3091,7 @@ void MAPPING_LoadMapInfo(void)
 				}
 			}
 
-			tr.grassAliasImage[1] = R_BakeTextures(grassImages, 16, "grass1", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+			tr.grassAliasImage[1] = R_BakeTextures(grassImages, 16, "grass1", IMGTYPE_COLORALPHA, IMGFLAG_NONE, qtrue);
 		}
 
 		char seaGrassImages[16][512] = { 0 };
@@ -3087,7 +3106,7 @@ void MAPPING_LoadMapInfo(void)
 			}
 		}
 
-		tr.seaGrassAliasImage[1] = R_BakeTextures(seaGrassImages, 4, "seaGrass1", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		tr.seaGrassAliasImage[1] = R_BakeTextures(seaGrassImages, 4, "seaGrass1", IMGTYPE_COLORALPHA, IMGFLAG_NONE, qtrue);
 	}
 
 	if ((GRASS3_ENABLED && r_foliage->integer))
@@ -3106,7 +3125,7 @@ void MAPPING_LoadMapInfo(void)
 				}
 			}
 
-			tr.grassAliasImage[2] = R_BakeTextures(grassImages, 16, "grass2", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+			tr.grassAliasImage[2] = R_BakeTextures(grassImages, 16, "grass2", IMGTYPE_COLORALPHA, IMGFLAG_NONE, qtrue);
 		}
 
 		char seaGrassImages[16][512] = { 0 };
@@ -3121,7 +3140,7 @@ void MAPPING_LoadMapInfo(void)
 			}
 		}
 
-		tr.seaGrassAliasImage[2] = R_BakeTextures(seaGrassImages, 4, "seaGrass2", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		tr.seaGrassAliasImage[2] = R_BakeTextures(seaGrassImages, 4, "seaGrass2", IMGTYPE_COLORALPHA, IMGFLAG_NONE, qtrue);
 	}
 
 	if ((GRASS4_ENABLED && r_foliage->integer))
@@ -3140,7 +3159,7 @@ void MAPPING_LoadMapInfo(void)
 				}
 			}
 
-			tr.grassAliasImage[3] = R_BakeTextures(grassImages, 16, "grass3", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+			tr.grassAliasImage[3] = R_BakeTextures(grassImages, 16, "grass3", IMGTYPE_COLORALPHA, IMGFLAG_NONE, qtrue);
 		}
 
 		char seaGrassImages[16][512] = { 0 };
@@ -3155,7 +3174,7 @@ void MAPPING_LoadMapInfo(void)
 			}
 		}
 
-		tr.seaGrassAliasImage[3] = R_BakeTextures(seaGrassImages, 4, "seaGrass3", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		tr.seaGrassAliasImage[3] = R_BakeTextures(seaGrassImages, 4, "seaGrass3", IMGTYPE_COLORALPHA, IMGFLAG_NONE, qtrue);
 	}
 
 	if ((FOLIAGE_ENABLED && r_foliage->integer))
@@ -3172,7 +3191,7 @@ void MAPPING_LoadMapInfo(void)
 			}
 		}
 
-		tr.foliageAliasImage = R_BakeTextures(grassImages, 16, "foliage", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		tr.foliageAliasImage = R_BakeTextures(grassImages, 16, "foliage", IMGTYPE_COLORALPHA, IMGFLAG_NONE, qfalse);
 	}
 
 	if ((VINES_ENABLED && r_foliage->integer))
@@ -3189,7 +3208,7 @@ void MAPPING_LoadMapInfo(void)
 			}
 		}
 
-		tr.vinesAliasImage = R_BakeTextures(grassImages, 16, "vines", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		tr.vinesAliasImage = R_BakeTextures(grassImages, 16, "vines", IMGTYPE_COLORALPHA, IMGFLAG_NONE, qfalse);
 	}
 
 	if (WATER_ENABLED)

@@ -1813,7 +1813,7 @@ void RB_SetMaterialBasedProperties(shaderProgram_t *sp, shaderStage_t *pStage, i
 		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL1, local1);
 
 		vec4_t local2;
-		VectorSet4(local2, hasWaterEdgeMap, hasNormalMap, 0.0, MAP_WATER_LEVEL);
+		VectorSet4(local2, hasWaterEdgeMap, hasNormalMap, WATER_WAVE_HEIGHT, MAP_WATER_LEVEL);
 		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL2, local2);
 
 		vec4_t local3;
@@ -2135,6 +2135,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	int useTesselation = 0;
 	qboolean isWorld = qfalse;
 	qboolean isWater = qfalse;
+	qboolean isFakeGrass = qfalse;
 	qboolean isGrassPatches = qfalse;
 	qboolean isGrass = qfalse;
 	qboolean isGrass2 = qfalse;
@@ -2368,6 +2369,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			&& (tess.shader->isGrass || RB_ShouldUseGeometryGrass(tess.shader->materialType)))
 		{
 			isGrass = qtrue;
+			isFakeGrass = qtrue;
 			tess.shader->isGrass = qtrue; // Cache to speed up future checks...
 		}
 
@@ -3346,42 +3348,51 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS0, vec);
 
 				float blendMethod = 0.0;
+				float blendMethod2 = useSkeletalAnim;
 
+				if (sp == &tr.lightAllSplatShader[0] || sp == &tr.lightAllSplatShader[1] || sp == &tr.lightAllSplatShader[2] || sp == &tr.lightAllSplatShader[3])
+				{
+					blendMethod2 = SPLATMAP_SCALE_WATEREDGE1;
+					blendMethod = SPLATMAP_SCALE_WATEREDGE2;
+				}
+				else
+				{
 #if 1
-				/*if (stateBits & GLS_DSTBLEND_ONE_MINUS_SRC_COLOR)
-				{
-					blendMethod = 1.0;
+					/*if (stateBits & GLS_DSTBLEND_ONE_MINUS_SRC_COLOR)
+					{
+						blendMethod = 1.0;
 
-					stateBits &= ~GLS_SRCBLEND_BITS;
-					stateBits &= ~GLS_DSTBLEND_BITS;
-					stateBits |= GLS_SRCBLEND_ZERO | GLS_DSTBLEND_ONE;
+						stateBits &= ~GLS_SRCBLEND_BITS;
+						stateBits &= ~GLS_DSTBLEND_BITS;
+						stateBits |= GLS_SRCBLEND_ZERO | GLS_DSTBLEND_ONE;
 
-				}
-				else*/ if (stateBits & GLS_DSTBLEND_SRC_COLOR)
-				{
-					blendMethod = 2.0;
+					}
+					else*/ if (stateBits & GLS_DSTBLEND_SRC_COLOR)
+					{
+						blendMethod = 2.0;
 
-					stateBits &= ~GLS_SRCBLEND_BITS;
-					stateBits &= ~GLS_DSTBLEND_BITS;
-					stateBits |= GLS_SRCBLEND_ZERO | GLS_DSTBLEND_ONE;
-				}
-				/*else if (stateBits & GLS_DSTBLEND_ONE)
-				{
-					blendMethod = 3.0;
+						stateBits &= ~GLS_SRCBLEND_BITS;
+						stateBits &= ~GLS_DSTBLEND_BITS;
+						stateBits |= GLS_SRCBLEND_ZERO | GLS_DSTBLEND_ONE;
+					}
+					/*else if (stateBits & GLS_DSTBLEND_ONE)
+					{
+						blendMethod = 3.0;
 
-					stateBits &= ~GLS_SRCBLEND_BITS;
-					stateBits &= ~GLS_DSTBLEND_BITS;
-					stateBits |= GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE;
-				}*/
-				else if (/*(stateBits & GLS_SRCBLEND_ONE) &&*/ (stateBits & GLS_DSTBLEND_ONE))
-				{
-					blendMethod = 4.0;
-				}
+						stateBits &= ~GLS_SRCBLEND_BITS;
+						stateBits &= ~GLS_DSTBLEND_BITS;
+						stateBits |= GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE;
+					}*/
+					else if (/*(stateBits & GLS_SRCBLEND_ONE) &&*/ (stateBits & GLS_DSTBLEND_ONE))
+					{
+						blendMethod = 4.0;
+					}
 #endif
+				}
 
 				VectorSet4(vec,
 					useVertexAnim,
-					useSkeletalAnim,
+					blendMethod2 /*useSkeletalAnim*/,
 					blendMethod,
 					is2D ? 1.0 : 0.0);
 				GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS1, vec);
@@ -5842,6 +5853,56 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			vec4_t l8;
 			VectorSet4(l8, GRASS4_DISTANCE_FROM_ROADS, 0.0, 0.0, 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL8, l8);
+		}
+
+		if (isFakeGrass && backEnd.renderPass == RENDERPASS_NONE && !IS_DEPTH_PASS)
+		{// Send shader the avg grass color for above and below ground grasses, so we can draw fake distant grass...
+			vec4_t grassColor, seaGrassColor;
+			VectorClear4(grassColor);
+			VectorClear4(seaGrassColor);
+
+			if (isFakeGrass && tr.grassAliasImage[0])
+			{
+				VectorCopy4(tr.grassAliasImage[0]->averageColor, grassColor);
+				grassColor[3] = 1.0;
+			}
+
+			if (isFakeGrass && tr.seaGrassAliasImage[0])
+			{
+				VectorCopy4(tr.seaGrassAliasImage[0]->averageColor, seaGrassColor);
+				seaGrassColor[3] = 1.0;
+			}
+
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL14, grassColor);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL15, seaGrassColor);
+
+			vec4_t vec;
+			VectorSet4(vec, isFakeGrass ? 1.0f : 0.0f, GRASS_DISTANCE, GRASS_MAX_SLOPE, FAKE_GRASS_MINALPHA);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL16, vec);
+
+			VectorSet4(vec, FAKE_GRASS_SCALE, FAKE_GRASS_SCALE_UNDERWATER, FAKE_GRASS_COLORMULT, FAKE_GRASS_COLORMULT_UNDERWATER);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL17, vec);
+
+			VectorSet4(vec, FAKE_GRASS_MINALPHA_UNDERWATER, GRASS_HEIGHT*GRASS_SIZE_MULTIPLIER_UNDERWATER, 0.0, 0.0);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL18, vec);
+
+			/*if (isFakeGrass)
+			{
+				ri->Printf(PRINT_WARNING, "isFakeGrass: color %f %f %f %f. seaColor %f %f %f %f. dist: %f.\n"
+					, grassColor[0], grassColor[1], grassColor[2], grassColor[3]
+					, seaGrassColor[0], seaGrassColor[1], seaGrassColor[2], seaGrassColor[3]
+					, GRASS_DISTANCE);
+			}*/
+		}
+		else
+		{
+			vec4_t zero;
+			VectorClear(zero);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL14, zero);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL15, zero);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL16, zero);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL17, zero);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL18, zero);
 		}
 
 		/*if (tr.viewParms.flags & VPF_DEPTHSHADOW)
