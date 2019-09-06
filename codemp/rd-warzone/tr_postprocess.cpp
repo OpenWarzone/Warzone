@@ -3192,6 +3192,11 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 		GLSL_SetUniformVec4(shader, UNIFORM_LOCAL8, vector);
 	}
 
+
+	VectorSet4(vector, COLOR_GRADING_ENABLED, 0.0, 0.0, 0.0);
+	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL12, vector);
+
+
 #ifdef __PROCEDURALS_IN_DEFERRED_SHADER__
 	vec4_t local9;
 	VectorSet4(local9, MAP_INFO_PLAYABLE_MAXS[2], PROCEDURAL_MOSS_ENABLED ? 1.0 : 0.0, PROCEDURAL_SNOW_ENABLED ? 1.0 : 0.0, PROCEDURAL_SNOW_ROCK_ONLY ? 1.0 : 0.0);

@@ -1492,6 +1492,7 @@ float		MAP_EMISSIVE_RADIUS_SCALE = 1.0;
 float		MAP_EMISSIVE_RADIUS_SCALE_NIGHT = 1.0;
 float		MAP_HDR_MIN = 26.0;
 float		MAP_HDR_MAX = 209.0;
+qboolean	COLOR_GRADING_ENABLED = qfalse;
 
 qboolean	MAP_COLOR_CORRECTION_ENABLED = qfalse;
 int			MAP_COLOR_CORRECTION_METHOD = 0;
@@ -2345,6 +2346,8 @@ void MAPPING_LoadMapInfo(void)
 	MAP_COLOR_SWITCH_RG = (atoi(IniRead(mapname, "PALETTE", "MAP_COLOR_SWITCH_RG", "0")) > 0) ? qtrue : qfalse;
 	MAP_COLOR_SWITCH_RB = (atoi(IniRead(mapname, "PALETTE", "MAP_COLOR_SWITCH_RB", "0")) > 0) ? qtrue : qfalse;
 	MAP_COLOR_SWITCH_GB = (atoi(IniRead(mapname, "PALETTE", "MAP_COLOR_SWITCH_GB", "0")) > 0) ? qtrue : qfalse;
+
+	COLOR_GRADING_ENABLED = (atoi(IniRead(mapname, "PALETTE", "COLOR_GRADING_ENABLED", "0")) > 0) ? qtrue : qfalse;
 
 	//
 	// Color correction (skyrim style palette based)...

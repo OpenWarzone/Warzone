@@ -113,6 +113,7 @@ extern float			MAP_EMISSIVE_RADIUS_SCALE;
 extern float			MAP_EMISSIVE_RADIUS_SCALE_NIGHT;
 extern float			MAP_HDR_MIN;
 extern float			MAP_HDR_MAX;
+extern qboolean			COLOR_GRADING_ENABLED;
 
 extern qboolean			MAP_COLOR_CORRECTION_ENABLED;
 extern int				MAP_COLOR_CORRECTION_METHOD;

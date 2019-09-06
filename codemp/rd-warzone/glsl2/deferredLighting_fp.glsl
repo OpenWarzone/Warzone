@@ -108,6 +108,7 @@ uniform vec4								u_Local5;	// CONTRAST,				SATURATION,						BRIGHTNESS,						
 uniform vec4								u_Local6;	// AO_MINBRIGHT,			AO_MULTBRIGHT,					VIBRANCY,						TRUEHDR_ENABLED
 uniform vec4								u_Local7;	// cubemapEnabled,			r_cubemapCullRange,				PROCEDURAL_SKY_ENABLED,			r_skyLightContribution
 uniform vec4								u_Local8;	// NIGHT_SCALE,				PROCEDURAL_CLOUDS_CLOUDCOVER,	PROCEDURAL_CLOUDS_CLOUDSCALE,	CLOUDS_SHADOWS_ENABLED
+uniform vec4								u_Local12;	// COLOR_GRADING_ENABLED,	0.0,							0.0,							0.0
 
 #ifdef __PROCEDURALS_IN_DEFERRED_SHADER__
 uniform vec4								u_Local9;	// MAP_INFO_PLAYABLE_HEIGHT, PROCEDURAL_MOSS_ENABLED, PROCEDURAL_SNOW_ENABLED, PROCEDURAL_SNOW_ROCK_ONLY
@@ -182,6 +183,8 @@ varying float								var_CloudShadow;
 #define CLOUDS_CLOUDCOVER					u_Local8.g
 #define CLOUDS_CLOUDSCALE					u_Local8.b
 #define CLOUDS_SHADOWS_ENABLED				u_Local8.a
+
+#define COLOR_GRADING_ENABLED				u_Local12.r
 
 #ifdef __PROCEDURALS_IN_DEFERRED_SHADER__
 #define MAP_INFO_PLAYABLE_HEIGHT			u_Local9.r
@@ -1286,6 +1289,12 @@ void main(void)
 		}
 
 		outColor.rgb = clamp(outColor.rgb, 0.0, 1.0);
+		
+		if (COLOR_GRADING_ENABLED > 0.0)
+		{
+			outColor.rgb = ColorGrade( outColor.rgb );
+		}
+		
 		gl_FragColor = outColor;
 
 		gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 / GAMMA_CORRECTION));
@@ -1857,6 +1866,12 @@ void main(void)
 	}
 
 	outColor.rgb = clamp(outColor.rgb, 0.0, 1.0);
+
+	if (COLOR_GRADING_ENABLED > 0.0)
+	{
+		outColor.rgb = ColorGrade( outColor.rgb );
+	}
+
 	gl_FragColor = outColor;
 	
 	gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0 / GAMMA_CORRECTION));
