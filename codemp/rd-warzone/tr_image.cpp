@@ -4464,6 +4464,23 @@ image_t	*R_BakeTextures(char names[16][512], int numNames, const char *outputNam
 	if (isGrass)
 	{// We only want the average color of the main grass texture to use for fake distant grass...
 		VectorCopy(avgColors[0], finalAvgColor);
+
+		for (int i = 0; i < numNames; i++)
+		{
+			// Free memory from original images...
+#ifdef __TINY_IMAGE_LOADER__
+			if (isTilImage[i])
+			{
+				if (tImages[i])
+				{
+					til::TIL_Release(tImages[i]);
+					pics[i] = NULL;
+				}
+			}
+			else
+#endif
+				Z_Free(pics[i]);
+		}
 	}
 	else
 	{

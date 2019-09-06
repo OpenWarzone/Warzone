@@ -3813,7 +3813,7 @@ const void *RB_PostProcess(const void *data)
 			DEBUG_EndTimer(qtrue);
 		}
 
-		/*if (!SCREEN_BLUR && r_txaa->integer) // meh. disabled. too blurry
+		if (!SCREEN_BLUR && r_txaa->integer) // meh. disabled. too blurry
 		{
 			DEBUG_StartTimer("TXAA", qtrue);
 			//RB_TXAA(currentFbo, srcBox, currentOutFbo, dstBox);
@@ -3821,7 +3821,7 @@ const void *RB_PostProcess(const void *data)
 			RB_SwapFBOs(&currentFbo, &currentOutFbo);
 			DEBUG_EndTimer(qtrue);
 		}
-		else*/ if (!SCREEN_BLUR && (r_fxaa->integer || r_txaa->integer))
+		else if (!SCREEN_BLUR && (r_fxaa->integer /*|| r_txaa->integer*/))
 		{
 			DEBUG_StartTimer("FXAA", qtrue);
 			//RB_FXAA(currentFbo, srcBox, currentOutFbo, dstBox);

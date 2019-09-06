@@ -5886,6 +5886,16 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			VectorSet4(vec, FAKE_GRASS_MINALPHA_UNDERWATER, GRASS_HEIGHT*GRASS_SIZE_MULTIPLIER_UNDERWATER, 0.0, 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL18, vec);
 
+			if (sp->isBindless)
+			{
+				GLSL_SetBindlessTexture(sp, UNIFORM_TEXTUREMAP, &tr.random2KImage[0], 0);
+			}
+			else
+			{
+				GLSL_SetUniformInt(sp, UNIFORM_TEXTUREMAP, TB_SPECULARMAP);
+				GL_BindToTMU(tr.random2KImage[0], TB_SPECULARMAP);
+			}
+
 			/*if (isFakeGrass)
 			{
 				ri->Printf(PRINT_WARNING, "isFakeGrass: color %f %f %f %f. seaColor %f %f %f %f. dist: %f.\n"

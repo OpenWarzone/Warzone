@@ -65,6 +65,7 @@ uniform sampler2D					u_RoadsControlMap;
 uniform sampler2D					u_RoadMap;
 uniform sampler2D					u_LightMap;
 uniform sampler2D					u_NormalMap;
+uniform sampler2D					u_TextureMap; // 2k noise texture
 
 #ifdef USE_DETAIL_TEXTURES
 uniform sampler2D					u_DetailMap;
@@ -315,6 +316,20 @@ vec2 EncodeNormal(vec3 n)
 	return vec2(n.xy * 0.5 + 0.5);
 }
 #endif //__ENCODE_NORMALS_RECONSTRUCT_Z__
+
+vec3 vLocalSeed2;
+
+// This function returns random number from zero to one
+float randZeroOne2()
+{
+	uint n = floatBitsToUint(vLocalSeed2.y * 214013.0 + vLocalSeed2.x * 2531011.0 + vLocalSeed2.z * 141251.0);
+	n = n * (n * n * 15731u + 789221u);
+	n = (n >> 9u) | 0x3F800000u;
+
+	float fRes = 2.0 - uintBitsToFloat(n);
+	vLocalSeed2 = vec3(vLocalSeed2.x + 147158.0 * fRes, vLocalSeed2.y*fRes + 415161.0 * fRes, vLocalSeed2.z + 324154.0*fRes);
+	return fRes;
+}
 
 vec3 vLocalSeed;
 
@@ -1025,12 +1040,19 @@ vec4 GetDiffuse(vec2 texCoords, inout bool isFakeGrass)
 
 		if (GRASS_ENABLED > 0.0 && USE_TRIPLANAR > 0.0 && var_GrassSlope < GRASS_MAX_SLOPE)
 		{
+			float rpx = 1.0 / 2048.0;
+
 			float dist = distance(u_ViewOrigin.xyz, m_vertPos.xyz);
 			float gAlpha = clamp(dist / (GRASS_DISTANCE * 0.75), 0.0, 1.0);
 
 			if (u_Local14.a > 0.0 && m_vertPos.z >= waterBlendMaxZ && gAlpha > 0.0)
 			{// Fake above water distant grass...
-				float g = noise(m_vertPos * FAKE_GRASS_SCALE);
+				//float g = SmoothNoise(m_vertPos * FAKE_GRASS_SCALE);
+				//vLocalSeed2 = m_vertPos * FAKE_GRASS_SCALE;
+				//float g = randZeroOne2();
+				
+				//float g = noise(vec3(ivec3(vec3(m_vertPos.xy, 0.0) * FAKE_GRASS_SCALE)));
+				float g = texture(u_TextureMap, m_vertPos.xy * rpx * FAKE_GRASS_SCALE).r;
 				if (g > FAKE_GRASS_MINALPHA)
 				{
 					vec4 gColor = vec4(u_Local14.rgb * FAKE_GRASS_MULT, u_Local14.a);
@@ -1044,7 +1066,12 @@ vec4 GetDiffuse(vec2 texCoords, inout bool isFakeGrass)
 
 			if (u_Local15.a > 0.0 && m_vertPos.z <= UNDERWATER_GRASS_BLEND_START && gAlpha > 0.0)
 			{// Fake below water distant grass...
-				float g = noise(m_vertPos * FAKE_GRASS_SCALE_UNDERWATER);
+				//float g = SmoothNoise(m_vertPos * FAKE_GRASS_SCALE_UNDERWATER);
+				//vLocalSeed2 = m_vertPos * FAKE_GRASS_SCALE_UNDERWATER;
+				//float g = randZeroOne2();
+				
+				//float g = noise(vec3(ivec3(vec3(m_vertPos.xy, 0.0) * FAKE_GRASS_SCALE_UNDERWATER)));
+				float g = texture(u_TextureMap, m_vertPos.xy * rpx * FAKE_GRASS_SCALE_UNDERWATER).r;
 				if (g > FAKE_GRASS_MINALPHA_UW)
 				{
 					vec4 gColor = vec4(u_Local15.rgb * FAKE_GRASS_MULT_UNDERWATER, u_Local15.a);
@@ -1157,7 +1184,8 @@ void main()
 
 	if (isFakeGrass)
 	{// Fake vertical...
-		N = normalize(vec3(m_Normal.xy, 0.0));
+		//N = normalize(vec3(m_Normal.xy, 0.0));
+		N = normalize(normalize(u_ViewOrigin.xyz - m_vertPos.xyz) + normalize(m_Normal));
 	}
 
 #ifdef __USE_REAL_NORMALMAPS__

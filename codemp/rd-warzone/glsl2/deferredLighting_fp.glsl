@@ -1167,6 +1167,23 @@ vec3 ContrastSaturationBrightness(vec3 color, float con, float sat, float brt)
 	return conColor;
 }
 
+vec3 ColorGrade( vec3 vColor )
+{
+	vec3 vHue = vec3(1.0, .7, .2);
+	
+	vec3 vGamma = 1.0 + vHue * 0.6;
+	vec3 vGain = vec3(.9) + vHue * vHue * 8.0;
+	
+	vColor *= 1.5;
+	
+	float fMaxLum = 100.0;
+	vColor /= fMaxLum;
+	vColor = pow( vColor, vGamma );
+	vColor *= vGain;
+	vColor *= fMaxLum;  
+	return vColor;
+}
+
 vec3 GetScreenPixel(inout vec2 texCoords)
 {
 #ifndef __SSDM_IN_DEFERRED_SHADER__
