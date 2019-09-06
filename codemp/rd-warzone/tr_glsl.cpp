@@ -714,6 +714,10 @@ void GLSL_GetShaderHeader(GLenum shaderType, const GLcharARB *extra, std::string
 		dest.append("#extension GL_ARB_bindless_texture : require\n");
 	}
 
+#ifdef __LIGHTS_UBO__
+	dest.append("#define USE_LIGHTS_UBO\n\n");
+#endif //__LIGHTS_UBO__
+
 	if (shaderType == GL_VERTEX_SHADER)
 	{
 		dest.append("#define attribute in\n");
@@ -1903,7 +1907,7 @@ void GLSL_BindlessUpdate(shaderProgram_t *program)
 	qglBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 	// Update our previous copy buffer so we can skip updates...
-	memcpy(&program->bindlessBlock, &program->bindlessBlockPrevious, sizeof(program->bindlessBlock));
+	memcpy(&program->bindlessBlockPrevious, &program->bindlessBlock, sizeof(program->bindlessBlock));
 #else //!__BINDLESS_OFFSETS__
 	bindlessTexturesBlock_t *block = &program->bindlessBlock;
 	bindlessTexturesBlock_t *blockPrevious = &program->bindlessBlockPrevious;
@@ -2740,6 +2744,20 @@ void GLSL_DeleteGPUShader(shaderProgram_t *program)
 {
 	if (program->program)
 	{
+		if (program->bindlessBlockUBO)
+		{
+			qglDeleteBuffers(1, &program->bindlessBlockUBO);
+			program->bindlessBlockUBO = 0;
+		}
+
+#ifdef __LIGHTS_UBO__
+		if (program->LightsBlockUBO)
+		{
+			qglDeleteBuffers(1, &program->LightsBlockUBO);
+			program->LightsBlockUBO = 0;
+		}
+#endif //__LIGHTS_UBO__
+
 		qglDeleteProgram(program->program);
 
 		program->name.clear();

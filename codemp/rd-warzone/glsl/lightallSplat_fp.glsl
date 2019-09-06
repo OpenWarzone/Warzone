@@ -121,7 +121,7 @@ uniform vec4						u_Local14; // grassAliasImage
 uniform vec4						u_Local15; // seaGrassAliasImage
 uniform vec4						u_Local16; // GRASS_ENABLED, GRASS_DISTANCE, GRASS_MAX_SLOPE, FAKE_GRASS_MINALPHA
 uniform vec4						u_Local17; // FAKE_GRASS_SCALE, FAKE_GRASS_SCALE_UNDERWATER, FAKE_GRASS_COLORMULT, FAKE_GRASS_COLORMULT_UNDERWATER
-uniform vec4						u_Local18; // FAKE_GRASS_MINALPHA_UW, FAKE_GRASS_UW_SIZE, 0.0, 0.0
+uniform vec4						u_Local18; // FAKE_GRASS_MINALPHA_UW, FAKE_GRASS_UW_SIZE, FAKE_GRASS_ENABLED, 0.0
 
 uniform vec2						u_Dimensions;
 uniform vec2						u_textureScale;
@@ -176,6 +176,7 @@ uniform float						u_zFar;
 
 #define FAKE_GRASS_MINALPHA_UW		u_Local18.r
 #define FAKE_GRASS_UW_SIZE			u_Local18.g
+#define FAKE_GRASS_ENABLED			u_Local18.b
 
 #if defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
 
@@ -1038,7 +1039,7 @@ vec4 GetDiffuse(vec2 texCoords, inout bool isFakeGrass)
 #endif //__USE_FULL_SPLAT_BLENDFUNC__
 		}
 
-		if (GRASS_ENABLED > 0.0 && USE_TRIPLANAR > 0.0 && var_GrassSlope < GRASS_MAX_SLOPE)
+		if (GRASS_ENABLED > 0.0 && FAKE_GRASS_ENABLED > 0.0 && USE_TRIPLANAR > 0.0 && var_GrassSlope < GRASS_MAX_SLOPE)
 		{
 			float rpx = 1.0 / 2048.0;
 

@@ -2786,6 +2786,35 @@ void RB_FastLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBo
 	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, shader, colorWhite, 0);
 }
 
+#ifdef __LIGHTS_UBO__
+extern GLuint				CURRENT_BINDING_POINT; // Shared with bindless textures count...
+
+void GLSL_InitializeLights(shaderProgram_t *program)
+{
+	if (program->LightsBindingPoint <= 0)
+	{// Create a new buffer, if we have not yet...
+		GLuint index = qglGetUniformBlockIndex(program->program, "u_LightingBlock");
+
+		program->LightsBindingPoint = CURRENT_BINDING_POINT;
+		CURRENT_BINDING_POINT++;
+
+		qglUniformBlockBinding(program->program, index, program->LightsBindingPoint);
+
+		qglGenBuffers(1, &program->LightsBlockUBO);
+		qglBindBuffer(GL_UNIFORM_BUFFER, program->LightsBlockUBO);
+		qglBufferData(GL_UNIFORM_BUFFER, sizeof(program->LightsBlock), NULL, GL_DYNAMIC_DRAW/*GL_STREAM_DRAW*/);
+		qglBindBufferBase(GL_UNIFORM_BUFFER, program->LightsBindingPoint, program->LightsBlockUBO);
+		qglBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+		qglBindBuffer(GL_UNIFORM_BUFFER, program->LightsBlockUBO);
+		qglBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(program->LightsBlock), &program->LightsBlock);
+		qglBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+		qglBindBufferRange(GL_UNIFORM_BUFFER, index, program->LightsBlockUBO, 0, sizeof(program->LightsBlock));
+	}
+}
+#endif //__LIGHTS_UBO__
+
 void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
 	if (r_fastLighting->integer)
@@ -3081,6 +3110,40 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 				}
 			}*/
 
+#ifdef __LIGHTS_UBO__
+			// Make sure the UBO buffer is set up...
+			GLSL_InitializeLights(shader);
+
+			// Update our struct's data...
+			shader->LightsBlock.u_lightCount = NUM_CURRENT_EMISSIVE_LIGHTS;
+			shader->LightsBlock.u_lightMaxDistance = (NUM_CURRENT_EMISSIVE_LIGHTS >= r_maxDeferredLights->integer / 2) ? maxDist : 8192.0;
+			memcpy(&shader->LightsBlock.u_lightPositions2, &CLOSEST_LIGHTS_POSITIONS, sizeof(CLOSEST_LIGHTS_POSITIONS));
+			memcpy(&shader->LightsBlock.u_lightColors, &CLOSEST_LIGHTS_COLORS, sizeof(CLOSEST_LIGHTS_COLORS));
+			memcpy(&shader->LightsBlock.u_lightDistances, &CLOSEST_LIGHTS_DISTANCES, sizeof(CLOSEST_LIGHTS_DISTANCES));
+
+			// Send new data to shader, if it has changed...
+			if (memcmp(&shader->LightsBlock, &shader->LightsBlockPrevious, sizeof(shader->LightsBlock)))
+			{// Has changed...
+				/*ri->Printf(PRINT_WARNING, "lights ubo (%u) updated with %i lights.\n", shader->LightsBlockUBO, shader->LightsBlock.u_lightCount);
+				for (int z = 0; z < shader->LightsBlock.u_lightCount; z++)
+				{
+					ri->Printf(PRINT_WARNING, "light %i at %f %f %f.\n", z, shader->LightsBlock.u_lightPositions2[z][0], shader->LightsBlock.u_lightPositions2[z][1], shader->LightsBlock.u_lightPositions2[z][2]);
+				}*/
+
+				qglBindBuffer(GL_UNIFORM_BUFFER, shader->LightsBlockUBO);
+				qglBufferSubData(GL_UNIFORM_BUFFER, 0 /* TODO: offsets */, sizeof(shader->LightsBlock), &shader->LightsBlock);
+				qglBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+				// Update our previous copy buffer so we can skip updates...
+				memcpy(&shader->LightsBlockPrevious, &shader->LightsBlock, sizeof(shader->LightsBlock));
+			}
+
+			/*GLuint index = qglGetUniformBlockIndex(shader->program, "u_LightingBlock");
+			qglUniformBlockBinding(shader->program, index, shader->LightsBindingPoint);
+			qglBindBuffer(GL_UNIFORM_BUFFER, shader->LightsBlockUBO);
+			qglBindBufferRange(GL_UNIFORM_BUFFER, index, shader->LightsBlockUBO, 0, sizeof(shader->LightsBlock));*/
+			
+#else //!__LIGHTS_UBO__
 			GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, NUM_CURRENT_EMISSIVE_LIGHTS);
 			GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTPOSITIONS2, CLOSEST_LIGHTS_POSITIONS, NUM_CURRENT_EMISSIVE_LIGHTS);
 			GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTCOLORS, CLOSEST_LIGHTS_COLORS, NUM_CURRENT_EMISSIVE_LIGHTS);
@@ -3091,10 +3154,30 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 				GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHT_CONEDIRECTIONS, CLOSEST_LIGHTS_CONEDIRECTIONS, NUM_CURRENT_EMISSIVE_LIGHTS);
 			}*/
 			GLSL_SetUniformFloat(shader, UNIFORM_LIGHT_MAX_DISTANCE, (NUM_CURRENT_EMISSIVE_LIGHTS >= r_maxDeferredLights->integer / 2) ? maxDist : 8192.0);
+#endif //__LIGHTS_UBO__
 		}
 		else
 		{
+#ifdef __LIGHTS_UBO__
+			// Make sure the UBO buffer is set up...
+			GLSL_InitializeLights(shader);
+
+			// Update our struct's data...
+			shader->LightsBlock.u_lightCount = 0;
+
+			// Send new data to shader, if it has changed...
+			if (memcmp(&shader->LightsBlock, &shader->LightsBlockPrevious, sizeof(shader->LightsBlock)))
+			{// Has changed...
+				qglBindBuffer(GL_UNIFORM_BUFFER, shader->LightsBlockUBO);
+				qglBufferSubData(GL_UNIFORM_BUFFER, 0 /* TODO: offsets */, sizeof(shader->LightsBlock), &shader->LightsBlock);
+				qglBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+				// Update our previous copy buffer so we can skip updates...
+				memcpy(&shader->LightsBlockPrevious, &shader->LightsBlock, sizeof(shader->LightsBlock));
+			}
+#else //!__LIGHTS_UBO__
 			GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, 0);
+#endif //__LIGHTS_UBO__
 		}
 	}
 

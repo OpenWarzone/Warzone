@@ -96,6 +96,29 @@ uniform sampler2D							u_RoadMap;			// SSDM map.
 #endif //__SSDM_IN_DEFERRED_SHADER__
 #endif //defined(USE_BINDLESS_TEXTURES)
 
+
+#ifdef USE_LIGHTS_UBO
+layout(std140) uniform u_LightingBlock
+{
+	uniform int								u_lightCount;
+	uniform vec3							u_lightPositions2[MAX_DEFERRED_LIGHTS];
+	uniform float							u_lightDistances[MAX_DEFERRED_LIGHTS];
+	uniform vec3							u_lightColors[MAX_DEFERRED_LIGHTS];
+	//uniform float							u_lightConeAngles[MAX_DEFERRED_LIGHTS];
+	//uniform vec3							u_lightConeDirections[MAX_DEFERRED_LIGHTS];
+	uniform float							u_lightMaxDistance;
+};
+#else //!USE_LIGHTS_UBO
+uniform int									u_lightCount;
+uniform vec3								u_lightPositions2[MAX_DEFERRED_LIGHTS];
+uniform float								u_lightDistances[MAX_DEFERRED_LIGHTS];
+uniform vec3								u_lightColors[MAX_DEFERRED_LIGHTS];
+//uniform float								u_lightConeAngles[MAX_DEFERRED_LIGHTS];
+//uniform vec3								u_lightConeDirections[MAX_DEFERRED_LIGHTS];
+uniform float								u_lightMaxDistance;
+#endif //USE_LIGHTS_UBO
+
+
 uniform mat4								u_ModelViewProjectionMatrix;
 
 uniform vec2								u_Dimensions;
@@ -132,14 +155,6 @@ uniform float								u_CubeMapStrength;
 
 uniform float								u_MaterialSpeculars[MATERIAL_LAST];
 uniform float								u_MaterialReflectiveness[MATERIAL_LAST];
-
-uniform int									u_lightCount;
-uniform vec3								u_lightPositions2[MAX_DEFERRED_LIGHTS];
-uniform float								u_lightDistances[MAX_DEFERRED_LIGHTS];
-uniform vec3								u_lightColors[MAX_DEFERRED_LIGHTS];
-//uniform float								u_lightConeAngles[MAX_DEFERRED_LIGHTS];
-//uniform vec3								u_lightConeDirections[MAX_DEFERRED_LIGHTS];
-uniform float								u_lightMaxDistance;
 
 uniform vec4								u_Mins; // mins, mins, mins, WATER_ENABLED
 uniform vec4								u_Maxs;
