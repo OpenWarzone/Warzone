@@ -1892,7 +1892,7 @@ void RB_SSS(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 	GL_BindToTMU(tr.renderNormalImage, TB_NORMALMAP);
 
 	GLSL_SetUniformInt(&tr.sssShader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
-	GL_BindToTMU(tr.linearDepthImage4096/*tr.linearDepthImageZfar*/, TB_LIGHTMAP);
+	GL_BindToTMU(tr.linearDepthImage4096, TB_LIGHTMAP);
 
 	GLSL_SetUniformInt(&tr.sssShader, UNIFORM_DELUXEMAP, TB_DELUXEMAP);
 	GL_BindToTMU(tr.random2KImage[0], TB_DELUXEMAP);
@@ -3070,7 +3070,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 				}
 			}
 
-			DEFERRED_LIGHT_HAVE_CONEANGLES = qfalse;
+			/*DEFERRED_LIGHT_HAVE_CONEANGLES = qfalse;
 
 			for (int i = 0; i < NUM_CURRENT_EMISSIVE_LIGHTS; i++)
 			{
@@ -3079,17 +3079,17 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 					DEFERRED_LIGHT_HAVE_CONEANGLES = qtrue;
 					break;
 				}
-			}
+			}*/
 
 			GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, NUM_CURRENT_EMISSIVE_LIGHTS);
 			GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTPOSITIONS2, CLOSEST_LIGHTS_POSITIONS, NUM_CURRENT_EMISSIVE_LIGHTS);
 			GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTCOLORS, CLOSEST_LIGHTS_COLORS, NUM_CURRENT_EMISSIVE_LIGHTS);
 			GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHTDISTANCES, CLOSEST_LIGHTS_DISTANCES, NUM_CURRENT_EMISSIVE_LIGHTS);
-			if (DEFERRED_LIGHT_HAVE_CONEANGLES)
+			/*if (DEFERRED_LIGHT_HAVE_CONEANGLES)
 			{
 				GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHT_CONEANGLES, CLOSEST_LIGHTS_CONEANGLES, NUM_CURRENT_EMISSIVE_LIGHTS);
 				GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHT_CONEDIRECTIONS, CLOSEST_LIGHTS_CONEDIRECTIONS, NUM_CURRENT_EMISSIVE_LIGHTS);
-			}
+			}*/
 			GLSL_SetUniformFloat(shader, UNIFORM_LIGHT_MAX_DISTANCE, (NUM_CURRENT_EMISSIVE_LIGHTS >= r_maxDeferredLights->integer / 2) ? maxDist : 8192.0);
 		}
 		else
@@ -3153,7 +3153,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL3, local3);
 
 	vec4_t local4;
-	VectorSet4(local4, DEFERRED_LIGHT_HAVE_CONEANGLES ? 1.0 : 0.0, PROCEDURAL_SKY_ENABLED ? 1.0 : 0.0, MAP_HDR_MIN, MAP_HDR_MAX);
+	VectorSet4(local4, /*DEFERRED_LIGHT_HAVE_CONEANGLES ? 1.0 :*/ 0.0, PROCEDURAL_SKY_ENABLED ? 1.0 : 0.0, MAP_HDR_MIN, MAP_HDR_MAX);
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL4, local4);
 
 	vec4_t local5;
@@ -3221,7 +3221,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 		GL_BindToTMU(tr.ssdmImage, TB_ROADMAP);
 
 		GLSL_SetUniformInt(shader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
-		GL_BindToTMU(tr.linearDepthImage512/*tr.linearDepthImage4096*/, TB_LIGHTMAP);
+		GL_BindToTMU(tr.linearDepthImage512, TB_LIGHTMAP);
 	}
 
 	vec4_t local11;

@@ -5920,6 +5920,11 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GL_Cull(CT_TWO_SIDED);
 		}*/
 
+		if (!is2D && (pStage->glow || pStage->glowMapped))
+		{
+			backEnd.pc.c_glowDraws++;
+		}
+
 		UpdateTexCoords(pStage);
 
 		GL_State(stateBits);

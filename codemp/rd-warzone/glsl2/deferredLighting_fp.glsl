@@ -137,8 +137,8 @@ uniform int									u_lightCount;
 uniform vec3								u_lightPositions2[MAX_DEFERRED_LIGHTS];
 uniform float								u_lightDistances[MAX_DEFERRED_LIGHTS];
 uniform vec3								u_lightColors[MAX_DEFERRED_LIGHTS];
-uniform float								u_lightConeAngles[MAX_DEFERRED_LIGHTS];
-uniform vec3								u_lightConeDirections[MAX_DEFERRED_LIGHTS];
+//uniform float								u_lightConeAngles[MAX_DEFERRED_LIGHTS];
+//uniform vec3								u_lightConeDirections[MAX_DEFERRED_LIGHTS];
 uniform float								u_lightMaxDistance;
 
 uniform vec4								u_Mins; // mins, mins, mins, WATER_ENABLED
@@ -1715,12 +1715,25 @@ void main(void)
 				for (int li = 0; li < u_lightCount; li++)
 				{
 					vec3 lightPos = u_lightPositions2[li].xyz;
-					vec3 lightDir = normalize(lightPos - position.xyz);
 					float lightDist = distance(lightPos, position.xyz);
 					float coneModifier = 1.0;
 
-					if (HAVE_CONE_ANGLES > 0.0 && u_lightConeAngles[li] > 0.0)
+					//if ((lightDist * lightDist) > (u_lightDistances[li] * u_lightDistances[li]))
+					if (lightDist > u_lightDistances[li])
 					{
+						continue;
+					}
+
+					float lightPlayerDist = distance(lightPos.xyz, u_ViewOrigin.xyz);
+
+					if (lightPlayerDist > MAX_DEFERRED_LIGHT_RANGE)
+					{
+						continue;
+					}
+
+					/*if (HAVE_CONE_ANGLES > 0.0 && u_lightConeAngles[li] > 0.0)
+					{
+						vec3 lightDir = normalize(lightPos - position.xyz);
 						vec3 coneDir = normalize(u_lightConeDirections[li]);
 
 						float lightToSurfaceAngle = degrees(acos(dot(-lightDir, coneDir)));
@@ -1729,9 +1742,7 @@ void main(void)
 						{// Outside of this light's cone...
 							continue;
 						}
-					}
-
-					float lightPlayerDist = distance(lightPos.xyz, u_ViewOrigin.xyz);
+					}*/
 
 					float lightDistMult = 1.0 - clamp((lightPlayerDist / MAX_DEFERRED_LIGHT_RANGE), 0.0, 1.0);
 					lightDistMult = pow(lightDistMult, 2.0);
@@ -1750,6 +1761,7 @@ void main(void)
 
 							if (lightStrength > 0.0)
 							{
+								vec3 lightDir = normalize(lightPos - position.xyz);
 								vec3 lightColor = (u_lightColors[li].rgb / length(u_lightColors[li].rgb)) * MAP_EMISSIVE_COLOR_SCALE * maxLightsScale;
 								float selfShadow = clamp(pow(clamp(dot(-lightDir.rgb, bump.rgb), 0.0, 1.0), 8.0) * 0.6 + 0.6, 0.0, 1.0);
 				

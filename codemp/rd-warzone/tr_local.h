@@ -200,7 +200,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define DISTANCE_BETWEEN_CUBEMAPS	1024
 
-#define	MAX_DEFERRED_LIGHTS			128//64//128
+#define	MAX_DEFERRED_LIGHTS			64//128
 #define MAX_DEFERRED_LIGHT_RANGE	8192.0
 
 #define MAX_IMAGE_PATH				256
@@ -2849,6 +2849,7 @@ typedef struct {
 	int     c_lightMapsSkipped;
 	int     c_tinySkipped;
 	int     c_transparancyDraws;
+	int     c_glowDraws;
 
 	int		msec;			// total msec for backend run
 } backEndCounters_t;

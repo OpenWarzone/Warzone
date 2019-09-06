@@ -3330,7 +3330,8 @@ const void *RB_PostProcess(const void *data)
 		&& !(backEnd.viewParms.flags & VPF_SHADOWPASS)
 		&& !(backEnd.viewParms.flags & VPF_DEPTHSHADOW)
 		&& !backEnd.depthFill
-		&& (r_dynamicGlow->integer || r_anamorphic->integer || r_bloom->integer))
+		&& (r_dynamicGlow->integer || r_anamorphic->integer || r_bloom->integer)
+		&& backEnd.pc.c_glowDraws > 0)
 	{
 		RB_BloomDownscale(tr.glowImage, tr.glowFboScaled[0]);
 		int numPasses = Com_Clampi(1, ARRAY_LEN(tr.glowFboScaled), r_dynamicGlowPasses->integer);
@@ -3441,7 +3442,7 @@ const void *RB_PostProcess(const void *data)
 			}
 		}*/
 
-		if (!SCREEN_BLUR && r_anamorphic->integer)
+		if (!SCREEN_BLUR && r_anamorphic->integer && backEnd.pc.c_glowDraws > 0)
 		{
 			if (!r_lowVram->integer)
 			{
@@ -3707,7 +3708,7 @@ const void *RB_PostProcess(const void *data)
 		}
 		*/
 
-		if (!SCREEN_BLUR && r_dynamicGlow->integer)
+		if (!SCREEN_BLUR && r_dynamicGlow->integer && backEnd.pc.c_glowDraws > 0)
 		{
 			DEBUG_StartTimer("Dynamic Glow Draw", qtrue);
 
@@ -3736,7 +3737,7 @@ const void *RB_PostProcess(const void *data)
 			DEBUG_EndTimer(qtrue);
 		}
 
-		if (!SCREEN_BLUR && (r_bloom->integer == 1 && !r_lowVram->integer))
+		if (!SCREEN_BLUR && (r_bloom->integer == 1 && !r_lowVram->integer) && backEnd.pc.c_glowDraws > 0)
 		{
 			DEBUG_StartTimer("Bloom", qtrue);
 			RB_Bloom(currentFbo, srcBox, currentOutFbo, dstBox);
@@ -3744,7 +3745,7 @@ const void *RB_PostProcess(const void *data)
 			DEBUG_EndTimer(qtrue);
 		}
 
-		if (!SCREEN_BLUR && r_anamorphic->integer)
+		if (!SCREEN_BLUR && r_anamorphic->integer && backEnd.pc.c_glowDraws > 0)
 		{
 			if (!r_lowVram->integer)
 			{
@@ -3770,7 +3771,7 @@ const void *RB_PostProcess(const void *data)
 			}
 		}
 
-		if (!SCREEN_BLUR && r_bloom->integer >= 2)
+		if (!SCREEN_BLUR && r_bloom->integer >= 2 && backEnd.pc.c_glowDraws > 0)
 		{
 			if (!r_lowVram->integer)
 			{
