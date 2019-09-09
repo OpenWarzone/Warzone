@@ -1131,6 +1131,7 @@ typedef enum {
 	FACTION_REBEL, // blue
 	FACTION_MANDALORIAN, // orange
 	FACTION_MERC, // green
+	FACTION_PIRATES, // grey?
 	FACTION_WILDLIFE, // yellow
 	FACTION_SPECTATOR,
 

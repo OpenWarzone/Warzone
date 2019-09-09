@@ -11822,6 +11822,11 @@ stillDoSaber:
 				legs.shaderRGBA[1] = 255;
 				legs.shaderRGBA[2] = 50;
 				break;
+			case FACTION_PIRATES:
+				legs.shaderRGBA[0] = 128;
+				legs.shaderRGBA[1] = 128;
+				legs.shaderRGBA[2] = 128;
+				break;
 			case FACTION_WILDLIFE:
 				legs.shaderRGBA[0] = 210;
 				legs.shaderRGBA[1] = 210;

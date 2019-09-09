@@ -55,33 +55,57 @@ void G_CreateSpawnVesselForEventArea(int area)
 		break;
 	case FACTION_EMPIRE:
 		{
-			int choice = irand(0, 1);
+			int choice = irand(0, 4);
 
 			if (choice == 0)
 			{
 				sprintf(modelName, "models/warzone/ships/isd/isd.3ds");
-				modelScale = 56;// 48;// 32;
-				zOffset = 32768.0;// 24576.0;// 16384.0;// 12288.0;
+				modelScale = 56;
+				zOffset = 32768.0;
+			}
+			else if (choice == 1)
+			{
+				sprintf(modelName, "models/warzone/ships/isd2/isd2.3ds");
+				modelScale = 56;
+				zOffset = 32768.0;
+			}
+			else if (choice == 2)
+			{
+				sprintf(modelName, "models/warzone/ships/dominator/dominator.3ds");
+				modelScale = 64;
+				zOffset = 49152.0;
+			}
+			else if (choice == 3)
+			{
+				sprintf(modelName, "models/warzone/ships/knight/knight.3ds");
+				modelScale = 112;
+				zOffset = 65536.0;
 			}
 			else
 			{
 				sprintf(modelName, "models/warzone/ships/victory/victory.3ds");
-				modelScale = 56;// 48;// 32;
-				zOffset = 32768.0;// 24576.0;// 16384.0;// 12288.0;
+				modelScale = 56;
+				zOffset = 32768.0;
 			}
 		}
 		break;
 	case FACTION_REBEL:
 		{
-			int choice = irand(0, 2);
+			int choice = irand(0, 3);
 			if (choice == 0)
+			{
+				sprintf(modelName, "models/warzone/ships/calamari/calamari.3ds");
+				modelScale = 56;
+				zOffset = 32768.0;
+			}
+			else if (choice == 1)
 			{
 				sprintf(modelName, "models/warzone/ships/medfrig/medfrig.md3");
 				modelFrame = 0;
 				modelScale = 12;
 				zOffset = 6144.0;
 			}
-			else if (choice == 1)
+			else if (choice == 2)
 			{
 				sprintf(modelName, "models/warzone/ships/corvette/corvette.3ds");
 				modelFrame = 0;
@@ -97,20 +121,25 @@ void G_CreateSpawnVesselForEventArea(int area)
 			}
 		}
 		break;
-	case FACTION_MERC:
-		{
-			sprintf(modelName, "models/map_objects/imp_detention/transport.md3");
-			modelFrame = 0;
-			modelScale = 3;
-			zOffset = 2048.0;
-		}
-		break;
 	case FACTION_MANDALORIAN:
 		{
-			sprintf(modelName, "models/map_objects/imp_detention/transport.md3");
-			modelFrame = 0;
-			modelScale = 3;
-			zOffset = 2048.0;
+			sprintf(modelName, "models/warzone/ships/bothan/bothan.3ds");
+			modelScale = 42;
+			zOffset = 24576.0;
+		}
+		break;
+	case FACTION_MERC:
+		{
+			sprintf(modelName, "models/warzone/ships/maleo1/maleo1.3ds");
+			modelScale = 56;
+			zOffset = 32768.0;
+		}
+		break;
+	case FACTION_PIRATES:
+		{
+			sprintf(modelName, "models/warzone/ships/maleo1/maleo1.3ds");
+			modelScale = 56;
+			zOffset = 32768.0;
 		}
 		break;
 	default:
@@ -229,7 +258,7 @@ qboolean G_LoadEventAreas(void)
 		event_areas_current_team[i] = CURRENT_FACTION;
 		CURRENT_FACTION = (team_t)((int)CURRENT_FACTION + 1);
 
-		if (CURRENT_FACTION > FACTION_MERC)
+		if (CURRENT_FACTION > FACTION_PIRATES)
 		{// Back to the start...
 			CURRENT_FACTION = FACTION_EMPIRE;
 		}
@@ -238,6 +267,23 @@ qboolean G_LoadEventAreas(void)
 	trap->FS_Read(&num_event_areas, sizeof(int), f);
 	trap->FS_Read(&event_areas, sizeof(vec3_t) * num_event_areas, f);
 	trap->FS_Close(f);
+
+
+	//
+	// Refresh the event area owners per load, in case I add new factions...
+	//
+	CURRENT_FACTION = FACTION_EMPIRE;
+
+	for (int i = 0; i < num_event_areas; i++)
+	{
+		event_areas_current_team[i] = CURRENT_FACTION;
+		CURRENT_FACTION = (team_t)((int)CURRENT_FACTION + 1);
+
+		if (CURRENT_FACTION > FACTION_PIRATES)
+		{// Back to the start...
+			CURRENT_FACTION = FACTION_EMPIRE;
+		}
+	}
 
 	return qtrue;
 }
@@ -316,7 +362,7 @@ void G_SetupEventAreas(void)
 				event_areas_current_team[i] = CURRENT_FACTION;
 				CURRENT_FACTION = (team_t)((int)CURRENT_FACTION + 1);
 
-				if (CURRENT_FACTION > FACTION_MERC)
+				if (CURRENT_FACTION > FACTION_PIRATES)
 				{// Back to the start...
 					CURRENT_FACTION = FACTION_EMPIRE;
 				}

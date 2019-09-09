@@ -770,6 +770,7 @@ vmCvar_t npc_imperials;
 vmCvar_t npc_rebels;
 vmCvar_t npc_mandalorians;
 vmCvar_t npc_mercs;
+vmCvar_t npc_pirates;
 vmCvar_t npc_wildlife;
 vmCvar_t npc_civilians;
 vmCvar_t npc_vendors;
@@ -1205,6 +1206,7 @@ extern void NPC_Patrol_MakeBadList(void);
 qboolean	SPAWN_FACTIONS_CHECKED = qfalse;
 qboolean	HAVE_MANDALORIANS = qfalse;
 qboolean	HAVE_MERCS = qfalse;
+qboolean	HAVE_PIRATES = qfalse;
 qboolean	HAVE_WILDLIFE = qfalse;
 
 int next_npc_max_warning_time = 0;
@@ -1213,8 +1215,8 @@ int next_npc_stats_time = 0;
 void G_CheckMinimumNpcs(void) 
 {
 	vmCvar_t	mapname;
-	int			min_imperials, min_rebels, min_mandalorians, min_mercs, min_wildlife;
-	int			num_imperial_npcs = 0, num_rebel_npcs = 0, num_mandalorian_npcs = 0, num_merc_npcs = 0, num_wildlife_npcs = 0, i;
+	int			min_imperials, min_rebels, min_mandalorians, min_mercs, min_pirates, min_wildlife;
+	int			num_imperial_npcs = 0, num_rebel_npcs = 0, num_mandalorian_npcs = 0, num_merc_npcs = 0, num_pirate_npcs = 0, num_wildlife_npcs = 0, i;
 	static int	checkminimumplayers_time;
 	spawnGroup_t group;
 
@@ -1266,12 +1268,14 @@ void G_CheckMinimumNpcs(void)
 	trap->Cvar_Update(&npc_rebels);
 	trap->Cvar_Update(&npc_mandalorians);
 	trap->Cvar_Update(&npc_mercs);
+	trap->Cvar_Update(&npc_pirates);
 	trap->Cvar_Update(&npc_wildlife);
 	trap->Cvar_Update(&npc_pathing);
 	min_imperials = npc_imperials.integer;
 	min_rebels = npc_rebels.integer;
 	min_mandalorians = npc_mandalorians.integer;
 	min_mercs = npc_mercs.integer;
+	min_pirates = npc_pirates.integer;
 	min_wildlife = npc_wildlife.integer;
 
 	// Add vendors...
@@ -1280,19 +1284,20 @@ void G_CheckMinimumNpcs(void)
 	// Add civilians...
 	G_CheckCivilianNPCs();
 
-	if (min_imperials <= 0 && min_rebels <= 0 && min_mandalorians <= 0 && min_mercs <= 0 && min_wildlife <= 0) return;
+	if (min_imperials <= 0 && min_rebels <= 0 && min_mandalorians <= 0 && min_mercs <= 0 && min_pirates <= 0 && min_wildlife <= 0) return;
 
-	if (min_imperials + min_rebels + min_mandalorians + min_mercs + min_wildlife > ENTITYNUM_MAX_NORMAL - (MAX_CLIENTS * 4))
+	if (min_imperials + min_rebels + min_mandalorians + min_mercs + min_pirates + min_wildlife > ENTITYNUM_MAX_NORMAL - (MAX_CLIENTS * 4))
 	{
 		min_imperials = 0;
 		min_rebels = 0;
 		min_mandalorians = 0;
 		min_mercs = 0;
+		min_pirates = 0;
 		min_wildlife = 0;
 
 		if (next_npc_max_warning_time <= level.time)
 		{
-			trap->Print("Too many NPCs to spawn! Check the value of cvars - min_imperials, min_rebels, min_mandalorians, min_mercs, min_wildlife!\n");
+			trap->Print("Too many NPCs to spawn! Check the value of cvars - min_imperials, min_rebels, min_mandalorians, min_mercs, min_pirates, min_wildlife!\n");
 			next_npc_max_warning_time = level.time + 10000;
 		}
 		return;
@@ -1308,20 +1313,22 @@ void G_CheckMinimumNpcs(void)
 		//if (!NPC_IsAlive(npc, npc)) continue;
 		if (npc->client->sess.sessionTeam == FACTION_EMPIRE)
 			num_imperial_npcs++;
-		if (npc->client->sess.sessionTeam == FACTION_REBEL)
+		else if (npc->client->sess.sessionTeam == FACTION_REBEL)
 			num_rebel_npcs++;
-		if (npc->client->sess.sessionTeam == FACTION_MANDALORIAN)
+		else if (npc->client->sess.sessionTeam == FACTION_MANDALORIAN)
 			num_mandalorian_npcs++;
-		if (npc->client->sess.sessionTeam == FACTION_MERC)
+		else if (npc->client->sess.sessionTeam == FACTION_MERC)
 			num_merc_npcs++;
-		if (npc->client->sess.sessionTeam == FACTION_WILDLIFE)
+		else if (npc->client->sess.sessionTeam == FACTION_PIRATES)
+			num_pirate_npcs++;
+		else if (npc->client->sess.sessionTeam == FACTION_WILDLIFE)
 			num_wildlife_npcs++;
 	}
 
 	if (dedicated.integer && next_npc_stats_time <= level.time)
 	{
-		trap->Print("^5Cvars are ^7%i^5 imperials, ^7%i^5 rebels, ^7%i^5 mandalorians, ^7%i^5 mercs, and ^7%i^5 wildlife NPCs spawned.\n", min_imperials, min_rebels, min_mandalorians, min_mercs, min_wildlife);
-		trap->Print("^5There are ^7%i^5 imperials, ^7%i^5 rebels, ^7%i^5 mandalorians, ^7%i^5 mercs, and ^7%i^5 wildlife NPCs spawned.\n", num_imperial_npcs, num_rebel_npcs, num_mandalorian_npcs, num_merc_npcs, num_wildlife_npcs);
+		trap->Print("^5Cvars are ^7%i^5 imperials, ^7%i^5 rebels, ^7%i^5 mandalorians, ^7%i^5 mercs, ^7%i^5 pirates, and ^7%i^5 wildlife NPCs to spawn.\n", min_imperials, min_rebels, min_mandalorians, min_mercs, min_pirates, min_wildlife);
+		trap->Print("^5There are ^7%i^5 imperials, ^7%i^5 rebels, ^7%i^5 mandalorians, ^7%i^5 mercs, ^7%i^5 pirates, and ^7%i^5 wildlife NPCs spawned.\n", num_imperial_npcs, num_rebel_npcs, num_mandalorian_npcs, num_merc_npcs, num_pirate_npcs, num_wildlife_npcs);
 		next_npc_stats_time = level.time + 10000;
 	}
 
@@ -1330,8 +1337,11 @@ void G_CheckMinimumNpcs(void)
 		group = GetSpawnGroup(va("%s_mandalorians", mapname.string), RARITY_SPAM);
 		if (group.npcCount) HAVE_MANDALORIANS = qtrue;
 
-		group = GetSpawnGroup(va("%s_mercs", mapname.string), RARITY_SPAM);
+		group = GetSpawnGroup(va("%s_mercenaries", mapname.string), RARITY_SPAM);
 		if (group.npcCount) HAVE_MERCS = qtrue;
+
+		group = GetSpawnGroup(va("%s_pirates", mapname.string), RARITY_SPAM);
+		if (group.npcCount) HAVE_PIRATES = qtrue;
 
 		group = GetSpawnGroup(va("%s_wildlife", mapname.string), RARITY_SPAM);
 		if (group.npcCount) HAVE_WILDLIFE = qtrue;
@@ -1602,6 +1612,84 @@ void G_CheckMinimumNpcs(void)
 			int			tries = 0;
 			vec3_t		position;
 			int			SPAWN_TEAM = FACTION_MERC;
+
+#ifdef __ALL_JEDI_NPCS__
+			group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_BOSS);
+			if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_BOSS);
+#else //!__ALL_JEDI_NPCS__
+			if (random >= 16)
+			{
+				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_SPAM);
+				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_SPAM);
+			}
+			else if (random >= 11)
+			{
+				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_COMMON);
+				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_COMMON);
+			}
+			else if (random >= 7)
+			{
+				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_OFFICER);
+				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_OFFICER);
+			}
+			else if (random >= 4)
+			{// Officers/Specials...
+				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_ELITE);
+				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_ELITE);
+			}
+			else if (random >= 1)
+			{// Jedi...
+				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_BOSS);
+				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_BOSS);
+			}
+			else
+			{
+				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_SPAM);
+				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_SPAM);
+			}
+#endif //__ALL_JEDI_NPCS__
+
+			// Mercs always spawn at random waypoints (for now)...
+#ifdef __USE_NAVLIB_SPAWNPOINTS__
+			// With navlib they get their own areas...
+			FindRandomEventSpawnpoint((team_t)SPAWN_TEAM, position);
+#else //!__USE_NAVLIB_SPAWNPOINTS__
+			while (gWPArray[waypoint]->inuse == false || gWPArray[waypoint]->wpIsBad == true || WAYPOINT_PARTOL_BAD_LIST[waypoint])
+			{
+				gWPArray[waypoint]->inuse = false; // set it bad!
+
+				if (tries > 10)
+				{
+					return; // Try again on next check...
+				}
+
+				// Find a new one... This is probably a bad waypoint...
+				waypoint = G_SelectWildernessSpawnpoint();
+				tries++;
+			}
+
+			VectorCopy(gWPArray[waypoint]->origin, position);
+#endif //__USE_NAVLIB_SPAWNPOINTS__
+			position[2] += 32; // Drop down...
+
+			SP_NPC_Spawner_Group(group, position, SPAWN_TEAM);
+		}
+	}
+
+	//
+	// Spawn the PIRATES team...
+	//
+	if (HAVE_PIRATES)
+	{
+		if (num_pirate_npcs < min_pirates)
+		{
+#ifndef __USE_NAVLIB_SPAWNPOINTS__
+			int			waypoint = G_SelectWildernessSpawnpoint();
+#endif //__USE_NAVLIB_SPAWNPOINTS__
+			int			random = irand(0, 22);
+			int			tries = 0;
+			vec3_t		position;
+			int			SPAWN_TEAM = FACTION_PIRATES;
 
 #ifdef __ALL_JEDI_NPCS__
 			group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_BOSS);
@@ -2330,6 +2418,7 @@ void G_InitBots( void ) {
 	trap->Cvar_Register(&npc_rebels, "npc_rebels", "0", CVAR_ARCHIVE);
 	trap->Cvar_Register(&npc_mandalorians, "npc_mandalorians", "0", CVAR_ARCHIVE);
 	trap->Cvar_Register(&npc_mercs, "npc_mercs", "0", CVAR_ARCHIVE);
+	trap->Cvar_Register(&npc_pirates, "npc_pirates", "0", CVAR_ARCHIVE);
 	trap->Cvar_Register(&npc_wildlife, "npc_wildlife", "0", CVAR_ARCHIVE);
 	trap->Cvar_Register(&npc_civilians, "npc_civilians", "0", CVAR_ARCHIVE);
 	trap->Cvar_Register(&npc_vendors, "npc_vendors", "0", CVAR_ARCHIVE);

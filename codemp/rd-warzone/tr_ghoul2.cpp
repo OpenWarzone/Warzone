@@ -4338,9 +4338,8 @@ Bone  52:   "face_always_":
 
 */
 
-//#define __NIF_IMPORT_TEST__
 
-#ifdef __NIF_IMPORT_TEST__
+#ifdef __NIF_GLM_IMPORT_TEST__
 #include "nif_include/niflib.h"
 #include "nif_include/obj/NiGeometry.h"
 #include "nif_include/obj/NiGeometryData.h"
@@ -4388,7 +4387,7 @@ qboolean R_LoadNIF( model_t *mod, void *buffer, const char *mod_name, qboolean &
 
 	return qtrue;
 }
-#endif //__NIF_IMPORT_TEST__
+#endif //__NIF_GLM_IMPORT_TEST__
 
 qboolean model_upload_mdxm_to_gpu(model_t *mod, qboolean isKyle);
 
@@ -4612,12 +4611,12 @@ qboolean R_LoadMDXM( model_t *mod, void *buffer, const char *mod_name, qboolean 
 		//kyleQhandle = G2API_InitGhoul2Model(&precachedKyle, "models/players/kyle/model.glm", 0, 0, -20, 0, 0);
 	}*/
 	
-#ifdef __NIF_IMPORT_TEST__
+#ifdef __NIF_GLM_IMPORT_TEST__
 	if (StringContainsWord(mod_name, ".nif"))
 	{
 		return R_LoadNIF( mod, buffer, mod_name, bAlreadyCached );
 	}
-#endif //__NIF_IMPORT_TEST__
+#endif //__NIF_GLM_IMPORT_TEST__
     
 	pinmodel= (mdxmHeader_t *)buffer;
 	//

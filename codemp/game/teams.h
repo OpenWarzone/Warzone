@@ -7,6 +7,7 @@ typedef enum //# team_e
 	NPCTEAM_PLAYER,			// also FACTION_REBEL
 	NPCTEAM_MANDALORIANS,
 	NPCTEAM_MERCS,
+	NPCTEAM_PIRATES,
 	NPCTEAM_WILDLIFE,
 	NPCTEAM_NEUTRAL,		// also FACTION_SPECTATOR - most droids are team_neutral, there are some exceptions like Probe,Seeker,Interrogator
 

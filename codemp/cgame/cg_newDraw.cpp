@@ -891,6 +891,11 @@ void CG_GetTeamColor(vec4_t *color) {
 		(*color)[1] = 1.0f;
 		(*color)[2] = 0.25f;
 		(*color)[3] = 0.25f;
+	} else if (cg.snap->ps.persistant[PERS_TEAM] == FACTION_PIRATES) {
+		(*color)[0] = 0.5f;
+		(*color)[1] = 0.5f;
+		(*color)[2] = 0.5f;
+		(*color)[3] = 0.5f;
 	} else if (cg.snap->ps.persistant[PERS_TEAM] == FACTION_WILDLIFE) {
 		(*color)[0] = 0.9f;
 		(*color)[1] = 0.9f;

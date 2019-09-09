@@ -49,6 +49,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //#define __VBO_PACK_COLOR__					// Try to pack vert colors into a single float - BROKEN!
 //#define __VBO_HALF_FLOAT_COLOR__				// Try to pack vert colors into half floats - BROKEN!
 #define __HALF_FLOAT__							// Enable half float conversion code...
+#define __DRAW_INDIRECT__						// Use indirect draw calls...
 //#define __GLSL_OPTIMIZER__						// Enable GLSL optimization...
 //#define __DEBUG_SHADER_LOAD__					// Enable extra GLSL shader load debugging info...
 //#define __USE_GLSL_SHADER_CACHE__				// Enable GLSL shader binary caching...
@@ -141,6 +142,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #endif //__HUMANOIDS_BEND_GRASS__
 
 
+#define __NIF_IMPORT_TEST__
+//#define __NIF_GLM_IMPORT_TEST__
 
 
 //
@@ -332,6 +335,8 @@ extern cvar_t	*r_mipMapTextures;
 extern cvar_t	*r_compressedTextures;
 
 extern cvar_t	*r_cullNoDraws;
+
+extern cvar_t	*r_drawIndirect;
 
 extern cvar_t	*r_superSampleMultiplier;
 
@@ -2952,6 +2957,26 @@ typedef struct lodModel_s {
 	model_t			*model;
 } lodModel_t;
 
+#ifdef __DRAW_INDIRECT__
+typedef struct {
+	unsigned int  count;
+	unsigned int  instanceCount;
+	unsigned int  firstVert;
+	unsigned int  baseInstance;
+} DrawArraysIndirectCommand;
+
+typedef struct {
+	unsigned int  count;
+	unsigned int  instanceCount;
+	unsigned int  firstIndex;
+	unsigned int  baseVertex;
+	unsigned int  baseInstance;
+} DrawElementsIndirectCommand;
+#endif //__DRAW_INDIRECT__
+
+//#define MAX_MULTIDRAW_PRIMITIVES	16384
+#define MAX_MULTIDRAW_PRIMITIVES	65536//1048576//65536
+
 /*
 ** trGlobals_t 
 **
@@ -3427,6 +3452,17 @@ typedef struct trGlobals_s {
 #define				MAX_LODMODEL_MODELS 524288
 	int						lodModelsCount = 0;
 	lodModel_t				lodModels[MAX_LODMODEL_MODELS];
+
+#ifdef __DRAW_INDIRECT__
+	GLuint indirectArraysBuffer = 0;
+	DrawArraysIndirectCommand drawArraysIndirectCommand[1];
+
+	GLuint indirectElementsBuffer = 0;
+	DrawElementsIndirectCommand drawElementsIndirectCommand[1];
+
+	GLuint indirectMultiElementsBuffer = 0;
+	DrawElementsIndirectCommand drawMultiElementsCommand[MAX_MULTIDRAW_PRIMITIVES];
+#endif //__DRAW_INDIRECT__
 } trGlobals_t;
 
 struct glconfigExt_t
@@ -3899,9 +3935,6 @@ typedef struct stageVars
 	vec2_t		texcoords[NUM_TEXTURE_BUNDLES][SHADER_MAX_VERTEXES];
 } stageVars_t;
 
-//#define MAX_MULTIDRAW_PRIMITIVES	16384
-#define MAX_MULTIDRAW_PRIMITIVES	1048576//65536
-
 struct shaderCommands_s 
 {
 	glIndex_t	indexes[SHADER_MAX_INDEXES] QALIGN(16);
@@ -3945,6 +3978,7 @@ struct shaderCommands_s
 	GLsizei     multiDrawNumIndexes[MAX_MULTIDRAW_PRIMITIVES];
 	glIndex_t  *multiDrawFirstIndex[MAX_MULTIDRAW_PRIMITIVES];
 	glIndex_t  *multiDrawLastIndex[MAX_MULTIDRAW_PRIMITIVES];
+	glIndex_t	multiDrawFirstIndexIndirect[MAX_MULTIDRAW_PRIMITIVES];
 	glIndex_t   multiDrawMinIndex[MAX_MULTIDRAW_PRIMITIVES];
 	glIndex_t   multiDrawMaxIndex[MAX_MULTIDRAW_PRIMITIVES];
 

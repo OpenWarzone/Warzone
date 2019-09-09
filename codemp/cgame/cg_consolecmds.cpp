@@ -140,6 +140,11 @@ void CG_ClientList_f( void )
 				ci->name, (ci->botSkill != -1) ? " (bot)" : "" );
 			break;
 
+		case FACTION_PIRATES:
+			Com_Printf("%2d " S_COLOR_GREY "B   " S_COLOR_WHITE "%s" S_COLOR_WHITE "%s\n", i,
+				ci->name, (ci->botSkill != -1) ? " (bot)" : "");
+			break;
+
 		case FACTION_WILDLIFE:
 			Com_Printf("%2d " S_COLOR_YELLOW "B   " S_COLOR_WHITE "%s" S_COLOR_WHITE "%s\n", i,
 				ci->name, (ci->botSkill != -1) ? " (bot)" : "");

@@ -52,6 +52,8 @@ const char *TeamName(int team)  {
 		return "MERC";
 	else if (team == FACTION_MANDALORIAN)
 		return "MANDALORIAN";
+	else if (team == FACTION_PIRATES)
+		return "PIRATE";
 	else if (team == FACTION_WILDLIFE)
 		return "WILDLIFE";
 	else if (team==FACTION_SPECTATOR)

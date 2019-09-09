@@ -215,12 +215,7 @@ std::string R_FindAndAdjustShaderNames(std::string modelName, std::string surfac
 	if (!foundName && shaderPath.length() > 0 && FS_TextureFileExists(shaderPath.c_str()))
 	{// Original file+path exists... Use it...
 		char *nExt = FS_TextureFileExists(shaderPath.c_str());
-
-		if (nExt && nExt[0])
-		{
-			shaderPath = shaderPath;
-			foundName = qtrue;
-		}
+		shaderPath = nExt;
 		foundName = qtrue;
 	}
 
@@ -1163,6 +1158,945 @@ qhandle_t R_RegisterAssImp(const char *name, model_t *mod)
 	return 0;
 }
 
+#ifdef __NIF_IMPORT_TEST__
+//#define __DEBUG_NIF__
+
+#pragma comment(lib, "../../../lib/niflib_dll.lib")
+
+#include "nif_include/niflib.h"
+#include "nif_include/obj/NiGeometry.h"
+#include "nif_include/obj/NiGeometryData.h"
+#include "nif_include/obj/NiNode.h"
+#include "nif_include/obj/NiTriShape.h"
+#include "nif_include/obj/NiTriShapeData.h"
+#include "nif_include/Ref.h"
+#include "nif_include/RefObject.h"
+#include "nif_include/obj/NiExtraData.h"
+#include "nif_include/obj/NiTimeController.h"
+#include "nif_include/obj/NiTexturingProperty.h"
+#include "nif_include/obj/BSShaderTextureSet.h"
+#include "nif_include/obj/BSLightingShaderProperty.h"
+#include "nif_include/obj/NiSourceTexture.h"
+#include "nif_include/obj/NiMaterialProperty.h"
+#include "nif_include/obj/NiVertexColorProperty.h"
+#include "nif_include/obj/NiTriStripsData.h"
+#include "nif_include/obj/NiTriStrips.h"
+#include "nif_include/obj/NiBinaryExtraData.h"
+#include "nif_include/obj/bhkCollisionObject.h"
+#include "nif_include/obj/bhkTransformShape.h"
+#include "nif_include/obj/bhkListShape.h"
+#include "nif_include/obj/bhkPackedNiTriStripsShape.h"
+#include "nif_include/obj/hkPackedNiTriStripsData.h"
+#include "nif_include/obj/bhkMoppBvTreeShape.h"
+#include "nif_include/obj/bhkRigidBody.h"
+
+void VectorRotateNIF(vec3_t vIn, vec3_t vRotation, vec3_t out)
+{
+	vec3_t vWork, va;
+	int nIndex[3][2];
+	int i;
+
+	VectorCopy(vIn, va);
+	VectorCopy(va, vWork);
+	nIndex[0][0] = 1; nIndex[0][1] = 2;
+	nIndex[1][0] = 2; nIndex[1][1] = 0;
+	nIndex[2][0] = 0; nIndex[2][1] = 1;
+	for (i = 0; i < 3; i++)
+	{
+		if (vRotation[i] != 0)
+		{
+			float dAngle = vRotation[i] * PI / 180.0f;
+			float c = (vec_t)cos(dAngle);
+			float s = (vec_t)sin(dAngle);
+			vWork[nIndex[i][0]] = va[nIndex[i][0]] * c - va[nIndex[i][1]] * s;
+			vWork[nIndex[i][1]] = va[nIndex[i][0]] * s + va[nIndex[i][1]] * c;
+		}
+		VectorCopy(vWork, va);
+	}
+	VectorCopy(vWork, out);
+}
+
+void VectorRotateOriginNIF(vec3_t vIn, vec3_t vRotation, vec3_t vOrigin, vec3_t out)
+{
+	vec3_t vTemp, vTemp2;
+
+	VectorSubtract(vIn, vOrigin, vTemp);
+	VectorRotateNIF(vTemp, vRotation, vTemp2);
+	VectorAdd(vTemp2, vOrigin, out);
+}
+
+void R_NifRotate(float *pos)
+{
+	vec3_t vRotation;
+
+	vRotation[0] = 0;
+	vRotation[1] = 0;
+	vRotation[2] = 90;
+
+	VectorRotateOriginNIF(pos, vRotation, vec3_origin, pos);
+}
+
+static qboolean R_LoadNIF(model_t * mod, int lod, void *buffer, const char *modName, int size, const char *ext)
+{
+	int					f, i, j;
+
+	mdvModel_t			*mdvModel;
+	mdvFrame_t			*frame;
+	mdvSurface_t		*surf;
+	int					*shaderIndex;
+	glIndex_t			*tri;
+	mdvVertex_t			*v;
+	mdvSt_t				*st;
+
+	std::string basePath = AssImp_getBasePath(modName);
+
+#ifdef __DEBUG_NIF__
+	ri->Printf(PRINT_ERROR, "R_LoadNIF: Loading model %s. Extension: %s. bufferSize: %i. basePath: %s.\n", modName, ext, size, basePath.c_str());
+#endif //__DEBUG_NIF__
+
+#define NIF_MODEL_SCALE 0.5
+
+	vec3_t NIF_ROTATION_ANGLES;
+	NIF_ROTATION_ANGLES[PITCH] = r_testvalue0->integer;
+	NIF_ROTATION_ANGLES[YAW] = r_testvalue1->integer;
+	NIF_ROTATION_ANGLES[ROLL] = r_testvalue2->integer;
+	vec3_t NIF_ROTATION_AXIS[3];
+	AnglesToAxis(NIF_ROTATION_ANGLES, NIF_ROTATION_AXIS);
+
+#define NIF_ROTATION_TYPE r_testvalue3->integer
+
+	std::string fullPath = va("warzone/%s", modName);
+
+	try {
+		Niflib::NiObjectRef root = Niflib::ReadNifTree(fullPath.c_str());
+
+		if (!root)
+		{
+			ri->Printf(PRINT_ERROR, "R_LoadNIF: %s could not load. Error: ReadNifTree failed.\n", modName);
+			return qfalse;
+		}
+
+		Niflib::NiNodeRef node = Niflib::DynamicCast<Niflib::NiNode>(root);
+
+		if (node == NULL)
+		{
+			ri->Printf(PRINT_ERROR, "R_LoadNIF: %s could not load. Error: DynamicCast<NiNode>(root) failed.\n", modName);
+			return qfalse;
+		}
+
+		std::vector<Niflib::Ref<Niflib::NiAVObject>> children = node->GetChildren();
+
+		if (children.size() <= 0)
+		{
+			ri->Printf(PRINT_ERROR, "R_LoadNIF: %s could not load. Error: children.size() is none.\n", modName);
+			return qfalse;
+		}
+
+		// Calculate the bounds/radius info... And count geometry type surfs...
+		int numGeomSurfs = 0;
+		vec3_t bounds[2];
+		ClearBounds(bounds[0], bounds[1]);
+
+		int z = 0;
+
+		for (std::vector<Niflib::Ref<Niflib::NiAVObject>>::iterator it = children.begin(); it != children.end(); ++it, z++)
+		{
+			Niflib::NiAVObject *NiAVO = (*it);
+
+			if (!NiAVO->IsDerivedType(Niflib::NiGeometry::TYPE))
+			{
+				//ri->Printf(PRINT_WARNING, "child %i (%s) is not NiGeometry.\n", z, NiAVO->GetName().length() ? NiAVO->GetName().c_str() : "UNKNOWN");
+				continue;
+			}
+
+			Niflib::NiGeometry *NiGEOM = Niflib::DynamicCast<Niflib::NiGeometry>(NiAVO);
+
+			bool isNiTriShape = false;
+			bool isNiTriShapeData = false;
+			bool isNiTriStrips = false;
+			bool isNiTriStripsData = false;
+
+			if (!NiGEOM->IsDerivedType(Niflib::NiTriShapeData::TYPE) && !NiGEOM->IsDerivedType(Niflib::NiTriShape::TYPE) && !NiGEOM->IsDerivedType(Niflib::NiTriStrips::TYPE) && !NiGEOM->IsDerivedType(Niflib::NiTriStripsData::TYPE))
+			{
+				//ri->Printf(PRINT_WARNING, "child %i (%s) is not NiTriShape or NiTriShapeData.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN");
+				continue;
+			}
+			
+			if (NiGEOM->IsDerivedType(Niflib::NiTriShape::TYPE))
+			{
+				isNiTriShape = true;
+				//ri->Printf(PRINT_WARNING, "child %i (%s) is NiTriShape.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN");
+			}
+			
+			if (NiGEOM->IsDerivedType(Niflib::NiTriShapeData::TYPE))
+			{
+				isNiTriShapeData = true;
+				//ri->Printf(PRINT_WARNING, "child %i (%s) is NiTriShapeData.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN");
+			}
+			
+			if (NiGEOM->IsDerivedType(Niflib::NiTriStrips::TYPE))
+			{
+				isNiTriStrips = true;
+				//ri->Printf(PRINT_WARNING, "child %i (%s) is NiTriStrips.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN");
+			}
+			
+			if (NiGEOM->IsDerivedType(Niflib::NiTriStripsData::TYPE))
+			{
+				isNiTriStripsData = true;
+				//ri->Printf(PRINT_WARNING, "child %i (%s) is NiTriStripsData.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN");
+			}
+
+			bool hasTEXTURE = false;
+			
+			for (short index(0); index < 2; ++index)
+			{
+				Niflib::BSLightingShaderProperty *shader = Niflib::DynamicCast<Niflib::BSLightingShaderProperty>(NiGEOM->GetBSProperty(index));
+
+				if (shader != NULL)
+				{
+					std::vector<std::string> textures = shader->GetTextureSet()->GetTextures();
+					
+					if (!textures.size()) continue;
+
+					for (std::vector<std::string>::iterator ti = textures.begin(); ti != textures.end(); ++ti)
+					{
+						std::string texture = (*ti);
+
+						if (texture.length())
+						{
+							//ri->Printf(PRINT_WARNING, "child %i (%s) index %i has %s texture.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN", index, texture.c_str());
+							hasTEXTURE = true;
+							break;
+						}
+					}
+				}
+			}
+
+			if (!hasTEXTURE)
+			{
+				continue;
+			}
+			
+			Niflib::Ref<Niflib::NiGeometryData> niGeomData = Niflib::DynamicCast<Niflib::NiGeometryData>(NiGEOM->GetData());
+
+
+			std::vector<Niflib::Vector3> verts;
+			vector<Niflib::Triangle> triangles;
+			std::vector<int> idxs = niGeomData->GetVertexIndices();
+
+			if (isNiTriShape || isNiTriShapeData)
+			{
+				Niflib::NiTriShapeDataRef data = Niflib::DynamicCast<Niflib::NiTriShapeData>(niGeomData);
+				verts = data->GetVertices();
+				triangles = data->GetTriangles();
+			}
+			else if (isNiTriStrips || isNiTriStripsData)
+			{
+				Niflib::NiTriStripsDataRef data = Niflib::DynamicCast<Niflib::NiTriStripsData>(niGeomData);
+				verts = data->GetVertices();
+				triangles = data->GetTriangles();
+			}
+			else
+			{
+				verts = niGeomData->GetVertices();
+				std::vector<int> idxs = niGeomData->GetVertexIndices();
+			}
+
+			uint32_t numVERTS = 0;
+
+			for (std::vector<Niflib::Vector3>::iterator vi = verts.begin(); vi != verts.end(); vi++)
+			{
+				Niflib::Vector3 vt = (*vi);
+
+				vec3_t vert;
+				vert[0] = vt.x * NIF_MODEL_SCALE;
+				vert[1] = vt.y * NIF_MODEL_SCALE;
+				vert[2] = vt.z * NIF_MODEL_SCALE;
+
+				R_NifRotate(vert);
+
+				AddPointToBounds(vert, bounds[0], bounds[1]);
+				numVERTS++;
+			}
+
+			uint32_t numIDX = 0;
+			
+			if (isNiTriShape || isNiTriShapeData || isNiTriStrips || isNiTriStripsData)
+			{
+				for (std::vector<Niflib::Triangle>::iterator tr = triangles.begin(); tr != triangles.end(); tr++)
+				{
+					numIDX++;
+				}
+			}
+			else
+			{
+				for (std::vector<int>::iterator id = idxs.begin(); id != idxs.end(); id++)
+				{
+					numIDX++;
+				}
+			}
+
+			//ri->Printf(PRINT_WARNING, "child %i (%s) has %u verts and %u indexes.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN", numVERTS, numIDX);
+
+			if (numVERTS > 0 && numIDX > 0)
+			{
+				numGeomSurfs++;
+			}
+		}
+
+		if (numGeomSurfs <= 0)
+		{
+#ifdef __DEBUG_NIF__
+			ri->Printf(PRINT_ALL, "R_LoadNIF: Model %s has no geometry.\n", modName);
+#endif //__DEBUG_NIF__
+			return qfalse;
+		}
+
+#ifdef __DEBUG_NIF__
+		ri->Printf(PRINT_ALL, "R_LoadNIF: Model %s. Surfaces: %i. Bounds: %f %f %f x %f %f %f.\n", modName, numGeomSurfs, bounds[0][0], bounds[0][1], bounds[0][2], bounds[1][0], bounds[1][1], bounds[1][2]);
+#endif //__DEBUG_NIF__
+
+		mod->type = MOD_MESH;
+		mod->dataSize += size;
+
+		qboolean bAlreadyFound = qfalse;
+		mdvModel = mod->data.mdv[lod] = (mdvModel_t *)CModelCache->Allocate(size, buffer, modName, &bAlreadyFound, TAG_MODEL_MD3);
+
+		if (bAlreadyFound)
+		{
+			CModelCache->AllocateShaders(modName);
+		}
+
+		// swap all the frames - Not supported for now, just using a single empty frame with basic data...
+		mdvModel->numFrames = 1;
+		mdvModel->frames = frame = (mdvFrame_t *)ri->Hunk_Alloc(sizeof(*frame) * mdvModel->numFrames, h_low);
+
+		vec3_t localOrigin;
+		VectorSet(localOrigin, 0.0, 0.0, 0.0);
+		float radius = Distance(bounds[0], bounds[1]) / 2.0;
+
+		for (i = 0; i < mdvModel->numFrames; i++, frame++)
+		{
+			frame->radius = LittleFloat(radius);
+			for (j = 0; j < 3; j++)
+			{
+				frame->bounds[0][j] = LittleFloat(bounds[0][j]);
+				frame->bounds[1][j] = LittleFloat(bounds[1][j]);
+				frame->localOrigin[j] = LittleFloat(localOrigin[j]);
+			}
+		}
+
+		// swap all the tags - Disabled for now... Not sure if I need tags on non-md3 models...
+		mdvModel->numTags = 0;
+
+		// swap all the surfaces
+		mdvModel->numSurfaces = numGeomSurfs;
+		mdvModel->surfaces = surf = (mdvSurface_t *)ri->Hunk_Alloc(sizeof(*surf) * mdvModel->numSurfaces, h_low);
+
+		int numRemoved = 0;
+
+		for (std::vector<Niflib::Ref<Niflib::NiAVObject>>::iterator it = children.begin(); it != children.end(); ++it)
+		{
+			Niflib::NiAVObject *NiAVO = (*it);
+
+			if (!NiAVO->IsDerivedType(Niflib::NiGeometry::TYPE))
+			{
+				continue;
+			}
+
+			Niflib::NiGeometry *NiGEOM = Niflib::DynamicCast<Niflib::NiGeometry>(NiAVO);
+
+			bool isNiTriShape = false;
+			bool isNiTriShapeData = false;
+			bool isNiTriStrips = false;
+			bool isNiTriStripsData = false;
+			bool hasNormals = false;
+			bool hasUVs = false;
+
+			if (!NiGEOM->IsDerivedType(Niflib::NiTriShapeData::TYPE) && !NiGEOM->IsDerivedType(Niflib::NiTriShape::TYPE) && !NiGEOM->IsDerivedType(Niflib::NiTriStrips::TYPE) && !NiGEOM->IsDerivedType(Niflib::NiTriStripsData::TYPE))
+			{
+				//ri->Printf(PRINT_WARNING, "child %i (%s) is not NiTriShape or NiTriShapeData.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN");
+				continue;
+			}
+
+			if (NiGEOM->IsDerivedType(Niflib::NiTriShape::TYPE))
+			{
+				isNiTriShape = true;
+				//ri->Printf(PRINT_WARNING, "child %i (%s) is NiTriShape.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN");
+			}
+
+			if (NiGEOM->IsDerivedType(Niflib::NiTriShapeData::TYPE))
+			{
+				isNiTriShapeData = true;
+				//ri->Printf(PRINT_WARNING, "child %i (%s) is NiTriShapeData.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN");
+			}
+
+			if (NiGEOM->IsDerivedType(Niflib::NiTriStrips::TYPE))
+			{
+				isNiTriStrips = true;
+				//ri->Printf(PRINT_WARNING, "child %i (%s) is NiTriStrips.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN");
+			}
+
+			if (NiGEOM->IsDerivedType(Niflib::NiTriStripsData::TYPE))
+			{
+				isNiTriStripsData = true;
+				//ri->Printf(PRINT_WARNING, "child %i (%s) is NiTriStripsData.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN");
+			}
+
+			Niflib::Ref<Niflib::NiGeometryData> niGeomData = Niflib::DynamicCast<Niflib::NiGeometryData>(NiGEOM->GetData());
+
+			uint32_t numIDX = 0;
+
+			std::vector<Niflib::Vector3> verts;
+			vector<Niflib::Triangle> triangles;
+			std::vector<Niflib::Vector3> norms;
+			std::vector<Niflib::TexCoord> tcs;
+			std::vector<int> idxs = niGeomData->GetVertexIndices();
+
+			if (isNiTriShape || isNiTriShapeData)
+			{
+				Niflib::NiTriShapeDataRef data = Niflib::DynamicCast<Niflib::NiTriShapeData>(niGeomData);
+				verts = data->GetVertices();
+				triangles = data->GetTriangles();
+
+				if (data->GetHasNormals())
+				{
+					norms = data->GetNormals();
+					hasNormals = true;
+				}
+
+				if (data->GetUVSetCount())
+				{
+					tcs = data->GetUVSet(0);
+					hasUVs = true;
+				}
+			}
+			else if (isNiTriStrips || isNiTriStripsData)
+			{
+				Niflib::NiTriStripsDataRef data = Niflib::DynamicCast<Niflib::NiTriStripsData>(niGeomData);
+				verts = data->GetVertices();
+				triangles = data->GetTriangles();
+				
+				if (data->GetHasNormals())
+				{
+					norms = data->GetNormals();
+					hasNormals = true;
+				}
+
+				if (data->GetUVSetCount())
+				{
+					tcs = data->GetUVSet(0);
+					hasUVs = true;
+				}
+			}
+			else
+			{
+				verts = niGeomData->GetVertices();
+				idxs = niGeomData->GetVertexIndices();
+
+				if (niGeomData->GetHasNormals())
+				{
+					norms = niGeomData->GetNormals();
+					hasNormals = true;
+				}
+
+				if (niGeomData->GetUVSetCount())
+				{
+					tcs = niGeomData->GetUVSet(0);
+					hasUVs = true;
+				}
+			}
+
+			if (!hasNormals)
+			{
+				if (niGeomData->GetHasNormals())
+				{
+					norms = niGeomData->GetNormals();
+					hasNormals = true;
+				}
+			}
+
+			/*if (hasNormals)
+			{
+				ri->Printf(PRINT_WARNING, "child %i (%s) has normals.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN");
+			}*/
+
+			if (!hasUVs)
+			{
+				if (niGeomData->GetUVSetCount())
+				{
+					tcs = niGeomData->GetUVSet(0);
+					hasUVs = true;
+				}
+			}
+
+			/*if (hasUVs)
+			{
+				ri->Printf(PRINT_WARNING, "child %i (%s) has UVs.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN");
+			}*/
+
+			if (isNiTriShape || isNiTriShapeData || isNiTriStrips || isNiTriStripsData)
+			{
+				for (std::vector<Niflib::Triangle>::iterator i = triangles.begin(); i != triangles.end(); i++)
+				{
+					numIDX++;
+				}
+			}
+			else
+			{
+				for (std::vector<int>::iterator i = idxs.begin(); i != idxs.end(); i++)
+				{
+					numIDX++;
+				}
+			}
+
+			uint32_t numVERTS = 0;
+
+			for (std::vector<Niflib::Vector3>::iterator vi = verts.begin(); vi != verts.end(); ++vi)
+			{
+				numVERTS++;
+			}
+
+			if (numIDX <= 0 || numVERTS <= 0)
+			{
+				continue;
+			}
+
+			shader_t		*sh = NULL;
+			aiString		shaderPath;	// filename
+
+			// change to surface identifier
+			surf->surfaceType = SF_MDV;
+
+
+			std::string surfaceName = NiGEOM->GetName();
+			std::string shaderName;
+
+			for (short index(0); index < 2; ++index)
+			{
+				Niflib::BSLightingShaderProperty *shader = Niflib::DynamicCast<Niflib::BSLightingShaderProperty>(NiGEOM->GetBSProperty(index));
+
+				if (shader != NULL)
+				{
+					std::vector<std::string> textures = shader->GetTextureSet()->GetTextures();
+
+					if (!textures.size()) continue;
+
+					for (std::vector<std::string>::iterator ti = textures.begin(); ti != textures.end(); ++ti)
+					{
+						std::string texture = (*ti);
+
+						if (texture.length())
+						{
+							shaderName = texture.c_str();
+							shaderPath = texture.c_str();
+							break;
+						}
+					}
+				}
+			}
+
+			std::string textureName = AssImp_getTextureName(shaderName.c_str());
+
+			if (!textureName.length()) textureName = shaderName;
+
+			std::string finalPath = R_FindAndAdjustShaderNames(modName, shaderPath.C_Str(), textureName);
+
+#ifdef __DEBUG_NIF__
+			ri->Printf(PRINT_ALL, "R_LoadNIF: Model: %s. Mesh: %s (%i). Using texture: %s.\n", modName, surfaceName.length() ? surfaceName.c_str() : "NULL", i, finalPath.length() ? finalPath.c_str() : "NULL");
+#endif //__DEBUG_NIF__
+
+			sh = R_FindShader(finalPath.c_str(), lightmapsNone, stylesDefault, qtrue);
+
+			if (sh == NULL || sh == tr.defaultShader)
+			{
+#ifdef __DEBUG_NIF__
+				ri->Printf(PRINT_ALL, "R_LoadNIF: Model: %s. Mesh: %s (%i). Missing texture: %s.\n", modName, shaderName.length() ? shaderName.c_str() : "NULL", i, finalPath.length() ? finalPath.c_str() : "NULL");
+#endif //__DEBUG_NIF__
+				sh = tr.defaultShader;
+			}
+
+			if (!sh
+				|| sh == tr.defaultShader
+				|| (sh->surfaceFlags & SURF_NODRAW)
+				|| (surfaceName.length() && StringContainsWord(surfaceName.c_str(), "collision"))
+				|| (surfaceName.length() && StringContainsWord(surfaceName.c_str(), "nodraw"))
+				|| (surfaceName.length() && StringContainsWord(surfaceName.c_str(), "noshader")))
+			{// A collision surface, set it to nodraw... TODO: Generate planes?!?!?!?
+#ifdef __DEBUG_NIF__
+				ri->Printf(PRINT_ALL, "R_LoadNIF: Model: %s. Mesh: %s (%i). Missing texture (or is collision surface): %s.\n", modName, shaderName.length() ? shaderName.c_str() : "NULL", i, finalPath.length() ? finalPath.c_str() : "NULL");
+#endif //__DEBUG_NIF__
+				numRemoved++;
+				continue;
+			}
+
+			// give pointer to model for Tess_SurfaceMDX
+			surf->model = mdvModel;
+
+			// copy surface name
+			Q_strncpyz(surf->name, surfaceName.c_str(), sizeof(surf->name));
+
+			// lowercase the surface name so skin compares are faster
+			Q_strlwr(surf->name);
+
+			// strip off a trailing _1 or _2
+			// this is a crutch for q3data being a mess
+			j = strlen(surf->name);
+			if (j > 2 && surf->name[j - 2] == '_')
+			{
+				surf->name[j - 2] = 0;
+			}
+
+			// register the shaders
+			surf->numShaderIndexes = 1;
+			surf->shaderIndexes = shaderIndex = (int *)ri->Hunk_Alloc(sizeof(*shaderIndex), h_low);
+
+			if (sh->defaultShader)
+			{
+				*shaderIndex = 0;
+			}
+			else
+			{
+				*shaderIndex = sh->index;
+			}
+
+
+			// swap all the triangles
+			surf->numIndexes = numIDX * 3;
+			surf->indexes = tri = (glIndex_t *)ri->Hunk_AllocateTempMemory(sizeof(*tri) * numIDX * 3);
+
+			if (isNiTriShape || isNiTriShapeData || isNiTriStrips || isNiTriStripsData)
+			{
+				for (std::vector<Niflib::Triangle>::iterator ti = triangles.begin(); ti != triangles.end(); ti++)
+				{
+					Niflib::Triangle tr = (*ti);
+					tri[0] = LittleLong(tr[2]);
+					tri[1] = LittleLong(tr[1]);
+					tri[2] = LittleLong(tr[0]);
+					tri+=3;
+				}
+			}
+			else
+			{
+				int tr = 0;
+
+				for (std::vector<int>::iterator ti = idxs.begin(); ti != idxs.end(); ti++)
+				{
+					surf->indexes[tr] = LittleLong((*ti));
+					tr++;
+				}
+			}
+
+/*#ifdef __DEBUG_NIF__
+			for (int zz = 0; zz < numIDX * 3; zz++)
+				ri->Printf(PRINT_ALL, "Index %i: %i.\n", zz, surf->indexes[zz]);
+#endif //__DEBUG_NIF__*/
+
+			// swap all the XyzNormals
+			surf->numVerts = numVERTS;
+			surf->verts = v = (mdvVertex_t *)ri->Hunk_AllocateTempMemory(sizeof(*v) * numVERTS);
+
+			for (std::vector<Niflib::Vector3>::iterator vi = verts.begin(); vi != verts.end(); vi++)
+			{
+				Niflib::Vector3 vt = (*vi);
+				v->xyz[0] = LittleShort(vt.x * NIF_MODEL_SCALE);
+				v->xyz[1] = LittleShort(vt.y * NIF_MODEL_SCALE);
+				v->xyz[2] = LittleShort(vt.z * NIF_MODEL_SCALE);
+
+				R_NifRotate(v->xyz);
+
+				v++;
+			}
+
+/*#ifdef __DEBUG_NIF__
+			for (int zz = 0; zz < numVERTS; zz++)
+				ri->Printf(PRINT_ALL, "Vert %i: %f %f %f.\n", zz, surf->verts[zz].xyz[0], surf->verts[zz].xyz[1], surf->verts[zz].xyz[2]);
+#endif //__DEBUG_NIF__*/
+
+			if (hasNormals)
+			{
+				v = surf->verts;
+
+				for (std::vector<Niflib::Vector3>::iterator ni = norms.begin(); ni != norms.end(); ni++)
+				{
+					Niflib::Vector3 n = (*ni);
+					v->normal[0] = n.x;
+					v->normal[1] = n.y;
+					v->normal[2] = n.z;
+					v++;
+				}
+			}
+
+/*#ifdef __DEBUG_NIF__
+			for (int zz = 0; zz < numVERTS; zz++)
+				ri->Printf(PRINT_ALL, "Normal %i: %f %f %f.\n", zz, surf->verts[zz].normal[0], surf->verts[zz].xyz[1], surf->verts[zz].normal[2]);
+#endif //__DEBUG_NIF__*/
+
+			// swap all the ST
+			surf->st = st = (mdvSt_t *)ri->Hunk_Alloc(sizeof(*st) * numVERTS, h_low);
+
+			if (hasUVs)
+			{
+				for (std::vector<Niflib::TexCoord>::iterator ti = tcs.begin(); ti != tcs.end(); ++ti)
+				{
+					Niflib::TexCoord tc = (*ti);
+					st->st[0] = LittleFloat(tc.u);
+					//st->st[1] = LittleFloat(1 - tc.v);
+					st->st[1] = LittleFloat(tc.v);
+					st++;
+				}
+			}
+			else
+			{// Assume all 0,1
+				for (j = 0; j < numVERTS; j++)
+				{
+					st->st[0] = 0.0;
+					st->st[1] = 1.0;
+					st++;
+				}
+			}
+
+/*#ifdef __DEBUG_NIF__
+			for (int zz = 0; zz < numVERTS; zz++)
+				ri->Printf(PRINT_ALL, "UV %i: %f %f.\n", zz, surf->st[zz].st[0], surf->st[zz].st[1]);
+#endif //__DEBUG_NIF__*/
+
+			// find the next surface
+			surf++;
+		}
+
+		// Removed some (most likely collision) surfaces... Makse sure when drawing, that we ignore them...
+		mdvModel->numSurfaces = mdvModel->numSurfaces - numRemoved;
+
+		{
+			srfVBOMDVMesh_t *vboSurf;
+
+			mdvModel->numVBOSurfaces = mdvModel->numSurfaces;
+			mdvModel->vboSurfaces = (srfVBOMDVMesh_t *)ri->Hunk_AllocateTempMemory(sizeof(*mdvModel->vboSurfaces) * mdvModel->numSurfaces);
+
+			vboSurf = mdvModel->vboSurfaces;
+			surf = mdvModel->surfaces;
+
+#ifdef __LODMODEL_INSTANCING__
+			GLSL_BindProgram(&tr.instanceVAOShader);
+			mdvModel->vao = NULL;
+			qglGenVertexArrays(1, &mdvModel->vao);
+			qglBindVertexArray(mdvModel->vao);
+#endif //__LODMODEL_INSTANCING__
+
+			for (i = 0; i < mdvModel->numSurfaces; i++, vboSurf++, surf++)
+			{
+				vec3_t *verts;
+				vec2_t *texcoords;
+				uint32_t *normals;
+
+				byte *data;
+				int dataSize;
+
+				int ofs_xyz, ofs_normal, ofs_st;
+
+				dataSize = 0;
+
+				ofs_xyz = dataSize;
+				dataSize += surf->numVerts * mdvModel->numFrames * sizeof(*verts);
+
+				ofs_normal = dataSize;
+				dataSize += surf->numVerts * mdvModel->numFrames * sizeof(*normals);
+
+				ofs_st = dataSize;
+				dataSize += surf->numVerts * sizeof(*texcoords);
+
+				data = (byte *)Z_Malloc(dataSize, TAG_MODEL_MD3, qtrue);
+
+				verts = (vec3_t *)(data + ofs_xyz);
+				normals = (uint32_t *)(data + ofs_normal);
+				texcoords = (vec2_t *)(data + ofs_st);
+
+				v = surf->verts;
+				for (j = 0; j < surf->numVerts * mdvModel->numFrames; j++, v++)
+				{
+					vec3_t nxt;
+					vec4_t tangent;
+
+					VectorCopy(v->xyz, verts[j]);
+
+					normals[j] = R_VboPackNormal(v->normal);
+					CrossProduct(v->normal, v->tangent, nxt);
+					VectorCopy(v->tangent, tangent);
+					tangent[3] = (DotProduct(nxt, v->bitangent) < 0.0f) ? -1.0f : 1.0f;
+				}
+
+				st = surf->st;
+				for (j = 0; j < surf->numVerts; j++, st++) {
+					texcoords[j][0] = st->st[0];
+					texcoords[j][1] = st->st[1];
+				}
+
+#ifdef __MESH_OPTIMIZATION__
+				R_OptimizeMesh((uint32_t *)&surf->numVerts, (uint32_t *)&surf->numIndexes, surf->indexes, verts);
+#endif //__MESH_OPTIMIZATION__
+
+				vboSurf->surfaceType = SF_VBO_MDVMESH;
+				vboSurf->mdvModel = mdvModel;
+				vboSurf->mdvSurface = surf;
+				vboSurf->numIndexes = surf->numIndexes;
+				vboSurf->numVerts = surf->numVerts;
+
+				vboSurf->minIndex = 0;
+				vboSurf->maxIndex = surf->numVerts;
+
+				vboSurf->vbo = R_CreateVBO(data, dataSize, VBO_USAGE_DYNAMIC);
+
+				vboSurf->vbo->ofs_xyz = ofs_xyz;
+				vboSurf->vbo->ofs_normal = ofs_normal;
+				vboSurf->vbo->ofs_st = ofs_st;
+
+				vboSurf->vbo->stride_xyz = sizeof(*verts);
+				vboSurf->vbo->stride_normal = sizeof(*normals);
+				vboSurf->vbo->stride_st = sizeof(*st);
+
+				vboSurf->vbo->size_xyz = sizeof(*verts) * surf->numVerts;
+				vboSurf->vbo->size_normal = sizeof(*normals) * surf->numVerts;
+
+				Z_Free(data);
+
+				vboSurf->ibo = R_CreateIBO((byte *)surf->indexes, sizeof(glIndex_t) * surf->numIndexes, VBO_USAGE_STATIC);
+
+				ri->Hunk_FreeTempMemory(surf->indexes);
+				ri->Hunk_FreeTempMemory(surf->verts);
+			}
+
+
+#ifdef __LODMODEL_INSTANCING__
+			qglGenBuffers(1, &tr.instanceVAOShader.instances_buffer);
+			qglBindBuffer(GL_ARRAY_BUFFER, tr.instanceVAOShader.instances_buffer);
+			qglBindBufferBase(GL_ARRAY_BUFFER, ATTR_INDEX_INSTANCES_POSITION, tr.instanceVAOShader.instances_buffer);
+
+			mdvModel->ofs_instancesPosition = 0;
+
+			qglBindVertexArray(0);
+			GLSL_BindProgram(NULL);
+#endif //__LODMODEL_INSTANCING__
+		}
+	}
+	catch (exception & e) {
+		ri->Printf(PRINT_WARNING, "NIF Error: %s.\n", e.what());
+		return qfalse;
+	}
+	catch (...) {
+		ri->Printf(PRINT_WARNING, "NIF Error: Unknown Exception.\n");
+		return qfalse;
+	}
+
+	return qtrue;
+}
+
+qhandle_t R_RegisterNIF(const char *name, model_t *mod)
+{
+	unsigned	*buf;
+	int			lod;
+	int			ident;
+	qboolean	loaded = qfalse;
+	int			numLoaded;
+	char filename[MAX_QPATH], namebuf[MAX_QPATH + 20];
+	char *fext, defex[] = "nif";
+
+	numLoaded = 0;
+
+	strcpy(filename, name);
+
+	fext = strchr(filename, '.');
+
+	if (!fext)
+	{
+		fext = defex;
+	}
+	else
+	{
+		*fext = '\0';
+		fext++;
+	}
+
+	for (lod = MD3_MAX_LODS - 1; lod >= 0; lod--)
+	{
+		if (lod)
+			Com_sprintf(namebuf, sizeof(namebuf), "%s_%d.%s", filename, lod, fext);
+		else
+			Com_sprintf(namebuf, sizeof(namebuf), "%s.%s", filename, fext);
+
+		qboolean bAlreadyCached = qfalse;
+
+		int size = CModelCache->LoadFile(namebuf, (void**)&buf, &bAlreadyCached);
+
+		if (!size)
+		{
+#ifdef __DEBUG_NIF__
+			//if (!lod)
+			//{// Only output debug info when missing non-lod versions...
+			//	ri->Printf(PRINT_WARNING, "R_RegisterNIF: Model %s has zero size. Doesn't exist???\n", namebuf);
+			//}
+#endif //__DEBUG_NIF__
+
+			continue;
+		}
+
+		ident = LittleLong(MD3_IDENT);
+
+		loaded = R_LoadNIF(mod, lod, buf, namebuf, size, fext);
+
+#ifdef __EXPERIMENTAL_ASSIMP_GLM_CONVERSIONS__
+		if (loaded && mod->type == MOD_MDXM)
+		{// If we loaded a bone model, skip the lod crap...
+			numLoaded++;
+
+#ifdef __DEBUG_NIF__
+			ri->Printf(PRINT_WARNING, "R_RegisterNIF: loaded assimp boned model %s. modIndex %i. numLods %i. numLoaded %i. numSurfaces %i.\n", name, mod->index, mod->numLods, numLoaded, mod->data.glm->vboModels[0].numVBOMeshes);
+#endif //__DEBUG_NIF__
+
+			return mod->index;
+		}
+#endif //__EXPERIMENTAL_ASSIMP_GLM_CONVERSIONS__
+
+		if (loaded)
+		{
+			mod->numLods++;
+			numLoaded++;
+		}
+		else
+		{
+#ifdef __DEBUG_NIF__
+			//ri->Printf(PRINT_WARNING, "R_RegisterNIF: Model %s does not exist?\n", namebuf);
+#endif //__DEBUG_NIF__
+			break;
+		}
+	}
+
+	if (numLoaded)
+	{
+		// duplicate into higher lod spots that weren't
+		// loaded, in case the user changes r_lodbias on the fly
+		for (lod--; lod >= 0; lod--)
+		{
+			mod->numLods++;
+			mod->data.mdv[lod] = mod->data.mdv[lod + 1];
+		}
+
+#ifdef __DEBUG_NIF__
+		ri->Printf(PRINT_WARNING, "R_RegisterNIF: loaded assimp model %s. modIndex %i. numLods %i. numLoaded %i. numSurfaces %i.\n", name, mod->index, mod->numLods, numLoaded, (mod->data.mdv && mod->data.mdv[0]) ? mod->data.mdv[0]->numSurfaces : mod->data.glm->vboModels[0].numVBOMeshes);
+#endif //__DEBUG_NIF__
+
+		return mod->index;
+	}
+
+#ifdef _DEBUG
+	ri->Printf(PRINT_WARNING, "R_RegisterNIF: couldn't load %s\n", name);
+#endif
+
+	mod->type = MOD_BAD;
+	return 0;
+}
+#endif //__NIF_IMPORT_TEST__
+
 /*
 ====================
 R_RegisterMDR
@@ -1258,6 +2192,9 @@ static modelExtToLoaderMap_t modelLoaders[ ] =
 	/*
 	Ghoul 2 Insert End
 	*/
+#ifdef __NIF_IMPORT_TEST__
+	{ "nif", R_RegisterNIF },
+#endif //__NIF_IMPORT_TEST__
 	{ "3d", R_RegisterAssImp },
 	{ "3ds", R_RegisterAssImp },
 	{ "3mf", R_RegisterAssImp },

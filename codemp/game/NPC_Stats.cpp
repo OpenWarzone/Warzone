@@ -19,6 +19,7 @@ stringID_table_t TeamTable[] =
 	ENUM2STRING(NPCTEAM_ENEMY),
 	ENUM2STRING(NPCTEAM_MANDALORIANS),
 	ENUM2STRING(NPCTEAM_MERCS),
+	ENUM2STRING(NPCTEAM_PIRATES),
 	ENUM2STRING(NPCTEAM_WILDLIFE),
 	ENUM2STRING(NPCTEAM_NEUTRAL),	// most droids are team_neutral, there are some exceptions like Probe,Seeker,Interrogator
 	{"",	-1}
@@ -4179,6 +4180,7 @@ spawnGroup_t GetSpawnGroup(char *filename, int RARITY)
 	else if (StringContainsWord(Q_strlwr(filename), "empire")) TEAM = FACTION_EMPIRE;
 	else if (StringContainsWord(Q_strlwr(filename), "mandalorians")) TEAM = FACTION_MANDALORIAN;
 	else if (StringContainsWord(Q_strlwr(filename), "mercenaries")) TEAM = FACTION_MERC;
+	else if (StringContainsWord(Q_strlwr(filename), "pirates")) TEAM = FACTION_PIRATES;
 	else if (StringContainsWord(Q_strlwr(filename), "wildlife")) TEAM = FACTION_WILDLIFE;
 	else return emptySpawnGroup;
 
@@ -4202,6 +4204,9 @@ spawnGroup_t GetSpawnGroup(char *filename, int RARITY)
 				break; // found our wanted groupDataStucture...
 
 			if (TEAM == FACTION_MERC && StringContainsWord(Q_strlwr(spawnGroupData[groupDataSelection].spawnGroupFilename), "mercenaries"))
+				break; // found our wanted groupDataStucture...
+
+			if (TEAM == FACTION_PIRATES && StringContainsWord(Q_strlwr(spawnGroupData[groupDataSelection].spawnGroupFilename), "pirates"))
 				break; // found our wanted groupDataStucture...
 
 			if (TEAM == FACTION_WILDLIFE && StringContainsWord(Q_strlwr(spawnGroupData[groupDataSelection].spawnGroupFilename), "wildlife"))

@@ -660,6 +660,7 @@ void SV_BotInitCvars(void) {
 	Cvar_Get("npc_rebels", "0", 0);						//minimum NPC rebels
 	Cvar_Get("npc_mandalorians", "0", 0);				//minimum NPC mandalorians
 	Cvar_Get("npc_mercs", "0", 0);						//minimum NPC mercs
+	Cvar_Get("npc_pirates", "0", 0);					//minimum NPC pirates
 	Cvar_Get("npc_wildlife", "0", 0);					//minimum NPC wildlife
 	Cvar_Get("npc_civilians", "0", 0);					//minimum NPC civilians
 	Cvar_Get("npc_vendors", "0", 0);					//minimum NPC vendors

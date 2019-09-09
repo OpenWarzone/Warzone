@@ -105,42 +105,34 @@ extern float		TERRAIN_TESSELLATION_LEVEL;
 extern float		TERRAIN_TESSELLATION_OFFSET;
 extern float		TERRAIN_TESSELLATION_MIN_SIZE;
 
-
-/*typedef struct {
-	unsigned int  count;
-	unsigned int  instanceCount;
-	unsigned int  firstIndex;
-	unsigned int  baseInstance;
-} DrawArraysIndirectCommand;*/
-
-typedef struct {
-	unsigned int  count;
-	unsigned int  instanceCount;
-	unsigned int  firstIndex;
-	unsigned int  baseVertex;
-	unsigned int  baseInstance;
-} DrawElementsIndirectCommand;
-
-/*GLuint gIndirectArraysBuffer = 0;
-DrawArraysIndirectCommand gDrawArraysCommand[1];*/
-
-GLuint gIndirectElementsBuffer = 0;
-DrawElementsIndirectCommand gDrawElementsCommand[1];
-
+#ifdef __DRAW_INDIRECT__
 void R_CreateIndirectBuffers(void)
 {
-	/*if (gIndirectArraysBuffer == 0)
+	if (tr.indirectArraysBuffer == 0)
 	{
-		qglGenBuffers(1, &gIndirectArraysBuffer);
-		qglBindBuffer(GL_DRAW_INDIRECT_BUFFER, gIndirectArraysBuffer);
-		qglBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawElementsIndirectCommand), &gDrawElementsCommand, GL_STATIC_DRAW);
-	}*/
+		qglGenBuffers(1, &tr.indirectArraysBuffer);
+		qglBindBuffer(GL_DRAW_INDIRECT_BUFFER, tr.indirectArraysBuffer);
+		qglBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawArraysIndirectCommand), NULL, /*GL_STATIC_DRAW*/GL_DYNAMIC_DRAW);
+		//qglMapBufferRange(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawArraysIndirectCommand), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+		//qglUnmapBuffer(GL_DRAW_INDIRECT_BUFFER);
+	}
 
-	if (gIndirectElementsBuffer == 0)
+	if (tr.indirectElementsBuffer == 0)
 	{
-		qglGenBuffers(1, &gIndirectElementsBuffer);
-		//qglBindBuffer(GL_DRAW_INDIRECT_BUFFER, gIndirectElementsBuffer);
-		//qglBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawElementsIndirectCommand), &gDrawElementsCommand, /*GL_STATIC_DRAW*/GL_DYNAMIC_DRAW);
+		qglGenBuffers(1, &tr.indirectElementsBuffer);
+		qglBindBuffer(GL_DRAW_INDIRECT_BUFFER, tr.indirectElementsBuffer);
+		qglBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawElementsIndirectCommand), NULL, /*GL_STATIC_DRAW*/GL_DYNAMIC_DRAW);
+		//qglMapBufferRange(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawElementsIndirectCommand), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+		//qglUnmapBuffer(GL_DRAW_INDIRECT_BUFFER);
+	}
+
+	if (tr.indirectMultiElementsBuffer == 0)
+	{
+		qglGenBuffers(1, &tr.indirectMultiElementsBuffer);
+		qglBindBuffer(GL_DRAW_INDIRECT_BUFFER, tr.indirectMultiElementsBuffer);
+		qglBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawElementsIndirectCommand) * MAX_MULTIDRAW_PRIMITIVES, NULL, /*GL_STATIC_DRAW*/GL_DYNAMIC_DRAW);
+		//qglMapBufferRange(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawElementsIndirectCommand) * MAX_MULTIDRAW_PRIMITIVES, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+		//qglUnmapBuffer(GL_DRAW_INDIRECT_BUFFER);
 	}
 }
 
@@ -148,60 +140,94 @@ void R_DrawElementsVBOIndirect(int numIndexes, glIndex_t firstIndex, glIndex_t m
 {
 	R_CreateIndirectBuffers();
 
+	if (r_drawIndirect->integer == 1)
+	{
+		tr.drawElementsIndirectCommand[0].count = numIndexes;       //1 triangle = 3 vertices
+		tr.drawElementsIndirectCommand[0].instanceCount = 1;     //Draw 1 instance
+		tr.drawElementsIndirectCommand[0].firstIndex = firstIndex;        //Draw from index 0 for this instance
+		tr.drawElementsIndirectCommand[0].baseVertex = 0; //Starting from baseVert
+		tr.drawElementsIndirectCommand[0].baseInstance = 0;      //gl_InstanceID
 
-	gDrawElementsCommand[0].count = numIndexes;       //1 triangle = 3 vertices
-	gDrawElementsCommand[0].instanceCount = 1;     //Draw 1 instance
-	gDrawElementsCommand[0].firstIndex = firstIndex;        //Draw from index 0 for this instance
-	gDrawElementsCommand[0].baseVertex = 0; //Starting from baseVert
-	gDrawElementsCommand[0].baseInstance = 0;      //gl_InstanceID
-
-												   //feed the draw command data to the gpu via the gIndirectBuffer
-	qglBindBuffer(GL_DRAW_INDIRECT_BUFFER, gIndirectElementsBuffer);
-	qglBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawElementsIndirectCommand), &gDrawElementsCommand, GL_DYNAMIC_DRAW);
+		// feed the draw command data to the gpu via the IndirectBuffer
+		qglBindBuffer(GL_DRAW_INDIRECT_BUFFER, tr.indirectElementsBuffer);
+		qglBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawElementsIndirectCommand), &tr.drawElementsIndirectCommand);
+	}
+	else
+	{
+		qglBindBuffer(GL_DRAW_INDIRECT_BUFFER, tr.indirectElementsBuffer);
+		//qglBindBufferRange(GL_DRAW_INDIRECT_BUFFER, index, tr.indirectElementsBuffer, 0, sizeof(DrawElementsIndirectCommand));
+		DrawElementsIndirectCommand *cmd = (DrawElementsIndirectCommand *)qglMapBufferRange(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawElementsIndirectCommand), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+		cmd[0].count = numIndexes;
+		cmd[0].instanceCount = 1;     //Draw 1 instance
+		cmd[0].firstIndex = firstIndex;        //Draw from index 0 for this instance
+		cmd[0].baseVertex = 0; //Starting from baseVert
+		cmd[0].baseInstance = 0;      //gl_InstanceID
+		qglUnmapBuffer(GL_DRAW_INDIRECT_BUFFER);
+	}
 
 	if (tesselation)
 	{
 		qglPatchParameteri(GL_PATCH_VERTICES, 3);
-		qglMultiDrawElementsIndirect(GL_PATCHES, GL_INDEX_TYPE, (const GLvoid **)0/*gDrawElementsCommand*/, 1, 0);
+		qglDrawElementsIndirect(GL_PATCHES, GL_INDEX_TYPE, (const GLvoid **)0);
 	}
 	else
 	{
-		qglMultiDrawElementsIndirect(GL_TRIANGLES, GL_INDEX_TYPE, (const GLvoid **)0/*gDrawElementsCommand*/, 1, 0);
+		qglDrawElementsIndirect(GL_TRIANGLES, GL_INDEX_TYPE, (const GLvoid **)0);
 	}
-}
 
-#if 0
-DrawElementsIndirectCommand gDrawMultiElementsCommand[MAX_MULTIDRAW_PRIMITIVES];
+	qglBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+}
 
 void R_DrawMultiElementsVBOIndirect(int multiDrawPrimitives, glIndex_t *multiDrawMinIndex, glIndex_t *multiDrawMaxIndex,
 	GLsizei *multiDrawNumIndexes, glIndex_t **multiDrawFirstIndex, glIndex_t numVerts, qboolean tesselation)
 {
 	R_CreateIndirectBuffers();
 
-	for (int i = 0; i < multiDrawPrimitives; i++)
+	if (r_drawIndirect->integer == 1)
 	{
-		gDrawMultiElementsCommand[i].count = multiDrawNumIndexes[i];       //1 triangle = 3 vertices
-		gDrawMultiElementsCommand[i].instanceCount = 1;     //Draw 1 instance
-		gDrawMultiElementsCommand[i].firstIndex = multiDrawMinIndex[i]+(glIndex_t)multiDrawFirstIndex[i];        //Draw from index 0 for this instance
-		gDrawMultiElementsCommand[i].baseVertex = 0; //Starting from baseVert
-		gDrawMultiElementsCommand[i].baseInstance = 0;      //gl_InstanceID
-	}
+		for (int i = 0; i < multiDrawPrimitives; i++)
+		{
+			tr.drawMultiElementsCommand[i].count = multiDrawNumIndexes[i];       //1 triangle = 3 vertices
+			tr.drawMultiElementsCommand[i].instanceCount = 1;     //Draw 1 instance
+			tr.drawMultiElementsCommand[i].firstIndex = tess.multiDrawFirstIndexIndirect[i];        //Draw from index 0 for this instance
+			tr.drawMultiElementsCommand[i].baseVertex = 0; //Starting from baseVert
+			tr.drawMultiElementsCommand[i].baseInstance = 0;      //gl_InstanceID
+		}
 
-												   //feed the draw command data to the gpu via the gIndirectBuffer
-	qglBindBuffer(GL_DRAW_INDIRECT_BUFFER, gIndirectElementsBuffer);
-	qglBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawElementsIndirectCommand) * multiDrawPrimitives, &gDrawMultiElementsCommand, GL_DYNAMIC_DRAW);
+		// feed the draw command data to the gpu via the IndirectBuffer
+		qglBindBuffer(GL_DRAW_INDIRECT_BUFFER, tr.indirectMultiElementsBuffer);
+		qglBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawElementsIndirectCommand) * multiDrawPrimitives, &tr.drawMultiElementsCommand);
+	}
+	else
+	{
+		qglBindBuffer(GL_DRAW_INDIRECT_BUFFER, tr.indirectMultiElementsBuffer);
+		DrawElementsIndirectCommand *cmd = (DrawElementsIndirectCommand *)qglMapBufferRange(GL_DRAW_INDIRECT_BUFFER, 0, multiDrawPrimitives * sizeof(DrawElementsIndirectCommand), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+		for (int i = 0; i < multiDrawPrimitives; i++)
+		{
+			cmd[i].count = multiDrawNumIndexes[i];
+			cmd[i].instanceCount = 1;     //Draw 1 instance
+			cmd[i].firstIndex = tess.multiDrawFirstIndexIndirect[i];        //Draw from index 0 for this instance
+			cmd[i].baseVertex = 0; //Starting from baseVert
+			cmd[i].baseInstance = 0;      //gl_InstanceID
+		}
+
+		qglUnmapBuffer(GL_DRAW_INDIRECT_BUFFER);
+	}
 
 	if (tesselation)
 	{
 		qglPatchParameteri(GL_PATCH_VERTICES, 3);
-		qglMultiDrawElementsIndirect(GL_PATCHES, GL_INDEX_TYPE, (const GLvoid **)0, 1, 0);
+		qglMultiDrawElementsIndirect(GL_PATCHES, GL_INDEX_TYPE, (const GLvoid **)0, multiDrawPrimitives, 0);
 	}
 	else
 	{
-		qglMultiDrawElementsIndirect(GL_TRIANGLES, GL_INDEX_TYPE, (const GLvoid **)0, 1, 0);
+		qglMultiDrawElementsIndirect(GL_TRIANGLES, GL_INDEX_TYPE, (const GLvoid **)0, multiDrawPrimitives, 0);
 	}
+
+	qglBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 }
-#endif
+#endif //__DRAW_INDIRECT__
 
 /*
 ==================
@@ -217,9 +243,14 @@ void R_DrawElementsVBO( int numIndexes, glIndex_t firstIndex, glIndex_t minIndex
 		maxIndex = numIndexes / 2;
 	}
 
-#if 1
-	R_DrawElementsVBOIndirect(numIndexes, firstIndex, minIndex, maxIndex, numVerts, tesselation);
-#else
+#ifdef __DRAW_INDIRECT__
+	if (r_drawIndirect->integer)
+	{// Currently slower, without any extra batching...
+		R_DrawElementsVBOIndirect(numIndexes, firstIndex, minIndex, maxIndex, numVerts, tesselation);
+		return;
+	}
+#endif //!__DRAW_INDIRECT__
+	
 	if (tesselation)
 	{
 		//GLint MaxPatchVertices = 0;
@@ -236,15 +267,18 @@ void R_DrawElementsVBO( int numIndexes, glIndex_t firstIndex, glIndex_t minIndex
 	{
 		qglDrawRangeElements(GL_TRIANGLES, minIndex, maxIndex, numIndexes, GL_INDEX_TYPE, BUFFER_OFFSET(firstIndex * sizeof(glIndex_t)));
 	}
-#endif
 }
 
 void R_DrawMultiElementsVBO( int multiDrawPrimitives, glIndex_t *multiDrawMinIndex, glIndex_t *multiDrawMaxIndex,
 	GLsizei *multiDrawNumIndexes, glIndex_t **multiDrawFirstIndex, glIndex_t numVerts, qboolean tesselation)
 {
-#if 0
-	R_DrawMultiElementsVBOIndirect(multiDrawPrimitives, multiDrawMinIndex, multiDrawMaxIndex, multiDrawNumIndexes, multiDrawFirstIndex, numVerts, tesselation);
-#else
+#ifdef __DRAW_INDIRECT__
+	if (r_drawIndirect->integer)
+	{// Currently slower, without any extra batching...
+		R_DrawMultiElementsVBOIndirect(multiDrawPrimitives, multiDrawMinIndex, multiDrawMaxIndex, multiDrawNumIndexes, multiDrawFirstIndex, numVerts, tesselation);
+	}
+#endif //__DRAW_INDIRECT__
+	
 	if (tesselation)
 	{
 		//GLint MaxPatchVertices = 0;
@@ -261,7 +295,6 @@ void R_DrawMultiElementsVBO( int multiDrawPrimitives, glIndex_t *multiDrawMinInd
 		qglMultiDrawElements(GL_TRIANGLES, multiDrawNumIndexes, GL_INDEX_TYPE, (const GLvoid **)multiDrawFirstIndex, multiDrawPrimitives);
 		//qglMultiDrawElementsIndirect(GL_TRIANGLES, GL_INDEX_TYPE, (const GLvoid **)multiDrawFirstIndex, *multiDrawNumIndexes, 0);
 	}
-#endif
 }
 
 /*

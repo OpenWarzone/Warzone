@@ -3306,7 +3306,11 @@ void CG_DrawTeamBackground( int x, int y, int w, int h, float alpha, int team )
 		hcolor[0] = .2f;
 		hcolor[1] = .2f;
 		hcolor[2] = 1;
-	} else if (team == FACTION_WILDLIFE) {
+	} else if (team == FACTION_PIRATES ) {
+		hcolor[0] = .5f;
+		hcolor[1] = .5f;
+		hcolor[2] = .5f;
+	} else if (team == FACTION_WILDLIFE ) {
 		hcolor[0] = .4f;
 		hcolor[1] = .4f;
 		hcolor[2] = 0;
@@ -4280,14 +4284,25 @@ void CG_DrawEnemyStatus( void )
 			tclr2[2] = 0.7f;
 			tclr2[3] = 1.0f;
 			break;
+		case CLASS_RODIAN:
+		case CLASS_WEEQUAY:
+			sprintf(str2, "< Pirate >");
+			tclr[0] = 0.5f;
+			tclr[1] = 0.5f;
+			tclr[2] = 0.5f;
+			tclr[3] = 1.0f;
+
+			tclr2[0] = 0.5f;
+			tclr2[1] = 0.5f;
+			tclr2[2] = 0.5f;
+			tclr2[3] = 1.0f;
+			break;
 		case CLASS_GALAK:
 		case CLASS_GRAN:
 		case CLASS_REELO:
 		case CLASS_MURJJ:
-		case CLASS_RODIAN:
 		case CLASS_TRANDOSHAN:
 		case CLASS_UGNAUGHT:
-		case CLASS_WEEQUAY:
 		case CLASS_BARTENDER:
 		case CLASS_JAWA:
 			if (crosshairEnt->playerState->persistant[PERS_TEAM] == NPCTEAM_ENEMY)
@@ -4417,6 +4432,19 @@ void CG_DrawEnemyStatus( void )
 			tclr2[1] = 1.0f;
 			tclr2[2] = 0.125f;
 			tclr2[3] = 1.0f;
+		}
+		else if (cgs.clientinfo[currentCrosshairEntity].team == FACTION_PIRATES)
+		{
+			sprintf(str2, "< Pirate >");
+			tclr[0] = 0.5f;
+			tclr[1] = 0.5f;
+			tclr[2] = 0.5f;
+			tclr[3] = 1.0f;
+
+			tclr[0] = 0.5f;
+			tclr[1] = 0.5f;
+			tclr[2] = 0.5f;
+			tclr[3] = 1.0f;
 		}
 		else if (cgs.clientinfo[currentCrosshairEntity].team == FACTION_WILDLIFE)
 		{
@@ -5628,6 +5656,7 @@ static float CG_DrawTeamOverlay( float y, qboolean right, qboolean upper ) {
 		&& cg.snap->ps.persistant[PERS_TEAM] != FACTION_REBEL
 		&& cg.snap->ps.persistant[PERS_TEAM] != FACTION_MANDALORIAN
 		&& cg.snap->ps.persistant[PERS_TEAM] != FACTION_MERC
+		&& cg.snap->ps.persistant[PERS_TEAM] != FACTION_PIRATES
 		&& cg.snap->ps.persistant[PERS_TEAM] != FACTION_WILDLIFE) {
 		return y; // Not on any team
 	}
@@ -5700,6 +5729,11 @@ static float CG_DrawTeamOverlay( float y, qboolean right, qboolean upper ) {
 		hcolor[0] = 0.125f;
 		hcolor[1] = 0.75f;
 		hcolor[2] = 0.125f;
+		hcolor[3] = 1.0f;
+	} else if (cg.snap->ps.persistant[PERS_TEAM] == FACTION_PIRATES) {
+		hcolor[0] = 0.5f;
+		hcolor[1] = 0.5f;
+		hcolor[2] = 0.5f;
 		hcolor[3] = 1.0f;
 	} else if (cg.snap->ps.persistant[PERS_TEAM] == FACTION_WILDLIFE) {
 		hcolor[0] = 0.9f;
@@ -6878,6 +6912,7 @@ static void CG_DrawCrosshair( vec3_t worldPoint, int chEntValid ) {
 					|| crossEnt->currentState.teamowner == FACTION_REBEL
 					|| crossEnt->currentState.teamowner == FACTION_MANDALORIAN
 					|| crossEnt->currentState.teamowner == FACTION_MERC
+					|| crossEnt->currentState.teamowner == FACTION_PIRATES
 					|| crossEnt->currentState.teamowner == FACTION_WILDLIFE)
 				{
 					if (cgs.gametype < GT_TEAM)
@@ -7989,9 +8024,9 @@ void CG_DrawNPCNames( void )
 				tclr[2] = 0.125f;
 				tclr[3] = 1.0f;
 
-				tclr[0] = 0.75f;
-				tclr[1] = 0.75f;
-				tclr[2] = 0.125f;
+				tclr2[0] = 0.75f;
+				tclr2[1] = 0.75f;
+				tclr2[2] = 0.125f;
 				tclr2[3] = 1.0f;
 			}
 			else if (cgs.clientinfo[i].team == FACTION_WILDLIFE)
@@ -8002,9 +8037,9 @@ void CG_DrawNPCNames( void )
 				tclr[2] = 0.125f;
 				tclr[3] = 1.0f;
 
-				tclr[0] = 0.75f;
-				tclr[1] = 0.75f;
-				tclr[2] = 0.125f;
+				tclr2[0] = 0.75f;
+				tclr2[1] = 0.75f;
+				tclr2[2] = 0.125f;
 				tclr2[3] = 1.0f;
 			}
 			else if (cgs.clientinfo[i].team == FACTION_MERC)
@@ -8015,9 +8050,22 @@ void CG_DrawNPCNames( void )
 				tclr[2] = 0.125f;
 				tclr[3] = 1.0f;
 
-				tclr[0] = 0.125f;
-				tclr[1] = 0.75f;
-				tclr[2] = 0.125f;
+				tclr2[0] = 0.125f;
+				tclr2[1] = 0.75f;
+				tclr2[2] = 0.125f;
+				tclr2[3] = 1.0f;
+			}
+			else if (cgs.clientinfo[i].team == FACTION_PIRATES)
+			{
+				sprintf(str2, "< Pirate >");
+				tclr[0] = 0.5f;
+				tclr[1] = 0.5f;
+				tclr[2] = 0.5f;
+				tclr[3] = 1.0f;
+
+				tclr2[0] = 0.5f;
+				tclr2[1] = 0.5f;
+				tclr2[2] = 0.5f;
 				tclr2[3] = 1.0f;
 			}
 			else
@@ -8373,14 +8421,25 @@ void CG_DrawNPCNames( void )
 				tclr2[2] = 0.7f;
 				tclr2[3] = 1.0f;
 				break;
+			case CLASS_RODIAN:
+			case CLASS_WEEQUAY:
+				sprintf(str2, "< Pirate >");
+				tclr[0] = 0.5f;
+				tclr[1] = 0.5f;
+				tclr[2] = 0.5f;
+				tclr[3] = 1.0f;
+
+				tclr2[0] = 0.5f;
+				tclr2[1] = 0.5f;
+				tclr2[2] = 0.5f;
+				tclr2[3] = 1.0f;
+				break;
 			case CLASS_GALAK:
 			case CLASS_GRAN:
 			case CLASS_REELO:
 			case CLASS_MURJJ:
-			case CLASS_RODIAN:
 			case CLASS_TRANDOSHAN:
 			case CLASS_UGNAUGHT:
-			case CLASS_WEEQUAY:
 			case CLASS_BARTENDER:
 			case CLASS_JAWA:
 				if (cent->playerState->persistant[PERS_TEAM] == NPCTEAM_ENEMY)
@@ -9391,8 +9450,10 @@ static void CG_DrawTeamVote(void) {
 		cs_offset = 2;
 	else if ( cgs.clientinfo[cg.clientNum].team == FACTION_MERC )
 		cs_offset = 3;
-	else if (cgs.clientinfo[cg.clientNum].team == FACTION_WILDLIFE)
+	else if (cgs.clientinfo[cg.clientNum].team == FACTION_PIRATES)
 		cs_offset = 4;
+	else if (cgs.clientinfo[cg.clientNum].team == FACTION_WILDLIFE)
+		cs_offset = 5;
 	else
 		return;
 

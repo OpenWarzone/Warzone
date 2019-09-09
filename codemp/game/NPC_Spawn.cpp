@@ -2273,6 +2273,7 @@ extern vmCvar_t npc_imperials;
 extern vmCvar_t npc_rebels;
 extern vmCvar_t npc_mandalorians;
 extern vmCvar_t npc_mercs;
+extern vmCvar_t npc_pirates;
 extern vmCvar_t npc_wildlife;
 extern vmCvar_t npc_civilians;
 extern vmCvar_t npc_vendors;
@@ -2288,6 +2289,7 @@ void NPC_PrecacheWarzoneNPCs ( void )
 	trap->Cvar_Register(&npc_rebels, "npc_rebels", "0", CVAR_ARCHIVE);
 	trap->Cvar_Register(&npc_mandalorians, "npc_mandalorians", "0", CVAR_ARCHIVE);
 	trap->Cvar_Register(&npc_mercs, "npc_mercs", "0", CVAR_ARCHIVE);
+	trap->Cvar_Register(&npc_mercs, "npc_pirates", "0", CVAR_ARCHIVE);
 	trap->Cvar_Register(&npc_wildlife, "npc_wildlife", "0", CVAR_ARCHIVE);
 	trap->Cvar_Register(&npc_civilians, "npc_civilians", "0", CVAR_ARCHIVE);
 

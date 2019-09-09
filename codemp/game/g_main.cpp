@@ -1223,11 +1223,15 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 	Com_Printf("^5--------- ^7Spawn Groups^5 ---------\n");
 	NPC_LoadSpawnList( "default_rebels" );
 	NPC_LoadSpawnList( "default_empire" );
+	NPC_LoadSpawnList( "default_mandalorians" );
+	NPC_LoadSpawnList( "default_mercenaries" );
+	NPC_LoadSpawnList( "default_pirates" );
 	NPC_LoadSpawnList( "default_wildlife" );
 	NPC_LoadSpawnList( va("%s_rebels", mapname.string) );
 	NPC_LoadSpawnList( va("%s_empire", mapname.string) );
 	NPC_LoadSpawnList( va("%s_mandalorians", mapname.string) );
 	NPC_LoadSpawnList( va("%s_mercenaries", mapname.string) );
+	NPC_LoadSpawnList( va("%s_pirates", mapname.string) );
 	NPC_LoadSpawnList( va("%s_wildlife", mapname.string) );
 	Com_Printf("^5--------------------------------\n");
 

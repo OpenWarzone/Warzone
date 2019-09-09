@@ -44,6 +44,8 @@ cvar_t	*r_drawSort;
 
 cvar_t	*r_cullNoDraws;
 
+cvar_t	*r_drawIndirect;
+
 cvar_t	*r_superSampleMultiplier;
 
 cvar_t	*r_instanceCloudReductionCulling;
@@ -1447,6 +1449,8 @@ void R_Register( void )
 	r_drawSort = ri->Cvar_Get("r_drawSort", "1", CVAR_ARCHIVE);
 
 	r_cullNoDraws = ri->Cvar_Get("r_cullNoDraws", "1", CVAR_ARCHIVE);
+
+	r_drawIndirect = ri->Cvar_Get("r_drawIndirect", "0", CVAR_ARCHIVE);
 
 	r_superSampleMultiplier = ri->Cvar_Get( "r_superSampleMultiplier", "1", CVAR_ARCHIVE | CVAR_LATCH );
 
