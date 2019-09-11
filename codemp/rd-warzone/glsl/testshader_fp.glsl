@@ -172,7 +172,7 @@ void main()
 {
 	Drawing(gl_FragColor, var_TexCoords * Res0);
 }
-#elif 0
+#else
 //
 // SS Snow (and rain) testing
 //
@@ -237,11 +237,10 @@ void main()
 	vec3 col = texture(u_DiffuseMap, var_TexCoords).rgb;
 	vec4 position = texture(u_PositionMap, var_TexCoords);
 	vec3 originalRayDir = -normalize(u_ViewOrigin - position.xyz);
-	//vec3 originalRayDir = -normalize(position.xyz);
-	vec3 vCameraPos = u_ViewOrigin;//normalize(u_ViewOrigin);//vec3(0.0);//u_ViewOrigin;
+	vec3 vCameraPos = u_ViewOrigin;
 
 //#define __RAIN__
-#define __SNOW__
+//#define __SNOW__
 
 #ifdef __RAIN__
 	// Twelve layers of rain sheets...
@@ -285,73 +284,6 @@ void main()
 #endif //__SNOW__
 
 	col = clamp(col, 0.0, 1.0);
-
-	gl_FragColor = vec4(col, 1.0);
-}
-#else
-
-vec3 HaarmPeterDuikerFilmicToneMapping(in vec3 x)
-{
-	x = max( vec3(0.0), x - 0.004 );
-	return pow( abs( ( x * ( 6.2 * x + 0.5 ) ) / ( x * ( 6.2 * x + 1.7 ) + 0.06 ) ), vec3(2.2) );
-}
-
-vec3 CustomToneMapping(in vec3 x)
-{
-	const float A = 0.665f;
-	const float B = 0.09f;
-	const float C = 0.004f;
-	const float D = 0.445f;
-	const float E = 0.26f;
-	const float F = 0.025f;
-	const float G = 0.16f;//0.145f;
-	const float H = 1.1844f;//1.15f;
-
-    // gamma space or not?
-	return (((x*(A*x+B)+C)/(x*(D*x+E)+F))-G) / H;
-}
-
-vec3 ColorFilmicToneMapping(in vec3 x)
-{
-	// Filmic tone mapping
-	const vec3 A = vec3(0.55f, 0.50f, 0.45f);	// Shoulder strength
-	const vec3 B = vec3(0.30f, 0.27f, 0.22f);	// Linear strength
-	const vec3 C = vec3(0.10f, 0.10f, 0.10f);	// Linear angle
-	const vec3 D = vec3(0.10f, 0.07f, 0.03f);	// Toe strength
-	const vec3 E = vec3(0.01f, 0.01f, 0.01f);	// Toe Numerator
-	const vec3 F = vec3(0.30f, 0.30f, 0.30f);	// Toe Denominator
-	const vec3 W = vec3(2.80f, 2.90f, 3.10f);	// Linear White Point Value
-	const vec3 F_linearWhite = ((W*(A*W+C*B)+D*E)/(W*(A*W+B)+D*F))-(E/F);
-	vec3 F_linearColor = ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-(E/F);
-
-    // gamma space or not?
-	return pow(clamp(F_linearColor * 1.25 / F_linearWhite, 0.0, 1.0), vec3(1.25));
-}
-
-#define sphericalAmount u_Local0.g/*1.0*/ //[0.0:2.0] //-Amount of spherical tonemapping applied...sort of
-
-vec3 SphericalPass( vec3 color )
-{
-	vec3 signedColor = clamp(color.rgb, 0.0, 1.0) * 2.0 - 1.0;
-	vec3 sphericalColor = sqrt(vec3(1.0) - signedColor.rgb * signedColor.rgb);
-	sphericalColor = sphericalColor * 0.5 + 0.5;
-	sphericalColor *= color.rgb;
-	color.rgb += sphericalColor.rgb * sphericalAmount;
-	color.rgb *= 0.95;
-	return color;
-}
-
-void main()
-{
-	vec3 col = texture(u_DiffuseMap, var_TexCoords).rgb;
-	if (u_Local0.r == 1)
-		col = HaarmPeterDuikerFilmicToneMapping(col);
-	if (u_Local0.r == 2)
-		col = CustomToneMapping(col);
-	if (u_Local0.r == 3)
-		col = ColorFilmicToneMapping(col);
-	if (u_Local0.r == 4)
-		col = SphericalPass(col);
 
 	gl_FragColor = vec4(col, 1.0);
 }

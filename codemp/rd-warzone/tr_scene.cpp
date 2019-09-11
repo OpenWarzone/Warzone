@@ -1310,9 +1310,17 @@ void RE_EndScene()
 	r_firstSceneDlight = r_numdlights;
 	r_firstScenePoly = r_numpolys;
 
+#ifdef __INVERSE_DEPTH_BUFFERS__
+	qglClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	qglClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	qglClearDepth(0.0f);
+#else //!__INVERSE_DEPTH_BUFFERS__
 	qglClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	qglClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 	qglClearDepth(1.0f);
+#endif //__INVERSE_DEPTH_BUFFERS__
 }
 
 /*

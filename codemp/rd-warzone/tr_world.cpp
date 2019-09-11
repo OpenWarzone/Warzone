@@ -702,8 +702,10 @@ void R_AddBrushModelSurfaces(trRefEntity_t *ent, model_t *currentModel, int enti
 		return;
 	}
 
+#ifdef __DLIGHT_BMODEL__
 	R_SetupEntityLighting(&tr.refdef, ent);
 	R_DlightBmodel(bmodel, ent, currentModel, entityNum, shiftedEntityNum);
+#endif //__DLIGHT_BMODEL__
 
 	for (i = 0; i < bmodel->numSurfaces; i++) {
 		int surf = bmodel->firstSurface + i;
@@ -711,7 +713,7 @@ void R_AddBrushModelSurfaces(trRefEntity_t *ent, model_t *currentModel, int enti
 		if (tr.world->surfacesViewCount[surf] != tr.viewCount)
 		{
 			tr.world->surfacesViewCount[surf] = tr.viewCount;
-			R_AddWorldSurfaceThreaded(tr.world->surfaces + surf, ent, entityNum, /*tr.currentEntity*/ent->needDlights, 0, qtrue, shiftedEntityNum);
+			R_AddWorldSurfaceThreaded(tr.world->surfaces + surf, ent, entityNum, /*ent->needDlights*/qfalse, 0, qtrue, shiftedEntityNum);
 		}
 	}
 }

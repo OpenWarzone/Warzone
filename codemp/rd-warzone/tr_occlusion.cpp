@@ -281,7 +281,7 @@ void RB_MoveSky(void)
 	GL_State(GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_DEPTHFUNC_LESS | GLS_DEPTHMASK_TRUE);
 	qglColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 	GL_Cull(CT_TWO_SIDED);
-	qglDepthRange(0, 1);
+	GL_SetDepthRange(0, 1);
 
 	vec2_t texCoords[4];
 
@@ -391,8 +391,8 @@ void RB_OcclusionCulling(void)
 			qglDepthMask(GL_FALSE);
 
 			GL_Cull(CT_TWO_SIDED);
-			//qglDepthRange(0, 0);
-			qglDepthRange(0, 1);
+			//GL_SetDepthRange(0, 0);
+			GL_SetDepthRange(0, 1);
 
 
 			vec3_t mOrigin, mCameraForward, mCameraLeft, mCameraDown;
@@ -492,7 +492,7 @@ void RB_OcclusionCulling(void)
 			tess.minIndex = 0;
 			tess.maxIndex = 0;
 
-			//qglDepthRange( 0, 1 );
+			//GL_SetDepthRange( 0, 1 );
 			qglColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 			qglDepthMask(GL_TRUE);
 			GL_State(GLS_DEFAULT);

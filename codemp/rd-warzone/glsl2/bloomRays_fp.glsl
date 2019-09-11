@@ -54,11 +54,11 @@ uniform vec4					u_Local2; // nightScale, r_bloomRaysSamples, testvalue0, testva
 
 varying vec2					var_TexCoords;
 
-#define BLOOMRAYS_STEPS			u_Local2.g
-#define	BLOOMRAYS_DECAY			u_Local1.r
-#define	BLOOMRAYS_WEIGHT		u_Local1.g
-#define	BLOOMRAYS_DENSITY		u_Local1.b
-#define	BLOOMRAYS_STRENGTH		u_Local1.a
+#define BLOOMRAYS_STEPS			24.0//u_Local2.g
+#define	BLOOMRAYS_DECAY			0.9975//u_Local1.r
+#define	BLOOMRAYS_WEIGHT		0.2//u_Local1.g
+#define	BLOOMRAYS_DENSITY		1.0//u_Local1.b
+#define	BLOOMRAYS_STRENGTH		1.0//u_Local1.a
 #define	BLOOMRAYS_FALLOFF		1.0
 
 // 9 quads on screen for positions...

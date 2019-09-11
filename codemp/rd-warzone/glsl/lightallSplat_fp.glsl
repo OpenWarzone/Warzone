@@ -3,6 +3,7 @@
 //#define __USE_FULL_SPLAT_BLENDFUNC__		// Meh... fast should be nearly as good...
 #define __HIGH_PASS_SHARPEN__
 #define __USE_REGIONS__
+#define __USE_PROCEDURAL_NOISE__
 
 
 #define SCREEN_MAPS_ALPHA_THRESHOLD 0.666
@@ -318,22 +319,10 @@ vec2 EncodeNormal(vec3 n)
 }
 #endif //__ENCODE_NORMALS_RECONSTRUCT_Z__
 
-vec3 vLocalSeed2;
-
-// This function returns random number from zero to one
-float randZeroOne2()
-{
-	uint n = floatBitsToUint(vLocalSeed2.y * 214013.0 + vLocalSeed2.x * 2531011.0 + vLocalSeed2.z * 141251.0);
-	n = n * (n * n * 15731u + 789221u);
-	n = (n >> 9u) | 0x3F800000u;
-
-	float fRes = 2.0 - uintBitsToFloat(n);
-	vLocalSeed2 = vec3(vLocalSeed2.x + 147158.0 * fRes, vLocalSeed2.y*fRes + 415161.0 * fRes, vLocalSeed2.z + 324154.0*fRes);
-	return fRes;
-}
 
 vec3 vLocalSeed;
 
+#ifdef __USE_PROCEDURAL_NOISE__
 float hash( const in float n ) {
 	return fract(sin(n)*4378.5453);
 }
@@ -374,9 +363,40 @@ float noise(in vec3 o)
 	return res;
 }
 
+
 const mat3 m = mat3( 0.00,  0.80,  0.60,
-                    -0.80,  0.36, -0.48,
-                    -0.60, -0.48,  0.64 );
+					-0.80,  0.36, -0.48,
+					-0.60, -0.48,  0.64 );
+
+float SmoothNoise( vec3 p )
+{
+	float f;
+	f  = 0.5000*noise( p ); p = m*p*2.02;
+	f += 0.2500*noise( p ); 
+	
+	return f * (1.0 / (0.5000 + 0.2500));
+}
+
+float randZeroOne()
+{
+	return SmoothNoise(vec3(vLocalSeed.xy, 0.0) * 0.01); // * 0.01 to smooth over a larger area...
+}
+#else //!__USE_PROCEDURAL_NOISE__
+const float ppx = 1.0 / 2048.0;
+
+float hash( const in float n ) {
+	return texture(u_TextureMap, vec2(n, 0.0) * ppx).r;
+}
+
+float noise(in vec3 o) 
+{
+	return texture(u_TextureMap, o.xy+o.z * ppx).r;
+}
+
+
+const mat3 m = mat3( 0.00,  0.80,  0.60,
+					-0.80,  0.36, -0.48,
+					-0.60, -0.48,  0.64 );
 
 float SmoothNoise( vec3 p )
 {
@@ -391,6 +411,8 @@ float randZeroOne()
 {
 	return SmoothNoise(vec3(vLocalSeed.xy, 0.0) * 0.01); // * 0.01 to smooth over a larger area...
 }
+#endif //__USE_PROCEDURAL_NOISE__
+
 
 //#define __DEBUG_TESS_CONTROL__
 #ifdef __DEBUG_TESS_CONTROL__
@@ -1041,7 +1063,7 @@ vec4 GetDiffuse(vec2 texCoords, inout bool isFakeGrass)
 
 		if (GRASS_ENABLED > 0.0 && FAKE_GRASS_ENABLED > 0.0 && USE_TRIPLANAR > 0.0 && var_GrassSlope < GRASS_MAX_SLOPE)
 		{
-			float rpx = 1.0 / 2048.0;
+			const float rpx = 1.0 / 2048.0;
 
 			float dist = distance(u_ViewOrigin.xyz, m_vertPos.xyz);
 			float gAlpha = clamp(dist / (GRASS_DISTANCE * 0.75), 0.0, 1.0);
@@ -1049,8 +1071,6 @@ vec4 GetDiffuse(vec2 texCoords, inout bool isFakeGrass)
 			if (u_Local14.a > 0.0 && m_vertPos.z >= waterBlendMaxZ && gAlpha > 0.0)
 			{// Fake above water distant grass...
 				//float g = SmoothNoise(m_vertPos * FAKE_GRASS_SCALE);
-				//vLocalSeed2 = m_vertPos * FAKE_GRASS_SCALE;
-				//float g = randZeroOne2();
 				
 				//float g = noise(vec3(ivec3(vec3(m_vertPos.xy, 0.0) * FAKE_GRASS_SCALE)));
 				float g = texture(u_TextureMap, m_vertPos.xy * rpx * FAKE_GRASS_SCALE).r;
@@ -1068,8 +1088,6 @@ vec4 GetDiffuse(vec2 texCoords, inout bool isFakeGrass)
 			if (u_Local15.a > 0.0 && m_vertPos.z <= UNDERWATER_GRASS_BLEND_START && gAlpha > 0.0)
 			{// Fake below water distant grass...
 				//float g = SmoothNoise(m_vertPos * FAKE_GRASS_SCALE_UNDERWATER);
-				//vLocalSeed2 = m_vertPos * FAKE_GRASS_SCALE_UNDERWATER;
-				//float g = randZeroOne2();
 				
 				//float g = noise(vec3(ivec3(vec3(m_vertPos.xy, 0.0) * FAKE_GRASS_SCALE_UNDERWATER)));
 				float g = texture(u_TextureMap, m_vertPos.xy * rpx * FAKE_GRASS_SCALE_UNDERWATER).r;
@@ -1132,7 +1150,7 @@ void main()
 #ifdef __DEBUG_TESS_CONTROL__
 	if (u_Local9.r > 0.0)
 	{
-		vec3 f = noise3d/*fbm*/(m_vertPos.xyz * u_Local9.r);
+		vec3 f = noise3d(m_vertPos.xyz * u_Local9.r);
 		gl_FragColor = vec4(f, 1.0);
 		out_Glow = vec4(0.0);
 		out_Position = vec4(m_vertPos.xyz, SHADER_MATERIAL_TYPE+1.0);

@@ -5,6 +5,7 @@
 //#define __DEBUG__
 //#define USE_LIGHTING				// Use lighting in this shader? trying to handle the lighting in deferredlight now instead.
 //#define USE_DETAILED_UNDERWATER		// Experimenting...
+#define __USE_PROCEDURAL_NOISE__
 
 /*
 heightMap – height-map used for waves generation as described in the section “Modifying existing geometry”
@@ -77,6 +78,8 @@ uniform samplerCube							u_SkyCubeMap;
 uniform samplerCube							u_SkyCubeMapNight;
 
 uniform sampler2D							u_EmissiveCubeMap;		// water reflection image... (not really a cube, just reusing using the uniform)
+
+//uniform sampler2D							u_GlowMap;				// random2k image
 #endif //defined(USE_BINDLESS_TEXTURES)
 
 
@@ -301,6 +304,7 @@ vec4 waterMapUpperAtCoord ( vec2 coord )
 	return wmap;
 }
 
+#ifdef __USE_PROCEDURAL_NOISE__
 float hash( const in float n ) {
 	return fract(sin(n)*4378.5453);
 }
@@ -340,6 +344,18 @@ float noise(in vec3 o)
 	
 	return res;
 }
+#else //!__USE_PROCEDURAL_NOISE__
+const float ppx = 1.0 / 2048.0;
+
+float hash( const in float n ) {
+	return texture(u_GlowMap, vec2(n, 0.0) * ppx).r;
+}
+
+float noise(in vec3 o) 
+{
+	return texture(u_GlowMap, o.xy+o.z * ppx).r;
+}
+#endif //__USE_PROCEDURAL_NOISE__
 
 const mat3 m = mat3( 0.00,  0.80,  0.60,
                     -0.80,  0.36, -0.48,

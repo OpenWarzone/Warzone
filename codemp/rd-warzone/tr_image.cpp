@@ -2786,7 +2786,11 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgT
 
 		//qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
 		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+#ifdef __INVERSE_DEPTH_BUFFERS__
+		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_GREATER);
+#else //!__INVERSE_DEPTH_BUFFERS__
 		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL/*GL_LESS*/);
+#endif //__INVERSE_DEPTH_BUFFERS__
 	}
 
 	if (glRefConfig.bindlessTextures)
@@ -2947,7 +2951,12 @@ image_t *R_CreateCubemapFromImageDatas(const char *name, byte **pic, int width, 
 
 		//qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
 		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+
+#ifdef __INVERSE_DEPTH_BUFFERS__
+		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_GREATER);
+#else //!__INVERSE_DEPTH_BUFFERS__
 		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL/*GL_LESS*/);
+#endif //__INVERSE_DEPTH_BUFFERS__
 	}
 
 	if (glRefConfig.bindlessTextures)
@@ -4836,7 +4845,8 @@ void R_CreateBuiltinImages( void ) {
 		else
 		{
 			hdrFormat = GL_RGBA16F;
-			hdrDepth = GL_DEPTH_COMPONENT24;
+			//hdrDepth = GL_DEPTH_COMPONENT24;
+			hdrDepth = GL_DEPTH_COMPONENT32;
 		}
 	}
 
@@ -4887,16 +4897,16 @@ void R_CreateBuiltinImages( void ) {
 	}
 #endif
 
+#define LINEAR_DEPTH_BITS GL_R16F//GL_RGBA16F
+
 	//if (r_drawSunRays->integer)
 		tr.sunRaysImage = R_CreateImage("*sunRays", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, rgbFormat);
 	
 	tr.renderDepthImage  = R_CreateImage("*renderdepth",  NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrDepth);
 	tr.waterDepthImage  = R_CreateImage("*waterdepth",  NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrDepth);
 	tr.textureDepthImage = R_CreateImage("*texturedepth", NULL, PSHADOW_MAP_SIZE, PSHADOW_MAP_SIZE, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrDepth);
-	tr.genericDepthImage = R_CreateImage("*genericdepth", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA16F);
+	tr.genericDepthImage = R_CreateImage("*genericdepth", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, LINEAR_DEPTH_BITS/*GL_RGBA16F*/);
 	
-#define LINEAR_DEPTH_BITS GL_RGBA16F
-
 	tr.dofFocusDepthScratchImage = R_CreateImage("*dofFocusDepthScratch", NULL, 1, 1, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, LINEAR_DEPTH_BITS);
 	tr.dofFocusDepthImage = R_CreateImage("*dofFocusDepth", NULL, 1, 1, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, LINEAR_DEPTH_BITS);
 
@@ -4917,10 +4927,10 @@ void R_CreateBuiltinImages( void ) {
 	tr.genericFBO2Image  = R_CreateImage("_generic2",  NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
 	tr.genericFBO3Image  = R_CreateImage("_generic3",  NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
 
-	tr.dummyImage = R_CreateImage("_dummy",  NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
-	tr.dummyImage2 = R_CreateImage("_dummy2",  NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
-	tr.dummyImage3 = R_CreateImage("_dummy3",  NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
-	tr.dummyImage4 = R_CreateImage("_dummy4", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
+	tr.dummyImage = R_CreateImage("_dummy",  NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, LINEAR_DEPTH_BITS/*hdrFormat*/);
+	tr.dummyImage2 = R_CreateImage("_dummy2",  NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, LINEAR_DEPTH_BITS/*hdrFormat*/);
+	tr.dummyImage3 = R_CreateImage("_dummy3",  NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, LINEAR_DEPTH_BITS/*hdrFormat*/);
+	tr.dummyImage4 = R_CreateImage("_dummy4", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, LINEAR_DEPTH_BITS/*hdrFormat*/);
 
 	//tr.ssdoImage1 = R_CreateImage("_ssdoImage1", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
 	//tr.ssdoImage2 = R_CreateImage("_ssdoImage2", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);

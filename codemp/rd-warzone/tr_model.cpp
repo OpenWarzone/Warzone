@@ -1991,6 +1991,16 @@ static qboolean R_LoadNIF(model_t * mod, int lod, void *buffer, const char *modN
 	return qtrue;
 }
 
+#ifdef __NIF_GLM_IMPORT_TEST__
+qboolean R_LoadPlayerNIF(model_t *mod, void *buffer, const char *mod_name, qboolean &bAlreadyCached)
+{
+	char stripped[128] = { { 0 } };
+	COM_StripExtension(mod_name, stripped, strlen(mod_name));
+
+	return R_LoadNIF(mod, 0, buffer, stripped, 0, "nif");
+}
+#endif //__NIF_GLM_IMPORT_TEST__
+
 qhandle_t R_RegisterNIF(const char *name, model_t *mod)
 {
 	unsigned	*buf;

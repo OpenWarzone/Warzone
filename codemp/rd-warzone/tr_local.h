@@ -56,6 +56,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //#define __FREE_WORLD_DATA__					// Free verts and indexes for everything with a VBO+IBO to save ram... Would need to disable saber marks to do this though...
 //#define __VBO_LODMODELS__						// Experimental lodmodel > VBO crap... Broken...
 //#define __LODMODEL_INSTANCING__				// Experimental lodmodel > instancing crap... Broken...
+//#define __DLIGHT_BMODEL__						// Bmodel dlights. They are handled by deferred shader like everything else now...
+
+//#define __INVERSE_DEPTH_BUFFERS__				// Inverted depth buffer...
 
 //#define __USE_QGL_FINISH__					// For testing...
 #define __USE_QGL_FLUSH__						// Use this one...
@@ -142,8 +145,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #endif //__HUMANOIDS_BEND_GRASS__
 
 
-#define __NIF_IMPORT_TEST__
-//#define __NIF_GLM_IMPORT_TEST__
+#define __NIF_IMPORT_TEST__						// Loading of skyrim .nif models...
+//#define __NIF_GLM_IMPORT_TEST__					// Testing loading of skyrim nif models as player models...
 
 
 //
@@ -2899,7 +2902,9 @@ typedef enum {
 	RENDERPASS_GROUNDFOLIAGE,
 	RENDERPASS_VINES,
 	RENDERPASS_MIST,
-	RENDERPASS_MAX
+	RENDERPASS_MAX,
+	// 2D and stuff is after max...
+	RENDERPASS_POSTPROCESS
 } renderPasses_t;
 
 // all state modified by the back end is seperated
@@ -4753,6 +4758,9 @@ void R_OptimizeMesh(uint32_t *numVerts, uint32_t *numIndexes, uint32_t *indexes,
 int GetVBOArea(vec3_t origin);
 #endif //__USE_VBO_AREAS__
 
+
+void GL_SetDepthRange(GLclampd zNear, GLclampd zFar);
+void GL_SetDepthFunc(GLenum func);
 
 #include "tr_glsl.h"
 

@@ -2015,6 +2015,7 @@ void RB_WaterPost(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 			GLSL_SetBindlessTexture(shader, UNIFORM_HEIGHTMAP, &tr.waterHeightMapImage, 0);
 			GLSL_SetBindlessTexture(shader, UNIFORM_SKYCUBEMAP, &tr.skyCubeMap, 0);
 			GLSL_SetBindlessTexture(shader, UNIFORM_SKYCUBEMAPNIGHT, &tr.skyCubeMapNight, 0);
+			//GLSL_SetBindlessTexture(shader, UNIFORM_GLOWMAP, &tr.random2KImage[0], 0);
 			GLSL_BindlessUpdate(shader);
 		}
 		else
@@ -2051,6 +2052,9 @@ void RB_WaterPost(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 
 			GLSL_SetUniformInt(shader, UNIFORM_SKYCUBEMAPNIGHT, TB_SKYCUBEMAPNIGHT);
 			GL_BindToTMU(tr.skyCubeMapNight, TB_SKYCUBEMAPNIGHT);
+
+			//GLSL_SetUniformInt(shader, UNIFORM_GLOWMAP, TB_GLOWMAP);
+			//GL_BindToTMU(tr.random2KImage[0], TB_GLOWMAP);
 		}
 
 		GLSL_SetUniformVec3(shader, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);
@@ -2832,12 +2836,12 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 		GLSL_SetBindlessTexture(shader, UNIFORM_DIFFUSEMAP, &hdrFbo->colorImage[0], 0);
 		GLSL_SetBindlessTexture(shader, UNIFORM_NORMALMAP, &tr.renderNormalImage, 0);
 		GLSL_SetBindlessTexture(shader, UNIFORM_POSITIONMAP, &tr.renderPositionMapImage, 0);
-		GLSL_SetBindlessTexture(shader, UNIFORM_WATERPOSITIONMAP, &tr.waterPositionMapImage, 0);
 		GLSL_SetBindlessTexture(shader, UNIFORM_GLOWMAP, &tr.glowFboScaled[0]->colorImage[0], 0);
 		GLSL_SetBindlessTexture(shader, UNIFORM_WATER_EDGE_MAP, &tr.shinyImage, 0);
 		GLSL_SetBindlessTexture(shader, UNIFORM_ROADSCONTROLMAP, &tr.renderPshadowsImage, 0);
 		GLSL_SetBindlessTexture(shader, UNIFORM_SKYCUBEMAP, &tr.skyCubeMap, 0);
 		GLSL_SetBindlessTexture(shader, UNIFORM_SKYCUBEMAPNIGHT, &tr.skyCubeMapNight, 0);
+		GLSL_SetBindlessTexture(shader, UNIFORM_WATERPOSITIONMAP, &tr.random2KImage[0], 0);
 
 		if (r_normalMappingReal->integer)
 		{
@@ -2877,7 +2881,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 		GL_BindToTMU(tr.renderPositionMapImage, TB_POSITIONMAP);
 
 		GLSL_SetUniformInt(shader, UNIFORM_WATERPOSITIONMAP, TB_WATERPOSITIONMAP);
-		GL_BindToTMU(tr.waterPositionMapImage, TB_WATERPOSITIONMAP);
+		GL_BindToTMU(tr.random2KImage[0], TB_WATERPOSITIONMAP);
 
 		if (r_normalMappingReal->integer)
 		{
@@ -3193,6 +3197,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 
 	GLSL_SetUniformVec3(shader, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);
 
+	float NIGHT_SCALE = RB_NightScale();
 
 	vec3_t out;
 	float dist = 4096.0;
@@ -3223,7 +3228,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 		&& r_sunlightMode->integer >= 2
 		&& tr.screenShadowFbo
 		&& SHADOWS_ENABLED
-		&& RB_NightScale() < 1.0 // Can ignore rendering shadows at night...
+		&& NIGHT_SCALE < 1.0 // Can ignore rendering shadows at night...
 		&& (r_deferredLighting->integer || r_fastLighting->integer))
 		shadowsEnabled = qtrue;
 
@@ -3241,18 +3246,18 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 
 	vec4_t local5;
 	local5[0] = DYNAMIC_WEATHER_PUDDLE_STRENGTH;
-	local5[1] = mix(MAP_AMBIENT_CSB[0], MAP_AMBIENT_CSB_NIGHT[0], RB_NightScale());
-	local5[2] = mix(MAP_AMBIENT_CSB[1], MAP_AMBIENT_CSB_NIGHT[1], RB_NightScale());
-	local5[3] = mix(MAP_AMBIENT_CSB[2], MAP_AMBIENT_CSB_NIGHT[2], RB_NightScale());
+	local5[1] = mix(MAP_AMBIENT_CSB[0], MAP_AMBIENT_CSB_NIGHT[0], NIGHT_SCALE);
+	local5[2] = mix(MAP_AMBIENT_CSB[1], MAP_AMBIENT_CSB_NIGHT[1], NIGHT_SCALE);
+	local5[3] = mix(MAP_AMBIENT_CSB[2], MAP_AMBIENT_CSB_NIGHT[2], NIGHT_SCALE);
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL5, local5);
 
 	vec4_t local6;
-	float vibrancy = mix(MAP_VIBRANCY_DAY, MAP_VIBRANCY_NIGHT, RB_NightScale());
+	float vibrancy = mix(MAP_VIBRANCY_DAY, MAP_VIBRANCY_NIGHT, NIGHT_SCALE);
 	VectorSet4(local6, AO_MINBRIGHT, AO_MULTBRIGHT, vibrancy, r_truehdr->integer ? 1.0 : 0.0);
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL6, local6);
 
 	vec4_t local7;
-	float dayNightGlowFactor = mix(MAP_EMISSIVE_COLOR_SCALE, MAP_EMISSIVE_COLOR_SCALE_NIGHT, RB_NightScale());
+	float dayNightGlowFactor = mix(MAP_EMISSIVE_COLOR_SCALE, MAP_EMISSIVE_COLOR_SCALE_NIGHT, NIGHT_SCALE);
 	VectorSet4(local7, dayNightGlowFactor, cubeMapNum >= 0 ? 1.0 : 0.0, r_cubemapCullRange->value, r_skyLightContribution->value*SKY_LIGHTING_SCALE);
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL7, local7);
 
@@ -3266,12 +3271,12 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 	vec4_t vector;
 	if (r_cloudshadows->integer && PROCEDURAL_CLOUDS_ENABLED)
 	{
-		VectorSet4(vector, RB_NightScale(), DYNAMIC_WEATHER_CLOUDCOVER, DYNAMIC_WEATHER_CLOUDSCALE, (PROCEDURAL_CLOUDS_ENABLED && r_cloudshadows->integer > 0.0) ? r_cloudshadows->integer : 0.0);
+		VectorSet4(vector, NIGHT_SCALE, DYNAMIC_WEATHER_CLOUDCOVER, DYNAMIC_WEATHER_CLOUDSCALE, (PROCEDURAL_CLOUDS_ENABLED && r_cloudshadows->integer > 0.0) ? r_cloudshadows->integer : 0.0);
 		GLSL_SetUniformVec4(shader, UNIFORM_LOCAL8, vector);
 	}
 	else
 	{
-		VectorSet4(vector, RB_NightScale(), 0.0, 0.0, 0.0);
+		VectorSet4(vector, NIGHT_SCALE, 0.0, 0.0, 0.0);
 		GLSL_SetUniformVec4(shader, UNIFORM_LOCAL8, vector);
 	}
 

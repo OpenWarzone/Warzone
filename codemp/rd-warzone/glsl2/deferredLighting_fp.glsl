@@ -61,7 +61,7 @@ uniform sampler2D					u_MoonMaps[4];
 uniform sampler2D							u_DiffuseMap;		// Screen image
 uniform sampler2D							u_NormalMap;		// Flat normals
 uniform sampler2D							u_PositionMap;		// positionMap
-uniform sampler2D							u_WaterPositionMap;	// water positions
+uniform sampler2D							u_WaterPositionMap;	// random2K image
 uniform sampler2D							u_RoadsControlMap;	// Screen Pshadows Map
 
 #ifdef __USE_REAL_NORMALMAPS__
@@ -494,11 +494,11 @@ vec2 RB_PBR_DefaultsForMaterial(float MATERIAL_TYPE)
 	return settings;
 }
 
+#ifdef __USE_PROCEDURAL_NOISE__
 float proceduralHash( const in float n ) {
 	return fract(sin(n)*4378.5453);
 }
 
-#ifdef __PROCEDURALS_IN_DEFERRED_SHADER__
 float proceduralNoise(in vec3 o) 
 {
 	vec3 p = floor(o);
@@ -534,6 +534,22 @@ float proceduralNoise(in vec3 o)
 	
 	return res;
 }
+#else //!__USE_PROCEDURAL_NOISE__
+const float rpx = 1.0 / 2048.0;
+
+float proceduralHash( const in float n ) {
+	return texture(u_WaterPositionMap, vec2(n, 0.0) * rpx).r;
+}
+
+float proceduralNoise(in vec3 o) 
+{
+	return texture(u_WaterPositionMap, o.xy+o.z * rpx).r;
+}
+#endif //__USE_PROCEDURAL_NOISE__
+
+
+
+#ifdef __PROCEDURALS_IN_DEFERRED_SHADER__
 
 const mat3 proceduralMat = mat3( 0.00,  0.80,  0.60,
                     -0.80,  0.36, -0.48,
@@ -1696,7 +1712,7 @@ void main(void)
 			if (lightMult > 0.0)
 			{
 				lightColor *= lightMult;
-				lightColor *= clamp(1.0 - NIGHT_SCALE, 0.0, 1.0); // Day->Night scaling of sunlight...
+				lightColor *= 1.0 - NIGHT_SCALE; // Day->Night scaling of sunlight...
 
 				lightColor.rgb *= lightsReflectionFactor * phongFactor * origColorStrength * 8.0;
 

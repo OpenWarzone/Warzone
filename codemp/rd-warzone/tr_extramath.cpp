@@ -105,12 +105,25 @@ void Matrix16Translation( vec3_t vec, matrix_t out )
 	out[ 3] = 0.0f; out[ 7] = 0.0f; out[11] = 0.0f; out[15] = 1.0f;
 }
 
-void Matrix16Ortho( float left, float right, float bottom, float top, float znear, float zfar, matrix_t out )
+void Matrix16Ortho( float left, float right, float bottom, float top, float znearIn, float zfarIn, matrix_t out )
 {
-	out[ 0] = 2.0f / (right - left); out[ 4] = 0.0f;                  out[ 8] = 0.0f;                  out[12] = -(right + left) / (right - left);
-	out[ 1] = 0.0f;                  out[ 5] = 2.0f / (top - bottom); out[ 9] = 0.0f;                  out[13] = -(top + bottom) / (top - bottom);
-	out[ 2] = 0.0f;                  out[ 6] = 0.0f;                  out[10] = 2.0f / (zfar - znear); out[14] = -(zfar + znear) / (zfar - znear);
-	out[ 3] = 0.0f;                  out[ 7] = 0.0f;                  out[11] = 0.0f;                  out[15] = 1.0f;
+#ifdef __INVERSE_DEPTH_BUFFERS__
+	float znear = zfarIn;
+	float zfar = znearIn;
+
+	out[0] = 2.0f / (right - left); out[4] = 0.0f;                  out[8] = 0.0f;                  out[12] = -(right + left) / (right - left);
+	out[1] = 0.0f;                  out[5] = 2.0f / (top - bottom); out[9] = 0.0f;                  out[13] = -(top + bottom) / (top - bottom);
+	out[2] = 0.0f;                  out[6] = 0.0f;                  out[10] = 2.0f / (znear - zfar); out[14] = -(znear + zfar) / (znear - zfar);
+	out[3] = 0.0f;                  out[7] = 0.0f;                  out[11] = 0.0f;                  out[15] = 1.0f;
+#else //!__INVERSE_DEPTH_BUFFERS__
+	float znear = znearIn;
+	float zfar = zfarIn;
+
+	out[0] = 2.0f / (right - left); out[4] = 0.0f;                  out[8] = 0.0f;                  out[12] = -(right + left) / (right - left);
+	out[1] = 0.0f;                  out[5] = 2.0f / (top - bottom); out[9] = 0.0f;                  out[13] = -(top + bottom) / (top - bottom);
+	out[2] = 0.0f;                  out[6] = 0.0f;                  out[10] = 2.0f / (zfar - znear); out[14] = -(zfar + znear) / (zfar - znear);
+	out[3] = 0.0f;                  out[7] = 0.0f;                  out[11] = 0.0f;                  out[15] = 1.0f;
+#endif //__INVERSE_DEPTH_BUFFERS__
 }
 
 void Matrix16View(vec3_t axes[3], vec3_t origin, matrix_t out)

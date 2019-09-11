@@ -376,7 +376,7 @@ static void DrawTris (shaderCommands_t *input) {
 	GL_Bind( tr.whiteImage );
 
 	GL_State( GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE );
-	qglDepthRange( 0, 0 );
+	GL_SetDepthRange( 0, 0 );
 
 	{
 		shaderProgram_t *sp = &tr.textureColorShader;
@@ -404,7 +404,7 @@ static void DrawTris (shaderCommands_t *input) {
 		}
 	}
 
-	qglDepthRange( 0, 1 );
+	GL_SetDepthRange( 0, 1 );
 }
 
 
@@ -2450,9 +2450,16 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		}
 	}
 
-	if (backEnd.currentEntity == &backEnd.entity2D)
+	if (backEnd.currentEntity == &backEnd.entity2D && backEnd.renderPass == RENDERPASS_POSTPROCESS)
 	{
 
+	}
+	else if ((tr.viewParms.flags & VPF_DEPTHSHADOW)
+		&& backEnd.renderPass != RENDERPASS_NONE
+		&& backEnd.renderPass != RENDERPASS_VINES
+		&& backEnd.renderPass != RENDERPASS_POSTPROCESS)
+	{
+		return;
 	}
 	else if (!isGrassPatches && backEnd.renderPass == RENDERPASS_GRASS_PATCHES)
 	{
@@ -2495,6 +2502,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	{
 #ifdef __TERRAIN_TESSELATION__
 		if (TERRAIN_TESSELLATION_ENABLED
+			&& !(tr.viewParms.flags & VPF_DEPTHSHADOW)
 			&& r_terrainTessellation->integer
 			&& r_terrainTessellationMax->value >= 2.0
 			&& (tess.shader->isGrass || RB_ShouldUseTerrainTessellation(tess.shader->materialType)))
@@ -3107,7 +3115,12 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				useDeform = 1.0;
 			}
 
-			if (useTesselation == 1)
+			if (tr.viewParms.flags & VPF_DEPTHSHADOW)
+			{// No tess on shadow maps...
+				sp = &tr.depthPassShader[0];
+				backEnd.pc.c_depthPassDraws++;
+			}
+			else if (useTesselation == 1)
 			{
 				sp = &tr.depthPassShader[1];
 				backEnd.pc.c_lightallDraws++;
@@ -5948,9 +5961,15 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL18, zero);
 		}
 
-		/*if (tr.viewParms.flags & VPF_DEPTHSHADOW)
+		/*if ((tr.viewParms.flags & VPF_DEPTHSHADOW) && RB_NightScale() > 0.0)
 		{// Shadow draws are always 2 sided, to cull sun from behind the object.
-			GL_Cull(CT_TWO_SIDED);
+			//GL_Cull(CT_TWO_SIDED);
+			if (r_testvalue0->integer > 1)
+				GL_Cull(CT_TWO_SIDED);
+			else if (r_testvalue0->integer)
+				GL_Cull(CT_FRONT_SIDED);
+			else
+				GL_Cull(CT_BACK_SIDED);
 		}*/
 
 		if (!is2D && (pStage->glow || pStage->glowMapped))

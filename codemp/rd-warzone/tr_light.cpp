@@ -40,6 +40,7 @@ the back end (before doing the lighting calculation)
 ===============
 */
 void R_TransformDlights( int count, dlight_t *dl, orientationr_t *ori) {
+#ifdef __DLIGHT_BMODEL__ // we are deferred...
 	int		i;
 	vec3_t	temp;
 
@@ -49,6 +50,7 @@ void R_TransformDlights( int count, dlight_t *dl, orientationr_t *ori) {
 		dl->transformed[1] = DotProduct( temp, ori->axis[1] );
 		dl->transformed[2] = DotProduct( temp, ori->axis[2] );
 	}
+#endif //__DLIGHT_BMODEL__
 }
 
 /*
@@ -59,6 +61,7 @@ Determine which dynamic lights may effect this bmodel
 =============
 */
 void R_DlightBmodel( bmodel_t *bmodel, trRefEntity_t *ent, model_t *currentModel, int entityNum, int64_t shiftedEntityNum) {
+#ifdef __DLIGHT_BMODEL__
 	int			i, j;
 	dlight_t	*dl;
 	int			mask;
@@ -109,6 +112,10 @@ void R_DlightBmodel( bmodel_t *bmodel, trRefEntity_t *ent, model_t *currentModel
 		}
 	}
 	*/
+#else //!__DLIGHT_BMODEL__
+	// We are deferred...
+	ent->needDlights = qfalse;
+#endif //__DLIGHT_BMODEL__
 }
 
 

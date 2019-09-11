@@ -243,15 +243,15 @@ void GL_State( uint32_t stateBits )
 	{
 		if ( stateBits & GLS_DEPTHFUNC_EQUAL )
 		{
-			qglDepthFunc( GL_EQUAL );
+			GL_SetDepthFunc( GL_EQUAL );
 		}
 		else if ( stateBits & GLS_DEPTHFUNC_GREATER)
 		{
-			qglDepthFunc( GL_GREATER );
+			GL_SetDepthFunc( GL_GREATER );
 		}
 		else
 		{
-			qglDepthFunc( GL_LEQUAL );
+			GL_SetDepthFunc( GL_LEQUAL );
 		}
 	}
 
@@ -1533,6 +1533,13 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 		if (type == RENDERPASS_VINES && !VINES_ENABLED) continue;
 		if (type == RENDERPASS_MIST && !MIST_ENABLED) continue;
 
+		if ((tr.viewParms.flags & VPF_DEPTHSHADOW)
+			&& backEnd.renderPass != RENDERPASS_NONE
+			&& backEnd.renderPass != RENDERPASS_VINES)
+		{
+			continue;
+		}
+
 		// draw everything
 		backEnd.currentEntity = &tr.worldEntity;
 
@@ -1889,7 +1896,7 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 					default:
 					case 0:
 						if (!sunflare)
-							qglDepthRange(0.0f, 1.0f);
+							GL_SetDepthRange(0.0f, 1.0f);
 
 						depth[0] = 0;
 						depth[1] = 1;
@@ -1897,13 +1904,13 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 
 					case 1:
 						if (!oldDepthRange)
-							qglDepthRange(0.0f, 0.3f);
+							GL_SetDepthRange(0.0f, 0.3f);
 
 						break;
 
 					case 2:
 						if (!oldDepthRange)
-							qglDepthRange(0.0f, 0.0f);
+							GL_SetDepthRange(0.0f, 0.0f);
 
 						break;
 					}
@@ -1930,7 +1937,7 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 		GL_SetModelviewMatrix(backEnd.viewParms.world.modelViewMatrix);
 
 		// Restore depth range for subsequent rendering
-		qglDepthRange(0.0f, 1.0f);
+		GL_SetDepthRange(0.0f, 1.0f);
 	}
 
 #ifdef __DEBUG_MERGE__
@@ -1955,7 +1962,10 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 	GL_SetModelviewMatrix(backEnd.viewParms.world.modelViewMatrix);
 
 	// Restore depth range for subsequent rendering
-	qglDepthRange(0.0f, 1.0f);
+	GL_SetDepthRange(0.0f, 1.0f);
+
+
+	backEnd.renderPass = RENDERPASS_POSTPROCESS;
 }
 
 

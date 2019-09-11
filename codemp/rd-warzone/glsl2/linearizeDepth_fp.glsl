@@ -69,6 +69,9 @@ float linearize(float depth, float zmin, float zmax)
 void main(void)
 {
 	float depth = texture(u_DiffuseMap, vec2(var_TexCoords.x, 1.0-var_TexCoords.y)).r;
+#ifdef INVERSE_DEPTH_BUFFERS
+	depth = 1.0 - depth;
+#endif //__INVERSE_DEPTH_BUFFERS__
 	float depth512 = linearize(depth, u_ViewInfo.r, 512.0);
 	float depth2048 = linearize(depth, u_ViewInfo.r, 2048.0);
 	float depth4096 = linearize(depth, u_ViewInfo.r, 4096.0);

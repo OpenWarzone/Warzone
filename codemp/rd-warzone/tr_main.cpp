@@ -1016,6 +1016,17 @@ void R_SetupProjectionZ(viewParms_t *dest)
 {
 	float zNear, zFar, depth;
 
+#ifdef __INVERSE_DEPTH_BUFFERS__
+	zNear = dest->zFar;
+	zFar = r_znear->value;
+
+	depth = zNear - zFar;
+
+	dest->projectionMatrix[2] = 0;
+	dest->projectionMatrix[6] = 0;
+	dest->projectionMatrix[10] = -(zNear + zFar) / depth;
+	dest->projectionMatrix[14] = -2 * zNear * zFar / depth;
+#else //!__INVERSE_DEPTH_BUFFERS__
 	zNear = r_znear->value;
 	zFar = dest->zFar;
 
@@ -1025,6 +1036,7 @@ void R_SetupProjectionZ(viewParms_t *dest)
 	dest->projectionMatrix[6] = 0;
 	dest->projectionMatrix[10] = -(zFar + zNear) / depth;
 	dest->projectionMatrix[14] = -2 * zFar * zNear / depth;
+#endif //__INVERSE_DEPTH_BUFFERS__
 
 	if (dest->isPortal)
 	{
@@ -1083,8 +1095,13 @@ void R_SetupProjectionOrtho(viewParms_t *dest, vec3_t viewBounds[2])
 	xmax = viewBounds[1][1];
 	ymin = -viewBounds[1][2];
 	ymax = -viewBounds[0][2];
+#ifdef __INVERSE_DEPTH_BUFFERS__
+	znear = viewBounds[1][0];
+	zfar = viewBounds[0][0];
+#else //!__INVERSE_DEPTH_BUFFERS__
 	znear = viewBounds[0][0];
 	zfar = viewBounds[1][0];
+#endif //__INVERSE_DEPTH_BUFFERS__
 
 	dest->projectionMatrix[0] = 2 / (xmax - xmin);
 	dest->projectionMatrix[4] = 0;
@@ -1098,8 +1115,13 @@ void R_SetupProjectionOrtho(viewParms_t *dest, vec3_t viewBounds[2])
 
 	dest->projectionMatrix[2] = 0;
 	dest->projectionMatrix[6] = 0;
+#ifdef __INVERSE_DEPTH_BUFFERS__
+	dest->projectionMatrix[10] = -2 / (znear - zfar);
+	dest->projectionMatrix[14] = -(znear + zfar) / (znear - zfar);
+#else //!__INVERSE_DEPTH_BUFFERS__
 	dest->projectionMatrix[10] = -2 / (zfar - znear);
 	dest->projectionMatrix[14] = -(zfar + znear) / (zfar - znear);
+#endif //__INVERSE_DEPTH_BUFFERS__
 
 	dest->projectionMatrix[3] = 0;
 	dest->projectionMatrix[7] = 0;
@@ -1539,7 +1561,9 @@ qboolean R_MirrorViewBySurface(drawSurf_t *drawSurf, int64_t entityNum) {
 
 	newParms = tr.viewParms;
 	newParms.isPortal = qtrue;
+
 	newParms.zFar = 0.0f;
+
 	newParms.flags &= ~VPF_FARPLANEFRUSTUM;
 	if ( !R_GetPortalOrientations( drawSurf, entityNum, &surface, &camera, 
 		newParms.pvsOrigin, &newParms.isMirror ) ) {
@@ -2220,14 +2244,14 @@ void R_DebugPolygon( int color, int numPoints, float *points ) {
 
 	// draw wireframe outline
 	GL_State( GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE );
-	qglDepthRange( 0, 0 );
+	GL_SetDepthRange( 0, 0 );
 	qglColor3f( 1, 1, 1 );
 	qglBegin( GL_POLYGON );
 	for ( i = 0 ; i < numPoints ; i++ ) {
 		qglVertex3fv( points + i * 3 );
 	}
 	qglEnd();
-	qglDepthRange( 0, 1 );
+	GL_SetDepthRange( 0, 1 );
 #endif
 }
 
@@ -3100,55 +3124,35 @@ void R_RenderSunShadowMaps(const refdef_t *fd, int level, vec4_t sunDir, float l
 	//viewZFar = SHADOW_ZFAR;// 4096.0;// r_shadowCascadeZFar->value;
 	float splitBias = r_shadowCascadeZBias->value;
 
-	/*if (!backEnd.viewIsOutdoors)
+	switch (level)
 	{
-		viewZFar = lightHeight * 1.25;
-
-		switch (level)
-		{
-		case 0:
-		default:
-			splitZNear = viewZNear;
-			splitZFar = CalcSplit(viewZNear, viewZFar, 1, 3) + splitBias;
-			break;
-		case 1:
-			splitZNear = CalcSplit(viewZNear, viewZFar, 1, 3) + splitBias;
-			splitZFar = viewZFar;
-			break;
-		case 2:
-			splitZNear = viewZFar;
-			splitZFar = lightHeight * 2.0;
-			break;
-		}
-	}
-	else*/
-	{
-		switch (level)
-		{
-		case 0:
-		default:
-			splitZNear = viewZNear;
-			splitZFar = SHADOW_CASCADE1 + SHADOW_CASCADE_BIAS1; // CalcSplit(viewZNear, viewZFar, 1, 3) + splitBias;
-			break;
-		case 1:
-			splitZNear = SHADOW_CASCADE1 - SHADOW_CASCADE_BIAS1; // CalcSplit(viewZNear, viewZFar, 1, 3) + splitBias;
-			splitZFar = SHADOW_CASCADE2 + SHADOW_CASCADE_BIAS2; // viewZFar;
-			break;
-		case 2:
-			splitZNear = SHADOW_CASCADE2 - SHADOW_CASCADE_BIAS2; // CalcSplit(viewZNear, viewZFar, 1, 3) + splitBias;
-			splitZFar = SHADOW_CASCADE3 + SHADOW_CASCADE_BIAS3; // viewZFar;
-			break;
-		case 3:
-			splitZNear = SHADOW_CASCADE3 - SHADOW_CASCADE_BIAS3; // CalcSplit(viewZNear, viewZFar, 1, 3) + splitBias;
-			splitZFar = SHADOW_CASCADE4 + SHADOW_CASCADE_BIAS4; // viewZFar;
-			break;
-		case 4:
-			splitZNear = SHADOW_CASCADE4 - SHADOW_CASCADE_BIAS4; // viewZFar;
-			splitZFar = backEnd.viewParms.zFar;// MAP_INFO_MAXSIZE;
-			break;
-		}
+	case 0:
+	default:
+		splitZNear = viewZNear;
+		splitZFar = SHADOW_CASCADE1 + SHADOW_CASCADE_BIAS1; // CalcSplit(viewZNear, viewZFar, 1, 3) + splitBias;
+		break;
+	case 1:
+		splitZNear = SHADOW_CASCADE1 - SHADOW_CASCADE_BIAS1; // CalcSplit(viewZNear, viewZFar, 1, 3) + splitBias;
+		splitZFar = SHADOW_CASCADE2 + SHADOW_CASCADE_BIAS2; // viewZFar;
+		break;
+	case 2:
+		splitZNear = SHADOW_CASCADE2 - SHADOW_CASCADE_BIAS2; // CalcSplit(viewZNear, viewZFar, 1, 3) + splitBias;
+		splitZFar = SHADOW_CASCADE3 + SHADOW_CASCADE_BIAS3; // viewZFar;
+		break;
+	case 3:
+		splitZNear = SHADOW_CASCADE3 - SHADOW_CASCADE_BIAS3; // CalcSplit(viewZNear, viewZFar, 1, 3) + splitBias;
+		splitZFar = SHADOW_CASCADE4 + SHADOW_CASCADE_BIAS4; // viewZFar;
+		break;
+	case 4:
+		splitZNear = SHADOW_CASCADE4 - SHADOW_CASCADE_BIAS4; // viewZFar;
+		splitZFar = backEnd.viewParms.zFar;// MAP_INFO_MAXSIZE;
+		break;
 	}
 
+	if (ENABLE_OCCLUSION_CULLING && splitZNear > tr.occlusionZfar)
+	{
+		return;
+	}
 
 	VectorCopy(lightOrg, lightOrigin);
 	//VectorCopy(fd->vieworg, lightOrigin);
@@ -3353,9 +3357,17 @@ void R_RenderSunShadowMaps(const refdef_t *fd, int level, vec4_t sunDir, float l
 
 			R_SetupProjectionOrtho(&tr.viewParms, lightviewBounds);
 
+#ifdef __INVERSE_DEPTH_BUFFERS__
+			qglClearColor(0, 0, 0, 0);
+
+			qglClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			qglClearDepth(0.0f);
+#else //!__INVERSE_DEPTH_BUFFERS__
 			qglClearColor(1, 1, 1, 1);
+
 			qglClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			qglClearDepth(1.0f);
+#endif //__INVERSE_DEPTH_BUFFERS__
 
 			tr.world = tr.worldSolid;
 			R_AddWorldSurfaces();

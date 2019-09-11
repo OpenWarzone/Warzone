@@ -1238,7 +1238,7 @@ void GL_SetDefaultState( void )
 	GL_TexEnv( GL_MODULATE );
 
 	//qglShadeModel( GL_SMOOTH );
-	qglDepthFunc( GL_LEQUAL );
+	GL_SetDepthFunc( GL_LEQUAL );
 	
 	// UQ1: Testing...
 	//qglFrontFace(GL_CCW);
