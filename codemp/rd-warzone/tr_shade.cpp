@@ -441,20 +441,6 @@ extern float		currentPlayerCubemapDistance;
 void RB_EndSurfaceReal(void);
 
 void RB_BeginSurface( shader_t *shader, int fogNum, int cubemapIndex ) {
-	/*if (backEnd.depthFill)
-	{
-		if (!shader->hasAlphaTestBits || shader->hasSplatMaps || shader->isSky)
-		{// In depth pass, set all solid draws to defaultshader, so they can all get merged together...
-			shader = tr.defaultShader;
-		}
-	}*/
-
-	/*ri->Printf(PRINT_WARNING, "[depth: %s] [renderpass: %i] Begin shader %s [hasAlphaTestBits: %i].\n"
-		, backEnd.depthFill ? "true" : "false"
-		, (int)backEnd.renderPass
-		, shader->name
-		, shader->hasAlphaTestBits);*/
-
 	if (tess.numIndexes > 0 || tess.numVertexes > 0)
 	{// End any old draws we may not have written...
 		RB_EndSurface();
@@ -3363,6 +3349,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_BindProgram(sp);
 		}
 
+		float nightScale = RB_NightScale();
+
 		if (backEnd.renderPass == RENDERPASS_NONE || is2D)
 		{
 			{// Set up basic shader settings... This way we can avoid the bind bloat of dumb shader #ifdefs...
@@ -3376,9 +3364,9 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					}
 					else
 					{
-						vec[0] = mix(MAP_AMBIENT_COLOR[0], MAP_AMBIENT_COLOR_NIGHT[0], RB_NightScale());
-						vec[1] = mix(MAP_AMBIENT_COLOR[1], MAP_AMBIENT_COLOR_NIGHT[1], RB_NightScale());
-						vec[2] = mix(MAP_AMBIENT_COLOR[2], MAP_AMBIENT_COLOR_NIGHT[2], RB_NightScale());
+						vec[0] = mix(MAP_AMBIENT_COLOR[0], MAP_AMBIENT_COLOR_NIGHT[0], nightScale);
+						vec[1] = mix(MAP_AMBIENT_COLOR[1], MAP_AMBIENT_COLOR_NIGHT[1], nightScale);
+						vec[2] = mix(MAP_AMBIENT_COLOR[2], MAP_AMBIENT_COLOR_NIGHT[2], nightScale);
 						vec[4] = 0.0;
 						//VectorSet4(vec, MAP_AMBIENT_COLOR[0], MAP_AMBIENT_COLOR[1], MAP_AMBIENT_COLOR[2], 0.0);
 					}
@@ -4907,7 +4895,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			if (pStage->envmapUseSkyImage && tr.skyImageShader)
 			{// This stage wants sky up image for it's diffuse... TODO: sky cubemap...
 #ifdef __DAY_NIGHT__
-				if (!DAY_NIGHT_CYCLE_ENABLED || RB_NightScale() < 1.0)
+				if (!DAY_NIGHT_CYCLE_ENABLED || nightScale < 1.0)
 				{
 					if (sp->isBindless)
 					{
@@ -5047,7 +5035,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				else if (pStage->useSkyImage && tr.skyImageShader)
 				{// This stage wants sky up image for it's diffuse... TODO: sky cubemap...
 #ifdef __DAY_NIGHT__
-					if (!DAY_NIGHT_CYCLE_ENABLED || RB_NightScale() < 1.0)
+					if (!DAY_NIGHT_CYCLE_ENABLED || nightScale < 1.0)
 						GLSL_SetBindlessTexture(sp, UNIFORM_DIFFUSEMAP, &tr.skyImageShader->sky.outerbox[4], 0);
 					else
 						GLSL_SetBindlessTexture(sp, UNIFORM_DIFFUSEMAP, &tr.skyImageShader->sky.outerboxnight[4], 0);
@@ -5175,7 +5163,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				else if (pStage->useSkyImage && tr.skyImageShader)
 				{// This stage wants sky up image for it's diffuse... TODO: sky cubemap...
 #ifdef __DAY_NIGHT__
-					if (!DAY_NIGHT_CYCLE_ENABLED || RB_NightScale() < 1.0)
+					if (!DAY_NIGHT_CYCLE_ENABLED || nightScale < 1.0)
 						GL_BindToTMU(tr.skyImageShader->sky.outerbox[4], TB_COLORMAP); // Sky up...
 					else
 						GL_BindToTMU(tr.skyImageShader->sky.outerboxnight[4], TB_COLORMAP); // Night sky up...
@@ -5961,7 +5949,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL18, zero);
 		}
 
-		/*if ((tr.viewParms.flags & VPF_DEPTHSHADOW) && RB_NightScale() > 0.0)
+		/*if ((tr.viewParms.flags & VPF_DEPTHSHADOW) && nightScale > 0.0)
 		{// Shadow draws are always 2 sided, to cull sun from behind the object.
 			//GL_Cull(CT_TWO_SIDED);
 			if (r_testvalue0->integer > 1)

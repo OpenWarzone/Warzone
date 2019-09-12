@@ -2413,25 +2413,27 @@ void RB_HBAO(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 
 void RB_ESharpening(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	/*vec4_t color;
+	shaderProgram_t *shader = &tr.esharpeningShader;
 
-	// bloom
-	color[0] =
-		color[1] =
-		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
-	color[3] = 1.0f;*/
+	GLSL_BindProgram(shader);
 
-	GLSL_BindProgram(&tr.esharpeningShader);
-
-	GLSL_SetUniformInt(&tr.esharpeningShader, UNIFORM_LEVELSMAP, TB_LEVELSMAP);
-	GL_BindToTMU(hdrFbo->colorImage[0], TB_LEVELSMAP);
+	if (shader->isBindless)
+	{
+		GLSL_SetBindlessTexture(shader, UNIFORM_TEXTUREMAP, &hdrFbo->colorImage[0], 0);
+		GLSL_BindlessUpdate(shader);
+	}
+	else
+	{
+		GLSL_SetUniformInt(shader, UNIFORM_LEVELSMAP, TB_LEVELSMAP);
+		GL_BindToTMU(hdrFbo->colorImage[0], TB_LEVELSMAP);
+	}
 
 	vec2_t screensize;
 	screensize[0] = glConfig.vidWidth * r_superSampleMultiplier->value;
 	screensize[1] = glConfig.vidHeight * r_superSampleMultiplier->value;
-	GLSL_SetUniformVec2(&tr.esharpeningShader, UNIFORM_DIMENSIONS, screensize);
+	GLSL_SetUniformVec2(shader, UNIFORM_DIMENSIONS, screensize);
 	
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.esharpeningShader, colorWhite/*color*/, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, shader, colorWhite, 0);
 }
 
 #if 0
@@ -3473,45 +3475,51 @@ void RB_SSDM_Generate(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrB
 
 void RB_SSDM(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	/*vec4_t color;
+	shaderProgram_t *shader = &tr.ssdmShader;
 
-	// bloom
-	color[0] =
-		color[1] =
-		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
-	color[3] = 1.0f;*/
+	GLSL_BindProgram(shader);
 
-	GLSL_BindProgram(&tr.ssdmShader);
+	if (shader->isBindless)
+	{
+		GLSL_SetBindlessTexture(shader, UNIFORM_DIFFUSEMAP, &hdrFbo->colorImage[0], 0);
+		GLSL_SetBindlessTexture(shader, UNIFORM_SCREENDEPTHMAP, &tr.linearDepthImage512, 0);
+		GLSL_SetBindlessTexture(shader, UNIFORM_NORMALMAP, &tr.renderNormalImage, 0);
+		GLSL_SetBindlessTexture(shader, UNIFORM_ROADMAP, &tr.ssdmImage, 0);
+		GLSL_SetBindlessTexture(shader, UNIFORM_POSITIONMAP, &tr.renderPositionMapImage, 0);
+		GLSL_BindlessUpdate(shader);
+	}
+	else
+	{
+		GLSL_SetUniformInt(shader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+		GL_BindToTMU(hdrFbo->colorImage[0], TB_DIFFUSEMAP);
 
-	GLSL_SetUniformInt(&tr.ssdmShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
-	GL_BindToTMU(hdrFbo->colorImage[0], TB_DIFFUSEMAP);
+		GLSL_SetUniformInt(shader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
+		GL_BindToTMU(tr.linearDepthImage512, TB_LIGHTMAP);
 
-	GLSL_SetUniformInt(&tr.ssdmShader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
-	GL_BindToTMU(tr.linearDepthImage512, TB_LIGHTMAP);
+		GLSL_SetUniformInt(shader, UNIFORM_NORMALMAP, TB_NORMALMAP);
+		GL_BindToTMU(tr.renderNormalImage, TB_NORMALMAP);
 
-	GLSL_SetUniformInt(&tr.ssdmShader, UNIFORM_NORMALMAP, TB_NORMALMAP);
-	GL_BindToTMU(tr.renderNormalImage, TB_NORMALMAP);
+		GLSL_SetUniformInt(shader, UNIFORM_ROADMAP, TB_ROADMAP);
+		GL_BindToTMU(tr.ssdmImage, TB_ROADMAP);
 
-	GLSL_SetUniformInt(&tr.ssdmShader, UNIFORM_ROADMAP, TB_ROADMAP);
-	GL_BindToTMU(tr.ssdmImage, TB_ROADMAP);
+		GLSL_SetUniformInt(shader, UNIFORM_POSITIONMAP, TB_POSITIONMAP);
+		GL_BindToTMU(tr.renderPositionMapImage, TB_POSITIONMAP);
+	}
 
-	GLSL_SetUniformInt(&tr.ssdmShader, UNIFORM_POSITIONMAP, TB_POSITIONMAP);
-	GL_BindToTMU(tr.renderPositionMapImage, TB_POSITIONMAP);
+	GLSL_SetUniformMatrix16(shader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
 
-	GLSL_SetUniformMatrix16(&tr.ssdmShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
-
-	GLSL_SetUniformVec3(&tr.ssdmShader, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);
+	GLSL_SetUniformVec3(shader, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);
 
 	vec4_t local1;
 	VectorSet4(local1, DISPLACEMENT_MAPPING_STRENGTH, r_testshaderValue1->value, r_testshaderValue2->value, r_testshaderValue3->value);
-	GLSL_SetUniformVec4(&tr.ssdmShader, UNIFORM_LOCAL1, local1);
+	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL1, local1);
 
 	{
 		vec2_t screensize;
 		screensize[0] = glConfig.vidWidth * r_superSampleMultiplier->value;
 		screensize[1] = glConfig.vidHeight * r_superSampleMultiplier->value;
 
-		GLSL_SetUniformVec2(&tr.ssdmShader, UNIFORM_DIMENSIONS, screensize);
+		GLSL_SetUniformVec2(shader, UNIFORM_DIMENSIONS, screensize);
 	}
 
 	{
@@ -3525,10 +3533,10 @@ void RB_SSDM(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		float xmax = zmax * tan(backEnd.viewParms.fovX * M_PI / 360.0f);
 		float zmin = r_znear->value;
 		VectorSet4(viewInfo, zmin, zmax, zmax / zmin, 512.0/*r_testvalue2->value > 0.0 ? r_testvalue2->value : backEnd.viewParms.zFar*/);
-		GLSL_SetUniformVec4(&tr.ssdmShader, UNIFORM_VIEWINFO, viewInfo);
+		GLSL_SetUniformVec4(shader, UNIFORM_VIEWINFO, viewInfo);
 	}
 
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.ssdmShader, colorWhite/*color*/, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, shader, colorWhite, 0);
 }
 
 #if 0
@@ -3765,37 +3773,57 @@ void RB_TestShader(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox,
 
 void RB_ColorCorrection(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	GLSL_BindProgram(&tr.colorCorrectionShader);
-	
-	GLSL_SetUniformInt(&tr.colorCorrectionShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
-	GL_BindToTMU(hdrFbo->colorImage[0], TB_DIFFUSEMAP);
+	shaderProgram_t *shader = &tr.colorCorrectionShader;
 
-	GLSL_SetUniformInt(&tr.colorCorrectionShader, UNIFORM_DELUXEMAP, TB_DELUXEMAP);
-	GL_BindToTMU(MAP_COLOR_CORRECTION_PALETTE, TB_DELUXEMAP);
+	GLSL_BindProgram(shader);
 
-
-	if (r_hdr->integer && MAP_TONEMAP_AUTOEXPOSURE && MAP_TONEMAP_METHOD > 0)
+	if (shader->isBindless)
 	{
-		GLSL_SetUniformInt(&tr.colorCorrectionShader, UNIFORM_LEVELSMAP, TB_LEVELSMAP);
-		GL_BindToTMU(tr.calcLevelsImage, TB_LEVELSMAP);
+		GLSL_SetBindlessTexture(shader, UNIFORM_DIFFUSEMAP, &hdrFbo->colorImage[0], 0);
+		GLSL_SetBindlessTexture(shader, UNIFORM_DELUXEMAP, &MAP_COLOR_CORRECTION_PALETTE, 0);
+
+		if (r_hdr->integer && MAP_TONEMAP_AUTOEXPOSURE && MAP_TONEMAP_METHOD > 0)
+		{
+			GLSL_SetBindlessTexture(shader, UNIFORM_LEVELSMAP, &tr.calcLevelsImage, 0);
+		}
+		else
+		{
+			GLSL_SetBindlessTexture(shader, UNIFORM_LEVELSMAP, &tr.fixedLevelsImage, 0);
+		}
+
+		GLSL_BindlessUpdate(shader);
 	}
 	else
 	{
-		GLSL_SetUniformInt(&tr.colorCorrectionShader, UNIFORM_LEVELSMAP, TB_LEVELSMAP);
-		GL_BindToTMU(tr.fixedLevelsImage, TB_LEVELSMAP);
-	}
+		GLSL_SetUniformInt(shader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+		GL_BindToTMU(hdrFbo->colorImage[0], TB_DIFFUSEMAP);
 
+		GLSL_SetUniformInt(shader, UNIFORM_DELUXEMAP, TB_DELUXEMAP);
+		GL_BindToTMU(MAP_COLOR_CORRECTION_PALETTE, TB_DELUXEMAP);
+
+
+		if (r_hdr->integer && MAP_TONEMAP_AUTOEXPOSURE && MAP_TONEMAP_METHOD > 0)
+		{
+			GLSL_SetUniformInt(shader, UNIFORM_LEVELSMAP, TB_LEVELSMAP);
+			GL_BindToTMU(tr.calcLevelsImage, TB_LEVELSMAP);
+		}
+		else
+		{
+			GLSL_SetUniformInt(shader, UNIFORM_LEVELSMAP, TB_LEVELSMAP);
+			GL_BindToTMU(tr.fixedLevelsImage, TB_LEVELSMAP);
+		}
+	}
 
 	{
 		vec4_t loc;
 		VectorSet4(loc, MAP_COLOR_CORRECTION_METHOD, r_testvalue1->value, r_testvalue2->value, r_testvalue3->value);
-		GLSL_SetUniformVec4(&tr.colorCorrectionShader, UNIFORM_LOCAL0, loc);
+		GLSL_SetUniformVec4(shader, UNIFORM_LOCAL0, loc);
 	}
 
 
-	GLSL_SetUniformMatrix16(&tr.colorCorrectionShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+	GLSL_SetUniformMatrix16(shader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
 	
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.colorCorrectionShader, colorWhite/*color*/, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, shader, colorWhite, 0);
 }
 
 
@@ -4212,40 +4240,61 @@ void RB_Underwater(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 
 void RB_FXAA(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	GLSL_BindProgram(&tr.fxaaShader);
+	shaderProgram_t *shader = &tr.fxaaShader;
 
-	GLSL_SetUniformInt(&tr.fxaaShader, UNIFORM_LEVELSMAP, TB_LEVELSMAP);
-	GL_BindToTMU(hdrFbo->colorImage[0], TB_LEVELSMAP);
+	GLSL_BindProgram(shader);
 
-	GLSL_SetUniformMatrix16(&tr.fxaaShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+	if (shader->isBindless)
+	{
+		GLSL_SetBindlessTexture(shader, UNIFORM_TEXTUREMAP, &hdrFbo->colorImage[0], 0);
+		GLSL_BindlessUpdate(shader);
+	}
+	else
+	{
+		GLSL_SetUniformInt(shader, UNIFORM_LEVELSMAP, TB_LEVELSMAP);
+		GL_BindToTMU(hdrFbo->colorImage[0], TB_LEVELSMAP);
+	}
+
+	GLSL_SetUniformMatrix16(shader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
 
 	{
 		vec2_t screensize;
 		screensize[0] = glConfig.vidWidth * r_superSampleMultiplier->value;
 		screensize[1] = glConfig.vidHeight * r_superSampleMultiplier->value;
 
-		GLSL_SetUniformVec2(&tr.fxaaShader, UNIFORM_DIMENSIONS, screensize);
+		GLSL_SetUniformVec2(shader, UNIFORM_DIMENSIONS, screensize);
 	}
 
 	{
 		vec4_t local0;
 		VectorSet4(local0, r_fxaaScanMod->value, 0.0, 0.0, 0.0);
-		GLSL_SetUniformVec4(&tr.fxaaShader, UNIFORM_LOCAL0, local0);
+		GLSL_SetUniformVec4(shader, UNIFORM_LOCAL0, local0);
 	}
 	
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.fxaaShader, colorWhite, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, shader, colorWhite, 0);
 }
 
 
 void RB_TXAA(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	GLSL_BindProgram(&tr.txaaShader);
+	shaderProgram_t *shader = &tr.txaaShader;
 
-	GLSL_SetUniformInt(&tr.txaaShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
-	GL_BindToTMU(hdrFbo->colorImage[0], TB_DIFFUSEMAP);
+	GLSL_BindProgram(shader);
 
-	GLSL_SetUniformInt(&tr.txaaShader, UNIFORM_GLOWMAP, TB_GLOWMAP);
-	GL_BindToTMU(tr.txaaPreviousImage, TB_GLOWMAP);
+	if (shader->isBindless)
+	{
+		GLSL_SetBindlessTexture(shader, UNIFORM_DIFFUSEMAP, &hdrFbo->colorImage[0], 0);
+		GLSL_SetBindlessTexture(shader, UNIFORM_GLOWMAP, &tr.txaaPreviousImage, 0);
+		GLSL_BindlessUpdate(shader);
+	}
+	else
+	{
+		GLSL_SetUniformInt(&tr.txaaShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+		GL_BindToTMU(hdrFbo->colorImage[0], TB_DIFFUSEMAP);
+
+		GLSL_SetUniformInt(&tr.txaaShader, UNIFORM_GLOWMAP, TB_GLOWMAP);
+		GL_BindToTMU(tr.txaaPreviousImage, TB_GLOWMAP);
+	}
 
 	GLSL_SetUniformMatrix16(&tr.txaaShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
 

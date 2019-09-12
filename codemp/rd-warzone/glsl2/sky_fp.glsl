@@ -660,8 +660,7 @@ vec3 reachForTheNebulas(in vec3 from, in vec3 dir, float level, float power)
 vec3 reachForTheStars(in vec3 from, in vec3 dir, float power) 
 {
 	float star = pow(pNoise(dir*320.0), 48.0 - clamp(PROCEDURAL_SKY_STAR_DENSITY, 0.0, 16.0));
-	vec3 color = vec3(star);
-	return pow(color*2.25, vec3(power));
+	return pow(vec3(star*2.25), vec3(power));
 }
 
 void GetStars(out vec4 fragColor, in vec3 position)
@@ -676,16 +675,22 @@ void GetStars(out vec4 fragColor, in vec3 position)
 	if (dnt <= 0.0) dnt = 1.0 + (1.0 - length(dnt));
 	dir.xy += dnt * PROCEDURAL_SKY_PLANETARY_ROTATION;
 
+#if 0
 	// Nebulae...
 	vec3 color1=clamp(reachForTheNebulas(from, -dir.xyz, 64.0, 0.5), 0.0, 1.0) * vec3(0.0, 0.0, 1.0);
 	//vec3 color2=clamp(reachForTheNebulas(from, -dir.zxy, 64.0, 0.7), 0.0, 1.0) * vec3(0.0, 1.0, 0.0);
 	vec3 color3=clamp(reachForTheNebulas(from, -dir.yxz, 64.0, 0.7), 0.0, 1.0) * vec3(1.0, 0.0, 0.0);
+#endif
 
 	// Small stars...
 	vec3 colorStars = clamp(reachForTheStars(from, dir, 0.9), 0.0, 1.0);
 
+#if 0
 	// Add them all together...
 	color = color1 /*+ color2*/ + color3 + colorStars;
+#else
+	color = colorStars;
+#endif
 
 	color = clamp(color, 0.0, 1.0);
 	color = pow(color, vec3(1.2));
@@ -708,9 +713,7 @@ void GetSun(out vec4 fragColor, in vec3 position)
 
 		if (SHADER_NIGHT_SCALE > 0.0)
 		{
-			vec3 sunsetSun = vec3(1.0, 0.8, 0.625);
-			//vec3 sunsetSun = vec3(u_Local9.r, u_Local9.g, u_Local9.b);
-			lightColor = mix(lightColor, sunsetSun, SHADER_NIGHT_SCALE);
+			lightColor = mix(lightColor, vec3(1.0, 0.8, 0.625), SHADER_NIGHT_SCALE);
 		}
 
 		fragColor = vec4(lightColor.rgb, 1.0);
@@ -888,6 +891,59 @@ vec4 raymarchTerrain( const in vec3 ro, const in vec3 rd, const in vec3 bgc, con
 	return vec4(0.0);
 }
 
+#define TAU 6.2831853071
+
+vec4 GetAurora(in vec2 fragCoord)
+{
+	float autime = u_Time * 0.5;
+
+	if (SHADER_SKY_DIRECTION == 2.0 || SHADER_SKY_DIRECTION == 3.0)
+	{// Forward or back sky textures, invert the X axis to make the aura seamless...
+		fragCoord.x = 1.0 - fragCoord.x;
+	}
+
+	float auroraPower;
+	if (SHADER_AURORA_ENABLED >= 2.0)
+	{// Day enabled aurora - always full strength...
+		auroraPower = 1.0;
+	}
+	else
+	{
+		auroraPower = SHADER_NIGHT_SCALE;
+	}
+
+	vec2 uv = fragCoord.xy;
+	// Move aurora up a bit above horizon...
+	uv *= 0.8;
+	uv += 0.2;
+	uv = clamp(uv, 0.0, 1.0);
+
+	float o = texture(u_SplatMap1, uv * 0.25 + vec2(0.0, autime * 0.025)).r;
+	float d = (texture(u_SplatMap2, uv * 0.25 - vec2(0.0, autime * 0.02 + o * 0.02)).r * 2.0 - 1.0);
+	float v = uv.y + d * 0.1;
+	v = 1.0 - abs(v * 2.0 - 1.0);
+	v = pow(v, 2.0 + sin((autime * 0.2 + d * 0.25) * TAU) * 0.5);
+	v = clamp(v, 0.0, 1.0);
+	vec3 color = vec3(0.0);
+	float x = (1.0 - uv.x * 0.75);
+	float y = 1.0 - abs(uv.y * 2.0 - 1.0);
+	x = clamp(x, 0.0, 1.0);
+	y = clamp(y, 0.0, 1.0);
+	color += vec3(x * 0.5, y, x) * v;
+	vec2 seed = fragCoord.xy;
+	vec2 r;
+	r.x = fract(sin((seed.x * 12.9898) + (seed.y * 78.2330)) * 43758.5453);
+	r.y = fract(sin((seed.x * 53.7842) + (seed.y * 47.5134)) * 43758.5453);
+	float s = mix(r.x, (sin((autime * 2.5 + 60.0) * r.y) * 0.5 + 0.5) * ((r.y * r.y) * (r.y * r.y)), 0.04);
+	color += clamp(pow(s, 70.0) * (1.0 - v), 0.0, 1.0);
+	float str = max(color.r, max(color.g, color.b));
+	color *= 0.7;
+	color *= AURORA_COLOR;
+
+	return vec4(color.rgb, auroraPower*str);
+}
+
+
 void GetBackgroundHills( inout vec4 fragColor, in vec2 fragCoord, vec3 ro, vec3 rd ) {
 	fragColor = raymarchTerrain( ro, rd, fragColor.rgb, 1200.0, 1200.0 );
 }
@@ -900,6 +956,7 @@ void main()
 	vec3 sunColorMod = vec3(1.0);
 	vec4 sun = vec4(0.0);
 	vec4 clouds = vec4(0.0);
+	vec4 pCol = vec4(0.0);
 #ifdef __CLOUDS__
 	float cloudiness = clamp(CLOUDS_CLOUDCOVER*0.3, 0.0, 0.3);
 #endif //__CLOUDS__
@@ -917,7 +974,7 @@ void main()
 		{
 			gl_FragColor = texture(u_DiffuseMap, texCoords);
 #ifdef __HIGH_PASS_SHARPEN__
-			gl_FragColor.rgb = Enhance(u_DiffuseMap, texCoords, gl_FragColor.rgb, 1.0/*8.0*/);
+			gl_FragColor.rgb = Enhance(u_DiffuseMap, texCoords, gl_FragColor.rgb, 1.0);
 #endif //__HIGH_PASS_SHARPEN__
 		}
 		else
@@ -931,7 +988,11 @@ void main()
 			vec3 atmos = extra_cheap_atmosphere(skyViewDir, skyViewDir2, skySunDir, sunColorMod);
 
 #ifdef __BACKGROUND_HILLS__
-			if (SHADER_SKY_DIRECTION != 4.0 && SHADER_SKY_DIRECTION != 5.0)
+			if (SHADER_SKY_DIRECTION == 5.0 && SHADER_DAY_NIGHT_ENABLED > 0.0 && SHADER_NIGHT_SCALE >= 1.0)
+			{// At night, just do a black lower sky side...
+				terrainColor = vec4(0.0, 0.0, 0.0, 1.0);
+			}
+			else if (SHADER_SKY_DIRECTION != 4.0 && SHADER_SKY_DIRECTION != 5.0)
 			{
 				terrainColor.rgb = mix(atmos, vec3(0.1), clamp(SHADER_NIGHT_SCALE * 2.0, 0.0, 1.0));
 				terrainColor.a = 0.0;
@@ -939,14 +1000,13 @@ void main()
 			}
 #endif //__BACKGROUND_HILLS__
 
-			if (terrainColor.a <= 0.0)
+			if (terrainColor.a != 1.0 && u_MoonCount > 0.0)
 			{// In the day, we still want to draw planets... Only if this is not background terrain...
-				vec4 pCol;
 				GetPlanets(pCol, var_Position);
 
 				if (pCol.a > 0.0)
 				{// Planet here, blend this behind the atmosphere...
-					atmos = mix(atmos, pCol.rgb, 0.3/*pCol.a*/);
+					atmos = mix(atmos, pCol.rgb, 0.3);
 				}
 			}
 
@@ -955,7 +1015,7 @@ void main()
 		}
 
 #ifdef __CLOUDS__
-		if (CLOUDS_ENABLED > 0.0 && SHADER_SKY_DIRECTION != 5.0)
+		if (terrainColor.a != 1.0 && pCol.a <= 0.0 && CLOUDS_ENABLED > 0.0 && SHADER_SKY_DIRECTION != 5.0)
 		{// Procedural clouds are enabled...
 			float nMult = 1.0;
 			float cdMult = 1.0;
@@ -975,28 +1035,24 @@ void main()
 		}
 #endif //__CLOUDS__
 
-		GetSun(sun, var_Position);
-
-		if (sun.a > 0.0)
+		if (pCol.a <= 0.0 && terrainColor.a != 1.0)
 		{
-			gl_FragColor = vec4(sun.rgb * sunColorMod, sun.a*(1.0-clouds.a));
-		}
+			GetSun(sun, var_Position);
 
-		if (SHADER_SKY_DIRECTION == 5.0 && SHADER_DAY_NIGHT_ENABLED > 0.0 && SHADER_NIGHT_SCALE >= 1.0)
-		{// At night, just do a black lower sky side...
-			terrainColor = vec4(0.0, 0.0, 0.0, 1.0);
+			if (sun.a > 0.0)
+			{
+				gl_FragColor = vec4(sun.rgb * sunColorMod, sun.a*(1.0-clouds.a));
+			}
 		}
 
 #define night_const_1 (PROCEDURAL_SKY_NIGHT_HDR_MIN / 255.0)
 #define night_const_2 (255.0 / PROCEDURAL_SKY_NIGHT_HDR_MAX)
 
-		if (/*SHADER_MATERIAL_TYPE == 1024.0 &&*/ terrainColor.a != 1.0)
+		if (terrainColor.a != 1.0)
 		{// This is sky, and aurora is enabled...
 			if (SHADER_DAY_NIGHT_ENABLED > 0.0 && SHADER_NIGHT_SCALE > 0.0)
 			{// Day/Night cycle is enabled, and some night sky contribution is required...
 				float atmosMix = 0.8;
-				vec4 pCol;
-				GetPlanets(pCol, var_Position);
 
 				if (pCol.a > 0.0)
 				{// Planet here, draw this instead of stars...
@@ -1019,7 +1075,7 @@ void main()
 #endif //__HIGH_PASS_SHARPEN__
 				}
 
-				{
+				{// Mis in night atmosphere color...
 					vec3 position = var_Position.xzy;
 					vec3 lightPosition = u_PrimaryLightOrigin.xzy;
 
@@ -1035,71 +1091,17 @@ void main()
 				nightGlow = nightDiffuse * SHADER_NIGHT_SCALE;
 			}
 
-			if (SHADER_SKY_DIRECTION != 4.0 && SHADER_SKY_DIRECTION != 5.0													/* Not up/down sky textures */
-				&& SHADER_AURORA_ENABLED > 0.0																		/* Auroras Enabled */
+			if (SHADER_SKY_DIRECTION != 4.0 && SHADER_SKY_DIRECTION != 5.0																/* Not up/down sky textures */
+				&& SHADER_AURORA_ENABLED > 0.0																							/* Auroras Enabled */
 				&& ((SHADER_DAY_NIGHT_ENABLED > 0.0 && SHADER_NIGHT_SCALE > 0.0) /* Night Aurora */ || SHADER_AURORA_ENABLED >= 2.0		/* Forced day Aurora */))
 			{// Aurora is enabled, and this is not up/down sky textures, add a sexy aurora effect :)
-				vec2 fragCoord = texCoords;
-
-				if (SHADER_SKY_DIRECTION == 2.0 || SHADER_SKY_DIRECTION == 3.0)
-				{// Forward or back sky textures, invert the X axis to make the aura seamless...
-					fragCoord.x = 1.0 - fragCoord.x;
-				}
-
-				float auroraPower;
-
-				if (SHADER_AURORA_ENABLED >= 2.0)
-					auroraPower = 1.0; // Day enabled aurora - always full strength...
-				else
-					auroraPower = SHADER_NIGHT_SCALE;
-
-				vec2 uv = fragCoord.xy;
-				
-				// Move aurora up a bit above horizon...
-				uv *= 0.8;
-				uv += 0.2;
-
-				uv = clamp(uv, 0.0, 1.0);
-   
-#define TAU 6.2831853071
-#define time u_Time * 0.5
-
-
-				float o = texture(u_SplatMap1, uv * 0.25 + vec2(0.0, time * 0.025)).r;
-				float d = (texture(u_SplatMap2, uv * 0.25 - vec2(0.0, time * 0.02 + o * 0.02)).r * 2.0 - 1.0);
-    
-				float v = uv.y + d * 0.1;
-				v = 1.0 - abs(v * 2.0 - 1.0);
-				v = pow(v, 2.0 + sin((time * 0.2 + d * 0.25) * TAU) * 0.5);
-				v = clamp(v, 0.0, 1.0);
-    
-				vec3 color = vec3(0.0);
-    
-				float x = (1.0 - uv.x * 0.75);
-				float y = 1.0 - abs(uv.y * 2.0 - 1.0);
-				x = clamp(x, 0.0, 1.0);
-				y = clamp(y, 0.0, 1.0);
-				color += vec3(x * 0.5, y, x) * v;
-    
-				vec2 seed = fragCoord.xy;
-				vec2 r;
-				r.x = fract(sin((seed.x * 12.9898) + (seed.y * 78.2330)) * 43758.5453);
-				r.y = fract(sin((seed.x * 53.7842) + (seed.y * 47.5134)) * 43758.5453);
-
-				float s = mix(r.x, (sin((time * 2.5 + 60.0) * r.y) * 0.5 + 0.5) * ((r.y * r.y) * (r.y * r.y)), 0.04); 
-				color += clamp(pow(s, 70.0) * (1.0 - v), 0.0, 1.0);
-				float str = max(color.r, max(color.g, color.b));
-
-				color *= 0.7;
-
-				color *= AURORA_COLOR;
-
-				gl_FragColor.rgb = mix(gl_FragColor.rgb, gl_FragColor.rgb + color, auroraPower * str);
+				vec4 aucolor = GetAurora(texCoords);
+				gl_FragColor.rgb = mix(gl_FragColor.rgb, gl_FragColor.rgb + aucolor.rgb, aucolor.a);
 			}
 		}
 
 #ifdef __CLOUDS__
-		if (CLOUDS_ENABLED > 0.0 && SHADER_SKY_DIRECTION != 5.0 && clouds.a > 0.0)
+		if (clouds.a > 0.0 && terrainColor.a != 1.0 && CLOUDS_ENABLED > 0.0 && SHADER_SKY_DIRECTION != 5.0)
 		{// Procedural clouds are enabled...
 			gl_FragColor.rgb = mix(gl_FragColor.rgb, clouds.rgb, clouds.a);
 
@@ -1127,14 +1129,11 @@ void main()
 		// Contrast and saturation.
 		gl_FragColor.rgb = gl_FragColor.rgb*gl_FragColor.rgb*(3.0-2.0*gl_FragColor.rgb);
 		gl_FragColor.rgb = mix( gl_FragColor.rgb, vec3(dot(gl_FragColor.rgb,vec3(0.33))), -0.5 );
-	
-
-		gl_FragColor.a *= var_Color.a;
 	}
 
 	gl_FragColor.a = 1.0; // just force it.
 	
-	if (/*SHADER_MATERIAL_TYPE == 1024.0 &&*/ SHADER_DAY_NIGHT_ENABLED > 0.0 && SHADER_NIGHT_SCALE > 0.7 && terrainColor.a != 1.0)
+	if (terrainColor.a != 1.0 && SHADER_DAY_NIGHT_ENABLED > 0.0 && SHADER_NIGHT_SCALE > 0.7)
 	{// Add night sky to glow map...
 		out_Glow = vec4(nightGlow, gl_FragColor.a);
 
@@ -1158,14 +1157,13 @@ void main()
 	}
 	else
 	{
-		if (sun.a > 0.0 && terrainColor.a <= 0.0)
+		if (terrainColor.a <= 0.0 && sun.a > 0.0)
 			out_Glow = sun*0.3*(1.0-clouds.a);
 		else
 			out_Glow = vec4(0.0);
 	}
 
-	//out_Position = vec4(var_Position.rgb, 1025.0);
-	out_Position = vec4(normalize(var_Position.xyz) * /*1048576.0*/524288.0, 1025.0);
+	out_Position = vec4(normalize(var_Position.xyz) * 524288.0, 1025.0);
 	out_Normal = vec4(EncodeNormal(var_Normal.rgb), 0.0, 1.0);
 #ifdef __USE_REAL_NORMALMAPS__
 	out_NormalDetail = vec4(0.0);

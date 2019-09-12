@@ -761,6 +761,11 @@ static qboolean RB_SurfaceVbo(VBO_t *vbo, IBO_t *ibo, int numVerts, int numIndex
 			tess.shader = tr.purpleShader;
 		}
 	}
+	
+	/*if (backEnd.viewParms.flags & VPF_SHADOWPASS)
+	{// Hmm does help fps, might be an option for distant objects if we had distance info here...
+		tess.shader = tr.purpleShader;
+	}*/
 #endif //__MERGE_DEPTHPASS_DRAWS__
 
 	RB_CheckVBOandIBO(vbo, ibo);

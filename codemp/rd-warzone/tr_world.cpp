@@ -811,7 +811,26 @@ R_RecursiveWorldNode
 //int numOcclusionNodesCulled = 0;
 
 static void R_RecursiveWorldNode(mnode_t *node, int planeBits, int dlightBits, int pshadowBits) {
+#if 0
+	if (r_testvalue0->integer && R_CullBoxMinsMaxs(node->mins, node->maxs) == CULL_OUT)
+	{
+		return;
+	}
+#endif
+
 	do {
+		// if the node wasn't marked as potentially visible, exit
+		if (node->visCounts[tr.visIndex] != tr.visCounts[tr.visIndex])
+		{
+			return;
+		}
+
+		if (node->contents != -1 && !node->nummarksurfaces)
+		{
+			// don't waste time dealing with this empty leaf
+			return;
+		}
+
 		int			newDlights[2];
 		unsigned int newPShadows[2];
 
@@ -825,40 +844,19 @@ static void R_RecursiveWorldNode(mnode_t *node, int planeBits, int dlightBits, i
 		// inside can be visible OPTIMIZE: don't do this all the way to leafs?
 
 		if (!r_nocull->integer) {
-#if 0
-			if (node->contents == -1)
-			{// UQ1: Testing doing FOV checks on bounds using 1/4 steps...
-				float size = Distance(node->mins, node->maxs);
-				float scatter = size / 4.0;
-				qboolean visible = qfalse;
-
-				for (int x = node->mins[0]; x < node->maxs[0] && !visible; x += scatter)
-				{
-					for (int y = node->mins[1]; y < node->maxs[1] && !visible; y += scatter)
-					{
-						for (int z = node->mins[2]; z < node->maxs[2] && !visible; z += scatter)
-						{
-							vec3_t pos;
-							VectorSet(pos, x, y, z);
-							if (R_NodeInFOV(pos, tr.refdef.vieworg)) {
-								visible = qtrue;
-							}
-						}
-					}
-				}
-
-				if (!visible)
-				{// This leaf is not in fov...
-					return;
-				}
-			}
-#endif
-
 			if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer && node->occluded && !(tr.viewParms.flags & VPF_DEPTHSHADOW))
 			{
 				return;
 			}
+			
+#if 0
+			if (r_testvalue0->integer && R_CullBoxMinsMaxs(node->mins, node->maxs) == CULL_OUT)
+			{
+				return;
+			}
+#endif
 
+#if 0
 			int		r;
 
 			if (planeBits & 1) {
@@ -908,6 +906,28 @@ static void R_RecursiveWorldNode(mnode_t *node, int planeBits, int dlightBits, i
 				}
 				if (r == 1) {
 					planeBits &= ~16;			// all descendants will also be in front
+				}
+			}
+#endif
+
+			int i;
+			int r;
+
+			for (i = 0; i < 5; i++)
+			{
+				if (planeBits & (1 << i))
+				{
+					r = BoxOnPlaneSide(node->mins, node->maxs, &tr.viewParms.frustum[i]);
+
+					if (r == 2)
+					{
+						return; // culled
+					}
+
+					if (r == 1)
+					{
+						planeBits &= ~(1 << i);  // all descendants will also be in front
+					}
 				}
 			}
 		}
@@ -970,34 +990,8 @@ static void R_RecursiveWorldNode(mnode_t *node, int planeBits, int dlightBits, i
 		// node is just a decision point, so go down both sides
 		// since we don't care about sort orders, just go positive to negative
 
-		// determine which dlights are needed
-#if 0
 		newDlights[0] = 0;
 		newDlights[1] = 0;
-		if ( dlightBits ) {
-			int	i;
-
-			for ( i = 0 ; i < tr.refdef.num_dlights ; i++ ) {
-				dlight_t	*dl;
-				float		dist;
-
-				if ( dlightBits & ( 1 << i ) ) {
-					dl = &tr.refdef.dlights[i];
-					dist = DotProduct( dl->origin, node->plane->normal ) - node->plane->dist;
-
-					if ( dist > -dl->radius ) {
-						newDlights[0] |= ( 1 << i );
-					}
-					if ( dist < dl->radius ) {
-						newDlights[1] |= ( 1 << i );
-					}
-				}
-			}
-		}
-#else
-		newDlights[0] = 0;
-		newDlights[1] = 0;
-#endif
 
 #ifdef __PSHADOWS__
 		newPShadows[0] = 0;

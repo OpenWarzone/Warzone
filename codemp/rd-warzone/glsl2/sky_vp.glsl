@@ -7,25 +7,29 @@ attribute float attr_Color;
 attribute vec4 attr_Color;
 #endif //__VBO_PACK_COLOR__
 
-attribute vec3				attr_Position;
-attribute vec3				attr_Normal;
+attribute vec3											attr_Position;
+attribute vec3											attr_Normal;
 
-attribute vec3				attr_Position2;
-attribute vec3				attr_Normal2;
-attribute vec4				attr_BoneIndexes;
-attribute vec4				attr_BoneWeights;
+attribute vec3											attr_Position2;
+attribute vec3											attr_Normal2;
+attribute vec4											attr_BoneIndexes;
+attribute vec4											attr_BoneWeights;
 
-uniform vec4				u_Settings0; // useTC, useDeform, useRGBA
-uniform vec4				u_Settings1; // useVertexAnim, useSkeletalAnim
+uniform vec4											u_Settings0; // useTC, useDeform, useRGBA
+uniform vec4											u_Settings1; // useVertexAnim, useSkeletalAnim
 
-#define USE_TC				u_Settings0.r
-#define USE_DEFORM			u_Settings0.g
-#define USE_RGBA			u_Settings0.b
-#define USE_TEXTURECLAMP	u_Settings0.a
+#define USE_TC											u_Settings0.r
+#define USE_DEFORM										u_Settings0.g
+#define USE_RGBA										u_Settings0.b
+#define USE_TEXTURECLAMP								u_Settings0.a
 
-#define USE_VERTEX_ANIM		u_Settings1.r
-#define USE_SKELETAL_ANIM	u_Settings1.g
-#define USE_FOG				u_Settings1.b
+#define USE_VERTEX_ANIM									u_Settings1.r
+#define USE_SKELETAL_ANIM								u_Settings1.g
+#define USE_FOG											u_Settings1.b
+
+uniform vec4											u_Local1; // PROCEDURAL_SKY_ENABLED, DAY_NIGHT_24H_TIME/24.0, PROCEDURAL_SKY_STAR_DENSITY, PROCEDURAL_SKY_NEBULA_SEED
+
+#define PROCEDURAL_SKY_ENABLED							u_Local1.r
 
 #ifdef __CHEAP_VERTS__
 uniform int					u_isWorld;
@@ -245,70 +249,39 @@ vec4 CalcColor(vec3 position, vec3 normal)
 
 void main()
 {
-	vec3 position;
-	vec3 normal;
-
-/*
-	if (USE_VERTEX_ANIM == 1.0)
-	{
-		//position  = mix(attr_Position,    attr_Position2,    u_VertexLerp);
-		//normal    = mix(attr_Normal,      attr_Normal2,      u_VertexLerp) * 2.0 - 1.0;
-		position  = attr_Position;
-		normal    = attr_Normal * 2.0 - 1.0;
-	}
-	else if (USE_SKELETAL_ANIM == 1.0)
-	{
-		vec4 position4 = vec4(0.0);
-		vec4 normal4 = vec4(0.0);
-		vec4 originalPosition = vec4(attr_Position, 1.0);
-		//vec4 originalNormal = vec4(attr_Normal - vec3(0.5), 0.0);
-		vec4 originalNormal = vec4(attr_Normal * 2.0 - 1.0, 0.0);
-
-		for (int i = 0; i < 4; i++)
-		{
-			int boneIndex = int(attr_BoneIndexes[i]);
-
-			position4 += (u_BoneMatrices[boneIndex] * originalPosition) * attr_BoneWeights[i];
-			normal4 += (u_BoneMatrices[boneIndex] * originalNormal) * attr_BoneWeights[i];
-		}
-
-		position = position4.xyz;
-		normal = normalize(normal4.xyz);
-	}
-	else*/
-	{
-		position  = attr_Position;
-		normal    = attr_Normal * 2.0 - 1.0;
-	}
+	vec3 position = attr_Position;
+	vec3 normal = attr_Normal * 2.0 - 1.0;
 
 	vec2 texCoords = attr_TexCoord0.st;
 
-	if (USE_DEFORM == 1.0)
+	if (PROCEDURAL_SKY_ENABLED <= 0.0 && USE_DEFORM == 1.0)
 	{
-		position = DeformPosition(position, normal, attr_TexCoord0.st);
+		position = DeformPosition(position, normal, texCoords);
 	}
 
 	gl_Position = u_ModelViewProjectionMatrix * vec4(position, 1.0);
 
-	//if (USE_VERTEX_ANIM == 1.0 || USE_SKELETAL_ANIM == 1.0)
-	{
-		position = (u_ModelMatrix * vec4(position, 1.0)).xyz;
-		normal = (u_ModelMatrix * vec4(normal, 0.0)).xyz;
-	}
-
-	if (USE_TC == 1.0)
+	if (PROCEDURAL_SKY_ENABLED <= 0.0 && USE_TC == 1.0)
 	{
 		texCoords = GenTexCoords(u_TCGen0, position, normal, u_TCGen0Vector0, u_TCGen0Vector1);
 		texCoords = ModTexCoords(texCoords, position, u_DiffuseTexMatrix, u_DiffuseTexOffTurb);
 	}
 
-	if (!(u_textureScale.x <= 0.0 && u_textureScale.y <= 0.0) && !(u_textureScale.x == 1.0 && u_textureScale.y == 1.0))
+	if (PROCEDURAL_SKY_ENABLED <= 0.0 && !(u_textureScale.x <= 0.0 && u_textureScale.y <= 0.0) && !(u_textureScale.x == 1.0 && u_textureScale.y == 1.0))
 	{
 		texCoords *= u_textureScale;
 	}
 
-	var_Color = CalcColor(position, normal);
-	var_Position = attr_Position;//position;
-	var_Normal = attr_Normal * 2.0 - 1.0;//normal
+	if (PROCEDURAL_SKY_ENABLED <= 0.0)
+	{
+		var_Color = CalcColor(position, normal);
+	}
+	else
+	{
+		var_Color = vec4(1.0);
+	}
+
+	var_Position = position;
+	var_Normal = normal;
 	var_TexCoords = texCoords;
 }

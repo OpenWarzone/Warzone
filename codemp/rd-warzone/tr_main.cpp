@@ -541,6 +541,43 @@ int R_CullBox(vec3_t worldBounds[2]) {
 	return CULL_CLIP;
 }
 
+int R_CullBoxMinsMaxs(vec3_t mins, vec3_t maxs) {
+	int             i;
+	cplane_t       *frust;
+	qboolean        anyClip;
+	int             r, numPlanes;
+
+	numPlanes = (tr.viewParms.flags & VPF_FARPLANEFRUSTUM) ? 5 : 4;
+
+	// check against frustum planes
+	anyClip = qfalse;
+	for (i = 0; i < numPlanes; i++)
+	{
+		frust = &tr.viewParms.frustum[i];
+
+		r = BoxOnPlaneSide(mins, maxs, frust);
+
+		if (r == 2)
+		{
+			// completely outside frustum
+			return CULL_OUT;
+		}
+		if (r == 3)
+		{
+			anyClip = qtrue;
+		}
+	}
+
+	if (!anyClip)
+	{
+		// completely inside frustum
+		return CULL_IN;
+	}
+
+	// partially clipped
+	return CULL_CLIP;
+}
+
 /*
 ** R_CullLocalPointAndRadius
 */

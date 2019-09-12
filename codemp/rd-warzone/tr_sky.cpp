@@ -667,7 +667,7 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 		
 
 		GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
-		GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
+		//GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
 
 
 		if (backEnd.viewParms.flags & VPF_EMISSIVEMAP)
