@@ -59,7 +59,7 @@ varying vec2		var_ScreenTex;
 #define BLUR_WIDTH 2.0
 
 // Shall we pixelize randomly the output? -- Sucks!
-#define RANDOMIZE_PIXELS
+//#define RANDOMIZE_PIXELS
 
 //#define APPLY_CONTRAST
 

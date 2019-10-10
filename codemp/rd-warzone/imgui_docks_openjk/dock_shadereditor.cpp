@@ -34,6 +34,7 @@ int GLSL_MyCompileGPUShader(GLuint program, GLuint *prevShader, const GLchar *bu
 	//}
 	qglAttachShader(program, shader);
 	*prevShader = shader;
+
 	return 1;
 }
 
@@ -55,6 +56,10 @@ void DockShaders::recompileShader() {
 		int retLink = GLSL_LinkProgramSafe(newProgram);
 		GLSL_BindAttributeLocations(shader, shader->attribs);
 		GLSL_InitUniforms(shader);
+
+		// Disable bindless on the recompiled shader. Can't be bothered trying to work out how to transfer everything needed atm...
+		shader->isBindless = qfalse;
+
 		imgui_log("ret compile shader:  retVert=%d retFrag=%d retLink=%d\n", retVert, retFrag, retLink);
 }
 

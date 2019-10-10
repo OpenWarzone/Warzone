@@ -713,7 +713,7 @@ void main()
 {
 	float dist = distance(m_vertPos.xyz, u_ViewOrigin.xyz);
 
-	if (USE_IS2D <= 0.0 && dist > u_zFar)
+	if (USE_IS2D <= 0.0 && dist > u_zFar && USE_VERTEX_ANIM < 1.0)
 	{// Skip it all...
 		gl_FragColor = vec4(0.0);
 		out_Glow = vec4(0.0);

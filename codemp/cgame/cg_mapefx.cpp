@@ -143,3 +143,4 @@ void CG_AddMapEfx(void)
 		}
 	}
 }
+

@@ -363,6 +363,8 @@ static void MakeSkyVec( float s, float t, int axis, float outSt[2], vec3_t outXY
 static vec3_t	s_skyPoints[SKY_SUBDIVISIONS+1][SKY_SUBDIVISIONS+1];
 static float	s_skyTexCoords[SKY_SUBDIVISIONS+1][SKY_SUBDIVISIONS+1][2];
 
+qboolean MOON_INFO_CHANGED = qfalse;
+
 static void DrawSkySide( struct image_s *image, struct image_s *nightImage, const int skyDirection, const int mins[2], const int maxs[2] )
 {
 	if (backEnd.viewParms.flags & VPF_EMISSIVEMAP)
@@ -536,7 +538,8 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 	}
 	else
 	{
-		shaderProgram_t *sp = &tr.skyShader;
+		int quality = max(min(r_cloudQuality->integer, 4), 0);
+		shaderProgram_t *sp = &tr.skyShader[quality];
 		vec4_t vector;
 
 		//FBO_Bind(tr.renderFbo);
@@ -612,47 +615,51 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL12, vector);
 
 
-			extern int			MOON_COUNT;
-			extern qboolean		MOON_ENABLED[8];
-			extern float		MOON_SIZE[8];
-			extern float		MOON_BRIGHTNESS[8];
-			extern float		MOON_TEXTURE_SCALE[8];
-			extern float		MOON_ROTATION_OFFSET_X[8];
-			extern float		MOON_ROTATION_OFFSET_Y[8];
-
-			GLSL_SetUniformInt(sp, UNIFORM_MOON_COUNT, MOON_COUNT);
-
-			vec4_t	moonInfos[4];
-			vec2_t	moonInfos2[4];
-			int		moonBundles[4] = { TB_MOONMAP1 };
-
-			for (int i = 0; i < MOON_COUNT; i++)
+			if (MOON_INFO_CHANGED)
 			{
-				moonInfos[i][0] = MOON_ENABLED[i] ? 1.0 : 0.0;
-				moonInfos[i][1] = MOON_ROTATION_OFFSET_X[i];
-				moonInfos[i][2] = MOON_ROTATION_OFFSET_Y[i];
-				moonInfos[i][3] = MOON_SIZE[i];
+				GLSL_SetUniformInt(sp, UNIFORM_MOON_COUNT, MOON_COUNT);
 
-				moonInfos2[i][0] = MOON_BRIGHTNESS[i];
-				moonInfos2[i][1] = MOON_TEXTURE_SCALE[i];
+				vec4_t	moonInfos[4];
+				vec2_t	moonInfos2[4];
+				int		moonBundles[4] = { TB_MOONMAP1 };
 
-				moonBundles[i] = TB_MOONMAP1 + i;
-			}
+				for (int i = 0; i < MOON_COUNT; i++)
+				{
+					moonInfos[i][0] = MOON_ENABLED[i] ? 1.0 : 0.0;
+					moonInfos[i][1] = MOON_ROTATION_OFFSET_X[i];
+					moonInfos[i][2] = MOON_ROTATION_OFFSET_Y[i];
+					moonInfos[i][3] = MOON_SIZE[i];
 
-			GLSL_SetUniformVec4xX(sp, UNIFORM_MOON_INFOS, moonInfos, MOON_COUNT);
-			GLSL_SetUniformVec2xX(sp, UNIFORM_MOON_INFOS2, moonInfos2, MOON_COUNT);
+					moonInfos2[i][0] = MOON_BRIGHTNESS[i];
+					moonInfos2[i][1] = MOON_TEXTURE_SCALE[i];
 
-			if (!sp->isBindless)
-			{
-				GLSL_SetUniformIntxX(sp, UNIFORM_MOONMAPS, moonBundles, MOON_COUNT);
-			}
+					if (!sp->isBindless)
+					{
+						moonBundles[i] = TB_MOONMAP1 + i;
+					}
+				}
 
-			for (int i = 0; i < MOON_COUNT; i++)
-			{
+				GLSL_SetUniformVec4xX(sp, UNIFORM_MOON_INFOS, moonInfos, MOON_COUNT);
+				GLSL_SetUniformVec2xX(sp, UNIFORM_MOON_INFOS2, moonInfos2, MOON_COUNT);
+
 				if (sp->isBindless)
-					GLSL_SetBindlessTexture(sp, UNIFORM_MOONMAPS, tr.moonImage, i);
+				{
+					for (int i = 0; i < MOON_COUNT; i++)
+					{
+						GLSL_SetBindlessTexture(sp, UNIFORM_MOONMAPS, &tr.moonImage[i], i);
+					}
+				}
 				else
-					GL_BindToTMU(tr.moonImage[i], TB_MOONMAP1 + i);
+				{
+					GLSL_SetUniformIntxX(sp, UNIFORM_MOONMAPS, moonBundles, MOON_COUNT);
+
+					for (int i = 0; i < MOON_COUNT; i++)
+					{
+						GL_BindToTMU(tr.moonImage[i], TB_MOONMAP1 + i);
+					}
+				}
+
+				MOON_INFO_CHANGED = qfalse;
 			}
 		}
 

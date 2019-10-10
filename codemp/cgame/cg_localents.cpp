@@ -773,6 +773,190 @@ void CG_AddLine( localEntity_t *le )
 	AddRefEntityToScene( re );
 }
 
+/*
+===================
+CG_MapBirds
+
+for warzone flying birds...
+===================
+*/
+extern qboolean		BIRDS_ENABLED;
+extern int			BIRDS_COUNT;
+extern float		MAP_WATER_LEVEL;
+extern vec3_t		MAP_INFO_MINS;
+extern vec3_t		MAP_INFO_MAXS;
+
+#define MAX_MAP_BIRDS 128
+
+typedef struct mapBirds_s {
+	vec3_t		origin;
+	vec3_t		dir;
+	vec3_t		startOrigin;
+	float		rotate;
+	float		circleSize;
+} mapBirds_t;
+
+qboolean		mapBirdsLoaded = qfalse;
+int				numMapBirds = 0;
+mapBirds_t		mapBirds[MAX_MAP_BIRDS];
+qhandle_t		birdModel = -1;
+
+void CG_DrawBird(mapBirds_t *bird)
+{
+	/*if (Distance(bird->origin, cg.refdef.vieworg) > 32768)
+	{// Early cull...
+		return;
+	}*/
+
+	refEntity_t ent;
+
+	// Draw the bolt core...
+	memset(&ent, 0, sizeof(refEntity_t));
+	ent.reType = RT_MODEL;
+
+	ent.modelScale[0] = 100.0;
+	ent.modelScale[1] = 100.0;
+	ent.modelScale[2] = 100.0;
+
+	VectorCopy(bird->origin, ent.origin);
+	vectoangles(bird->dir, ent.angles);
+	AnglesToAxis(ent.angles, ent.axis);
+	ScaleModelAxis(&ent);
+
+	ent.hModel = birdModel;
+
+	AddRefEntityToScene(&ent);
+
+	// Add sounds as well???
+}
+
+float mix(float x, float y, float a)
+{
+	return x * (1.0 - a) + y * a;
+}
+
+void CG_Birds(void)
+{
+	if (!BIRDS_ENABLED || !BIRDS_COUNT)
+	{
+		return;
+	}
+
+	if (!mapBirdsLoaded)
+	{
+		memset(mapBirds, 0, sizeof(mapBirds));
+
+		vec3_t MAP_SIZE;
+		MAP_SIZE[0] = MAP_INFO_MAXS[0] - MAP_INFO_MINS[0];
+		MAP_SIZE[1] = MAP_INFO_MAXS[1] - MAP_INFO_MINS[1];
+		MAP_SIZE[2] = MAP_INFO_MAXS[2] - MAP_INFO_MINS[2];
+
+		//trap->Print("CGAME-BIRDS: MAP BOUNDS: %f %f %f x %f %f %f\n", MAP_INFO_MINS[0], MAP_INFO_MINS[1], MAP_INFO_MINS[2], MAP_INFO_MAXS[0], MAP_INFO_MAXS[1], MAP_INFO_MAXS[2]);
+		//trap->Print("CGAME-BIRDS: MAP SIZE: %f %f %f\n", MAP_SIZE[0], MAP_SIZE[1], MAP_SIZE[2]);
+
+		for (int i = 0; i < BIRDS_COUNT && i < MAX_MAP_BIRDS; i++)
+		{
+			mapBirds_t *bird = &mapBirds[i];
+
+			trace_t tr;
+			vec3_t downPos;
+
+			bird->origin[0] = MAP_INFO_MINS[0] + irand_big(0, MAP_SIZE[0]);
+			bird->origin[1] = MAP_INFO_MINS[0] + irand_big(0, MAP_SIZE[1]);
+			bird->origin[2] = MAP_INFO_MAXS[2] - 256.0;
+
+			VectorCopy(bird->origin, downPos);
+			downPos[2] = MAP_WATER_LEVEL;
+
+			trap->CM_Trace(&tr, bird->origin, downPos, NULL, NULL, 0, MASK_SOLID, 0);
+			bird->origin[2] = tr.endpos[2] + 6144.0;
+
+			bird->rotate = 1.0;
+
+			if (irand(0, 1) == 1)
+			{// This one flies in counter clockwise...
+				bird->rotate = -1.0;
+			}
+
+			bird->circleSize = irand(1, 3);
+
+			float a = ((float(cg.time) / 1000.0) + i) * bird->rotate;
+			float b = 0.0;
+			bird->dir[0] = cos(a) * cos(b);
+			bird->dir[1] = sin(a) * cos(b);
+			bird->dir[2] = sin(b);
+
+			VectorCopy(bird->origin, bird->startOrigin);
+
+			trap->Print("Bird %i spawn at %f %f %f. Dir %f.\n", i, bird->origin[0], bird->origin[1], bird->origin[2], bird->dir[YAW]);
+		}
+
+		birdModel = trap->R_RegisterModel("models/warzone/birds/bird.3ds");
+
+		mapBirdsLoaded = qtrue;
+	}
+
+	if (birdModel <= 0)
+	{// In case asset is somehow missing...
+		return;
+	}
+
+	// Update and draw birds...
+	for (int i = 0; i < BIRDS_COUNT && i < MAX_MAP_BIRDS; i++)
+	{
+		mapBirds_t *bird = &mapBirds[i];
+
+		float a = ((float(cg.time) / 1000.0) + i) * bird->rotate;
+		float b = 0.0;
+		bird->dir[0] = cos(a) * cos(b);
+		bird->dir[1] = sin(a) * cos(b);
+		bird->dir[2] = sin(b);
+
+
+		float distFromStart = DistanceHorizontal(bird->origin, bird->startOrigin);
+
+#define RETURN_HOME_DISTANCE 16384.0
+
+		// Stay near our start position...
+		vec3_t wantedDir;
+		VectorSubtract(bird->startOrigin, bird->origin, wantedDir);
+		VectorNormalize(wantedDir);
+
+		float returnStrength = pow(Q_clamp(0.0, distFromStart / RETURN_HOME_DISTANCE, 1.0), 3.0);
+
+		bird->dir[0] = mix(bird->dir[0], wantedDir[0], returnStrength);
+		bird->dir[1] = mix(bird->dir[1], wantedDir[1], returnStrength);
+		bird->dir[2] = sin(b);
+		VectorNormalize(bird->dir);
+
+		// Randomly adjust the bird's circle size over time...
+		if (irand(0, 1) == 1)
+		{
+			bird->circleSize += 0.1;
+		}
+		else
+		{
+			bird->circleSize -= 0.1;
+		}
+
+		bird->circleSize = Q_clampi(1, bird->circleSize, 3);
+
+		VectorMA(bird->origin, bird->circleSize * 72.0, bird->dir, bird->origin);
+
+		/*if (cg_testvalue3.integer == 2)
+		{
+			VectorCopy(bird->startOrigin, bird->origin);
+		}*/
+
+		CG_DrawBird(bird);
+
+		/*if (cg_testvalue3.integer == 1)
+		{
+			trap->Print("Bird %i at %f %f %f. Dir %f.\n", i, bird->origin[0], bird->origin[1], bird->origin[2], bird->dir[YAW]);
+		}*/
+	}
+}
+
 //==============================================================================
 
 /*
@@ -857,6 +1041,9 @@ void CG_AddLocalEntities( void ) {
 			break;
 		}
 	}
+
+	// Warzone flying birds...
+	CG_Birds();
 }
 
 

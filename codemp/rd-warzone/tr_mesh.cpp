@@ -75,26 +75,30 @@ float ProjectRadius( float r, vec3_t location )
 R_CullModel
 =============
 */
-static int R_CullModel( mdvModel_t *model, trRefEntity_t *ent ) {
-	vec3_t		bounds[2];
-	mdvFrame_t	*oldFrame, *newFrame;
-	int			i;
+static int R_CullModel( mdvModel_t *model, trRefEntity_t *ent ) 
+{
+	if (ent->e.ignoreCull)
+	{
+		return CULL_IN;
+	}
 
 	float dist = Distance(ent->e.origin, backEnd.refdef.vieworg);
 
-	if (!ent->e.ignoreCull && dist >= tr.distanceCull)
+	if (dist >= tr.distanceCull)
 	{
 		return CULL_OUT;
 	}
 
-	if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer && !ent->e.ignoreCull && (dist > tr.occlusionZfar || dist > tr.occlusionZfarFoliage * 1.75))
+	if (ENABLE_OCCLUSION_CULLING 
+		&& r_occlusion->integer 
+		&& (dist > tr.occlusionZfar /*|| dist > tr.occlusionZfarFoliage * 1.75*/))
 	{
 		return CULL_OUT;
 	}
 
 	// compute frame pointers
-	newFrame = model->frames + ent->e.frame;
-	oldFrame = model->frames + ent->e.oldframe;
+	mdvFrame_t	*newFrame = model->frames + ent->e.frame;
+	mdvFrame_t	*oldFrame = model->frames + ent->e.oldframe;
 
 	// cull bounding sphere ONLY if this is not an upscaled entity
 	if ( !ent->e.nonNormalizedAxes )
@@ -147,6 +151,9 @@ static int R_CullModel( mdvModel_t *model, trRefEntity_t *ent ) {
 		}
 	}
 	
+	vec3_t		bounds[2];
+	int			i;
+
 	// calculate a bounding box in the current coordinate system
 	for (i = 0 ; i < 3 ; i++) {
 		bounds[0][i] = oldFrame->bounds[0][i] < newFrame->bounds[0][i] ? oldFrame->bounds[0][i] : newFrame->bounds[0][i];
@@ -351,9 +358,13 @@ void R_AddMD3Surfaces( trRefEntity_t *ent, model_t *currentModel, int entityNum,
 	// cull the entire model if merged bounding box of both frames
 	// is outside the view frustum.
 	//
-	cull = R_CullModel ( model, ent );
-	if ( cull == CULL_OUT ) {
-		return;
+
+	if (!ent->e.ignoreCull && !StringContainsWord(currentModel->name, "models/warzone/ships"))
+	{
+		cull = R_CullModel(model, ent);
+		if (cull == CULL_OUT) {
+			return;
+		}
 	}
 
 	//

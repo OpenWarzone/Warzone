@@ -1790,6 +1790,7 @@ void GUI_PostProcessMakeCvarList() {
 	//GUI_PostProcessAddCvar(r_distanceBlur, 5);
 	GUI_PostProcessAddCvar(r_volumeLight, 1);
 	GUI_PostProcessAddCvar(r_cloudshadows, 2);
+	GUI_PostProcessAddCvar(r_cloudQuality, 4);
 	GUI_PostProcessAddCvar(r_fxaa, 1);
 	GUI_PostProcessAddCvar(r_txaa, 1);
 	GUI_PostProcessAddCvar(r_showdepth, 1);

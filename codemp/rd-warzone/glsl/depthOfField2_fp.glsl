@@ -105,7 +105,7 @@ vec4 GetMatsoDOFBlur(int axis, vec2 coord, sampler2D SamplerHDRX)
 	float wValue = 1.0;
 	float focalDepth = var_FocalDepth;
 	float coordDepth = texture2D(u_ScreenDepthMap, coord.xy).x;
-	float depthDiff = (coordDepth - focalDepth);// * 3.0;
+	float depthDiff = (coordDepth - focalDepth);
 	
 	if (depthDiff < 0.0)
 	{// Close to camera pixels, blur much less so player model is not blury...
@@ -118,19 +118,6 @@ vec4 GetMatsoDOFBlur(int axis, vec2 coord, sampler2D SamplerHDRX)
 
 	// Always use a tiny bit of blur.
 	depthDiff = max(depthDiff, 0.05);
-
-	/*if (coordDepth > 0.25 && coordDepth < 1.0)
-	{// A little extra blur on very distant objects...
-		float d = coordDepth - 0.25;
-		float dmod = d / 0.75;
-		
-		dmod = pow(dmod, 256.0);
-		
-		if (dmod > depthDiff)
-		{
-			depthDiff = dmod;
-		}
-	}*/
 
 	vec2 discRadius = (depthDiff * float(DOF_BLURRADIUS)) * sampleOffset.xy / float(iMatsoDOFBokehQuality);
 	

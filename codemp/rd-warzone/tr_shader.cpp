@@ -7742,6 +7742,11 @@ static shader_t *FinishShader(void) {
 		shader.isCursor = qtrue;
 	}
 
+	if (StringContainsWord(shader.name, "models/warzone/ships/"))
+	{// TODO: Add shader keyword.
+		shader.nocull = qtrue;
+	}
+
 #ifdef __DEBUG_SHADER_LOADING__
 	ri->Printf(PRINT_ALL, "FinishShader: %s FINISHED!\n", shader.name);
 #endif //__DEBUG_SHADER_LOADING__

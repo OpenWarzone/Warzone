@@ -1513,7 +1513,7 @@ void RE_RenderScene(const refdef_t *fd) {
 		{
 			R_RenderSunShadowMaps(fd, 1, lightDir, lightHeight, lightOrigin);
 
-			NEXT_SHADOWMAP_UPDATE[0] = nowTime + 10;
+			NEXT_SHADOWMAP_UPDATE[0] = nowTime + 50;
 
 			VectorCopy(tr.refdef.viewangles, SHADOWMAP_LAST_VIEWANGLES[0]);
 			VectorCopy(tr.refdef.vieworg, SHADOWMAP_LAST_VIEWORIGIN[0]);
@@ -1523,7 +1523,7 @@ void RE_RenderScene(const refdef_t *fd) {
 		{
 			R_RenderSunShadowMaps(fd, 2, lightDir, lightHeight, lightOrigin);
 
-			NEXT_SHADOWMAP_UPDATE[1] = nowTime + 50;
+			NEXT_SHADOWMAP_UPDATE[1] = nowTime + 200;
 
 			VectorCopy(tr.refdef.viewangles, SHADOWMAP_LAST_VIEWANGLES[1]);
 			VectorCopy(tr.refdef.vieworg, SHADOWMAP_LAST_VIEWORIGIN[1]);
@@ -1533,7 +1533,7 @@ void RE_RenderScene(const refdef_t *fd) {
 		{
 			R_RenderSunShadowMaps(fd, 3, lightDir, lightHeight, lightOrigin);
 
-			NEXT_SHADOWMAP_UPDATE[2] = nowTime + 500;
+			NEXT_SHADOWMAP_UPDATE[2] = nowTime + 2000;
 
 			VectorCopy(tr.refdef.viewangles, SHADOWMAP_LAST_VIEWANGLES[2]);
 			VectorCopy(tr.refdef.vieworg, SHADOWMAP_LAST_VIEWORIGIN[2]);

@@ -133,6 +133,52 @@ extern vec3_t cg_autoMapAngle;
 void CG_MiscEnt(void);
 void CG_DoCameraShake( vec3_t origin, float intensity, int radius, int time );
 
+
+//
+// Mapinfo loading...
+//
+qboolean		BIRDS_ENABLED = qfalse;
+int				BIRDS_COUNT = 0;
+
+float			MAP_WATER_LEVEL = -999999.9;
+
+vec3_t			MAP_INFO_MINS;
+vec3_t			MAP_INFO_MAXS;
+
+qboolean MAPPING_LoadMapInfo(void)
+{
+	trap->Print("^1*** ^3%s^5: Loading mapInfo file ^7maps/%s.mapInfo^5.\n", "CGAME-MAPINFO", cgs.currentmapname);
+
+	BIRDS_ENABLED = (atoi(IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "BIRDS", "BIRDS_ENABLED", "0")) > 0) ? qtrue : qfalse;
+	BIRDS_COUNT = atoi(IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "BIRDS", "BIRDS_COUNT", "0"));
+
+	MAP_WATER_LEVEL = atof(IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "WATER", "MAP_WATER_LEVEL", "-999999.9"));
+
+	MAP_INFO_MINS[0] = atof(IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "BOUNDS", "MINS0", "999999.9"));
+	MAP_INFO_MINS[1] = atof(IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "BOUNDS", "MINS1", "999999.9"));
+	MAP_INFO_MINS[2] = atof(IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "BOUNDS", "MINS2", "999999.9"));
+
+	MAP_INFO_MAXS[0] = atof(IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "BOUNDS", "MAXS0", "999999.9"));
+	MAP_INFO_MAXS[1] = atof(IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "BOUNDS", "MAXS1", "999999.9"));
+	MAP_INFO_MAXS[2] = atof(IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "BOUNDS", "MAXS2", "999999.9"));
+
+	if (BIRDS_COUNT <= 0
+		|| MAP_WATER_LEVEL == 999999.9
+		|| MAP_INFO_MINS[0] == 999999.9
+		|| MAP_INFO_MINS[1] == 999999.9
+		|| MAP_INFO_MINS[2] == 999999.9
+		|| MAP_INFO_MAXS[0] == -999999.9
+		|| MAP_INFO_MAXS[1] == -999999.9
+		|| MAP_INFO_MAXS[2] == -999999.9)
+	{
+		BIRDS_ENABLED = qfalse;
+	}
+
+	trap->Print("^1*** ^3%s^5: Birds are %s. Birds count is %i.\n", "CGAME-MAPINFO", BIRDS_ENABLED ? "Enabled" : "Disabled", BIRDS_ENABLED ? BIRDS_COUNT : 0);
+
+	return qtrue;
+}
+
 //do we have any force powers that we would normally need to cycle to?
 qboolean CG_NoUseableForce(void)
 {
@@ -1768,6 +1814,8 @@ static void CG_RegisterGameAssets( void ) {
 		}
 	}
 #endif
+
+	MAPPING_LoadMapInfo();
 
 	{// UQ1: This is the slowest section, so I will do percentage complete bar here (cg.loadLCARSStage)...
 		cg.loadLCARSStage = 1;

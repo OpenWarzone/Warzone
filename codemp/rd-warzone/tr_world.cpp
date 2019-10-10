@@ -30,21 +30,39 @@ extern int		GRASS_DISTANCE;
 
 void RB_CullSurfaceOcclusion(msurface_t *surf)
 {
-#ifdef __ZFAR_CULLING_ON_SURFACES__
-	if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer)
+	if (!ENABLE_OCCLUSION_CULLING || !r_occlusion->integer)
 	{
-		if (surf->shader->materialType == MATERIAL_GREENLEAVES || (surf->shader->hasAlphaTestBits && !surf->shader->hasSplatMaps))
-		{// Tree leaves and alpha surfaces can be culled easier by occlusion culling...
-			if (surf->cullinfo.currentDistance > tr.occlusionZfarFoliage * 1.75)
-			{// Out of foliage view range, but we still want it on depth draws...
-				surf->depthDrawOnlyFoliage = qtrue;
-			}
-		}
+		surf->depthDrawOnly = qfalse;
+		surf->depthDrawOnlyFoliage = qfalse;
+		return;
+	}
 
-		if (surf->cullinfo.currentDistance > tr.occlusionZfar * 1.75 && !backEnd.currentEntity->e.ignoreCull)
-		{// Out of view range, but we still want it on depth draws...
-			surf->depthDrawOnly = qtrue;
+	if (surf->shader && surf->shader->nocull)
+	{
+		surf->depthDrawOnly = qfalse;
+		surf->depthDrawOnlyFoliage = qfalse;
+		return;
+	}
+
+	if ((backEnd.currentEntity && backEnd.currentEntity->e.ignoreCull) || (tr.currentEntity && tr.currentEntity->e.ignoreCull))
+	{
+		surf->depthDrawOnly = qfalse;
+		surf->depthDrawOnlyFoliage = qfalse;
+		return;
+	}
+
+#ifdef __ZFAR_CULLING_ON_SURFACES__
+	if (surf->shader->materialType == MATERIAL_GREENLEAVES || (surf->shader->hasAlphaTestBits && !surf->shader->hasSplatMaps))
+	{// Tree leaves and alpha surfaces can be culled easier by occlusion culling...
+		if (surf->cullinfo.currentDistance > tr.occlusionZfarFoliage * 1.75)
+		{// Out of foliage view range, but we still want it on depth draws...
+			surf->depthDrawOnlyFoliage = qtrue;
 		}
+	}
+
+	if (surf->cullinfo.currentDistance > tr.occlusionZfar * 1.75)
+	{// Out of view range, but we still want it on depth draws...
+		surf->depthDrawOnly = qtrue;
 	}
 #endif //__ZFAR_CULLING_ON_SURFACES__
 }
@@ -72,6 +90,21 @@ static qboolean	R_CullSurface(msurface_t *surf, int entityNum) {
 
 	if (r_nocull->integer || SKIP_CULL_FRAME) {
 		return qfalse;
+	}
+
+	if (surf->shader && surf->shader->nocull)
+	{
+		return qfalse;
+	}
+
+	if (entityNum != REFENTITYNUM_WORLD)
+	{
+		trRefEntity_t *ent = &backEnd.refdef.entities[entityNum];
+
+		if (ent && ent->e.ignoreCull)
+		{
+			return qfalse;
+		}
 	}
 
 	if (r_cullNoDraws->integer && ((surf->shader->surfaceFlags & SURF_NODRAW) || (*surf->data == SF_SKIP)))
@@ -538,9 +571,12 @@ R_AddWorldSurface
 		}
 	}*/
 
-	// try to cull before dlighting or adding
-	if (R_CullSurface(surf, entityNum)) {
-		return;
+	if (!(surf->shader && surf->shader->nocull))
+	{
+		// try to cull before dlighting or adding
+		if (R_CullSurface(surf, entityNum)) {
+			return;
+		}
 	}
 
 	// check for dlighting
@@ -621,9 +657,12 @@ void R_AddWorldSurfaceThreaded(msurface_t *surf, trRefEntity_t *ent, int entityN
 	}
 	}*/
 
-	// try to cull before dlighting or adding
-	if (R_CullSurface(surf, entityNum)) {
-		return;
+	if (!(ent && ent->e.ignoreCull) && !(surf->shader && surf->shader->nocull))
+	{
+		// try to cull before dlighting or adding
+		if (R_CullSurface(surf, entityNum)) {
+			return;
+		}
 	}
 
 	// check for dlighting

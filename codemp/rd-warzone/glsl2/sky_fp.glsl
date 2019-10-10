@@ -390,7 +390,18 @@ vec3 Enhance(in sampler2D tex, in vec2 uv, vec3 color, float level)
 #endif //defined(__HIGH_PASS_SHARPEN__)
 
 #ifdef __CLOUDS__
-#define RAY_TRACE_STEPS 2 //55
+
+//#define RAY_TRACE_STEPS 55
+
+#if defined(CLOUD_QUALITY4)
+	#define RAY_TRACE_STEPS 5
+#elif defined(CLOUD_QUALITY3)
+	#define RAY_TRACE_STEPS 4
+#elif defined(CLOUD_QUALITY2)
+	#define RAY_TRACE_STEPS 3
+#else //if defined(CLOUD_QUALITY1)
+	#define RAY_TRACE_STEPS 2
+#endif
 
 vec3 sunLight  = normalize( u_PrimaryLightOrigin.xzy - u_ViewOrigin.xzy );
 vec3 sunColour = u_PrimaryLightColor.rgb;
@@ -462,7 +473,7 @@ vec4 GetSky(in vec3 pos,in vec3 rd, out vec2 outPos)
 	{
 		if (shadeSum.y >= 1.0) break;
 
-		float h = clamp(Map(p)*2.0, 0.0, 1.0);
+		float h = clamp(Map(p)*2.0*(2.0 / float(RAY_TRACE_STEPS)), 0.0, 1.0);
 		shade.y = max(h, 0.0);
         shade.x = GetLighting(p, sunLight);
 		shadeSum += shade * (1.0 - shadeSum.y);
@@ -1014,7 +1025,7 @@ void main()
 			gl_FragColor.a = 1.0;
 		}
 
-#ifdef __CLOUDS__
+#if defined(__CLOUDS__) && !defined(CLOUD_QUALITY0)
 		if (terrainColor.a != 1.0 && pCol.a <= 0.0 && CLOUDS_ENABLED > 0.0 && SHADER_SKY_DIRECTION != 5.0)
 		{// Procedural clouds are enabled...
 			float nMult = 1.0;
@@ -1033,7 +1044,7 @@ void main()
 			nMult = min(cdMult, nMult);
 			clouds = Clouds(nMult);
 		}
-#endif //__CLOUDS__
+#endif //defined(__CLOUDS__) && !defined(CLOUD_QUALITY0)
 
 		if (pCol.a <= 0.0 && terrainColor.a != 1.0)
 		{

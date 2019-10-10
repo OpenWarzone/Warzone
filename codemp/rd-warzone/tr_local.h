@@ -655,6 +655,7 @@ extern cvar_t  *r_esharpening;
 extern cvar_t  *r_fxaa;
 extern cvar_t  *r_fxaaScanMod;
 extern cvar_t  *r_txaa;
+extern cvar_t  *r_cloudQuality;
 extern cvar_t  *r_cloudshadows;
 extern cvar_t  *r_underwater;
 extern cvar_t  *r_multipost;
@@ -1491,6 +1492,8 @@ typedef struct shader_s {
   qboolean mergeDrawn;
 
   qboolean warzoneVextexSplat;
+
+  qboolean nocull;
 
   int maxStage;
 
@@ -3209,7 +3212,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t depthAdjustShader;
 	shaderProgram_t lightAllShader[3];
 	shaderProgram_t lightAllSplatShader[4];
-	shaderProgram_t skyShader;
+	shaderProgram_t skyShader[5];
 	shaderProgram_t depthPassShader[4];
 	//shaderProgram_t sunPassShader;
 	//shaderProgram_t moonPassShader;
@@ -3746,6 +3749,7 @@ extern cvar_t  *r_esharpening;
 extern cvar_t  *r_fxaa;
 extern cvar_t  *r_fxaaScanMod;
 extern cvar_t  *r_txaa;
+extern cvar_t  *r_cloudQuality;
 extern cvar_t  *r_cloudshadows;
 extern cvar_t  *r_underwater;
 extern cvar_t  *r_multipost;

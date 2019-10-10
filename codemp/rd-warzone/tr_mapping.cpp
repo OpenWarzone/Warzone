@@ -1707,7 +1707,7 @@ float		MIST_LOD_START_RANGE = 8192.0;
 image_t		*MIST_TEXTURE = NULL;
 
 int			MOON_COUNT = 0;
-qboolean	MOON_ENABLED[8] = { qfalse };
+qboolean	MOON_ENABLED[8] = { { qfalse } };
 float		MOON_SIZE[8] = { 1.0 };
 float		MOON_BRIGHTNESS[8] = { 1.0 };
 float		MOON_TEXTURE_SCALE[8] = { 1.0 };
@@ -2941,10 +2941,14 @@ void MAPPING_LoadMapInfo(void)
 	//
 	if (DAY_NIGHT_CYCLE_ENABLED)
 	{
+		extern qboolean MOON_INFO_CHANGED;
+		MOON_INFO_CHANGED = qtrue;
+
 		MOON_COUNT = 0;
 
 		// Add the primary moon...
 		MOON_ENABLED[0] = (atoi(IniRead(mapname, "MOON", "MOON_ENABLED1", "1")) > 0) ? qtrue : qfalse;
+		MOON_ENABLED[1] = MOON_ENABLED[2] = MOON_ENABLED[3] = MOON_ENABLED[0];
 
 		if (MOON_ENABLED[0])
 		{

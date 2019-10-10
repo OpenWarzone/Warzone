@@ -1609,7 +1609,8 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 					&& drawSurf->depthDrawOnly
 					&& !backEnd.projection2D
 					&& !thisShader->isSky
-					&& !thisShader->isWater)
+					&& !thisShader->isWater
+					&& !thisShader->nocull)
 				{// Surface is marked as only for depth draws, skip it unless its sky or water...
 					continue;
 				}

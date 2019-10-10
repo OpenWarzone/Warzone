@@ -3140,15 +3140,37 @@ int GLSL_BeginLoadGPUShaders(void)
 	*/
 
 
+	for (int i = 0; i < 5; i++)
 	{
-		attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_COLOR | ATTR_NORMAL | ATTR_TEXCOORD1 | ATTR_POSITION2 | ATTR_NORMAL2 | ATTR_BONE_INDEXES | ATTR_BONE_WEIGHTS;
-		//attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL;
+		//attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_COLOR | ATTR_NORMAL | ATTR_TEXCOORD1 | ATTR_POSITION2 | ATTR_NORMAL2 | ATTR_BONE_INDEXES | ATTR_BONE_WEIGHTS;
+		////attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL;
+		attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL | ATTR_COLOR;
 
 		extradefines[0] = '\0';
-
-		if (!GLSL_BeginLoadGPUShader(&tr.skyShader, "sky", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_sky_vp, fallbackShader_sky_fp, NULL, NULL, NULL))
+		
+		switch (i)
 		{
-			ri->Error(ERR_FATAL, "Could not load sky shader!");
+		case 1:
+			strcat(extradefines, "#define CLOUD_QUALITY1\n");
+			break;
+		case 2:
+			strcat(extradefines, "#define CLOUD_QUALITY2\n");
+			break;
+		case 3:
+			strcat(extradefines, "#define CLOUD_QUALITY3\n");
+			break;
+		case 4:
+			strcat(extradefines, "#define CLOUD_QUALITY4\n");
+			break;
+		case 0:
+		default:
+			strcat(extradefines, "#define CLOUD_QUALITY0\n");
+			break;
+		}
+
+		if (!GLSL_BeginLoadGPUShader(&tr.skyShader[i], va("sky%i", i), attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_sky_vp, fallbackShader_sky_fp, NULL, NULL, NULL))
+		{
+			ri->Error(ERR_FATAL, "Could not load sky%i shader!", i);
 		}
 	}
 
@@ -4402,25 +4424,27 @@ void GLSL_EndLoadGPUShaders(int startTime)
 	}
 
 
-
-	if (!GLSL_EndLoadGPUShader(&tr.skyShader))
+	for (int i = 0; i < 5; i++)
 	{
-		ri->Error(ERR_FATAL, "Could not load sky shader!");
-	}
+		if (!GLSL_EndLoadGPUShader(&tr.skyShader[i]))
+		{
+			ri->Error(ERR_FATAL, "Could not load sky%i shader!", i);
+		}
 
-	GLSL_InitUniforms(&tr.skyShader);
+		GLSL_InitUniforms(&tr.skyShader[i]);
 
-	GLSL_BindProgram(&tr.skyShader);
-	GLSL_SetUniformInt(&tr.skyShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
-	GLSL_SetUniformInt(&tr.skyShader, UNIFORM_SPLATMAP1, TB_SPLATMAP1);
-	GLSL_SetUniformInt(&tr.skyShader, UNIFORM_SPLATMAP2, TB_SPLATMAP2);
-	GLSL_SetUniformInt(&tr.skyShader, UNIFORM_SPLATMAP3, TB_SPLATMAP3);
+		GLSL_BindProgram(&tr.skyShader[i]);
+		GLSL_SetUniformInt(&tr.skyShader[i], UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+		GLSL_SetUniformInt(&tr.skyShader[i], UNIFORM_SPLATMAP1, TB_SPLATMAP1);
+		GLSL_SetUniformInt(&tr.skyShader[i], UNIFORM_SPLATMAP2, TB_SPLATMAP2);
+		GLSL_SetUniformInt(&tr.skyShader[i], UNIFORM_SPLATMAP3, TB_SPLATMAP3);
 
 #if defined(_DEBUG)
-	GLSL_FinishGPUShader(&tr.skyShader);
+		GLSL_FinishGPUShader(&tr.skyShader[i]);
 #endif
 
-	numLightShaders++;
+		numLightShaders++;
+	}
 
 
 	/*
@@ -6713,7 +6737,11 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.lightAllSplatShader[1]);
 	GLSL_DeleteGPUShader(&tr.lightAllSplatShader[2]);
 	GLSL_DeleteGPUShader(&tr.lightAllSplatShader[3]);
-	GLSL_DeleteGPUShader(&tr.skyShader);
+	GLSL_DeleteGPUShader(&tr.skyShader[0]);
+	GLSL_DeleteGPUShader(&tr.skyShader[1]);
+	GLSL_DeleteGPUShader(&tr.skyShader[2]);
+	GLSL_DeleteGPUShader(&tr.skyShader[3]);
+	GLSL_DeleteGPUShader(&tr.skyShader[4]);
 	GLSL_DeleteGPUShader(&tr.depthPassShader[0]);
 	GLSL_DeleteGPUShader(&tr.depthPassShader[1]);
 	GLSL_DeleteGPUShader(&tr.depthPassShader[2]);
@@ -6906,7 +6934,7 @@ void GLSL_BindProgram(shaderProgram_t * program)
 			backEnd.pc.c_lightallBinds++;
 		else if (program == &tr.depthPassShader[0] || program == &tr.depthPassShader[1] || program == &tr.depthPassShader[2] || program == &tr.depthPassShader[3])
 			backEnd.pc.c_depthPassBinds++;
-		else if (program == &tr.skyShader)
+		else if (program == &tr.skyShader[0] || program == &tr.skyShader[1] || program == &tr.skyShader[2] || program == &tr.skyShader[3] || program == &tr.skyShader[4])
 			backEnd.pc.c_skyBinds++;
 	}
 }
