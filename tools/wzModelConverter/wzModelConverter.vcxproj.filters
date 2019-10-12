@@ -221,6 +221,60 @@
     <ClInclude Include="assimp\XMLTools.h">
       <Filter>assimp</Filter>
     </ClInclude>
+    <ClInclude Include="nif_include\ComplexShape.h">
+      <Filter>nif_include</Filter>
+    </ClInclude>
+    <ClInclude Include="nif_include\dll_export.h">
+      <Filter>nif_include</Filter>
+    </ClInclude>
+    <ClInclude Include="nif_include\FixLink.h">
+      <Filter>nif_include</Filter>
+    </ClInclude>
+    <ClInclude Include="nif_include\Inertia.h">
+      <Filter>nif_include</Filter>
+    </ClInclude>
+    <ClInclude Include="nif_include\Key.h">
+      <Filter>nif_include</Filter>
+    </ClInclude>
+    <ClInclude Include="nif_include\kfm.h">
+      <Filter>nif_include</Filter>
+    </ClInclude>
+    <ClInclude Include="nif_include\MatTexCollection.h">
+      <Filter>nif_include</Filter>
+    </ClInclude>
+    <ClInclude Include="nif_include\nif_basic_types.h">
+      <Filter>nif_include</Filter>
+    </ClInclude>
+    <ClInclude Include="nif_include\NIF_IO.h">
+      <Filter>nif_include</Filter>
+    </ClInclude>
+    <ClInclude Include="nif_include\nif_math.h">
+      <Filter>nif_include</Filter>
+    </ClInclude>
+    <ClInclude Include="nif_include\nif_versions.h">
+      <Filter>nif_include</Filter>
+    </ClInclude>
+    <ClInclude Include="nif_include\niflib.h">
+      <Filter>nif_include</Filter>
+    </ClInclude>
+    <ClInclude Include="nif_include\nifqhull.h">
+      <Filter>nif_include</Filter>
+    </ClInclude>
+    <ClInclude Include="nif_include\ObjectRegistry.h">
+      <Filter>nif_include</Filter>
+    </ClInclude>
+    <ClInclude Include="nif_include\pch.h">
+      <Filter>nif_include</Filter>
+    </ClInclude>
+    <ClInclude Include="nif_include\Ref.h">
+      <Filter>nif_include</Filter>
+    </ClInclude>
+    <ClInclude Include="nif_include\RefObject.h">
+      <Filter>nif_include</Filter>
+    </ClInclude>
+    <ClInclude Include="nif_include\Type.h">
+      <Filter>nif_include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README" />
@@ -255,6 +309,9 @@
   <ItemGroup>
     <Filter Include="assimp">
       <UniqueIdentifier>{bd2f85a1-ba36-4f04-842f-70b25033ff93}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="nif_include">
+      <UniqueIdentifier>{e3c614d9-7082-44a7-82b3-d4ffab88f434}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

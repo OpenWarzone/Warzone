@@ -96,6 +96,7 @@ uniform vec4						u_Local5; // SHADER_HAS_OVERLAY, SHADER_ENVMAP_STRENGTH, 0.0, 
 uniform vec4						u_Local9; // testvalue0, 1, 2, 3
 uniform vec4						u_Local12; // TERRAIN_TESS_OFFSET, GRASS_DISTANCE_FROM_ROADS, 0.0, 0.0
 uniform vec4						u_Local16; // GRASS_ENABLED, GRASS_DISTANCE, GRASS_MAX_SLOPE, 0.0
+uniform vec4						u_Local20; // bird origin x,y,z, 0.0
 
 #define SHADER_MAP_SIZE				u_Local1.r
 #define SHADER_SWAY					u_Local1.g
@@ -512,6 +513,14 @@ float normalToSlope(in vec3 normal) {
 	return pitch * 180.0;
 }
 
+float wingFlap(void)
+{
+	//float gliding = sin(u_Time*0.5);
+	float gliding = sin(u_Time*0.3);
+	float flap = sin(u_Time*13.0)*0.12*M_PI*gliding - 0.1;
+	return flap;
+}
+
 void main()
 {
 	vec3 position;
@@ -570,6 +579,12 @@ void main()
 	{
 		position  = attr_Position;
 		normal    = attr_Normal * 2.0 - 1.0;
+	}
+
+	if (SHADER_MATERIAL_TYPE == MATERIAL_BIRD)
+	{// Flying birds wing flapping...
+		float dist = distance((u_ModelMatrix * vec4(position, 1.0)).xyz, u_Local20.rgb);
+		position.z -= dist * -0.02 * wingFlap();
 	}
 
 	//position.xyz += heightMap;

@@ -729,6 +729,7 @@ static qboolean R_LoadAssImp(model_t * mod, int lod, void *buffer, const char *m
 		std::string textureName = AssImp_getTextureName(shaderPath.C_Str());
 
 		std::string finalPath = R_FindAndAdjustShaderNames(modName, shaderPath.C_Str(), textureName);
+		//ri->Printf(PRINT_WARNING, "shader path: %s.\n", finalPath.c_str());
 		sh = R_FindShader(finalPath.c_str(), lightmapsNone, stylesDefault, qtrue);
 
 		if (sh == NULL || sh == tr.defaultShader)
@@ -1255,15 +1256,6 @@ static qboolean R_LoadNIF(model_t * mod, int lod, void *buffer, const char *modN
 #endif //__DEBUG_NIF__
 
 #define NIF_MODEL_SCALE 0.5
-
-	vec3_t NIF_ROTATION_ANGLES;
-	NIF_ROTATION_ANGLES[PITCH] = r_testvalue0->integer;
-	NIF_ROTATION_ANGLES[YAW] = r_testvalue1->integer;
-	NIF_ROTATION_ANGLES[ROLL] = r_testvalue2->integer;
-	vec3_t NIF_ROTATION_AXIS[3];
-	AnglesToAxis(NIF_ROTATION_ANGLES, NIF_ROTATION_AXIS);
-
-#define NIF_ROTATION_TYPE r_testvalue3->integer
 
 	std::string fullPath = va("warzone/%s", modName);
 

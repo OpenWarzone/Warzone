@@ -6,6 +6,17 @@ The code in this file, unless otherwise noted, is placed in the public domain.
 
 #pragma once
 
+//
+//
+//
+
+//#define __NIF_IMPORT_TEST__
+
+
+//
+//
+//
+
 #include <math.h>
 #include <stdlib.h>
 #include <minmax.h>
@@ -88,9 +99,9 @@ typedef vec_t vec3_t[3];
 #define VectorAdd(a, b, c)			((c)[0] = (a)[0] + (b)[0], (c)[1] = (a)[1] + (b)[1], (c)[2] = (a)[2] + (b)[2])
 #define VectorSubtract(a, b, c)		((c)[0] = (a)[0] - (b)[0], (c)[1] = (a)[1] - (b)[1], (c)[2] = (a)[2] - (b)[2])
 #define VectorScale(a, s, b)		((b)[0] = (a)[0] * (s), (b)[1] = (a)[1] * (s), (b)[2] = (a)[2] * (s))
-#define DotProduct(a, b)			((a)[0] * (b)[0] + (a)[1] * (b)[1] + (a)[2] * (b)[2])
-#define CrossProduct(a, b, c)		cross_product(a, b, c)
-#define VectorLengthSquared(v)		DotProduct((v), (v))
+#define Q_DotProduct(a, b)			((a)[0] * (b)[0] + (a)[1] * (b)[1] + (a)[2] * (b)[2])
+#define Q_CrossProduct(a, b, c)		cross_product(a, b, c)
+#define VectorLengthSquared(v)		Q_DotProduct((v), (v))
 #define VectorLength(v)				sqrtf(VectorLengthSquared(v))
 #define VectorNormalize2(a, b)		normalize_vector(a, b)
 #define VectorNormalize(v)			{float length = VectorLength(v); VectorScale(v, length, v);}

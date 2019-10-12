@@ -3957,6 +3957,7 @@ qboolean HaveSurfaceType( int materialType)
 	case MATERIAL_DISTORTEDPULL:
 	case MATERIAL_CLOAK:
 	case MATERIAL_PROCEDURALFOLIAGE:
+	case MATERIAL_BIRD:
 		return qtrue;
 		break;
 	default:
@@ -4134,6 +4135,9 @@ void DebugSurfaceTypeSelection( const char *name, int materialType)
 	case MATERIAL_PROCEDURALFOLIAGE:
 		ri->Printf(PRINT_WARNING, "Surface %s was set to MATERIAL_PROCEDURALFOLIAGE.\n", name);
 		break;
+	case MATERIAL_BIRD:
+		ri->Printf(PRINT_WARNING, "Surface %s was set to MATERIAL_BIRD.\n", name);
+		break;
 	default:
 		ri->Printf(PRINT_WARNING, "Surface %s was set to MATERIAL_NONE.\n", name);
 		break;
@@ -4306,6 +4310,9 @@ int DetectMaterialType ( const char *name )
 
 	if (StringContainsWord(name, "gfx/effects/sabers/saberTrail"))
 		return MATERIAL_EFX;
+
+	if (StringContainsWord(name, "models/warzone/birds/"))
+		return MATERIAL_BIRD; // always a bird...
 
 	if (StringContainsWord(name, "gfx/effects/force_push"))
 		return MATERIAL_DISTORTEDPUSH;

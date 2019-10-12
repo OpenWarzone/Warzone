@@ -199,7 +199,7 @@ static void MakeMeshNormals( int width, int height, drawVert_t ctrl[MAX_GRID_SIZ
 				if ( !good[k] || !good[( k + 1 ) & 7] ) {
 					continue;   // didn't get two points
 				}
-				CrossProduct( around[( k + 1 ) & 7], around[k], normal );
+				Q_CrossProduct( around[( k + 1 ) & 7], around[k], normal );
 				if ( VectorNormalize2( normal, normal ) == 0 ) {
 					continue;
 				}
@@ -399,7 +399,7 @@ srfGridMesh_t *R_SubdividePatchToGrid( int width, int height,
 				VectorSubtract( ctrl[i][j + 2].xyz, ctrl[i][j].xyz, dir );
 				VectorNormalize( dir );
 
-				d = DotProduct( midxyz, dir );
+				d = Q_DotProduct( midxyz, dir );
 				VectorScale( dir, d, projected );
 				VectorSubtract( midxyz, projected, midxyz );
 				len = VectorLengthSquared( midxyz );            // we will do the sqrt later

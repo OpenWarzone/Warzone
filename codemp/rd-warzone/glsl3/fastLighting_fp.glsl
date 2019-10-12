@@ -235,6 +235,7 @@ float RB_PBR_DefaultsForMaterial(float MATERIAL_TYPE)
 	case MATERIAL_PROCEDURALFOLIAGE:
 		specularReflectionScale = 0.0055;
 		break;
+	case MATERIAL_BIRD:
 	case MATERIAL_FABRIC:			// 21			// Cotton sheets
 		specularReflectionScale = 0.0055;
 		break;

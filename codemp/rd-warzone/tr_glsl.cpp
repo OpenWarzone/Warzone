@@ -683,7 +683,8 @@ const char glslMaterialsList[] =
 "#define MATERIAL_DISTORTEDPULL					49\n"\
 "#define MATERIAL_CLOAK							50\n"\
 "#define MATERIAL_PROCEDURALFOLIAGE				51\n"\
-"#define MATERIAL_LAST							52\n"\
+"#define MATERIAL_BIRD							52\n"\
+"#define MATERIAL_LAST							53\n"\
 "#define MATERIAL_SKY							1024\n"\
 "#define MATERIAL_SUN							1025\n"\
 "\n";

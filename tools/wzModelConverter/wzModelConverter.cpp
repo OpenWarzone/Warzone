@@ -1492,6 +1492,450 @@ int convert_assimp_to_obj(const char *in_name, FILE *in, /*FILE *out,*/ int fram
 	return 0;
 }
 
+#ifdef __NIF_IMPORT_TEST__
+//#define __DEBUG_NIF__
+
+#pragma comment(lib, "../../lib/niflib_dll.lib")
+
+#include "nif_include/niflib.h"
+#include "nif_include/obj/NiGeometry.h"
+#include "nif_include/obj/NiGeometryData.h"
+#include "nif_include/obj/NiNode.h"
+#include "nif_include/obj/NiTriShape.h"
+#include "nif_include/obj/NiTriShapeData.h"
+#include "nif_include/Ref.h"
+#include "nif_include/RefObject.h"
+#include "nif_include/obj/NiExtraData.h"
+#include "nif_include/obj/NiTimeController.h"
+#include "nif_include/obj/NiTexturingProperty.h"
+#include "nif_include/obj/BSShaderTextureSet.h"
+#include "nif_include/obj/BSLightingShaderProperty.h"
+#include "nif_include/obj/NiSourceTexture.h"
+#include "nif_include/obj/NiMaterialProperty.h"
+#include "nif_include/obj/NiVertexColorProperty.h"
+#include "nif_include/obj/NiTriStripsData.h"
+#include "nif_include/obj/NiTriStrips.h"
+#include "nif_include/obj/NiBinaryExtraData.h"
+#include "nif_include/obj/bhkCollisionObject.h"
+#include "nif_include/obj/bhkTransformShape.h"
+#include "nif_include/obj/bhkListShape.h"
+#include "nif_include/obj/bhkPackedNiTriStripsShape.h"
+#include "nif_include/obj/hkPackedNiTriStripsData.h"
+#include "nif_include/obj/bhkMoppBvTreeShape.h"
+#include "nif_include/obj/bhkRigidBody.h"
+
+void VectorRotateNIF(vec3_t vIn, vec3_t vRotation, vec3_t out)
+{
+	vec3_t vWork, va;
+	int nIndex[3][2];
+	int i;
+
+	VectorCopy(vIn, va);
+	VectorCopy(va, vWork);
+	nIndex[0][0] = 1; nIndex[0][1] = 2;
+	nIndex[1][0] = 2; nIndex[1][1] = 0;
+	nIndex[2][0] = 0; nIndex[2][1] = 1;
+	for (i = 0; i < 3; i++)
+	{
+		if (vRotation[i] != 0)
+		{
+			float dAngle = vRotation[i] * PI / 180.0f;
+			float c = (vec_t)cos(dAngle);
+			float s = (vec_t)sin(dAngle);
+			vWork[nIndex[i][0]] = va[nIndex[i][0]] * c - va[nIndex[i][1]] * s;
+			vWork[nIndex[i][1]] = va[nIndex[i][0]] * s + va[nIndex[i][1]] * c;
+		}
+		VectorCopy(vWork, va);
+	}
+	VectorCopy(vWork, out);
+}
+
+void VectorRotateOriginNIF(vec3_t vIn, vec3_t vRotation, vec3_t vOrigin, vec3_t out)
+{
+	vec3_t vTemp, vTemp2;
+
+	VectorSubtract(vIn, vOrigin, vTemp);
+	VectorRotateNIF(vTemp, vRotation, vTemp2);
+	VectorAdd(vTemp2, vOrigin, out);
+}
+
+void R_NifRotate(float *pos)
+{
+	vec3_t vRotation;
+	vec3_t vec3_origin;
+
+	vec3_origin[0] = 0;
+	vec3_origin[1] = 0;
+	vec3_origin[2] = 0;
+
+	vRotation[0] = 0;
+	vRotation[1] = 0;
+	vRotation[2] = 90;
+
+	VectorRotateOriginNIF(pos, vRotation, vec3_origin, pos);
+}
+
+int convert_nif_to_obj(const char *in_name, FILE *in, /*FILE *out,*/ int frame, const char *ext, const char *out_file, const char *out_ext)
+{
+	size_t bufSize = 0;
+	unsigned char *buf;
+
+	// load the file contents into a buffer
+	fseek(in, 0, SEEK_END);
+	bufSize = ftell(in);
+	fseek(in, 0, SEEK_SET);
+	buf = (unsigned char*)malloc(bufSize);
+	if (!buf)
+	{
+		Q_Printf("^1ERROR^5: Memory allocation failed\n");
+		return 11;
+	}
+	if (fread(buf, 1, bufSize, in) != bufSize)
+	{
+		Q_Printf("^1ERROR^5: Failed to read file (%d bytes) into buffer\n", (int)bufSize);
+		return 12;
+	}
+
+
+#define NIF_MODEL_SCALE 0.5
+
+	std::string basePath = AssImp_getBasePath(in_name);
+
+	char modName[128] = { { 0 } };
+	strcpy(modName, in_name);
+
+	try {
+		Niflib::NiObjectRef root = Niflib::ReadNifTree(modName);
+
+		if (!root)
+		{
+			Q_Printf("R_LoadNIF: %s could not load. Error: ReadNifTree failed.\n", modName);
+			return 12;
+		}
+
+		Niflib::NiNodeRef node = Niflib::DynamicCast<Niflib::NiNode>(root);
+
+		if (node == NULL)
+		{
+			Q_Printf("R_LoadNIF: %s could not load. Error: DynamicCast<NiNode>(root) failed.\n", modName);
+			return 12;
+		}
+
+		std::vector<Niflib::Ref<Niflib::NiAVObject>> children = node->GetChildren();
+
+		if (children.size() <= 0)
+		{
+			Q_Printf("R_LoadNIF: %s could not load. Error: children.size() is none.\n", modName);
+			return 12;
+		}
+
+		// Calculate the bounds/radius info... And count geometry type surfs...
+		int numGeomSurfs = 0;
+		vec3_t bounds[2];
+		ClearBounds(bounds[0], bounds[1]);
+
+		int z = 0;
+
+		for (std::vector<Niflib::Ref<Niflib::NiAVObject>>::iterator it = children.begin(); it != children.end(); ++it, z++)
+		{
+			Niflib::NiAVObject *NiAVO = (*it);
+
+			if (!NiAVO->IsDerivedType(Niflib::NiGeometry::TYPE))
+			{
+				//Q_Printf("child %i (%s) is not NiGeometry.\n", z, NiAVO->GetName().length() ? NiAVO->GetName().c_str() : "UNKNOWN");
+				continue;
+			}
+
+			Niflib::NiGeometry *NiGEOM = Niflib::DynamicCast<Niflib::NiGeometry>(NiAVO);
+
+			bool isNiTriShape = false;
+			bool isNiTriShapeData = false;
+			bool isNiTriStrips = false;
+			bool isNiTriStripsData = false;
+
+			if (!NiGEOM->IsDerivedType(Niflib::NiTriShapeData::TYPE) && !NiGEOM->IsDerivedType(Niflib::NiTriShape::TYPE) && !NiGEOM->IsDerivedType(Niflib::NiTriStrips::TYPE) && !NiGEOM->IsDerivedType(Niflib::NiTriStripsData::TYPE))
+			{
+				//Q_Printf("child %i (%s) is not NiTriShape or NiTriShapeData.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN");
+				continue;
+			}
+
+			if (NiGEOM->IsDerivedType(Niflib::NiTriShape::TYPE))
+			{
+				isNiTriShape = true;
+				//Q_Printf("child %i (%s) is NiTriShape.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN");
+			}
+
+			if (NiGEOM->IsDerivedType(Niflib::NiTriShapeData::TYPE))
+			{
+				isNiTriShapeData = true;
+				//Q_Printf("child %i (%s) is NiTriShapeData.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN");
+			}
+
+			if (NiGEOM->IsDerivedType(Niflib::NiTriStrips::TYPE))
+			{
+				isNiTriStrips = true;
+				//Q_Printf("child %i (%s) is NiTriStrips.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN");
+			}
+
+			if (NiGEOM->IsDerivedType(Niflib::NiTriStripsData::TYPE))
+			{
+				isNiTriStripsData = true;
+				//Q_Printf("child %i (%s) is NiTriStripsData.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN");
+			}
+
+			bool hasTEXTURE = false;
+
+			for (short index(0); index < 2; ++index)
+			{
+				Niflib::BSLightingShaderProperty *shader = Niflib::DynamicCast<Niflib::BSLightingShaderProperty>(NiGEOM->GetBSProperty(index));
+
+				if (shader != NULL)
+				{
+					std::vector<std::string> textures = shader->GetTextureSet()->GetTextures();
+
+					if (!textures.size()) continue;
+
+					for (std::vector<std::string>::iterator ti = textures.begin(); ti != textures.end(); ++ti)
+					{
+						std::string texture = (*ti);
+
+						if (texture.length())
+						{
+							//Q_Printf("child %i (%s) index %i has %s texture.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN", index, texture.c_str());
+							hasTEXTURE = true;
+							break;
+						}
+					}
+				}
+			}
+
+			if (!hasTEXTURE)
+			{
+				continue;
+			}
+
+			Niflib::Ref<Niflib::NiGeometryData> niGeomData = Niflib::DynamicCast<Niflib::NiGeometryData>(NiGEOM->GetData());
+
+
+			std::vector<Niflib::Vector3> verts;
+			vector<Niflib::Triangle> triangles;
+			std::vector<int> idxs = niGeomData->GetVertexIndices();
+
+			if (isNiTriShape || isNiTriShapeData)
+			{
+				Niflib::NiTriShapeDataRef data = Niflib::DynamicCast<Niflib::NiTriShapeData>(niGeomData);
+				verts = data->GetVertices();
+				triangles = data->GetTriangles();
+			}
+			else if (isNiTriStrips || isNiTriStripsData)
+			{
+				Niflib::NiTriStripsDataRef data = Niflib::DynamicCast<Niflib::NiTriStripsData>(niGeomData);
+				verts = data->GetVertices();
+				triangles = data->GetTriangles();
+			}
+			else
+			{
+				verts = niGeomData->GetVertices();
+				std::vector<int> idxs = niGeomData->GetVertexIndices();
+			}
+
+			uint32_t numVERTS = 0;
+
+			for (std::vector<Niflib::Vector3>::iterator vi = verts.begin(); vi != verts.end(); vi++)
+			{
+				Niflib::Vector3 vt = (*vi);
+
+				vec3_t vert;
+				vert[0] = vt.x * NIF_MODEL_SCALE;
+				vert[1] = vt.y * NIF_MODEL_SCALE;
+				vert[2] = vt.z * NIF_MODEL_SCALE;
+
+				R_NifRotate(vert);
+
+				AddPointToBounds(vert, bounds[0], bounds[1]);
+				numVERTS++;
+			}
+
+			uint32_t numIDX = 0;
+
+			if (isNiTriShape || isNiTriShapeData || isNiTriStrips || isNiTriStripsData)
+			{
+				for (std::vector<Niflib::Triangle>::iterator tr = triangles.begin(); tr != triangles.end(); tr++)
+				{
+					numIDX++;
+				}
+			}
+			else
+			{
+				for (std::vector<int>::iterator id = idxs.begin(); id != idxs.end(); id++)
+				{
+					numIDX++;
+				}
+			}
+
+			//Q_Printf("child %i (%s) has %u verts and %u indexes.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN", numVERTS, numIDX);
+
+			if (numVERTS > 0 && numIDX > 0)
+			{
+				numGeomSurfs++;
+			}
+		}
+
+		if (numGeomSurfs <= 0)
+		{
+#ifdef __DEBUG_NIF__
+			ri->Printf(PRINT_ALL, "R_LoadNIF: Model %s has no geometry.\n", modName);
+#endif //__DEBUG_NIF__
+			return 12;
+		}
+
+		//
+		//
+		//
+		//
+		//
+
+		Q_Printf("^3Model stats^5:\n");
+		Q_Printf(" ^3%d^5 surfaces.\n", little_long(numGeomSurfs));
+
+
+		{
+			char surfaceNames[1024][256] = { 0 };
+			char surfaceTextures[1024][256] = { 0 };
+
+			char mtlPath[512] = { 0 };
+			sprintf(mtlPath, "%s%s", out_file, "mtl");
+
+			// geometry - iterate over all the MD3 surfaces
+			for (std::vector<Niflib::Ref<Niflib::NiAVObject>>::iterator it = children.begin(); it != children.end(); ++it)
+			{
+				Niflib::NiAVObject *NiAVO = (*it);
+
+				if (!NiAVO->IsDerivedType(Niflib::NiGeometry::TYPE))
+				{
+					continue;
+				}
+
+				Niflib::NiGeometry *NiGEOM = Niflib::DynamicCast<Niflib::NiGeometry>(NiAVO);
+
+				bool isNiTriShape = false;
+				bool isNiTriShapeData = false;
+				bool isNiTriStrips = false;
+				bool isNiTriStripsData = false;
+				bool hasNormals = false;
+				bool hasUVs = false;
+
+				if (!NiGEOM->IsDerivedType(Niflib::NiTriShapeData::TYPE) && !NiGEOM->IsDerivedType(Niflib::NiTriShape::TYPE) && !NiGEOM->IsDerivedType(Niflib::NiTriStrips::TYPE) && !NiGEOM->IsDerivedType(Niflib::NiTriStripsData::TYPE))
+				{
+					//ri->Printf(PRINT_WARNING, "child %i (%s) is not NiTriShape or NiTriShapeData.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN");
+					continue;
+				}
+
+				if (NiGEOM->IsDerivedType(Niflib::NiTriShape::TYPE))
+				{
+					isNiTriShape = true;
+					//ri->Printf(PRINT_WARNING, "child %i (%s) is NiTriShape.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN");
+				}
+
+				if (NiGEOM->IsDerivedType(Niflib::NiTriShapeData::TYPE))
+				{
+					isNiTriShapeData = true;
+					//ri->Printf(PRINT_WARNING, "child %i (%s) is NiTriShapeData.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN");
+				}
+
+				if (NiGEOM->IsDerivedType(Niflib::NiTriStrips::TYPE))
+				{
+					isNiTriStrips = true;
+					//ri->Printf(PRINT_WARNING, "child %i (%s) is NiTriStrips.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN");
+				}
+
+				if (NiGEOM->IsDerivedType(Niflib::NiTriStripsData::TYPE))
+				{
+					isNiTriStripsData = true;
+					//ri->Printf(PRINT_WARNING, "child %i (%s) is NiTriStripsData.\n", z, NiGEOM->GetName().length() ? NiGEOM->GetName().c_str() : "UNKNOWN");
+				}
+
+				Niflib::Ref<Niflib::NiGeometryData> niGeomData = Niflib::DynamicCast<Niflib::NiGeometryData>(NiGEOM->GetData());
+
+
+
+
+			}
+
+			printf("\n");
+
+			char outPath[512] = { 0 };
+			char outExt[512] = { 0 };
+
+			if (!strcmp(out_ext, "collada"))
+			{
+				sprintf(outExt, "collada");
+				sprintf(outPath, "%s%s", out_file, "dae");
+			}
+			else if (!strcmp(out_ext, "dae"))
+			{
+				sprintf(outExt, "collada");
+				sprintf(outPath, "%s%s", out_file, "dae");
+			}
+			else if (!strcmp(out_ext, "obj"))
+			{
+				// dump a mtl file as well...
+				FILE *mtlFile = fopen(mtlPath, "w");
+				if (!mtlFile)
+				{
+					Q_Printf("^1ERROR^5: Failed to open file ^7%s^5 for write.\n", mtlPath);
+					return 4;
+				}
+
+				for (unsigned int i = 0; i < scene->mNumMeshes; ++i)
+				{
+					fprintf(mtlFile,
+						"\n"
+						"newmtl %s\n"
+						//"   Ns 47.0000\n"
+						//"   Ni 1.5000\n"
+						//"   d 1.0000\n"
+						//"   Tr 0.0000\n"
+						//"   Tf 1.0000 1.0000 1.0000\n"
+						//"   illum 2\n"
+						//"   Ka 0.7569 0.7569 0.7569\n"
+						//"   Kd 0.7569 0.7569 0.7569\n"
+						//"   Ks 0.3510 0.3510 0.3510\n"
+						//"   Ke 0.0000 0.0000 0.0000\n"
+						"   map_Ka %s\n"
+						"   map_Kd %s\n"
+						, surfaceNames[i], surfaceTextures[i], surfaceTextures[i]);
+				}
+
+				fclose(mtlFile);
+
+				sprintf(outExt, "%s", out_ext);
+				sprintf(outPath, "%s%s", out_file, outExt);
+			}
+			else
+			{
+				sprintf(outExt, "%s", out_ext);
+				sprintf(outPath, "%s%s", out_file, outExt);
+			}
+
+			qboolean flipHandedness = qfalse; // noesis wants this, my other program doesnt... WTF??? Milkshape also doesn't want this, noesis has something wrong it seems...
+			assImpExporter.Export(scene, outExt, outPath, flipHandedness ? aiProcess_MakeLeftHanded : 0, 0);
+
+			if (strlen(assImpExporter.GetErrorString()) > 0)
+			{// Output any errors...
+				Q_Printf("^1ERROR^5: An export error occurred: ^3%s.^5\n", assImpExporter.GetErrorString());
+			}
+			else
+			{
+				Q_Printf("^7%s^5 was ^3successfully^5 exported.\n", outPath);
+			}
+		}
+	}
+
+	return 0;
+}
+#endif //__NIF_IMPORT_TEST__
+
 int main(int argc, char *argv[])
 {
 	FILE *infile;

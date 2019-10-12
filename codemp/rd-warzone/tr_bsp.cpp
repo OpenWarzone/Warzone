@@ -2628,6 +2628,11 @@ static int BSPSurfaceCompare(const void *a, const void *b)
 		return -1;
 	else if (qboolean(aa->shader->materialType == MATERIAL_LAVA) > qboolean(bb->shader->materialType == MATERIAL_LAVA))
 		return 1;
+
+	//if (qboolean(aa->shader->materialType == MATERIAL_BIRD) < qboolean(bb->shader->materialType == MATERIAL_BIRD))
+	//	return -1;
+	//else if (qboolean(aa->shader->materialType == MATERIAL_BIRD) > qboolean(bb->shader->materialType == MATERIAL_BIRD))
+	//	return 1;
 #endif //__FX_SORTING__
 
 
@@ -4833,6 +4838,7 @@ qboolean R_MaterialUsesCubemap ( int materialType)
 	case MATERIAL_GREENLEAVES:		// 20			// fresh leaves still on a tree
 		return qfalse;
 		break;
+	case MATERIAL_BIRD:
 	case MATERIAL_FABRIC:			// 21			// Cotton sheets
 		return qfalse;
 		break;

@@ -83,6 +83,7 @@ uniform vec4						u_Local4; // stageNum, glowStrength, r_showsplat, 0.0
 uniform vec4						u_Local5; // dayNightEnabled, nightScale, skyDirection, auroraEnabled -- Sky draws only!
 uniform vec4						u_Local8;
 uniform vec4						u_Local9; // testvalue0, 1, 2, 3
+uniform vec4						u_Local20; // bird origin x,y,z, 0.0
 
 #define TERRAIN_TESSELLATION_OFFSET	u_Local1.r
 #define SHADER_SWAY					u_Local1.g
@@ -581,6 +582,14 @@ vec3 OffsetForPosition(vec3 pos)
 }
 #endif //defined(USE_TESSELLATION_3D) && defined(USE_EDGE_TESSELLATION)
 
+float wingFlap(void)
+{
+	//float gliding = sin(u_Time*0.5);
+	float gliding = sin(u_Time*0.3);
+	float flap = sin(u_Time*13.0)*0.12*M_PI*gliding - 0.1;
+	return flap;
+}
+
 void main()
 {
 	vec3 position;
@@ -625,6 +634,11 @@ void main()
 		normal    = attr_Normal * 2.0 - 1.0;
 	}
 
+	if (SHADER_MATERIAL_TYPE == MATERIAL_BIRD)
+	{// Flying birds wing flapping...
+		float dist = distance((u_ModelMatrix * vec4(position, 1.0)).xyz, u_Local20.rgb);
+		position.z -= dist * -0.02 * wingFlap();
+	}
 
 #if defined(USE_TESSELLATION) && defined(USE_EDGE_TESSELLATION)
 	vec3 baseVertPos = position;

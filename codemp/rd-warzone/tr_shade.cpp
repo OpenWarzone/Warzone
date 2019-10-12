@@ -1578,6 +1578,7 @@ void RB_PBR_DefaultsForMaterial(float *settings, int MATERIAL_TYPE)
 		cubemapScale = 0.0;
 		parallaxScale = 0.0; // GreenLeaves should NEVER be parallaxed.. It's used for surfaces with an alpha channel and parallax screws it up...
 		break;
+	case MATERIAL_BIRD:
 	case MATERIAL_FABRIC:			// 21			// Cotton sheets
 		specularScale = 0.45;
 		cubemapScale = 0.0;
@@ -5959,6 +5960,22 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			else
 				GL_Cull(CT_BACK_SIDED);
 		}*/
+
+		if (tess.shader->materialType == MATERIAL_BIRD && backEnd.currentEntity != NULL && backEnd.currentEntity != &tr.worldEntity)
+		{// Flying birds, send center origin for animating wings...
+			vec4_t l20;
+			VectorSet4(l20, backEnd.currentEntity->e.origin[0], backEnd.currentEntity->e.origin[1], backEnd.currentEntity->e.origin[2], 0.0);
+			//ri->Printf(PRINT_WARNING, "bird org: %f %f %f.\n", backEnd.currentEntity->e.origin[0], backEnd.currentEntity->e.origin[1], backEnd.currentEntity->e.origin[2]);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL20, l20);
+			
+			GL_Cull(CT_TWO_SIDED);
+		}
+		else
+		{
+			vec4_t l20;
+			VectorSet4(l20, 0.0, 0.0, 0.0, 0.0);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL20, l20);
+		}
 
 		if (!is2D && (pStage->glow || pStage->glowMapped))
 		{

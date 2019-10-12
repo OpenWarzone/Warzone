@@ -299,6 +299,7 @@ qboolean HaveSurfaceType( int materialType)
 	case MATERIAL_DISTORTEDPUSH:
 	case MATERIAL_DISTORTEDPULL:
 	case MATERIAL_CLOAK:
+	case MATERIAL_BIRD:
 		return qtrue;
 		break;
 	default:

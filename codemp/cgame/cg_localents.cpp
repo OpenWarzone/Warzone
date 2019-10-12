@@ -786,7 +786,11 @@ extern float		MAP_WATER_LEVEL;
 extern vec3_t		MAP_INFO_MINS;
 extern vec3_t		MAP_INFO_MAXS;
 
-#define MAX_MAP_BIRDS 128
+#define MAX_MAP_BIRDS				512
+#define BIRD_MAX_DRAW_DISTANCE		65536.0
+#define BIRD_RETURN_HOME_DISTANCE	32768.0
+#define BIRD_MAX_CIRCLE_SIZE		8
+#define BIRD_CIRCLE_CHANGE_RATE		0.1
 
 typedef struct mapBirds_s {
 	vec3_t		origin;
@@ -803,10 +807,10 @@ qhandle_t		birdModel = -1;
 
 void CG_DrawBird(mapBirds_t *bird)
 {
-	/*if (Distance(bird->origin, cg.refdef.vieworg) > 32768)
+	if (Distance(bird->origin, cg.refdef.vieworg) > BIRD_MAX_DRAW_DISTANCE)
 	{// Early cull...
 		return;
-	}*/
+	}
 
 	refEntity_t ent;
 
@@ -869,7 +873,7 @@ void CG_Birds(void)
 			downPos[2] = MAP_WATER_LEVEL;
 
 			trap->CM_Trace(&tr, bird->origin, downPos, NULL, NULL, 0, MASK_SOLID, 0);
-			bird->origin[2] = tr.endpos[2] + 6144.0;
+			bird->origin[2] = tr.endpos[2] + (8192.0 + (8192.0 * random()));
 
 			bird->rotate = 1.0;
 
@@ -878,9 +882,9 @@ void CG_Birds(void)
 				bird->rotate = -1.0;
 			}
 
-			bird->circleSize = irand(1, 3);
+			bird->circleSize = irand(1, BIRD_MAX_CIRCLE_SIZE);
 
-			float a = ((float(cg.time) / 1000.0) + i) * bird->rotate;
+			float a = ((float(cg.time) / 1000.0) / bird->circleSize + i) * bird->rotate;
 			float b = 0.0;
 			bird->dir[0] = cos(a) * cos(b);
 			bird->dir[1] = sin(a) * cos(b);
@@ -888,7 +892,7 @@ void CG_Birds(void)
 
 			VectorCopy(bird->origin, bird->startOrigin);
 
-			trap->Print("Bird %i spawn at %f %f %f. Dir %f.\n", i, bird->origin[0], bird->origin[1], bird->origin[2], bird->dir[YAW]);
+			//trap->Print("Bird %i spawn at %f %f %f. Dir %f.\n", i, bird->origin[0], bird->origin[1], bird->origin[2], bird->dir[YAW]);
 		}
 
 		birdModel = trap->R_RegisterModel("models/warzone/birds/bird.3ds");
@@ -906,7 +910,19 @@ void CG_Birds(void)
 	{
 		mapBirds_t *bird = &mapBirds[i];
 
-		float a = ((float(cg.time) / 1000.0) + i) * bird->rotate;
+		// Randomly adjust the bird's circle size over time...
+		if (irand(0, 1) == 1)
+		{
+			bird->circleSize += BIRD_CIRCLE_CHANGE_RATE;
+		}
+		else
+		{
+			bird->circleSize -= BIRD_CIRCLE_CHANGE_RATE;
+		}
+
+		bird->circleSize = Q_clampi(1, bird->circleSize, BIRD_MAX_CIRCLE_SIZE);
+
+		float a = ((float(cg.time) / 1000.0) / bird->circleSize + i) * bird->rotate;
 		float b = 0.0;
 		bird->dir[0] = cos(a) * cos(b);
 		bird->dir[1] = sin(a) * cos(b);
@@ -915,38 +931,19 @@ void CG_Birds(void)
 
 		float distFromStart = DistanceHorizontal(bird->origin, bird->startOrigin);
 
-#define RETURN_HOME_DISTANCE 16384.0
-
 		// Stay near our start position...
 		vec3_t wantedDir;
 		VectorSubtract(bird->startOrigin, bird->origin, wantedDir);
 		VectorNormalize(wantedDir);
 
-		float returnStrength = pow(Q_clamp(0.0, distFromStart / RETURN_HOME_DISTANCE, 1.0), 3.0);
+		float returnStrength = pow(Q_clamp(0.0, distFromStart / BIRD_RETURN_HOME_DISTANCE, 1.0), 3.0);
 
 		bird->dir[0] = mix(bird->dir[0], wantedDir[0], returnStrength);
 		bird->dir[1] = mix(bird->dir[1], wantedDir[1], returnStrength);
 		bird->dir[2] = sin(b);
 		VectorNormalize(bird->dir);
 
-		// Randomly adjust the bird's circle size over time...
-		if (irand(0, 1) == 1)
-		{
-			bird->circleSize += 0.1;
-		}
-		else
-		{
-			bird->circleSize -= 0.1;
-		}
-
-		bird->circleSize = Q_clampi(1, bird->circleSize, 3);
-
-		VectorMA(bird->origin, bird->circleSize * 72.0, bird->dir, bird->origin);
-
-		/*if (cg_testvalue3.integer == 2)
-		{
-			VectorCopy(bird->startOrigin, bird->origin);
-		}*/
+		VectorMA(bird->origin, 72.0, bird->dir, bird->origin);
 
 		CG_DrawBird(bird);
 
