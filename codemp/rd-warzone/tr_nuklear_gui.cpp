@@ -1236,11 +1236,21 @@ int uq_radio(struct nk_context *ctx, struct media *media, char *label, int curre
 			setting = i;
 	}
 #else
+
+	#if 0
 	//nk_layout_row_dynamic(ctx, 30, maxSetting+2);
 	nk_layout_row_dynamic(ctx, 30, 2);
 	nk_label(ctx, label, NK_TEXT_LEFT);
 	
 	nk_layout_row_dynamic(ctx, 30, maxSetting + 1);
+	#else
+	nk_style_set_font(ctx, &media->font_14->handle);
+	nk_layout_row_dynamic(ctx, 18, 2);
+	nk_label(ctx, label, NK_TEXT_LEFT);
+
+	nk_layout_row_dynamic(ctx, 18, maxSetting + 1);
+	#endif
+
 	for (int i = 0; i <= maxSetting; i++)
 	{
 		if (nk_option_label(ctx, va("%i", i), (currentSetting == i) ? 1 : 0))
@@ -1421,7 +1431,7 @@ void GUI_CheckOpenWindows(struct nk_context *ctx)
 	if (keyStatus[A_LOW_S] || keyStatus[A_CAP_S])
 	{// Open/Close Settings Window...
 		GUI_ToggleWindow(ctx, MENU_SETTINGS);
-		ri->Printf(PRINT_WARNING, "Settings Window is currently unimplemented.\n");
+		//ri->Printf(PRINT_WARNING, "Settings Window is currently unimplemented.\n");
 	}
 }
 
@@ -1806,8 +1816,13 @@ GUI_Settings(struct nk_context *ctx, struct media *media)
 
 	int i = 0;
 	nk_style_set_font(ctx, &media->font_20->handle);
-	nk_begin(ctx, "Settings - Post Processing", nk_rect(128.0, 128.0, size[0], size[1]), NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_TITLE | NK_WINDOW_CLOSABLE);
+	nk_begin(ctx, "Settings", nk_rect(128.0, 128.0, size[0], size[1]), NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_TITLE | NK_WINDOW_CLOSABLE);
 
+	nk_window *win = nk_window_find(ctx, "Settings");
+	win->hasIcon = true;
+	win->icon = media->iconSettings;
+
+#if 0
 	/*------------------------------------------------
 	*           POSTPROCESS SETTINGS DISPLAY
 	*------------------------------------------------*/
@@ -1818,7 +1833,7 @@ GUI_Settings(struct nk_context *ctx, struct media *media)
 	{// Something is hovered, do the tooltip...
 		if (GUI_PostProcessCvars[hovered]->displayInfoSet && GUI_PostProcessCvars[hovered]->description && GUI_PostProcessCvars[hovered]->description[0])
 		{
-			uq_tooltip(ctx, GUI_PostProcessCvars[hovered]->description, media, NULL);
+			uq_tooltip(ctx, va("^7%s", GUI_PostProcessCvars[hovered]->description), media, NULL);
 		}
 	}
 
@@ -1826,6 +1841,14 @@ GUI_Settings(struct nk_context *ctx, struct media *media)
 
 	nk_style_set_font(ctx, &media->font_14->handle);
 	nk_end(ctx);
+#else
+	nk_layout_row_static(ctx, 120.0, size[0], 1);
+
+	nk_button_image_label(ctx, media->tools, "Sorry, settings window is not yet implemented. Use the ^3<F2>^7 menu.", NK_TEXT_LEFT);
+
+	nk_style_set_font(ctx, &media->font_14->handle);
+	nk_end(ctx);
+#endif
 }
 
 /* ===============================================================
@@ -4047,8 +4070,6 @@ void NuklearUI_Main(void)
 			grid_demo(&GUI_ctx, &GUI_media);
 #endif
 
-			//GUI_Settings(&GUI_ctx, &GUI_media);
-
 			bool quickbarAbleWindowOpen = false;
 
 			if (GUI_IsWindowOpen(&GUI_ctx, MENU_ABILITIES))
@@ -4072,6 +4093,11 @@ void NuklearUI_Main(void)
 			{
 				GUI_Powers(&GUI_ctx, &GUI_media);
 				quickbarAbleWindowOpen = true;
+			}
+
+			if (GUI_IsWindowOpen(&GUI_ctx, MENU_SETTINGS))
+			{
+				GUI_Settings(&GUI_ctx, &GUI_media);
 			}
 
 			//if (!quickbarAbleWindowOpen && (/*selectedContextItem ||*/ backEnd.ui_MouseCursor > 0))
