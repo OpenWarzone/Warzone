@@ -1170,6 +1170,7 @@ qhandle_t R_RegisterAssImp(const char *name, model_t *mod)
 #include "nif_include/obj/NiNode.h"
 #include "nif_include/obj/NiTriShape.h"
 #include "nif_include/obj/NiTriShapeData.h"
+#include "nif_include/nifqhull.h"
 #include "nif_include/Ref.h"
 #include "nif_include/RefObject.h"
 #include "nif_include/obj/NiExtraData.h"
@@ -1485,6 +1486,7 @@ static qboolean R_LoadNIF(model_t * mod, int lod, void *buffer, const char *modN
 		mdvModel->numSurfaces = numGeomSurfs;
 		mdvModel->surfaces = surf = (mdvSurface_t *)ri->Hunk_Alloc(sizeof(*surf) * mdvModel->numSurfaces, h_low);
 
+
 		int numRemoved = 0;
 
 		for (std::vector<Niflib::Ref<Niflib::NiAVObject>>::iterator it = children.begin(); it != children.end(); ++it)
@@ -1687,6 +1689,18 @@ static qboolean R_LoadNIF(model_t * mod, int lod, void *buffer, const char *modN
 					}
 				}
 			}
+
+#ifdef __CONVEX_HULL_CALCULATION__
+			//
+			// Compute convex hull for mesh verts, this may be really useful for stuff, could be called on any mesh, not just NIF...
+			//
+
+			std::vector<Niflib::Triangle> convexHull = Niflib::NifQHull::compute_convex_hull(verts);
+
+			//
+			//
+			//
+#endif //__CONVEX_HULL_CALCULATION__
 
 			std::string textureName = AssImp_getTextureName(shaderName.c_str());
 
