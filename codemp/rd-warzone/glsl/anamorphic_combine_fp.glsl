@@ -38,6 +38,7 @@ uniform sampler2D					u_ShadowMap2;
 uniform sampler2D					u_ShadowMap3;
 uniform sampler2D					u_ShadowMap4;
 uniform sampler2D					u_ShadowMap5;
+uniform sampler3D					u_VolumeMap;
 uniform sampler2D					u_MoonMaps[4];
 };
 #else //!defined(USE_BINDLESS_TEXTURES)

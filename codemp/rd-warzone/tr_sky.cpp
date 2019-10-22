@@ -614,6 +614,9 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 			VectorSet4(vector, PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR2[0], PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR2[1], PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR2[2], 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL12, vector);
 
+			VectorSet4(vector, AURORA_STRENGTH1, AURORA_STRENGTH2, 0.0, 0.0);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL13, vector);
+
 
 			if (MOON_INFO_CHANGED)
 			{
@@ -719,6 +722,7 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 			GLSL_SetBindlessTexture(sp, UNIFORM_SPLATMAP2, &tr.auroraImage[1], 0);
 			GLSL_SetBindlessTexture(sp, UNIFORM_SPLATMAP3, &tr.defaultSplatControlImage, 0);
 			GLSL_SetBindlessTexture(sp, UNIFORM_ROADMAP, &tr.random2KImage[0], 0);
+			GLSL_SetBindlessTexture(sp, UNIFORM_VOLUMEMAP, &tr.randomVolumetricImage[0], 0);
 		}
 		else
 		{
@@ -736,6 +740,9 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 
 			GLSL_SetUniformInt(sp, UNIFORM_ROADMAP, TB_ROADMAP);
 			GL_BindToTMU(tr.random2KImage[0], TB_ROADMAP);
+
+			GLSL_SetUniformInt(sp, UNIFORM_VOLUMEMAP, TB_CUBEMAP);
+			GL_BindToTMU(tr.randomVolumetricImage[0], TB_CUBEMAP);
 		}
 
 		//if (r_testvalue0->integer)

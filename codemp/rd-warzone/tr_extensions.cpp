@@ -236,6 +236,9 @@ PFNGLVERTEXATTRIBL1UI64ARBPROC qglVertexAttribL1ui64;
 PFNGLVERTEXATTRIBL1UI64VARBPROC qglVertexAttribL1ui64v;
 PFNGLGETVERTEXATTRIBLUI64VARBPROC qglGetVertexAttribLui64v;
 
+PFNGLTEXIMAGE3DPROC qglTexImage3D;
+PFNGLTEXSUBIMAGE3DPROC qglTexSubImage3D;
+
 /*static*/ qboolean GLimp_HaveExtension(const char *ext)
 {
 	const char *ptr = Q_stristr( glConfigExt.originalExtensionString, ext );
@@ -405,6 +408,9 @@ void GLimp_InitExtraExtensions()
 	// Transform feedback
 	GetGLFunction (qglBeginTransformFeedback, "glBeginTransformFeedback", qtrue);
 	GetGLFunction (qglEndTransformFeedback, "glEndTransformFeedback", qtrue);
+
+	GetGLFunction(qglTexImage3D, "glTexImage3D", qtrue);
+	GetGLFunction(qglTexSubImage3D, "glTexSubImage3D", qtrue);
 
 	// Texture compression
 	GetGLFunction (qglCompressedTexImage3D, "glCompressedTexImage3D", qtrue);

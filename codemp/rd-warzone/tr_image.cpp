@@ -2632,6 +2632,41 @@ static void EmptyTexture( int width, int height, imgType_t type, int flags,
 	GL_CheckErrors();
 }
 
+/*
+bool R_LoadVolumeTextureFromFile(const char* fileName, image_t *image)
+{
+	int XDIM = 256, YDIM = 256, ZDIM = 256;
+	const int size = XDIM*YDIM*ZDIM;
+
+	FILE *pFile = fopen(fileName, "rb");
+
+	if (NULL == pFile) {
+		return false;
+	}
+
+	GLubyte* pVolume = new GLubyte[size];
+	fread(pVolume, sizeof(GLubyte), size, pFile);
+	fclose(pFile);
+
+	//load data into a 3D texture
+	qglGenTextures(1, &image->texnum);
+	qglBindTexture(GL_TEXTURE_3D, image->texnum);
+
+	// set the texture parameters
+	qglTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	qglTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	qglTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
+	qglTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	qglTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+	qglTexImage3DEXT(GL_TEXTURE_3D, 0, GL_INTENSITY, XDIM, YDIM, ZDIM, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, pVolume);
+	delete[] pVolume;
+
+	GL_SetupBindlessTexture(image);
+
+	return true;
+}
+*/
 
 /*
 ================
@@ -2657,6 +2692,16 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgT
 		ri->Error( ERR_DROP, "R_CreateImage: MAX_DRAWIMAGES hit");
 	}
 
+	if (flags & IMGFLAG_3D_VOLUMETRIC && height != width)
+	{// 3D volumetrics are always cube.
+		if (height != width)
+		{
+			ri->Error(ERR_DROP, "R_CreateImage: \"%s\" is 3D volumetric but width != height.", name);
+			//ri->Printf(PRINT_WARNING, "R_CreateImage: \"%s\" is 3D volumetric but width != height. Height will be forced to width.\n", name);
+			//height = width;
+		}
+	}
+
 	//ri->Printf(PRINT_WARNING, "R_CreateImage Debug: %s.\n", name);
 
 	image = tr.images[tr.numImages] = (image_t *)ri->Hunk_Alloc( sizeof( image_t ), h_low );
@@ -2670,6 +2715,7 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgT
 
 	image->width = width;
 	image->height = height;
+
 	if (flags & IMGFLAG_CLAMPTOEDGE)
 		glWrapClampMode = GL_CLAMP_TO_EDGE;
 	else
@@ -2677,7 +2723,9 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgT
 
 	if (!internalFormat)
 	{
-		if (image->flags & IMGFLAG_CUBEMAP)
+		if (image->flags & IMGFLAG_3D_VOLUMETRIC)
+			internalFormat = GL_RGBA8;
+		else if (image->flags & IMGFLAG_CUBEMAP)
 			internalFormat = GL_RGBA8;
 		else
 			internalFormat = RawImage_GetFormat(pic, width * height, isLightmap, image->type, image->flags);
@@ -2696,7 +2744,68 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgT
 
 	GL_SelectTexture( image->TMU );
 
-	if (image->flags & IMGFLAG_CUBEMAP)
+	if (image->flags & IMGFLAG_3D_VOLUMETRIC)
+	{
+		if (pic != NULL)
+		{// Use loaded image...
+			int XDIM = width, YDIM = width, ZDIM = width;
+			const int size = XDIM*YDIM*ZDIM * 4;
+
+			GLubyte* pVolume = pic;
+
+			//load data into a 3D texture
+			qglGenTextures(1, &image->texnum);
+			GL_Bind(image);
+
+			// set the texture parameters
+			qglTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, glWrapClampMode);
+			qglTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, glWrapClampMode);
+			qglTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, glWrapClampMode);
+			qglTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			qglTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+			qglTexImage3D(GL_TEXTURE_3D, 0, internalFormat, XDIM, YDIM, ZDIM, 0, GL_RGBA, GL_UNSIGNED_BYTE, pVolume);
+			delete[] pVolume;
+
+			if ((image->flags & IMGFLAG_MIPMAP) && r_mipMapTextures->integer)
+				qglGenerateMipmap(GL_TEXTURE_3D);
+
+			image->uploadWidth = width;
+			image->uploadHeight = height;
+		}
+		else
+		{// Filled with randoms...
+			int XDIM = width, YDIM = width, ZDIM = width;
+			const int size = XDIM*YDIM*ZDIM * 4;
+
+			GLubyte* pVolume = new GLubyte[size];
+			for (int s = 0; s < size; s++)
+			{
+				pVolume[s] = (GLubyte)irand(0, 255);
+			}
+
+			//load data into a 3D texture
+			qglGenTextures(1, &image->texnum);
+			GL_Bind(image);
+
+			// set the texture parameters
+			qglTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, glWrapClampMode);
+			qglTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, glWrapClampMode);
+			qglTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, glWrapClampMode);
+			qglTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			qglTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+			qglTexImage3D(GL_TEXTURE_3D, 0, internalFormat, XDIM, YDIM, ZDIM, 0, GL_RGBA, GL_UNSIGNED_BYTE, pVolume);
+			delete[] pVolume;
+
+			if ((image->flags & IMGFLAG_MIPMAP) && r_mipMapTextures->integer)
+				qglGenerateMipmap(GL_TEXTURE_3D);
+
+			image->uploadWidth = width;
+			image->uploadHeight = height;
+		}
+	}
+	else if (image->flags & IMGFLAG_CUBEMAP)
 	{
 		GL_Bind(image);
 		qglTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -4792,6 +4901,11 @@ void R_CreateBuiltinImages( void ) {
 	VectorSet4(tr.greyCube->lightColor, 0.0, 0.0, 0.0, 1.0);
 	
 	tr.randomImage = R_FindImageFile("gfx/random.png", IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_CLAMPTOEDGE | IMGFLAG_MIPMAP /*| IMGFLAG_NO_COMPRESSION*/);
+
+	tr.randomVolumetricImage[0] = R_CreateImage("volumetricRandom256", NULL, 256, 256, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_MIPMAP | IMGFLAG_3D_VOLUMETRIC, 0);
+	tr.randomVolumetricImage[1] = R_CreateImage("volumetricRandom512", NULL, 512, 512, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_MIPMAP | IMGFLAG_3D_VOLUMETRIC, 0);
+	tr.randomVolumetricImage[2] = R_CreateImage("volumetricRandom1024", NULL, 1024, 1024, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_MIPMAP | IMGFLAG_3D_VOLUMETRIC, 0);
+	tr.randomVolumetricImage[3] = R_CreateImage("volumetricRandom2048", NULL, 2048, 2048, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_MIPMAP | IMGFLAG_3D_VOLUMETRIC, 0);
 
 	/*if (r_shadows->integer == 3)
 	{

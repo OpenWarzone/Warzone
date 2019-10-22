@@ -774,6 +774,7 @@ typedef enum
 	IMGFLAG_GENNORMALMAP   = 0x0100,
 	IMGFLAG_MUTABLE        = 0x0200,
 	IMGFLAG_GLOW           = 0x0400,
+	IMGFLAG_3D_VOLUMETRIC  = 0x0800,
 } imgFlags_t;
 
 typedef enum
@@ -859,6 +860,7 @@ typedef struct bindlessTexturesBlock_s
 	GLuint64 					u_ShadowMap3;
 	GLuint64 					u_ShadowMap4;
 	GLuint64 					u_ShadowMap5;
+	GLuint64					u_VolumeMap;
 	GLuint64 					u_MoonMaps[4];
 } bindlessTexturesBlock_t;
 
@@ -1735,6 +1737,8 @@ typedef enum
 	UNIFORM_SHADOWMAP3,
 	UNIFORM_SHADOWMAP4,
 	UNIFORM_SHADOWMAP5,
+
+	UNIFORM_VOLUMEMAP,
 
 	UNIFORM_MOONMAPS,
 
@@ -3040,6 +3044,7 @@ typedef struct trGlobals_s {
 	//image_t					*previousRenderImage;
 	image_t					*randomImage;
 	image_t					*random2KImage[2];
+	image_t					*randomVolumetricImage[4]; // 256x256x256, 512x512x512, 1024x1024x1024, 2048x2048x2048
 	image_t					*smoothNoiseImage;
 	image_t					*defaultSplatControlImage;
 	image_t					*defaultGrassMapImage;

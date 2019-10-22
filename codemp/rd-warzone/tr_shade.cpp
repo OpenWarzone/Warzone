@@ -5053,7 +5053,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 
 					if ((r_lightmap->integer == 1 || r_lightmap->integer == 2) && pStage->bundle[TB_LIGHTMAP].image[0])
 					{
-						for (i = 0; i <= UNIFORM_SHADOWMAP5; i++)
+						for (i = 0; i <= UNIFORM_VOLUMEMAP; i++)
 						{
 							if (i == UNIFORM_LIGHTMAP)
 								GLSL_SetBindlessTexture(sp, UNIFORM_LIGHTMAP, &pStage->bundle[TB_LIGHTMAP].image[0], 0);
@@ -5063,7 +5063,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					}
 					else if (r_lightmap->integer == 3 && pStage->bundle[TB_DELUXEMAP].image[0])
 					{
-						for (i = 0; i <= UNIFORM_SHADOWMAP5; i++)
+						for (i = 0; i <= UNIFORM_VOLUMEMAP; i++)
 						{
 							if (i == UNIFORM_LIGHTMAP)
 								GLSL_SetBindlessTexture(sp, UNIFORM_LIGHTMAP, &pStage->bundle[TB_DELUXEMAP].image[0], 0);

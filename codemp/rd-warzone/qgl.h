@@ -944,6 +944,9 @@ extern PFNGLGETUNIFORMUIVPROC qglGetUniformuiv;
 extern PFNGLBEGINTRANSFORMFEEDBACKPROC qglBeginTransformFeedback;
 extern PFNGLENDTRANSFORMFEEDBACKPROC qglEndTransformFeedback;
 
+extern PFNGLTEXIMAGE3DPROC qglTexImage3D;
+extern PFNGLTEXSUBIMAGE3DPROC qglTexSubImage3D;
+
 // Texture compression
 extern PFNGLCOMPRESSEDTEXIMAGE3DPROC qglCompressedTexImage3D;
 extern PFNGLCOMPRESSEDTEXIMAGE2DPROC qglCompressedTexImage2D;
@@ -1247,6 +1250,10 @@ extern	void ( APIENTRY * qglPointParameterfEXT)( GLenum, GLfloat);
 extern	void ( APIENTRY * qglPointParameterfvEXT)( GLenum, GLfloat *);
 
 //3d textures -rww
+//extern	void (APIENTRY * qglTexImage3D) (GLenum, GLint, GLenum, GLsizei, GLsizei, GLsizei, GLint, GLenum, GLenum, const GLvoid *);
+extern	void (APIENTRY * qglTexImage3D) (GLenum, GLint, GLint, GLsizei, GLsizei, GLsizei, GLint, GLenum, GLenum, const GLvoid *);
+extern	void (APIENTRY * qglTexSubImage3D) (GLenum, GLint, GLint, GLint, GLint, GLsizei, GLsizei, GLsizei, GLenum, GLenum, const GLvoid *);
+
 extern	void ( APIENTRY * qglTexImage3DEXT) (GLenum, GLint, GLenum, GLsizei, GLsizei, GLsizei, GLint, GLenum, GLenum, const GLvoid *);
 extern	void ( APIENTRY * qglTexSubImage3DEXT) (GLenum, GLint, GLint, GLint, GLint, GLsizei, GLsizei, GLsizei, GLenum, GLenum, const GLvoid *);
 

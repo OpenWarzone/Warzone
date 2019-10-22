@@ -1501,6 +1501,8 @@ image_t		*MAP_COLOR_CORRECTION_PALETTE = NULL;
 qboolean	AURORA_ENABLED = qtrue;
 qboolean	AURORA_ENABLED_DAY = qfalse;
 vec3_t		AURORA_COLOR = { 1.0 };
+float		AURORA_STRENGTH1 = 0.5;
+float		AURORA_STRENGTH2 = 0.5;
 
 qboolean	AO_ENABLED = qtrue;
 qboolean	AO_BLUR = qtrue;
@@ -2269,6 +2271,9 @@ void MAPPING_LoadMapInfo(void)
 		AURORA_COLOR[0] = atof(IniRead(mapname, "AURORA", "AURORA_COLOR_R", "1.0"));
 		AURORA_COLOR[1] = atof(IniRead(mapname, "AURORA", "AURORA_COLOR_G", "1.0"));
 		AURORA_COLOR[2] = atof(IniRead(mapname, "AURORA", "AURORA_COLOR_B", "1.0"));
+
+		AURORA_STRENGTH1 = atof(IniRead(mapname, "AURORA", "AURORA_STRENGTH1", "0.5"));
+		AURORA_STRENGTH2 = atof(IniRead(mapname, "AURORA", "AURORA_STRENGTH2", "0.5"));
 	}
 
 	//

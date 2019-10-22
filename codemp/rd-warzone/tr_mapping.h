@@ -122,6 +122,8 @@ extern image_t			*MAP_COLOR_CORRECTION_PALETTE;
 extern qboolean			AURORA_ENABLED;
 extern qboolean			AURORA_ENABLED_DAY;
 extern vec3_t			AURORA_COLOR;
+extern float			AURORA_STRENGTH1;
+extern float			AURORA_STRENGTH2;
 
 extern qboolean			AO_ENABLED;
 extern qboolean			AO_BLUR;

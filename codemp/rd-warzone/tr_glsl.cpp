@@ -290,6 +290,8 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_ShadowMap4", GLSL_INT, 1 },
 	{ "u_ShadowMap5", GLSL_INT, 1 },
 
+	{ "u_VolumeMap", GLSL_INT, 1 },
+
 	{ "u_MoonMaps", GLSL_INT, 4 },
 
 	{ "u_ShadowMvp", GLSL_MAT16, 1 },
@@ -2147,6 +2149,13 @@ void GLSL_BindlessUpdate(shaderProgram_t *program)
 
 			offset = offsetof(bindlessTexturesBlock_t, u_ShadowMap5);
 			break;
+		case UNIFORM_VOLUMEMAP:
+			if (block->u_VolumeMap == blockPrevious->u_VolumeMap)
+				continue;
+
+			offset = offsetof(bindlessTexturesBlock_t, u_VolumeMap);
+			break;
+
 		case UNIFORM_MOONMAPS:
 			{
 				if (block->u_MoonMaps[0] != blockPrevious->u_MoonMaps[0]
@@ -2318,6 +2327,9 @@ void GLSL_SetBindlessTexture(shaderProgram_t *program, int uniformNum, image_t *
 			break;
 		case UNIFORM_SHADOWMAP5:
 			block->u_ShadowMap5 = bindlessHandle;
+			break;
+		case UNIFORM_VOLUMEMAP:
+			block->u_VolumeMap = bindlessHandle;
 			break;
 		case UNIFORM_MOONMAPS:
 			block->u_MoonMaps[arrayID] = bindlessHandle;

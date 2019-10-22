@@ -72,7 +72,11 @@ void GL_Bind( image_t *image ) {
 		if ( image ) {
 			image->frameUsed = tr.frameCount;
 		}
+
 		glState.currenttextures[glState.currenttmu] = texnum;
+
+		if (image && image->flags & IMGFLAG_3D_VOLUMETRIC)
+			qglBindTexture(GL_TEXTURE_3D, texnum);
 		if (image && image->flags & IMGFLAG_CUBEMAP)
 			qglBindTexture( GL_TEXTURE_CUBE_MAP, texnum );
 		else
@@ -113,10 +117,14 @@ void GL_BindToTMU( image_t *image, int tmu )
 
 	if ( glState.currenttextures[tmu] != texnum ) {
 		GL_SelectTexture( tmu );
+		
 		if (image)
 			image->frameUsed = tr.frameCount;
+
 		glState.currenttextures[tmu] = texnum;
 
+		if (image && image->flags & IMGFLAG_3D_VOLUMETRIC)
+			qglBindTexture( GL_TEXTURE_3D, texnum );
 		if (image && (image->flags & IMGFLAG_CUBEMAP))
 			qglBindTexture( GL_TEXTURE_CUBE_MAP, texnum );
 		else
@@ -3342,7 +3350,7 @@ const void *RB_PostProcess(const void *data)
 		&& !(backEnd.viewParms.flags & VPF_DEPTHSHADOW)
 		&& !backEnd.depthFill
 		&& (r_dynamicGlow->integer || r_anamorphic->integer || r_bloom->integer)
-		&& backEnd.pc.c_glowDraws > 0)
+		/*&& backEnd.pc.c_glowDraws > 0*/)
 	{
 		RB_BloomDownscale(tr.glowImage, tr.glowFboScaled[0]);
 		int numPasses = Com_Clampi(1, ARRAY_LEN(tr.glowFboScaled), r_dynamicGlowPasses->integer);
@@ -3453,7 +3461,7 @@ const void *RB_PostProcess(const void *data)
 			}
 		}*/
 
-		if (!SCREEN_BLUR && r_anamorphic->integer && backEnd.pc.c_glowDraws > 0)
+		if (!SCREEN_BLUR && r_anamorphic->integer /*&& backEnd.pc.c_glowDraws > 0*/)
 		{
 			if (!r_lowVram->integer)
 			{
@@ -3719,7 +3727,7 @@ const void *RB_PostProcess(const void *data)
 		}
 		*/
 
-		if (!SCREEN_BLUR && r_dynamicGlow->integer && backEnd.pc.c_glowDraws > 0)
+		if (!SCREEN_BLUR && r_dynamicGlow->integer /*&& backEnd.pc.c_glowDraws > 0*/)
 		{
 			DEBUG_StartTimer("Dynamic Glow Draw", qtrue);
 
@@ -3748,7 +3756,7 @@ const void *RB_PostProcess(const void *data)
 			DEBUG_EndTimer(qtrue);
 		}
 
-		if (!SCREEN_BLUR && (r_bloom->integer == 1 && !r_lowVram->integer) && backEnd.pc.c_glowDraws > 0)
+		if (!SCREEN_BLUR && (r_bloom->integer == 1 && !r_lowVram->integer) /*&& backEnd.pc.c_glowDraws > 0*/)
 		{
 			DEBUG_StartTimer("Bloom", qtrue);
 			RB_Bloom(currentFbo, srcBox, currentOutFbo, dstBox);
@@ -3756,7 +3764,7 @@ const void *RB_PostProcess(const void *data)
 			DEBUG_EndTimer(qtrue);
 		}
 
-		if (!SCREEN_BLUR && r_anamorphic->integer && backEnd.pc.c_glowDraws > 0)
+		if (!SCREEN_BLUR && r_anamorphic->integer /*&& backEnd.pc.c_glowDraws > 0*/)
 		{
 			if (!r_lowVram->integer)
 			{
@@ -3782,7 +3790,7 @@ const void *RB_PostProcess(const void *data)
 			}
 		}
 
-		if (!SCREEN_BLUR && r_bloom->integer >= 2 && backEnd.pc.c_glowDraws > 0)
+		if (!SCREEN_BLUR && r_bloom->integer >= 2 /*&& backEnd.pc.c_glowDraws > 0*/)
 		{
 			if (!r_lowVram->integer)
 			{

@@ -29,866 +29,13 @@ out vec4 out_NormalDetail;
 #define iTimeDelta 0.5
 
 
-//#define __BOKEH__
-//#define __MOUNTAINS__
-//#define __RED_PLANET__
-#define __GREEN_PLANET__
 //#define __TIE_FIGHTERS__
 //#define __HYPERSPACE__
 //#define __HYPERSPACE2__
 
+#define __GREEN_PLANET__
+//#define __BESPIN__
 
-#ifdef __BOKEH__
-// A camera. Has a position and a direction. 
-struct Camera {
-    vec3 pos;
-    vec3 dir;
-};
-    
-// A ray. Has origin + direction.
-struct Ray {
-    vec3 origin;
-    vec3 dir;
-};
-    
-// A disk. Has position, size, colour.
-struct Disk {
-    vec3 pos;
-    float radius;
-    vec3 col;
-};
-        
-vec4 intersectDisk(in Ray ray, in Disk disk, in float focalPoint) {
-	// Move ray to Z plane of disk
-	ray.origin += ray.dir * disk.pos.z;
-
-	// Find distance from ray to disk (only xy needs considering since they have equal Z)
-	float dist = length(ray.origin.xy - disk.pos.xy);
-
-	// blur depends on distance from focal point
-	float blurRadius = abs(focalPoint - disk.pos.z) * 0.1;
-
-	// Calculate alpha component, using blur radius and disk radius
-	float alpha = 1. - smoothstep(max(0., disk.radius - blurRadius), disk.radius + blurRadius, dist);
-
-	// Limit to 50% opacity
-	alpha *= 0.3;
-
-	// Pre-multiply by alpha and return
-	return vec4(disk.col * alpha, alpha);
-}
-
-// Normalised random number, borrowed from Hornet's noise distributions: https://www.shadertoy.com/view/4ssXRX
-float nrand( vec2 n )
-{
-	return fract(sin(dot(n.xy, vec2(12.9898, 78.233)))* 43758.5453);
-}
-
-void getBackground( out vec4 fragColor, in vec2 fragCoord )
-{
-    // We'll need a camera. And some perspective.
-    
-	// Get some coords for the camera angle from the frag coords. Convert to -1..1 range.
-    vec2 uv = fragCoord.xy / iResolution.xy;
-    uv = uv * 2. - 1.;
-    
-    // Aspect correction so we don't get oval bokeh
-    uv.y *= iResolution.y/iResolution.x;
-    
-    // Make a camera at 0,0,0 pointing forwards
-    Camera cam = Camera(vec3(0, 0, 0.), vec3(0, 0, 1));
-                        
-    // Find the ray direction. Simple in this case.
-    Ray ray = Ray(cam.pos, normalize(cam.dir + vec3(uv, 0)));
-    
-    // Cast the ray into the scene, intersect it with bokeh disks.
-    // I'm using a float since the loop is simple and it avoids a cast (costly on some platforms)
-    const float diskCount = 100.;
-    
-    // Set the focal point
-    float focalPoint = 2.0;
-    
-    // Create an empty colour
-    vec4 col = vec4(0.);
-    
-    float time = iTime * 0.1;
-    
-    for (float i=0.0; i<diskCount; i++) {
-        // random disk position
-        vec3 diskPos = vec3(
-            sin(i*(nrand(vec2(i-3., i + 1.)) + 1.) + time),
-            sin(i*(nrand(vec2(i-2., i + 2.)) + 2.) + time * 0.9), 
-            sin(i*(nrand(vec2(i-1., i + 3.)) + 2.) + time * 0.9) * 5. + 5.5
-            );
-        
-        // Scale x+y by z so it fills the space a bit more nicely
-        diskPos.xy *= diskPos.z*0.7;
-        
-        // random disk colour
-        vec3 diskCol = vec3(
-            sin(i) * 0.25 + 0.75,
-            sin(i + 4.) * 0.25 + 0.55,
-            sin(i + 8.) * 0.25 + 0.65
-        );
-        
-        // random disk size
-        float diskSize = nrand(vec2(i)) * 0.2 + 0.1;
-        
-        // create the disk
-        Disk disk = Disk(diskPos, diskSize, diskCol);
-        
-        // Intersect the disk
-        vec4 result = intersectDisk(ray, disk, focalPoint);
-        
-        // Add the colour in
-       col += result;
-    }
-    
-	fragColor = vec4(col.rgb, 1.0);
-}
-#endif //__BOKEH__
-
-#ifdef __MOUNTAINS__
-// Mountains. By David Hoskins - 2013
-// License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
-
-// https://www.shadertoy.com/view/4slGD4
-// A ray-marched version of my terrain renderer which uses
-// streaming texture normals for speed:-
-// http://www.youtube.com/watch?v=qzkBnCBpQAM
-
-// It uses binary subdivision to accurately find the height map.
-// Lots of thanks to Inigo and his noise functions!
-
-// Video of my OpenGL version that 
-// http://www.youtube.com/watch?v=qzkBnCBpQAM
-
-// Stereo version code thanks to Croqueteer :)
-//#define STEREO 
-
-float treeLine = 0.0;
-float treeCol = 0.0;
-
-
-vec3 sunLight  = normalize( vec3(  0.4, 0.4,  0.48 ) );
-vec3 sunColour = vec3(1.0, .9, .83);
-float specular = 0.0;
-vec3 cameraPos;
-float ambient;
-vec2 add = vec2(1.0, 0.0);
-#define HASHSCALE1 .1031
-#define HASHSCALE3 vec3(.1031, .1030, .0973)
-#define HASHSCALE4 vec4(1031, .1030, .0973, .1099)
-
-// This peturbs the fractal positions for each iteration down...
-// Helps make nice twisted landscapes...
-const mat2 rotate2D = mat2(1.3623, 1.7531, -1.7131, 1.4623);
-
-// Alternative rotation:-
-// const mat2 rotate2D = mat2(1.2323, 1.999231, -1.999231, 1.22);
-
-
-//  1 out, 2 in...
-float Hash12(vec2 p)
-{
-	vec3 p3  = fract(vec3(p.xyx) * HASHSCALE1);
-    p3 += dot(p3, p3.yzx + 19.19);
-    return fract((p3.x + p3.y) * p3.z);
-}
-vec2 Hash22(vec2 p)
-{
-	vec3 p3 = fract(vec3(p.xyx) * HASHSCALE3);
-    p3 += dot(p3, p3.yzx+19.19);
-    return fract((p3.xx+p3.yz)*p3.zy);
-
-}
-
-float Noise( in vec2 x )
-{
-    vec2 p = floor(x);
-    vec2 f = fract(x);
-    f = f*f*(3.0-2.0*f);
-    
-    float res = mix(mix( Hash12(p),          Hash12(p + add.xy),f.x),
-                    mix( Hash12(p + add.yx), Hash12(p + add.xx),f.x),f.y);
-    return res;
-}
-
-vec2 Noise2( in vec2 x )
-{
-    vec2 p = floor(x);
-    vec2 f = fract(x);
-    f = f*f*(3.0-2.0*f);
-    float n = p.x + p.y * 57.0;
-   vec2 res = mix(mix( Hash22(p),          Hash22(p + add.xy),f.x),
-                  mix( Hash22(p + add.yx), Hash22(p + add.xx),f.x),f.y);
-    return res;
-}
-
-//--------------------------------------------------------------------------
-float Trees(vec2 p)
-{
-	
- 	//return (texture(iChannel1,0.04*p).x * treeLine);
-    return Noise(p*13.0)*treeLine;
-}
-
-
-//--------------------------------------------------------------------------
-// Low def version for ray-marching through the height field...
-// Thanks to IQ for all the noise stuff...
-
-float Terrain( in vec2 p)
-{
-	vec2 pos = p*0.05;
-	float w = (Noise(pos*.25)*0.75+.15);
-	w = 66.0 * w * w;
-	vec2 dxy = vec2(0.0, 0.0);
-	float f = .0;
-	for (int i = 0; i < 5; i++)
-	{
-		f += w * Noise(pos);
-		w = -w * 0.4;	//...Flip negative and positive for variation
-		pos = rotate2D * pos;
-	}
-	float ff = Noise(pos*.002);
-	
-	f += pow(abs(ff), 5.0)*275.-5.0;
-	return f;
-}
-
-//--------------------------------------------------------------------------
-// Map to lower resolution for height field mapping for Scene function...
-float Map(in vec3 p)
-{
-	float h = Terrain(p.xz);
-		
-
-	float ff = Noise(p.xz*.3) + Noise(p.xz*3.3)*.5;
-	treeLine = smoothstep(ff, .0+ff*2.0, h) * smoothstep(1.0+ff*3.0, .4+ff, h) ;
-	treeCol = Trees(p.xz);
-	h += treeCol;
-	
-    return p.y - h;
-}
-
-//--------------------------------------------------------------------------
-// High def version only used for grabbing normal information.
-float Terrain2( in vec2 p)
-{
-	// There's some real magic numbers in here! 
-	// The Noise calls add large mountain ranges for more variation over distances...
-	vec2 pos = p*0.05;
-	float w = (Noise(pos*.25)*0.75+.15);
-	w = 66.0 * w * w;
-	vec2 dxy = vec2(0.0, 0.0);
-	float f = .0;
-	for (int i = 0; i < 5; i++)
-	{
-		f += w * Noise(pos);
-		w =  - w * 0.4;	//...Flip negative and positive for varition	   
-		pos = rotate2D * pos;
-	}
-	float ff = Noise(pos*.002);
-	f += pow(abs(ff), 5.0)*275.-5.0;
-	
-
-	treeCol = Trees(p);
-	f += treeCol;
-	if (treeCol > 0.0) return f;
-
-	
-	// That's the last of the low resolution, now go down further for the Normal data...
-	for (int i = 0; i < 6; i++)
-	{
-		f += w * Noise(pos);
-		w =  - w * 0.4;
-		pos = rotate2D * pos;
-	}
-	
-	
-	return f;
-}
-
-//--------------------------------------------------------------------------
-float FractalNoise(in vec2 xy)
-{
-	float w = .7;
-	float f = 0.0;
-
-	for (int i = 0; i < 4; i++)
-	{
-		f += Noise(xy) * w;
-		w *= 0.5;
-		xy *= 2.7;
-	}
-	return f;
-}
-
-//--------------------------------------------------------------------------
-// Simply Perlin clouds that fade to the horizon...
-// 200 units above the ground...
-vec3 GetClouds(in vec3 sky, in vec3 rd)
-{
-	if (rd.y < 0.01) return sky;
-	float v = (200.0-cameraPos.y)/rd.y;
-	rd.xz *= v;
-	rd.xz += cameraPos.xz;
-	rd.xz *= .010;
-	float f = (FractalNoise(rd.xz) -.55) * 5.0;
-	// Uses the ray's y component for horizon fade of fixed colour clouds...
-	sky = mix(sky, vec3(.55, .55, .52), clamp(f*rd.y-.1, 0.0, 1.0));
-
-	return sky;
-}
-
-
-
-//--------------------------------------------------------------------------
-// Grab all sky information for a given ray from camera
-vec3 GetSky(in vec3 rd)
-{
-	float sunAmount = max( dot( rd, sunLight), 0.0 );
-	float v = pow(1.0-max(rd.y,0.0),5.)*.5;
-	vec3  sky = vec3(v*sunColour.x*0.4+0.18, v*sunColour.y*0.4+0.22, v*sunColour.z*0.4+.4);
-	// Wide glare effect...
-	sky = sky + sunColour * pow(sunAmount, 6.5)*.32;
-	// Actual sun...
-	sky = sky+ sunColour * min(pow(sunAmount, 1150.0), .3)*.65;
-	return sky;
-}
-
-//--------------------------------------------------------------------------
-// Merge mountains into the sky background for correct disappearance...
-vec3 ApplyFog( in vec3  rgb, in float dis, in vec3 dir)
-{
-	float fogAmount = exp(-dis* 0.00005);
-	return mix(GetSky(dir), rgb, fogAmount );
-}
-
-//--------------------------------------------------------------------------
-// Calculate sun light...
-void DoLighting(inout vec3 mat, in vec3 pos, in vec3 normal, in vec3 eyeDir, in float dis)
-{
-	float h = dot(sunLight,normal);
-	float c = max(h, 0.0)+ambient;
-	mat = mat * sunColour * c ;
-	// Specular...
-	if (h > 0.0)
-	{
-		vec3 R = reflect(sunLight, normal);
-		float specAmount = pow( max(dot(R, normalize(eyeDir)), 0.0), 3.0)*specular;
-		mat = mix(mat, sunColour, specAmount);
-	}
-}
-
-//--------------------------------------------------------------------------
-// Hack the height, position, and normal data to create the coloured landscape
-vec3 TerrainColour(vec3 pos, vec3 normal, float dis)
-{
-	vec3 mat;
-	specular = .0;
-	ambient = .1;
-	vec3 dir = normalize(pos-cameraPos);
-	
-	vec3 matPos = pos * 2.0;// ... I had change scale halfway though, this lazy multiply allow me to keep the graphic scales I had
-
-	float disSqrd = dis * dis;// Squaring it gives better distance scales.
-
-	float f = clamp(Noise(matPos.xz*.05), 0.0,1.0);//*10.8;
-	f += Noise(matPos.xz*.1+normal.yz*1.08)*.85;
-	f *= .55;
-	vec3 m = mix(vec3(.63*f+.2, .7*f+.1, .7*f+.1), vec3(f*.43+.1, f*.3+.2, f*.35+.1), f*.65);
-	mat = m*vec3(f*m.x+.36, f*m.y+.30, f*m.z+.28);
-	// Should have used smoothstep to add colours, but left it using 'if' for sanity...
-	if (normal.y < .5)
-	{
-		float v = normal.y;
-		float c = (.5-normal.y) * 4.0;
-		c = clamp(c*c, 0.1, 1.0);
-		f = Noise(vec2(matPos.x*.09, matPos.z*.095+matPos.yy*0.15));
-		f += Noise(vec2(matPos.x*2.233, matPos.z*2.23))*0.5;
-		mat = mix(mat, vec3(.4*f), c);
-		specular+=.1;
-	}
-
-	// Grass. Use the normal to decide when to plonk grass down...
-	if (matPos.y < 45.35 && normal.y > .65)
-	{
-
-		m = vec3(Noise(matPos.xz*.023)*.5+.15, Noise(matPos.xz*.03)*.6+.25, 0.0);
-		m *= (normal.y- 0.65)*.6;
-		mat = mix(mat, m, clamp((normal.y-.65)*1.3 * (45.35-matPos.y)*0.1, 0.0, 1.0));
-	}
-
-	if (treeCol > 0.0)
-	{
-		mat = vec3(.02+Noise(matPos.xz*5.0)*.03, .05, .0);
-		normal = normalize(normal+vec3(Noise(matPos.xz*33.0)*1.0-.5, .0, Noise(matPos.xz*33.0)*1.0-.5));
-		specular = .0;
-	}
-	
-	// Snow topped mountains...
-	if (matPos.y > 80.0 && normal.y > .42)
-	{
-		float snow = clamp((matPos.y - 80.0 - Noise(matPos.xz * .1)*28.0) * 0.035, 0.0, 1.0);
-		mat = mix(mat, vec3(.7,.7,.8), snow);
-		specular += snow;
-		ambient+=snow *.3;
-	}
-	// Beach effect...
-	if (matPos.y < 1.45)
-	{
-		if (normal.y > .4)
-		{
-			f = Noise(matPos.xz * .084)*1.5;
-			f = clamp((1.45-f-matPos.y) * 1.34, 0.0, .67);
-			float t = (normal.y-.4);
-			t = (t*t);
-			mat = mix(mat, vec3(.09+t, .07+t, .03+t), f);
-		}
-		// Cheap under water darkening...it's wet after all...
-		if (matPos.y < 0.0)
-		{
-			mat *= .2;
-		}
-	}
-
-	DoLighting(mat, pos, normal,dir, disSqrd);
-	
-	// Do the water...
-	if (matPos.y < 0.0)
-	{
-		// Pull back along the ray direction to get water surface point at y = 0.0 ...
-		float time = (iTime)*.03;
-		vec3 watPos = matPos;
-		watPos += -dir * (watPos.y/dir.y);
-		// Make some dodgy waves...
-		float tx = cos(watPos.x*.052) *4.5;
-		float tz = sin(watPos.z*.072) *4.5;
-		vec2 co = Noise2(vec2(watPos.x*4.7+1.3+tz, watPos.z*4.69+time*35.0-tx));
-		co += Noise2(vec2(watPos.z*8.6+time*13.0-tx, watPos.x*8.712+tz))*.4;
-		vec3 nor = normalize(vec3(co.x, 20.0, co.y));
-		nor = normalize(reflect(dir, nor));//normalize((-2.0*(dot(dir, nor))*nor)+dir);
-		// Mix it in at depth transparancy to give beach cues..
-        tx = watPos.y-matPos.y;
-		mat = mix(mat, GetClouds(GetSky(nor)*vec3(.3,.3,.5), nor)*.1+vec3(.0,.02,.03), clamp((tx)*.4, .6, 1.));
-		// Add some extra water glint...
-        mat += vec3(.1)*clamp(1.-pow(tx+.5, 3.)*texture(u_DiffuseMap, watPos.xz*.1, -2.).x, 0.,1.0);
-		float sunAmount = max( dot(nor, sunLight), 0.0 );
-		mat = mat + sunColour * pow(sunAmount, 228.5)*.6;
-        vec3 temp = (watPos-cameraPos*2.)*.5;
-        disSqrd = dot(temp, temp);
-	}
-	mat = ApplyFog(mat, disSqrd, dir);
-	return mat;
-}
-
-//--------------------------------------------------------------------------
-float BinarySubdivision(in vec3 rO, in vec3 rD, vec2 t)
-{
-	// Home in on the surface by dividing by two and split...
-    float halfwayT;
-  
-    for (int i = 0; i < 5; i++)
-    {
-
-        halfwayT = dot(t, vec2(.5));
-        float d = Map(rO + halfwayT*rD); 
-         t = mix(vec2(t.x, halfwayT), vec2(halfwayT, t.y), step(0.5, d));
-
-    }
-	return halfwayT;
-}
-
-//--------------------------------------------------------------------------
-bool Scene(in vec3 rO, in vec3 rD, out float resT, in vec2 fragCoord )
-{
-    float t = 1. + Hash12(fragCoord.xy)*5.;
-	float oldT = 0.0;
-	float delta = 0.0;
-	bool fin = false;
-	bool res = false;
-	vec2 distances;
-	for( int j=0; j< 150; j++ )
-	{
-		if (fin || t > 240.0) break;
-		vec3 p = rO + t*rD;
-		//if (t > 240.0 || p.y > 195.0) break;
-		float h = Map(p); // ...Get this positions height mapping.
-		// Are we inside, and close enough to fudge a hit?...
-		if( h < 0.5)
-		{
-			fin = true;
-			distances = vec2(oldT, t);
-			break;
-		}
-		// Delta ray advance - a fudge between the height returned
-		// and the distance already travelled.
-		// It's a really fiddly compromise between speed and accuracy
-		// Too large a step and the tops of ridges get missed.
-		delta = max(0.01, 0.3*h) + (t*0.0065);
-		oldT = t;
-		t += delta;
-	}
-	if (fin) resT = BinarySubdivision(rO, rD, distances);
-
-	return fin;
-}
-
-//--------------------------------------------------------------------------
-vec3 CameraPath( float t )
-{
-	float m = 1.0;//+(iMouse.x/iResolution.x)*300.0;
-	t = (iTime*1.5+m+657.0)*.006 + t;
-    vec2 p = 476.0*vec2( sin(3.5*t), cos(1.5*t) );
-	return vec3(35.0-p.x, 0.6, 4108.0+p.y);
-}
-
-//--------------------------------------------------------------------------
-// Some would say, most of the magic is done in post! :D
-vec3 PostEffects(vec3 rgb, vec2 uv)
-{
-	//#define CONTRAST 1.1
-	//#define SATURATION 1.12
-	//#define BRIGHTNESS 1.3
-	//rgb = pow(abs(rgb), vec3(0.45));
-	//rgb = mix(vec3(.5), mix(vec3(dot(vec3(.2125, .7154, .0721), rgb*BRIGHTNESS)), rgb*BRIGHTNESS, SATURATION), CONTRAST);
-	rgb = (1.0 - exp(-rgb * 6.0)) * 1.0024;
-	//rgb = clamp(rgb+hash12(fragCoord.xy*rgb.r)*0.1, 0.0, 1.0);
-	return rgb;
-}
-
-//--------------------------------------------------------------------------
-void getBackground( out vec4 fragColor, in vec2 fragCoord )
-{
-    vec2 xy = -1.0 + 2.0*fragCoord.xy / iResolution.xy;
-	vec2 uv = xy * vec2(iResolution.x/iResolution.y,1.0);
-	vec3 camTar;
-
-	#ifdef STEREO
-	float isCyan = mod(fragCoord.x + mod(fragCoord.y,2.0),2.0);
-	#endif
-
-	// Use several forward heights, of decreasing influence with distance from the camera.
-	float h = 0.0;
-	float f = 1.0;
-	for (int i = 0; i < 7; i++)
-	{
-		h += Terrain(CameraPath((.6-f)*.008).xz) * f;
-		f -= .1;
-	}
-	cameraPos.xz = CameraPath(0.0).xz;
-	camTar.xyz	 = CameraPath(.005).xyz;
-	camTar.y = cameraPos.y = max((h*.25)+3.5, 1.5+sin(iTime*5.)*.5);
-	
-	float roll = 0.15*sin(iTime*.2);
-	vec3 cw = normalize(camTar-cameraPos);
-	vec3 cp = vec3(sin(roll), cos(roll),0.0);
-	vec3 cu = normalize(cross(cw,cp));
-	vec3 cv = normalize(cross(cu,cw));
-	vec3 rd = normalize( uv.x*cu + uv.y*cv + 1.5*cw );
-
-	#ifdef STEREO
-	cameraPos += .45*cu*isCyan; // move camera to the right - the rd vector is still good
-	#endif
-
-	vec3 col;
-	float distance;
-	if( !Scene(cameraPos,rd, distance, fragCoord) )
-	{
-		// Missed scene, now just get the sky value...
-		col = GetSky(rd);
-		col = GetClouds(col, rd);
-	}
-	else
-	{
-		// Get world coordinate of landscape...
-		vec3 pos = cameraPos + distance * rd;
-		// Get normal from sampling the high definition height map
-		// Use the distance to sample larger gaps to help stop aliasing...
-		float p = min(.3, .0005+.00005 * distance*distance);
-		vec3 nor  	= vec3(0.0,		    Terrain2(pos.xz), 0.0);
-		vec3 v2		= nor-vec3(p,		Terrain2(pos.xz+vec2(p,0.0)), 0.0);
-		vec3 v3		= nor-vec3(0.0,		Terrain2(pos.xz+vec2(0.0,-p)), -p);
-		nor = cross(v2, v3);
-		nor = normalize(nor);
-
-		// Get the colour using all available data...
-		col = TerrainColour(pos, nor, distance);
-	}
-
-	col = PostEffects(col, uv);
-	
-	#ifdef STEREO	
-	col *= vec3( isCyan, 1.0-isCyan, 1.0-isCyan );	
-	#endif
-	
-	fragColor=vec4(col,1.0);
-}
-#endif //__MOUNTAINS__
-
-#ifdef __RED_PLANET__
-//Sirenian Dawn by nimitz (twitter: @stormoid)
-
-#define ITR 30
-#define FAR 400.
-#define time iTime
-
-#define HASHSCALE1 .1031
-
-const vec3 lgt = vec3(-.523, .41, -.747);
-mat2 m2 = mat2( 0.80,  0.60, -0.60,  0.80 );
-
-float noise(vec2 pos)
-{
-	vec2 p = pos * 128.0;
-	vec3 p3  = fract(vec3(p.xyx) * HASHSCALE1);
-    p3 += dot(p3, p3.yzx + 19.19);
-    return fract((p3.x + p3.y) * p3.z);
-}
-
-//form iq, see: http://www.iquilezles.org/www/articles/morenoise/morenoise.htm
-vec3 noised( in vec2 x )
-{
-    vec2 p = floor(x);
-    vec2 f = fract(x);
-    vec2 u = f*f*(3.0-2.0*f);
-	float a = noise((p+vec2(0.5,0.5))/256.0).x;
-	float b = noise((p+vec2(1.5,0.5))/256.0).x;
-	float c = noise((p+vec2(0.5,1.5))/256.0).x;
-	float d = noise((p+vec2(1.5,1.5))/256.0).x;
-	return vec3(a+(b-a)*u.x+(c-a)*u.y+(a-b-c+d)*u.x*u.y,
-				6.0*f*(1.0-f)*(vec2(b-a,c-a)+(a-b-c+d)*u.yx));
-}
-
-float terrain( in vec2 p)
-{
-    float rz = 0.;
-    float z = 1.;
-	vec2  d = vec2(0.0);
-    float scl = 2.95;
-    float zscl = -.4;
-    float zz = 5.;
-    for( int i=0; i<5; i++ )
-    {
-        vec3 n = noised(p);
-        d += pow(abs(n.yz),vec2(zz));
-        d -= smoothstep(-.5,1.5,n.yz);
-        zz -= 1.;
-        rz += z*n.x/(dot(d,d)+.85);
-        z *= zscl;
-        zscl *= .8;
-        p = m2*p*scl;
-    }
-    
-    rz /= smoothstep(1.5,-.5,rz)+.75;
-    return rz;
-}
-
-float map(vec3 p)
-{
-    return p.y-(terrain(p.zx*0.07))*2.7-1.;
-}
-
-/*	The idea is simple, as the ray gets further from the eye, I increase 
-	the step size of the raymarching and lower the target precision, 
-	this allows for better performance with virtually no loss in visual quality. */
-float march(in vec3 ro, in vec3 rd, out float itrc)
-{
-    float t = 0.;
-    float d = map(rd*t+ro);
-    float precis = 0.0001;
-    for (int i=0;i<=ITR;i++)
-    {
-        if (abs(d) < precis || t > FAR) break;
-        precis = t*0.0001;
-        float rl = max(t*0.02,1.);
-        t += d*rl;
-        d = map(rd*t+ro)*0.7;
-        itrc++;
-    }
-
-    return t;
-}
-
-vec3 rotx(vec3 p, float a){
-    float s = sin(a), c = cos(a);
-    return vec3(p.x, c*p.y - s*p.z, s*p.y + c*p.z);
-}
-
-vec3 roty(vec3 p, float a){
-    float s = sin(a), c = cos(a);
-    return vec3(c*p.x + s*p.z, p.y, -s*p.x + c*p.z);
-}
-
-vec3 rotz(vec3 p, float a){
-    float s = sin(a), c = cos(a);
-    return vec3(c*p.x - s*p.y, s*p.x + c*p.y, p.z);
-}
-
-vec3 normal(in vec3 p, in float ds)
-{  
-    vec2 e = vec2(-1., 1.)*0.0005*pow(ds,1.);
-	return normalize(e.yxx*map(p + e.yxx) + e.xxy*map(p + e.xxy) + 
-					 e.xyx*map(p + e.xyx) + e.yyy*map(p + e.yyy) );   
-}
-
-float fbm(in vec2 p)
-{	
-	float z=.5;
-	float rz = 0.;
-	for (float i= 0.;i<3.;i++ )
-	{
-        rz+= (sin(noise(p)*5.)*0.5+0.5) *z;
-		z *= 0.5;
-		p = p*2.;
-	}
-	return rz;
-}
-
-float bnoise(in vec2 p){ return fbm(p*3.); }
-vec3 bump(in vec3 p, in vec3 n, in float ds)
-{
-    vec2 e = vec2(0.005*ds,0);
-    float n0 = bnoise(p.zx);
-    vec3 d = vec3(bnoise(p.zx+e.xy)-n0, 1., bnoise(p.zx+e.yx)-n0)/e.x*0.025;
-    d -= n*dot(n,d);
-    n = normalize(n-d);
-    return n;
-}
-
-float curv(in vec3 p, in float w)
-{
-    vec2 e = vec2(-1., 1.)*w;   
-    float t1 = map(p + e.yxx), t2 = map(p + e.xxy);
-    float t3 = map(p + e.xyx), t4 = map(p + e.yyy);
-    return .15/e.y *(t1 + t2 + t3 + t4 - 4. * map(p));
-}
-
-//Based on: http://www.iquilezles.org/www/articles/fog/fog.htm
-vec3 fog(vec3 ro, vec3 rd, vec3 col, float ds)
-{
-    vec3 pos = ro + rd*ds;
-    float mx = (fbm(pos.zx*0.1-time*0.05)-0.5)*.02;
-    
-    const float b= 1.;
-    float den = 0.3*exp(-ro.y*b)*(1.0-exp( -ds*rd.y*b ))/rd.y;
-    float sdt = max(dot(rd, lgt), 0.);
-    vec3  fogColor  = mix(vec3(0.5,0.2,0.15)*1.2, vec3(1.1,0.6,0.45)*1.3, pow(sdt,2.0)+mx*0.5);
-    return mix( col, fogColor, clamp(den + mx,0.,1.) );
-}
-
-float linstep(in float mn, in float mx, in float x){
-	return clamp((x - mn)/(mx - mn), 0., 1.);
-}
-
-//Complete hack, but looks good enough :)
-vec3 scatter(vec3 ro, vec3 rd)
-{   
-    float sd= max(dot(lgt, rd)*0.5+0.5,0.);
-    float dtp = 13.-(ro + rd*(FAR)).y*3.5;
-    float hori = (linstep(-1500., 0.0, dtp) - linstep(11., 500., dtp))*1.;
-    hori *= pow(sd,.04);
-    
-    vec3 col = vec3(0);
-    col += pow(hori, 200.)*vec3(1.0, 0.7,  0.5)*3.;
-    col += pow(hori, 25.)* vec3(1.0, 0.5,  0.25)*.3;
-    col += pow(hori, 7.)* vec3(1.0, 0.4, 0.25)*.8;
-    
-    return col;
-}
-
-//From Dave_Hoskins (https://www.shadertoy.com/view/4djSRW)
-vec3 hash33(vec3 p)
-{
-    p = fract(p * vec3(443.8975,397.2973, 491.1871));
-    p += dot(p.zxy, p.yxz+19.27);
-    return fract(vec3(p.x * p.y, p.z*p.x, p.y*p.z));
-}
-
-//Very happy with this star function, cheap and smooth
-vec3 stars(in vec3 pos, in float level)
-{
-	vec3 p = pos * level;//128.0;
-    vec3 c = vec3(0.);
-    float res = iResolution.x*0.8;
-    
-	for (float i=0.;i<3.;i++)
-    {
-        vec3 q = fract(p*(.15*res))-0.5;
-        vec3 id = floor(p*(.15*res));
-        vec2 rn = hash33(id).xy;
-        float c2 = 1.-smoothstep(0.,.6,length(q));
-        c2 *= step(rn.x,.0005+i*i*0.001);
-        c += c2*(mix(vec3(1.0,0.49,0.1),vec3(0.75,0.9,1.),rn.y)*0.25+0.75);
-        p *= 1.4;
-    }
-    return c*c*.7;
-}
-
-void getBackground( out vec4 fragColor, in vec2 fragCoord )
-{	
-	vec2 q = fragCoord.xy / iResolution.xy;
-    vec2 p = q - 0.5;
-	p.x*=iResolution.x/iResolution.y;
-	vec2 mo = vec2(-0.25, 0.333);//iMouse.xy / iResolution.xy-.5;
-    mo = (mo==vec2(-.5))?mo=vec2(-.2,0.3):mo;
-    mo.x *= 1.2;
-    mo -= vec2(1.2,-0.1);
-	mo.x *= iResolution.x/iResolution.y;
-    mo.x += sin(time*0.15)*0.2;
-	
-    vec3 ro = vec3(650., sin(time*0.2)*0.25+10.,-time);
-    vec3 eye = normalize(vec3(cos(mo.x),-0.5+mo.y,sin(mo.x)));
-    vec3 right = normalize(vec3(cos(mo.x+1.5708),0.,sin(mo.x+1.5708)));
-    vec3 up = normalize(cross(right, eye));
-	vec3 rd = normalize((p.x*right + p.y*up)*1.05 + eye);
-    rd.y += abs(p.x*p.x*0.015);
-    rd = normalize(rd);
-	
-    float count = 0.;
-	float rz = march(ro,rd, count);
-    
-    vec3 scatt = scatter(ro, rd);
-    
-    vec3 bg = max(stars(rd, 0.666), stars(rd, 1.0)) * (1.0-clamp(dot(scatt, vec3(1.3)),0.,1.));
-    vec3 col = bg;
-    
-    vec3 pos = ro+rz*rd;
-    vec3 nor= normal( pos, rz );
-    if ( rz < FAR )
-    {
-        nor = bump(pos,nor,rz);
-        float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0 );
-        float dif = clamp( dot( nor, lgt ), 0.0, 1.0 );
-        float bac = clamp( dot( nor, normalize(vec3(-lgt.x,0.0,-lgt.z))), 0.0, 1.0 );
-        float spe = pow(clamp( dot( reflect(rd,nor), lgt ), 0.0, 1.0 ),500.);
-        float fre = pow( clamp(1.0+dot(nor,rd),0.0,1.0), 2.0 );
-        vec3 brdf = 1.*amb*vec3(0.10,0.11,0.12);
-        brdf += bac*vec3(0.15,0.05,0.04);
-        brdf += 2.3*dif*vec3(.9,0.4,0.25);
-        col = vec3(0.25,0.25,0.3);
-        float crv = curv(pos, 2.)*1.;
-        float crv2 = curv(pos, .4)*2.5;
-        
-        col += clamp(crv*0.9,-1.,1.)*vec3(0.25,.6,.5);
-        col = col*brdf + col*spe*.1 +.1*fre*col;
-        col *= crv*1.+1.;
-        col *= crv2*1.+1.;
-    }
-	
-    col = fog(ro, rd, col, rz);
-    col = mix(col,bg,smoothstep(FAR-150., FAR, rz));
-    col += scatt;
-    
-    col = pow( col, vec3(0.93,1.0,1.0) );
-    col = mix(col, smoothstep(0.,1.,col), 0.2);
-    col *= pow( 16.0*q.x*q.y*(1.0-q.x)*(1.0-q.y), 0.1)*0.9+0.1;
-    
-	fragColor = vec4(col, 1.0);
-}
-#endif //__RED_PLANET__
 
 #ifdef __GREEN_PLANET__
 //Sirenian Dawn by nimitz (twitter: @stormoid)
@@ -1780,6 +927,668 @@ void getBackground( out vec4 fragColor, in vec2 fragCoord )
     fragColor = vec4(col, 1.0);
 }
 #endif //__HYPERSPACE2__
+
+#ifdef __BESPIN__
+// Flight over Bespin - yamahabob
+// Borrowed most of this code from inigo quilez et al
+// License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+
+#define PI 3.141592654
+
+// General functions
+
+mat3 rx90 = mat3(1.0, 0.0, 0.0,
+				 0.0, 0.0, 1.0,
+				 0.0,-1.0, 0.0 );
+mat3 ry90 = mat3(0.0, 0.0,-1.0,
+				 0.0, 1.0, 0.0, 
+				 1.0, 0.0, 0.0 );
+mat3 rz90 = mat3(0.0,-1.0, 0.0,
+				 1.0, 0.0, 0.0, 
+				 0.0, 0.0, 1.0 );
+
+mat3 rotX( float a )
+{
+	return mat3(1.0,    0.0,    0.0,
+				0.0, cos(a),-sin(a),
+				0.0, sin(a), cos(a) );
+}
+
+mat3 rotY( float a )
+{
+	return mat3(cos(a), 0.0, sin(a),
+				   0.0, 1.0,    0.0, 
+			   -sin(a), 0.0, cos(a) );
+}
+
+mat3 rotZ( float a )
+{
+	return mat3(cos(a),-sin(a), 0.0,
+				sin(a), cos(a), 0.0,
+				   0.0,    0.0, 1.0 );
+}
+
+mat2 rot(float a) {
+	return mat2(cos(a),sin(a),-sin(a),cos(a));
+}
+
+// -------------------------------------
+// Cloud Calculations
+// (borrowed from iq)
+// -------------------------------------
+
+#define SPEED 5.
+
+float speed;
+
+#define MOD2 vec2(.16632,.17369)
+#define MOD3 vec3(.16532,.17369,.15787)
+
+//--------------------------------------------------------------------------
+float Hash( float p )
+{
+	vec2 p2 = fract(vec2(p) * MOD2);
+	p2 += dot(p2.yx, p2.xy+19.19);
+	return fract(p2.x * p2.y);
+}
+
+float Hash( vec3 p )
+{
+	p  = fract(p * MOD3);
+	p += dot(p.xyz, p.yzx + 19.19);
+	return fract(p.x * p.y * p.z);
+}
+
+//--------------------------------------------------------------------------
+
+float pNoise( in vec2 x )
+{
+	vec2 p = floor(x);
+	vec2 f = fract(x);
+	f = f*f*(3.0-2.0*f);
+	float n = p.x + p.y*57.0;
+	float res = mix(mix( Hash(n+  0.0), Hash(n+  1.0),f.x),
+					mix( Hash(n+ 57.0), Hash(n+ 58.0),f.x),f.y);
+	return res;
+}
+
+float pNoise(in vec3 p)
+{
+	vec3 i = floor(p);
+	vec3 f = fract(p); 
+	f *= f * (3.0-2.0*f);
+
+	return mix(
+		mix(mix(Hash(i + vec3(0.,0.,0.)), Hash(i + vec3(1.,0.,0.)),f.x),
+			mix(Hash(i + vec3(0.,1.,0.)), Hash(i + vec3(1.,1.,0.)),f.x),
+			f.y),
+		mix(mix(Hash(i + vec3(0.,0.,1.)), Hash(i + vec3(1.,0.,1.)),f.x),
+			mix(Hash(i + vec3(0.,1.,1.)), Hash(i + vec3(1.,1.,1.)),f.x),
+			f.y),
+		f.z);
+}
+
+vec3 hash33(vec3 p){
+	p  = fract(p * vec3(5.3983, 5.4427, 6.9371));
+    p += dot(p.yzx, p.xyz  + vec3(21.5351, 14.3137, 15.3219));
+	return fract(vec3(p.x * p.z * 95.4337, p.x * p.y * 97.597, p.y * p.z * 93.8365));
+}
+
+float noise( in vec3 x )
+{
+	/*
+	vec3 p = floor(x);
+	vec3 f = fract(x);
+	//f = f*f*(3.0-2.0*f);
+	vec2 uv = (p.xy + vec2(37.0,17.0)*p.z) + f.xy;
+	vec2 rg = texture( iChannel0, 0.00390625*uv ).yx;
+	return 1.5*mix( rg.x, rg.y, f.z ) - 0.75;
+	*/
+
+	return 1.5*pNoise(x)-0.75;
+}
+
+float map5( in vec3 p )
+{
+	vec3 q = p - vec3(0.0,0.1,1.0)*speed;
+	float f;
+	f  = 0.50000*noise( q ); q = q*2.02;
+	f += 0.25000*noise( q ); q = q*2.03;
+	f += 0.12500*noise( q ); q = q*2.01;
+	f += 0.06250*noise( q ); q = q*2.02;
+	f += 0.03125*noise( q );
+	return clamp( -p.y - 0.5 + 1.75*f, 0.0, 1.0 );
+}
+
+float map4( in vec3 p )
+{
+	vec3 q = p - vec3(0.0,0.1,1.0)*speed;
+	float f;
+	f  = 0.50000*noise( q ); q = q*2.02;
+	f += 0.25000*noise( q ); q = q*2.03;
+	f += 0.12500*noise( q ); q = q*2.01;
+	f += 0.06250*noise( q );
+	return clamp( -p.y - 0.5 + 1.75*f, 0.0, 1.0 );
+}
+float map3( in vec3 p )
+{
+	vec3 q = p - vec3(0.0,0.1,1.0)*speed;
+	float f;
+	f  = 0.50000*noise( q ); q = q*2.02;
+	f += 0.25000*noise( q ); q = q*2.03;
+	f += 0.12500*noise( q );
+	return clamp( -p.y - 0.5 + 1.75*f, 0.0, 1.0 );
+}
+float map2( in vec3 p )
+{
+	vec3 q = p - vec3(0.0,0.1,1.0)*speed;
+	float f;
+	f  = 0.50000*noise( q ); q = q*2.02;
+	f += 0.25000*noise( q );;
+	return clamp( -p.y - 0.5 + 1.75*f, 0.0, 1.0 );
+}
+
+vec3 sundir = normalize( vec3(-0.5,-0.1,-1.0) );
+
+vec4 integrate( in vec4 sum, in float dif, in float den, in vec3 bgcol, in float t )
+{
+	// lighting
+	vec3 lin = vec3(0.65,0.68,0.7)*1.2 + 0.5*vec3(0.7, 0.5, 0.3)*dif;        
+	vec4 col = vec4( mix( 1.15*vec3(1.0,0.95,0.8), vec3(0.65), den ), den );
+	col.xyz *= lin;
+	col.xyz = mix( col.xyz, bgcol, 1.0-exp(-0.004*t*t) );
+	// front to back blending    
+	col.a *= 0.4;
+	col.rgb *= col.a;
+	return sum + col*(1.0-sum.a);
+}
+
+#define MARCH(STEPS,MAPLOD) for(int i=0; i<STEPS; i++) { vec3  pos = ro + t*rd; if( pos.y<-3. || pos.y>1.2 || sum.a > 0.99 ) break; float den = MAPLOD( pos ); if( den>0.1 ) { float dif = clamp((den - MAPLOD(pos+0.5*sundir))*2., 0.0, 1.0 ); sum = integrate( sum, dif, den, bgcol, t ); } t += max(0.2,0.03*t); }
+
+vec4 raymarch( in vec3 ro, in vec3 rd, in vec3 bgcol )
+{
+	vec4 sum = vec4(0.0);
+
+	float t = 0.0;
+
+	MARCH(25,map4);
+	MARCH(20,map3);
+	MARCH(15,map2);
+	MARCH(15,map2);
+
+	return clamp( sum, 0.0, 1.0 );
+}
+
+mat3 lookat( vec3 fw, vec3 up ){
+	fw=normalize(fw);vec3 rt=normalize(cross(fw,normalize(up)));return mat3(rt,cross(rt,fw),fw);
+}
+
+mat3 setCamera( in vec3 fw )
+{
+	vec3 cw = normalize( fw );
+	vec3 cp = vec3( 0.0, 1.0, 0.0 );
+	vec3 cu = vec3( -cw.z, 0.0, cw.x );
+	vec3 cv = normalize( cross(cu,cw) );
+	return mat3( cu, cv, cw );
+}
+
+vec3 cloudRender( in vec3 ro, in vec3 rd )
+{
+	// background sky     
+	float sun = clamp( dot(sundir,rd), 0.0, 1.0 );
+	vec3 col = 0.9*vec3(0.949,0.757,0.525) - rd.y*0.2*vec3(0.949,0.757,0.525);// + 0.15*0.5;
+	col += 0.8*vec3(1.0,.6,0.1)*pow( sun, 20.0 );
+
+	// clouds    
+	vec4 res = raymarch( ro, rd, col );
+	col = col*(1.0-res.w) + res.xyz;
+	
+	// sun glare    
+	col += 0.1*vec3(0.949,0.757,0.525)*pow( sun, 3.0 );
+
+	return col;
+}
+
+
+// =========== Ship Calculations ===========
+
+float time;
+vec3 shippos;
+mat3 shipltow;
+mat2 shiptilt;
+
+// the flight path
+
+vec3 shippath( float t )
+{
+	return vec3( 5.*sin( 0.9*t ), 2.5*sin( 0.6*t ), 0. );
+}
+
+vec3 shipvel( float t )
+{
+	return vec3( 5.*0.9*cos( 0.9*t ), 2.5*0.6*cos( 0.6*t ), 15. );
+}
+
+vec3 shipacc( float t )
+{
+	return vec3( -4.*0.9*0.9*sin( 0.9*(t)), -2.5*0.6*0.6*sin( 0.6*t ), 0. );
+}
+
+
+// distance functions for basic shapes
+
+float sdPlane( vec3 p, vec4 n ) { return dot(p,n.xyz) + n.w; }
+
+float sdSphere( vec3 p, float s ) { return length(p)-s; }
+
+float sdBox( vec3 p, vec3 b ) { vec3 d = abs(p) - b; return min(max(d.x,max(d.y,d.z)),0.0) + length(max(d,0.0)); }
+
+float sdHexPrism( vec3 p, vec2 h ) { vec3 q = abs(p); return max(q.z-h.y,max((q.x*0.866025+q.y*0.5),q.y)-h.x); }
+
+float sdCapsule( vec3 p, vec3 a, vec3 b, float r ) { vec3 pa = p-a, ba = b-a; return length( pa - ba*clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 )) - r; }
+
+float sdConeSection( in vec3 p, in float h, in float r1, in float r2 )
+{
+	float d1 = -p.y - h;
+	float q = p.y - h;
+	float si = 0.5*(r1-r2)/h;
+	float d2 = max( sqrt( dot(p.xz,p.xz)*(1.0-si*si)) + q*si - r2, q );
+	return length(max(vec2(d1,d2),0.0)) + min(max(d1,d2), 0.);
+}
+
+float length8( vec3 d ) { vec3 q = pow( d, vec3(8.) ); return pow( q.x + q.y + q.z, 0.125 ); }
+
+float sdTorus82( vec3 p, vec2 t ) { vec2 q = vec2(length(p.xz)-t.x,p.y); return length8(vec3(q,0.))-t.y; }
+
+float sdCylinder( vec3 p, vec3 c ) { return length(p.xz-c.xy)-c.z; }
+
+float sdCappedCylinder( vec3 p, vec2 h ) { vec2 d = abs(vec2(length(p.xz),p.y)) - h; return min(max(d.x,d.y),0.0) + length(max(d,0.0)); }
+
+vec2 min2( vec2 d1, vec2 d2 ) { return ( d1.x < d2.x ) ? d1 : d2; }
+
+vec2 max2( vec2 d1, vec2 d2 ) { return ( d1.x > d2.x ) ? d1 : d2; }
+
+float smin( float a, float b, float k ) { float h = clamp( 0.5+0.5*(b-a)/k, 0.0, 1.0 ); return mix( b, a, h ) - k*h*(1.0-h); }
+
+vec2 smin( vec2 a, vec2 b, float k ) { float h = clamp( 0.5+0.5*(b.x-a.x)/k, 0.0, 1.0 ); return mix( b, a, h ) - k*h*(1.0-h); }
+
+
+// texture functions
+
+float noise( float s )
+{
+	//vec2 uv = vec2( s, s );
+	//return texture( iChannel0, uv ).x;
+	return pNoise(vec2(s));
+}
+
+float cubicPulse( float c, float w, float x )
+{
+	x = abs(x - c);
+	if( x>w ) return 0.0;
+	x /= w;
+	return 1.0 - x*x*(3.0-2.0*x);
+}
+
+// plate texture
+float texPlates( vec2 uv )
+{
+	vec2 n = vec2( 10., 4. );
+	vec2 sec = floor( uv*n );
+	vec2 suv = uv*n - sec;
+	
+	float s1 = noise( 0.3*( uv.x + sec.y/n.y ) );
+	float s2 = 0.3*s1+0.5;
+	float s3 = noise( 0.4*sec.y/n.y );
+	float luma = 0.5*(1. - cubicPulse( s3, 0.03, suv.x )) + 0.5;
+	luma *= mix(1.0, s2, smoothstep(0.0, 1.0, suv.y));
+	luma *= 0.5*smoothstep( 0.0, 0.005*n.y, min( suv.y, 1.-suv.y)) + 0.5;
+	return clamp(luma, 0., 1.);
+}
+
+// circular hull texture
+vec3 texHull( vec3 p )
+{
+	vec2 uv;
+	uv.x = atan(p.z, p.x)/PI;
+	float d = length(p.xz);
+	uv.y = 0.925 - 0.5*d;
+	vec3 shipCol1 = 0.9*vec3(0.729, 0.694, 0.627);
+	vec3 shipCol2 = 0.4*vec3(0.6, 0.537, 0.447);
+	return texPlates( uv ) * mix(shipCol1, shipCol2, cubicPulse( 0., 0.5, uv.x ));
+}
+
+// ship world to local transformation
+
+vec3 shipw2l( vec3 p )
+{
+	p.z = -p.z;
+	p = shipltow*(p - shippos);
+	p.zy *= shiptilt;
+	return p;
+}
+
+// ship distance evaluation where p is in world coords
+
+vec2 shipDE(vec3 p)
+{
+	float d1, d2, d3, d4;
+	p = shipw2l( p );
+	d1 = sdSphere( p, 3.3 ); // the bounding 'hit' sphere
+	if ( d1 > 0.2 ) return vec2( d1, 0. );
+	
+	// main disk
+	vec3 q = p;
+	q.y = abs(q.y);
+	d1 = sdSphere( q + vec3( 0., 14.78, 0. ), 15. );
+	d1 = max( d1, sdSphere( q, 2. ));
+	d1 = max( -q.y + 0.06, d1 );
+	d2 = max(  q.y - 0.06, sdSphere( q, 1.95 ));
+	vec2 vres = vec2( min( d1, d2 ), 1.);
+	
+	// centre pylon
+	vres = smin( vres, vec2( sdCappedCylinder( p, vec2( 0.45, 0.28 )), 2.), 0.1);
+	
+	// front forks
+	q = p;
+	q.z = abs(q.z);
+	q += vec3(1.45, 0., -1.1);
+	float front = sdBox( q, vec3( 1.8, 0.09, 0.8 )); // front
+	vec3 norm = normalize(vec3(-1.1, 0.0, 2.3));
+	q = p;
+	q.z = abs(q.z);
+	float plane = sdPlane( q, vec4(-norm, 1.92) );
+	d1 = max( -plane, front );
+	vres = min2( vres, vec2( d1, 3. ));
+	
+	// Z crossbar
+	d1 = sdHexPrism( p, vec2( 0.26, 2.0 ));
+	d2 = sdBox( p, vec3( 0.8, 0.8, 0.6 ));
+	vres = min2( vres, vec2( max( -d2, d1 ), 4.));
+	
+	// X crossbar
+	q = p;
+	q.y = abs(q.y);
+	q = ry90 * rotZ(0.07) * q + vec3( 0., 0.02, -1.5);
+	vres = min2( vres, vec2( max( -abs(p.y) + 0.07, sdHexPrism( q, vec2(0.36, 0.9 ))), 5.));
+
+	// cockpit walkway
+	vec3 p1 = vec3(-0.8*sin(0.524), 0.1, -0.8*cos(0.524));
+	vec3 p2 = vec3(-2.1*sin(0.524), 0.07, -2.1*cos(0.524));
+	vec3 p3 = p2 + vec3(-0.2, 0., 0.);
+	vres = min2( vres, vec2( sdCapsule( p, p1, p2, 0.18 ), 6.));
+	vres = min2( vres, vec2( sdCapsule( p, p2, p3, 0.18 ), 6.1));
+
+	// cockpit
+	q = rz90*(p - p3 + vec3(0.2, 0., 0.));
+	vres = min2( vres, vec2( sdConeSection( q, 0.15, 0.18, 0.08), 7. ));
+	
+	// side cylinders
+	q = vec3( 0., 3.87, 0. );
+	q = mod( rx90 * p, q ) - 0.5*q;
+	vres = max2( vres, vec2( -sdTorus82( q, vec2( 0.26, 0.09 )), 8.));
+
+	// exhaust ports
+	p1 = vec3(0.75, 0., 0.);
+	p2 = vec3(0.45, 0., 0.);
+	q = p - p1;
+	vres = smin( vres, vec2( sdCappedCylinder( q, vec2( 0.14, 0.255 )), 9.), 0.044);
+	q -= p2;
+	vres = smin( vres, vec2( sdCappedCylinder( q, vec2( 0.14, 0.225 )), 9.), 0.044);
+	q = p;
+	q.z = -abs(q.z); // reflect
+	q = rotY(0.45)*q - p1;
+	vres = smin( vres, vec2( sdCappedCylinder( q, vec2( 0.14, 0.255 )), 9.), 0.044);
+	q -= p2;
+	vres = smin( vres, vec2( sdCappedCylinder( q, vec2( 0.14, 0.225 )), 9.), 0.044);
+
+	// gun port
+	q = p + vec3(0.22, 0., 0.);
+	vres = min2( vres, vec2( sdCappedCylinder( q, vec2( 0.14, 0.32 )), 9.));
+	
+	// gun
+	p1 = vec3(-0.22, 0., 0.);
+	p2 = p1 + vec3( 0., 0.35, 0.0);
+	p3 = vec3(-0.22, 0.33, 0.03);
+	vec3 p4 = p3 + vec3(-0.25, 0.04, 0.);
+	vec3 p5 = vec3(0., 0.03, 0.);
+	q = p;
+	q.z = abs(q.z);
+	q.y = abs(q.y);
+	d1 = sdCapsule( q, p1, p2, 0.06 ); // gun pod
+	d1 = min( d1, sdCapsule( q, p3, p4, 0.01 )); // gun 1
+	d1 = min( d1, sdCapsule( q, p3 + p5, p4 + p5, 0.01 )); // gun 2
+	vres = min2( vres, vec2( d1, 10.));
+	
+	// upper dish
+	p1 = vec3( -1.1, 0.4, 0.83 );
+	p2 = p1 - vec3( -0.05, 0.0, 0.0 );
+	p3 = p2 - vec3( -0.1, 0.25, 0.0 );
+	q = p - p1;
+	d1 = sdSphere( q, 0.2 );
+	q = q + vec3( 0.75, -0.1, 0.0 );
+	d2 = sdSphere( q, 0.8 );
+	d3 = sdSphere( q, 0.81 );
+	d4 = sdCapsule( p, p2, p3, 0.03 );
+	vres = min2( vres, vec2( min( d4, max( d3, max( -d2, d1 ))), 10.));
+	
+	return vres;
+}
+
+// ray marching and rendering
+
+vec2 shipCastRay( in vec3 ro, in vec3 rd )
+{
+	float tmin = 1.0;
+	float tmax = 20.0;
+	
+	const float precis = 0.001;
+	float t = tmin;
+	float m = -1.0;
+	for( int i=0; i<50; i++ )
+	{
+		vec2 res = shipDE( ro+rd*t );
+		if( res.x<precis || t>tmax ) break;
+		t += res.x;
+		m = res.y;
+	}
+
+	if ( t>tmax ) m=-1.0;
+	return vec2( t, m );
+}
+
+
+float softshadow( in vec3 ro, in vec3 rd, in float mint, in float tmax )
+{
+	float res = 1.0;
+	float t = mint;
+	for( int i=0; i<16; i++ )
+	{
+		float h = shipDE( ro + rd*t ).x;
+		res = min( res, 8.0*h/t );
+		t += clamp( h, 0.02, 0.10 );
+		if( h<0.001 || t>tmax ) break;
+	}
+	return clamp( res, 0.0, 1.0 );
+}
+
+vec3 calcNormal( in vec3 pos )
+{
+	vec3 eps = vec3( 0.001, 0.0, 0.0 );
+	vec3 nor = vec3(
+		shipDE(pos+eps.xyy).x - shipDE(pos-eps.xyy).x,
+		shipDE(pos+eps.yxy).x - shipDE(pos-eps.yxy).x,
+		shipDE(pos+eps.yyx).x - shipDE(pos-eps.yyx).x );
+	return normalize(nor);
+}
+
+float calcAO( in vec3 pos, in vec3 nor )
+{
+	float occ = 0.0;
+	float sca = 1.0;
+	for( int i=0; i<5; i++ )
+	{
+		float hr = 0.01 + 0.12*float(i)/4.0;
+		vec3 aopos =  nor * hr + pos;
+		float dd = shipDE( aopos ).x;
+		occ -= (dd-hr)*sca;
+		sca *= 0.95;
+	}
+	return clamp( 1.0 - 3.0*occ, 0.0, 1.0 );    
+}
+
+vec3 shipRender( in vec3 ro, in vec3 rd, in vec3 col )
+{ 
+	vec2 res = shipCastRay(ro,rd);
+	float t = res.x;
+	float m = res.y;
+	if( m >-0.5 )
+	{
+		vec3 pos = ro + t*rd;
+		vec3 nor = calcNormal( pos );
+		vec3 ref = reflect( rd, nor );
+		vec2 uv = vec2(0.);
+		float luma = 0.;
+		
+		vec3 shipCol = 0.9*vec3(0.729, 0.694, 0.627);//vec3(0.5, 0.45, 0.45);
+
+		vec3 q = shipw2l( pos );
+		bool isExhaust = false;
+		
+		if ( abs(q.y) < 0.06 && m < 3.5 )
+		{
+			if (q.x < 1.6)
+				col = mix(vec3(0.1), shipCol, 0.5 * /*texture( iChannel0, 0.2*q.xy ).x*/pNoise(0.2*q.xy));
+			else
+				isExhaust = true;
+		} else if ( m < 1.1 ) // main disk
+		{
+			col = texHull( q );
+		} else if ( m < 2.1 ) // centre pylon
+		{
+			q = 1.5*(q + vec3(0.22, 0., 0.));
+			uv.x = 0.5*(atan(q.z, q.x)/PI);
+			uv.y = 1. - length(q.xz);
+			luma = texPlates( uv );
+			col = luma * shipCol;
+		} else if ( m < 3.1 ) // front forks
+		{
+			uv.x = 0.3*abs(q.z);
+			uv.y = 0.25*q.x+0.4;
+			luma = texPlates( uv );
+			col = luma * shipCol;
+		} else if ( m < 4.1 ) // Z crossbar
+		{
+			uv.x = 0.5*q.x;
+			uv.y = -0.8*abs(q.z);
+			float luma = texPlates( uv );
+			col = luma * shipCol;
+		} else if ( m < 5.1 ) // X crossbar
+		{
+			uv.x = 0.5*q.z;
+			uv.y = q.x;
+			if (abs(q.z) < 0.12 && abs(q.x) > 0.8 && abs(q.x) < 2.3)
+			{
+				uv.y *= 0.5;
+				col = shipCol * mix( 0.5, 1., 0.5 * /*texture( iChannel0, 0.2*uv ).x*/pNoise(0.2*uv));
+			} else
+				col = shipCol * texPlates( uv );
+		} else if ( m < 6.6 ) // cockpit walkway
+		{
+			uv = rot(0.524)*q.xz;
+			uv.x = 0.5*uv.x;
+			uv.y = uv.y;
+			luma = texPlates( uv );
+			col = luma * shipCol;
+		} else if ( m < 7.1 ) // cockpit
+		{
+			if ( q.y > 0.12 )
+				col = vec3(0.03);
+			else
+				col = shipCol;
+		} else if ( m < 8.1 ) // side ports
+		{
+			col = shipCol;
+		} else if ( m < 9.9 ) // exhaust ports and gun port
+		{
+			col = vec3(0.05);
+		} else
+		{
+			col = shipCol;
+		}
+
+		if ( isExhaust )
+		{
+			// ship exhaust
+			float blume = pow( clamp( dot(nor,-rd), 0.0, 1.0), 10. );
+			col = clamp( blume + vec3( 0.215, 0.945, 1. ) * (0.5 * cos( 80.*q.z ) + 0.5), 0., 1.);
+		} else
+		{
+			// ship hull lighting        
+			float occ = calcAO( pos, nor );
+			vec3  lig = sundir;
+			float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0 );
+			float dif = clamp( dot( nor, lig ), 0.0, 1.0 );
+			float bac = clamp( dot( nor, normalize(vec3(-lig.x,0.0,-lig.z))), 0.0, 1.0 )*clamp( 1.0-pos.y,0.0,1.0);
+			float dom = smoothstep( -0.1, 0.1, ref.y );
+			float fre = pow( clamp( 1.0+dot(nor,rd),0.0,1.0), 2.0 );
+			float spe = pow( clamp( dot( ref, lig ), 0.0, 1.0 ), 16.0 );
+
+			dif *= softshadow( pos, lig, 0.02, 2.5 );
+			dom *= softshadow( pos, ref, 0.02, 2.5 );
+
+			vec3 brdf = vec3(0.0);
+			brdf += 1.20*dif*vec3(1.00,0.90,0.60);
+			brdf += 1.10*spe*vec3(1.00,0.90,0.60)*dif;
+			brdf += 0.30*amb*vec3(0.50,0.70,1.00)*occ;
+			brdf += 0.40*dom*vec3(0.50,0.70,1.00)*occ;
+			brdf += 0.30*bac*vec3(0.25,0.25,0.25)*occ;
+			brdf += 0.40*fre*vec3(1.00,1.00,1.00)*occ;
+			brdf += 0.02;
+			col = clamp(col*brdf, 0.0, 1.0);
+			
+			// Gamma correction
+			col = pow( col, vec3(0.4545) );
+		}
+	}
+
+	return col;
+}
+
+void getBackground( out vec4 fragColor, in vec2 fragCoord ) 
+{
+	vec2 q = fragCoord.xy/iResolution.xy;
+    vec2 p = -1.0+2.0*q;
+    p.x *= iResolution.x/iResolution.y;
+    //    vec2 md = iMouse.xy/iResolution.xy - 0.5;
+
+    // render clouds and sky
+    speed = iTime * SPEED;
+    vec3 ro = 4.0*normalize(vec3( 0.0, 0.3, 5.0));
+    vec3 ta = vec3(0.0, -1.0, 0.0);
+    mat3 ca = setCamera( ta - ro );
+    vec3 rd = ca * normalize( vec3(p.xy,1.0) );
+    vec3 col = cloudRender( ro, rd );
+    // animate
+	time = iTime;
+    shippos = shippath( time );
+    vec3 shipv = shipvel( time );
+    vec3 shipa = shipacc( time );
+    // camera	
+    //ro = rotY(2.*PI*md.x) * rotX(-0.99*PI*md.y) * vec3( 0.0, 0.0, 9.);
+    ro = vec3( 0.0, 0.0, 5.*sin( 0.5*time ) + 13.);
+    // camera-to-world transformation
+    ca = setCamera( ta - ro );
+    // ship direction
+    shiptilt = rot( 0.4*shipa.x );
+    shipltow = ry90 * setCamera( -normalize( shipv ) );
+    // ray direction
+	rd = ca * normalize( vec3(p.xy, 1.0) );
+    // render ship
+    col = shipRender( ro, rd, col );
+    fragColor = vec4(col, 1.);
+}
+#endif //__BESPIN__
 
 void main()
 {
