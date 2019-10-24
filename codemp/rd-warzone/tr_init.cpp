@@ -316,6 +316,9 @@ cvar_t	*r_debugImageCrcHashing;
 cvar_t	*r_splatMapping;
 cvar_t	*r_parallaxScale;
 cvar_t	*r_ao;
+#ifdef __SSRTGI__
+cvar_t	*r_ssrtgi;
+#endif //__SSRTGI__
 cvar_t	*r_env;
 cvar_t	*r_blinnPhong;
 cvar_t	*r_debugEmissiveLights;
@@ -1635,6 +1638,9 @@ void R_Register( void )
 	r_parallaxScale = ri->Cvar_Get( "r_parallaxScale", "1.0", CVAR_ARCHIVE );
 	r_blinnPhong = ri->Cvar_Get( "r_blinnPhong", "1.0", CVAR_ARCHIVE );
 	r_ao = ri->Cvar_Get("r_ao", "1", CVAR_ARCHIVE);
+#ifdef __SSRTGI__
+	r_ssrtgi = ri->Cvar_Get("r_ssrtgi", "0", CVAR_ARCHIVE);
+#endif //__SSRTGI__
 	r_env = ri->Cvar_Get("r_env", "1", CVAR_ARCHIVE);
 	
 	r_debugEmissiveLights = ri->Cvar_Get("r_debugEmissiveLights", "0", CVAR_ARCHIVE);

@@ -21,6 +21,9 @@ void DockControlFlow::imgui() {
 		ImGui::PushItemWidth(100);
 		showCvar("if (ENABLE_DISPLACEMENT_MAPPING) RB_SSDM_Generate()"         , r_ssdm            );
 		showCvar("if (r_ao >= 2) RB_SSAO()"                                    , r_ao              );
+#ifdef __SSRTGI__
+		showCvar("if (r_ssrtgi) RB_SSRTGI()"                                   , r_ssrtgi          );
+#endif //__SSRTGI__
 		showCvar("if (r_cartoon >= 2) RB_CellShade()"                          , r_cartoon         );
 		showCvar("if (r_cartoon >= 3) RB_Paint()"                              , r_cartoon         );
 		//showCvar("if (AO_DIRECTIONAL) RB_SSDO()"                               , r_ssdo            );

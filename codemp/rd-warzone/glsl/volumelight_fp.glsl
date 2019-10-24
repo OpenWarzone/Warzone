@@ -114,6 +114,65 @@ float PCF(const sampler2DShadow shadowmap, const vec4 st, const float dist, floa
 	return offset_lookup(shadowmap, sCoord, offset, 0.0);
 }
 
+void GetShadowCascade(in float depth, inout float fWeight, inout float dWeight, inout float invSamples, inout float result)
+{
+	vec4 biasPos = vec4(u_ViewOrigin + var_ViewDir * (depth - 0.5 / u_ViewInfo.x), 1.0);
+	vec4 shadowpos = u_ShadowMvp * biasPos;
+
+	if (all(lessThanEqual(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
+	{
+		shadowpos.xyz = shadowpos.xyz / shadowpos.w * 0.5 + 0.5;
+		result += PCF(u_ShadowMap, shadowpos, shadowpos.z, 1.0 / r_shadowMapSize) > 0.9999999 ? dWeight : 0.0;
+		dWeight -= invSamples;
+		fWeight += invSamples;
+		return;
+	}
+
+	shadowpos = u_ShadowMvp2 * biasPos;
+
+	if (all(lessThanEqual(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
+	{
+		shadowpos.xyz = shadowpos.xyz / shadowpos.w * 0.5 + 0.5;
+		result += PCF(u_ShadowMap2, shadowpos, shadowpos.z, 1.0 / r_shadowMapSize) > 0.9999999 ? dWeight : 0.0;
+		dWeight -= invSamples;
+		fWeight += invSamples;
+		return;
+	}
+
+	shadowpos = u_ShadowMvp3 * biasPos;
+
+	if (all(lessThanEqual(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
+	{
+		shadowpos.xyz = shadowpos.xyz / shadowpos.w * 0.5 + 0.5;
+		result += PCF(u_ShadowMap3, shadowpos, shadowpos.z, 1.0 / r_shadowMapSize) > 0.9999999 ? dWeight : 0.0;
+		dWeight -= invSamples;
+		fWeight += invSamples;
+		return;
+	}
+
+	shadowpos = u_ShadowMvp4 * biasPos;
+
+	if (all(lessThanEqual(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
+	{
+		shadowpos.xyz = shadowpos.xyz / shadowpos.w * 0.5 + 0.5;
+		result += PCF(u_ShadowMap4, shadowpos, shadowpos.z, 1.0 / r_shadowMapSize) > 0.9999999 ? dWeight : 0.0;
+		dWeight -= invSamples;
+		fWeight += invSamples;
+		return;
+	}
+
+	shadowpos = u_ShadowMvp5 * biasPos;
+
+	if (all(lessThanEqual(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
+	{
+		shadowpos.xyz = shadowpos.xyz / shadowpos.w * 0.5 + 0.5;
+		result += PCF(u_ShadowMap5, shadowpos, shadowpos.z, 1.0 / r_shadowMapSize) > 0.9999999 ? dWeight : 0.0;
+		dWeight -= invSamples;
+		fWeight += invSamples;
+		return;
+	}
+}
+
 //////////////////////////////////////////////////////////////////////////
 float GetVolumetricShadow(void)
 {
@@ -126,61 +185,7 @@ float GetVolumetricShadow(void)
 	for (int i = 0; i < iVolumetricSamples; i++)
 	{
 		float depth = (i / float(iVolumetricSamples)) * sceneDepth;
-		vec4 biasPos = vec4(u_ViewOrigin + var_ViewDir * (depth - 0.5 / u_ViewInfo.x), 1.0);
-		vec4 shadowpos = u_ShadowMvp * biasPos;
-
-		if (all(lessThanEqual(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
-		{
-			shadowpos.xyz = shadowpos.xyz / shadowpos.w * 0.5 + 0.5;
-			result += PCF(u_ShadowMap, shadowpos, shadowpos.z, 1.0 / r_shadowMapSize) > 0.9999999 ? dWeight : 0.0;
-			dWeight -= invSamples;
-			fWeight += invSamples;
-			continue;
-		}
-
-		shadowpos = u_ShadowMvp2 * biasPos;
-
-		if (all(lessThanEqual(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
-		{
-			shadowpos.xyz = shadowpos.xyz / shadowpos.w * 0.5 + 0.5;
-			result += PCF(u_ShadowMap2, shadowpos, shadowpos.z, 1.0 / r_shadowMapSize) > 0.9999999 ? dWeight : 0.0;
-			dWeight -= invSamples;
-			fWeight += invSamples;
-			continue;
-		}
-
-		shadowpos = u_ShadowMvp3 * biasPos;
-
-		if (all(lessThanEqual(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
-		{
-			shadowpos.xyz = shadowpos.xyz / shadowpos.w * 0.5 + 0.5;
-			result += PCF(u_ShadowMap3, shadowpos, shadowpos.z, 1.0 / r_shadowMapSize) > 0.9999999 ? dWeight : 0.0;
-			dWeight -= invSamples;
-			fWeight += invSamples;
-			continue;
-		}
-
-		shadowpos = u_ShadowMvp4 * biasPos;
-
-		if (all(lessThanEqual(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
-		{
-			shadowpos.xyz = shadowpos.xyz / shadowpos.w * 0.5 + 0.5;
-			result += PCF(u_ShadowMap4, shadowpos, shadowpos.z, 1.0 / r_shadowMapSize) > 0.9999999 ? dWeight : 0.0;
-			dWeight -= invSamples;
-			fWeight += invSamples;
-			continue;
-		}
-
-		shadowpos = u_ShadowMvp5 * biasPos;
-
-		if (all(lessThanEqual(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
-		{
-			shadowpos.xyz = shadowpos.xyz / shadowpos.w * 0.5 + 0.5;
-			result += PCF(u_ShadowMap5, shadowpos, shadowpos.z, 1.0 / r_shadowMapSize) > 0.9999999 ? dWeight : 0.0;
-			dWeight -= invSamples;
-			fWeight += invSamples;
-			continue;
-		}
+		GetShadowCascade(depth, fWeight, dWeight, invSamples, result);
 	}
 	
 	result /= fWeight;
@@ -192,40 +197,40 @@ float GetVolumetricShadow(void)
 #ifdef __LENS_FLARE__
 float flare(in vec3 s, in vec3 ctr, in vec3 sDir)
 {
-    float c = 0.;
+	float c = 0.;
 	s = normalize(s);
-    float sc = dot(s,-sDir);
-    c += .5*smoothstep(.99,1.,sc);
-    
-    s = normalize(s+.9*ctr);
-    sc = dot(s,-sDir);
-    c += .3*smoothstep(.9,.91,sc);
-    
-    s = normalize(s-.6*ctr);
-    sc = dot(s,-sDir);
-    c += smoothstep(.99,1.,sc);
-    
-    return c;
+	float sc = dot(s,-sDir);
+	c += .5*smoothstep(.99,1.,sc);
+	
+	s = normalize(s+.9*ctr);
+	sc = dot(s,-sDir);
+	c += .3*smoothstep(.9,.91,sc);
+	
+	s = normalize(s-.6*ctr);
+	sc = dot(s,-sDir);
+	c += smoothstep(.99,1.,sc);
+	
+	return c;
 }
 
 vec3 lensflare3D(in vec3 ray, in vec3 ctr, in vec3 sDir)
 {
-    vec3 red = vec3(1.,.6,.3);
-    vec3 green = vec3(.3,1.,.6);
-    vec3 blue = vec3(.6,.3,1.);
+	vec3 red = vec3(1.,.6,.3);
+	vec3 green = vec3(.3,1.,.6);
+	vec3 blue = vec3(.6,.3,1.);
 	vec3 col = vec3(0.);
-    vec3 ref = reflect(ray,ctr);
+	vec3 ref = reflect(ray,ctr);
 
-    col += red*flare(ref,ctr,sDir);
-    col += green*flare(ref-.15*ctr,ctr,sDir);
-    col += blue*flare(ref-.3*ctr,ctr,sDir);
-    
-    ref = reflect(ctr,ray);
-    col += red*flare(ref,ctr,sDir);
-    col += green*flare(ref+.15*ctr,ctr,sDir);
-    col += blue*flare(ref+.3*ctr,ctr,sDir);
-    
-    float d = dot(ctr,sDir);
+	col += red*flare(ref,ctr,sDir);
+	col += green*flare(ref-.15*ctr,ctr,sDir);
+	col += blue*flare(ref-.3*ctr,ctr,sDir);
+	
+	ref = reflect(ctr,ray);
+	col += red*flare(ref,ctr,sDir);
+	col += green*flare(ref+.15*ctr,ctr,sDir);
+	col += blue*flare(ref+.3*ctr,ctr,sDir);
+	
+	float d = dot(ctr,sDir);
 	return .4*col*max(0.,d*d*d*d*d);
 }
 #endif //__LENS_FLARE__
@@ -234,6 +239,15 @@ void main()
 {
 	if (NIGHT_FACTOR >= 1.0)
 	{// Night... Skip...
+		gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+		return;
+	}
+
+	vec3 lDir = normalize(u_PrimaryLightOrigin.xyz - u_ViewOrigin.xyz);
+	vec3 vDir = normalize(var_ViewDir);
+
+	if (lDir.z < 0.0)
+	{
 		gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
 		return;
 	}
@@ -257,8 +271,6 @@ void main()
 
 
 	// Extra brightness in the direction of the sun...
-	vec3 lDir = normalize(u_PrimaryLightOrigin.xyz - u_ViewOrigin.xyz);
-	vec3 vDir = normalize(var_ViewDir);
 	float fall = max(dot(lDir, vDir), 0.0);
 	fall = pow(fall, 16.0);
 	fall *= shadow;

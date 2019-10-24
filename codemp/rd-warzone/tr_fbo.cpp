@@ -1076,6 +1076,55 @@ void FBO_Init(void)
 		R_CheckFBO(tr.dofFocusDepthFbo);
 	}
 
+#ifdef __SSRTGI__
+	//
+	// SSRTGI Buffer Setup FBO...
+	//
+	{
+		tr.ssrtgiBufferSetupFbo = FBO_Create("_ssrtgiBufferSetupFbo", tr.ssrtgiColorImage->width, tr.ssrtgiColorImage->height);
+		FBO_Bind(tr.ssrtgiBufferSetupFbo);
+		FBO_AttachTextureImage(tr.ssrtgiColorImage, 0);
+		FBO_AttachTextureImage(tr.ssrtgiDepthImage, 1);
+		FBO_AttachTextureImage(tr.ssrtgiNormalImage, 2);
+		FBO_SetupDrawBuffers();
+		R_CheckFBO(tr.ssrtgiBufferSetupFbo);
+	}
+
+	//
+	// SSRTGI Stencil Setup FBO...
+	//
+	{
+		tr.ssrtgiStencilSetupFbo = FBO_Create("_ssrtgiStencilSetupFbo", tr.ssrtgiGBufferImage->width, tr.ssrtgiGBufferImage->height);
+		FBO_Bind(tr.ssrtgiStencilSetupFbo);
+		FBO_AttachTextureImage(tr.ssrtgiGBufferImage, 0);
+		FBO_SetupDrawBuffers();
+		R_CheckFBO(tr.ssrtgiStencilSetupFbo);
+	}
+
+	//
+	// SSRTGI Ray Trace FBO...
+	//
+	{
+		tr.ssrtgiRayTraceFbo = FBO_Create("_ssrtgiRayTraceFbo", tr.ssrtgiGlobalIllminationImage->width, tr.ssrtgiGlobalIllminationImage->height);
+		FBO_Bind(tr.ssrtgiRayTraceFbo);
+		FBO_AttachTextureImage(tr.ssrtgiGlobalIllminationImage, 0);
+		FBO_SetupDrawBuffers();
+		R_CheckFBO(tr.ssrtgiRayTraceFbo);
+	}
+
+	//
+	// SSRTGI Copy Filter FBO...
+	//
+	{
+		tr.ssrtgiCopyFilterFbo = FBO_Create("_ssrtgiCopyFilterFbo", tr.ssrtgiGIPrevImage->width, tr.ssrtgiGIPrevImage->height);
+		FBO_Bind(tr.ssrtgiCopyFilterFbo);
+		FBO_AttachTextureImage(tr.ssrtgiGIPrevImage, 0);
+		FBO_AttachTextureImage(tr.ssrtgiGBufferPrevImage, 1);
+		FBO_SetupDrawBuffers();
+		R_CheckFBO(tr.ssrtgiCopyFilterFbo);
+	}
+#endif //__SSRTGI__
+
 	GL_CheckErrors();
 
 	FBO_Bind(NULL);

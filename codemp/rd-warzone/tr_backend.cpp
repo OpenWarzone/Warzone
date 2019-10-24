@@ -3568,6 +3568,35 @@ const void *RB_PostProcess(const void *data)
 		}
 #endif //__SSDM_IN_DEFERRED_SHADER__
 
+#ifdef __SSRTGI__
+		if (!SCREEN_BLUR && r_ssrtgi->integer)
+		{
+			if (!r_lowVram->integer)
+			{
+				DEBUG_StartTimer("SSRTGI Buffer Setup", qtrue);
+				RB_SSRTGI_BufferSetup(currentFbo, srcBox, currentOutFbo, dstBox);
+				DEBUG_EndTimer(qtrue);
+
+				DEBUG_StartTimer("SSRTGI Stencil Setup", qtrue);
+				RB_SSRTGI_StencilSetup(currentFbo, srcBox, currentOutFbo, dstBox);
+				DEBUG_EndTimer(qtrue);
+
+				DEBUG_StartTimer("SSRTGI Ray Trace", qtrue);
+				RB_SSRTGI_RayTrace(currentFbo, srcBox, currentOutFbo, dstBox);
+				DEBUG_EndTimer(qtrue);
+
+				DEBUG_StartTimer("SSRTGI Copy Filter", qtrue);
+				RB_SSRTGI_CopyFilter(currentFbo, srcBox, currentOutFbo, dstBox);
+				DEBUG_EndTimer(qtrue);
+
+				DEBUG_StartTimer("SSRTGI Output", qtrue);
+				RB_SSRTGI_Output(currentFbo, srcBox, currentOutFbo, dstBox);
+				RB_SwapFBOs(&currentFbo, &currentOutFbo);
+				DEBUG_EndTimer(qtrue);
+			}
+		}
+#endif //__SSRTGI__
+
 		if (!SCREEN_BLUR && FOG_POST_ENABLED && r_fogPost->integer && !LATE_LIGHTING_ENABLED && (FOG_LINEAR_ENABLE || FOG_WORLD_ENABLE || FOG_LAYER_ENABLE))
 		{
 			DEBUG_StartTimer("Fog Post", qtrue);
@@ -3978,6 +4007,26 @@ const void *RB_PostProcess(const void *data)
 		VectorSet4(dstBox, 512 + 384, glConfig.vidHeight - 128, 128, 128);
 		FBO_BlitFromTexture(tr.pshadowMaps[3], NULL, NULL, NULL, dstBox, NULL, NULL, 0);
 	}
+
+#ifdef __SSRTGI__
+	if (1 && r_ssrtgi->integer)
+	{
+		VectorSet4(dstBox, 0, 128, 128, 128);
+		FBO_BlitFromTexture(tr.ssrtgiColorImage, NULL, NULL, NULL, dstBox, NULL, NULL, 0);
+		VectorSet4(dstBox, 128, 128, 128, 128);
+		FBO_BlitFromTexture(tr.ssrtgiDepthImage, NULL, NULL, NULL, dstBox, NULL, NULL, 0);
+		VectorSet4(dstBox, 256, 128, 128, 128);
+		FBO_BlitFromTexture(tr.ssrtgiNormalImage, NULL, NULL, NULL, dstBox, NULL, NULL, 0);
+		VectorSet4(dstBox, 384, 128, 128, 128);
+		FBO_BlitFromTexture(tr.ssrtgiGBufferImage, NULL, NULL, NULL, dstBox, NULL, NULL, 0);
+		VectorSet4(dstBox, 512, 128, 128, 128);
+		FBO_BlitFromTexture(tr.ssrtgiGBufferPrevImage, NULL, NULL, NULL, dstBox, NULL, NULL, 0);
+		VectorSet4(dstBox, 640, 128, 128, 128);
+		FBO_BlitFromTexture(tr.ssrtgiGlobalIllminationImage, NULL, NULL, NULL, dstBox, NULL, NULL, 0);
+		VectorSet4(dstBox, 768, 128, 128, 128);
+		FBO_BlitFromTexture(tr.ssrtgiGIPrevImage, NULL, NULL, NULL, dstBox, NULL, NULL, 0);
+	}
+#endif //__SSRTGI__
 
 #if 0
 	if (r_cubeMapping->integer >= 1 && tr.numCubemaps && !r_lowVram->integer)
