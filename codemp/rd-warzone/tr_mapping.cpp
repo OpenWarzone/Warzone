@@ -3615,7 +3615,9 @@ void R_LoadMapInfo(void)
 
 	tr.smoothNoiseImage = R_FindImageFile("gfx/smoothNoise.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE);
 
-	//tr.ssdoNoiseImage = R_FindImageFile("gfx/ssdoNoise.png", IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE);
+//#ifdef __SSDO__
+//	tr.ssdoNoiseImage = R_FindImageFile("gfx/ssdoNoise.png", IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE);
+//#endif //__SSDO__
 
 #if 0
 	if (!R_TextureFileExists("gfx/defaultDetail.tga"))

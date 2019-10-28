@@ -3,16 +3,14 @@
 
 
 #ifndef __LQ_MODE__
+	#define __AMBIENT_OCCLUSION__
+	#define __ENHANCED_AO__
+	#define __SCREEN_SPACE_REFLECTIONS__
+	#define __CLOUD_SHADOWS__
 
-#define __AMBIENT_OCCLUSION__
-#define __ENHANCED_AO__
-#define __SCREEN_SPACE_REFLECTIONS__
-#define __CLOUD_SHADOWS__
-
-#ifdef USE_CUBEMAPS
-	#define __CUBEMAPS__
-#endif //USE_CUBEMAPS
-
+	#ifdef USE_CUBEMAPS
+		#define __CUBEMAPS__
+	#endif //USE_CUBEMAPS
 #endif //__LQ_MODE__
 
 #if defined(USE_BINDLESS_TEXTURES)
@@ -82,6 +80,8 @@ uniform sampler2D							u_ShadowMap;		// Screen Shadow Map
 #endif //USE_SHADOWMAP
 
 #ifndef __LQ_MODE__
+uniform sampler2D							u_HeightMap;		// SSDO Map
+uniform sampler2D							u_SplatMap1;		// SSDO Illumination Map
 uniform sampler2D							u_WaterEdgeMap;		// tr.shinyImage
 uniform samplerCube							u_SkyCubeMap;		// Day sky cubemap
 uniform samplerCube							u_SkyCubeMapNight;	// Night sky cubemap
@@ -132,7 +132,7 @@ uniform vec4								u_Local5;	// CONTRAST,				SATURATION,						BRIGHTNESS,						
 uniform vec4								u_Local6;	// AO_MINBRIGHT,			AO_MULTBRIGHT,					VIBRANCY,						TRUEHDR_ENABLED
 uniform vec4								u_Local7;	// cubemapEnabled,			r_cubemapCullRange,				PROCEDURAL_SKY_ENABLED,			r_skyLightContribution
 uniform vec4								u_Local8;	// NIGHT_SCALE,				PROCEDURAL_CLOUDS_CLOUDCOVER,	PROCEDURAL_CLOUDS_CLOUDSCALE,	CLOUDS_SHADOWS_ENABLED
-uniform vec4								u_Local12;	// COLOR_GRADING_ENABLED,	0.0,							0.0,							0.0
+uniform vec4								u_Local12;	// COLOR_GRADING_ENABLED,	USE_SSDO,						0.0,							0.0
 
 #ifdef __PROCEDURALS_IN_DEFERRED_SHADER__
 uniform vec4								u_Local9;	// MAP_INFO_PLAYABLE_HEIGHT, PROCEDURAL_MOSS_ENABLED, PROCEDURAL_SNOW_ENABLED, PROCEDURAL_SNOW_ROCK_ONLY
@@ -201,6 +201,7 @@ varying float								var_CloudShadow;
 #define CLOUDS_SHADOWS_ENABLED				u_Local8.a
 
 #define COLOR_GRADING_ENABLED				u_Local12.r
+#define USE_SSDO							u_Local12.g
 
 #ifdef __PROCEDURALS_IN_DEFERRED_SHADER__
 #define MAP_INFO_PLAYABLE_HEIGHT			u_Local9.r
@@ -1408,6 +1409,41 @@ void main(void)
 	vec3 bump = normalize(N+of);
 
 
+	//
+	// SSDO input, if enabled...
+	//
+	vec4 occlusion = vec4(0.0);
+	vec4 illumination = vec4(0.0);
+	float sun_occlusion = 1.0;
+	bool useOcclusion = false;
+
+#ifndef __LQ_MODE__
+	if (USE_SSDO > 0.0)
+	{
+		useOcclusion = true;
+		occlusion = texture(u_HeightMap, texCoords) * 2.0 - 1.0;
+		illumination = texture(u_SplatMap1, texCoords);
+
+		sun_occlusion = 1.0 - clamp(dot(vec4(-sunDir, 1.0), occlusion), 0.0, 1.0);
+		sun_occlusion = sun_occlusion * 0.4 + 0.6;
+
+		if (u_Local3.r == 1.0)
+		{
+			gl_FragColor = vec4(sun_occlusion, sun_occlusion, sun_occlusion, 1.0);
+			return;
+		}
+
+		if (u_Local3.r == 2.0)
+		{
+			gl_FragColor = vec4(illumination.rgb, 1.0);
+			return;
+		}
+
+		outColor.rgb += illumination.rgb * 0.25;
+	}
+#endif //!__LQ_MODE__
+
+
 #ifdef __PROCEDURALS_IN_DEFERRED_SHADER__
 	if (PROCEDURAL_MOSS_ENABLED > 0.0 && (position.a - 1.0 == MATERIAL_TREEBARK || position.a - 1.0 == MATERIAL_ROCK))
 	{// Add any procedural moss...
@@ -1720,6 +1756,8 @@ void main(void)
 
 				vec3 addColor = blinn_phong(position.xyz, outColor.rgb, bump, E, -sunDir, clamp(lightColor, 0.0, 1.0), 1.0, u_PrimaryLightOrigin.xyz, wetness);
 
+				addColor *= sun_occlusion;
+
 				if (position.a - 1.0 == MATERIAL_GREENLEAVES || position.a - 1.0 == MATERIAL_PROCEDURALFOLIAGE)
 				{// Light bleeding through tree leaves...
 					float ndotl = clamp(dot(bump, sunDir), 0.0, 1.0);
@@ -1802,7 +1840,16 @@ void main(void)
 
 								float lightSpecularPower = mix(0.1, 0.5, clamp(lightsReflectionFactor, 0.0, 1.0)) * clamp(lightStrength * phongFactor, 0.0, 1.0);
 
-								addedLight.rgb += blinn_phong(position.xyz, outColor.rgb, bump, E, lightDir, clamp(lightColor, 0.0, 1.0), lightSpecularPower, lightPos, wetness) * lightFade * selfShadow;
+								float light_occlusion = 1.0;
+
+#ifndef __LQ_MODE__
+								if (useOcclusion)
+								{
+									light_occlusion = clamp(1.0 - clamp(dot(vec4(lightDir, 1.0), occlusion), 0.0, 1.0) * 0.4 + 0.6, 0.0, 1.0);
+								}
+#endif //__LQ_MODE__
+
+								addedLight.rgb += blinn_phong(position.xyz, outColor.rgb, bump, E, lightDir, clamp(lightColor, 0.0, 1.0), lightSpecularPower, lightPos, wetness) * lightFade * selfShadow * light_occlusion;
 
 								if (position.a - 1.0 == MATERIAL_GREENLEAVES || position.a - 1.0 == MATERIAL_PROCEDURALFOLIAGE)
 								{// Light bleeding through tree leaves...
@@ -1892,6 +1939,7 @@ void main(void)
 	}
 #endif //__CLOUD_SHADOWS__
 
+	finalShadow = min(finalShadow, sun_occlusion);
 	outColor.rgb *= finalShadow;
 
 

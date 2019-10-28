@@ -1783,7 +1783,11 @@ void GUI_PostProcessMakeCvarList() {
 	GUI_PostProcessAddCvar(r_ssrtgi, 1);
 #endif //__SSRTGI__
 	GUI_PostProcessAddCvar(r_cartoon, 3);
-	//GUI_PostProcessAddCvar(r_ssdo, 1);
+	
+#ifdef __SSDO__
+	GUI_PostProcessAddCvar(r_ssdo, 1);
+#endif //__SSDO__
+
 	//GUI_PostProcessAddCvar(r_sss, 1);
 	//GUI_PostProcessAddCvar(r_fastLighting, 1);
 	GUI_PostProcessAddCvar(r_deferredLighting, 1);

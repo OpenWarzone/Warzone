@@ -315,7 +315,7 @@ void main()
 
 	gl_FragColor = vec4(col, 1.0);
 }
-#else
+#elif 0
 //
 // SSRTGI
 //
@@ -700,5 +700,110 @@ void main()
 	else
 		gl_FragColor = vec4(mat.color.rgb + reflection.rgb, 1.0);
 }
+#elif 1
+vec3 normal_from_depth(sampler2D tex, vec2 texcoords) 
+{
+	// Delta coordinate of 1 pixel: 0.03125 = 1 (pixel) / 32 (pixels)
+	const vec2 offset1 = vec2(0.0, 0.03125);
+	const vec2 offset2 = vec2(0.03125, 0.0);
+	
+	// Fetch depth from depth buffer
+	float depth = texture2D(tex, texcoords).r;
+	float depth1 = texture2D(tex, texcoords + offset1).r;
+	float depth2 = texture2D(tex, texcoords + offset2).r;
+	
+	highp vec3 p1 = vec3(offset1, depth1 - depth);
+	highp vec3 p2 = vec3(offset2, depth2 - depth);
+	
+	// Calculate normal
+	highp vec3 normal = cross(p1, p2);
+	normal.z = -normal.z;
+	
+	return normalize(normal);
+}
 
+vec3 normal_from_pixels(sampler2D tex, vec2 texcoords1, vec2 texcoords2, out float dist) 
+{
+	// Fetch depth from depth buffer
+	float depth1 = texture2D(tex, texcoords1).r;
+	float depth2 = texture2D(tex, texcoords2).r;
+	
+	// Calculate normal
+	highp vec3 normal = vec3(texcoords2 - texcoords1, depth2 - depth1);
+	normal.z = -normal.z;
+	
+	// Calculate distance between texcoords
+	dist = length(normal);
+	
+	return normalize(normal);
+}
+
+vec3 Calculate_GI(vec3 pixel_normal, vec2 coord)
+{
+	vec3 light_color;
+	vec3 pixel_to_light_normal;
+	vec3 light_normal, light_to_pixel_normal;
+	float dist;
+	vec3 gi = vec3(0.0);
+	
+	// Calculate normal from the pixel to current pixel
+	light_to_pixel_normal = normal_from_pixels(u_ScreenDepthMap, coord, var_TexCoords, dist);
+
+	// Calculate normal from current pixel to the pixel
+	pixel_to_light_normal = -light_to_pixel_normal;
+	
+	// Get the pixel color
+	light_color = texture2D(u_DiffuseMap, coord).rgb;
+
+	// Calculate normal for the pixel
+	light_normal = normal_from_depth(u_ScreenDepthMap, coord);
+
+	// Calculate GI
+	gi += light_color * max(0.0, dot(light_normal, light_to_pixel_normal)) * max(0.0, dot(pixel_normal, pixel_to_light_normal)) / dist;
+	
+	// Calculate normal from the cull pixel to current pixel
+	light_to_pixel_normal = normal_from_pixels(u_ScreenDepthMap, coord, var_TexCoords, dist);
+
+	// Calculate normal from current pixel to the cull pixel
+	pixel_to_light_normal = -light_to_pixel_normal;
+	
+	// Get the cull pixel color, base color need to be lighten to simulate direct light effect.
+	light_color = texture2D(u_GlowMap, vec2(coord.x, 1.0-coord.y)).rgb * 5.0;
+
+	// Calculate normal for the cull pixel
+	light_normal = normal_from_depth(u_ScreenDepthMap, coord);
+
+	// Flip the normal
+	light_normal = -light_normal;
+	
+	// Calculate GI
+	gi += light_color * max(0.0, dot(light_normal, light_to_pixel_normal)) * max(0.0, dot(pixel_normal, pixel_to_light_normal)) / dist;
+	
+	return gi;
+}
+
+void main ()
+{
+	const int GRID_COUNT = 16;
+	vec3 pixel_normal;
+	vec3 gi;
+	
+	// Calculate normal for current pixel
+	pixel_normal = normal_from_depth(u_ScreenDepthMap, var_TexCoords);
+
+	// Prepare to accumulate GI
+	gi = vec3(0.0);
+	
+	// Accumulate GI from some uniform samples
+	for (int y = 0; y < GRID_COUNT; ++y) {
+		for (int x = 0; x < GRID_COUNT; ++x) {
+			gi += Calculate_GI(pixel_normal, vec2((float(x) + 0.5) / float(GRID_COUNT), (float(y) + 0.5) / float(GRID_COUNT)));
+		}
+	}
+	
+	// Make GI not too strong
+	gi /= float(GRID_COUNT * GRID_COUNT / 3);
+	
+	gl_FragColor = vec4(gi, 1.0);
+}
 #endif

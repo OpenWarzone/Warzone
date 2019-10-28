@@ -552,14 +552,16 @@ void FBO_Init(void)
 		R_CheckFBO(tr.ssaoFbo);
 	}
 
+#ifdef __SSDO__
 	//
 	// UQ1's SSDO FBO1...
 	//
-	/*
 	{
 		tr.ssdoFbo1 = FBO_Create("_ssdoFbo1", tr.ssdoImage1->width, tr.ssdoImage1->height);
 		FBO_Bind(tr.ssdoFbo1);
 		FBO_AttachTextureImage(tr.ssdoImage1, 0);
+		FBO_AttachTextureImage(tr.ssdoIlluminationImage, 1);
+		FBO_SetupDrawBuffers();
 		R_CheckFBO(tr.ssdoFbo1);
 	}
 
@@ -572,7 +574,7 @@ void FBO_Init(void)
 		FBO_AttachTextureImage(tr.ssdoImage2, 0);
 		R_CheckFBO(tr.ssdoFbo2);
 	}
-	*/
+#endif //__SSDO__
 
 	//
 	// UQ1's SSS FBO1...
@@ -616,6 +618,24 @@ void FBO_Init(void)
 		FBO_Bind(tr.bloomRenderFBO[2]);
 		FBO_AttachTextureImage(tr.bloomRenderFBOImage[2], 0);
 		R_CheckFBO(tr.bloomRenderFBO[2]);
+	}
+
+	//
+	// Bloom Area VBO's...
+	//
+	for (int i = 0; i < 8; i++)
+	{
+		tr.bloomAreaRenderFBO[i] = FBO_Create(va("_bloomArea%i", i), tr.bloomAreaRenderFBOImage[i]->width, tr.bloomAreaRenderFBOImage[i]->height);
+		FBO_Bind(tr.bloomAreaRenderFBO[i]);
+		FBO_AttachTextureImage(tr.bloomAreaRenderFBOImage[i], 0);
+		R_CheckFBO(tr.bloomAreaRenderFBO[i]);
+	}
+
+	{
+		tr.bloomAreaRenderFinalFBO = FBO_Create("_bloomAreaFinal", tr.bloomAreaRenderFinalFBOImage->width, tr.bloomAreaRenderFinalFBOImage->height);
+		FBO_Bind(tr.bloomAreaRenderFinalFBO);
+		FBO_AttachTextureImage(tr.bloomAreaRenderFinalFBOImage, 0);
+		R_CheckFBO(tr.bloomAreaRenderFinalFBO);
 	}
 
 	//

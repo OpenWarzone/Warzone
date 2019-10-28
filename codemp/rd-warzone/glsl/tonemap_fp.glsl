@@ -126,6 +126,13 @@ vec3 SphericalPass( vec3 color )
 	return color;
 }
 
+vec3 jodieReinhardTonemap(vec3 color)
+{
+	float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
+	vec3 tc = color / (color + 1.0);
+	return mix(color / (luminance + 1.0), tc, tc);
+}
+
 void main()
 {
 	vec4 color = texture2D(u_DiffuseMap, var_TexCoords) * u_Color;
@@ -153,6 +160,10 @@ void main()
 	else if (u_Local0.r == 4)
 	{
 		color.rgb = CustomToneMapping(color.rgb);
+	}
+	else if (u_Local0.r == 5)
+	{
+		color.rgb = jodieReinhardTonemap(color.rgb);
 	}
 	else
 	{

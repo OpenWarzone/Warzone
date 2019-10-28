@@ -39,28 +39,30 @@ int GLSL_MyCompileGPUShader(GLuint program, GLuint *prevShader, const GLchar *bu
 }
 
 void DockShaders::recompileShader() {
-		int newProgram = qglCreateProgram();
-		int retVert = GLSL_MyCompileGPUShader(newProgram, &shader->vertexShader, shader->vertexTextChar, strlen(shader->vertexTextChar), GL_VERTEX_SHADER);
-		if (retVert == 0) {
-			imgui_log("Couldn't compile Vertex shader\n");
-			return;
-		}
-		int retFrag = GLSL_MyCompileGPUShader(newProgram, &shader->fragmentShader, shader->fragTextChar, strlen(shader->fragTextChar), GL_FRAGMENT_SHADER);
-		if (retFrag == 0) {
-			imgui_log("Couldn't compile Fragment shader\n");
-			return;
-		}
-		// if both shaders compiled, link them and resetup all the quake stuff
-		shader->program = newProgram;
-		GLSL_BindAttributeLocations(shader, shader->attribs);
-		int retLink = GLSL_LinkProgramSafe(newProgram);
-		GLSL_BindAttributeLocations(shader, shader->attribs);
-		GLSL_InitUniforms(shader);
+	// Disable bindless on the recompiled shader. Can't be bothered trying to work out how to transfer everything needed atm...
+	//shader->isBindless = qfalse;
+	memset(&shader->bindlessBlock, 0, sizeof(shader->bindlessBlock));
+	memset(&shader->bindlessBlockPrevious, 0, sizeof(shader->bindlessBlock));
 
-		// Disable bindless on the recompiled shader. Can't be bothered trying to work out how to transfer everything needed atm...
-		shader->isBindless = qfalse;
+	int newProgram = qglCreateProgram();
+	int retVert = GLSL_MyCompileGPUShader(newProgram, &shader->vertexShader, shader->vertexTextChar, strlen(shader->vertexTextChar), GL_VERTEX_SHADER);
+	if (retVert == 0) {
+		imgui_log("Couldn't compile Vertex shader\n");
+		return;
+	}
+	int retFrag = GLSL_MyCompileGPUShader(newProgram, &shader->fragmentShader, shader->fragTextChar, strlen(shader->fragTextChar), GL_FRAGMENT_SHADER);
+	if (retFrag == 0) {
+		imgui_log("Couldn't compile Fragment shader\n");
+		return;
+	}
+	// if both shaders compiled, link them and resetup all the quake stuff
+	shader->program = newProgram;
+	GLSL_BindAttributeLocations(shader, shader->attribs);
+	int retLink = GLSL_LinkProgramSafe(newProgram);
+	GLSL_BindAttributeLocations(shader, shader->attribs);
+	GLSL_InitUniforms(shader);
 
-		imgui_log("ret compile shader:  retVert=%d retFrag=%d retLink=%d\n", retVert, retFrag, retLink);
+	imgui_log("ret compile shader:  retVert=%d retFrag=%d retLink=%d\n", retVert, retFrag, retLink);
 }
 
 //void DockShaders::recompileFragmentShader() {

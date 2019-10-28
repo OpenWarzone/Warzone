@@ -94,10 +94,12 @@ extern const char *fallbackShader_surfaceSprite_fp;
 //extern const char *fallbackShader_sss_fp;
 //extern const char *fallbackShader_sssBlur_vp;
 //extern const char *fallbackShader_sssBlur_fp;
-//extern const char *fallbackShader_ssdo_vp;
-//extern const char *fallbackShader_ssdo_fp;
-//extern const char *fallbackShader_ssdoBlur_vp;
-//extern const char *fallbackShader_ssdoBlur_fp;
+#ifdef __SSDO__
+extern const char *fallbackShader_ssdo_vp;
+extern const char *fallbackShader_ssdo_fp;
+extern const char *fallbackShader_ssdoBlur_vp;
+extern const char *fallbackShader_ssdoBlur_fp;
+#endif //__SSDO__
 extern const char *fallbackShader_instance_vp;
 extern const char *fallbackShader_instance_fp;
 extern const char *fallbackShader_instanceVao_vp;
@@ -178,6 +180,7 @@ extern const char *fallbackShader_bloom_blur_vp;
 extern const char *fallbackShader_bloom_blur_fp;
 extern const char *fallbackShader_bloom_combine_vp;
 extern const char *fallbackShader_bloom_combine_fp;
+extern const char *fallbackShader_bloomArea_combine_fp;
 extern const char *fallbackShader_anamorphic_blur_vp;
 extern const char *fallbackShader_anamorphic_blur_fp;
 extern const char *fallbackShader_anamorphic_combine_vp;
@@ -472,7 +475,9 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_GlowMultiplier", GLSL_VEC4, 1 },
 
 	{ "u_Samples", GLSL_INT, 1 },
-	//{ "u_SsdoKernel", GLSL_VEC3, 32 },
+//#ifdef __SSDO__
+//	{ "u_SsdoKernel", GLSL_VEC3, 32 },
+//#endif //__SSDO__
 };
 
 void GLSL_PrintProgramInfoLog(GLuint object, qboolean developerOnly)
@@ -1790,6 +1795,9 @@ void GLSL_InitUniforms(shaderProgram_t *program)
 
 	program->uniforms = (GLint *)Z_Malloc(UNIFORM_COUNT * sizeof (*program->uniforms), TAG_GENERAL);
 	program->uniformBufferOffsets = (short *)Z_Malloc(UNIFORM_COUNT * sizeof (*program->uniformBufferOffsets), TAG_GENERAL);
+
+	memset(&program->bindlessBlock, 0, sizeof(program->bindlessBlock));
+	memset(&program->bindlessBlockPrevious, 0, sizeof(program->bindlessBlock));
 
 	uniforms = program->uniforms;
 
@@ -3194,7 +3202,9 @@ int GLSL_BeginLoadGPUShaders(void)
 			break;
 		}
 
-		if (!GLSL_BeginLoadGPUShader(&tr.skyShader[i], va("sky%i", i), attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_sky_vp, fallbackShader_sky_fp, NULL, NULL, NULL))
+		char shaderName[128] = { { 0 } };
+		sprintf(shaderName, "sky%i", i);
+		if (!GLSL_BeginLoadGPUShader(&tr.skyShader[i], shaderName, attribs, qtrue, qfalse, qfalse, qfalse/*qtrue*/, extradefines, qtrue, NULL, fallbackShader_sky_vp, fallbackShader_sky_fp, NULL, NULL, NULL))
 		{
 			ri->Error(ERR_FATAL, "Could not load sky%i shader!", i);
 		}
@@ -3474,10 +3484,11 @@ int GLSL_BeginLoadGPUShaders(void)
 	}
 
 
-	/*attribs = ATTR_POSITION | ATTR_TEXCOORD0;
+#ifdef __SSDO__
+	attribs = ATTR_POSITION | ATTR_TEXCOORD0;
 	extradefines[0] = '\0';
 
-	if (!GLSL_BeginLoadGPUShader(&tr.ssdoShader, "ssdo", attribs, qtrue, qfalse, qfalse, qfalse, extradefines, qtrue, NULL, fallbackShader_ssdo_vp, fallbackShader_ssdo_fp, NULL, NULL, NULL))
+	if (!GLSL_BeginLoadGPUShader(&tr.ssdoShader, "ssdo", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_ssdo_vp, fallbackShader_ssdo_fp, NULL, NULL, NULL))
 	{
 		ri->Error(ERR_FATAL, "Could not load ssdo shader!");
 	}
@@ -3485,10 +3496,11 @@ int GLSL_BeginLoadGPUShaders(void)
 	attribs = ATTR_POSITION | ATTR_TEXCOORD0;
 	extradefines[0] = '\0';
 
-	if (!GLSL_BeginLoadGPUShader(&tr.ssdoBlurShader, "ssdoBlur", attribs, qtrue, qfalse, qfalse, qfalse, extradefines, qtrue, NULL, fallbackShader_ssdoBlur_vp, fallbackShader_ssdoBlur_fp, NULL, NULL, NULL))
+	if (!GLSL_BeginLoadGPUShader(&tr.ssdoBlurShader, "ssdoBlur", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_ssdoBlur_vp, fallbackShader_ssdoBlur_fp, NULL, NULL, NULL))
 	{
 		ri->Error(ERR_FATAL, "Could not load ssdoBlur shader!");
-	}*/
+	}
+#endif //__SSDO__
 
 	/*
 	attribs = ATTR_POSITION | ATTR_TEXCOORD0;
@@ -3662,6 +3674,14 @@ int GLSL_BeginLoadGPUShaders(void)
 	if (!GLSL_BeginLoadGPUShader(&tr.bloomCombineShader, "bloom_combine", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_bloom_combine_vp, fallbackShader_bloom_combine_fp, NULL, NULL, NULL))
 	{
 		ri->Error(ERR_FATAL, "Could not load bloom_combine shader!");
+	}
+
+	attribs = ATTR_POSITION | ATTR_TEXCOORD0;
+	extradefines[0] = '\0';
+
+	if (!GLSL_BeginLoadGPUShader(&tr.bloomAreaCombineShader, "bloomArea_combine", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_bloom_combine_vp, fallbackShader_bloomArea_combine_fp, NULL, NULL, NULL))
+	{
+		ri->Error(ERR_FATAL, "Could not load bloomArea_combine shader!");
 	}
 
 	/*attribs = ATTR_POSITION | ATTR_TEXCOORD0;
@@ -3936,7 +3956,7 @@ int GLSL_BeginLoadGPUShaders(void)
 		Q_strcat(extradefines, 1024, "#define REALTIME_CUBEMAPS\n");
 #endif //__REALTIME_CUBEMAP__
 
-		if (!GLSL_BeginLoadGPUShader(&tr.deferredLightingShader[0], "deferredLighting0", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_deferredLighting_vp, fallbackShader_deferredLighting_fp, NULL, NULL, NULL))
+		if (!GLSL_BeginLoadGPUShader(&tr.deferredLightingShader[0], "deferredLighting0", attribs, qtrue, qfalse, qfalse, qfalse/*qtrue*/, extradefines, qtrue, NULL, fallbackShader_deferredLighting_vp, fallbackShader_deferredLighting_fp, NULL, NULL, NULL))
 		{
 			ri->Error(ERR_FATAL, "Could not load deferredLighting0 shader!");
 		}
@@ -3968,7 +3988,7 @@ int GLSL_BeginLoadGPUShaders(void)
 		Q_strcat(extradefines, 1024, "#define REALTIME_CUBEMAPS\n");
 #endif //__REALTIME_CUBEMAP__
 
-		if (!GLSL_BeginLoadGPUShader(&tr.deferredLightingShader[1], "deferredLighting1", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_deferredLighting_vp, fallbackShader_deferredLighting_fp, NULL, NULL, NULL))
+		if (!GLSL_BeginLoadGPUShader(&tr.deferredLightingShader[1], "deferredLighting1", attribs, qtrue, qfalse, qfalse, qfalse/*qtrue*/, extradefines, qtrue, NULL, fallbackShader_deferredLighting_vp, fallbackShader_deferredLighting_fp, NULL, NULL, NULL))
 		{
 			ri->Error(ERR_FATAL, "Could not load deferredLighting1 shader!");
 		}
@@ -3998,7 +4018,7 @@ int GLSL_BeginLoadGPUShaders(void)
 		Q_strcat(extradefines, 1024, "#define REALTIME_CUBEMAPS\n");
 #endif //__REALTIME_CUBEMAP__
 
-		if (!GLSL_BeginLoadGPUShader(&tr.deferredLightingShader[2], "deferredLighting2", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_deferredLighting_vp, fallbackShader_deferredLighting_fp, NULL, NULL, NULL))
+		if (!GLSL_BeginLoadGPUShader(&tr.deferredLightingShader[2], "deferredLighting2", attribs, qtrue, qfalse, qfalse, qfalse/*qtrue*/, extradefines, qtrue, NULL, fallbackShader_deferredLighting_vp, fallbackShader_deferredLighting_fp, NULL, NULL, NULL))
 		{
 			ri->Error(ERR_FATAL, "Could not load deferredLighting2 shader!");
 		}
@@ -5008,8 +5028,8 @@ void GLSL_EndLoadGPUShaders(int startTime)
 	numEtcShaders++;
 
 
-
-	/*if (!GLSL_EndLoadGPUShader(&tr.ssdoShader))
+#ifdef __SSDO__
+	if (!GLSL_EndLoadGPUShader(&tr.ssdoShader))
 	{
 		ri->Error(ERR_FATAL, "Could not load ssdo shader!");
 	}
@@ -5024,7 +5044,6 @@ void GLSL_EndLoadGPUShaders(int startTime)
 #endif
 
 	numEtcShaders++;
-
 
 
 	if (!GLSL_EndLoadGPUShader(&tr.ssdoBlurShader))
@@ -5042,7 +5061,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 #endif
 
 	numEtcShaders++;
-	*/
+#endif //__SSDO__
 
 
 	/*if (!GLSL_EndLoadGPUShader(&tr.sssShader))
@@ -5307,6 +5326,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 	numEtcShaders++;
 
+
 	if (!GLSL_EndLoadGPUShader(&tr.bloomCombineShader))
 	{
 		ri->Error(ERR_FATAL, "Could not load bloom_combine shader!");
@@ -5319,6 +5339,23 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 #if defined(_DEBUG)
 	GLSL_FinishGPUShader(&tr.bloomCombineShader);
+#endif
+
+	numEtcShaders++;
+
+
+	if (!GLSL_EndLoadGPUShader(&tr.bloomAreaCombineShader))
+	{
+		ri->Error(ERR_FATAL, "Could not load bloomArea_combine shader!");
+	}
+
+	GLSL_InitUniforms(&tr.bloomAreaCombineShader);
+	GLSL_BindProgram(&tr.bloomAreaCombineShader);
+	GLSL_SetUniformInt(&tr.bloomAreaCombineShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+	GLSL_SetUniformInt(&tr.bloomAreaCombineShader, UNIFORM_NORMALMAP, TB_NORMALMAP);
+
+#if defined(_DEBUG)
+	GLSL_FinishGPUShader(&tr.bloomAreaCombineShader);
 #endif
 
 	numEtcShaders++;
@@ -6953,8 +6990,11 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.ssaoShader);
 	//GLSL_DeleteGPUShader(&tr.sssShader);
 	//GLSL_DeleteGPUShader(&tr.sssBlurShader);
-	//GLSL_DeleteGPUShader(&tr.ssdoShader);
-	//GLSL_DeleteGPUShader(&tr.ssdoBlurShader);
+
+#ifdef __SSDO__
+	GLSL_DeleteGPUShader(&tr.ssdoShader);
+	GLSL_DeleteGPUShader(&tr.ssdoBlurShader);
+#endif //__SSDO__
 
 #ifdef __XYC_SURFACE_SPRITES__
 	GLSL_DeleteGPUShader(&tr.surfaceSpriteShader);
@@ -6997,6 +7037,7 @@ void GLSL_ShutdownGPUShaders(void)
 	//GLSL_DeleteGPUShader(&tr.hbaoCombineShader);
 	GLSL_DeleteGPUShader(&tr.bloomBlurShader);
 	GLSL_DeleteGPUShader(&tr.bloomCombineShader);
+	GLSL_DeleteGPUShader(&tr.bloomAreaCombineShader);
 	//GLSL_DeleteGPUShader(&tr.lensflareShader);
 	GLSL_DeleteGPUShader(&tr.multipostShader);
 	GLSL_DeleteGPUShader(&tr.anamorphicBlurShader);

@@ -177,9 +177,11 @@ cvar_t  *r_depthPrepass;
 
 //cvar_t  *r_sss;
 
-//cvar_t  *r_ssdo;
-//cvar_t  *r_ssdoBaseRadius;
-//cvar_t  *r_ssdoMaxOcclusionDist;
+#ifdef __SSDO__
+cvar_t  *r_ssdo;
+cvar_t  *r_ssdoBaseRadius;
+cvar_t  *r_ssdoMaxOcclusionDist;
+#endif //__SSDO__
 
 cvar_t  *r_normalMapping;
 cvar_t  *r_normalMappingReal;
@@ -1556,9 +1558,12 @@ void R_Register( void )
 	r_depthPrepass = ri->Cvar_Get( "r_depthPrepass", "1", CVAR_ARCHIVE );
 	
 	//r_sss = ri->Cvar_Get("r_sss", "false", CVAR_ARCHIVE);
-	//r_ssdo = ri->Cvar_Get("r_ssdo", "false", CVAR_ARCHIVE);
-	//r_ssdoBaseRadius = ri->Cvar_Get("r_ssdoBaseRadius", "2.0", CVAR_ARCHIVE);
-	//r_ssdoMaxOcclusionDist = ri->Cvar_Get("r_ssdoMaxOcclusionDist", "99999.0", CVAR_ARCHIVE);
+	
+#ifdef __SSDO__
+	r_ssdo = ri->Cvar_Get("r_ssdo", "false", CVAR_ARCHIVE);
+	r_ssdoBaseRadius = ri->Cvar_Get("r_ssdoBaseRadius", "8.0", CVAR_ARCHIVE);
+	r_ssdoMaxOcclusionDist = ri->Cvar_Get("r_ssdoMaxOcclusionDist", "999999.9", CVAR_ARCHIVE);
+#endif //__SSDO__
 
 	r_skyLightContribution = ri->Cvar_Get("r_skyLightContribution", "0.5", CVAR_ARCHIVE);
 

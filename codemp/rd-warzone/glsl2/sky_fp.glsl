@@ -1,5 +1,6 @@
 #define __HIGH_PASS_SHARPEN__
 #define __CLOUDS__
+//#define __CLOUDS2__
 #define __LIGHTNING__
 #define __BACKGROUND_HILLS__
 //#define __TEST_SKY__
@@ -403,6 +404,50 @@ float flash = 0.0;
 #define CLOUD_UPPER 6800.0
 
 
+/* -------------------*/
+#define haze  0.01 * (CLOUDS_CLOUDCOVER*20.)
+//#define rainmulti 5.0 // makes clouds thicker
+//#define rainy (10.0 -rainmulti)
+//#define t u_Time
+//#define fov tan(radians(60.0))
+//#define S(x, y, z) smoothstep(x, y, z)
+//#define cameraheight 5e1 //50.
+
+const float R0 = 6360e3; //planet radius //6360e3 actual 6371km
+const float Ra = 6380e3; //atmosphere radius //6380e3 troposphere 8 to 14.5km
+const float I = 10.; //sun light power, 10.0 is normal
+const float SI = 5.; //sun intensity for sun
+const float g = 0.45; //light concentration .76 //.45 //.6  .45 is normaL
+const float g2 = g * g;
+
+//const float ts= (cameraheight / 2.5e5);
+
+const float s = 0.999; //light concentration for sun
+#if SOFT_SUN
+const float s2 = s;
+#else
+const float s2 = s * s;
+#endif
+
+const float Hr = 8e3; //Rayleigh scattering top //8e3
+const float Hm = 1.2e3; //Mie scattering top //1.3e3
+
+vec3 bM = vec3(21e-6); //normal mie // vec3(21e-6)
+//vec3 bM = vec3(50e-6); //high mie
+
+//Rayleigh scattering (sky color, atmospheric up to 8km)
+vec3 bR = vec3(5.8e-6, 13.5e-6, 33.1e-6); //normal earth
+//vec3 bR = vec3(5.8e-6, 33.1e-6, 13.5e-6); //purple
+//vec3 bR = vec3( 63.5e-6, 13.1e-6, 50.8e-6 ); //green
+//vec3 bR = vec3( 13.5e-6, 23.1e-6, 115.8e-6 ); //yellow
+//vec3 bR = vec3( 5.5e-6, 15.1e-6, 355.8e-6 ); //yeellow
+//vec3 bR = vec3(3.5e-6, 333.1e-6, 235.8e-6 ); //red-purple
+
+vec3 C = vec3(0., -R0, 0.); //planet center
+vec3 Ds = normalize(u_PrimaryLightOrigin.xzy);//normalize(vec3(0., 0., -1.)); //sun direction?
+/* -------------------*/
+
+
 //--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
@@ -427,6 +472,21 @@ float GetLighting(vec3 p, vec3 s)
     return clamp(-l, 0.1, 0.4) * 1.25;
 }
 
+//#define EXPERIMENTAL_CLOUD_COLOR
+
+#ifdef EXPERIMENTAL_CLOUD_COLOR
+float escape(in vec3 p, in vec3 d, in float R) {
+	vec3 v = p - C;
+	float b = dot(v, d);
+	float c = dot(v, v) - R*R;
+	float det2 = b * b - c;
+	if (det2 < 0.) return -1.;
+	float det = sqrt(det2);
+	float t1 = -b - det, t2 = -b + det;
+	return (t1 >= 0.) ? t1 : t2;
+}
+#endif //EXPERIMENTAL_CLOUD_COLOR
+
 //--------------------------------------------------------------------------
 // Grab all sky information for a given ray from camera
 vec4 GetSky(in vec3 pos,in vec3 rd, out vec2 outPos)
@@ -444,7 +504,23 @@ vec4 GetSky(in vec3 pos,in vec3 rd, out vec2 outPos)
 
 	// Trace clouds through that layer...
 	float d = 0.0;
-	vec3 add = rd * ((end-beg) / float(RAY_TRACE_STEPS));
+	vec3 posAdd = rd * ((end-beg) / float(RAY_TRACE_STEPS));
+
+#ifdef EXPERIMENTAL_CLOUD_COLOR
+	float L = escape(pos, rd, Ra);	
+	float mu = dot(rd, Ds);
+	float opmu2 = 1.0 + mu*mu;
+	float phaseR = 0.0596831 * opmu2;
+	float phaseM = 0.1193662 * (1.0 - g2) * opmu2 / ((2.0 + g2) * pow(1.0 + g2 - 2.0 * g * mu, 1.5));
+	float phaseS = 0.1193662 * (1.0 - s2) * opmu2 / ((2.0 + s2) * pow(1.0 + s2 - 2.0 * s * mu, 1.5));
+
+	float depthR = 0.0, depthM = 0.0;
+	float prevDepthR = 0.0, prevDepthM = 0.0;
+	vec3 R = vec3(0.0), M = vec3(0.0);
+
+	float dl = L / float(RAY_TRACE_STEPS);
+#endif //EXPERIMENTAL_CLOUD_COLOR
+
 	vec2 shade;
 	vec2 shadeSum = vec2(0.0);
 	shade.x = 1.0;
@@ -457,15 +533,50 @@ vec4 GetSky(in vec3 pos,in vec3 rd, out vec2 outPos)
 
 		float h = clamp(Map(p)*2.0*(2.0 / float(RAY_TRACE_STEPS)), 0.0, 1.0);
 		shade.y = max(h, 0.0);
-        shade.x = GetLighting(p, sunLight);
+		shade.x = GetLighting(p, sunLight);
 		shadeSum += shade * (1.0 - shadeSum.y);
-		p += add;
+
+#ifdef EXPERIMENTAL_CLOUD_COLOR
+		float cld = shade.y;
+		float he = length(p - C) - R0;
+		float rayleigh =  exp(-he/Hr);
+		float mie = exp(-he/Hm) + cld + haze;
+
+		rayleigh *= dl;
+		mie *= dl;
+		depthR += rayleigh;
+		depthM += mie;
+
+		vec3 A = exp(-(bR * (prevDepthR + depthR) + bM * (prevDepthM + depthM)));
+		R += (A * rayleigh);
+		M += A * mie;
+
+		prevDepthR = depthR;
+		prevDepthM = depthM;
+#endif //EXPERIMENTAL_CLOUD_COLOR
+
+		p += posAdd;
 	}
 
 	float final = shadeSum.x;
 	final += flash * (shadeSum.y+final+.2) * .5;
 
+#ifdef EXPERIMENTAL_CLOUD_COLOR
+	vec4 col = vec4(final, final, final, shadeSum.y);
+	col = clamp(col, 0.0, 1.0);
+
+	col.rgb = (I) *(M * bM * (phaseM )); // Mie scattering
+	#if NICE_HACK_SUN
+	col.rgb += (SI) *(M * bM *phaseS); //Sun
+	#endif
+	col.rgb += (I) *(R * bR * phaseR); //Rayleigh scattering
+	
+	//float scat = 0.1 *(bM*depthM);
+
+	return clamp(col, 0.0, 1.0);
+#else //!EXPERIMENTAL_CLOUD_COLOR
 	return clamp(vec4(final, final, final, shadeSum.y), 0.0, 1.0);
+#endif //EXPERIMENTAL_CLOUD_COLOR
 }
 
 //--------------------------------------------------------------------------
@@ -519,6 +630,99 @@ vec4 Clouds(float colorMult)
 	return vec4(col.rgb, alpha);
 }
 #endif //__CLOUDS__
+
+
+#ifdef __CLOUDS2__
+int junk = int(u_Time * 1000.0);
+#define NO_UNROLL(X) (X + min(0, junk))
+
+vec3 sunPos  = normalize( u_PrimaryLightOrigin.xzy - u_ViewOrigin.xzy );
+vec3 sunColor = u_PrimaryLightColor.rgb;
+
+float GetCloudHeightBelow(vec3 p)
+{
+	vec3 p2 = (p * 0.00015) + vec3(-u_Time * 0.0013, 0.0, -u_Time * 0.00165);
+
+	float i = -0.6 + (textureLod(u_VolumeMap, p2, 0.50).r * 1.5);
+	p2 *= 1.52;
+	i += (-1.0 + 2.0 * textureLod(u_VolumeMap, p2, 0.40).g) * 0.5;
+	p2 *= 2.53;
+	i += (-1.0 + 2.0 * textureLod(u_VolumeMap, p2, 0.30).b) * 0.25;
+	p2 *= 2.51;
+	i -= (-1.0 + 2.0 * textureLod(u_VolumeMap, p2, 0.20).r) * 0.12;
+	return i-0.1;
+}
+
+vec4 TraceCloudsBelow( vec3 origin, vec3 direction, vec3 skyColor, int steps)
+{ 
+	vec4 cloudCol=vec4(vec3(1.0, 0.53, 0.37)*1.3, 0.0);
+
+	float density = 0.0, dist = 0.0;
+
+	vec3 rayPos;
+	float precis; 
+	float td = 0.0;
+	float densAdd = 0.0;
+	float shadowDensity;
+	float add = 1.0;
+	int i = 0;
+	float t = (550.0 - origin.y) / direction.y;
+	
+	for ( int ii=i; i<NO_UNROLL(steps); i++ )
+	{
+		rayPos = origin+direction*t;
+		density = GetCloudHeightBelow(rayPos);
+	
+		if (density>0.01)
+		{
+			densAdd = 0.12*density*max(0.,add);
+			shadowDensity = GetCloudHeightBelow(rayPos+(sunPos*90.));
+	
+			cloudCol.rgb += densAdd * max(0.0, (density - shadowDensity)) * sunColor;
+			cloudCol.rgb -= 1.4 * shadowDensity * densAdd; 
+			cloudCol.a += (1.0 - cloudCol.a) * densAdd;
+			add-=densAdd;
+			if (add < 0.0 || cloudCol.a > 0.99) break;
+		}
+		
+		t += 2.0;
+	}
+
+	// mix clouds color with sky color
+	cloudCol.rgb = mix(cloudCol.rgb, vec3(0.97), smoothstep(100.0, 4960.0, t));
+	cloudCol.a = mix(cloudCol.a, 0.0, smoothstep(0.0, 4860.0, t));
+	
+	return cloudCol;
+}
+
+vec4 Clouds(float colorMult)
+{
+	vec3 cameraPos = vec3(0.0);
+	vec3 dir = normalize(u_ViewOrigin.xzy - var_Position.xzy*1025.0);
+	float alphaMult = clamp(-dir.y, 0.0, 0.75);
+
+	if (alphaMult <= 0.0)
+	{// No point in doing all this math if it's not going to draw anything...
+		return vec4(0.0);
+	}
+
+	vec4 color = vec4(0.0);
+
+	//if (rayDir.y > 0.0)
+	//{
+		vec4 cloudColor = TraceCloudsBelow( cameraPos, dir, vec3(0.0), 90);
+
+		// make clouds slightly light near the sun
+		float sunVisibility = pow(max(0.0, dot(sunPos, dir)), 2.0) * 0.25;
+		color.rgb = mix(color.rgb, max(vec3(0.0), mix(cloudColor.rgb, cloudColor.rgb, 0.6) + sunVisibility), cloudColor.a);
+		//color.rgb +=  CalculateRainbow(rayDir, rayOrigin, screenSpace);
+		color.a *= alphaMult;
+	//}
+
+	return color;
+}
+#endif //__CLOUDS2__
+
 
 #ifdef __LIGHTNING__
 
@@ -1533,9 +1737,9 @@ void main()
 	vec4 sun = vec4(0.0);
 	vec4 clouds = vec4(0.0);
 	vec4 pCol = vec4(0.0);
-#if defined(__CLOUDS__)
+#if defined(__CLOUDS__) || defined(__CLOUDS2__)
 	float cloudiness = clamp(CLOUDS_CLOUDCOVER*0.3, 0.0, 0.3);
-#endif //defined(__CLOUDS__)
+#endif //defined(__CLOUDS__) || defined(__CLOUDS2__)
 
 	if (USE_TRIPLANAR > 0.0 || USE_REGIONS > 0.0)
 	{// Can skip nearly everything... These are always going to be solid color...
@@ -1596,7 +1800,7 @@ void main()
 			gl_FragColor.a = 1.0;
 		}
 
-#if defined(__CLOUDS__) && !defined(CLOUD_QUALITY0)
+#if (defined(__CLOUDS__) || defined(__CLOUDS2__)) && !defined(CLOUD_QUALITY0)
 		if (terrainColor.a != 1.0 && CLOUDS_ENABLED > 0.0 && SHADER_SKY_DIRECTION != 5.0)
 		{// Procedural clouds are enabled...
 			float nMult = 1.0;
@@ -1615,7 +1819,7 @@ void main()
 			nMult = min(cdMult, nMult);
 			clouds = Clouds(nMult);
 		}
-#endif //defined(__CLOUDS__) && !defined(CLOUD_QUALITY0)
+#endif //(defined(__CLOUDS__) || defined(__CLOUDS2__)) && !defined(CLOUD_QUALITY0)
 
 		if (pCol.a <= 0.0 && terrainColor.a != 1.0)
 		{
@@ -1704,7 +1908,7 @@ void main()
 #endif //__AURORA2__
 		}
 
-#if defined(__CLOUDS__)
+#if defined(__CLOUDS__) || defined(__CLOUDS2__)
 		if (clouds.a > 0.0 && terrainColor.a != 1.0 && CLOUDS_ENABLED > 0.0 && SHADER_SKY_DIRECTION != 5.0)
 		{// Procedural clouds are enabled...
 			float cloudMix = clamp(pow(clouds.a, mix(0.75, 0.5, SHADER_NIGHT_SCALE)), 0.0, 1.0);
@@ -1720,7 +1924,7 @@ void main()
 			}
 #endif //__LIGHTNING__
 		}
-#endif //defined(__CLOUDS__)
+#endif //defined(__CLOUDS__) || defined(__CLOUDS2__)
 
 #ifdef __BACKGROUND_HILLS__
 		if (PROCEDURAL_BACKGROUND_HILLS_ENABLED > 0.0 && SHADER_SKY_DIRECTION != 4.0 && SHADER_SKY_DIRECTION != 5.0)

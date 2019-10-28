@@ -2194,6 +2194,13 @@ const void *RB_StretchPic ( const void *data ) {
 	RB_SetGL2D();
 
 	shader = cmd->shader;
+
+	if (shader->defaultShader || shader == tr.defaultShader)
+	{// Don't draw missing/not-yet-loaded UI texture elements...
+		ri->Printf(PRINT_DEVELOPER, "RB_StretchPic: Tried to draw an unregistered (default) shader. Skipping.\n");
+		return (const void *)(cmd + 1);
+	}
+
 	if ( shader != tess.shader ) {
 		if ( tess.numIndexes ) {
 			RB_EndSurface();
@@ -2299,6 +2306,13 @@ const void *RB_RotatePic ( const void *data )
 	RB_SetGL2D();
 
 	shader = cmd->shader;
+
+	if (shader->defaultShader || shader == tr.defaultShader)
+	{// Don't draw missing/not-yet-loaded UI texture elements...
+		ri->Printf(PRINT_DEVELOPER, "RB_RotatePic: Tried to draw an unregistered (default) shader. Skipping.\n");
+		return (const void *)(cmd + 1);
+	}
+
 	if ( shader != tess.shader ) {
 		if ( tess.numIndexes ) {
 			RB_EndSurface();
@@ -2413,6 +2427,13 @@ const void *RB_RotatePic2 ( const void *data )
 	RB_SetGL2D();
 
 	shader = cmd->shader;
+
+	if (shader->defaultShader || shader == tr.defaultShader)
+	{// Don't draw missing/not-yet-loaded UI texture elements...
+		ri->Printf(PRINT_DEVELOPER, "RB_RotatePic2: Tried to draw an unregistered (default) shader. Skipping.\n");
+		return (const void *)(cmd + 1);
+	}
+
 	if ( shader != tess.shader ) {
 		if ( tess.numIndexes ) {
 			RB_EndSurface();
@@ -3431,20 +3452,21 @@ const void *RB_PostProcess(const void *data)
 		}
 #endif //__PROCEDURALS_IN_DEFERRED_SHADER__
 
-		/*if (!SCREEN_BLUR && r_ssdo->integer && AO_DIRECTIONAL)
+#ifdef __SSDO__
+		if (!SCREEN_BLUR && r_ssdo->integer /*&& AO_DIRECTIONAL*/)
 		{
 			if (!r_lowVram->integer)
 			{
 				DEBUG_StartTimer("SSDO", qtrue);
-
 				RB_SSDO(currentFbo, srcBox, currentOutFbo, dstBox);
 
-				if (r_ssdo->integer == 3)
+				if (r_ssdo->integer >= 2)
 					RB_SwapFBOs(&currentFbo, &currentOutFbo);
 
 				DEBUG_EndTimer(qtrue);
 			}
-		}*/
+		}
+#endif //__SSDO__
 
 		/*if (!SCREEN_BLUR && r_sss->integer)
 		{
@@ -3792,6 +3814,16 @@ const void *RB_PostProcess(const void *data)
 			RB_SwapFBOs(&currentFbo, &currentOutFbo);
 			DEBUG_EndTimer(qtrue);
 		}
+
+		/*
+		if (!SCREEN_BLUR && (r_testvalue0->integer && !r_lowVram->integer))
+		{
+			DEBUG_StartTimer("Bloom Area", qtrue);
+			RB_BloomArea(currentFbo, srcBox, currentOutFbo, dstBox);
+			RB_SwapFBOs(&currentFbo, &currentOutFbo);
+			DEBUG_EndTimer(qtrue);
+		}
+		*/
 
 		if (!SCREEN_BLUR && r_anamorphic->integer /*&& backEnd.pc.c_glowDraws > 0*/)
 		{

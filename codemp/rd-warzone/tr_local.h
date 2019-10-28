@@ -83,7 +83,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //#define __GEOMETRY_SHADER_ALLOW_INVOCATIONS__ // Enable geometry shader invocations support. Slower because you cant set the invocations max in realtime...
 //#define __EMISSIVE_CUBE_IBL__					// Experimental IBL using glowmap cubes...
 //#define __MESH_OPTIMIZATION__					// Optimize all model's when loading. Disabled for now because it slows load time a bit.
-//#define __SSRTGI__							// Experimental Screen Space Ray-Traced Global Illumination... Toughest Challenge in Real-Time 3D
 
 #define __ZFAR_CULLING_ON_SURFACES__			// Experimental zfar culling separation of depth prepass and render surfaces...
 //#define __ZFAR_CULLING_ON_LEAFS__				// Do zfar culling on leaf bounds, not on per surface origins...
@@ -152,6 +151,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //#define __CONVEX_HULL_CALCULATION__			// FOR FUTURE REFERENCE: Compute convex hull for verts using qhull, this may be really useful for stuff in the future, 
 												// could be called on any mesh not just NIFs (or even BSP data for lods or collisions)...
 
+
+//
+// Post Process Effects...
+//
+//#define __SSRTGI__							// Experimental Screen Space Ray-Traced Global Illumination... Toughest Challenge in Real-Time 3D
+//#define __SSDO__								// Screen Space Directional Occlusion...
 
 //
 // Optimization stuff...
@@ -314,7 +319,7 @@ extern float		CLOSE_HEIGHTSCALES[MAX_WORLD_GLOW_DLIGHTS];
 #define SHADERNUM_BITS	14
 #define MAX_SHADERS		(1<<SHADERNUM_BITS)
 
-#define	MAX_FBOS      64
+#define	MAX_FBOS      128//64
 
 #define MAX_VISCOUNTS 5
 #define MAX_VBOS      4096
@@ -470,9 +475,11 @@ extern cvar_t  *r_depthPrepass;
 
 //extern cvar_t  *r_sss;
 
-//extern cvar_t  *r_ssdo;
-//extern cvar_t  *r_ssdoBaseRadius;
-//extern cvar_t  *r_ssdoMaxOcclusionDist;
+#ifdef __SSDO__
+extern cvar_t  *r_ssdo;
+extern cvar_t  *r_ssdoBaseRadius;
+extern cvar_t  *r_ssdoMaxOcclusionDist;
+#endif //__SSDO__
 
 extern cvar_t  *r_normalMapping;
 extern cvar_t  *r_normalMappingReal;
@@ -1913,7 +1920,9 @@ typedef enum
 	UNIFORM_GLOWMULTIPLIER,
 
 	UNIFORM_SAMPLES,
-	//UNIFORM_SSDO_KERNEL,
+//#ifdef __SSDO__
+//	UNIFORM_SSDO_KERNEL,
+//#endif //__SSDO__
 
 	UNIFORM_COUNT
 } uniform_t;
@@ -3133,7 +3142,9 @@ typedef struct trGlobals_s {
 
 	image_t					*awesomiumuiImage;
 
-	//image_t					*ssdoNoiseImage;
+#ifdef __SSDO__
+	image_t					*ssdoNoiseImage;
+#endif //__SSDO__
 
 	FBO_t					*renderFbo;
 	FBO_t					*renderDepthFbo;
@@ -3259,8 +3270,12 @@ typedef struct trGlobals_s {
 	shaderProgram_t surfaceSpriteShader;
 	//shaderProgram_t sssShader;
 	//shaderProgram_t sssBlurShader;
-	//shaderProgram_t ssdoShader;
-	//shaderProgram_t ssdoBlurShader;
+	
+#ifdef __SSDO__
+	shaderProgram_t ssdoShader;
+	shaderProgram_t ssdoBlurShader;
+#endif //__SSDO__
+
 	shaderProgram_t generateNormalMapShader;
 	shaderProgram_t darkexpandShader;
 	shaderProgram_t magicdetailShader;
@@ -3292,6 +3307,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t bloomDarkenShader;
 	shaderProgram_t bloomBlurShader;
 	shaderProgram_t bloomCombineShader;
+	shaderProgram_t bloomAreaCombineShader;
 	//shaderProgram_t lensflareShader;
 	shaderProgram_t multipostShader;
 	shaderProgram_t anamorphicDarkenShader;
@@ -3328,6 +3344,8 @@ typedef struct trGlobals_s {
 
 	image_t        *anamorphicRenderFBOImage;
 	image_t        *bloomRenderFBOImage[3];
+	image_t        *bloomAreaRenderFBOImage[8];
+	image_t        *bloomAreaRenderFinalFBOImage;
 	image_t        *volumetricFBOImage;
 	image_t        *bloomRaysFBOImage;
 	image_t        *waterReflectionRenderImage;
@@ -3344,6 +3362,8 @@ typedef struct trGlobals_s {
 
 	FBO_t          *anamorphicRenderFBO;
 	FBO_t          *bloomRenderFBO[3];
+	FBO_t          *bloomAreaRenderFBO[8];
+	FBO_t          *bloomAreaRenderFinalFBO;
 	FBO_t		   *volumetricFbo;
 	FBO_t		   *bloomRaysFbo;
 	FBO_t          *waterReflectionRenderFBO;
@@ -3362,10 +3382,13 @@ typedef struct trGlobals_s {
 	FBO_t		   *ssaoFbo;
 	image_t        *ssaoImage;
 
-	//FBO_t		   *ssdoFbo1;
-	//FBO_t		   *ssdoFbo2;
-	//image_t        *ssdoImage1;
-	//image_t        *ssdoImage2;
+#ifdef __SSDO__
+	FBO_t		   *ssdoFbo1;
+	FBO_t		   *ssdoFbo2;
+	image_t        *ssdoImage1;
+	image_t        *ssdoImage2;
+	image_t        *ssdoIlluminationImage;
+#endif //__SSDO__
 	
 	//FBO_t		   *sssFbo1;
 	//FBO_t		   *sssFbo2;
@@ -3640,9 +3663,11 @@ extern  cvar_t  *r_srgb;
 
 extern  cvar_t  *r_depthPrepass;
 
-//extern cvar_t  *r_ssdo;
-//extern cvar_t  *r_ssdoBaseRadius;
-//extern cvar_t  *r_ssdoMaxOcclusionDist;
+#ifdef __SSDO__
+extern cvar_t  *r_ssdo;
+extern cvar_t  *r_ssdoBaseRadius;
+extern cvar_t  *r_ssdoMaxOcclusionDist;
+#endif //__SSDO__
 
 extern  cvar_t  *r_normalMapping;
 extern cvar_t  *r_normalMapQuality;

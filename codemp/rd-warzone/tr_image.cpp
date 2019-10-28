@@ -5052,8 +5052,11 @@ void R_CreateBuiltinImages( void ) {
 	tr.dummyImage3 = R_CreateImage("_dummy3",  NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, LINEAR_DEPTH_BITS/*hdrFormat*/);
 	tr.dummyImage4 = R_CreateImage("_dummy4", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, LINEAR_DEPTH_BITS/*hdrFormat*/);
 
-	//tr.ssdoImage1 = R_CreateImage("_ssdoImage1", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
-	//tr.ssdoImage2 = R_CreateImage("_ssdoImage2", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
+#ifdef __SSDO__
+	tr.ssdoImage1 = R_CreateImage("_ssdoImage1", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
+	tr.ssdoImage2 = R_CreateImage("_ssdoImage2", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
+	tr.ssdoIlluminationImage = R_CreateImage("_ssdoIlluminationImage", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
+#endif //__SSDO__
 
 	//tr.sssImage1 = R_CreateImage("_sssImage1", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
 	//tr.sssImage2 = R_CreateImage("_sssImage2", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
@@ -5096,6 +5099,26 @@ void R_CreateBuiltinImages( void ) {
 		tr.volumetricFBOImage = R_CreateImage("_volumetric", NULL, (width / 8.0) / vramScaleDiv, (height / 8.0) / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
 		tr.bloomRaysFBOImage = R_CreateImage("_bloomRays", NULL, (width / 8.0) / vramScaleDiv, (height / 8.0) / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
 	}
+
+
+	int bWidth = width;
+	int bHeight = height;
+
+	bWidth /= 2;
+	bHeight /= 2;
+
+	for (int i = 0; i < 8; i++)
+	{
+		bWidth = max(1, bWidth);
+		bHeight = max(1, bHeight);
+		ri->Printf(PRINT_WARNING, "buf: %i x %i.\n", bWidth, bHeight);
+		tr.bloomAreaRenderFBOImage[i] = R_CreateImage(va("_bloomArea%i", i), NULL, bWidth, bHeight, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
+		bWidth /= 3;
+		bHeight /= 3;
+	}
+
+	tr.bloomAreaRenderFinalFBOImage = R_CreateImage("_bloomAreaFinal", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
+
 
 	tr.waterReflectionRenderImage = R_CreateImage("_waterReflection", NULL, (width / 4) / vramScaleDiv, (height / 4) / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA16F);
 

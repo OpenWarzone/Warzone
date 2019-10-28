@@ -720,6 +720,82 @@ void RB_Bloom(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.bloomCombineShader, colorWhite, 0);
 }
 
+void RB_BloomArea(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
+{
+	//
+	// Copy to FBO...
+	//
+
+	/*FBO_t *oldFbo = glState.currentFBO;
+	FBO_Bind(tr.bloomAreaRenderFBO[0]);
+	qglColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+	qglClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	qglClear(GL_COLOR_BUFFER_BIT);*/
+
+	FBO_BlitFromTexture(tr.blackImage, NULL, NULL, tr.bloomAreaRenderFBO[0], NULL, NULL, colorWhite, 0);
+	FBO_BlitFromTexture(tr.glowFboScaled[0]->colorImage[0], NULL, NULL, tr.bloomAreaRenderFBO[0], NULL, NULL, colorWhite, 0);
+	
+	for (int i = 1; i < 7/*8*/; i++)
+	{
+		/*
+		FBO_Bind(tr.bloomAreaRenderFBO[i]);
+		qglColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+		qglClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+		qglClear(GL_COLOR_BUFFER_BIT);
+		FBO_Bind(oldFbo);*/
+
+		FBO_BlitFromTexture(tr.blackImage, NULL, NULL, tr.bloomAreaRenderFBO[i], NULL, NULL, colorWhite, 0);
+
+		FBO_BlitFromTexture(tr.bloomAreaRenderFBO[i-1]->colorImage[0], NULL, NULL, tr.bloomAreaRenderFBO[i], NULL, NULL, colorWhite, 0);
+	}
+
+	/*
+	FBO_Bind(tr.bloomAreaRenderFinalFBO);
+	qglColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+	qglClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	qglClear(GL_COLOR_BUFFER_BIT);
+
+	FBO_Bind(oldFbo);
+	*/
+
+	FBO_BlitFromTexture(tr.blackImage, NULL, NULL, tr.bloomAreaRenderFinalFBO, NULL, NULL, colorWhite, 0);
+
+	for (int i = 6/*7*/; i >= 0; i-=2)
+	{
+		FBO_BlitFromTexture(tr.bloomAreaRenderFBO[i]->colorImage[0], NULL, NULL, tr.bloomAreaRenderFinalFBO, NULL, NULL, colorWhite, GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE/*GLS_SRCBLEND_ONE|GLS_DSTBLEND_SRC_COLOR*/);
+	}
+
+
+	//
+	// Combine the screen with the bloom'ed VBO...
+	//
+
+	GLSL_BindProgram(&tr.bloomAreaCombineShader);
+
+	if (tr.bloomAreaCombineShader.isBindless)
+	{
+		GLSL_SetBindlessTexture(&tr.bloomAreaCombineShader, UNIFORM_DIFFUSEMAP, &hdrFbo->colorImage[0], 0);
+		GLSL_SetBindlessTexture(&tr.bloomAreaCombineShader, UNIFORM_NORMALMAP, &tr.bloomAreaRenderFinalFBOImage, 0);
+		GLSL_BindlessUpdate(&tr.bloomAreaCombineShader);
+	}
+	else
+	{
+		GLSL_SetUniformInt(&tr.bloomAreaCombineShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+		GL_BindToTMU(hdrFbo->colorImage[0], TB_DIFFUSEMAP);
+
+		GLSL_SetUniformInt(&tr.bloomAreaCombineShader, UNIFORM_NORMALMAP, TB_NORMALMAP);
+		GL_BindToTMU(tr.bloomAreaRenderFinalFBOImage, TB_NORMALMAP);
+	}
+
+	{
+		vec4_t local0;
+		VectorSet4(local0, r_testvalue1->value, 0.0, 0.0, 0.0);
+		GLSL_SetUniformVec4(&tr.bloomAreaCombineShader, UNIFORM_LOCAL0, local0);
+	}
+
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.bloomAreaCombineShader, colorWhite, 0);
+}
+
 void RB_CreateAnamorphicImage( void )
 {
 	vec4i_t srcBox;
@@ -1845,6 +1921,82 @@ void RB_SSAO(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 	FBO_Blit(hdrFbo, NULL, NULL, tr.ssaoFbo, NULL, &tr.ssaoShader, colorWhite, 0);
 }
 
+#ifdef __SSDO__
+void RB_SSDO(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
+{
+	//
+	// Generate occlusion map...
+	//
+
+	shaderProgram_t *shader = &tr.ssdoShader;
+
+	GLSL_BindProgram(shader);
+
+	if (shader->isBindless)
+	{
+		GLSL_SetBindlessTexture(shader, UNIFORM_DIFFUSEMAP, &hdrFbo->colorImage[0], 0);
+		GLSL_SetBindlessTexture(shader, UNIFORM_POSITIONMAP, &tr.renderPositionMapImage, 0);
+		GLSL_SetBindlessTexture(shader, UNIFORM_NORMALMAP, &tr.renderNormalImage, 0);
+		GLSL_SetBindlessTexture(shader, UNIFORM_DELUXEMAP, &tr.random2KImage[0], 0);
+		GLSL_BindlessUpdate(shader);
+	}
+	else
+	{
+		GLSL_SetUniformInt(shader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+		GL_BindToTMU(hdrFbo->colorImage[0], TB_DIFFUSEMAP);
+
+		GLSL_SetUniformInt(shader, UNIFORM_POSITIONMAP, TB_POSITIONMAP);
+		GL_BindToTMU(tr.renderPositionMapImage, TB_POSITIONMAP);
+
+		GLSL_SetUniformInt(shader, UNIFORM_NORMALMAP, TB_NORMALMAP);
+		GL_BindToTMU(tr.renderNormalImage, TB_NORMALMAP);
+
+		GLSL_SetUniformInt(shader, UNIFORM_DELUXEMAP, TB_DELUXEMAP);
+		GL_BindToTMU(tr.random2KImage[0], TB_DELUXEMAP);
+	}
+
+	GLSL_SetUniformMatrix16(shader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+	GLSL_SetUniformVec3(shader, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);
+
+	vec4_t viewInfo;
+	float zmax = backEnd.viewParms.zFar;
+
+	vec2_t screensize;
+	screensize[0] = glConfig.vidWidth * r_superSampleMultiplier->value;
+	screensize[1] = glConfig.vidHeight * r_superSampleMultiplier->value;
+	GLSL_SetUniformVec2(shader, UNIFORM_DIMENSIONS, screensize);
+
+	float ratio = screensize[0] / screensize[1];
+	float xmax = tan(backEnd.viewParms.fovX * ratio * 0.5);
+	float ymax = tan(backEnd.viewParms.fovY * 0.5);
+	float zmin = r_znear->value;
+	VectorSet4(viewInfo, zmin, zmax, zmax / zmin, 0.0);
+	GLSL_SetUniformVec4(shader, UNIFORM_VIEWINFO, viewInfo);
+
+	GLSL_SetUniformFloat(shader, UNIFORM_TIME, backEnd.refdef.floatTime);
+
+	vec3_t out;
+	float dist = 4096.0;
+	VectorMA(backEnd.refdef.vieworg, dist, backEnd.refdef.sunDir, out);
+	GLSL_SetUniformVec4(shader, UNIFORM_PRIMARYLIGHTORIGIN, out);
+
+	vec4_t local0;
+	VectorSet4(local0, screensize[0] / tr.random2KImage[0]->width, screensize[1] / tr.random2KImage[0]->height, r_ssdoBaseRadius->value, r_ssdoMaxOcclusionDist->value);
+	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL0, local0);
+
+	vec4_t local1;
+	VectorSet4(local1, xmax, ymax, r_testvalue0->value, r_testvalue1->value);
+	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL1, local1);
+
+	FBO_Blit(hdrFbo, hdrBox, NULL, tr.ssdoFbo1, ldrBox, shader, colorWhite, 0);
+
+	if (r_ssdo->integer == 2)
+		FBO_FastBlit(tr.ssdoFbo1, NULL, ldrFbo, NULL, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	else if (r_ssdo->integer == 3)
+		FBO_BlitFromTexture(tr.ssdoIlluminationImage, NULL, NULL, ldrFbo, ldrBox, NULL, colorWhite, 0);
+}
+#endif //__SSDO__
+
 extern float mix(float x, float y, float a);
 
 extern float		MAP_WATER_LEVEL;
@@ -2845,6 +2997,14 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 		GLSL_SetBindlessTexture(shader, UNIFORM_SKYCUBEMAPNIGHT, &tr.skyCubeMapNight, 0);
 		GLSL_SetBindlessTexture(shader, UNIFORM_WATERPOSITIONMAP, &tr.random2KImage[0], 0);
 
+#ifdef __SSDO__
+		if (r_ssdo->integer == 1)
+		{
+			GLSL_SetBindlessTexture(shader, UNIFORM_HEIGHTMAP, &tr.ssdoImage1, 0);
+			GLSL_SetBindlessTexture(shader, UNIFORM_SPLATMAP1, &tr.ssdoIlluminationImage, 0);
+		}
+#endif //__SSDO__
+
 		if (r_normalMappingReal->integer)
 		{
 			GLSL_SetBindlessTexture(shader, UNIFORM_OVERLAYMAP, &tr.renderNormalDetailedImage, 0);
@@ -2884,6 +3044,17 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 
 		GLSL_SetUniformInt(shader, UNIFORM_WATERPOSITIONMAP, TB_WATERPOSITIONMAP);
 		GL_BindToTMU(tr.random2KImage[0], TB_WATERPOSITIONMAP);
+
+#ifdef __SSDO__
+		if (r_ssdo->integer == 1)
+		{
+			GLSL_SetUniformInt(shader, UNIFORM_HEIGHTMAP, TB_HEIGHTMAP);
+			GL_BindToTMU(tr.ssdoImage1, TB_HEIGHTMAP);
+
+			GLSL_SetUniformInt(shader, UNIFORM_SPLATMAP1, TB_SPLATMAP1);
+			GL_BindToTMU(tr.ssdoIlluminationImage, TB_SPLATMAP1);
+		}
+#endif //__SSDO__
 
 		if (r_normalMappingReal->integer)
 		{
@@ -3283,7 +3454,15 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 	}
 
 
-	VectorSet4(vector, COLOR_GRADING_ENABLED, 0.0, 0.0, 0.0);
+	bool ssdoEnabled = false;
+
+#ifdef __SSDO__
+	if (r_ssdo->integer == 1)
+	{
+		ssdoEnabled = true;
+	}
+#endif //__SSDO__
+	VectorSet4(vector, COLOR_GRADING_ENABLED, ssdoEnabled ? 1.0 : 0.0, 0.0, 0.0);
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL12, vector);
 
 
