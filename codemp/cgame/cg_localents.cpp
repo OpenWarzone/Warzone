@@ -954,6 +954,210 @@ void CG_Birds(void)
 	}
 }
 
+
+/*
+===================
+CG_ShipLaser*
+
+for warzone event ships shooting at each other...
+===================
+*/
+qboolean CG_IsEnemyShip(int myTeam, int otherTeam)
+{
+	if (myTeam != otherTeam
+		&& otherTeam != FACTION_WILDLIFE
+		&& otherTeam != FACTION_SPECTATOR)
+		return qtrue;
+
+	return qfalse;
+}
+
+centity_t *CG_FindEnemyShip(centity_t *myShip)
+{
+	centity_t *enemyShip = NULL;
+	float enemyShipDistance = 131072.0;
+
+	for (int i = 0; i < MAX_GENTITIES; i++)
+	{
+		centity_t *cent = &cg_entities[i];
+
+		if (!cent) continue;
+		if (cent->currentState.eType != ET_SERVERMODEL) continue;
+		if (!CG_IsEnemyShip(myShip->currentState.teamowner, cent->currentState.teamowner)) continue;
+
+		// Found one?
+		float dist = Distance(myShip->lerpOrigin, cent->lerpOrigin);
+
+		if (dist < enemyShipDistance)
+		{
+			enemyShip = cent;
+			enemyShipDistance = dist;
+		}
+	}
+
+	return enemyShip;
+}
+
+extern void FX_WeaponBolt3D(vec3_t org, vec3_t fwd, float length, float radius, qhandle_t shader);
+
+#define MAX_SHIP_LASERS 256
+
+typedef struct shipLasers_s {
+	vec3_t		origin;
+	vec3_t		dir;
+	vec3_t		endOrigin;
+	int			team;
+	qboolean	active;
+} shipLasers_t;
+
+shipLasers_t	shipLasers[MAX_SHIP_LASERS];
+
+void CG_ShipLasersThink(void)
+{
+	for (int i = 0; i < MAX_SHIP_LASERS; i++)
+	{
+		shipLasers_t *laser = &shipLasers[i];
+
+		if (laser && laser->active)
+		{
+			qhandle_t bolt3D = NULL;
+
+			switch (laser->team)
+			{
+			case FACTION_WILDLIFE:
+			{// Wildlife is native and does not spawn from a ship...
+				continue;
+			}
+			break;
+			case FACTION_EMPIRE:
+			{
+				bolt3D = cgs.media.redBlasterShot;
+			}
+			break;
+			case FACTION_REBEL:
+			{
+				bolt3D = cgs.media.blueBlasterShot;
+			}
+			break;
+			case FACTION_MANDALORIAN:
+			{
+				bolt3D = cgs.media.greenBlasterShot;
+			}
+			break;
+			case FACTION_MERC:
+			{
+				bolt3D = cgs.media.yellowBlasterShot;
+			}
+			break;
+			case FACTION_PIRATES:
+			{
+				bolt3D = cgs.media.orangeBlasterShot;
+			}
+			break;
+			default:
+				continue;
+				break;
+			}
+
+			VectorMA(laser->origin, 96.0, laser->dir, laser->origin);
+
+			if (Distance(laser->origin, laser->endOrigin) <= 96.0)
+			{// Explode and free this bolt...
+				laser->active = qfalse;
+				CG_SurfaceExplosion(laser->origin, laser->dir, 128.0, 0.5, qtrue);
+				return;
+			}
+
+			if (bolt3D > 0)
+			{// New 3D bolt enabled...
+				FX_WeaponBolt3D(laser->origin, laser->dir, 16.0, 16.0, bolt3D);
+			}
+		}
+	}
+}
+
+int CG_ShipLaserFindFreeSlot(void)
+{
+	for (int i = 0; i < MAX_SHIP_LASERS; i++)
+	{
+		shipLasers_t *laser = &shipLasers[i];
+
+		if (!laser->active)
+		{
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+void CG_ShipLaserCreate(centity_t *myShip, centity_t *enemyShip)
+{
+	int laserSlotID = CG_ShipLaserFindFreeSlot();
+
+	if (laserSlotID >= 0)
+	{
+		vec3_t forward, endOrigin, startOrigin, enemyOrigin, fwd;
+
+#define SHIP_HALF_SIZE 16384 // TODO: Send real sizes with the game entity... This is capital size...
+		
+		// Assuming long ships, since we have no tags to use atm...
+		AngleVectors(myShip->lerpAngles, NULL/*fwd*/, fwd/*NULL*/, NULL); // FIXME: ship models are rotated 90...
+		if (irand(0,1) == 0)
+			VectorMA(myShip->lerpOrigin, irand(0, SHIP_HALF_SIZE), fwd, startOrigin);
+		else
+			VectorMA(myShip->lerpOrigin, -irand(0, SHIP_HALF_SIZE), fwd, startOrigin);
+
+		// Assuming long ships, since we have no tags to use atm...
+		AngleVectors(enemyShip->lerpAngles, NULL/*fwd*/, fwd/*NULL*/, NULL); // FIXME: ship models are rotated 90...
+		if (irand(0, 1) == 0)
+			VectorMA(enemyShip->lerpOrigin, irand(0, SHIP_HALF_SIZE), fwd, enemyOrigin);
+		else
+			VectorMA(enemyShip->lerpOrigin, -irand(0, SHIP_HALF_SIZE), fwd, enemyOrigin);
+
+		vec3_t offsetShot;
+		offsetShot[0] = irand(0, 512) - 256;
+		offsetShot[1] = irand(0, 512) - 256;
+		offsetShot[2] = irand(0, 512) - 256;
+
+		float boltAccuracy = 1.0 - (VectorLength(offsetShot) / 768.0);
+
+		VectorSubtract(enemyOrigin, startOrigin, forward);
+		forward[0] += offsetShot[0];
+		forward[1] += offsetShot[1];
+		forward[2] += offsetShot[2];
+		VectorNormalize(forward);
+
+		float dist = Distance(startOrigin, enemyOrigin);
+
+		VectorMA(startOrigin, dist + ((1.0 - boltAccuracy) * 2048.0), forward, endOrigin);
+
+		shipLasers_t *laser = &shipLasers[laserSlotID];
+		VectorCopy(startOrigin, laser->origin);
+		VectorCopy(endOrigin, laser->endOrigin);
+		VectorCopy(forward, laser->dir);
+		laser->team = myShip->currentState.teamowner;
+		laser->active = qtrue;
+
+		/*trap->Print("Ship shooting laser at another ship. Start %i %i %i. End %i %i %i. Dir %f %f %f.\n"
+			, int(startOrigin[0]), int(startOrigin[1]), int(startOrigin[2])
+			, int(endOrigin[0]), int(endOrigin[1]), int(endOrigin[2])
+			, laser->dir[0], laser->dir[1], laser->dir[2]);*/
+	}
+}
+
+void CG_ShootAtEnemyShips(centity_t *myShip)
+{
+	if (irand(0, 20) != 0) return;
+
+	centity_t *enemyShip = CG_FindEnemyShip(myShip);
+
+	if (enemyShip != NULL)
+	{
+		CG_ShipLaserCreate(myShip, enemyShip);
+	}
+}
+
 //==============================================================================
 
 /*
@@ -1041,6 +1245,9 @@ void CG_AddLocalEntities( void ) {
 
 	// Warzone flying birds...
 	CG_Birds();
+
+	// Warzone event ships shooting at each other...
+	CG_ShipLasersThink();
 }
 
 

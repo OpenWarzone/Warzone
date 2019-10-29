@@ -478,6 +478,7 @@ float GetLighting(vec3 p, vec3 s)
 }
 
 //#define EXPERIMENTAL_CLOUD_COLOR
+//#define EXPERIMENTAL_CLOUD_COLOR2
 
 //--------------------------------------------------------------------------
 // Grab all sky information for a given ray from camera
@@ -609,12 +610,14 @@ vec4 Clouds(float colorMult)
 	vec4 origCol;
 	vec2 pos;
 	vec4 col = GetSky(cameraPos, dir, pos);
+#ifdef EXPERIMENTAL_CLOUD_COLOR2
 	origCol = col;
 
 	vec3 sunPixel = normalize(mix(dir, sunLight, 0.001));
 	vec2 pos2;
 	vec4 sunPixelCol = GetSky(cameraPos, sunPixel, pos2);
 	col.rgb = mix(col.rgb, sunPixelCol.rgb, 0.5);
+#endif //EXPERIMENTAL_CLOUD_COLOR2
 
 	col.rgb = clamp(col.rgb * (128.0/*64.0*/ * colorMult), 0.0, 1.0);
 
@@ -624,6 +627,7 @@ vec4 Clouds(float colorMult)
 	// Stretch RGB upwards... 
 	col.rgb = pow(col.rgb, vec3(.7));
 
+#ifdef EXPERIMENTAL_CLOUD_COLOR2
 	float nFac = length(normalize(u_PrimaryLightOrigin.xzy).y);
 
 	// Add sunset coloring...
@@ -637,6 +641,7 @@ vec4 Clouds(float colorMult)
 		vec3 sunColor = vec3(1.0, 0.8, 0.325);
 		col.rgb = mix(col.rgb, sunColor, sunPwr);
 	}
+#endif //EXPERIMENTAL_CLOUD_COLOR2
 	
 	col = clamp(col, 0.0, 1.0);
 

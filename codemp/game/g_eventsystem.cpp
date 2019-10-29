@@ -169,7 +169,7 @@ void G_CreateSpawnVesselForEventArea(int area)
 	ent->s.eFlags = 0;
 	ent->r.contents = CONTENTS_SOLID;
 	ent->clipmask = MASK_SOLID;
-	ent->s.teamowner = 0;
+	ent->s.teamowner = team;
 	ent->s.owner = ENTITYNUM_NONE;
 
 	//ent->neverFree = qtrue; // hmmm

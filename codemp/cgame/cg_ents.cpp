@@ -1884,6 +1884,7 @@ CG_General
 void CG_G2ServerBoneAngles(centity_t *cent);
 
 extern qboolean BG_GetRootSurfNameWithVariant(void *ghoul2, const char *rootSurfName, char *returnSurfName, int returnSize);
+extern void CG_ShootAtEnemyShips(centity_t *myShip);
 
 static void CG_ServerModel(centity_t *cent) {
 	refEntity_t			ent;
@@ -1984,6 +1985,42 @@ static void CG_ServerModel(centity_t *cent) {
 
 	// add to refresh list
 	AddRefEntityToScene(&ent);
+
+	switch (cent->currentState.teamowner)
+	{
+		case FACTION_WILDLIFE:
+		{// Wildlife is native and does not spawn from a ship...
+
+		}
+		break;
+		case FACTION_EMPIRE:
+		{
+			CG_ShootAtEnemyShips(cent);
+		}
+		break;
+		case FACTION_REBEL:
+		{
+			CG_ShootAtEnemyShips(cent);
+		}
+		break;
+		case FACTION_MANDALORIAN:
+		{
+			CG_ShootAtEnemyShips(cent);
+		}
+		break;
+		case FACTION_MERC:
+		{
+			CG_ShootAtEnemyShips(cent);
+		}
+		break;
+		case FACTION_PIRATES:
+		{
+			CG_ShootAtEnemyShips(cent);
+		}
+		break;
+		default:
+			break;
+	}
 }
 
 /*
