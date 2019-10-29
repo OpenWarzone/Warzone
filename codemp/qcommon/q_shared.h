@@ -920,8 +920,8 @@ int DirToByte( vec3_t dir );
 void ByteToDir( int b, vec3_t dir );
 
 //rwwRMG - added math defines
-#define minimum( x, y ) ((x) < (y) ? (x) : (y))
-#define maximum( x, y ) ((x) > (y) ? (x) : (y))
+#define Q3_minimum( x, y ) ((x) < (y) ? (x) : (y))
+#define Q3_maximum( x, y ) ((x) > (y) ? (x) : (y))
 
 #define DEG2RAD( deg ) ( ((deg)*M_PI) / 180.0f )
 #define RAD2DEG( rad ) ( ((rad)*180.0f) / M_PI )

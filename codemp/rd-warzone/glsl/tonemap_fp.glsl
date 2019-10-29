@@ -133,6 +133,17 @@ vec3 jodieReinhardTonemap(vec3 color)
 	return mix(color / (luminance + 1.0), tc, tc);
 }
 
+// https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
+vec3 tonemapACES( vec3 x )
+{
+    float a = 2.51;
+    float b = 0.03;
+    float c = 2.43;
+    float d = 0.59;
+    float e = 0.14;
+    return (x*(a*x+b))/(x*(c*x+d)+e);
+}
+
 void main()
 {
 	vec4 color = texture2D(u_DiffuseMap, var_TexCoords) * u_Color;
@@ -164,6 +175,10 @@ void main()
 	else if (u_Local0.r == 5)
 	{
 		color.rgb = jodieReinhardTonemap(color.rgb);
+	}
+	else if (u_Local0.r == 6)
+	{
+		color.rgb = tonemapACES(color.rgb);
 	}
 	else
 	{

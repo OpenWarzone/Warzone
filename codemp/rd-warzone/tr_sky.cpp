@@ -722,7 +722,7 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 			GLSL_SetBindlessTexture(sp, UNIFORM_SPLATMAP2, &tr.auroraImage[1], 0);
 			GLSL_SetBindlessTexture(sp, UNIFORM_SPLATMAP3, &tr.defaultSplatControlImage, 0);
 			GLSL_SetBindlessTexture(sp, UNIFORM_ROADMAP, &tr.random2KImage[0], 0);
-			GLSL_SetBindlessTexture(sp, UNIFORM_VOLUMEMAP, &tr.randomVolumetricImage[0], 0);
+			GLSL_SetBindlessTexture(sp, UNIFORM_VOLUMEMAP, &tr.randomVolumetricImage[3], 0);
 		}
 		else
 		{
@@ -742,7 +742,7 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 			GL_BindToTMU(tr.random2KImage[0], TB_ROADMAP);
 
 			GLSL_SetUniformInt(sp, UNIFORM_VOLUMEMAP, TB_CUBEMAP);
-			GL_BindToTMU(tr.randomVolumetricImage[0], TB_CUBEMAP);
+			GL_BindToTMU(tr.randomVolumetricImage[3], TB_CUBEMAP);
 		}
 
 		//if (r_testvalue0->integer)

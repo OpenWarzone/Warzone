@@ -383,13 +383,21 @@ vec3 Enhance(in sampler2D tex, in vec2 uv, vec3 color, float level)
 //#define RAY_TRACE_STEPS 55
 
 #if defined(CLOUD_QUALITY4)
-	#define RAY_TRACE_STEPS 5
+	#define RAY_TRACE_STEPS 8
+	#define CLOUD_LOWER 2800.0
+	#define CLOUD_UPPER 26800.0
 #elif defined(CLOUD_QUALITY3)
-	#define RAY_TRACE_STEPS 4
+	#define RAY_TRACE_STEPS 6
+	#define CLOUD_LOWER 2800.0
+	#define CLOUD_UPPER 18800.0
 #elif defined(CLOUD_QUALITY2)
-	#define RAY_TRACE_STEPS 3
+	#define RAY_TRACE_STEPS 4
+	#define CLOUD_LOWER 2800.0
+	#define CLOUD_UPPER 10800.0
 #else //if defined(CLOUD_QUALITY1)
 	#define RAY_TRACE_STEPS 2
+	#define CLOUD_LOWER 2800.0
+	#define CLOUD_UPPER 6800.0
 #endif
 
 vec3 sunLight  = normalize( u_PrimaryLightOrigin.xzy - u_ViewOrigin.xzy );
@@ -399,9 +407,6 @@ float gTime;
 float cloudy = 0.0;
 float cloudShadeFactor = 0.6;
 float flash = 0.0;
-
-#define CLOUD_LOWER 2800.0
-#define CLOUD_UPPER 6800.0
 
 
 /* -------------------*/
@@ -474,24 +479,15 @@ float GetLighting(vec3 p, vec3 s)
 
 //#define EXPERIMENTAL_CLOUD_COLOR
 
-#ifdef EXPERIMENTAL_CLOUD_COLOR
-float escape(in vec3 p, in vec3 d, in float R) {
-	vec3 v = p - C;
-	float b = dot(v, d);
-	float c = dot(v, v) - R*R;
-	float det2 = b * b - c;
-	if (det2 < 0.) return -1.;
-	float det = sqrt(det2);
-	float t1 = -b - det, t2 = -b + det;
-	return (t1 >= 0.) ? t1 : t2;
-}
-#endif //EXPERIMENTAL_CLOUD_COLOR
-
 //--------------------------------------------------------------------------
 // Grab all sky information for a given ray from camera
 vec4 GetSky(in vec3 pos,in vec3 rd, out vec2 outPos)
 {
 	//float sunAmount = max( dot( rd, sunLight), 0.0 );
+
+	//float n = texture(u_VolumeMap, pos+rd * u_Local9.r, 0.0).r * mix(0.75, 2.0, pow(1.0 - CLOUDS_CLOUDCOVER, 2.0));// 0.75 (max cloud cover) -> 2.0 (clear skies)
+	//return vec4(n);
+	//return vec4(texture(u_VolumeMap, pos+rd * u_Local9.r, 0.0).rrr, 1.0);
 	
 	// Find the start and end of the cloud layer...
 	float beg = ((CLOUD_LOWER-pos.y) / rd.y);
@@ -506,24 +502,13 @@ vec4 GetSky(in vec3 pos,in vec3 rd, out vec2 outPos)
 	float d = 0.0;
 	vec3 posAdd = rd * ((end-beg) / float(RAY_TRACE_STEPS));
 
-#ifdef EXPERIMENTAL_CLOUD_COLOR
-	float L = escape(pos, rd, Ra);	
-	float mu = dot(rd, Ds);
-	float opmu2 = 1.0 + mu*mu;
-	float phaseR = 0.0596831 * opmu2;
-	float phaseM = 0.1193662 * (1.0 - g2) * opmu2 / ((2.0 + g2) * pow(1.0 + g2 - 2.0 * g * mu, 1.5));
-	float phaseS = 0.1193662 * (1.0 - s2) * opmu2 / ((2.0 + s2) * pow(1.0 + s2 - 2.0 * s * mu, 1.5));
-
-	float depthR = 0.0, depthM = 0.0;
-	float prevDepthR = 0.0, prevDepthM = 0.0;
-	vec3 R = vec3(0.0), M = vec3(0.0);
-
-	float dl = L / float(RAY_TRACE_STEPS);
-#endif //EXPERIMENTAL_CLOUD_COLOR
-
 	vec2 shade;
 	vec2 shadeSum = vec2(0.0);
 	shade.x = 1.0;
+
+#ifdef EXPERIMENTAL_CLOUD_COLOR
+	float bz = 0.0;
+#endif //EXPERIMENTAL_CLOUD_COLOR
 	
 	// I think this is as small as the loop can be
 	// for a reasonable cloud density illusion.
@@ -537,22 +522,7 @@ vec4 GetSky(in vec3 pos,in vec3 rd, out vec2 outPos)
 		shadeSum += shade * (1.0 - shadeSum.y);
 
 #ifdef EXPERIMENTAL_CLOUD_COLOR
-		float cld = shade.y;
-		float he = length(p - C) - R0;
-		float rayleigh =  exp(-he/Hr);
-		float mie = exp(-he/Hm) + cld + haze;
-
-		rayleigh *= dl;
-		mie *= dl;
-		depthR += rayleigh;
-		depthM += mie;
-
-		vec3 A = exp(-(bR * (prevDepthR + depthR) + bM * (prevDepthM + depthM)));
-		R += (A * rayleigh);
-		M += A * mie;
-
-		prevDepthR = depthR;
-		prevDepthM = depthM;
+		if (i == 0) bz = shade.y;
 #endif //EXPERIMENTAL_CLOUD_COLOR
 
 		p += posAdd;
@@ -565,15 +535,40 @@ vec4 GetSky(in vec3 pos,in vec3 rd, out vec2 outPos)
 	vec4 col = vec4(final, final, final, shadeSum.y);
 	col = clamp(col, 0.0, 1.0);
 
-	col.rgb = (I) *(M * bM * (phaseM )); // Mie scattering
-	#if NICE_HACK_SUN
-	col.rgb += (SI) *(M * bM *phaseS); //Sun
-	#endif
-	col.rgb += (I) *(R * bR * phaseR); //Rayleigh scattering
+	/*
+	float sun = clamp(dot(sunLight, rd), 0.0, 1.0 );
+	float s2p = distance(p + posAdd, sunLight * 100.0);
+	float tot = shadeSum.y;
+	//col = mix(col, vec3(0.5, 0.5, 0.55) * 0.2, pow(bz, 1.5)); // darkens (back-shadows)
+	//tot = smoothstep(-7.5, -0.0, 1.0 - tot);
 	
-	//float scat = 0.1 *(bM*depthM);
+	//vec3 sccol = mix(vec3(0.11, 0.1, 0.2), vec3(0.2, 0.0, 0.1), smoothstep(0.0, 900.0, s2p));
+	vec3 sccol = mix(vec3(0.11, 0.1, 0.2), vec3(0.2, 0.0, 0.1), smoothstep(0.0, 1.0, s2p));
 
-	return clamp(col, 0.0, 1.0);
+	col.rgb = mix(col.rgb, sccol, 1.0 - tot) * 1.6; // darkens (nightish)
+	
+	//vec3 sncol = mix(vec3(1.4, 0.3, 0.0), vec3(1.5, 0.65, 0.0), smoothstep(0.0, 1200.0, s2p));
+	vec3 sncol = mix(vec3(1.4, 0.3, 0.0), vec3(1.5, 0.65, 0.0), smoothstep(0.0, 1.0, s2p));
+
+	float sd = pow(sun, 10.0) + 0.7;
+	//col.rgb += sncol * bz * bz * bz * tot * tot * tot * sd; // (sunlight coloring)
+	col.rgb = mix(col.rgb, sncol, bz * bz * bz * tot * tot * tot * sd);
+	*/
+
+	float sunDot = dot(sunLight, rd);
+	
+	if (sunDot >= 0.0)
+	{// Looking towards sun dir...
+		float dirPwr = clamp(pow(length(sunDot), 14.95), 0.0, 1.0);
+		float alphaPwr = 1.0 - col.a;
+		float sunPwr = alphaPwr * dirPwr;
+	}
+	else
+	{// Looking away from sun dir...
+
+	}
+
+	return col;
 #else //!EXPERIMENTAL_CLOUD_COLOR
 	return clamp(vec4(final, final, final, shadeSum.y), 0.0, 1.0);
 #endif //EXPERIMENTAL_CLOUD_COLOR
@@ -611,21 +606,41 @@ vec4 Clouds(float colorMult)
 	flash = clamp(lightning, 0.0, 1.0);
 	
 	
-	vec4 col;
+	vec4 origCol;
 	vec2 pos;
-	col = GetSky(cameraPos, dir, pos);
+	vec4 col = GetSky(cameraPos, dir, pos);
+	origCol = col;
 
-	col.rgb = clamp(col.rgb * (64.0 * colorMult), 0.0, 1.0);
+	vec3 sunPixel = normalize(mix(dir, sunLight, 0.001));
+	vec2 pos2;
+	vec4 sunPixelCol = GetSky(cameraPos, sunPixel, pos2);
+	col.rgb = mix(col.rgb, sunPixelCol.rgb, 0.5);
+
+	col.rgb = clamp(col.rgb * (128.0/*64.0*/ * colorMult), 0.0, 1.0);
 
 	float l = exp(-length(pos) * .00002);
 	col.rgb = mix(vec3(.6-cloudy*1.2)+flash*.3, col.rgb, max(l, .2));
-	
+
 	// Stretch RGB upwards... 
 	col.rgb = pow(col.rgb, vec3(.7));
+
+	float nFac = length(normalize(u_PrimaryLightOrigin.xzy).y);
+
+	// Add sunset coloring...
+	if (nFac > 0.0 && nFac < 0.5 && sunPixelCol.a < origCol.a)
+	{//	This direction is less dense, it's most likely toward the sun direction...
+		float nScale = 1.0 - (nFac / 0.5);
+
+		float sunPixelDiff = origCol.a - sunPixelCol.a;
+		float sunPwr = clamp(pow(sunPixelDiff, 0.0001), 0.0, 1.0);
+		sunPwr *= clamp(pow(nScale, 0.25), 0.0, 1.0);
+		vec3 sunColor = vec3(1.0, 0.8, 0.325);
+		col.rgb = mix(col.rgb, sunColor, sunPwr);
+	}
 	
 	col = clamp(col, 0.0, 1.0);
 
-	float alpha = clamp(pow(col.a, /*u_Local9.r*/1.5), 0.0, 1.0);
+	float alpha = clamp(pow(col.a, 1.5), 0.0, 1.0);
 	alpha *= alphaMult;
 	return vec4(col.rgb, alpha);
 }
@@ -880,7 +895,8 @@ void GetStars(out vec4 fragColor, in vec3 position)
 #endif
 
 	// Small stars...
-	vec3 colorStars = clamp(reachForTheStars(from, dir, 0.9), 0.0, 1.0);
+	float twinkle = clamp(cos(length(dir.xz*1000.0+u_Time)*u_Time*0.001) * 2.5, 0.75, 3.0);
+	vec3 colorStars = clamp(reachForTheStars(from, dir, 0.9), 0.0, 1.0) * twinkle;
 
 #if 0
 	// Add them all together...

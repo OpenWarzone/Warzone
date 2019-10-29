@@ -18,5 +18,5 @@
 	#undef MAX_PATH
 #endif
 #define MAX_PATH				MAX_QPATH
-#define Maximum(x,y)			(x > y ? x : y)
-#define Minimum(x,y)			(x < y ? x : y)
+#define Q3_Maximum(x,y)			(x > y ? x : y)
+#define Q3_Minimum(x,y)			(x < y ? x : y)

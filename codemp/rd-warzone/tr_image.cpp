@@ -25,6 +25,14 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 qboolean SKIP_IMAGE_RESIZE = qfalse;
 
+#define ANL_IMPLEMENTATION
+//#define IMPLEMENT_STB
+// If you want to use long-period hashing, uncomment the following line:
+//#define ANL_LONG_PERIOD_HASHING
+
+//#pragma comment(lib, "../../../lib/anl.lib")
+#include "anl/anl.h"
+
 // Calculates log2 of number.  
 double log2d( double n )  
 {
@@ -2730,7 +2738,8 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgT
 	if (!internalFormat)
 	{
 		if (image->flags & IMGFLAG_3D_VOLUMETRIC)
-			internalFormat = GL_RGBA8;
+			//internalFormat = GL_RGBA8;
+			internalFormat = GL_R8;
 		else if (image->flags & IMGFLAG_CUBEMAP)
 			internalFormat = GL_RGBA8;
 		else
@@ -2755,7 +2764,7 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgT
 		if (pic != NULL)
 		{// Use loaded image...
 			int XDIM = width, YDIM = width, ZDIM = width;
-			const int size = XDIM*YDIM*ZDIM * 4;
+			const int size = XDIM*YDIM*ZDIM;// XDIM*YDIM*ZDIM * 4;
 
 			GLubyte* pVolume = pic;
 
@@ -2770,8 +2779,72 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgT
 			qglTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			qglTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-			qglTexImage3D(GL_TEXTURE_3D, 0, internalFormat, XDIM, YDIM, ZDIM, 0, GL_RGBA, GL_UNSIGNED_BYTE, pVolume);
+			qglTexImage3D(GL_TEXTURE_3D, 0, internalFormat, XDIM, YDIM, ZDIM, 0, GL_RED/*GL_RGBA*/, GL_UNSIGNED_BYTE, pVolume);
 			delete[] pVolume;
+
+			if ((image->flags & IMGFLAG_MIPMAP) && r_mipMapTextures->integer)
+				qglGenerateMipmap(GL_TEXTURE_3D);
+
+			image->uploadWidth = width;
+			image->uploadHeight = height;
+		}
+		else if (image->flags & IMGFLAG_FBM)
+		{
+			int XDIM = width, YDIM = width, ZDIM = width;
+			const int size = XDIM*YDIM*ZDIM;// XDIM*YDIM*ZDIM * 4;
+			GLubyte* pVolume = NULL;
+
+			char filename[128];
+			sprintf(filename, "gfx/fbmVolumeNoise%i.raw", XDIM);
+
+			long fileLength = ri->FS_ReadFile(filename, (void **)&pVolume);
+
+			if (fileLength <= 0)
+			{
+				pVolume = new GLubyte[size];
+
+				anl::CKernel kernel;
+				anl::CArray3Dd img(XDIM, XDIM, XDIM);
+				//anl::CArray3Drgba img(XDIM, XDIM, XDIM);
+
+				anl::SMappingRanges ranges;
+				ranges.mapx0 = 0.0; ranges.mapy0 = 0.0; ranges.mapz0 = 0.0;
+				ranges.mapx1 = 10.0; ranges.mapy1 = 10.0; ranges.mapz1 = 10.0;
+				ranges.loopx0 = 0.0; ranges.loopy0 = 0.0; ranges.loopz0 = 0.0;
+				ranges.loopx1 = 10.0; ranges.loopy1 = 10.0; ranges.loopz1 = 10.0;
+
+				auto r = kernel.simplefBm(anl::BASIS_SIMPLEX/*anl::BASIS_GRADIENT*/, anl::INTERP_LINEAR/*anl::INTERP_QUINTIC*/, 6/*4*/ /* octaves */, 0.125 /* freq */, 1234 /* seed */);
+				//auto g = r;// kernel.simplefBm(anl::BASIS_SIMPLEX/*anl::BASIS_GRADIENT*/, anl::INTERP_LINEAR/*anl::INTERP_QUINTIC*/, 6/*4*/ /* octaves */, 0.250 /* freq */, 5678 /* seed */);
+				//auto b = r;// kernel.simplefBm(anl::BASIS_SIMPLEX/*anl::BASIS_GRADIENT*/, anl::INTERP_LINEAR/*anl::INTERP_QUINTIC*/, 6/*4*/ /* octaves */, 0.500 /* freq */, 101112 /* seed */);
+				//auto a = r;// kernel.simplefBm(anl::BASIS_SIMPLEX/*anl::BASIS_GRADIENT*/, anl::INTERP_LINEAR/*anl::INTERP_QUINTIC*/, 6/*4*/ /* octaves */, 1.000 /* freq */, 9101112 /* seed */);
+				auto col = kernel.scaleDomain(r, kernel.constant(1));
+				
+				//anl::mapRGBA3D(anl::SEAMLESS_XYZ, img, kernel, anl::SMappingRanges(), col);
+				anl::map3D(anl::SEAMLESS_XYZ, img, kernel, anl::SMappingRanges(), col);
+				memcpy(pVolume, img.getData(), size);
+
+				// Write file so that we don't need to generate on each load...
+				ri->FS_WriteFile(filename, pVolume, size);
+				ri->Printf(PRINT_WARNING, "Saved generated Volumetric FBM noise for image size %i x %i x %i to file %s for future usage.\n", XDIM, XDIM, XDIM, filename);
+			}
+			
+			//load data into a 3D texture
+			qglGenTextures(1, &image->texnum);
+			GL_Bind(image);
+
+			// set the texture parameters
+			qglTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, glWrapClampMode);
+			qglTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, glWrapClampMode);
+			qglTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, glWrapClampMode);
+			qglTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			qglTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+			qglTexImage3D(GL_TEXTURE_3D, 0, internalFormat, XDIM, YDIM, ZDIM, 0, GL_RED/*GL_RGBA*/, GL_UNSIGNED_BYTE, pVolume);
+
+			if (fileLength > 0)
+				ri->FS_FreeFile(pVolume);
+			else
+				delete[] pVolume;
 
 			if ((image->flags & IMGFLAG_MIPMAP) && r_mipMapTextures->integer)
 				qglGenerateMipmap(GL_TEXTURE_3D);
@@ -2782,12 +2855,26 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgT
 		else
 		{// Filled with randoms...
 			int XDIM = width, YDIM = width, ZDIM = width;
-			const int size = XDIM*YDIM*ZDIM * 4;
+			const int size = XDIM*YDIM*ZDIM;// XDIM*YDIM*ZDIM * 4;
+			GLubyte* pVolume = NULL;
 
-			GLubyte* pVolume = new GLubyte[size];
-			for (int s = 0; s < size; s++)
+			char filename[128];
+			sprintf(filename, "gfx/volumeNoise%i.raw", XDIM);
+
+			long fileLength = ri->FS_ReadFile(filename, (void **)&pVolume);
+
+			if (fileLength <= 0)
 			{
-				pVolume[s] = (GLubyte)irand(0, 255);
+				pVolume = new GLubyte[size];
+
+				for (int s = 0; s < size; s++)
+				{
+					pVolume[s] = (GLubyte)irand(0, 255);
+				}
+
+				// Write file so that we don't need to generate on each load...
+				ri->FS_WriteFile(filename, pVolume, size);
+				ri->Printf(PRINT_WARNING, "Saved generated Volumetric noise for image size %i x %i x %i to file %s for future usage.\n", XDIM, XDIM, XDIM, filename);
 			}
 
 			//load data into a 3D texture
@@ -2801,8 +2888,12 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgT
 			qglTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			qglTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-			qglTexImage3D(GL_TEXTURE_3D, 0, internalFormat, XDIM, YDIM, ZDIM, 0, GL_RGBA, GL_UNSIGNED_BYTE, pVolume);
-			delete[] pVolume;
+			qglTexImage3D(GL_TEXTURE_3D, 0, internalFormat, XDIM, YDIM, ZDIM, 0, GL_RED/*GL_RGBA*/, GL_UNSIGNED_BYTE, pVolume);
+			
+			if (fileLength > 0)
+				ri->FS_FreeFile(pVolume);
+			else
+				delete[] pVolume;
 
 			if ((image->flags & IMGFLAG_MIPMAP) && r_mipMapTextures->integer)
 				qglGenerateMipmap(GL_TEXTURE_3D);
@@ -4908,10 +4999,15 @@ void R_CreateBuiltinImages( void ) {
 	
 	tr.randomImage = R_FindImageFile("gfx/random.png", IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_CLAMPTOEDGE | IMGFLAG_MIPMAP /*| IMGFLAG_NO_COMPRESSION*/);
 
-	tr.randomVolumetricImage[0] = R_CreateImage("volumetricRandom256", NULL, 256, 256, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_MIPMAP | IMGFLAG_3D_VOLUMETRIC, 0);
-	tr.randomVolumetricImage[1] = R_CreateImage("volumetricRandom512", NULL, 512, 512, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_MIPMAP | IMGFLAG_3D_VOLUMETRIC, 0);
-	tr.randomVolumetricImage[2] = R_CreateImage("volumetricRandom1024", NULL, 1024, 1024, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_MIPMAP | IMGFLAG_3D_VOLUMETRIC, 0);
-	tr.randomVolumetricImage[3] = R_CreateImage("volumetricRandom2048", NULL, 2048, 2048, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_MIPMAP | IMGFLAG_3D_VOLUMETRIC, 0);
+	tr.randomVolumetricImage[0] = R_CreateImage("volumetricRandom32", NULL, 32, 32, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_MIPMAP | IMGFLAG_3D_VOLUMETRIC, 0);
+	tr.randomVolumetricImage[1] = R_CreateImage("volumetricRandom64", NULL, 64, 64, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_MIPMAP | IMGFLAG_3D_VOLUMETRIC, 0);
+	tr.randomVolumetricImage[2] = R_CreateImage("volumetricRandom128", NULL, 128, 128, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_MIPMAP | IMGFLAG_3D_VOLUMETRIC, 0);
+	tr.randomVolumetricImage[3] = R_CreateImage("volumetricRandom256", NULL, 256, 256, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_MIPMAP | IMGFLAG_3D_VOLUMETRIC, 0);
+
+	tr.randomFbmVolumetricImage[0] = R_CreateImage("volumetricFbmRandom32", NULL, 32, 32, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_MIPMAP | IMGFLAG_3D_VOLUMETRIC | IMGFLAG_FBM, 0);
+	tr.randomFbmVolumetricImage[1] = R_CreateImage("volumetricFbmRandom64", NULL, 64, 64, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_MIPMAP | IMGFLAG_3D_VOLUMETRIC | IMGFLAG_FBM, 0);
+	tr.randomFbmVolumetricImage[2] = R_CreateImage("volumetricFbmRandom128", NULL, 128, 128, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_MIPMAP | IMGFLAG_3D_VOLUMETRIC | IMGFLAG_FBM, 0);
+	tr.randomFbmVolumetricImage[3] = R_CreateImage("volumetricFbmRandom256", NULL, 256, 256, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_MIPMAP | IMGFLAG_3D_VOLUMETRIC | IMGFLAG_FBM, 0);
 
 	/*if (r_shadows->integer == 3)
 	{

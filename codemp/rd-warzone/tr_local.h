@@ -786,6 +786,7 @@ typedef enum
 	IMGFLAG_MUTABLE        = 0x0200,
 	IMGFLAG_GLOW           = 0x0400,
 	IMGFLAG_3D_VOLUMETRIC  = 0x0800,
+	IMGFLAG_FBM            = 0x1000,
 } imgFlags_t;
 
 typedef enum
@@ -3057,7 +3058,8 @@ typedef struct trGlobals_s {
 	//image_t					*previousRenderImage;
 	image_t					*randomImage;
 	image_t					*random2KImage[2];
-	image_t					*randomVolumetricImage[4]; // 256x256x256, 512x512x512, 1024x1024x1024, 2048x2048x2048
+	image_t					*randomVolumetricImage[4]; // 32x32x32, 64x64x64, 128x128x128, 256x256x256
+	image_t					*randomFbmVolumetricImage[4]; // 32x32x32, 64x64x64, 128x128x128, 256x256x256
 	image_t					*smoothNoiseImage;
 	image_t					*defaultSplatControlImage;
 	image_t					*defaultGrassMapImage;
