@@ -3204,7 +3204,7 @@ int GLSL_BeginLoadGPUShaders(void)
 
 		char shaderName[128] = { { 0 } };
 		sprintf(shaderName, "sky%i", i);
-		if (!GLSL_BeginLoadGPUShader(&tr.skyShader[i], shaderName, attribs, qtrue, qfalse, qfalse, qfalse/*qtrue*/, extradefines, qtrue, NULL, fallbackShader_sky_vp, fallbackShader_sky_fp, NULL, NULL, NULL))
+		if (!GLSL_BeginLoadGPUShader(&tr.skyShader[i], shaderName, attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_sky_vp, fallbackShader_sky_fp, NULL, NULL, NULL))
 		{
 			ri->Error(ERR_FATAL, "Could not load sky%i shader!", i);
 		}
