@@ -132,9 +132,10 @@
 #define MATERIAL_DISTORTEDPUSH					48			// warzone distorted push
 #define MATERIAL_DISTORTEDPULL					49			// warzone distorted pull
 #define MATERIAL_CLOAK							50			// warzone cloak
-#define MATERIAL_PROCEDURALFOLIAGE				51			// warzone GLSL foliages
-#define MATERIAL_BIRD							52			// warzone flying birds (wing flapping)
-#define MATERIAL_LAST							53			// number of materials
+#define MATERIAL_FORCEFIELD						51			// warzone force fields
+#define MATERIAL_PROCEDURALFOLIAGE				52			// warzone GLSL foliages
+#define MATERIAL_BIRD							53			// warzone flying birds (wing flapping)
+#define MATERIAL_LAST							54			// number of materials
 
 // Defined as a macro here so one change will affect all the relevant files
 
@@ -190,5 +191,6 @@
 	"distortedpush",					\
 	"distortedpull",					\
 	"cloak",							\
+	"forcefield",						\
 	"proceduralfoliage"					\
 	"bird"

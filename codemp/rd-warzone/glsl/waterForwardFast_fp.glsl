@@ -86,7 +86,7 @@ void main()
 	out_Position = vec4(var_vertPos.xyz, 1.0);
 	//out_Position = vec4(0.0, 0.0, MAP_WATER_LEVEL, 1.0);
 	out_Glow = vec4(0.0);
-	out_Normal = vec4(EncodeNormal(var_Normal), 0.0, 1.0);
+	out_Normal = vec4(EncodeNormal(var_Normal), length(gl_FragCoord.z), 1.0);
 #ifdef __USE_REAL_NORMALMAPS__
 	out_NormalDetail = vec4(0.0);
 #endif //__USE_REAL_NORMALMAPS__

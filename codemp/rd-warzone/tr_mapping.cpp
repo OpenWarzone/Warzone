@@ -730,6 +730,7 @@ void R_CreateBspMapImage(void)
 				case MATERIAL_DISTORTEDPUSH:
 				case MATERIAL_DISTORTEDPULL:
 				case MATERIAL_CLOAK:
+				case MATERIAL_FORCEFIELD:
 					red[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0.9 * 255 * HEIGHT_COLOR_MULT;
 					green[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0.9 * 255 * HEIGHT_COLOR_MULT;
 					blue[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0.9 * 255 * HEIGHT_COLOR_MULT;
@@ -1408,6 +1409,7 @@ float		SPLATMAP_SCALE_WATEREDGE1 = 0.0075;
 float		SPLATMAP_SCALE_WATEREDGE2 = 0.0025;
 float		ROCK_SPLATMAP_SCALE = 0.0025;
 float		ROCK_SPLATMAP_SCALE_STEEP = 0.0025;
+float		WATEREDGE_RANGE_MULTIPLIER = 1.0;
 
 qboolean	TERRAIN_TESSELLATION_ENABLED = qtrue;
 qboolean	TERRAIN_TESSELLATION_3D_ENABLED = qfalse;
@@ -2101,6 +2103,7 @@ void MAPPING_LoadMapInfo(void)
 	SPLATMAP_SCALE_WATEREDGE2 = atof(IniRead(mapname, "SPLATMAPS", "SPLATMAP_SCALE_WATEREDGE2", "0.0025"));
 	ROCK_SPLATMAP_SCALE = atof(IniRead(mapname, "SPLATMAPS", "ROCK_SPLATMAP_SCALE", "0.0025"));
 	ROCK_SPLATMAP_SCALE_STEEP = atof(IniRead(mapname, "SPLATMAPS", "ROCK_SPLATMAP_SCALE_STEEP", "0.0025"));
+	WATEREDGE_RANGE_MULTIPLIER = atof(IniRead(mapname, "SPLATMAPS", "WATEREDGE_RANGE_MULTIPLIER", "1.0"));
 
 	//
 	// Tessellation...
@@ -3744,4 +3747,6 @@ void R_LoadMapInfo(void)
 		tr.foliageMapImage = R_FindImageFile(va("foliageMapImage/%s.tga", currentMapName), IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE);
 	}
 #endif
+
+	tr.forcefieldImage = R_FindImageFile("gfx/forcefield.png", IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE);
 }

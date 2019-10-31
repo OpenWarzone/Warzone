@@ -2635,6 +2635,7 @@ static void _PlayerFootStep( const vec3_t origin,
 		case MATERIAL_DISTORTEDPUSH:
 		case MATERIAL_DISTORTEDPULL:
 		case MATERIAL_CLOAK:
+		case MATERIAL_FORCEFIELD:
 		case MATERIAL_WATER:
 		case MATERIAL_FLESH:
 		case MATERIAL_BPGLASS:

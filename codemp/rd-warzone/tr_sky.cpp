@@ -558,6 +558,7 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 			//extern float		MAP_WATER_LEVEL;// = 131072.0;
 			extern qboolean		PROCEDURAL_SKY_ENABLED;
 			extern float		DAY_NIGHT_24H_TIME;
+			extern float		DYNAMIC_WEATHER_PUDDLE_STRENGTH;
 
 			float dayNight24 = DAY_NIGHT_24H_TIME / 24.0;
 
@@ -614,7 +615,7 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 			VectorSet4(vector, PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR2[0], PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR2[1], PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR2[2], 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL12, vector);
 
-			VectorSet4(vector, AURORA_STRENGTH1, AURORA_STRENGTH2, 0.0, 0.0);
+			VectorSet4(vector, AURORA_STRENGTH1, AURORA_STRENGTH2, DYNAMIC_WEATHER_PUDDLE_STRENGTH, 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL13, vector);
 
 

@@ -1158,6 +1158,141 @@ void CG_ShootAtEnemyShips(centity_t *myShip)
 	}
 }
 
+/*
+===================
+CG_ForceField*
+
+for warzone force field testing...
+===================
+*/
+
+
+#define MAX_FORCEFIELDS 256
+
+typedef struct forcefield_s {
+	qboolean	active;
+	vec3_t		origin;
+	vec3_t		radius;
+	int			team;
+	int			health;
+	qboolean	isTown;
+} forcefield_t;
+
+forcefield_t	forcefields[MAX_FORCEFIELDS];
+
+qhandle_t forcefieldModel = -1;
+qhandle_t forcefieldShader = -1;
+
+void CG_ForcefieldDraw(vec3_t origin, vec3_t radius)
+{
+	if (forcefieldModel == -1)
+	{
+		forcefieldModel = trap->R_RegisterModel("models/warzone/shield.md3");
+		forcefieldShader = trap->R_RegisterShader("models/warzone/shield");
+	}
+
+	refEntity_t ent;
+
+	// Draw the bolt core...
+	memset(&ent, 0, sizeof(refEntity_t));
+	ent.reType = RT_MODEL;
+
+	vec3_t scale;
+	scale[0] = (radius[0] / 128.0); // full size of sphere model is 64.
+	scale[1] = (radius[1] / 128.0); // full size of sphere model is 64.
+	scale[2] = (radius[2] / 128.0); // full size of sphere model is 64.
+	ent.modelScale[0] = scale[0];
+	ent.modelScale[1] = scale[1];
+	ent.modelScale[2] = scale[2];
+
+	VectorCopy(origin, ent.origin);
+	VectorSet(ent.angles, 0, 0, 0);
+	AnglesToAxis(ent.angles, ent.axis);
+	ScaleModelAxis(&ent);
+
+	ent.customShader = forcefieldShader;
+
+	ent.hModel = forcefieldModel;
+
+	AddRefEntityToScene(&ent);
+}
+
+// This stuff will need to be moved to a game entity at some point, but for now it's just visuals...
+int CG_ForcefieldFindFreeSlot(void)
+{
+	for (int i = 0; i < MAX_FORCEFIELDS; i++)
+	{
+		forcefield_t *forcefield = &forcefields[i];
+
+		if (!forcefield->active)
+		{
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+void CG_ForcefieldDropTownShield(void)
+{
+	for (int i = 0; i < MAX_FORCEFIELDS; i++)
+	{
+		forcefield_t *forcefield = &forcefields[i];
+
+		if (forcefield->active && forcefield->isTown)
+		{
+			forcefield->active = qfalse;
+			forcefield->isTown = qfalse;
+		}
+	}
+}
+
+void CG_ForcefieldCreate(vec3_t origin, vec3_t radius, int team, int health, qboolean isTown)
+{
+	int id = CG_ForcefieldFindFreeSlot();
+
+	if (id >= 0)
+	{
+		forcefield_t *forcefield = &forcefields[id];
+		forcefield->active = qtrue;
+		VectorCopy(origin, forcefield->origin);
+		VectorCopy(radius, forcefield->radius);
+		forcefield->health = health;
+		forcefield->isTown = isTown;
+	}
+}
+
+void CG_ForcefieldThink(void)
+{
+	for (int i = 0; i < MAX_FORCEFIELDS; i++)
+	{
+		forcefield_t *forcefield = &forcefields[i];
+
+		if (forcefield->active)
+		{
+			if (forcefield->health > -999990.0 && forcefield->health <= 0)
+			{// Collapsed... -99999.9 marks infinite strengths....
+				forcefield->active = qfalse;
+				forcefield->isTown = qfalse;
+
+				/*trap->Print("Forcefield dropped at %i %i %i radius %i %i %i. health %f.\n"
+					, int(forcefield->origin[0]), int(forcefield->origin[1]), int(forcefield->origin[2])
+					, int(forcefield->radius[0]), int(forcefield->radius[1]), int(forcefield->radius[2])
+					, int(forcefield->health));*/
+			}
+			else
+			{
+				CG_ForcefieldDraw(forcefield->origin, forcefield->radius);
+				
+				/*trap->Print("Forcefield drawn at %i %i %i radius %i %i %i. health %f.\n"
+					, int(forcefield->origin[0]), int(forcefield->origin[1]), int(forcefield->origin[2])
+					, int(forcefield->radius[0]), int(forcefield->radius[1]), int(forcefield->radius[2])
+					, int(forcefield->health));*/
+			}
+		}
+	}
+}
+
 //==============================================================================
 
 /*
@@ -1248,6 +1383,9 @@ void CG_AddLocalEntities( void ) {
 
 	// Warzone event ships shooting at each other...
 	CG_ShipLasersThink();
+
+	// Warzone shields/forcefields...
+	CG_ForcefieldThink();
 }
 
 

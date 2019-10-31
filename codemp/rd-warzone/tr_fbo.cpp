@@ -1019,11 +1019,11 @@ void FBO_Init(void)
 		//FBO_Bind(NULL);
 
 
-		tr.renderTransparancyFbo = FBO_Create("_renderTransparancy", tr.renderDepthImage->width, tr.renderDepthImage->height);
+		tr.renderTransparancyFbo = FBO_Create("_renderTransparancy", tr.renderForcefieldDepthImage->width, tr.renderForcefieldDepthImage->height);
 		FBO_Bind(tr.renderTransparancyFbo);
 
 		GLSL_AttachTransparancyTextures();
-		R_AttachFBOTextureDepth(tr.renderDepthImage->texnum);
+		R_AttachFBOTextureDepth(tr.renderForcefieldDepthImage->texnum);
 		FBO_SetupDrawBuffers();
 		R_CheckFBO(tr.renderTransparancyFbo);
 

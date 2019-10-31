@@ -419,6 +419,14 @@ extern void CG_AddCubeMap(void);
 extern void CG_DisableCubeMap(void);
 extern void CG_EnableCubeMap(void);
 
+extern qboolean MAPPING_LoadMapInfo(void);
+
+void CG_ReloadMapInfo(void)
+{
+	MAPPING_LoadMapInfo();
+}
+
+
 /* This array MUST be sorted correctly by alphabetical name field */ // UQ1: And who thought this change was a good idea??? *grrr*
 static consoleCommand_t	commands[] = {
 	{ "+scores",					CG_ScoresDown_f },
@@ -436,6 +444,7 @@ static consoleCommand_t	commands[] = {
 	{ "awp_badheight",				AIMod_MarkBadHeight },
 	{ "briefing",					CG_SiegeBriefing_f },
 	{ "cg_entitylist",				Clcmd_EntityList_f },
+	{ "cg_reloadmapinfo",			CG_ReloadMapInfo },
 	{ "clientlist",					CG_ClientList_f },
 	{ "cubemap_add",				CG_AddCubeMap },
 	{ "cubemap_disable",			CG_DisableCubeMap },

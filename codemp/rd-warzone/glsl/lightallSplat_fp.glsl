@@ -82,6 +82,7 @@ uniform vec4						u_Settings2; // LIGHTDEF_USE_LIGHTMAP, LIGHTDEF_USE_GLOW_BUFFE
 uniform vec4						u_Settings3; // LIGHTDEF_USE_REGIONS, LIGHTDEF_IS_DETAIL, 0=DetailMapNormal 1=detailMapFromTC 2=detailMapFromWorld, USE_GLOW_BLEND_MODE
 uniform vec4						u_Settings4; // MAP_LIGHTMAP_MULTIPLIER, MAP_LIGHTMAP_ENHANCEMENT, SPLATMAP_SCALE_STEEP, PUDDLE_STRENGTH
 uniform vec4						u_Settings5; // MAP_COLOR_SWITCH_RG, MAP_COLOR_SWITCH_RB, MAP_COLOR_SWITCH_GB, SPLATMAP_SCALE
+uniform vec4						u_Settings6; // WATEREDGE_RANGE_MULTIPLIER, 0.0, 0.0, 0.0
 
 #define USE_TC						u_Settings0.r
 #define USE_DEFORM					u_Settings0.g
@@ -112,6 +113,9 @@ uniform vec4						u_Settings5; // MAP_COLOR_SWITCH_RG, MAP_COLOR_SWITCH_RB, MAP_
 #define MAP_COLOR_SWITCH_RB			u_Settings5.g
 #define MAP_COLOR_SWITCH_GB			u_Settings5.b
 #define SPLATMAP_SCALE				u_Settings5.a
+
+#define WATEREDGE_RANGE_MULTIPLIER	u_Settings6.r
+
 
 uniform vec4						u_Local1; // MAP_SIZE, sway, overlaySway, materialType
 uniform vec4						u_Local2; // hasWaterEdgeMap, haveNormalMap, WATER_WAVE_HEIGHT, SHADER_WATER_LEVEL
@@ -927,7 +931,7 @@ vec4 GetDiffuse(vec2 texCoords, inout bool isFakeGrass)
 
 		// Do water edge blending...
 		vLocalSeed = m_vertPos.xyz;
-		float ABOVEWATER_BLEND_RANGE = (SHADER_WAVE_HEIGHT*3.0) + ((SHADER_WAVE_HEIGHT*2.0) * (randZeroOne() * 0.5 + 0.5));
+		float ABOVEWATER_BLEND_RANGE = (SHADER_WAVE_HEIGHT*3.0*WATEREDGE_RANGE_MULTIPLIER) + ((SHADER_WAVE_HEIGHT*2.0*WATEREDGE_RANGE_MULTIPLIER) * (randZeroOne() * 0.5 + 0.5));
 		float UNDERWATER_BLEND_RANGE = (SHADER_WAVE_HEIGHT*3.0) + ((SHADER_WAVE_HEIGHT*6.0) * (randZeroOne() * 0.5 + 0.5));
 		float BELOW_WATER_BLEND_START = (SHADER_WAVE_HEIGHT*2.0);
 		float BELOW_WATER_BLEND_Z = SHADER_WATER_LEVEL - BELOW_WATER_BLEND_START;

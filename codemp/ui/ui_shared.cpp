@@ -4901,6 +4901,7 @@ static const char *g_bindCommands[] = {
 	"cubemap_add",
 	"cubemap_disable",
 	"cubemap_enable",
+	"cg_reloadmapinfo",
 };
 
 #define g_bindCount ARRAY_LEN(g_bindCommands)

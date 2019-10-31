@@ -5070,6 +5070,7 @@ void R_CreateBuiltinImages( void ) {
 	//tr.previousRenderImage = R_CreateImage("_renderPreviousFrame", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
 
 	tr.renderNormalImage = R_CreateImage("*normal", NULL, width, height, IMGTYPE_NORMAL, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, 0);
+	tr.renderTransparancyNormalImage = R_CreateImage("*transparancyNormal", NULL, width, height, IMGTYPE_NORMAL, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, 0);
 	if (r_normalMappingReal->integer)
 	{
 		tr.renderNormalDetailedImage = R_CreateImage("*normalDetailed", NULL, width, height, IMGTYPE_NORMAL, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, 0);
@@ -5119,6 +5120,7 @@ void R_CreateBuiltinImages( void ) {
 		tr.sunRaysImage = R_CreateImage("*sunRays", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, rgbFormat);
 	
 	tr.renderDepthImage  = R_CreateImage("*renderdepth",  NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrDepth);
+	tr.renderForcefieldDepthImage = R_CreateImage("*renderForcefieldDepth", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrDepth);
 	tr.waterDepthImage  = R_CreateImage("*waterdepth",  NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrDepth);
 	tr.textureDepthImage = R_CreateImage("*texturedepth", NULL, PSHADOW_MAP_SIZE, PSHADOW_MAP_SIZE, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrDepth);
 	tr.genericDepthImage = R_CreateImage("*genericdepth", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, LINEAR_DEPTH_BITS/*GL_RGBA16F*/);

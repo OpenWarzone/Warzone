@@ -1871,6 +1871,7 @@ typedef enum
 	UNIFORM_SETTINGS3,
 	UNIFORM_SETTINGS4,
 	UNIFORM_SETTINGS5,
+	UNIFORM_SETTINGS6,
 	UNIFORM_LOCAL0,
 	UNIFORM_LOCAL1,
 	UNIFORM_LOCAL2,
@@ -3092,6 +3093,9 @@ typedef struct trGlobals_s {
 	image_t					*auroraImage[2];
 	image_t					*shinyImage;
 
+	image_t					*forcefieldImage;
+	image_t					*renderForcefieldDepthImage;
+
 	image_t					*groundFoliageImage[4];
 
 	image_t                 *shadowCubemaps[MAX_DLIGHTS];
@@ -3102,6 +3106,7 @@ typedef struct trGlobals_s {
 	image_t					*glowImage;
 	image_t					*renderNormalImage;
 	image_t					*renderNormalDetailedImage;
+	image_t					*renderTransparancyNormalImage;
 	image_t					*renderPositionMapImage;
 	image_t					*waterPositionMapImage;
 	image_t					*transparancyMapImage;
@@ -3239,6 +3244,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t lightAllSplatShader[4];
 	shaderProgram_t skyShader[5];
 	shaderProgram_t depthPassShader[4];
+	shaderProgram_t forcefieldShader;
 	//shaderProgram_t sunPassShader;
 	//shaderProgram_t moonPassShader;
 	//shaderProgram_t planetPassShader;

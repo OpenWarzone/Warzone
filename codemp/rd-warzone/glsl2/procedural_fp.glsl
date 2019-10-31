@@ -233,6 +233,7 @@ void main(void)
 		|| position.a - 1.0 == MATERIAL_DISTORTEDPUSH
 		|| position.a - 1.0 == MATERIAL_DISTORTEDPULL
 		|| position.a - 1.0 == MATERIAL_CLOAK
+		|| position.a - 1.0 == MATERIAL_FORCEFIELD
 		|| position.a - 1.0 == MATERIAL_EFX
 		|| position.a - 1.0 == MATERIAL_BLASTERBOLT
 		|| position.a - 1.0 == MATERIAL_FIRE

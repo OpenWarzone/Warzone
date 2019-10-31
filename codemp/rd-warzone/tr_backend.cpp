@@ -784,6 +784,9 @@ void RB_ClearRenderBuffers ( void )
 			qglClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 			qglClear(GL_COLOR_BUFFER_BIT);
 
+			qglClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+			qglClear(GL_DEPTH_BUFFER_BIT);
+
 			FBO_Bind(oldFbo);
 			qglColorMask(!backEnd.colorMask[0], !backEnd.colorMask[1], !backEnd.colorMask[2], !backEnd.colorMask[3]);
 		}
@@ -3627,6 +3630,14 @@ const void *RB_PostProcess(const void *data)
 			DEBUG_EndTimer(qtrue);
 		}
 
+		if (!SCREEN_BLUR && backEnd.pc.c_transparancyDraws > 0)
+		{
+			DEBUG_StartTimer("Transparancy Post", qtrue);
+			RB_TransparancyPost(currentFbo, srcBox, currentOutFbo, dstBox);
+			RB_SwapFBOs(&currentFbo, &currentOutFbo);
+			DEBUG_EndTimer(qtrue);
+		}
+
 		if (!SCREEN_BLUR && r_glslWater->integer && WATER_ENABLED)
 		{
 			DEBUG_StartTimer("Water Post", qtrue);
@@ -3862,13 +3873,13 @@ const void *RB_PostProcess(const void *data)
 			}
 		}
 
-		if (!SCREEN_BLUR && backEnd.pc.c_transparancyDraws > 0)
+		/*if (!SCREEN_BLUR && backEnd.pc.c_transparancyDraws > 0)
 		{
 			DEBUG_StartTimer("Transparancy Post", qtrue);
 			RB_TransparancyPost(currentFbo, srcBox, currentOutFbo, dstBox);
 			RB_SwapFBOs(&currentFbo, &currentOutFbo);
 			DEBUG_EndTimer(qtrue);
-		}
+		}*/
 
 		if (!SCREEN_BLUR && r_showdepth->integer)
 		{

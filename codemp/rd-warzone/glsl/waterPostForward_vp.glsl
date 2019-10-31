@@ -3,6 +3,7 @@ attribute vec3	attr_Normal;
 attribute vec2	attr_TexCoord0;
 
 uniform mat4	u_ModelViewProjectionMatrix;
+uniform mat4	u_ModelMatrix;
 
 uniform vec4	u_Settings0; // useTC, useDeform, useRGBA, isTextureClamped
 
@@ -144,6 +145,9 @@ void main()
 		position = DeformPosition(position, normal, attr_TexCoord0.st);
 	}
 #endif
+
+	//position = (u_ModelMatrix * vec4(position, 1.0)).xyz;
+	normal = (u_ModelMatrix * vec4(normal, 0.0)).xyz;
 
 	var_vertPos = position.xyz;
 	var_TexCoords = attr_TexCoord0.st;

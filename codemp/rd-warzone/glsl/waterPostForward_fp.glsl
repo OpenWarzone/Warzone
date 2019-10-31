@@ -149,6 +149,11 @@ void main()
 		out_Position = vec4(texture(u_DiffuseMap, var_TexCoords).rgb, material);
 		out_Color = vec4(1.0);
 	}
+	else if (material == 6.0)
+	{
+		out_Position = vec4(var_vertPos.xyz, material);
+		out_Color = vec4(1.0);
+	}
 	else if (material == 3.0 || material == 4.0)
 	{
 		float dist = (0.5 - distance(var_TexCoords, vec2(0.5))) * 2.0;
@@ -170,4 +175,10 @@ void main()
 		out_Position = vec4(var_vertPos.xyz, var_IsWater);
 		out_Color = vec4(1.0);
 	}
+
+	out_Glow = vec4(0.0);
+	out_Normal = vec4(EncodeNormal(normalize(var_Normal)), 0.0, 1.0);
+#ifdef __USE_REAL_NORMALMAPS__
+	out_NormalDetail = vec4(0.0);
+#endif //__USE_REAL_NORMALMAPS__
 }

@@ -42,6 +42,8 @@ extern const char *fallbackShader_lightall_fp;
 extern const char *fallbackShader_lightallSplat_vp;
 extern const char *fallbackShader_lightallSplat_gs;
 extern const char *fallbackShader_lightallSplat_fp;
+extern const char *fallbackShader_forcefield_vp;
+extern const char *fallbackShader_forcefield_fp;
 extern const char *fallbackShader_sun_vp;
 extern const char *fallbackShader_sun_fp;
 extern const char *fallbackShader_planet_vp;
@@ -425,6 +427,7 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_Settings3", GLSL_VEC4, 1 },
 	{ "u_Settings4", GLSL_VEC4, 1 },
 	{ "u_Settings5", GLSL_VEC4, 1 },
+	{ "u_Settings6", GLSL_VEC4, 1 },
 	{ "u_Local0", GLSL_VEC4, 1 },
 	{ "u_Local1", GLSL_VEC4, 1 },
 	{ "u_Local2", GLSL_VEC4, 1 },
@@ -702,9 +705,10 @@ const char glslMaterialsList[] =
 "#define MATERIAL_DISTORTEDPUSH					48\n"\
 "#define MATERIAL_DISTORTEDPULL					49\n"\
 "#define MATERIAL_CLOAK							50\n"\
-"#define MATERIAL_PROCEDURALFOLIAGE				51\n"\
-"#define MATERIAL_BIRD							52\n"\
-"#define MATERIAL_LAST							53\n"\
+"#define MATERIAL_FORCEFIELD					51\n"\
+"#define MATERIAL_PROCEDURALFOLIAGE				52\n"\
+"#define MATERIAL_BIRD							53\n"\
+"#define MATERIAL_LAST							54\n"\
 "#define MATERIAL_SKY							1024\n"\
 "#define MATERIAL_SUN							1025\n"\
 "\n";
@@ -1228,7 +1232,7 @@ void GLSL_AttachTransparancyTextures(void)
 {// To output dummy textures on waters in RB_IterateStagesGeneric...
 	FBO_AttachTextureImage(tr.dummyImage, 0); // dummy
 	FBO_AttachTextureImage(tr.dummyImage2, 1); // dummy
-	FBO_AttachTextureImage(tr.dummyImage3, 2); // dummy
+	FBO_AttachTextureImage(tr.renderTransparancyNormalImage, 2); // transparancy pixel normals
 	FBO_AttachTextureImage(tr.transparancyMapImage, 3); // transparancy info
 	if (r_normalMappingReal->integer)
 	{
@@ -3118,6 +3122,17 @@ int GLSL_BeginLoadGPUShaders(void)
 		}
 	}
 
+	{
+		attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL | ATTR_BONE_INDEXES | ATTR_BONE_WEIGHTS;
+
+		extradefines[0] = '\0';
+
+		if (!GLSL_BeginLoadGPUShader(&tr.forcefieldShader, "forcefield", attribs, qtrue, qfalse, qfalse, qfalse/*qtrue*/, extradefines, qtrue, NULL, fallbackShader_forcefield_vp, fallbackShader_forcefield_fp, NULL, NULL, NULL))
+		{
+			ri->Error(ERR_FATAL, "Could not load forcefield shader!");
+		}
+	}
+
 	attribs = ATTR_POSITION | ATTR_POSITION2 | ATTR_NORMAL | ATTR_NORMAL2 | ATTR_TEXCOORD0;
 	extradefines[0] = '\0';
 
@@ -3802,7 +3817,7 @@ int GLSL_BeginLoadGPUShaders(void)
 	attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL;
 	extradefines[0] = '\0';
 
-	if(!GLSL_BeginLoadGPUShader(&tr.transparancyPostShader, "transparancyPost", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_transparancyPost_vp, fallbackShader_transparancyPost_fp, NULL, NULL, NULL))
+	if(!GLSL_BeginLoadGPUShader(&tr.transparancyPostShader, "transparancyPost", attribs, qtrue, qfalse, qfalse, qfalse/*qtrue*/, extradefines, qtrue, NULL, fallbackShader_transparancyPost_vp, fallbackShader_transparancyPost_fp, NULL, NULL, NULL))
 	{
 		ri->Error(ERR_FATAL, "Could not load transparancyPost shader!");
 	}
@@ -4510,6 +4525,19 @@ void GLSL_EndLoadGPUShaders(int startTime)
 #endif
 
 		numLightShaders++;
+	}
+
+	{
+		if (!GLSL_EndLoadGPUShader(&tr.forcefieldShader))
+		{
+			ri->Error(ERR_FATAL, "Could not load forcefield shader!");
+		}
+
+		GLSL_InitUniforms(&tr.forcefieldShader);
+		GLSL_BindProgram(&tr.forcefieldShader);
+
+		GLSL_SetUniformInt(&tr.forcefieldShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+		GLSL_SetUniformInt(&tr.forcefieldShader, UNIFORM_OVERLAYMAP, TB_OVERLAYMAP);
 	}
 
 
@@ -6954,6 +6982,7 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.depthPassShader[1]);
 	GLSL_DeleteGPUShader(&tr.depthPassShader[2]);
 	GLSL_DeleteGPUShader(&tr.depthPassShader[3]);
+	GLSL_DeleteGPUShader(&tr.forcefieldShader);
 
 	//GLSL_DeleteGPUShader(&tr.sunPassShader);
 	//GLSL_DeleteGPUShader(&tr.moonPassShader);
@@ -7151,6 +7180,8 @@ void GLSL_BindProgram(shaderProgram_t * program)
 		if (program == &tr.lightAllShader[0] || program == &tr.lightAllShader[1] || program == &tr.lightAllShader[2])
 			backEnd.pc.c_lightallBinds++;
 		else if (program == &tr.lightAllSplatShader[0] || program == &tr.lightAllSplatShader[1] || program == &tr.lightAllSplatShader[2] || program == &tr.lightAllSplatShader[3])
+			backEnd.pc.c_lightallBinds++;
+		else if (program == &tr.forcefieldShader)
 			backEnd.pc.c_lightallBinds++;
 		else if (program == &tr.depthPassShader[0] || program == &tr.depthPassShader[1] || program == &tr.depthPassShader[2] || program == &tr.depthPassShader[3])
 			backEnd.pc.c_depthPassBinds++;

@@ -133,7 +133,6 @@ extern vec3_t cg_autoMapAngle;
 void CG_MiscEnt(void);
 void CG_DoCameraShake( vec3_t origin, float intensity, int radius, int time );
 
-
 //
 // Mapinfo loading...
 //
@@ -144,6 +143,12 @@ float			MAP_WATER_LEVEL = -999999.9;
 
 vec3_t			MAP_INFO_MINS;
 vec3_t			MAP_INFO_MAXS;
+
+vec3_t			TOWN_FORCEFIELD_ORIGIN;
+vec3_t			TOWN_FORCEFIELD_RADIUS;
+
+extern void CG_ForcefieldCreate(vec3_t origin, vec3_t radius, int team, int health, qboolean isTown);
+extern void CG_ForcefieldDropTownShield(void);
 
 qboolean MAPPING_LoadMapInfo(void)
 {
@@ -174,7 +179,33 @@ qboolean MAPPING_LoadMapInfo(void)
 		BIRDS_ENABLED = qfalse;
 	}
 
+	TOWN_FORCEFIELD_ORIGIN[0] = atof(IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "TOWN", "TOWN_FORCEFIELD_ORIGIN_X", "999999.9"));
+	TOWN_FORCEFIELD_ORIGIN[1] = atof(IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "TOWN", "TOWN_FORCEFIELD_ORIGIN_Y", "999999.9"));
+	TOWN_FORCEFIELD_ORIGIN[2] = atof(IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "TOWN", "TOWN_FORCEFIELD_ORIGIN_Z", "999999.9"));
+
+	TOWN_FORCEFIELD_RADIUS[0] = atof(IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "TOWN", "TOWN_FORCEFIELD_RADIUS_X", "999999.9"));
+	TOWN_FORCEFIELD_RADIUS[1] = atof(IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "TOWN", "TOWN_FORCEFIELD_RADIUS_Y", "999999.9"));
+	TOWN_FORCEFIELD_RADIUS[2] = atof(IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "TOWN", "TOWN_FORCEFIELD_RADIUS_Z", "999999.9"));
+
 	trap->Print("^1*** ^3%s^5: Birds are %s. Birds count is %i.\n", "CGAME-MAPINFO", BIRDS_ENABLED ? "Enabled" : "Disabled", BIRDS_ENABLED ? BIRDS_COUNT : 0);
+
+	if (TOWN_FORCEFIELD_ORIGIN[0] < 999990.0
+		&& TOWN_FORCEFIELD_ORIGIN[1] < 999990.0
+		&& TOWN_FORCEFIELD_ORIGIN[2] < 999990.0
+		&& TOWN_FORCEFIELD_RADIUS[0] < 999990.0
+		&& TOWN_FORCEFIELD_RADIUS[1] < 999990.0
+		&& TOWN_FORCEFIELD_RADIUS[2] < 999990.0)
+	{
+		// Drop current forcefild, in case we are reloading mapinfo...
+		CG_ForcefieldDropTownShield();
+
+		// Create a new town forcefield...
+		CG_ForcefieldCreate(TOWN_FORCEFIELD_ORIGIN, TOWN_FORCEFIELD_RADIUS, FACTION_REBEL, -999999.9, qtrue);
+
+		trap->Print("^1*** ^3%s^5: Town forcefield added at %i %i %i (radius %i %i %i).\n", "CGAME-MAPINFO"
+			, int(TOWN_FORCEFIELD_ORIGIN[0]), int(TOWN_FORCEFIELD_ORIGIN[1]), int(TOWN_FORCEFIELD_ORIGIN[2])
+			, int(TOWN_FORCEFIELD_RADIUS[0]), int(TOWN_FORCEFIELD_RADIUS[1]), int(TOWN_FORCEFIELD_RADIUS[2]));
+	}
 
 	return qtrue;
 }

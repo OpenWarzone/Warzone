@@ -4886,6 +4886,7 @@ qboolean R_MaterialUsesCubemap ( int materialType)
 	case MATERIAL_DISTORTEDPUSH:
 	case MATERIAL_DISTORTEDPULL:
 	case MATERIAL_CLOAK:
+	case MATERIAL_FORCEFIELD:
 		return qtrue;
 		break;
 	case MATERIAL_BPGLASS:			// 18			// bulletproof glass

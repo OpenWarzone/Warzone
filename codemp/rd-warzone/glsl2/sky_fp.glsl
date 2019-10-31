@@ -5,6 +5,7 @@
 #define __BACKGROUND_HILLS__
 //#define __TEST_SKY__
 #define __AURORA2__
+#define __RAINBOWS__
 
 #if defined(USE_BINDLESS_TEXTURES)
 layout(std140) uniform u_bindlessTexturesBlock
@@ -100,7 +101,7 @@ uniform vec4											u_Local9; // testvalue0, 1, 2, 3
 uniform vec4											u_Local10; // PROCEDURAL_BACKGROUND_HILLS_ENABLED, PROCEDURAL_BACKGROUND_HILLS_SMOOTHNESS, PROCEDURAL_BACKGROUND_HILLS_UPDOWN, PROCEDURAL_BACKGROUND_HILLS_SEED
 uniform vec4											u_Local11; // PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR
 uniform vec4											u_Local12; // PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR2
-uniform vec4											u_Local13; // AURORA_STRENGTH1, AURORA_STRENGTH2, 0.0, 0.0
+uniform vec4											u_Local13; // AURORA_STRENGTH1, AURORA_STRENGTH2, DYNAMIC_WEATHER_PUDDLE_STRENGTH, 0.0
 
 #define PROCEDURAL_SKY_ENABLED							u_Local1.r
 #define DAY_NIGHT_24H_TIME								u_Local1.g
@@ -141,6 +142,7 @@ uniform vec4											u_Local13; // AURORA_STRENGTH1, AURORA_STRENGTH2, 0.0, 0.
 
 #define AURORA_STRENGTH1								u_Local13.r
 #define AURORA_STRENGTH2								u_Local13.g
+#define DYNAMIC_WEATHER_PUDDLE_STRENGTH					u_Local13.b
 
 
 uniform vec2						u_Dimensions;
@@ -1749,6 +1751,53 @@ vec4 GetTestSky( in vec2 fragCoord )
 }
 #endif //__TEST_SKY__
 
+#ifdef __RAINBOWS__
+#define colorStep 0.004
+#define gradStep 0.0022
+
+// create rain bow opposite direction to the sun
+vec4 Rainbow(vec3 rayDir, vec3 sunPos)
+{
+	if (SHADER_NIGHT_SCALE >= 1.0 || DYNAMIC_WEATHER_PUDDLE_STRENGTH <= 0.0)
+	{
+		return vec4(0.0);
+	}
+
+	float nightFade = clamp(pow(1.0 - SHADER_NIGHT_SCALE, 0.5), 0.0, 1.0);
+	float wetnessFade = clamp(pow(DYNAMIC_WEATHER_PUDDLE_STRENGTH, 0.25), 0.0, 1.0);
+	float combinedFade = min(nightFade, wetnessFade);
+
+	//float visibility = pow(max(0.0, dot(vec3(sunPos.x * -1.0, 0.0, sunPos.z * -1.0), rayDir)), 20.0);
+	float visibility = pow(max(0.0, dot(vec3(sunPos.x, 0.0, sunPos.z), rayDir)), 15.0);
+
+	if (visibility <= 0.0 || combinedFade <= 0.0)
+	{
+		return vec4(0.0);
+	}
+
+	// rainbow colors based on center distance
+	float colorPos = 0.05;
+	vec4 color = mix(vec4(0.0), vec4(1.0, 0, 0, 1.0), smoothstep(colorPos, colorPos + gradStep, visibility));
+	colorPos += colorStep;
+	color = mix(color, vec4(1.0, 0.5, 0.0, 1.0), smoothstep(colorPos, colorPos + gradStep, visibility));
+	colorPos += colorStep;
+	color = mix(color, vec4(1.0, 1.0, 0.0, 1.0), smoothstep(colorPos, colorPos + gradStep, visibility));
+	colorPos += colorStep;
+	color = mix(color, vec4(0.0, 1.0, 0.0, 1.0), smoothstep(colorPos, colorPos + gradStep, visibility));
+	colorPos += colorStep;
+	color = mix(color, vec4(0.0, 0.2, 1.0, 1.0), smoothstep(colorPos, colorPos + gradStep, visibility));
+	colorPos += colorStep;
+	color = mix(color, vec4(0.0, 0.0, 0.9, 1.0), smoothstep(colorPos, colorPos + gradStep, visibility));
+	colorPos += colorStep;
+	color = mix(color, vec4(0.3, 0.0, 1.0, 1.0), smoothstep(colorPos, colorPos + gradStep, visibility));
+	colorPos += colorStep;
+	color = mix(color, vec4(0.0), smoothstep(colorPos, colorPos + gradStep, visibility));
+
+	// tone rainbow colors to transparent the closer to rayDir = 0.0 we get
+	return color*visibility*3.5/*4.5*/*mix(0.0, 1.0, smoothstep(0.3, 0.0, length(0.3 - rayDir.y)))*combinedFade;
+}
+#endif //__RAINBOWS__
+
 
 void main()
 {
@@ -1758,6 +1807,11 @@ void main()
 	vec4 sun = vec4(0.0);
 	vec4 clouds = vec4(0.0);
 	vec4 pCol = vec4(0.0);
+	vec3 position = var_Position.xzy;
+	vec3 lightPosition = u_PrimaryLightOrigin.xzy;
+	vec3 skyViewDir = normalize(position);
+	vec3 skyViewDir2 = normalize(u_ViewOrigin.xzy - position);
+	vec3 skySunDir = normalize(lightPosition);
 #if defined(__CLOUDS__) || defined(__CLOUDS2__)
 	float cloudiness = clamp(CLOUDS_CLOUDCOVER*0.3, 0.0, 0.3);
 #endif //defined(__CLOUDS__) || defined(__CLOUDS2__)
@@ -1786,12 +1840,6 @@ void main()
 		}
 		else
 		{
-			vec3 position = var_Position.xzy;
-			vec3 lightPosition = u_PrimaryLightOrigin.xzy;
-
-			vec3 skyViewDir = normalize(position);
-			vec3 skyViewDir2 = normalize(u_ViewOrigin.xzy - var_Position.xzy);
-			vec3 skySunDir = normalize(lightPosition);
 			vec3 atmos = extra_cheap_atmosphere(skyViewDir, skyViewDir2, skySunDir, sunColorMod);
 
 #ifdef __BACKGROUND_HILLS__
@@ -1851,6 +1899,11 @@ void main()
 				gl_FragColor = vec4(sun.rgb * sunColorMod, sun.a*(1.0-clouds.a));
 			}
 		}
+
+#ifdef __RAINBOWS__
+		vec4 rainbow = Rainbow(skyViewDir, vec3(0.9, 1.0, 0.3));
+		gl_FragColor.rgb = mix(gl_FragColor.rgb, gl_FragColor.rgb + rainbow.rgb, rainbow.a);
+#endif //__RAINBOWS__
 
 #define night_const_1 (PROCEDURAL_SKY_NIGHT_HDR_MIN / 255.0)
 #define night_const_2 (255.0 / PROCEDURAL_SKY_NIGHT_HDR_MAX)

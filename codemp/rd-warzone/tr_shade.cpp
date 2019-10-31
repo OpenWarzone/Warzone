@@ -2168,6 +2168,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	qboolean isPush = qfalse;
 	qboolean isPull = qfalse;
 	qboolean isCloak = qfalse;
+	qboolean isForcefield = qfalse;
 	qboolean isEmissiveBlack = qfalse;
 
 	float tessInner = 0.0;
@@ -2831,6 +2832,29 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			}
 			else
 			{// Only do one stage on GLSL water...
+				break;
+			}
+
+			GLSL_BindProgram(sp);
+		}
+		else if (tess.shader->materialType == MATERIAL_FORCEFIELD)
+		{
+			if (IS_DEPTH_PASS == 1)
+			{
+				break;
+			}
+			else if (stage <= 0)
+			{
+				//sp = &tr.waterPostForwardShader;
+				//pStage->glslShaderGroup = &tr.waterPostForwardShader;
+				//isForcefield = qtrue;
+				
+				sp = &tr.forcefieldShader;
+				pStage->glslShaderGroup = &tr.forcefieldShader;
+				backEnd.pc.c_lightallDraws++;
+			}
+			else
+			{// Only do one stage on GLSL force fields...
 				break;
 			}
 
@@ -3523,6 +3547,13 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 						(ENABLE_CHRISTMAS_EFFECT && tess.shader->materialType == MATERIAL_GREENLEAVES) ? 1.0 : 0.0);
 					GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS5, vec);
 				}
+
+				VectorSet4(vec,
+					WATEREDGE_RANGE_MULTIPLIER,
+					0.0,
+					0.0,
+					0.0);
+				GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS6, vec);
 
 				if (backEnd.currentEntity && backEnd.currentEntity->e.ignoreCull)
 					GLSL_SetUniformFloat(sp, UNIFORM_ZFAR, 999999.9);
@@ -5015,6 +5046,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					else if (pStage->bundle[TB_COLORMAP].image[0] != 0)
 						GLSL_SetBindlessTexture(sp, UNIFORM_DIFFUSEMAP, &pStage->bundle[TB_COLORMAP].image[0], 0);
 				}
+				else if (sp == &tr.forcefieldShader)
+				{
+					GLSL_SetBindlessTexture(sp, UNIFORM_DIFFUSEMAP, &tr.forcefieldImage, 0);
+				}
 				else if ((tr.viewParms.flags & VPF_SHADOWPASS))
 				{
 					if (pStage->bundle[TB_DIFFUSEMAP].image[0])
@@ -5156,6 +5191,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 						GL_BindToTMU(tr.whiteImage, 0);
 					else if (pStage->bundle[TB_COLORMAP].image[0] != 0)
 						R_BindAnimatedImageToTMU(&pStage->bundle[TB_COLORMAP], TB_COLORMAP);
+				}
+				else if (sp == &tr.forcefieldShader)
+				{
+					GL_BindToTMU(tr.forcefieldImage, TB_DIFFUSEMAP);
 				}
 				else if (tess.shader->materialType == MATERIAL_LAVA)
 				{// Don't need any textures... Procedural...
@@ -5552,11 +5591,11 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				break;
 			}
 		}
-		else if (isGlass || isPush || isPull || isCloak)
+		else if (isGlass || isPush || isPull || isCloak || isForcefield)
 		{// Attach dummy transparancy output textures...
 			backEnd.pc.c_transparancyDraws++;
 
-			if (glState.currentFBO == tr.renderFbo)
+			if (glState.currentFBO == tr.renderFbo || glState.currentFBO == tr.renderTransparancyFbo)
 			{// Only attach textures when doing a render pass...
 				if (isPush)
 				{
@@ -5597,6 +5636,19 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					}
 					stateBits = GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_ATEST_GT_0;
 				}
+				else if (isForcefield)
+				{
+					if (sp->isBindless)
+					{
+						GLSL_SetBindlessTexture(sp, UNIFORM_DIFFUSEMAP, &tr.whiteImage, 0);
+					}
+					else
+					{
+						GLSL_SetUniformInt(sp, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+						GL_BindToTMU(tr.whiteImage, TB_DIFFUSEMAP);
+					}
+					stateBits = GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_ATEST_GT_0;
+				}
 				else // distorted glass
 				{
 					stateBits = GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_ATEST_GT_0;
@@ -5621,6 +5673,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				else if (isCloak)
 				{
 					material = 5.0;
+				}
+				else if (isForcefield)
+				{
+					material = 6.0;
 				}
 
 				vec4_t passInfo;

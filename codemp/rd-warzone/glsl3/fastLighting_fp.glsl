@@ -284,6 +284,7 @@ float RB_PBR_DefaultsForMaterial(float MATERIAL_TYPE)
 	case MATERIAL_DISTORTEDPUSH:
 	case MATERIAL_DISTORTEDPULL:
 	case MATERIAL_CLOAK:
+	case MATERIAL_FORCEFIELD:
 		specularReflectionScale = 0.035;
 		break;
 	case MATERIAL_BPGLASS:			// 18			// bulletproof glass
@@ -500,6 +501,7 @@ void main(void)
 		|| position.a - 1.0 == MATERIAL_DISTORTEDPUSH
 		|| position.a - 1.0 == MATERIAL_DISTORTEDPULL
 		|| position.a - 1.0 == MATERIAL_CLOAK
+		|| position.a - 1.0 == MATERIAL_FORCEFIELD
 		|| position.a - 1.0 == MATERIAL_EFX
 		|| position.a - 1.0 == MATERIAL_BLASTERBOLT
 		|| position.a - 1.0 == MATERIAL_FIRE

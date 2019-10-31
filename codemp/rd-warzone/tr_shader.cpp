@@ -3956,6 +3956,7 @@ qboolean HaveSurfaceType( int materialType)
 	case MATERIAL_DISTORTEDPUSH:
 	case MATERIAL_DISTORTEDPULL:
 	case MATERIAL_CLOAK:
+	case MATERIAL_FORCEFIELD:
 	case MATERIAL_PROCEDURALFOLIAGE:
 	case MATERIAL_BIRD:
 		return qtrue;
@@ -4132,6 +4133,9 @@ void DebugSurfaceTypeSelection( const char *name, int materialType)
 	case MATERIAL_CLOAK:
 		ri->Printf(PRINT_WARNING, "Surface %s was set to MATERIAL_CLOAK.\n", name);
 		break;
+	case MATERIAL_FORCEFIELD:
+		ri->Printf(PRINT_WARNING, "Surface %s was set to MATERIAL_FORCEFIELD.\n", name);
+		break;
 	case MATERIAL_PROCEDURALFOLIAGE:
 		ri->Printf(PRINT_WARNING, "Surface %s was set to MATERIAL_PROCEDURALFOLIAGE.\n", name);
 		break;
@@ -4301,6 +4305,8 @@ int DetectMaterialType ( const char *name )
 	case MATERIAL_DISTORTEDPULL:
 		break;
 	case MATERIAL_CLOAK:
+		break;
+	case MATERIAL_FORCEFIELD:
 		break;
 	default:
 		if (isEfxShader && sh->materialType != MATERIAL_MENU_BACKGROUND) sh->materialType = MATERIAL_EFX;
@@ -8505,6 +8511,8 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 					break;
 				case MATERIAL_CLOAK:
 					break;
+				case MATERIAL_FORCEFIELD:
+					break;
 				default:
 					if (isEfxShader && sh->materialType != MATERIAL_MENU_BACKGROUND) sh->materialType = MATERIAL_EFX;
 					if (sh->materialType == MATERIAL_NONE) sh->materialType = material;
@@ -8541,6 +8549,8 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 					break;
 				case MATERIAL_CLOAK:
 					break;
+				case MATERIAL_FORCEFIELD:
+					break;
 				default:
 					if (isEfxShader && sh->materialType != MATERIAL_MENU_BACKGROUND) sh->materialType = MATERIAL_EFX;
 					if (sh->materialType == MATERIAL_NONE) sh->materialType = material;
@@ -8576,6 +8586,8 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 				case MATERIAL_DISTORTEDPULL:
 					break;
 				case MATERIAL_CLOAK:
+					break;
+				case MATERIAL_FORCEFIELD:
 					break;
 				default:
 					if (isEfxShader && sh->materialType != MATERIAL_MENU_BACKGROUND) sh->materialType = MATERIAL_EFX;
@@ -8898,6 +8910,8 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 			case MATERIAL_DISTORTEDPULL:
 				break;
 			case MATERIAL_CLOAK:
+				break;
+			case MATERIAL_FORCEFIELD:
 				break;
 			default:
 				if (isEfxShader && sh->materialType != MATERIAL_MENU_BACKGROUND) sh->materialType = MATERIAL_EFX;

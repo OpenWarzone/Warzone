@@ -3792,6 +3792,7 @@ qboolean MaterialIsValidForWP(int materialType)
 	case MATERIAL_DISTORTEDPUSH:
 	case MATERIAL_DISTORTEDPULL:
 	case MATERIAL_CLOAK:
+	case MATERIAL_FORCEFIELD:
 		return qtrue;
 		break;
 	case MATERIAL_ROCK:				// 23			//
@@ -4228,6 +4229,9 @@ void DebugSurfaceType( int materialType)
 		break;
 	case MATERIAL_CLOAK:
 		trap->Print("Surface material is MATERIAL_CLOAK.\n");
+		break;
+	case MATERIAL_FORCEFIELD:
+		trap->Print("Surface material is MATERIAL_FORCEFIELD.\n");
 		break;
 	default:
 		trap->Print("Surface material is MATERIAL_NONE.\n");
