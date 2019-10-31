@@ -195,6 +195,7 @@ void main()
 	vec4 color = texture(u_DiffuseMap, offset.xy);
 
 	gl_FragColor = color * 0.5 + glow * 0.25;
+	gl_FragColor.rgb *= vec3(0.75, 0.75, 1.75);
 	gl_FragColor.a = glow * 0.3 + 0.25;
 	
 	//

@@ -2104,8 +2104,8 @@ void RB_TransparancyPost(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 		GLSL_SetBindlessTexture(shader, UNIFORM_DIFFUSEMAP, &hdrFbo->colorImage[0], 0);
 		GLSL_SetBindlessTexture(shader, UNIFORM_POSITIONMAP, &tr.renderPositionMapImage, 0);
 		GLSL_SetBindlessTexture(shader, UNIFORM_WATERPOSITIONMAP, &tr.transparancyMapImage, 0);
-		GLSL_SetBindlessTexture(shader, UNIFORM_SCREENDEPTHMAP, &tr.linearDepthImageZfar, 0);
-		GLSL_SetBindlessTexture(shader, UNIFORM_NORMALMAP, &tr.renderTransparancyNormalImage, 0);
+		//GLSL_SetBindlessTexture(shader, UNIFORM_SCREENDEPTHMAP, &tr.linearDepthImageZfar, 0);
+		//GLSL_SetBindlessTexture(shader, UNIFORM_NORMALMAP, &tr.renderTransparancyNormalImage, 0);
 		GLSL_SetBindlessTexture(shader, UNIFORM_OVERLAYMAP, &tr.forcefieldImage, 0);
 		GLSL_BindlessUpdate(shader);
 	}
@@ -2120,11 +2120,11 @@ void RB_TransparancyPost(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 		GLSL_SetUniformInt(shader, UNIFORM_WATERPOSITIONMAP, TB_WATERPOSITIONMAP);
 		GL_BindToTMU(tr.transparancyMapImage, TB_WATERPOSITIONMAP);
 
-		GLSL_SetUniformInt(shader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
-		GL_BindToTMU(tr.linearDepthImageZfar, TB_LIGHTMAP);
+		//GLSL_SetUniformInt(shader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
+		//GL_BindToTMU(tr.linearDepthImageZfar, TB_LIGHTMAP);
 
-		GLSL_SetUniformInt(shader, UNIFORM_NORMALMAP, TB_NORMALMAP);
-		GL_BindToTMU(tr.renderTransparancyNormalImage, TB_NORMALMAP);
+		//GLSL_SetUniformInt(shader, UNIFORM_NORMALMAP, TB_NORMALMAP);
+		//GL_BindToTMU(tr.renderTransparancyNormalImage, TB_NORMALMAP);
 
 		GLSL_SetUniformInt(shader, UNIFORM_OVERLAYMAP, TB_OVERLAYMAP);
 		GL_BindToTMU(tr.forcefieldImage, TB_OVERLAYMAP);
