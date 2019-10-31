@@ -2629,6 +2629,11 @@ static int BSPSurfaceCompare(const void *a, const void *b)
 	else if (qboolean(aa->shader->materialType == MATERIAL_LAVA) > qboolean(bb->shader->materialType == MATERIAL_LAVA))
 		return 1;
 
+	if (qboolean(aa->shader->materialType == MATERIAL_FORCEFIELD) < qboolean(bb->shader->materialType == MATERIAL_FORCEFIELD))
+		return -1;
+	else if (qboolean(aa->shader->materialType == MATERIAL_FORCEFIELD) > qboolean(bb->shader->materialType == MATERIAL_FORCEFIELD))
+		return 1;
+
 	//if (qboolean(aa->shader->materialType == MATERIAL_BIRD) < qboolean(bb->shader->materialType == MATERIAL_BIRD))
 	//	return -1;
 	//else if (qboolean(aa->shader->materialType == MATERIAL_BIRD) > qboolean(bb->shader->materialType == MATERIAL_BIRD))
