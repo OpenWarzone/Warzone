@@ -3127,7 +3127,7 @@ int GLSL_BeginLoadGPUShaders(void)
 
 		extradefines[0] = '\0';
 
-		if (!GLSL_BeginLoadGPUShader(&tr.forcefieldShader, "forcefield", attribs, qtrue, qfalse, qfalse, qfalse/*qtrue*/, extradefines, qtrue, NULL, fallbackShader_forcefield_vp, fallbackShader_forcefield_fp, NULL, NULL, NULL))
+		if (!GLSL_BeginLoadGPUShader(&tr.forcefieldShader, "forcefield", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_forcefield_vp, fallbackShader_forcefield_fp, NULL, NULL, NULL))
 		{
 			ri->Error(ERR_FATAL, "Could not load forcefield shader!");
 		}
