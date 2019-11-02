@@ -2212,6 +2212,24 @@ void R_AddEntitySurfaces (void) {
 //#endif //__INSTANCED_MODELS__
 }
 
+void R_AddIgnoreCullEntitySurfaces(void) {
+	int i;
+
+	if (!r_drawentities->integer) {
+		return;
+	}
+
+	for (i = 0; i < tr.refdef.num_entities; i++)
+	{
+		trRefEntity_t	*ent = &tr.refdef.entities[i];
+
+		if (ent && ent->e.ignoreCull)
+		{
+			R_AddEntitySurface(i);
+		}
+	}
+}
+
 /*
 ====================
 R_GenerateDrawSurfs
@@ -3422,6 +3440,10 @@ void R_RenderSunShadowMaps(const refdef_t *fd, int level, vec4_t sunDir, float l
 			{
 				//R_AddPolygonSurfaces(); // UQ1: Don't really need these on the shadow map...
 				R_AddEntitySurfaces();
+			}
+			else
+			{// Still draw any models that are set to ignore culling (event ships, etc)...
+				R_AddIgnoreCullEntitySurfaces();
 			}
 
 			R_SortDrawSurfs( tr.refdef.drawSurfs + firstDrawSurf, tr.refdef.numDrawSurfs - firstDrawSurf );

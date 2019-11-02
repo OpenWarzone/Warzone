@@ -119,6 +119,125 @@ qhandle_t R_RegisterMD3(const char *name, model_t *mod)
 	return 0;
 }
 
+
+//#define __REGEN_MODEL_NORMALS__
+
+#ifdef __REGEN_MODEL_NORMALS__
+void GenerateNormalsForMesh(mdvSurface_t *cv)
+{
+	for (int i = 0; i < cv->numIndexes; i += 3)
+	{
+		int tri[3];
+		tri[0] = cv->indexes[i];
+		tri[1] = cv->indexes[i + 1];
+		tri[2] = cv->indexes[i + 2];
+
+		if (tri[0] >= cv->numVerts)
+		{
+			//ri->Printf(PRINT_WARNING, "Shitty BSP index data - Bad index in face surface (vert) %i >=  (maxVerts) %i.", tri[0], cv->numVerts);
+			return;
+		}
+		if (tri[1] >= cv->numVerts)
+		{
+			//ri->Printf(PRINT_WARNING, "Shitty BSP index data - Bad index in face surface (vert) %i >=  (maxVerts) %i.", tri[1], cv->numVerts);
+			return;
+		}
+		if (tri[2] >= cv->numVerts)
+		{
+			//ri->Printf(PRINT_WARNING, "Shitty BSP index data - Bad index in face surface (vert) %i >=  (maxVerts) %i.", tri[2], cv->numVerts);
+			return;
+		}
+
+		float* a = (float *)cv->verts[tri[0]].xyz;
+		float* b = (float *)cv->verts[tri[1]].xyz;
+		float* c = (float *)cv->verts[tri[2]].xyz;
+		vec3_t ba, ca;
+		VectorSubtract(b, a, ba);
+		VectorSubtract(c, a, ca);
+
+		vec3_t normal;
+		CrossProduct(ca, ba, normal);
+		VectorNormalize(normal);
+
+		//ri->Printf(PRINT_WARNING, "OLD: %f %f %f. NEW: %f %f %f.\n", cv->verts[tri[0]].normal[0], cv->verts[tri[0]].normal[1], cv->verts[tri[0]].normal[2], normal[0], normal[1], normal[2]);
+
+#pragma omp critical
+		{
+			VectorCopy(normal, cv->verts[tri[0]].normal);
+			VectorCopy(normal, cv->verts[tri[1]].normal);
+			VectorCopy(normal, cv->verts[tri[2]].normal);
+		}
+	}
+}
+
+extern bool ValidForSmoothing(vec3_t v1, vec3_t n1, vec3_t v2, vec3_t n2);
+
+void GenerateSmoothNormalsForSurface(mdvSurface_t *cv)
+{
+	int numVerts = cv->numVerts;
+	int numIndexes = cv->numIndexes;
+
+	mdvVertex_t *verts = cv->verts;
+
+#define __MULTIPASS_SMOOTHING__ // Looks better, but takes a lot longer...
+
+#ifdef __MULTIPASS_SMOOTHING__
+	for (int z = 0; z < 3; z++)
+#endif //__MULTIPASS_SMOOTHING__
+	{
+		//#pragma omp parallel for schedule(dynamic)
+		for (int i = 0; i < numVerts; i++)
+		{
+			//ri->Printf(PRINT_WARNING, "%i of %i.\n", i, numVerts);
+
+			qboolean updated = qfalse;
+			vec3_t finalNormal;
+
+			VectorCopy(verts[i].normal, finalNormal);
+
+			for (int j = 0; j < numVerts; j++)
+			{
+				if (j == i) continue;
+
+				vec3_t n2;
+
+				//if (Distance(verts[i].position, verts[j].position) > 0.0) continue;
+				if (!VectorCompare(verts[i].xyz, verts[j].xyz)) continue;
+
+				if (ValidForSmoothing(verts[i].xyz, verts[i].normal, verts[j].xyz, verts[j].normal))
+				{
+					VectorAdd(finalNormal, n2, finalNormal);
+#ifndef __MULTIPASS_SMOOTHING__
+					VectorAdd(finalNormal, n2, finalNormal);
+					VectorAdd(finalNormal, n2, finalNormal);
+					VectorAdd(finalNormal, n2, finalNormal);
+					VectorAdd(finalNormal, n2, finalNormal);
+#endif //__MULTIPASS_SMOOTHING__
+
+					updated = qtrue;
+				}
+			}
+
+			if (updated)
+			{
+				VectorNormalize(finalNormal);
+
+#pragma omp critical (__SET_SMOOTH_NORMAL__)
+				{
+					VectorCopy(finalNormal, verts[i].normal);
+				}
+			}
+		}
+	}
+}
+
+void GenerateEnhancedNormalsForSurface(mdvSurface_t *cv)
+{
+	GenerateNormalsForMesh(cv);
+	GenerateSmoothNormalsForSurface(cv);
+}
+#endif //__REGEN_MODEL_NORMALS__
+
 // assimp include files. These three are usually needed.
 #include "assimp/Importer.hpp"	//OO version Header!
 #include "assimp/postprocess.h"
@@ -301,6 +420,10 @@ static qboolean R_LoadAssImp(model_t * mod, int lod, void *buffer, const char *m
 
 #define ASSIMP_MODEL_SCALE 64.0
 
+	//assImpImporter.SetPropertyFloat(AI_CONFIG_PP_GSN_MAX_SMOOTHING_ANGLE, 80.f);
+	assImpImporter.SetPropertyFloat(AI_CONFIG_PP_GSN_MAX_SMOOTHING_ANGLE, 45.f);
+
+#if 1
 #define aiProcessPreset_TargetRealtime_MaxQuality_Fix ( \
 	aiProcessPreset_TargetRealtime_Quality	|  \
 	aiProcess_FlipWindingOrder			|  \
@@ -311,6 +434,45 @@ static qboolean R_LoadAssImp(model_t * mod, int lod, void *buffer, const char *m
     0 )
 
 	//aiProcess_OptimizeGraph                  |  \
+
+#elif 0
+#define aiProcessPreset_TargetRealtime_MaxQuality_Fix ( \
+	aiProcess_OptimizeMeshes				|  \
+    aiProcess_JoinIdenticalVertices         |  \
+    aiProcess_ImproveCacheLocality          |  \
+    aiProcess_RemoveRedundantMaterials      |  \
+    aiProcess_Triangulate                   |  \
+    aiProcess_GenUVCoords                   |  \
+    aiProcess_SortByPType                   |  \
+    aiProcess_FindDegenerates               |  \
+    aiProcess_FindInvalidData               |  \
+	aiProcess_FlipWindingOrder				|  \
+	aiProcess_RemoveRedundantMaterials		|  \
+    aiProcess_ValidateDataStructure			|  \
+	0 )
+#else
+#define aiProcessPreset_TargetRealtime_MaxQuality_Fix ( \
+	aiProcess_OptimizeMeshes				|  \
+	aiProcess_GenSmoothNormals              |  \
+    aiProcess_JoinIdenticalVertices         |  \
+    aiProcess_ImproveCacheLocality          |  \
+    aiProcess_RemoveRedundantMaterials      |  \
+    aiProcess_Triangulate                   |  \
+    aiProcess_GenUVCoords                   |  \
+    aiProcess_SortByPType                   |  \
+    aiProcess_FindDegenerates               |  \
+    aiProcess_FindInvalidData               |  \
+	aiProcess_FlipWindingOrder				|  \
+    aiProcess_ValidateDataStructure			|  \
+	0 )
+
+	//    aiProcess_SplitLargeMeshes              |  \
+	//    aiProcess_FindInstances					|  \
+
+	//   aiProcess_GenNormals
+
+	// >#AI_CONFIG_PP_GSN_MAX_SMOOTHING_ANGLE
+#endif
 
 	const aiScene* scene = assImpImporter.ReadFileFromMemory(buffer, size, aiProcessPreset_TargetRealtime_MaxQuality_Fix, ext);
 	
@@ -921,6 +1083,10 @@ static qboolean R_LoadAssImp(model_t * mod, int lod, void *buffer, const char *m
 			vec2_t *texcoords;
 			uint32_t *normals;
 
+#ifdef __REGEN_MODEL_NORMALS__
+			GenerateEnhancedNormalsForSurface(surf);
+#endif //__REGEN_MODEL_NORMALS__
+
 			byte *data;
 			int dataSize;
 
@@ -966,6 +1132,7 @@ static qboolean R_LoadAssImp(model_t * mod, int lod, void *buffer, const char *m
 #ifdef __MESH_OPTIMIZATION__
 			R_OptimizeMesh((uint32_t *)&surf->numVerts, (uint32_t *)&surf->numIndexes, surf->indexes, verts);
 #endif //__MESH_OPTIMIZATION__
+
 
 			vboSurf->surfaceType = SF_VBO_MDVMESH;
 			vboSurf->mdvModel = mdvModel;

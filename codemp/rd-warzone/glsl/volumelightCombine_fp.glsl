@@ -108,10 +108,10 @@ void main()
 	volumeLight.rgb = clamp((clamp(volumeLight.rgb - const_1, 0.0, 1.0)) * const_2, 0.0, 1.0);
 #endif
 
-if (u_Local1.g <= 0.0)
-{// Bloom rays get amplified...
-	volumeLight.rgb *= 3.0;
-}
+	if (u_Local1.g <= 0.0)
+	{// Bloom rays get amplified...
+		volumeLight.rgb *= 3.0;
+	}
 
 #ifdef DEBUG
 	gl_FragColor.rgb = volumeLight;

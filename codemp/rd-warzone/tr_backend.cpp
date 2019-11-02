@@ -1618,6 +1618,7 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 			{
 				if (!backEnd.depthFill
 					&& drawSurf->depthDrawOnly
+					&& !(thisEntityNum != REFENTITYNUM_WORLD && backEnd.refdef.entities[thisEntityNum].e.ignoreCull)
 					&& !backEnd.projection2D
 					&& !thisShader->isSky
 					&& !thisShader->isWater

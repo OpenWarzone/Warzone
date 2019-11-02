@@ -2153,6 +2153,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	float	deformParams[7];
 
 	int useTesselation = 0;
+	qboolean ignoreCull = qfalse;
 	qboolean isWorld = qfalse;
 	qboolean isWater = qfalse;
 	qboolean isFakeGrass = qfalse;
@@ -2180,6 +2181,11 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	if ((tess.shader->isIndoor) && (tr.viewParms.flags & VPF_SHADOWPASS))
 	{// Don't draw stuff marked as inside to sun shadow map...
 		return;
+	}
+
+	if (backEnd.currentEntity != NULL && backEnd.currentEntity != &tr.worldEntity && backEnd.currentEntity->e.ignoreCull /*&& (tr.viewParms.flags & VPF_DEPTHSHADOW)*/)
+	{
+		ignoreCull = qtrue;
 	}
 
 	ComputeDeformValues(&deformGen, deformParams);
@@ -3036,7 +3042,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			&& !((tr.viewParms.flags & VPF_EMISSIVEMAP) && (pStage->glow || pStage->glowMapped)))
 		{
 			lightMapsDisabled = qtrue;
-			if (IS_DEPTH_PASS && !is2D && stage > 0) return;
+			if (IS_DEPTH_PASS && !is2D && stage > 0 && !ignoreCull) return;
 
 #ifdef __USE_DETAIL_CHECKING__
 #ifdef __USE_DETAIL_DEPTH_SKIP__
@@ -3045,12 +3051,12 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				continue;
 			}
 
-			if (stage > 0 && didNonDetail && !pStage->glow)
+			if (stage > 0 && didNonDetail && !pStage->glow && !ignoreCull)
 			{
 				continue;
 			}
 
-			if (pStage->isDetail && !pStage->glow)
+			if (pStage->isDetail && !pStage->glow && !ignoreCull)
 			{// Don't waste the time...
 				continue;
 			}
@@ -3099,7 +3105,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			{
 				didNonDetail = qtrue;
 			}
-			else
+			else if (!ignoreCull)
 			{
 				continue;
 			}
@@ -3555,7 +3561,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					0.0);
 				GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS6, vec);
 
-				if (backEnd.currentEntity && backEnd.currentEntity->e.ignoreCull)
+				if (ignoreCull)
 					GLSL_SetUniformFloat(sp, UNIFORM_ZFAR, 999999.9);
 				else
 					GLSL_SetUniformFloat(sp, UNIFORM_ZFAR, (ENABLE_OCCLUSION_CULLING && r_occlusion->integer) ? tr.occlusionZfar : backEnd.viewParms.zFar);
@@ -6006,16 +6012,17 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL18, zero);
 		}
 
-		/*if ((tr.viewParms.flags & VPF_DEPTHSHADOW) && nightScale > 0.0)
-		{// Shadow draws are always 2 sided, to cull sun from behind the object.
-			//GL_Cull(CT_TWO_SIDED);
-			if (r_testvalue0->integer > 1)
-				GL_Cull(CT_TWO_SIDED);
-			else if (r_testvalue0->integer)
-				GL_Cull(CT_FRONT_SIDED);
-			else
-				GL_Cull(CT_BACK_SIDED);
-		}*/
+#if 0
+		if ((tr.viewParms.flags & VPF_DEPTHSHADOW) /*&& nightScale > 0.0*/)
+		{// Shadow draws are always 2 sided.
+			GL_Cull(CT_TWO_SIDED);
+		}
+#endif
+
+		if (ignoreCull)
+		{
+			GL_Cull(CT_TWO_SIDED);
+		}
 
 		if (tess.shader->materialType == MATERIAL_BIRD && backEnd.currentEntity != NULL && backEnd.currentEntity != &tr.worldEntity)
 		{// Flying birds, send center origin for animating wings...

@@ -1,6 +1,7 @@
 ﻿#define __PROCEDURALS_IN_DEFERRED_SHADER__
 #define __SSDM_IN_DEFERRED_SHADER__
-
+#define __LIGHTING_USE_MAX__
+#define __LIGHTING_USE_DESATURATE__
 
 #ifndef __LQ_MODE__
 	#define __AMBIENT_OCCLUSION__
@@ -1837,6 +1838,10 @@ void main(void)
 								vec3 lightDir = normalize(lightPos - position.xyz);
 								vec3 lightColor = (u_lightColors[li].rgb / length(u_lightColors[li].rgb)) * MAP_EMISSIVE_COLOR_SCALE * maxLightsScale;
 								float selfShadow = clamp(pow(clamp(dot(-lightDir.rgb, bump.rgb), 0.0, 1.0), 8.0) * 0.6 + 0.6, 0.0, 1.0);
+
+#ifdef __LIGHTING_USE_DESATURATE__
+								lightColor.rgb = mix(lightColor.rgb, vec3(1.0), 0.85); // bend all lights towards white, to even strengths and make the jka colors less, ummm, cartoony... real world light is more grey then white/black.
+#endif //__LIGHTING_USE_DESATURATE__
 				
 								lightColor = lightColor * power * origColorStrength;
 
@@ -1851,14 +1856,22 @@ void main(void)
 								}
 #endif //__LQ_MODE__
 
+#ifdef __LIGHTING_USE_MAX__
+								addedLight.rgb = max(addedLight.rgb, blinn_phong(position.xyz, outColor.rgb, bump, E, lightDir, clamp(lightColor, 0.0, 1.0), lightSpecularPower, lightPos, wetness) * lightFade * selfShadow * light_occlusion);
+#else //!__LIGHTING_USE_MAX__
 								addedLight.rgb += blinn_phong(position.xyz, outColor.rgb, bump, E, lightDir, clamp(lightColor, 0.0, 1.0), lightSpecularPower, lightPos, wetness) * lightFade * selfShadow * light_occlusion;
+#endif //__LIGHTING_USE_MAX__
 
 								if (position.a - 1.0 == MATERIAL_GREENLEAVES || position.a - 1.0 == MATERIAL_PROCEDURALFOLIAGE)
 								{// Light bleeding through tree leaves...
 									float ndotl = clamp(dot(bump, -lightDir), 0.0, 1.0);
 									float diffuse = pow(ndotl, 2.0) * 4.0;
 
+#ifdef __LIGHTING_USE_MAX__
+									addedLight.rgb = max(addedLight.rgb, lightColor * diffuse * lightFade * selfShadow * lightSpecularPower);
+#else //!__LIGHTING_USE_MAX__
 									addedLight.rgb += lightColor * diffuse * lightFade * selfShadow * lightSpecularPower;
+#endif //__LIGHTING_USE_MAX__
 								}
 							}
 						}
