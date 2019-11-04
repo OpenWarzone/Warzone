@@ -47,6 +47,7 @@ uniform sampler2D   u_ScreenDepthMap;	// depth
 uniform sampler2D   u_PositionMap;		// position map
 uniform sampler2D   u_NormalMap;		// normal map
 uniform sampler2D   u_OverlayMap;		// detailed normal map
+uniform sampler2D   u_GlowMap;			// screen glow map
 #endif //defined(USE_BINDLESS_TEXTURES)
 
 uniform vec2        u_Dimensions;
@@ -62,15 +63,27 @@ varying vec3	var_Position;
 
 
 #ifdef __USE_REAL_NORMALMAPS__
-//#define __USE_DETAIL_NORMALS__ // Not needed. Waste of time...
+	//#define __USE_DETAIL_NORMALS__ // Not needed. Waste of time...
 #endif //__USE_REAL_NORMALMAPS__
 
 #ifdef __USE_DETAIL_NORMALS__
-#define __FAST_NORMAL_DETAIL__
+	#define __FAST_NORMAL_DETAIL__
 #endif //__USE_DETAIL_NORMALS__
 
-#define NUM_OCCLUSION_CHECKS 8
-//#define NUM_OCCLUSION_CHECKS 16
+
+#if defined(AO_QUALITY_3)
+	#define NUM_OCCLUSION_CHECKS 16
+	#define NUM_GI_CHECKS 8
+#elif defined(AO_QUALITY_2)
+	#define NUM_OCCLUSION_CHECKS 8
+	#define NUM_GI_CHECKS 4
+#else //defined(AO_QUALITY_1)
+	#define NUM_OCCLUSION_CHECKS 4
+	#define NUM_GI_CHECKS 3
+#endif //defined(AO_QUALITY_1)
+
+
+#define __ENABLE_GI__
 
 
 //#define __ENCODE_NORMALS_RECONSTRUCT_Z__
@@ -140,6 +153,82 @@ vec2 EncodeNormal(vec3 n)
 }
 #endif //__ENCODE_NORMALS_RECONSTRUCT_Z__
 
+#if 0
+vec2 toRGB565(in vec3 c)
+{
+        // Convert from [0,1] to [0,31] - 32 possible values for 
+        // 5 bits (R & G components)
+	ivec2 outcInt = ivec2(c.rb * 31.0);
+
+        // Convert from [0,1] to [0,64] - 64 possible values for 
+        // 6 bits (B component)
+	int green = int(c.g*63.0);
+
+        /*
+            Target bits : 
+            GGGRRRRR GGGBBBBB
+        */
+                
+        // In x component, keep the low 3 bits of green
+        // In y component, keep the high 3 bits of green & 
+        // move them to become the low 3 bits
+	
+        ivec2 LOHI = ivec2(green & 7,green >> 3); //-> bitwise version
+        //ivec2 LOHI = ivec2(mod(green,8), green / pow(2,3)); //-> your version
+        
+        // move both by 5 bits so that they lie in the final
+        // 3 bits of each component
+	LOHI <<= ivec2(5); //->bitwise version
+    //LOHI = LOHI * pow(2,5);
+        
+        // OR it now with the r/g components
+        // RG is limited to 5 bits so we have no overlap
+        // Divide by 255 to rearrange it to [0,1]
+
+	return (vec2(outcInt | LOHI) / 255.0); //-> bitwise version
+	//return (vec2(outcInt + LOHI) / 255.0); //-> your version, it is ok since we have NO overlap in the values
+}
+
+vec3 fromRGB565(in vec2 c)
+{
+	// inverse documentation & non-bitwise left as homework :)
+	vec3 outc;
+	ivec2 cInt = ivec2(c*255.0);
+	ivec2 cIntMod = cInt & 31;		
+	outc.rb = vec2(cIntMod) / 31.0;	
+	ivec2 gComps = cInt>>5;
+	outc.g = float(gComps.x | (gComps.y<<3)) / 63.0;
+	return outc;
+}
+#elif 0
+// c_precision of 128 fits within 7 base-10 digits
+const float c_precision = 128.0;
+const float c_precisionp1 = c_precision + 1.0;
+ 
+/*
+\param color normalized RGB value
+\returns 3-component encoded float
+*/
+float color2float(vec3 color) {
+    color = clamp(color, 0.0, 1.0);
+    return floor(color.r * c_precision + 0.5) 
+        + floor(color.b * c_precision + 0.5) * c_precisionp1
+        + floor(color.g * c_precision + 0.5) * c_precisionp1 * c_precisionp1;
+}
+ 
+/*
+\param value 3-component encoded float
+\returns normalized RGB value
+*/
+vec3 float2color(float value) {
+    vec3 color;
+    color.r = mod(value, c_precisionp1) / c_precision;
+    color.b = mod(floor(value / c_precisionp1), c_precisionp1) / c_precision;
+    color.g = floor(value / (c_precisionp1 * c_precisionp1)) / c_precision;
+    return color;
+}
+#endif
+
 vec4 normalVector(vec3 color) {
 	vec4 normals = vec4(color.rgb, length(color.rgb) / 3.0);
 	normals.rgb = vec3(length(normals.r - normals.a), length(normals.g - normals.a), length(normals.b - normals.a));
@@ -202,7 +291,11 @@ float randZeroOne()
 	return fRes;
 }
 
-float ssao( in vec3 position, in vec2 pixel, in vec3 normal, in float resolution, in float strength, in float minDistance, in float maxDisance )
+#ifdef __ENABLE_GI__
+float ssao( in vec3 position, in vec2 pixel, in vec3 normal, in float resolution, in float strength, in float minDistance, in float maxDistance, inout vec3 gi )
+#else //!__ENABLE_GI__
+float ssao( in vec3 position, in vec2 pixel, in vec3 normal, in float resolution, in float strength, in float minDistance, in float maxDistance )
+#endif //__ENABLE_GI__
 {
     vec2  uv  = pixel;
     float z   = texture2D( u_ScreenDepthMap, uv ).x;		// read eye linear z
@@ -216,53 +309,95 @@ float ssao( in vec3 position, in vec2 pixel, in vec3 normal, in float resolution
 
 	vec2  res = vec2(resolution) / u_Dimensions.xy;
 	float numOcclusions = 0.0;
+#ifdef __ENABLE_GI__
+	float GI_RANGE_MULT = 0.25;
+#endif //__ENABLE_GI__
 
 	vLocalSeed = position;
 
 	vec3 ref = unKernel[int(randZeroOne() * 32.0)];
-	//vec3 ref = vec3(u_Local0.r);
 
     // accumulate occlusion
     float bl = 0.0;
     for( int i = 0; i < NUM_OCCLUSION_CHECKS; i++ )
     {
-		vec3 of = faceforward( reflect( unKernel[/*i*/int(randZeroOne() * 32.0)], ref ), light, normal );
-		vec2 thisUV = uv + (res * of.xy);
+		vec3 of = faceforward( reflect( unKernel[int(randZeroOne() * 32.0)], ref ), light, normal );
+		vec2 thisUV = uv + (res * of.xy * (1.0 - z));
 
 		if (thisUV.x > 1.0 || thisUV.y > 1.0 || thisUV.x < 0.0 || thisUV.y < 0.0)
 		{// Don't sample outside of screen bounds...
 			float zd = 0.5;
 			bl += clamp(zd*10.0, 0.1, 1.0)*(1.0 - clamp((zd - 1.0) / 5.0, 0.0, 1.0));
 			numOcclusions += 1.0;
-			continue;
-		}
-
-		float sz = texture2D( u_ScreenDepthMap, thisUV).x;
-		float zd = (sz-z)*strength;
-
-		if (length(sz - z) < minDistance)
-		{
-			zd = 0.5;
-			bl += clamp(zd*10.0,0.1,1.0)*(1.0-clamp((zd-1.0)/5.0,0.0,1.0));
-			numOcclusions += 1.0;
-			continue;
-		}
-		else if (length(sz - z) > maxDisance)
-		{
-			zd = 0.0;
-			bl += clamp(zd*10.0,0.1,1.0)*(1.0-clamp((zd-1.0)/5.0,0.0,1.0));
-			numOcclusions += 1.0;
-			continue;
 		}
 		else
 		{
-			bl += clamp(zd*10.0,0.1,1.0)*(1.0-clamp((zd-1.0)/5.0,0.0,1.0));
-			numOcclusions += 1.0;
+			float sz = texture2D( u_ScreenDepthMap, thisUV).x;
+
+			if (length(sz - z) < minDistance)
+			{
+				float zd = 0.5;
+				bl += clamp(zd*10.0,0.1,1.0)*(1.0-clamp((zd-1.0)/5.0,0.0,1.0));
+				numOcclusions += 1.0;
+			}
+			else if (length(sz - z) > maxDistance)
+			{
+				float zd = 0.0;
+				bl += clamp(zd*10.0,0.1,1.0)*(1.0-clamp((zd-1.0)/5.0,0.0,1.0));
+				numOcclusions += 1.0;
+			}
+			else
+			{
+				float zd = (sz-z)*strength;
+				bl += clamp(zd*10.0,0.1,1.0)*(1.0-clamp((zd-1.0)/5.0,0.0,1.0));
+				numOcclusions += 1.0;
+			}
 		}
-    }
+
+#ifdef __ENABLE_GI__
+		if (i < NUM_GI_CHECKS)
+		{
+			float fi = float(i+32);
+			of = faceforward( reflect( unKernel[int(randZeroOne() * 32.0)], ref ), light, normal );
+			thisUV = uv + (res * GI_RANGE_MULT*fi * of.xy * (1.0 - z));
+
+			if (thisUV.x > 1.0 || thisUV.y > 1.0 || thisUV.x < 0.0 || thisUV.y < 0.0)
+			{// Don't sample outside of screen bounds...
+
+			}
+			else
+			{
+				vec3 illum = texture2D( u_DiffuseMap, thisUV).rgb;
+				illum *= 0.1;
+
+				vec3 glow = texture2D( u_GlowMap, vec2(thisUV.x, 1.0-thisUV.y)).rgb;			
+				float glowLen = length(glow);
+
+				if (glowLen == 0.0)
+				{
+					glow = vec3(0.0);
+				}
+				else
+				{
+					glow /= glowLen;
+					glow *= 0.0625;
+				}
+
+				illum = illum + glow;
+				illum = clamp(illum, 0.0, 1.0);
+
+				gi = max(gi, illum);
+			}
+		}
+#endif //__ENABLE_GI__
+	}
 
 	float ao = clamp(bl/float(numOcclusions), 0.0, 1.0);
 	ao = mix(ao, 1.0, z);
+
+#ifdef __ENABLE_GI__
+	//gi = mix(gi, vec3(0.0), vec3(z));
+#endif //__ENABLE_GI__
 
     return ao;
 }
@@ -273,7 +408,11 @@ void main( void )
 
 	if (position.a-1.0 == MATERIAL_SKY || position.a-1.0 == MATERIAL_SUN || position.a-1.0 == MATERIAL_GLASS || position.a-1.0 == MATERIAL_NONE)
 	{// Skybox... Skip...
+#ifdef __ENABLE_GI__
+		gl_FragColor=vec4(0.0, 0.0, 0.0, 2.0);
+#else //!__ENABLE_GI__
 		gl_FragColor=vec4(1.0, 0.0, 0.0, 1.0);
+#endif //__ENABLE_GI__
 		return;
 	}
 
@@ -301,7 +440,15 @@ void main( void )
 
 	vec3 N = normalize(norm.xyz);
 
+#ifdef __ENABLE_GI__
+	vec3 gi = vec3(0.0);
+	float msao = ssao( position.xyz, var_ScreenTex, N.xyz, 32.0, 64.0, 0.001, 0.01, gi );
+	float sao = clamp(msao, 0.0, 1.0);
+	//float gif = color2float(gi);
+	gl_FragColor=vec4(gi, 1.0+sao);
+#else //!__ENABLE_GI__
 	float msao = ssao( position.xyz, var_ScreenTex, N.xyz, 32.0, 64.0, 0.001, 0.01 );
 	float sao = clamp(msao, 0.0, 1.0);
 	gl_FragColor=vec4(sao, 0.0, 0.0, 1.0);
+#endif //__ENABLE_GI__
 }

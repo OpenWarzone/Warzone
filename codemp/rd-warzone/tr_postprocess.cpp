@@ -1831,55 +1831,63 @@ void RB_Anaglyph(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 
 void RB_SSAO(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	GLSL_BindProgram(&tr.ssaoShader);
+	int shaderNum = (r_ao->integer == 2) ? 0 : Q_clampi(0, r_ao->integer - 3, 3);
 
-	GLSL_SetUniformMatrix16(&tr.ssaoShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
-	GLSL_SetUniformMatrix16(&tr.ssaoShader, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
+	shaderProgram_t *shader = &tr.ssaoShader[shaderNum];
 
-	if (tr.ssaoShader.isBindless)
+	GLSL_BindProgram(shader);
+
+	GLSL_SetUniformMatrix16(shader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+	GLSL_SetUniformMatrix16(shader, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
+
+	if (shader->isBindless)
 	{
-		GLSL_SetBindlessTexture(&tr.ssaoShader, UNIFORM_DIFFUSEMAP, &hdrFbo->colorImage[0], 0);
-		GLSL_SetBindlessTexture(&tr.ssaoShader, UNIFORM_SCREENDEPTHMAP, &tr.linearDepthImage4096, 0);
-		GLSL_SetBindlessTexture(&tr.ssaoShader, UNIFORM_POSITIONMAP, &tr.renderPositionMapImage, 0);
-		GLSL_SetBindlessTexture(&tr.ssaoShader, UNIFORM_NORMALMAP, &tr.renderNormalImage, 0);
+		GLSL_SetBindlessTexture(shader, UNIFORM_DIFFUSEMAP, &hdrFbo->colorImage[0], 0);
+		GLSL_SetBindlessTexture(shader, UNIFORM_SCREENDEPTHMAP, /*&tr.linearDepthImage4096*/&tr.linearDepthImageZfar, 0);
+		GLSL_SetBindlessTexture(shader, UNIFORM_POSITIONMAP, &tr.renderPositionMapImage, 0);
+		GLSL_SetBindlessTexture(shader, UNIFORM_NORMALMAP, &tr.renderNormalImage, 0);
+		GLSL_SetBindlessTexture(shader, UNIFORM_GLOWMAP, &tr.glowFboScaled[0]->colorImage[0], 0);
 		
 		if (r_normalMappingReal->integer)
 		{
-			GLSL_SetBindlessTexture(&tr.ssaoShader, UNIFORM_OVERLAYMAP, &tr.renderNormalDetailedImage, 0);
+			GLSL_SetBindlessTexture(shader, UNIFORM_OVERLAYMAP, &tr.renderNormalDetailedImage, 0);
 		}
 
-		GLSL_BindlessUpdate(&tr.ssaoShader);
+		GLSL_BindlessUpdate(shader);
 	}
 	else
 	{
-		GLSL_SetUniformInt(&tr.ssaoShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+		GLSL_SetUniformInt(shader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
 		GL_BindToTMU(hdrFbo->colorImage[0], TB_DIFFUSEMAP);
 
-		GLSL_SetUniformInt(&tr.ssaoShader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
-		GL_BindToTMU(tr.linearDepthImage4096, TB_LIGHTMAP);
+		GLSL_SetUniformInt(shader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
+		GL_BindToTMU(/*tr.linearDepthImage4096*/tr.linearDepthImageZfar, TB_LIGHTMAP);
 
-		GLSL_SetUniformInt(&tr.ssaoShader, UNIFORM_POSITIONMAP, TB_POSITIONMAP);
+		GLSL_SetUniformInt(shader, UNIFORM_POSITIONMAP, TB_POSITIONMAP);
 		GL_BindToTMU(tr.renderPositionMapImage, TB_POSITIONMAP);
 
-		GLSL_SetUniformInt(&tr.ssaoShader, UNIFORM_NORMALMAP, TB_NORMALMAP);
+		GLSL_SetUniformInt(shader, UNIFORM_NORMALMAP, TB_NORMALMAP);
 		GL_BindToTMU(tr.renderNormalImage, TB_NORMALMAP);
+
+		GLSL_SetUniformInt(shader, UNIFORM_GLOWMAP, TB_GLOWMAP);
+		GL_BindToTMU(tr.glowFboScaled[0]->colorImage[0], TB_GLOWMAP);
 
 		if (r_normalMappingReal->integer)
 		{
-			GLSL_SetUniformInt(&tr.ssaoShader, UNIFORM_OVERLAYMAP, TB_OVERLAYMAP);
+			GLSL_SetUniformInt(shader, UNIFORM_OVERLAYMAP, TB_OVERLAYMAP);
 			GL_BindToTMU(tr.renderNormalDetailedImage, TB_OVERLAYMAP);
 		}
 	}
 	
 	{
 		vec4_t viewInfo;
-		//float zmax = backEnd.viewParms.zFar;
-		float zmax = 1024.0;//backEnd.viewParms.zFar;
+		float zmax = backEnd.viewParms.zFar;
+		//float zmax = 1024.0;//backEnd.viewParms.zFar;
 		float ymax = zmax * tan(backEnd.viewParms.fovY * M_PI / 360.0f);
 		float xmax = zmax * tan(backEnd.viewParms.fovX * M_PI / 360.0f);
 		float zmin = r_znear->value;
 		VectorSet4(viewInfo, zmin, zmax, zmax / zmin, 0.0);
-		GLSL_SetUniformVec4(&tr.ssaoShader, UNIFORM_VIEWINFO, viewInfo);
+		GLSL_SetUniformVec4(shader, UNIFORM_VIEWINFO, viewInfo);
 	}
 
 	{
@@ -1887,20 +1895,20 @@ void RB_SSAO(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		screensize[0] = tr.ssaoImage->width;//glConfig.vidWidth * r_superSampleMultiplier->value;
 		screensize[1] = tr.ssaoImage->height;//glConfig.vidHeight * r_superSampleMultiplier->value;
 
-		GLSL_SetUniformVec2(&tr.ssaoShader, UNIFORM_DIMENSIONS, screensize);
+		GLSL_SetUniformVec2(shader, UNIFORM_DIMENSIONS, screensize);
 	}
 
 	vec3_t out;
 	float dist = 4096.0;//backEnd.viewParms.zFar / 1.75;
 	VectorMA(backEnd.refdef.vieworg, dist, backEnd.refdef.sunDir, out);
-	GLSL_SetUniformVec4(&tr.ssaoShader, UNIFORM_PRIMARYLIGHTORIGIN, out);
+	GLSL_SetUniformVec4(shader, UNIFORM_PRIMARYLIGHTORIGIN, out);
 
-	GLSL_SetUniformVec3(&tr.ssaoShader, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);
+	GLSL_SetUniformVec3(shader, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);
 
 	{
 		vec4_t local0;
 		VectorSet4(local0, r_testvalue0->value, r_testvalue1->value, r_testvalue2->value, r_testvalue3->value);
-		GLSL_SetUniformVec4(&tr.ssaoShader, UNIFORM_LOCAL0, local0);
+		GLSL_SetUniformVec4(shader, UNIFORM_LOCAL0, local0);
 	}
 	//tr.viewParms.ori.axis
 	//TR_AxisToAngles(backEnd.refdef.viewaxis, backEnd.refdef.viewangles);
@@ -1915,10 +1923,10 @@ void RB_SSAO(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 	{
 		vec4_t local1;
 		VectorSet4(local1, mCameraForward[PITCH], mCameraForward[YAW], mCameraForward[ROLL], 0.0);
-		GLSL_SetUniformVec4(&tr.ssaoShader, UNIFORM_LOCAL1, local1);
+		GLSL_SetUniformVec4(shader, UNIFORM_LOCAL1, local1);
 	}
 
-	FBO_Blit(hdrFbo, NULL, NULL, tr.ssaoFbo, NULL, &tr.ssaoShader, colorWhite, 0);
+	FBO_Blit(hdrFbo, NULL, NULL, tr.ssaoFbo, NULL, shader, colorWhite, 0);
 }
 
 #ifdef __SSDO__

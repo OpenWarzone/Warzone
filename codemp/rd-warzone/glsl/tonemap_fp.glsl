@@ -108,7 +108,7 @@ vec3 ColorFilmicToneMapping(in vec3 x)
 	const vec3 F_linearWhite = ((W*(A*W+C*B)+D*E)/(W*(A*W+B)+D*F))-(E/F);
 	vec3 F_linearColor = ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-(E/F);
 
-    // gamma space or not?
+	// gamma space or not?
 	//return pow(clamp(F_linearColor * 1.25 / F_linearWhite, 0.0, 1.0), vec3(1.25));
 	return clamp(F_linearColor * 1.25 / F_linearWhite, 0.0, 1.0);
 }
@@ -136,12 +136,12 @@ vec3 jodieReinhardTonemap(vec3 color)
 // https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
 vec3 tonemapACES( vec3 x )
 {
-    float a = 2.51;
-    float b = 0.03;
-    float c = 2.43;
-    float d = 0.59;
-    float e = 0.14;
-    return (x*(a*x+b))/(x*(c*x+d)+e);
+	float a = 2.51;
+	float b = 0.03;
+	float c = 2.43;
+	float d = 0.59;
+	float e = 0.14;
+	return clamp((x*(a*x+b))/(x*(c*x+d)+e), 0.0, 1.0);
 }
 
 void main()

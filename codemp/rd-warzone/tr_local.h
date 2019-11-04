@@ -3262,7 +3262,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t tonemapShader;
 	shaderProgram_t calclevels4xShader[2];
 	shaderProgram_t shadowmaskShader;
-	shaderProgram_t ssaoShader;
+	shaderProgram_t ssaoShader[3];
 	//shaderProgram_t depthBlurShader[2];
 	shaderProgram_t testcubeShader;
 	shaderProgram_t gaussianBlurShader[2];

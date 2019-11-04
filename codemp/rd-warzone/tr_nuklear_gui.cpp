@@ -1778,7 +1778,7 @@ void GUI_PostProcessMakeCvarList() {
 	GUI_PostProcessAddCvar(r_bloom, 2);
 	GUI_PostProcessAddCvar(r_anamorphic, 1);
 	GUI_PostProcessAddCvar(r_ssdm, 2);
-	GUI_PostProcessAddCvar(r_ao, 3);
+	GUI_PostProcessAddCvar(r_ao, 5);
 #ifdef __SSRTGI__
 	GUI_PostProcessAddCvar(r_ssrtgi, 1);
 #endif //__SSRTGI__

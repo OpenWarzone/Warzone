@@ -3493,9 +3493,31 @@ int GLSL_BeginLoadGPUShaders(void)
 	attribs = ATTR_POSITION | ATTR_TEXCOORD0;
 	extradefines[0] = '\0';
 
-	if (!GLSL_BeginLoadGPUShader(&tr.ssaoShader, "ssao", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_ssao_vp, fallbackShader_ssao_fp, NULL, NULL, NULL))
+	Q_strcat(extradefines, 1024, "#define AO_QUALITY_1\n");
+
+	if (!GLSL_BeginLoadGPUShader(&tr.ssaoShader[0], "ssao0", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_ssao_vp, fallbackShader_ssao_fp, NULL, NULL, NULL))
 	{
-		ri->Error(ERR_FATAL, "Could not load ssao shader!");
+		ri->Error(ERR_FATAL, "Could not load ssao0 shader!");
+	}
+
+	attribs = ATTR_POSITION | ATTR_TEXCOORD0;
+	extradefines[0] = '\0';
+
+	Q_strcat(extradefines, 1024, "#define AO_QUALITY_2\n");
+
+	if (!GLSL_BeginLoadGPUShader(&tr.ssaoShader[1], "ssao1", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_ssao_vp, fallbackShader_ssao_fp, NULL, NULL, NULL))
+	{
+		ri->Error(ERR_FATAL, "Could not load ssao1 shader!");
+	}
+
+	attribs = ATTR_POSITION | ATTR_TEXCOORD0;
+	extradefines[0] = '\0';
+
+	Q_strcat(extradefines, 1024, "#define AO_QUALITY_3\n");
+
+	if (!GLSL_BeginLoadGPUShader(&tr.ssaoShader[2], "ssao2", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_ssao_vp, fallbackShader_ssao_fp, NULL, NULL, NULL))
+	{
+		ri->Error(ERR_FATAL, "Could not load ssao2 shader!");
 	}
 
 
@@ -5039,21 +5061,24 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 	numEtcShaders++;
 
-	if (!GLSL_EndLoadGPUShader(&tr.ssaoShader))
+	for (int i = 0; i < 3; i++)
 	{
-		ri->Error(ERR_FATAL, "Could not load ssao shader!");
-	}
+		if (!GLSL_EndLoadGPUShader(&tr.ssaoShader[i]))
+		{
+			ri->Error(ERR_FATAL, "Could not load ssao%i shader!", i);
+		}
 
-	GLSL_InitUniforms(&tr.ssaoShader);
+		GLSL_InitUniforms(&tr.ssaoShader[i]);
 
-	GLSL_BindProgram(&tr.ssaoShader);
-	GLSL_SetUniformInt(&tr.ssaoShader, UNIFORM_SCREENDEPTHMAP, TB_COLORMAP);
+		GLSL_BindProgram(&tr.ssaoShader[i]);
+		GLSL_SetUniformInt(&tr.ssaoShader[i], UNIFORM_SCREENDEPTHMAP, TB_COLORMAP);
 
 #if defined(_DEBUG)
-	GLSL_FinishGPUShader(&tr.ssaoShader);
+		GLSL_FinishGPUShader(&tr.ssaoShader[i]);
 #endif
 
-	numEtcShaders++;
+		numEtcShaders++;
+	}
 
 
 #ifdef __SSDO__
@@ -7016,7 +7041,10 @@ void GLSL_ShutdownGPUShaders(void)
 
 	GLSL_DeleteGPUShader(&tr.shadowmaskShader);
 
-	GLSL_DeleteGPUShader(&tr.ssaoShader);
+	GLSL_DeleteGPUShader(&tr.ssaoShader[0]);
+	GLSL_DeleteGPUShader(&tr.ssaoShader[1]);
+	GLSL_DeleteGPUShader(&tr.ssaoShader[2]);
+
 	//GLSL_DeleteGPUShader(&tr.sssShader);
 	//GLSL_DeleteGPUShader(&tr.sssBlurShader);
 

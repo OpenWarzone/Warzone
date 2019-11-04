@@ -9,6 +9,10 @@
 	#define __SCREEN_SPACE_REFLECTIONS__
 	#define __CLOUD_SHADOWS__
 
+	#ifdef __ENHANCED_AO__
+		#define __ENABLE_GI__
+	#endif //__ENHANCED_AO__
+
 	#ifdef USE_CUBEMAPS
 		#define __CUBEMAPS__
 	#endif //USE_CUBEMAPS
@@ -293,6 +297,19 @@ vec2 EncodeNormal(vec3 n)
 	return vec2(n.xy * 0.5 + 0.5);
 }
 #endif //__ENCODE_NORMALS_RECONSTRUCT_Z__
+
+
+// c_precision of 128 fits within 7 base-10 digits
+const float c_precision = 128.0;
+const float c_precisionp1 = c_precision + 1.0;
+
+vec3 float2color(float value) {
+    vec3 color;
+    color.r = mod(value, c_precisionp1) / c_precision;
+    color.b = mod(floor(value / c_precisionp1), c_precisionp1) / c_precision;
+    color.g = floor(value / (c_precisionp1 * c_precisionp1)) / c_precision;
+    return color;
+}
 
 
 vec4 positionMapAtCoord ( vec2 coord )
@@ -1910,6 +1927,9 @@ void main(void)
 	if (AO_TYPE >= 2.0)
 	{// Better, HQ AO enabled...
 		float msao = 0.0;
+#ifdef __ENABLE_GI__
+		vec3 gi = vec3(0.0);
+#endif //__ENABLE_GI__
 
 		if (AO_TYPE >= 3.0)
 		{
@@ -1921,21 +1941,64 @@ void main(void)
 				for (int y = -width; y <= width; y+=2)
 				{
 					vec2 coord = texCoords + (vec2(float(x), float(y)) * pixel);
+#ifdef __ENABLE_GI__
+					vec4 giInfo = textureLod(u_SteepMap1, coord, 0.0);
+					vec3 illum = giInfo.rgb;//float2color(giInfo.g);
+					msao += giInfo.a-1.0;
+					gi += illum;
+#else //!__ENABLE_GI__
 					msao += textureLod(u_SteepMap1, coord, 0.0).x;
+#endif //__ENABLE_GI__
 					numSamples += 1.0;
 				}
 			}
 
 			msao /= numSamples;
+#ifdef __ENABLE_GI__
+			gi /= numSamples;
+#endif //__ENABLE_GI__
 		}
 		else
 		{
+#ifdef __ENABLE_GI__
+			vec4 giInfo = textureLod(u_SteepMap1, texCoords, 0.0);
+			msao = giInfo.a-1.0;
+			gi = giInfo.rgb;//float2color(giInfo.g);
+#else //!__ENABLE_GI__
 			msao = textureLod(u_SteepMap1, texCoords, 0.0).x;
+#endif //__ENABLE_GI__
 		}
 
+#ifdef __ENABLE_GI__
+		/*if (u_Local3.r > 1.0)
+		{
+			gl_FragColor = vec4(msao, msao, msao, 1.0);
+			return;
+		}
+		else if (u_Local3.r > 0.0)
+		{
+			gl_FragColor = vec4(gi.rgb, 1.0);
+			return;
+		}*/
+
+		float sao = clamp(msao, 0.0, 1.0);
+
+#if defined(__AMBIENT_OCCLUSION__)
+		// Fast AO enabled...
+		float fao = calculateAO(sunDir, N * 10000.0, texCoords);
+		float selfShadow = clamp(pow(clamp(dot(-sunDir.rgb, bump.rgb), 0.0, 1.0), 8.0), 0.0, 1.0);
+		fao = (fao + selfShadow) / 2.0;
+		sao = min(sao, fao);
+#endif //defined(__AMBIENT_OCCLUSION__)
+
+		sao = clamp(sao * AO_MULTBRIGHT + AO_MINBRIGHT, AO_MINBRIGHT, 1.0);
+		outColor.rgb *= sao;
+		outColor.rgb += gi * sao;
+#else //!__ENABLE_GI__
 		float sao = clamp(msao, 0.0, 1.0);
 		sao = clamp(sao * AO_MULTBRIGHT + AO_MINBRIGHT, AO_MINBRIGHT, 1.0);
 		outColor.rgb *= sao;
+#endif //__ENABLE_GI__
 	}
 #endif //defined(__ENHANCED_AO__)
 

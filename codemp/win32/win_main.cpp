@@ -20,6 +20,12 @@
 void Sys_SetBinaryPath(const char *path);
 char *Sys_BinaryPath(void);
 
+extern "C"
+{
+	__declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
+	__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
+
 /*
 ==================
 Sys_LowPhysicalMemory()
