@@ -687,6 +687,30 @@ void FBO_Init(void)
 		FBO_AttachTextureImage(tr.txaaPreviousImage, 0);
 		R_CheckFBO(tr.txaaPreviousFBO);
 	}
+
+#ifdef __RENDER_HEIGHTMAP__
+	//
+	// Heightmap render FBO...
+	//
+	{
+		tr.renderHeightmapFbo = FBO_Create("_renderHeightmap", tr.HeightmapImage->width, tr.HeightmapImage->height);
+		FBO_Bind(tr.renderHeightmapFbo);
+		
+		//qglDrawBuffer(GL_NONE);
+		//qglReadBuffer(GL_NONE);
+		//R_AttachFBOTextureDepth(tr.HeightmapImage->texnum);
+
+		GLSL_AttachRenderDepthTextures();
+		R_AttachFBOTextureDepth(tr.HeightmapImage->texnum);
+
+		FBO_SetupDrawBuffers();
+		R_CheckFBO(tr.renderHeightmapFbo);
+
+		qglClearColor(1, 1, 1, 1);
+		qglClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		qglClearDepth(1.0f);
+	}
+#endif //__RENDER_HEIGHTMAP__
 	
 	
 #if 0

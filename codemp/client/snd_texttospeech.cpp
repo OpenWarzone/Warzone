@@ -77,9 +77,9 @@ void DoTextToSpeech (char* text, char *voice, int entityNum, vec3_t origin)
 		if (s_knownSfx[ sfxHandle ].bassSampleID < 0) return;
 
 		if (S_ShouldCull((float *)origin, qfalse, entityNum))
-			BASS_AddMemoryChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, CHAN_VOICE, (float *)origin, 0.25);
+			BASS_AddMemoryChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, CHAN_VOICE, (float *)origin, 0.25, s_knownSfx[sfxHandle].sSoundName);
 		else
-			BASS_AddMemoryChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, CHAN_VOICE, (float *)origin, 1.0);
+			BASS_AddMemoryChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, CHAN_VOICE, (float *)origin, 1.0, s_knownSfx[sfxHandle].sSoundName);
 
 		return;
 	}
@@ -93,9 +93,9 @@ void DoTextToSpeech (char* text, char *voice, int entityNum, vec3_t origin)
 		if (s_knownSfx[ sfxHandle ].bassSampleID < 0) return;
 
 		if (S_ShouldCull((float *)origin, qfalse, entityNum))
-			BASS_AddMemoryChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, CHAN_VOICE, (float *)origin, 0.25);
+			BASS_AddMemoryChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, CHAN_VOICE, (float *)origin, 0.25, s_knownSfx[sfxHandle].sSoundName);
 		else
-			BASS_AddMemoryChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, CHAN_VOICE, (float *)origin, 1.0);
+			BASS_AddMemoryChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, CHAN_VOICE, (float *)origin, 1.0, s_knownSfx[sfxHandle].sSoundName);
 
 		return;
 	}

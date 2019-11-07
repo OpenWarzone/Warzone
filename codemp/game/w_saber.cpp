@@ -4574,7 +4574,7 @@ void WP_SaberBounceSound( gentity_t *ent, int saberNum, int bladeNum )
 	}
 	else
 	{
-		G_Sound( ent, CHAN_AUTO, G_SoundIndex( va( "sound/weapons/saber/saberblock%d.wav", index ) ) );
+		G_Sound( ent, CHAN_SABER, G_SoundIndex( va( "sound/weapons/saber/saberblock%d.wav", index ) ) );
 	}
 }
 
@@ -6271,11 +6271,11 @@ void DownedSaberThink(gentity_t *saberent)
 		G_Sound( saberOwn, CHAN_BODY, G_SoundIndex( "sound/weapons/force/pull.wav" ) );
 		if (saberOwn->client->saber[0].soundOn)
 		{
-			G_Sound( saberent, CHAN_BODY, saberOwn->client->saber[0].soundOn );
+			G_Sound( saberent, CHAN_SABER, saberOwn->client->saber[0].soundOn );
 		}
 		if (saberOwn->client->saber[1].soundOn)
 		{
-			G_Sound( saberOwn, CHAN_BODY, saberOwn->client->saber[1].soundOn );
+			G_Sound( saberOwn, CHAN_SABER, saberOwn->client->saber[1].soundOn );
 		}
 
 		return;
@@ -6399,13 +6399,13 @@ void saberKnockDown(gentity_t *saberent, gentity_t *saberOwner, gentity_t *other
 
 	if (saberOwner->client->saber[0].soundOff)
 	{
-		G_Sound( saberent, CHAN_BODY, saberOwner->client->saber[0].soundOff );
+		G_Sound( saberent, CHAN_SABER, saberOwner->client->saber[0].soundOff );
 	}
 
 	if (saberOwner->client->saber[1].soundOff &&
 		saberOwner->client->saber[1].model[0])
 	{
-		G_Sound( saberOwner, CHAN_BODY, saberOwner->client->saber[1].soundOff );
+		G_Sound( saberOwner, CHAN_SABER, saberOwner->client->saber[1].soundOff );
 	}
 }
 
@@ -6865,7 +6865,7 @@ void saberBackToOwner(gentity_t *saberent)
 
 		if (ownerLen <= 32)
 		{
-			G_Sound( saberent, CHAN_AUTO, G_SoundIndex( "sound/weapons/saber/saber_catch.wav" ) );
+			G_Sound( saberent, CHAN_SABER, G_SoundIndex( "sound/weapons/saber/saber_catch.wav" ) );
 
 			saberOwner->client->ps.saberInFlight = qfalse;
 			saberOwner->client->ps.saberEntityState = 0;

@@ -130,7 +130,7 @@ CG_S_AddLoopingSound
 Set the current looping sounds on the entity.
 ==================
 */
-void CG_S_AddLoopingSound(int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx)
+void CG_S_AddLoopingSound(int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx, int entchannel)
 {
 	centity_t *cent = &cg_entities[entityNum];
 	cgLoopSound_t *cSound = NULL;
@@ -167,6 +167,7 @@ void CG_S_AddLoopingSound(int entityNum, const vec3_t origin, const vec3_t veloc
 	cSound->entityNum = entityNum;
 	VectorCopy(origin, cSound->origin);
 	VectorCopy(velocity, cSound->velocity);
+	cSound->entchannel = entchannel;
 	cSound->sfx = sfx;
 
 	cent->numLoopingSounds++;
@@ -179,9 +180,9 @@ CG_S_AddLoopingSound
 For now just redirect, might eventually do something different.
 ==================
 */
-void CG_S_AddRealLoopingSound(int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx)
+void CG_S_AddRealLoopingSound(int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx, int entchannel)
 {
-	CG_S_AddLoopingSound(entityNum, origin, velocity, sfx);
+	CG_S_AddLoopingSound(entityNum, origin, velocity, sfx, entchannel);
 }
 
 /*
@@ -274,7 +275,7 @@ void CG_S_UpdateLoopingSounds(int entityNum)
 		{
 			//trap->S_AddLoopingSound(entityNum, cSound->origin, cSound->velocity, cSound->sfx);
 			//I guess just keep using lerpOrigin for now,
-			trap->S_AddLoopingSound(entityNum, lerpOrg, cSound->velocity, cSound->sfx);
+			trap->S_AddLoopingSound(entityNum, lerpOrg, cSound->velocity, cSound->sfx, cSound->entchannel);
 		}
 
 		i++;
@@ -327,14 +328,13 @@ static void CG_EntityEffects( centity_t *cent ) {
 
 				v = cgs.inlineModelMidpoints[ cent->currentState.modelindex ];
 				VectorAdd( cent->lerpOrigin, v, origin );
-				trap->S_AddLoopingSound( cent->currentState.number, origin, vec3_origin,
-					realSoundIndex );
+				trap->S_AddLoopingSound( cent->currentState.number, origin, vec3_origin, realSoundIndex, CHAN_AMBIENT );
 			}
 			else if (cent->currentState.eType != ET_SPEAKER) {
-				trap->S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, vec3_origin, realSoundIndex );
+				trap->S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, vec3_origin, realSoundIndex, CHAN_AMBIENT );
 			} else {
-				trap->S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, vec3_origin, realSoundIndex );
-			//	trap->S_AddRealLoopingSound( cent->currentState.number, cent->lerpOrigin, vec3_origin, realSoundIndex );
+				trap->S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, vec3_origin, realSoundIndex, CHAN_AMBIENT );
+			//	trap->S_AddRealLoopingSound( cent->currentState.number, cent->lerpOrigin, vec3_origin, realSoundIndex, CHAN_AMBIENT );
 			}
 		}
 	}
@@ -1641,7 +1641,7 @@ Ghoul2 Insert End
 				{
 					if (curTimeDif < 2200)
 					{ //probably temporary
-						trap->S_StartSound ( NULL, cent->currentState.number, CHAN_AUTO, trap->S_RegisterSound( "sound/weapons/saber/saberhum1.wav" ) );
+						trap->S_StartSound ( NULL, cent->currentState.number, CHAN_SABER, trap->S_RegisterSound( "sound/weapons/saber/saberhum1.wav" ) );
 					}
 				}
 				else
@@ -2385,7 +2385,7 @@ Ghoul2 Insert End
 		VectorScale( ent.axis[1], 1.5, ent.axis[1] );
 		VectorScale( ent.axis[2], 1.5, ent.axis[2] );
 		ent.nonNormalizedAxes = qtrue;
-		//trap->S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, vec3_origin, cgs.media.weaponHoverSound );
+		//trap->S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, vec3_origin, cgs.media.weaponHoverSound, CHAN_WEAPON );
 	}
 
 	if (!(cent->currentState.eFlags & EF_DROPPEDWEAPON) &&
@@ -2701,7 +2701,7 @@ static void CG_Missile( centity_t *cent ) {
 		{
 			vec3_t	velocity;
 			BG_EvaluateTrajectoryDelta( &cent->currentState.pos, cg.time, velocity );
-			trap->S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, velocity, s1->loopSound );
+			trap->S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, velocity, s1->loopSound, CHAN_WEAPON );
 		}
 		//FIXME: if has a custom model, too, then set it and do rest of code below?
 		return;
@@ -2723,7 +2723,7 @@ static void CG_Missile( centity_t *cent ) {
 			{
 				vec3_t	velocity;
 				BG_EvaluateTrajectoryDelta( &cent->currentState.pos, cg.time, velocity );
-				trap->S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, velocity, g_vehWeaponInfo[s1->otherEntityNum2].iLoopSound );
+				trap->S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, velocity, g_vehWeaponInfo[s1->otherEntityNum2].iLoopSound, CHAN_BODY );
 			}
 			//add custom model
 			if ( g_vehWeaponInfo[s1->otherEntityNum2].iModel == NULL_HANDLE )
@@ -2738,7 +2738,7 @@ static void CG_Missile( centity_t *cent ) {
 			{
 				vec3_t	velocity;
 				BG_EvaluateTrajectoryDelta( &cent->currentState.pos, cg.time, velocity );
-				trap->S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, velocity, s1->loopSound );
+				trap->S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, velocity, s1->loopSound, CHAN_WEAPON );
 			}
 			//FIXME: if has a custom model, too, then set it and do rest of code below?
 			return;
@@ -2765,7 +2765,7 @@ static void CG_Missile( centity_t *cent ) {
 
 			BG_EvaluateTrajectoryDelta( &cent->currentState.pos, cg.time, velocity );
 
-			trap->S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, velocity, weapon->altMissileSound );
+			trap->S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, velocity, weapon->altMissileSound, CHAN_WEAPON );
 		}
 
 		//Don't draw something without a model
@@ -2794,7 +2794,7 @@ static void CG_Missile( centity_t *cent ) {
 
 			BG_EvaluateTrajectoryDelta( &cent->currentState.pos, cg.time, velocity );
 
-			trap->S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, velocity, weapon->missileSound );
+			trap->S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, velocity, weapon->missileSound, CHAN_WEAPON );
 		}
 
 		//Don't draw something without a model
@@ -3002,7 +3002,7 @@ void CG_PlayDoorLoopSound( centity_t *cent )
 	}
 
 	//ent->s.loopSound = sfx;
-	CG_S_AddRealLoopingSound(cent->currentState.number, origin, vec3_origin, sfx);
+	CG_S_AddRealLoopingSound(cent->currentState.number, origin, vec3_origin, sfx, CHAN_AMBIENT);
 }
 
 /*

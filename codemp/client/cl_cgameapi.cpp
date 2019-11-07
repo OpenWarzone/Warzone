@@ -980,11 +980,11 @@ intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		return 0;
 
 	case CG_S_ADDLOOPINGSOUND:
-		S_AddLoopingSound( args[1], (const float *)VMA(2), (const float *)VMA(3), args[4] );
+		S_AddLoopingSound( args[1], (const float *)VMA(2), (const float *)VMA(3), args[4], args[5] );
 		return 0;
 
 	case CG_S_ADDREALLOOPINGSOUND:
-		/*S_AddRealLoopingSound*/S_AddLoopingSound( args[1], (const float *)VMA(2), (const float *)VMA(3), args[4] );
+		/*S_AddRealLoopingSound*/S_AddLoopingSound( args[1], (const float *)VMA(2), (const float *)VMA(3), args[4], args[5] );
 		return 0;
 
 	case CG_S_STOPLOOPINGSOUND:

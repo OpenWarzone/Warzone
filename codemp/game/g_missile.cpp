@@ -197,7 +197,7 @@ void G_BounceMissile( gentity_t *ent, trace_t *trace, qboolean HIT_TREE ) {
 	}
 	else if (ent->s.weapon == WP_SABER)
 	{
-		G_Sound(ent, CHAN_BODY, G_SoundIndex(va("sound/weapons/saber/bounce%i.wav", Q_irand(1, 3))));
+		G_Sound(ent, CHAN_SABER, G_SoundIndex(va("sound/weapons/saber/bounce%i.wav", Q_irand(1, 3))));
 	}
 	else if (ent->s.weapon == G2_MODEL_PART)
 	{

@@ -3457,6 +3457,170 @@ void R_RenderSunShadowMaps(const refdef_t *fd, int level, vec4_t sunDir, float l
 	}
 }
 
+#ifdef __RENDER_HEIGHTMAP__
+void R_RenderHeightMap(void)
+{
+	//vec3_t mapSize;
+	//VectorSubtract(tr.world->bmodels[0].bounds[1], tr.world->bmodels[0].bounds[0], mapSize);
+	//mapSize[2] = tr.world->bmodels[0].bounds[1][2];
+
+	//const vec3_t left = { 0.0f,  0.0f, -1.0f };
+	//const vec3_t forward = { -1.0f,  0.0f,  0.0f };
+	//const vec3_t up = { 0.0f, 1.0f,  0.0f };
+
+	vec3_t viewOrigin;
+	//VectorMA(tr.world->bmodels[0].bounds[1], 0.5f, mapSize, viewOrigin);
+	VectorSet(viewOrigin, (tr.world->bmodels[0].bounds[0][0] + tr.world->bmodels[0].bounds[1][0]) * 0.5, (tr.world->bmodels[0].bounds[0][1] + tr.world->bmodels[0].bounds[1][1]) * 0.5, tr.world->bmodels[0].bounds[1][2] - 16.0);
+
+	ri->Printf(PRINT_WARNING, "heightmap bounds: %f %f %f x %f %f %f. viewOrigin: %f %f %f.\n"
+		, tr.world->bmodels[0].bounds[0][0], tr.world->bmodels[0].bounds[0][1], tr.world->bmodels[0].bounds[0][2]
+		, tr.world->bmodels[0].bounds[1][0], tr.world->bmodels[0].bounds[1][1], tr.world->bmodels[0].bounds[1][2]
+		, viewOrigin[0], viewOrigin[1], viewOrigin[2]);
+
+	refdef_t refdef;
+	viewParms_t	parms;
+	float oldColorScale = tr.refdef.colorScale;
+
+	memset(&refdef, 0, sizeof(refdef));
+	refdef.rdflags = 0;
+	VectorCopy(viewOrigin, refdef.vieworg);
+
+
+	//VectorSet(refdef.viewaxis[0], -1, 0, 0);
+	//VectorSet(refdef.viewaxis[1], 0, 0, -1);
+	//VectorSet(refdef.viewaxis[2], 0, 1, 0);
+
+	VectorSet(refdef.viewaxis[0], 0, 0, -1);
+	VectorSet(refdef.viewaxis[1], -1, 0, 0);
+	VectorSet(refdef.viewaxis[2], 0, 1, 0);
+
+
+	refdef.fov_x = 90;
+	refdef.fov_y = 90;
+
+	refdef.x = 0;
+	refdef.y = 0;
+	refdef.width = tr.renderHeightmapFbo->width;
+	refdef.height = tr.renderHeightmapFbo->height;
+
+	refdef.time = 0;
+
+	RE_BeginScene(&refdef);
+
+	tr.refdef.colorScale = 1.0f;
+
+#if 0
+	Com_Memset(&parms, 0, sizeof(parms));
+
+	parms.viewportX = 0;
+	parms.viewportY = 0;
+	parms.viewportWidth = tr.renderHeightmapFbo->width;
+	parms.viewportHeight = tr.renderHeightmapFbo->height;
+	parms.isPortal = qfalse;
+	parms.isMirror = qfalse;
+	parms.flags = VPF_DEPTHSHADOW | VPF_DEPTHCLAMP | VPF_ORTHOGRAPHIC | VPF_NOVIEWMODEL | VPF_NOPOSTPROCESS | VPF_SHADOWPASS;
+
+	parms.fovX = 90;
+	parms.fovY = 90;
+
+	parms.zFar = 9999999.9;
+
+	VectorCopy(refdef.vieworg, parms.ori.origin);
+	VectorCopy(refdef.viewaxis[0], parms.ori.axis[0]);
+	VectorCopy(refdef.viewaxis[1], parms.ori.axis[1]);
+	VectorCopy(refdef.viewaxis[2], parms.ori.axis[2]);
+
+	VectorCopy(refdef.vieworg, parms.pvsOrigin);
+
+	parms.targetFbo = tr.renderHeightmapFbo;
+
+	CLOSE_LIGHTS_UPDATE = qtrue;
+	R_RenderView(&parms);
+#else
+	{
+		tr.viewCount++;
+
+		Com_Memset(&parms, 0, sizeof(parms));
+
+		parms.viewportX = 0;
+		parms.viewportY = 0;
+		parms.viewportWidth = tr.renderHeightmapFbo->width;
+		parms.viewportHeight = tr.renderHeightmapFbo->height;
+		parms.isPortal = qfalse;
+		parms.isMirror = qfalse;
+		parms.flags = VPF_DEPTHSHADOW | VPF_DEPTHCLAMP | VPF_ORTHOGRAPHIC | VPF_NOVIEWMODEL | VPF_NOPOSTPROCESS | VPF_SHADOWPASS;
+
+		parms.fovX = 90;
+		parms.fovY = 90;
+
+		parms.zFar = 9999999.9;
+
+		VectorCopy(refdef.vieworg, parms.ori.origin);
+		VectorCopy(refdef.viewaxis[0], parms.ori.axis[0]);
+		VectorCopy(refdef.viewaxis[1], parms.ori.axis[1]);
+		VectorCopy(refdef.viewaxis[2], parms.ori.axis[2]);
+
+		VectorCopy(refdef.vieworg, parms.pvsOrigin);
+
+		tr.viewParms = parms;
+		tr.viewParms.frameSceneNum = tr.frameSceneNum;
+		tr.viewParms.frameCount = tr.frameCount;
+
+		int firstDrawSurf = tr.refdef.numDrawSurfs;
+
+		tr.viewCount++;
+
+		float ORIG_RANGE = tr.viewParms.maxEntityRange;
+
+		tr.viewParms.targetFbo = tr.renderHeightmapFbo;
+
+		tr.viewParms.flags = VPF_DEPTHSHADOW | VPF_DEPTHCLAMP | VPF_ORTHOGRAPHIC | VPF_NOVIEWMODEL | VPF_NOPOSTPROCESS | VPF_SHADOWPASS;
+		tr.viewParms.maxEntityRange = 999999.9;
+
+		// set viewParms.world
+		R_RotateForViewer(&tr.viewParms);
+
+		R_SetupProjectionOrtho(&tr.viewParms, tr.world->bmodels[0].bounds);
+
+#ifdef __INVERSE_DEPTH_BUFFERS__
+		qglClearColor(0, 0, 0, 0);
+
+		qglClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		qglClearDepth(0.0f);
+#else //!__INVERSE_DEPTH_BUFFERS__
+		qglClearColor(1, 1, 1, 1);
+
+		qglClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		qglClearDepth(1.0f);
+#endif //__INVERSE_DEPTH_BUFFERS__
+
+		tr.world = tr.worldSolid;
+		R_AddWorldSurfaces();
+
+		if (tr.worldNonSolid)
+		{// Set extra world data pointer, and render it...
+			tr.world = tr.worldNonSolid;
+			R_AddWorldSurfaces();
+
+			// Restore the original pointer to solid world...
+			tr.world = tr.worldSolid;
+		}
+
+		//R_AddEntitySurfaces();
+		//R_AddIgnoreCullEntitySurfaces();
+
+		R_SortDrawSurfs(tr.refdef.drawSurfs + firstDrawSurf, tr.refdef.numDrawSurfs - firstDrawSurf);
+
+		tr.viewParms.flags &= ~VPF_SHADOWPASS;
+
+		FBO_Bind(tr.renderFbo);
+	}
+#endif
+
+	RE_EndScene();
+}
+#endif //__RENDER_HEIGHTMAP__
+
 #ifndef __REALTIME_CUBEMAP__
 void R_RenderCubemapSide( int cubemapIndex, int cubemapSide, qboolean subscene )
 {

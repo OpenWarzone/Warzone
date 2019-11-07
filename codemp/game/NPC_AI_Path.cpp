@@ -1680,46 +1680,28 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 
 			if (UQ1_UcmdMoveForDir(NPC, ucmd, NPC->movedir, walk, NPC->client->navigation.nav.lookPos))
 			{
-				if (NavlibJump(NPC) || NPC->last_move_time < level.time - 2000 || DistanceVertical(NPC->client->navigation.nav.lookPos/*pos*/, NPC->r.currentOrigin) > DistanceHorizontal(NPC->client->navigation.nav.lookPos/*pos*/, NPC->r.currentOrigin) * 0.666)
+				if (/*NavlibJump(NPC) || NPC->last_move_time < level.time - 2000 ||*/ DistanceVertical(NPC->client->navigation.nav.lookPos, NPC->r.currentOrigin) > DistanceHorizontal(NPC->client->navigation.nav.lookPos, NPC->r.currentOrigin) * 0.666)
 				{
 					ucmd->upmove = 127;
-
-					if (NPC->s.eType == ET_PLAYER)
-					{
-						trap->EA_Jump(NPC->s.number);
-					}
 				}
 
 				return qtrue;
 			}
-			else if (NPC->bot_strafe_jump_timer > level.time)
+			/*else if (NPC->bot_strafe_jump_timer > level.time)
 			{
 				ucmd->upmove = 127;
-
-				if (NPC->s.eType == ET_PLAYER)
-				{
-					trap->EA_Jump(NPC->s.number);
-				}
-			}
+			}*/
 			else if (NPC->bot_strafe_left_timer > level.time)
 			{
 				ucmd->rightmove = -127;
-				trap->EA_MoveLeft(NPC->s.number);
 			}
 			else if (NPC->bot_strafe_right_timer > level.time)
 			{
 				ucmd->rightmove = 127;
-				trap->EA_MoveRight(NPC->s.number);
 			}
-
-			if (NPC->last_move_time < level.time - 2000 || DistanceVertical(NPC->client->navigation.nav.pos, NPC->r.currentOrigin) > DistanceHorizontal(NPC->client->navigation.nav.pos, NPC->r.currentOrigin) * 0.666)
+			else if (/*NPC->last_move_time < level.time - 2000 ||*/ DistanceVertical(NPC->client->navigation.nav.pos, NPC->r.currentOrigin) > DistanceHorizontal(NPC->client->navigation.nav.pos, NPC->r.currentOrigin) * 0.666)
 			{
 				ucmd->upmove = 127;
-
-				if (NPC->s.eType == ET_PLAYER)
-				{
-					trap->EA_Jump(NPC->s.number);
-				}
 			}
 #endif //__USE_NAVLIB_INTERNAL_MOVEMENT__
 			return qtrue;

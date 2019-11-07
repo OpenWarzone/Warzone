@@ -145,14 +145,14 @@ void trap_S_StartLocalSound( sfxHandle_t sfx, int channelNum ) {
 void trap_S_ClearLoopingSounds(void) {
 	Q_syscall( CG_S_CLEARLOOPINGSOUNDS );
 }
-void trap_S_AddLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx ) {
-	Q_syscall( CG_S_ADDLOOPINGSOUND, entityNum, origin, velocity, sfx );
+void trap_S_AddLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx, int entchannel) {
+	Q_syscall( CG_S_ADDLOOPINGSOUND, entityNum, origin, velocity, sfx, entchannel);
 }
 void trap_S_UpdateEntityPosition( int entityNum, const vec3_t origin ) {
 	Q_syscall( CG_S_UPDATEENTITYPOSITION, entityNum, origin );
 }
-void trap_S_AddRealLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx ) {
-	Q_syscall( CG_S_ADDREALLOOPINGSOUND, entityNum, origin, velocity, sfx );
+void trap_S_AddRealLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx, int entchannel) {
+	Q_syscall( CG_S_ADDREALLOOPINGSOUND, entityNum, origin, velocity, sfx, entchannel);
 }
 void trap_S_StopLoopingSound( int entityNum ) {
 	Q_syscall( CG_S_STOPLOOPINGSOUND, entityNum );

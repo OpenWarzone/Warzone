@@ -512,7 +512,7 @@ typedef struct cgameImport_s {
 
 	// sound
 	int				(*S_AddLocalSet)						( const char *name, vec3_t listener_origin, vec3_t origin, int entID, int time );
-	void			(*S_AddLoopingSound)					( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx );
+	void			(*S_AddLoopingSound)					( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx, int entchannel);
 	void			(*S_ClearLoopingSounds)					( void );
 	int				(*S_GetVoiceVolume)						( int entID );
 	void			(*S_MuteSound)							( int entityNum, int entchannel );

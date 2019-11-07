@@ -2447,7 +2447,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			{//custom swing sound
 				swingSound = client->saber[0].swingSound[Q_irand(0,2)];
 			}
-            trap->S_StartSound(es->pos.trBase, es->number, CHAN_WEAPON, swingSound );
+            trap->S_StartSound(es->pos.trBase, es->number, CHAN_SABER, swingSound );
 		}
 		break;
 
@@ -2517,7 +2517,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 				{
 					fxDir[1] = 1;
 				}
-				trap->S_StartSound(es->origin, es->number, CHAN_AUTO, hitSound );
+				trap->S_StartSound(es->origin, es->number, CHAN_SABER, hitSound );
 				PlayEffectID( hitPersonFxID, es->origin, fxDir, -1, -1, qfalse );
 				PlayEffectID( hitPersonFxID, es->origin, fxDir, -1, -1, qfalse );
 				PlayEffectID( hitPersonFxID, es->origin, fxDir, -1, -1, qfalse );
@@ -2533,7 +2533,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 				{
 					fxDir[1] = 1;
 				}
-				trap->S_StartSound(es->origin, es->number, CHAN_AUTO, hitSound );
+				trap->S_StartSound(es->origin, es->number, CHAN_SABER, hitSound );
 				if ( es->eventParm == 3 )
 				{	// moderate or big hits.
 					PlayEffectID( hitPersonSmallFxID, es->origin, fxDir, -1, -1, qfalse );
@@ -2559,7 +2559,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 				}
 				//old jk2mp method
 				/*
-				trap->S_StartSound(es->origin, es->number, CHAN_AUTO, trap->S_RegisterSound("sound/weapons/saber/saberhit.wav"));
+				trap->S_StartSound(es->origin, es->number, CHAN_SABER, trap->S_RegisterSound("sound/weapons/saber/saberhit.wav"));
 				PlayEffectID( trap->FX_RegisterEffect("saber/spark.efx"), es->origin, fxDir, -1, -1, qfalse );
 				*/
 
@@ -2655,7 +2655,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 					{
 						fxDir[1] = 1;
 					}
-					trap->S_StartSound(es->origin, es->number, CHAN_AUTO, blockSound );
+					trap->S_StartSound(es->origin, es->number, CHAN_SABER, blockSound );
 					PlayEffectID( blockFXID, es->origin, fxDir, -1, -1, qfalse );
 					if ( !noFlare )
 					{
@@ -2709,7 +2709,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		{
 			cg_saberFlashTime = cg.time-50;
 			VectorCopy( es->origin, cg_saberFlashPos );
-			trap->S_StartSound ( es->origin, -1, CHAN_WEAPON, trap->S_RegisterSound( va("sound/weapons/saber/saberhitwall%i", Q_irand(1, 3)) ) );
+			trap->S_StartSound ( es->origin, -1, CHAN_SABER, trap->S_RegisterSound( va("sound/weapons/saber/saberhitwall%i", Q_irand(1, 3)) ) );
 		}
 		break;
 
@@ -2731,11 +2731,11 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			{
 				if (ci->saber[0].soundOn)
 				{
-					trap->S_StartSound (NULL, es->number, CHAN_AUTO, ci->saber[0].soundOn );
+					trap->S_StartSound (NULL, es->number, CHAN_SABER, ci->saber[0].soundOn );
 				}
 				if (ci->saber[1].soundOn)
 				{
-					trap->S_StartSound (NULL, es->number, CHAN_AUTO, ci->saber[1].soundOn );
+					trap->S_StartSound (NULL, es->number, CHAN_SABER, ci->saber[1].soundOn );
 				}
 			}
 		}
@@ -2764,7 +2764,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			}
 			PlayEffectID(cgs.effects.mJediSpawn, pos, ang, -1, -1, qfalse);
 
-			trap->S_StartSound (NULL, es->number, CHAN_AUTO, trap->S_RegisterSound( "sound/weapons/saber/saberon.wav" ) );
+			trap->S_StartSound (NULL, es->number, CHAN_SABER, trap->S_RegisterSound( "sound/weapons/saber/saberon.wav" ) );
 
 			if (cg.snap->ps.clientNum == es->number)
 			{
@@ -3644,7 +3644,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		{ //channels 2 and 3 are for speed and rage, 5 for sight
 			if ( cgs.gameSounds[ es->eventParm ] )
 			{
-				CG_S_AddRealLoopingSound(es->number, es->pos.trBase, vec3_origin, cgs.gameSounds[ es->eventParm ] );
+				CG_S_AddRealLoopingSound(es->number, es->pos.trBase, vec3_origin, cgs.gameSounds[ es->eventParm ], CHAN_AMBIENT);
 			}
 		}
 		else
@@ -3867,7 +3867,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			isnd = CG_CustomSound(es->number, s);
 		}
 
-		CG_S_AddRealLoopingSound( es->number, es->pos.trBase, vec3_origin, isnd );
+		CG_S_AddRealLoopingSound( es->number, es->pos.trBase, vec3_origin, isnd, CHAN_AMBIENT); // TODO: Pass a CHAN_ with the events?
 		es->loopSound = isnd;
 		break;
 

@@ -4052,6 +4052,14 @@ const void *RB_PostProcess(const void *data)
 		FBO_BlitFromTexture(tr.pshadowMaps[3], NULL, NULL, NULL, dstBox, NULL, NULL, 0);
 	}
 
+#ifdef __RENDER_HEIGHTMAP__
+	{
+		vec4i_t dstBox;
+		VectorSet4(dstBox, 256, glConfig.vidHeight - 256, 256, 256);
+		FBO_BlitFromTexture(tr.HeightmapImage, NULL, NULL, NULL, dstBox, NULL, NULL, 0);
+	}
+#endif //__RENDER_HEIGHTMAP__
+
 #ifdef __SSRTGI__
 	if (1 && r_ssrtgi->integer)
 	{

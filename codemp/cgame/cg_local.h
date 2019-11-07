@@ -400,6 +400,7 @@ typedef struct cgLoopSound_s {
 	vec3_t origin;
 	vec3_t velocity;
 	sfxHandle_t sfx;
+	int entchannel;
 } cgLoopSound_t;
 
 // centity_t have a direct corespondence with gentity_t in the game, but
@@ -2146,8 +2147,8 @@ void CG_ReattachLimb(centity_t *source);
 // cg_ents.c
 //
 
-void CG_S_AddLoopingSound(int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx);
-void CG_S_AddRealLoopingSound(int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx);
+void CG_S_AddLoopingSound(int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx, int entchannel);
+void CG_S_AddRealLoopingSound(int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx, int entchannel);
 void CG_S_StopLoopingSound(int entityNum, sfxHandle_t sfx);
 void CG_S_UpdateLoopingSounds(int entityNum);
 

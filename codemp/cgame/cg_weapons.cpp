@@ -537,24 +537,77 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 			CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_stock");
 			CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
 		}
-
+		
+#if 0 // UQ1: Not sure any of this makes sense until modules that support spinning and stuff are added...
 		if ((cent->currentState.eFlags & EF_FIRING || ((ps) && ps->weaponstate == WEAPON_FIRING)))
 		{
 			if (weapon->isBlasterCanon)
 			{
-				trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->spinSound);
+				trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->spinSound, CHAN_WEAPON);
+			}
+			else if (weapon->firingSound) // UQ1: This was playing a crapload of NULL's... Not sure if this was changed to weap->flashsounds???? Stoiss????
+			{
+				trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->firingSound, CHAN_WEAPON);
+			}
+			/*else
+			{// UQ1: Add this??? I think it's already handled by CG_FireWeapon()
+				// play a sound
+				for (c = 0; c < 4; c++) {
+					if (!weapon->flashSound[c]) {
+						break;
+					}
+				}
+				if (c > 0) {
+					c = rand() % c;
+					if (weapon->flashSound[c])
+					{
+						if (cent->currentState.number == cg.clientNum)
+							trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_WEAPONLOCAL, weapon->flashSound[c]);
+						else
+							trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_WEAPON, weapon->flashSound[c]);
+					}
+				}
+			}*/
+
+			cent->pe.lightningFiring = qtrue;
+		}
+		/*else if ((cent->currentState.eFlags & EF_ALT_FIRING || ((ps) && ps->weaponstate == WEAPON_FIRING)))
+		{// UQ1: Add this??? I think it's already handled by CG_FireWeapon()
+			if (weapon->isBlasterCanon)
+			{
+				trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->spinSound, CHAN_WEAPON);
+			}
+			else if (weapon->firingSound) // UQ1: This was playing a crapload of NULL's... Not sure if this was changed to weap->flashsounds???? Stoiss????
+			{
+				trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->firingSound, CHAN_WEAPON);
 			}
 			else
 			{
-				trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->firingSound);
+				// play a sound
+				for (c = 0; c < 4; c++) {
+					if (!weapon->altFlashSound[c]) {
+						break;
+					}
+				}
+				if (c > 0) {
+					c = rand() % c;
+					if (weapon->altFlashSound[c])
+					{
+						if (cent->currentState.number == cg.clientNum)
+							trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_WEAPONLOCAL, weapon->altFlashSound[c]);
+						else
+							trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_WEAPON, weapon->altFlashSound[c]);
+					}
+				}
 			}
+
 			cent->pe.lightningFiring = qtrue;
-		}
+		}*/
 		else
 		{
 			if (weapon->isBlasterCanon)
 			{
-				if (cent->pe.lightningFiring)
+				if (cent->pe.lightningFiring && weapon->spindownSound)
 				{
 					if (cent->currentState.clientNum == cg.clientNum)
 						trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_WEAPONLOCAL, weapon->spindownSound);
@@ -562,15 +615,16 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 						trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_WEAPON, weapon->spindownSound);
 				}
 			}
-			else if (weapon->readySound > 0)
+			else if (weapon->readySound)
 			{
 				if (cent->currentState.clientNum == cg.clientNum)
-					trap->S_AddLoopingSound(cent->currentState.number, vec3_origin, vec3_origin, weapon->readySound);
+					trap->S_AddLoopingSound(cent->currentState.number, vec3_origin, vec3_origin, weapon->readySound, CHAN_WEAPON);
 				else
-					trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->readySound);
+					trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->readySound, CHAN_WEAPON);
 			}
 			cent->pe.lightningFiring = qfalse;
 		}
+#endif
 	}
 #if 0
 	else
@@ -583,11 +637,11 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 		{
 			if (weapon->isBlasterCanon)
 			{
-				trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->spinSound);
+				trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->spinSound, CHAN_WEAPON);
 			}
 			else
 			{
-				trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->firingSound);
+				trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->firingSound, CHAN_WEAPON);
 			}
 			cent->pe.lightningFiring = qtrue;
 		}
@@ -606,9 +660,9 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 			else if (weapon->readySound > 0)
 			{
 				if (cent->currentState.clientNum == cg.clientNum)
-					trap->S_AddLoopingSound(cent->currentState.number, vec3_origin, vec3_origin, weapon->readySound);
+					trap->S_AddLoopingSound(cent->currentState.number, vec3_origin, vec3_origin, weapon->readySound, CHAN_WEAPON);
 				else
-					trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->readySound);
+					trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->readySound, CHAN_WEAPON);
 			}
 			cent->pe.lightningFiring = qfalse;
 		}
@@ -677,21 +731,21 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 				cent->pe.lightningFiring = qfalse;
 				if ((cent->currentState.eFlags & EF_FIRING) && weapon->firingSound) {
 					// lightning gun and gauntlet make a different sound when fire is held down
-					trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->firingSound);
+					trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->firingSound, CHAN_WEAPON);
 					cent->pe.lightningFiring = qtrue;
 				}
 				else if (weapon->readySound) {
-					trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->readySound);
+					trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->readySound, CHAN_WEAPON);
 				}
 				else if ((cent->currentState.eFlags & EF_FIRING || ((ps) && ps->weaponstate == WEAPON_FIRING))) {
 					//If we have a clone rifle, only play this sound if it is a minigun
 					if (weapon->isBlasterCanon)
 					{
-						trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->spinSound);
+						trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->spinSound, CHAN_WEAPON);
 					}
 					else
 					{
-						trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->firingSound);
+						trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->firingSound, CHAN_WEAPON);
 					}
 					cent->pe.lightningFiring = qtrue;
 				}
@@ -709,7 +763,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 					}
 					else if (weapon->readySound > 0) { // Getting initalized to -1 sometimes... readySound isn't even referenced anywere else in code
 
-						trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->readySound);
+						trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->readySound, CHAN_WEAPON);
 					}
 					cent->pe.lightningFiring = qfalse;
 				}
@@ -2724,30 +2778,30 @@ void CG_CheckPlayerG2Weapons(playerState_t *ps, centity_t *cent)
 		cent->ghoul2weapon = CG_G2WeaponInstance(cent, ps->weapon);
 		if (cent->weapon == WP_SABER && cent->weapon != ps->weapon && !ps->saberHolstered)
 		{ //switching away from the saber
-			//trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_AUTO, trap->S_RegisterSound( "sound/weapons/saber/saberoffquick.wav" ));
+			//trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_SABER, trap->S_RegisterSound( "sound/weapons/saber/saberoffquick.wav" ));
 			if (cgs.clientinfo[ps->clientNum].saber[0].soundOff && !ps->saberHolstered)
 			{
-				trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_AUTO, cgs.clientinfo[ps->clientNum].saber[0].soundOff);
+				trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_SABER, cgs.clientinfo[ps->clientNum].saber[0].soundOff);
 			}
 
 			if (cgs.clientinfo[ps->clientNum].saber[1].soundOff &&
 				cgs.clientinfo[ps->clientNum].saber[1].model[0] &&
 				!ps->saberHolstered)
 			{
-				trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_AUTO, cgs.clientinfo[ps->clientNum].saber[1].soundOff);
+				trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_SABER, cgs.clientinfo[ps->clientNum].saber[1].soundOff);
 			}
 		}
 		else if (ps->weapon == WP_SABER && cent->weapon != ps->weapon && !cent->saberWasInFlight)
 		{ //switching to the saber
-			//trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_AUTO, trap->S_RegisterSound( "sound/weapons/saber/saberon.wav" ));
+			//trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_SABER, trap->S_RegisterSound( "sound/weapons/saber/saberon.wav" ));
 			if (cgs.clientinfo[ps->clientNum].saber[0].soundOn)
 			{
-				trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_AUTO, cgs.clientinfo[ps->clientNum].saber[0].soundOn);
+				trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_SABER, cgs.clientinfo[ps->clientNum].saber[0].soundOn);
 			}
 
 			if (cgs.clientinfo[ps->clientNum].saber[1].soundOn)
 			{
-				trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_AUTO, cgs.clientinfo[ps->clientNum].saber[1].soundOn);
+				trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_SABER, cgs.clientinfo[ps->clientNum].saber[1].soundOn);
 			}
 
 			BG_SI_SetDesiredLength(&cgs.clientinfo[ps->clientNum].saber[0], 0, -1);

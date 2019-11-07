@@ -1442,6 +1442,10 @@ void R_ReloadShaderCommand(void)
 
 extern void R_ShowTime(void);
 
+#ifdef __RENDER_HEIGHTMAP__
+extern void R_RenderHeightMap(void);
+#endif //__RENDER_HEIGHTMAP__
+
 /*
 ===============
 R_Register
@@ -1920,7 +1924,9 @@ extern void R_WorldEffect_f(void);	//TR_WORLDEFFECTS.CPP
 	ri->Cmd_AddCommand("genroadmap", R_CreateRoadMapImage);
 	ri->Cmd_AddCommand("showtime", R_ShowTime);
 	ri->Cmd_AddCommand("reloadshader", R_ReloadShaderCommand);
-
+#ifdef __RENDER_HEIGHTMAP__
+	ri->Cmd_AddCommand("renderHeightmap", R_RenderHeightMap);
+#endif //__RENDER_HEIGHTMAP__
 
 	// Init glow settings here to convert to new defaults...
 	if (r_glowStrength->value == 1.75)

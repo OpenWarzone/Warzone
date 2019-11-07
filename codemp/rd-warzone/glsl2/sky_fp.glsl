@@ -1027,13 +1027,22 @@ bool intersectPlane(const in vec3 ro, const in vec3 rd, const in float height, i
 
 // light direction
 
-vec3 lig = normalize(u_PrimaryLightOrigin.xzy/*vec3( 0.3,0.5, 0.6)*/);
+vec3 lig = normalize(u_PrimaryLightOrigin.xzy);
 
 // terrain functions
 float terrainMap( const in vec3 p ) 
 {
     float dist = pow(length(p) / 64.0, 0.2);
-    return (((hillsFbm( (p.xzz*0.5+16.0)*0.00346 ) * 1.5 - PROCEDURAL_BACKGROUND_HILLS_SMOOTHNESS)*250.0*dist)+(dist*8.0)) - PROCEDURAL_BACKGROUND_HILLS_UPDOWN;
+    return (((hillsFbm( (/*p.xzz*/p.xyz*0.5+16.0)*0.00346 ) * 1.5 - PROCEDURAL_BACKGROUND_HILLS_SMOOTHNESS)*250.0*dist)+(dist*8.0)) - PROCEDURAL_BACKGROUND_HILLS_UPDOWN;
+}
+
+vec3 splatblend(vec3 color1, float a1, vec3 color2, float a2)
+{
+	float depth = 0.2;
+	float ma = max(a1, a2) - depth;
+	float b1 = max(a1 - ma, 0);
+	float b2 = max(a2 - ma, 0);
+	return ((color1.rgb * b1) + (color2.rgb * b2)) / (b1 + b2);
 }
 
 vec4 raymarchTerrain( const in vec3 ro, const in vec3 rd, const in vec3 bgc, const in float startdist, in float dist ) {
@@ -1070,8 +1079,10 @@ vec4 raymarchTerrain( const in vec3 ro, const in vec3 rd, const in vec3 bgc, con
 		}
 		pos = ro + t*rd;
 		
+#if 1
 		vec3 dx = vec3( 100.*EPSILON, 0., 0. );
 		vec3 dz = vec3( 0., 0., 100.*EPSILON );
+		
 		
 		vec3 normal = vec3( 0., 0., 0. );
 		normal.x = (terrainMap(pos + dx) - terrainMap(pos-dx) ) / (200. * EPSILON);
@@ -1083,6 +1094,7 @@ vec4 raymarchTerrain( const in vec3 ro, const in vec3 rd, const in vec3 bgc, con
 		
 		float veg = 0.3*hillsFbm(pos*0.2)+normal.y;
 					
+		
 		if( veg > 0.75 ) {
 			col = vec3( PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR )*(0.5+0.5*hillsFbm(pos*0.5))*0.6;
 		} else 
@@ -1090,7 +1102,7 @@ vec4 raymarchTerrain( const in vec3 ro, const in vec3 rd, const in vec3 bgc, con
 			col = col*0.6+vec3( PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR2 )*(0.5+0.5*hillsFbm(pos*0.25))*0.3;
 		}
 		col *= vec3(0.5, 0.52, 0.65)*vec3(1.,.9,0.8);
-		
+
 		vec3 brdf = col;
 		
 		float diff = clamp( dot( normal, -lig ), 0., 1.);
@@ -1098,6 +1110,68 @@ vec4 raymarchTerrain( const in vec3 ro, const in vec3 rd, const in vec3 bgc, con
 		col = brdf*diff*vec3(1.0,.6,0.1);
 		col += brdf*clamp( dot( normal, lig ), 0., 1.)*vec3(0.8,.6,0.5)*0.8;
 		col += brdf*clamp( dot( normal, vec3(0.,1.,0.) ), 0., 1.)*vec3(0.8,.8,1.)*0.2;
+#else
+		vec3 normal = vec3( 0., 0., 0. );
+		
+		if (u_Local9.b > 1.0)
+		{
+			float eps = u_Local9.r;
+			normal.x = terrainMap(vec3(pos.x+eps, pos.y, pos.z));
+			normal.y = terrainMap(vec3(pos.x, pos.y, pos.z));
+			normal.z = terrainMap(vec3(pos.x, pos.y, pos.z+eps));
+			normal = normalize(normal);
+		}
+		else if (u_Local9.b > 0.0)
+		{
+			vec3 dx = vec3( u_Local9.r, 0., 0. );
+			vec3 dz = vec3( 0., 0., u_Local9.r );
+
+			normal.x = (terrainMap(pos + dx) - terrainMap(pos-dx)) * u_Local9.g;
+			normal.z = (terrainMap(pos + dz) - terrainMap(pos-dz)) * u_Local9.g;
+			normal.y = 1.;
+			normal = normalize( normal );
+		}
+		else
+		{
+			vec3 dx = vec3( u_Local9.r, 0., 0. );
+			vec3 dz = vec3( 0., 0., u_Local9.r );
+
+			normal.x = terrainMap(pos + dx) * u_Local9.g;
+			normal.z = terrainMap(pos + dz) * u_Local9.g;
+			normal.y = 1.;
+			normal = normalize(normal);
+		}
+
+		if (u_Local9.a > 1.0)
+		{
+			return vec4(normal.xzy * 0.5 + 0.5, 1.0);
+		}
+		else if (u_Local9.a > 0.0)
+		{
+			return vec4(normal.xyz * 0.5 + 0.5, 1.0);
+		}
+
+		float snow = clamp(dot(normalize(normal.xyz), vec3(0.0, 1.0, 0.0)), 0.0, 1.0);
+		snow = clamp(pow(snow, 0.4), 0.0, 1.0);
+
+		col = PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR;
+
+		if (snow > 0.0)
+		{
+			col = splatblend(col, 1.0 - snow, PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR2, snow);
+		}
+
+		vec3 lightColor = u_PrimaryLightColor.rgb;
+
+		if (SHADER_NIGHT_SCALE > 0.0)
+		{
+			lightColor = mix(lightColor, vec3(1.0, 0.8, 0.625), SHADER_NIGHT_SCALE);
+		}
+
+		float diff = clamp( dot( normal, -lig ), 0., 1.);
+		col += diff*lightColor;
+#endif
+
 		
 		dist = t;
 		t -= pos.y*3.5;
@@ -1139,7 +1213,7 @@ float triNoise2d(in vec2 p, float spd)
 	for (float i=0.; i<5.; i++ )
 	{
 		vec2 dg = tri2(bp*1.85)*.75;
-		dg *= mm2(u_Time*u_Local9.r*spd);
+		dg *= mm2(u_Time*4.0*spd);
 		p -= dg/z2;
 
 		bp *= 1.3;
@@ -1432,7 +1506,7 @@ float Noise( in vec3 x )
 
 float fnoise( vec3 p, in float t )
 {
-	if (u_Local9.r <= 0.0)
+	/*if (u_Local9.r <= 0.0)
 	{
 		p *= 0.25;
 		float f;
@@ -1445,9 +1519,9 @@ float fnoise( vec3 p, in float t )
 		f += 0.015625 * Noise(p);
 
 		return f;
-	}
+	}*/
 
-	return texture(u_VolumeMap, (p * u_Local9.g) /*- t*0.1*/).r;
+	return texture(u_VolumeMap, (p * 0.1) /*- t*0.1*/).r;
 }
 
 float cloud(vec3 p, in float t ) {

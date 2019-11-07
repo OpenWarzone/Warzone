@@ -74,6 +74,7 @@ cvar_t		*s_volumeEffects;
 cvar_t		*s_volumeAmbient;
 cvar_t		*s_volumeAmbientEfx;
 cvar_t		*s_volumeWeapon;
+cvar_t		*s_volumeSaber;
 cvar_t		*s_volumeItem;
 cvar_t		*s_volumeBody;
 cvar_t		*s_volumeMusic;
@@ -83,6 +84,10 @@ cvar_t		*s_testvalue0;
 cvar_t		*s_testvalue1;
 cvar_t		*s_testvalue2;
 cvar_t		*s_testvalue3;
+cvar_t		*s_testvalue4;
+cvar_t		*s_testvalue5;
+cvar_t		*s_testvalue6;
+cvar_t		*s_testvalue7;
 cvar_t		*s_khz;
 cvar_t		*s_allowDynamicMusic;
 cvar_t		*s_show;
@@ -161,13 +166,18 @@ void S_Init( void ) {
 	s_testvalue1 = Cvar_Get("s_testvalue1", "0", CVAR_ARCHIVE);
 	s_testvalue2 = Cvar_Get("s_testvalue2", "0", CVAR_ARCHIVE);
 	s_testvalue3 = Cvar_Get("s_testvalue3", "0", CVAR_ARCHIVE);
+	s_testvalue4 = Cvar_Get("s_testvalue4", "0", CVAR_ARCHIVE);
+	s_testvalue5 = Cvar_Get("s_testvalue5", "0", CVAR_ARCHIVE);
+	s_testvalue6 = Cvar_Get("s_testvalue6", "0", CVAR_ARCHIVE);
+	s_testvalue7 = Cvar_Get("s_testvalue7", "0", CVAR_ARCHIVE);
 	s_musicSelection = Cvar_Get ("s_musicSelection", "2", CVAR_ARCHIVE);
 	s_volume = Cvar_Get ("s_volume", "1.0", CVAR_ARCHIVE);
 	s_volumeVoice= Cvar_Get ("s_volumeVoice", "1.0", CVAR_ARCHIVE);
 	s_volumeEffects= Cvar_Get ("s_volumeEffects", "0.7", CVAR_ARCHIVE);
-	s_volumeAmbient= Cvar_Get ("s_volumeAmbient", "1.0", CVAR_ARCHIVE);
+	s_volumeAmbient= Cvar_Get ("s_volumeAmbient", "0.5", CVAR_ARCHIVE);
 	s_volumeAmbientEfx = Cvar_Get("s_volumeAmbientEfx", "0.7", CVAR_ARCHIVE);
-	s_volumeWeapon= Cvar_Get ("s_volumeWeapon", "0.5", CVAR_ARCHIVE);
+	s_volumeWeapon = Cvar_Get ("s_volumeWeapon", "1.0", CVAR_ARCHIVE);
+	s_volumeSaber = Cvar_Get("s_volumeSaber", "1.0", CVAR_ARCHIVE);
 	s_volumeItem= Cvar_Get ("s_volumeItem", "0.5", CVAR_ARCHIVE);
 	s_volumeBody= Cvar_Get ("s_volumeBody", "0.5", CVAR_ARCHIVE);
 	s_volumeMusic = Cvar_Get ("s_volumeMusic", "0.25", CVAR_ARCHIVE);
@@ -590,9 +600,9 @@ void S_StartAmbientSound( const vec3_t origin, int entityNum, unsigned char volu
 	*/
 
 	if (S_ShouldCull((float *)origin, qfalse, entityNum))
-		BASS_AddMemoryChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, CHAN_AMBIENT, (float *)origin, (float)((float)(volume*0.25)/255.0));
+		BASS_AddMemoryChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, CHAN_AMBIENT, (float *)origin, (float)((float)(volume*0.25)/255.0), s_knownSfx[sfxHandle].sSoundName);
 	else
-		BASS_AddMemoryChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, CHAN_AMBIENT, (float *)origin, (float)((float)volume/255.0));
+		BASS_AddMemoryChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, CHAN_AMBIENT, (float *)origin, (float)((float)volume/255.0), s_knownSfx[sfxHandle].sSoundName);
 	return;
 }
 
@@ -626,6 +636,9 @@ void S_StartSound(const vec3_t origin, int entityNum, int entchannel, sfxHandle_
 
 	if (s_knownSfx[ sfxHandle ].bassSampleID < 0) return;
 
+	// Always force sounds in the saber folder to use saber channel... Override for game sending events, etc...
+	qboolean forceSaberChannel = (Q_stricmpn("sound/weapons/saber/", s_knownSfx[sfxHandle].sSoundName, 20) && origin != NULL) ? qtrue : qfalse;
+
 	/*
 	if (origin)
 		Com_Printf("BASS_DEBUG: Entity %i playing sound %s (handle %i - bass id %ld) on channel %i at org %f %f %f.\n", entityNum, s_knownSfx[ sfxHandle ].sSoundName, sfxHandle, s_knownSfx[ sfxHandle ].bassSampleID, entchannel, origin[0], origin[1], origin[2]);
@@ -634,9 +647,9 @@ void S_StartSound(const vec3_t origin, int entityNum, int entchannel, sfxHandle_
 	*/
 
 	if (S_ShouldCull((float *)origin, qfalse, entityNum))
-		BASS_AddMemoryChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, entchannel, (float *)origin, 0.25);
+		BASS_AddMemoryChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, forceSaberChannel ? CHAN_SABER : entchannel, (float *)origin, 0.25, s_knownSfx[sfxHandle].sSoundName);
 	else
-		BASS_AddMemoryChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, entchannel, (float *)origin, 1.0);
+		BASS_AddMemoryChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, forceSaberChannel ? CHAN_SABER : entchannel, (float *)origin, 1.0, s_knownSfx[sfxHandle].sSoundName);
 	return;
 }
 
@@ -674,7 +687,7 @@ void S_StartLocalLoopingSound( sfxHandle_t sfxHandle) {
 		Com_Error( ERR_DROP, "S_StartLocalLoopingSound: handle %i out of range", sfxHandle );
 	}
 
-	S_AddLoopingSound( listener_number, nullVec, nullVec, sfxHandle );
+	S_AddLoopingSound( listener_number, nullVec, nullVec, sfxHandle, CHAN_LOCAL);
 }
 
 // kinda kludgy way to stop a special-use sfx_t playing...
@@ -756,7 +769,7 @@ Called during entity generation for a frame
 Include velocity in case I get around to doing doppler...
 ==================
 */
-void S_AddLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfxHandle ) {
+void S_AddLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfxHandle, int entchannel) {
 	if (sfxHandle >= MAX_SFX || sfxHandle < 0) return;
 
 	if (!s_knownSfx[sfxHandle].bInMemory) // Hmm guess I should make sure it's loaded before trying to use it :)
@@ -776,9 +789,9 @@ void S_AddLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocit
 		*/
 		
 		if (S_ShouldCull((float *)origin, qfalse, entityNum))
-			BASS_AddMemoryLoopChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, CHAN_WEAPON, (float *)origin, 0.25);
+			BASS_AddMemoryLoopChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, entchannel ? entchannel : CHAN_WEAPON, (float *)origin, 0.25, s_knownSfx[sfxHandle].sSoundName);
 		else
-			BASS_AddMemoryLoopChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, CHAN_WEAPON, (float *)origin, 1.0);
+			BASS_AddMemoryLoopChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, entchannel ? entchannel : CHAN_WEAPON, (float *)origin, 1.0, s_knownSfx[sfxHandle].sSoundName);
 	}
 	else
 	{
@@ -791,9 +804,9 @@ void S_AddLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocit
 		*/
 
 		if (S_ShouldCull((float *)origin, qfalse, entityNum))
-			BASS_AddMemoryLoopChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, CHAN_AMBIENT, (float *)origin, 0.25);
+			BASS_AddMemoryLoopChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, entchannel ? entchannel : CHAN_AMBIENT, (float *)origin, 0.25, s_knownSfx[sfxHandle].sSoundName);
 		else
-			BASS_AddMemoryLoopChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, CHAN_AMBIENT, (float *)origin, 1.0);
+			BASS_AddMemoryLoopChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, entchannel ? entchannel : CHAN_AMBIENT, (float *)origin, 1.0, s_knownSfx[sfxHandle].sSoundName);
 	}
 }
 
@@ -818,9 +831,9 @@ void S_AddAmbientLoopingSound( const vec3_t origin, unsigned char volume, sfxHan
 	if (origin)	if (Distance(cl.snap.ps.origin, origin) > 2048) return;
 
 	if (S_ShouldCull((float *)origin, qfalse, -1))
-		BASS_AddMemoryLoopChannel(s_knownSfx[ sfxHandle ].bassSampleID, -1, CHAN_AMBIENT, (float *)origin, (float)((float)(volume*0.25)/255.0));
+		BASS_AddMemoryLoopChannel(s_knownSfx[ sfxHandle ].bassSampleID, -1, CHAN_AMBIENT, (float *)origin, (float)((float)(volume*0.25)/255.0), s_knownSfx[sfxHandle].sSoundName);
 	else
-		BASS_AddMemoryLoopChannel(s_knownSfx[ sfxHandle ].bassSampleID, -1, CHAN_AMBIENT, (float *)origin, (float)((float)volume/255.0));
+		BASS_AddMemoryLoopChannel(s_knownSfx[ sfxHandle ].bassSampleID, -1, CHAN_AMBIENT, (float *)origin, (float)((float)volume/255.0), s_knownSfx[sfxHandle].sSoundName);
 }
 
 

@@ -6850,6 +6850,8 @@ void RE_LoadWorldMapData( const char *name, bool isMainWorld ) {
 	R_FreeExtraWorldData();
 }
 
+extern void R_RenderHeightMap(void);
+
 void RT_LoadWorldMapExtras(void)
 {
 	DEBUG_StartTimer("R_LoadMapInfo", qfalse);
@@ -6931,6 +6933,11 @@ void RT_LoadWorldMapExtras(void)
 			}
 		}
 	}*/
+
+#ifdef __RENDER_HEIGHTMAP__
+	// Render map's heightmap...
+	R_RenderHeightMap();
+#endif //__RENDER_HEIGHTMAP__
 }
 
 void RE_LoadWorldMap(const char *name) {

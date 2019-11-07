@@ -1668,8 +1668,8 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const vec3_t origin, ma
 					if (vol > 0)
 					{
 						//Com_Printf("BASS_DEBUG: Efx playing sound %s at org %f %f %f vol %f.\n", s_knownSfx[sfxHandle].sSoundName, org[0], org[1], org[2], vol);
-						extern void BASS_AddEfxMemoryChannel(DWORD samplechan, int entityNum, int entityChannel, vec3_t origin, float volume, float cullRange);
-						BASS_AddEfxMemoryChannel(s_knownSfx[sfxHandle].bassSampleID, -1, CHAN_AMBIENT_EFX, org, 1.0, efxCullRange);
+						extern void BASS_AddEfxMemoryChannel(DWORD samplechan, int entityNum, int entityChannel, vec3_t origin, float volume, float cullRange, char *filename);
+						BASS_AddEfxMemoryChannel(s_knownSfx[sfxHandle].bassSampleID, -1, CHAN_AMBIENT_EFX, org, 1.0, efxCullRange, s_knownSfx[sfxHandle].sSoundName);
 					}
 				}
 			}

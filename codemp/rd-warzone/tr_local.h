@@ -60,6 +60,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 //#define __INVERSE_DEPTH_BUFFERS__				// Inverted depth buffer...
 
+//#define __RENDER_HEIGHTMAP__
+
 //#define __USE_QGL_FINISH__					// For testing...
 #define __USE_QGL_FLUSH__						// Use this one...
 
@@ -3118,6 +3120,9 @@ typedef struct trGlobals_s {
 #endif
 	image_t					*sunRaysImage;
 	image_t					*renderDepthImage;
+#ifdef __RENDER_HEIGHTMAP__
+	image_t					*HeightmapImage;
+#endif //__RENDER_HEIGHTMAP__
 	image_t					*genericDepthImage;
 	image_t					*waterDepthImage;
 	image_t					*pshadowMaps[MAX_DRAWN_PSHADOWS];
@@ -3155,6 +3160,9 @@ typedef struct trGlobals_s {
 
 	FBO_t					*renderFbo;
 	FBO_t					*renderDepthFbo;
+#ifdef __RENDER_HEIGHTMAP__
+	FBO_t					*renderHeightmapFbo;
+#endif //__RENDER_HEIGHTMAP__
 	FBO_t					*renderGlowFbo;
 	FBO_t					*renderDetailFbo;
 	FBO_t					*renderWaterFbo;

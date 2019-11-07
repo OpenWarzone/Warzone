@@ -160,98 +160,184 @@ void DynamicWeather_UpdateWeatherSystems(void)
 
 	//ri->Printf(PRINT_ALL, "DYNAMIC_WEATHER_CLOUDCOVER: %f. cc: %f.\n", DYNAMIC_WEATHER_CLOUDCOVER, cc);
 
-	if (cc >= 0.275)
-	{// Stormy rain...
-		if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_RAIN_STORM)
-		{
-			RE_WorldEffectCommand_REAL("clear", qtrue);
-			RE_WorldEffectCommand_REAL("rain", qtrue);
-			RE_WorldEffectCommand_REAL("rain", qtrue);
-			RE_WorldEffectCommand_REAL("rain", qtrue);
-			RE_WorldEffectCommand_REAL("rain", qtrue);
-			//DYNAMIC_WEATHER_CLOUDSCALE = 0.4;
-			DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_RAIN_STORM;
+	if (StringContainsWord(CURRENT_WEATHER_OPTION, "snow"))
+	{
+		if (cc >= 0.275)
+		{// Snow storm...
+			if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_RAIN_STORM)
+			{
+				RE_WorldEffectCommand_REAL("clear", qtrue);
+				RE_WorldEffectCommand_REAL("gustingwind", qtrue);
+				RE_WorldEffectCommand_REAL("snow", qtrue);
+				RE_WorldEffectCommand_REAL("snow", qtrue);
+				DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_RAIN_STORM;
+			}
 		}
-	}
-	else if (cc >= 0.225)
-	{// Heavy rain...
-		if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_HEAVY_RAIN)
-		{
-			RE_WorldEffectCommand_REAL("clear", qtrue);
-			RE_WorldEffectCommand_REAL("rain", qtrue);
-			RE_WorldEffectCommand_REAL("rain", qtrue);
-			RE_WorldEffectCommand_REAL("lightrain", qtrue);
-			RE_WorldEffectCommand_REAL("lightrain", qtrue);
-			//DYNAMIC_WEATHER_CLOUDSCALE = 0.5;
-			DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_HEAVY_RAIN;
+		else if (cc >= 0.225)
+		{// Heavy snow...
+			if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_HEAVY_RAIN)
+			{
+				RE_WorldEffectCommand_REAL("clear", qtrue);
+				RE_WorldEffectCommand_REAL("snow", qtrue);
+				DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_HEAVY_RAIN;
+			}
 		}
-	}
-	else if (cc >= 0.175)
-	{// Normal rain...
-		if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_RAIN)
-		{
-			RE_WorldEffectCommand_REAL("clear", qtrue);
-			RE_WorldEffectCommand_REAL("rain", qtrue);
-			RE_WorldEffectCommand_REAL("lightrain", qtrue);
-			RE_WorldEffectCommand_REAL("lightrain", qtrue);
-			//DYNAMIC_WEATHER_CLOUDSCALE = 0.65;
-			DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_RAIN;
+		else if (cc >= 0.175)
+		{// Normal snow...
+			if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_RAIN)
+			{
+				RE_WorldEffectCommand_REAL("clear", qtrue);
+				DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_RAIN;
+			}
 		}
-	}
-	else if (cc >= 0.125)
-	{// Light rain...
-		if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_LIGHT_RAIN)
-		{
-			RE_WorldEffectCommand_REAL("clear", qtrue);
-			RE_WorldEffectCommand_REAL("lightrain", qtrue);
-			RE_WorldEffectCommand_REAL("lightrain", qtrue);
-			//DYNAMIC_WEATHER_CLOUDSCALE = 0.75;
-			DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_LIGHT_RAIN;
+		else if (cc >= 0.125)
+		{// Light snow...
+			if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_LIGHT_RAIN)
+			{
+				RE_WorldEffectCommand_REAL("clear", qtrue);
+				DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_LIGHT_RAIN;
+			}
 		}
-	}
-	else if (cc >= 0.1)
-	{// Cloudy...
-		if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_VERY_CLOUDY)
-		{
-			RE_WorldEffectCommand_REAL("clear", qtrue);
-			//DYNAMIC_WEATHER_CLOUDSCALE = 1.0;
-			DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_VERY_CLOUDY;
+		else if (cc >= 0.1)
+		{// Cloudy...
+			if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_VERY_CLOUDY)
+			{
+				RE_WorldEffectCommand_REAL("clear", qtrue);
+				DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_VERY_CLOUDY;
+			}
 		}
-	}
-	else if (cc >= 0.075)
-	{// Cloudy...
-		if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_CLOUDY)
-		{
-			RE_WorldEffectCommand_REAL("clear", qtrue);
-			//DYNAMIC_WEATHER_CLOUDSCALE = 1.0;
-			DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_CLOUDY;
+		else if (cc >= 0.075)
+		{// Cloudy...
+			if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_CLOUDY)
+			{
+				RE_WorldEffectCommand_REAL("clear", qtrue);
+				//DYNAMIC_WEATHER_CLOUDSCALE = 1.0;
+				DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_CLOUDY;
+			}
 		}
-	}
-	else if (cc >= 0.05)
-	{// Clear...
-		if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_CLEAR)
-		{
-			RE_WorldEffectCommand_REAL("clear", qtrue);
-			//DYNAMIC_WEATHER_CLOUDSCALE = 1.0;
-			DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_CLEAR;
+		else if (cc >= 0.05)
+		{// Clear...
+			if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_CLEAR)
+			{
+				RE_WorldEffectCommand_REAL("clear", qtrue);
+				//DYNAMIC_WEATHER_CLOUDSCALE = 1.0;
+				DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_CLEAR;
+			}
 		}
-	}
-	else if (cc >= 0.025)
-	{// Very clear...
-		if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_VERY_CLEAR)
-		{
-			RE_WorldEffectCommand_REAL("clear", qtrue);
-			//DYNAMIC_WEATHER_CLOUDSCALE = 1.0;
-			DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_VERY_CLEAR;
+		else if (cc >= 0.025)
+		{// Very clear...
+			if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_VERY_CLEAR)
+			{
+				RE_WorldEffectCommand_REAL("clear", qtrue);
+				//DYNAMIC_WEATHER_CLOUDSCALE = 1.0;
+				DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_VERY_CLEAR;
+			}
+		}
+		else
+		{// Clearest...
+			if (DYNAMIC_WEATHER_CURRENT_WEATHER > DWEATHER_CLEAREST)
+			{
+				RE_WorldEffectCommand_REAL("clear", qtrue);
+				DYNAMIC_WEATHER_CLOUDSCALE = 1.0;
+				DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_CLEAREST;
+			}
 		}
 	}
 	else
-	{// Clearest...
-		if (DYNAMIC_WEATHER_CURRENT_WEATHER > DWEATHER_CLEAREST)
-		{
-			RE_WorldEffectCommand_REAL("clear", qtrue);
-			DYNAMIC_WEATHER_CLOUDSCALE = 1.0;
-			DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_CLEAREST;
+	{
+		if (cc >= 0.275)
+		{// Stormy rain...
+			if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_RAIN_STORM)
+			{
+				RE_WorldEffectCommand_REAL("clear", qtrue);
+				RE_WorldEffectCommand_REAL("rain", qtrue);
+				RE_WorldEffectCommand_REAL("rain", qtrue);
+				RE_WorldEffectCommand_REAL("rain", qtrue);
+				RE_WorldEffectCommand_REAL("rain", qtrue);
+				//DYNAMIC_WEATHER_CLOUDSCALE = 0.4;
+				DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_RAIN_STORM;
+			}
+		}
+		else if (cc >= 0.225)
+		{// Heavy rain...
+			if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_HEAVY_RAIN)
+			{
+				RE_WorldEffectCommand_REAL("clear", qtrue);
+				RE_WorldEffectCommand_REAL("rain", qtrue);
+				RE_WorldEffectCommand_REAL("rain", qtrue);
+				RE_WorldEffectCommand_REAL("lightrain", qtrue);
+				RE_WorldEffectCommand_REAL("lightrain", qtrue);
+				//DYNAMIC_WEATHER_CLOUDSCALE = 0.5;
+				DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_HEAVY_RAIN;
+			}
+		}
+		else if (cc >= 0.175)
+		{// Normal rain...
+			if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_RAIN)
+			{
+				RE_WorldEffectCommand_REAL("clear", qtrue);
+				RE_WorldEffectCommand_REAL("rain", qtrue);
+				RE_WorldEffectCommand_REAL("lightrain", qtrue);
+				RE_WorldEffectCommand_REAL("lightrain", qtrue);
+				//DYNAMIC_WEATHER_CLOUDSCALE = 0.65;
+				DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_RAIN;
+			}
+		}
+		else if (cc >= 0.125)
+		{// Light rain...
+			if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_LIGHT_RAIN)
+			{
+				RE_WorldEffectCommand_REAL("clear", qtrue);
+				RE_WorldEffectCommand_REAL("lightrain", qtrue);
+				RE_WorldEffectCommand_REAL("lightrain", qtrue);
+				//DYNAMIC_WEATHER_CLOUDSCALE = 0.75;
+				DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_LIGHT_RAIN;
+			}
+		}
+		else if (cc >= 0.1)
+		{// Cloudy...
+			if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_VERY_CLOUDY)
+			{
+				RE_WorldEffectCommand_REAL("clear", qtrue);
+				//DYNAMIC_WEATHER_CLOUDSCALE = 1.0;
+				DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_VERY_CLOUDY;
+			}
+		}
+		else if (cc >= 0.075)
+		{// Cloudy...
+			if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_CLOUDY)
+			{
+				RE_WorldEffectCommand_REAL("clear", qtrue);
+				//DYNAMIC_WEATHER_CLOUDSCALE = 1.0;
+				DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_CLOUDY;
+			}
+		}
+		else if (cc >= 0.05)
+		{// Clear...
+			if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_CLEAR)
+			{
+				RE_WorldEffectCommand_REAL("clear", qtrue);
+				//DYNAMIC_WEATHER_CLOUDSCALE = 1.0;
+				DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_CLEAR;
+			}
+		}
+		else if (cc >= 0.025)
+		{// Very clear...
+			if (DYNAMIC_WEATHER_CURRENT_WEATHER != DWEATHER_VERY_CLEAR)
+			{
+				RE_WorldEffectCommand_REAL("clear", qtrue);
+				//DYNAMIC_WEATHER_CLOUDSCALE = 1.0;
+				DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_VERY_CLEAR;
+			}
+		}
+		else
+		{// Clearest...
+			if (DYNAMIC_WEATHER_CURRENT_WEATHER > DWEATHER_CLEAREST)
+			{
+				RE_WorldEffectCommand_REAL("clear", qtrue);
+				DYNAMIC_WEATHER_CLOUDSCALE = 1.0;
+				DYNAMIC_WEATHER_CURRENT_WEATHER = DWEATHER_CLEAREST;
+			}
 		}
 	}
 }

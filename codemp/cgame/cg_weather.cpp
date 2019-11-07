@@ -360,26 +360,26 @@ void CG_AddAtmosphericEffects()
 	{
 	case WEATHER_RAIN:
 		MAX_FRAME_PARTICLES = 16;
-		if (WEATHER_CUSTOM_SOUND) trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND);
+		if (WEATHER_CUSTOM_SOUND) trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND, CHAN_AMBIENT);
 		break;
 	case WEATHER_HEAVY_RAIN:
 		MAX_FRAME_PARTICLES = 24;
-		if (WEATHER_CUSTOM_SOUND) trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND);
+		if (WEATHER_CUSTOM_SOUND) trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND, CHAN_AMBIENT);
 		break;
 	case WEATHER_RAIN_STORM:
-		if (WEATHER_CUSTOM_SOUND) trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND);
+		if (WEATHER_CUSTOM_SOUND) trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND, CHAN_AMBIENT);
 		MAX_FRAME_PARTICLES = 24;
 		break;
 	case WEATHER_SNOW:
-		if (WEATHER_CUSTOM_SOUND) trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND);
+		if (WEATHER_CUSTOM_SOUND) trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND, CHAN_AMBIENT);
 		MAX_FRAME_PARTICLES = 16;
 		break;
 	case WEATHER_HEAVY_SNOW:
-		if (WEATHER_CUSTOM_SOUND) trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND);
+		if (WEATHER_CUSTOM_SOUND) trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND, CHAN_AMBIENT);
 		MAX_FRAME_PARTICLES = 24;
 		break;
 	case WEATHER_SNOW_STORM:
-		if (WEATHER_CUSTOM_SOUND) trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND);
+		if (WEATHER_CUSTOM_SOUND) trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND, CHAN_AMBIENT);
 		MAX_FRAME_PARTICLES = 24;
 		break;
 	case WEATHER_FOREST:
@@ -388,7 +388,7 @@ void CG_AddAtmosphericEffects()
 			//trap->S_StartLocalSound(WEATHER_FOREST_SOUND, CHAN_AMBIENT);
 			//trap->S_StartLocalSound(WEATHER_FOREST_NIGHT_SOUND, CHAN_AUTO); // TODO: Day/Night Integration...
 			//ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 595000;
-			trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND ? WEATHER_CUSTOM_SOUND : WEATHER_FOREST_SOUND);
+			trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND ? WEATHER_CUSTOM_SOUND : WEATHER_FOREST_SOUND, CHAN_AMBIENT);
 			ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 4000;
 		}
 		return;
@@ -398,7 +398,7 @@ void CG_AddAtmosphericEffects()
 		{
 			//trap->S_StartLocalSound(WEATHER_FOREST_ISLAND_SOUND, CHAN_AMBIENT);
 			//ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 595000;
-			trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND ? WEATHER_CUSTOM_SOUND : WEATHER_FOREST_ISLAND_SOUND);
+			trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND ? WEATHER_CUSTOM_SOUND : WEATHER_FOREST_ISLAND_SOUND, CHAN_AMBIENT);
 			ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 4000;
 		}
 		return;
@@ -408,7 +408,7 @@ void CG_AddAtmosphericEffects()
 		{
 			//trap->S_StartLocalSound(WEATHER_TROPICAL_ISLAND_SOUND, CHAN_AMBIENT);
 			//ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 595000;
-			trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND ? WEATHER_CUSTOM_SOUND : WEATHER_TROPICAL_ISLAND_SOUND);
+			trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND ? WEATHER_CUSTOM_SOUND : WEATHER_TROPICAL_ISLAND_SOUND, CHAN_AMBIENT);
 			ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 4000;
 		}
 		return;
@@ -418,7 +418,7 @@ void CG_AddAtmosphericEffects()
 		{
 			//trap->S_StartLocalSound(WEATHER_DAGOBAH_SOUND, CHAN_AMBIENT);
 			//ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 595000;
-			trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND ? WEATHER_CUSTOM_SOUND : WEATHER_DAGOBAH_SOUND);
+			trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND ? WEATHER_CUSTOM_SOUND : WEATHER_DAGOBAH_SOUND, CHAN_AMBIENT);
 			ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 4000;
 		}
 		return;
@@ -428,7 +428,7 @@ void CG_AddAtmosphericEffects()
 		{
 			//trap->S_StartLocalSound(WEATHER_DESERT_SOUND, CHAN_AMBIENT);
 			//ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 595000;
-			trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND ? WEATHER_CUSTOM_SOUND : WEATHER_DESERT_SOUND);
+			trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND ? WEATHER_CUSTOM_SOUND : WEATHER_DESERT_SOUND, CHAN_AMBIENT);
 			ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 4000;
 		}
 		return;
@@ -438,7 +438,7 @@ void CG_AddAtmosphericEffects()
 		{
 			//trap->S_StartLocalSound(WEATHER_CITY_SOUND, CHAN_AMBIENT);
 			//ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 595000;
-			trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND ? WEATHER_CUSTOM_SOUND : WEATHER_CITY_SOUND);
+			trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND ? WEATHER_CUSTOM_SOUND : WEATHER_CITY_SOUND, CHAN_AMBIENT);
 			ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 4000;
 		}
 		return;
@@ -448,7 +448,7 @@ void CG_AddAtmosphericEffects()
 		{
 			//trap->S_StartLocalSound(WEATHER_CANTINA_SOUND, CHAN_AMBIENT);
 			//ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 175000;
-			trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND ? WEATHER_CUSTOM_SOUND : WEATHER_CANTINA_SOUND);
+			trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND ? WEATHER_CUSTOM_SOUND : WEATHER_CANTINA_SOUND, CHAN_AMBIENT);
 			ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 4000;
 		}
 		return;
@@ -458,7 +458,7 @@ void CG_AddAtmosphericEffects()
 		{
 			//trap->S_StartLocalSound(WEATHER_INDUSTRIAL_SOUND, CHAN_AMBIENT);
 			//ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 595000;
-			trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND ? WEATHER_CUSTOM_SOUND : WEATHER_INDUSTRIAL_SOUND);
+			trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND ? WEATHER_CUSTOM_SOUND : WEATHER_INDUSTRIAL_SOUND, CHAN_AMBIENT);
 			ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 4000;
 		}
 		return;
@@ -468,7 +468,7 @@ void CG_AddAtmosphericEffects()
 		{
 			//trap->S_StartLocalSound(WEATHER_SPACEPORT_SOUND, CHAN_AMBIENT);
 			//ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 595000;
-			trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND ? WEATHER_CUSTOM_SOUND : WEATHER_SPACEPORT_SOUND);
+			trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND ? WEATHER_CUSTOM_SOUND : WEATHER_SPACEPORT_SOUND, CHAN_AMBIENT);
 			ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 4000;
 		}
 		return;
@@ -478,7 +478,7 @@ void CG_AddAtmosphericEffects()
 		{
 			//trap->S_StartLocalSound(WEATHER_IMPERIAL_BASE_SOUND, CHAN_AMBIENT);
 			//ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 595000;
-			trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND ? WEATHER_CUSTOM_SOUND : WEATHER_IMPERIAL_BASE_SOUND);
+			trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND ? WEATHER_CUSTOM_SOUND : WEATHER_IMPERIAL_BASE_SOUND, CHAN_AMBIENT);
 			ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 4000;
 		}
 		return;
@@ -488,7 +488,7 @@ void CG_AddAtmosphericEffects()
 		{
 			//trap->S_StartLocalSound(WEATHER_SITH_TOMB_SOUND, CHAN_AMBIENT);
 			//ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 595000;
-			trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND ? WEATHER_CUSTOM_SOUND : WEATHER_SITH_TOMB_SOUND);
+			trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND ? WEATHER_CUSTOM_SOUND : WEATHER_SITH_TOMB_SOUND, CHAN_AMBIENT);
 			ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 4000;
 		}
 		return;
@@ -498,13 +498,13 @@ void CG_AddAtmosphericEffects()
 		{
 			//trap->S_StartLocalSound(WEATHER_JEDI_TEMPLE_SOUND, CHAN_AMBIENT);
 			//ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 595000;
-			trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND ? WEATHER_CUSTOM_SOUND : WEATHER_JEDI_TEMPLE_SOUND);
+			trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND ? WEATHER_CUSTOM_SOUND : WEATHER_JEDI_TEMPLE_SOUND, CHAN_AMBIENT);
 			ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 4000;
 		}
 		return;
 		break;
 	default:
-		if (WEATHER_CUSTOM_SOUND) trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND);
+		if (WEATHER_CUSTOM_SOUND) trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND, CHAN_AMBIENT);
 		MAX_FRAME_PARTICLES = 32;
 		break;
 	}
@@ -543,7 +543,7 @@ void CG_AddAtmosphericEffects()
 			{
 				//trap->S_StartLocalSound(WEATHER_RAIN_SOUND, CHAN_AMBIENT);
 				//ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 595000;
-				trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_RAIN_SOUND);
+				trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_RAIN_SOUND, CHAN_AMBIENT);
 				ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 4000;
 			}
 			break;
@@ -554,7 +554,7 @@ void CG_AddAtmosphericEffects()
 			{
 				//trap->S_StartLocalSound(WEATHER_HEAVY_RAIN_SOUND, CHAN_AMBIENT);
 				//ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 595000;
-				trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_HEAVY_RAIN_SOUND);
+				trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_HEAVY_RAIN_SOUND, CHAN_AMBIENT);
 				ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 4000;
 			}
 			break;
@@ -565,7 +565,7 @@ void CG_AddAtmosphericEffects()
 			{
 				//trap->S_StartLocalSound(WEATHER_RAIN_STORM_SOUND, CHAN_AMBIENT);
 				//ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 595000;
-				trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_RAIN_STORM_SOUND);
+				trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_RAIN_STORM_SOUND, CHAN_AMBIENT);
 				ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 4000;
 			}
 			break;
@@ -576,7 +576,7 @@ void CG_AddAtmosphericEffects()
 			{
 				//trap->S_StartLocalSound(WEATHER_SNOW_SOUND, CHAN_AMBIENT);
 				//ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 595000;
-				trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_SNOW_SOUND);
+				trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_SNOW_SOUND, CHAN_AMBIENT);
 				ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 4000;
 			}
 			break;
@@ -587,7 +587,7 @@ void CG_AddAtmosphericEffects()
 			{
 				//trap->S_StartLocalSound(WEATHER_SNOW_SOUND, CHAN_AMBIENT);
 				//ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 595000;
-				trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_SNOW_SOUND);
+				trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_SNOW_SOUND, CHAN_AMBIENT);
 				ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 4000;
 			}
 			break;
@@ -598,7 +598,7 @@ void CG_AddAtmosphericEffects()
 			{
 				//trap->S_StartLocalSound(WEATHER_SNOW_STORM_SOUND, CHAN_AMBIENT);
 				//ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 595000;
-				trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_SNOW_STORM_SOUND);
+				trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_SNOW_STORM_SOUND, CHAN_AMBIENT);
 				ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 4000;
 			}
 			break;
@@ -607,7 +607,7 @@ void CG_AddAtmosphericEffects()
 		}
 	}
 
-	if (WEATHER_CUSTOM_SOUND2) trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND2);
+	if (WEATHER_CUSTOM_SOUND2) trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND2, CHAN_AMBIENT);
 
 	if (!ATMOSPHERIC_SOUND_ONLY && ATMOSPHERIC_WEATHER_TYPE == WEATHER_SNOW_STORM)
 	{// Would you like some volumetric fog with that? Oh yes please! - This is, however, very FPS costly...

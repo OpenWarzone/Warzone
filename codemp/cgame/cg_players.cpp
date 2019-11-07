@@ -2826,7 +2826,7 @@ void CG_PlayerAnimEventDo( centity_t *cent, animevent_t *animEvent )
 			}
 			swingSound = trap->S_RegisterSound(va("sound/weapons/saber/saberhup%i.wav", randomSwing));
 		}
-		trap->S_StartSound(cent->currentState.pos.trBase, cent->currentState.number, CHAN_AUTO, swingSound );
+		trap->S_StartSound(cent->currentState.pos.trBase, cent->currentState.number, CHAN_SABER, swingSound );
 		break;
 	case AEV_SABER_SPIN:
 		if (cent->currentState.eType == ET_NPC)
@@ -2870,7 +2870,7 @@ void CG_PlayerAnimEventDo( centity_t *cent, animevent_t *animEvent )
 		}
 		if ( spinSound )
 		{
-			trap->S_StartSound( NULL, cent->currentState.clientNum, CHAN_AUTO, spinSound );
+			trap->S_StartSound( NULL, cent->currentState.clientNum, CHAN_SABER, spinSound );
 		}
 		break;
 	case AEV_FOOTSTEP:
@@ -6183,7 +6183,7 @@ void CG_G2SaberEffects(vec3_t start, vec3_t end, centity_t *owner)
 			if (trace.entityNum != ENTITYNUM_NONE)
 			{ //it succeeded with the ghoul2 trace
 				PlayEffectID( cgs.effects.mSaberBloodSparks, trace.endpos, trace.plane.normal, -1, -1, qfalse );
-				trap->S_StartSound(trace.endpos, trace.entityNum, CHAN_AUTO, trap->S_RegisterSound(va("sound/weapons/saber/saberhit%i.wav", Q_irand(1, 3))));
+				trap->S_StartSound(trace.endpos, trace.entityNum, CHAN_SABER, trap->S_RegisterSound(va("sound/weapons/saber/saberhit%i.wav", Q_irand(1, 3))));
 			}
 		}
 
@@ -6426,7 +6426,7 @@ void CG_SaberCompWork(vec3_t start, vec3_t end, centity_t *owner, int saberNum, 
 				if (owner->serverSaberFleshImpact)
 				{ //do standard player/live ent hit sparks
 					PlayEffectID( hitPersonFxID, trace.endpos, trace.plane.normal, -1, -1, qfalse );
-					//trap->S_StartSound(trace.endpos, trace.entityNum, CHAN_AUTO, trap->S_RegisterSound(va("sound/weapons/saber/saberhit%i.wav", Q_irand(1, 3))));
+					//trap->S_StartSound(trace.endpos, trace.entityNum, CHAN_SABER, trap->S_RegisterSound(va("sound/weapons/saber/saberhit%i.wav", Q_irand(1, 3))));
 				}
 				else
 				{ //do the cut effect
@@ -6689,7 +6689,7 @@ void CG_AddSaberBlade(centity_t *cent, centity_t *scent, refEntity_t *saber, int
 							if (cg.time - client->saber[saberNum].blade[bladeNum].hitWallDebounceTime >= 100)
 							{//ugh, need to have a real sound debouncer... or do this game-side
 								client->saber[saberNum].blade[bladeNum].hitWallDebounceTime = cg.time;
-								trap->S_StartSound(trace.endpos, -1, CHAN_WEAPON, trap->S_RegisterSound(va("sound/weapons/saber/saberhitwall%i", Q_irand(1, 3))));
+								trap->S_StartSound(trace.endpos, -1, CHAN_SABER, trap->S_RegisterSound(va("sound/weapons/saber/saberhitwall%i", Q_irand(1, 3))));
 							}
 						}
 					}
@@ -6749,10 +6749,20 @@ JustDoIt:
 	CG_DoSaberTrails(cent, client, org_, end, axis_, (saber_colors_t)scolor, saberTrail, saberNum, bladeNum);
 	CG_Do3DSaber(org_, axis_[0], saberLen, client->saber[saberNum].blade[bladeNum].lengthMax, client->saber[saberNum].blade[bladeNum].radius, (saber_colors_t)scolor);
 
-	if (client->saber[saberNum].soundLoop)
-		trap->S_AddLoopingSound(cent->currentState.number, org_, vec3_origin, client->saber[saberNum].soundLoop);
-	else
-		trap->S_AddLoopingSound(cent->currentState.number, org_, vec3_origin, trap->S_RegisterSound("sound/weapons/saber/saberhum1.wav"));
+	/*if (cg.snap->ps.clientNum == cent->currentState.number && !cent->currentState.saberInFlight)
+	{// UQ1: Play as local sound instead...
+		if (client->saber[saberNum].soundLoop)
+			trap->S_AddLoopingSound(-1, NULL, vec3_origin, client->saber[saberNum].soundLoop, CHAN_SABERLOCAL);
+		else
+			trap->S_AddLoopingSound(-1, NULL, vec3_origin, trap->S_RegisterSound("sound/weapons/saber/saberhum1.wav"), CHAN_SABERLOCAL);
+	}
+	else*/
+	{
+		if (client->saber[saberNum].soundLoop)
+			trap->S_AddLoopingSound(cent->currentState.number, org_, vec3_origin, client->saber[saberNum].soundLoop, CHAN_SABER);
+		else
+			trap->S_AddLoopingSound(cent->currentState.number, org_, vec3_origin, trap->S_RegisterSound("sound/weapons/saber/saberhum1.wav"), CHAN_SABER);
+	}
 
 	//[NewLightningEFX]
 	if (cent->currentState.emplacedOwner + 1000 > cg.time)
@@ -7846,7 +7856,7 @@ void CG_G2Animated( centity_t *cent )
 
 		if (cent->currentState.weapon == WP_SABER)
 		{
-			trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_AUTO, trap->S_RegisterSound( "sound/weapons/saber/saberon.wav" ));
+			trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_SABER, trap->S_RegisterSound( "sound/weapons/saber/saberon.wav" ));
 		}
 	}
 	*/
@@ -9111,6 +9121,11 @@ void CG_Player( centity_t *cent ) {
 
 	CG_SetupGender(cent);
 
+	if (cent->currentState.eFlags & EF_DEAD)
+	{// UQ1: Make sure looping sounds are removed from dead npcs...
+		trap->S_StopLoopingSound(cent->currentState.number);
+	}
+
 	//first if we are not an npc and we are using an emplaced gun then make sure our
 	//angles are visually capped to the constraints (otherwise it's possible to lerp
 	//a little outside and look kind of twitchy)
@@ -9478,7 +9493,7 @@ void CG_Player( centity_t *cent ) {
 
 					//Keep the jet fire sound looping
 					trap->S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, vec3_origin,
-						trap->S_RegisterSound("sound/jkg/jetpack/jetlp" /*"sound/effects/fire_lp"*/));
+						trap->S_RegisterSound("sound/jkg/jetpack/jetlp" /*"sound/effects/fire_lp"*/), CHAN_BODY);
 				}
 				else if (cent->currentState.eFlags & EF_JETPACK_ACTIVE)
 				{// Normal (not so fast movement)...
@@ -9497,7 +9512,7 @@ void CG_Player( centity_t *cent ) {
 			}
 
 			trap->S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, vec3_origin,
-				trap->S_RegisterSound("sound/jkg/jetpack/jethover" /*"sound/effects/fire_lp"*/));
+				trap->S_RegisterSound("sound/jkg/jetpack/jethover" /*"sound/effects/fire_lp"*/), CHAN_BODY);
 		}
 	}
 	else if (trap->G2API_HasGhoul2ModelOnIndex(&(cent->ghoul2), 3))
@@ -9655,18 +9670,18 @@ void CG_Player( centity_t *cent ) {
 					&& cent->weapon != cent->currentState.weapon
 					&& !cent->currentState.saberHolstered)
 				{ //switching away from the saber
-					//trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_AUTO, trap->S_RegisterSound( "sound/weapons/saber/saberoffquick.wav" ));
+					//trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_SABER, trap->S_RegisterSound( "sound/weapons/saber/saberoffquick.wav" ));
 					if (ci->saber[0].soundOff
 						&& !cent->currentState.saberHolstered)
 					{
-						trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_AUTO, ci->saber[0].soundOff);
+						trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_SABER, ci->saber[0].soundOff);
 					}
 
 					if (ci->saber[1].soundOff &&
 						ci->saber[1].model[0] &&
 						!cent->currentState.saberHolstered)
 					{
-						trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_AUTO, ci->saber[1].soundOff);
+						trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_SABER, ci->saber[1].soundOff);
 					}
 
 				}
@@ -9674,15 +9689,15 @@ void CG_Player( centity_t *cent ) {
 					&& cent->weapon != cent->currentState.weapon
 					&& !cent->saberWasInFlight)
 				{ //switching to the saber
-					//trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_AUTO, trap->S_RegisterSound( "sound/weapons/saber/saberon.wav" ));
+					//trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_SABER, trap->S_RegisterSound( "sound/weapons/saber/saberon.wav" ));
 					if (ci->saber[0].soundOn)
 					{
-						trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_AUTO, ci->saber[0].soundOn);
+						trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_SABER, ci->saber[0].soundOn);
 					}
 
 					if (ci->saber[1].soundOn)
 					{
-						trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_AUTO, ci->saber[1].soundOn);
+						trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_SABER, ci->saber[1].soundOn);
 					}
 
 					BG_SI_SetDesiredLength(&ci->saber[0], 0, -1);
@@ -10684,8 +10699,9 @@ stillDoSaber:
 	else if (cent->currentState.weapon == WP_SABER
 		&& cent->currentState.saberHolstered < 2 )
 	{
+#if 0 // Handled with the 3D bolt now...
 		if ( (!cent->currentState.saberInFlight //saber not in flight
-				|| ci->saber[1].soundLoop) //???
+				/*|| ci->saber[1].soundLoop*/) //???
 			&& !(cent->currentState.eFlags & EF_DEAD))//still alive
 		{
 			vec3_t soundSpot;
@@ -10694,18 +10710,18 @@ stillDoSaber:
 			if (cg.snap->ps.clientNum == cent->currentState.number)
 			{
 				//trap->S_AddLoopingSound( cent->currentState.number, cg.refdef.vieworg, vec3_origin,
-				//	trap->S_RegisterSound( "sound/weapons/saber/saberhum1.wav" ) );
+				//	trap->S_RegisterSound( "sound/weapons/saber/saberhum1.wav" ), CHAN_SABER );
 				VectorCopy(cg.refdef.vieworg, soundSpot);
 			}
 			else
 			{
 				//trap->S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, vec3_origin,
-				//	trap->S_RegisterSound( "sound/weapons/saber/saberhum1.wav" ) );
+				//	trap->S_RegisterSound( "sound/weapons/saber/saberhum1.wav" ), CHAN_SABER );
 				VectorCopy(cent->lerpOrigin, soundSpot);
 			}
 
 			if (ci->saber[0].model[0]
-				&& ci->saber[0].soundLoop
+				//&& ci->saber[0].soundLoop
 				&& !cent->currentState.saberInFlight)
 			{
 				int i = 0;
@@ -10723,13 +10739,16 @@ stillDoSaber:
 
 				if (hasLen)
 				{
-					trap->S_AddLoopingSound( cent->currentState.number, soundSpot, vec3_origin,
-						ci->saber[0].soundLoop );
+					if (ci->saber[1].soundLoop)
+						trap->S_AddLoopingSound( cent->currentState.number, soundSpot, vec3_origin, ci->saber[0].soundLoop, CHAN_SABER);
+					else
+						trap->S_AddLoopingSound(cent->currentState.number, soundSpot, vec3_origin, trap->S_RegisterSound("sound/weapons/saber/saberhum1.wav"), CHAN_SABER);
+
 					didFirstSound = qtrue;
 				}
 			}
 			if (ci->saber[1].model[0]
-				&& ci->saber[1].soundLoop
+				//&& ci->saber[1].soundLoop
 					&& (!didFirstSound || ci->saber[0].soundLoop != ci->saber[1].soundLoop))
 			{
 				int i = 0;
@@ -10747,11 +10766,14 @@ stillDoSaber:
 
 				if (hasLen)
 				{
-					trap->S_AddLoopingSound( cent->currentState.number, soundSpot, vec3_origin,
-						ci->saber[1].soundLoop );
+					if (ci->saber[1].soundLoop)
+						trap->S_AddLoopingSound( cent->currentState.number, soundSpot, vec3_origin, ci->saber[1].soundLoop, CHAN_SABER);
+					else
+						trap->S_AddLoopingSound(cent->currentState.number, soundSpot, vec3_origin, trap->S_RegisterSound("sound/weapons/saber/saberhum1.wav"), CHAN_SABER);
 				}
 			}
 		}
+#endif
 
 		if (iwantout
 			&& !cent->currentState.saberInFlight)

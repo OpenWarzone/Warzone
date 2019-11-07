@@ -9,6 +9,8 @@
 #define		MAX_SOUNDPATH	512
 #define		MAX_SFX			14000	//512 * 2
 
+#define ForceCrash() { refdef_t *blah = NULL; blah->time = 1; }
+
 extern void S_FreeOldSamples(void);
 
 extern qboolean S_ShouldCull ( vec3_t org, qboolean check_angles, int entityNum );
@@ -25,9 +27,8 @@ extern DWORD BASS_LoadMusicSample ( void *memory, int length );
 extern void BASS_AddDynamicTrack ( char *name );
 extern void BASS_InitDynamicList ( void );
 extern void BASS_UpdateDynamicMusic( void );
-extern void BASS_AddStreamChannel ( char *file, int entityNum, int entityChannel, vec3_t origin );
-extern void BASS_AddMemoryChannel ( DWORD samplechan, int entityNum, int entityChannel, vec3_t origin, float volume );
-extern void BASS_AddMemoryLoopChannel ( DWORD samplechan, int entityNum, int entityChannel, vec3_t origin, float volume );
+extern void BASS_AddMemoryChannel ( DWORD samplechan, int entityNum, int entityChannel, vec3_t origin, float volume, char *filename );
+extern void BASS_AddMemoryLoopChannel ( DWORD samplechan, int entityNum, int entityChannel, vec3_t origin, float volume, char *filename);
 extern void BASS_StartStreamingSound ( char *filename, int entityNum, int entityChannel, vec3_t origin );
 extern void BASS_StopLoopChannel ( int entityNum );
 extern void BASS_StopAllChannels ( void );
@@ -37,8 +38,12 @@ extern void BASS_FindAndStopSound ( DWORD handle );
 extern void BASS_StartMusic ( DWORD samplechan );
 extern void BASS_UpdateSounds ( void );
 extern void BASS_StopMusic( DWORD samplechan );
+
 extern void BASS_SetEAX_NORMAL ( void );
-extern void BASS_SetEAX_UNDERWATER ( void );
+extern void BASS_SetEAX_FOREST(void);
+extern void BASS_SetEAX_MOUNTAINS(void);
+extern void BASS_SetEAX_CAVE(void);
+extern void BASS_SetEAX_UNDERWATER(void);
 
 // Added for Open AL to know when to mute all sounds (e.g when app. loses focus)
 void S_AL_MuteAllSounds(qboolean bMute);
@@ -171,6 +176,7 @@ extern cvar_t	*s_volumeAmbientEfx;
 extern cvar_t	*s_volumeVoice;
 extern cvar_t	*s_volumeEffects;
 extern cvar_t	*s_volumeWeapon;
+extern cvar_t	*s_volumeSaber;
 extern cvar_t	*s_volumeItem;
 extern cvar_t	*s_volumeBody;
 extern cvar_t	*s_volumeMusic;
@@ -180,6 +186,10 @@ extern cvar_t		*s_testvalue0;
 extern cvar_t		*s_testvalue1;
 extern cvar_t		*s_testvalue2;
 extern cvar_t		*s_testvalue3;
+extern cvar_t		*s_testvalue4;
+extern cvar_t		*s_testvalue5;
+extern cvar_t		*s_testvalue6;
+extern cvar_t		*s_testvalue7;
 
 extern cvar_t	*s_nosound;
 extern cvar_t	*s_khz;

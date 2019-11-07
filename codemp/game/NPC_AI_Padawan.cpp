@@ -650,6 +650,7 @@ qboolean NPC_PadawanMove(gentity_t *aiEnt)
 						G_AddPadawanCommentEvent(NPC, EV_PADAWAN_IDLE, 30000 + irand(0, 30000));
 					}
 
+					NPC->last_move_time = level.time;
 					NPC->padawanWaitTime = level.time + 1500;
 
 					return qtrue;// qfalse;
@@ -677,6 +678,8 @@ qboolean NPC_PadawanMove(gentity_t *aiEnt)
 					{// Random idle sound... Yawns, giggles, etc...
 						G_AddPadawanIdleNoReplyCommentEvent(NPC, EV_PADAWAN_IDLE_NOREPLY, 10000 + irand(0, 15000));
 					}
+
+					NPC->last_move_time = level.time;
 				}
 				else if (dist <= 128)
 				{// Perfect distance... Stay idle...
@@ -698,6 +701,7 @@ qboolean NPC_PadawanMove(gentity_t *aiEnt)
 						G_AddPadawanCommentEvent(NPC, EV_PADAWAN_IDLE, 30000 + irand(0, 30000));
 					}
 
+					NPC->last_move_time = level.time;
 					NPC->padawanWaitTime = level.time + 1500;
 
 					return qtrue;
