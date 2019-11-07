@@ -2,7 +2,7 @@
 #include "snd_local.h"
 
 #define __BASS_STREAM_MUSIC__
-//#define __BASS_FX__
+//#define __BASS_FX__ // Well that's 2 days I won't be getting back, it only supports streams - fucking pk3s...
 //#define __BASS_DEBUG__
 
 #include "snd_bass.h"
@@ -72,6 +72,8 @@ thread *BASS_MUSIC_UPDATE_THREAD;
 
 extern qboolean FS_STARTUP_COMPLETE; // needed for multi-threading...
 
+DWORD				BASS_FLOAT_AVAILABLE = 0;
+
 // channel (sample/music) info structure
 typedef struct {
 	DWORD			channel, originalChannel;			// the channel
@@ -85,8 +87,8 @@ typedef struct {
 	qboolean		isLooping;
 	float			cullRange;
 #ifdef __BASS_FX__
-	HFX				reverb;
-	HFX				peakEQ;
+	HFX				fxReverb;
+	HFX				fxPeakEQ;
 #endif //__BASS_FX__
 } Channel;
 
@@ -124,8 +126,8 @@ void BASS_InitChannel ( Channel *c )
 	c->volume = 0;
 
 #ifdef __BASS_FX__
-	c->reverb = 0;
-	c->peakEQ = 0;
+	c->fxReverb = 0;
+	c->fxPeakEQ = 0;
 #endif //__BASS_FX__
 }
 
@@ -166,15 +168,16 @@ void BASS_StopChannel ( int chanNum )
 	//}
 
 #ifdef __BASS_FX__
-	if (c->reverb)
+	if (c->fxReverb)
 	{
-		BASS_ChannelRemoveFX(c->channel, c->reverb);
-		c->reverb = 0;
+		BASS_ChannelRemoveFX(c->channel, c->fxReverb);
+		c->fxReverb = 0;
 	}
 
-	if (c->peakEQ)
+	if (c->fxPeakEQ)
 	{
-		BASS_ChannelRemoveFX(c->channel, c->peakEQ);
+		BASS_ChannelRemoveFX(c->channel, c->fxPeakEQ);
+		c->fxPeakEQ = 0;
 	}
 #endif //__BASS_FX__
 
@@ -514,17 +517,32 @@ qboolean BASS_Initialize ( void )
 	BASS_SetConfig(BASS_CONFIG_UPDATETHREADS, (DWORD)1);
 	//BASS_SetConfig(BASS_CONFIG_BUFFER, (DWORD)100); // set the buffer length
 
+	BASS_SetConfig(BASS_CONFIG_DEV_NONSTOP, 1);
+
+	// check for floating-point capability
+	BASS_FLOAT_AVAILABLE = BASS_StreamCreate(44100, 2, BASS_SAMPLE_FLOAT, 0, 0);
+	if (BASS_FLOAT_AVAILABLE) 
+	{
+		BASS_StreamFree(BASS_FLOAT_AVAILABLE);  //woohoo!
+		BASS_FLOAT_AVAILABLE = BASS_SAMPLE_FLOAT;
+		Com_Printf("^3+ ^532 bit floating point sample capability available.\n");
+	}
+	else
+	{
+		Com_Printf("^1- ^532 bit floating point sample capability not available.\n");
+	}
+
 	//Com_Printf("Volume %f. Sample Volume %i. Stream Volume %i.\n", BASS_GetVolume(), (int)BASS_GetConfig(BASS_CONFIG_GVOL_SAMPLE), (int)BASS_GetConfig(BASS_CONFIG_GVOL_STREAM));
 
 	// Try to use the WDM full 3D algorythm...
 	if (BASS_SetConfig(BASS_CONFIG_3DALGORITHM, BASS_3DALG_FULL))
 	{
-		Com_Printf("^3+ ^5Enhanced Surround Enabled.\n");
+		Com_Printf("^3+ ^5Enhanced Surround Sound Enabled.\n");
 	}
 	else
 	{
 		BASS_SetConfig(BASS_CONFIG_3DALGORITHM, BASS_3DALG_DEFAULT);
-		Com_Printf("^1- ^5Default Surround Enabled. You need a WDM sound driver to use Enhanced Surround.\n");
+		Com_Printf("^1- ^5Default Surround Sound Enabled. You need a WDM sound driver to use Enhanced Surround.\n");
 	}
 
 	// Set view angles and position to 0,0,0. We will rotate the sound angles...
@@ -690,13 +708,7 @@ int   lChannel;							// BASS_BFX_CHANxxx flag/s
 void UpdateFreeverbFX(int chan)
 {
 	Channel *c = &SOUND_CHANNELS[chan];
-	DWORD channel = c->channel;
 
-	if (!c->reverb)
-	{
-		c->reverb = BASS_ChannelSetFX(c->channel, BASS_FX_BFX_FREEVERB, 0);
-	}
-	
 	BASS_BFX_FREEVERB frb;
 
 	float dryMix = 0.0;// s_testvalue0->value;
@@ -706,7 +718,7 @@ void UpdateFreeverbFX(int chan)
 	float width = 1.0;// s_testvalue4->value;
 	//float mode = s_testvalue5->value;
 
-	BASS_FXGetParameters(c->reverb, &frb);
+	BASS_FXGetParameters(c->fxReverb, &frb);
 	frb.fDryMix = dryMix;
 	frb.fWetMix = wetMix;
 	frb.fRoomSize = roomSize;
@@ -714,9 +726,9 @@ void UpdateFreeverbFX(int chan)
 	frb.fWidth = width;
 	frb.lMode = 0;
 	frb.lChannel = BASS_BFX_CHANALL;
-	BASS_FXSetParameters(c->reverb, &frb);
+	BASS_FXSetParameters(c->fxReverb, &frb);
 
-	//BASS_FXGetParameters(c->reverb, &frb);
+	//BASS_FXGetParameters(c->fxReverb, &frb);
 	//Com_Printf("dryMix %f. wetMix %f. roomSize %f. damp %f. fWidth %f.\n", frb.fDryMix, frb.fWetMix, frb.fRoomSize, frb.fDamp, frb.fWidth);
 }
 
@@ -729,9 +741,9 @@ void UpdatePeakEQFX(int chan, float fGain, float fBandwidth, float fQ, float fCe
 	Channel *c = &SOUND_CHANNELS[chan];
 	DWORD channel = c->channel;
 
-	if (!c->peakEQ)
+	if (!c->fxPeakEQ)
 	{
-		c->peakEQ = BASS_ChannelSetFX(channel, BASS_FX_BFX_PEAKEQ, 1);
+		c->fxPeakEQ = BASS_ChannelSetFX(channel, BASS_FX_BFX_PEAKEQ, 1);
 	}
 
 	eq.fGain = fGain;
@@ -742,17 +754,17 @@ void UpdatePeakEQFX(int chan, float fGain, float fBandwidth, float fQ, float fCe
 	// create 1st band for bass
 	eq.lBand = 0;
 	eq.fCenter = fCenter_Bass;
-	BASS_FXSetParameters(c->peakEQ, &eq);
+	BASS_FXSetParameters(c->fxPeakEQ, &eq);
 
 	// create 2nd band for mid
 	eq.lBand = 1;
 	eq.fCenter = fCenter_Mid;
-	BASS_FXSetParameters(c->peakEQ, &eq);
+	BASS_FXSetParameters(c->fxPeakEQ, &eq);
 
 	// create 3rd band for treble
 	eq.lBand = 2;
 	eq.fCenter = fCenter_Treble;
-	BASS_FXSetParameters(c->peakEQ, &eq);
+	BASS_FXSetParameters(c->fxPeakEQ, &eq);
 }
 #endif //__BASS_FX__
 
@@ -950,7 +962,8 @@ void BASS_UpdatePosition ( int ch, qboolean IS_NEW_SOUND )
 			//if (CHAN_VOLUME > 0) Com_Printf("3D Volume %f.\n", CHAN_VOLUME);
 		}
 #else
-		BASS_ChannelSet3DAttributes(c->channel, SOUND_3D_METHOD, 1, 1, 1, 0, CHAN_VOLUME);
+		//BASS_ChannelSet3DAttributes(c->channel, SOUND_3D_METHOD, 1, 1, 1, 0, CHAN_VOLUME);
+		BASS_ChannelSet3DAttributes(c->channel, SOUND_3D_METHOD, c->cullRange > 0 ? c->cullRange : MAX_SOUND_RANGE, c->cullRange > 0 ? c->cullRange : MAX_SOUND_RANGE, 0, 0, 1);
 		BASS_ChannelSetAttribute(c->channel, BASS_ATTRIB_VOL, CHAN_VOLUME);
 		BASS_ChannelFlags(c->channel, BASS_SAMPLE_MUTEMAX, BASS_SAMPLE_MUTEMAX); // enable muting at the max distance
 		//if (c->isLooping) BASS_ChannelFlags(c->channel, BASS_SAMPLE_LOOP, BASS_SAMPLE_LOOP);
@@ -973,7 +986,7 @@ void BASS_UpdatePosition ( int ch, qboolean IS_NEW_SOUND )
 	int   lChannel;							// BASS_BFX_CHANxxx flag/s
 	*/
 	//SetDSP_EQ(0.0f, 2.5f, 0.0f, 125.0f, 1000.0f, 8000.0f);
-	UpdatePeakEQFX(ch, 15.0f, 2.5f, 0.0f, 125.0f, 1000.0f, 8000.0f);
+	//UpdatePeakEQFX(ch, 15.0f, 2.5f, 0.0f, 125.0f, 1000.0f, 8000.0f);
 #endif //__BASS_FX__
 }
 
@@ -1026,9 +1039,29 @@ void BASS_ProcessStartRequest( int channel )
 	// Apply the 3D changes
 	BASS_UpdatePosition(channel, qtrue);
 
-#ifndef __BASS_FX__
-	//c->reverb = BASS_ChannelSetFX(c->channel, BASS_FX_DX8_REVERB, 0);
-	//c->reverb = BASS_ChannelSetFX(c->channel, BASS_FX_DX8_I3DL2REVERB, 0);
+#ifdef __BASS_FX__
+	c->fxReverb = BASS_ChannelSetFX(c->channel, BASS_FX_BFX_FREEVERB, 0);
+
+	if (!c->fxReverb)
+	{
+		int error = BASS_ErrorGetCode();
+
+		switch (error)
+		{
+		case BASS_ERROR_HANDLE:
+			Com_Printf("SOUND: Handle is not a channel.\n");
+			break;
+		case BASS_ERROR_ILLTYPE:
+			Com_Printf("SOUND: type is invalid. Note BASS_FX must be loaded before these effects can be used.\n");
+			break;
+		case BASS_ERROR_FORMAT:
+			Com_Printf("SOUND: The selected effect could be applied only on stereo or mono handle.\n");
+			break;
+		}
+	}
+#else //!__BASS_FX__
+	//c->fxReverb = BASS_ChannelSetFX(c->channel, BASS_FX_DX8_REVERB, 0);
+	//c->fxReverb = BASS_ChannelSetFX(c->channel, BASS_FX_DX8_I3DL2REVERB, 0);
 #endif //__BASS_FX__
 
 	// Play
@@ -2680,11 +2713,7 @@ DWORD BASS_LoadMemorySample ( void *memory, int length )
 	if (BASS_CheckSoundDisabled()) return -1;
 
 	// Try to load the sample with the highest quality options we support...
-	if ((newchan=BASS_SampleLoad(TRUE,memory,0,(DWORD)length,(DWORD)MAX_SAMPLE_CHANNELS,BASS_SAMPLE_3D|BASS_SAMPLE_MONO|BASS_SAMPLE_FLOAT|/*BASS_SAMPLE_VAM|*//*BASS_SAMPLE_OVER_DIST*/BASS_SAMPLE_OVER_VOL)))
-	{
-		return newchan;
-	}
-	else if ((newchan=BASS_SampleLoad(TRUE,memory,0,(DWORD)length,(DWORD)MAX_SAMPLE_CHANNELS,BASS_SAMPLE_3D|BASS_SAMPLE_MONO|/*BASS_SAMPLE_VAM|*//*BASS_SAMPLE_OVER_DIST*/BASS_SAMPLE_OVER_VOL)))
+	if ((newchan=BASS_SampleLoad(TRUE,memory,0,(DWORD)length,(DWORD)MAX_SAMPLE_CHANNELS,BASS_SAMPLE_3D|BASS_SAMPLE_MONO|BASS_SAMPLE_OVER_VOL|BASS_FLOAT_AVAILABLE)))
 	{
 		return newchan;
 	}
