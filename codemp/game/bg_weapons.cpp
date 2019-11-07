@@ -137,6 +137,7 @@ qboolean BG_HaveWeapon ( const playerState_t *ps, int weapon )
 	if (ps->secondaryWeapon == weapon && weapon <= WP_NUM_USEABLE) return qtrue;
 	if (ps->temporaryWeapon == weapon && weapon <= WP_NUM_USEABLE) return qtrue;
 	if (ps->temporaryWeapon == WP_ALL_WEAPONS && weapon <= WP_NUM_USEABLE) return qtrue;
+	if (weapon == WP_MELEE) return qtrue; // Everyone now gets melee... for now...
 
 	return qfalse;
 }
@@ -147,6 +148,7 @@ qboolean HaveWeapon ( playerState_t *ps, int weapon )
 	if (ps->secondaryWeapon == weapon && weapon <= WP_NUM_USEABLE) return qtrue;
 	if (ps->temporaryWeapon == weapon && weapon <= WP_NUM_USEABLE) return qtrue;
 	if (ps->temporaryWeapon == WP_ALL_WEAPONS && weapon <= WP_NUM_USEABLE) return qtrue;
+	if (weapon == WP_MELEE) return qtrue; // Everyone now gets melee... for now...
 
 	return qfalse;
 }

@@ -51,6 +51,54 @@ console doesn't pause the game.
 =============================================================================
 */
 
+extern float mix(float x, float y, float a);
+
+#define BASE_MIN_HEIGHT1 -48.0
+#define BASE_MIN_HEIGHT2 -16.0
+
+void CG_UpdateCamera(void)
+{
+	// Set new view height...
+	float distMod = Q_clamp(0.0, float(cg_thirdPersonRange.integer - cg_thirdPersonRangeMinimum.integer) / float(cg_thirdPersonRangeMaximum.integer - cg_thirdPersonRangeMinimum.integer), 1.0);
+	float modelScale = (cg.snap->ps.iModelScale / 100.0f);
+	int hRange = (int)mix(BASE_MIN_HEIGHT1, BASE_MIN_HEIGHT2, modelScale);
+	hRange = (int)mix((float)hRange, (float)hRange + 48.0, distMod);
+
+	char val2[16] = { { 0 } };
+	sprintf(val2, "%i", hRange);
+	trap->Cvar_Set("cg_thirdPersonVertOffset", val2);
+}
+
+void CG_ScrollDown_f(void)
+{// Mouse scroll down... Zoom out camera... Use for other stuff later, maybe...
+	// Calculate and update view range...
+	int vRange = cg_thirdPersonRange.integer;
+
+	vRange += cg_thirdPersonRangeScrollSpeed.integer;
+	vRange = Q_clampi(cg_thirdPersonRangeMinimum.integer, vRange, cg_thirdPersonRangeMaximum.integer);
+
+	char val[16] = { { 0 } };
+	sprintf(val, "%i", vRange);
+	trap->Cvar_Set("cg_thirdPersonRange", val);
+
+	CG_UpdateCamera();
+}
+
+void CG_ScrollUp_f(void)
+{// Mouse scroll up... Zoom in camera... Use for other stuff later, maybe...
+	// Calculate and update view range...
+	int vRange = cg_thirdPersonRange.integer;
+
+	vRange -= cg_thirdPersonRangeScrollSpeed.integer;
+	vRange = Q_clampi(cg_thirdPersonRangeMinimum.integer, vRange, cg_thirdPersonRangeMaximum.integer);
+
+	char val[16] = { { 0 } };
+	sprintf(val, "%i", vRange);
+	trap->Cvar_Set("cg_thirdPersonRange", val);
+
+	CG_UpdateCamera();
+}
+
 /*
 =================
 CG_TestModel_f
@@ -1534,6 +1582,9 @@ static qboolean CG_ThirdPersonActionCam(void)
 	//get direction from base to ent origin
 	VectorSubtract(ci->saber[0].blade[0].trail.base, cent->lerpOrigin, positionDir);
 	VectorNormalize(positionDir);
+
+	// Update height offsets for model scales and 3rd person range...
+	CG_UpdateCamera();
 
 	//position the cam based on the direction and saber position
 	VectorMA(cent->lerpOrigin, cg_thirdPersonRange.value*2, positionDir, desiredPos);

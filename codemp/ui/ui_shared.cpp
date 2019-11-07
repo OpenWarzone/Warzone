@@ -4888,6 +4888,8 @@ static const char *g_bindCommands[] = {
 	"autowaypoint",
 	"awc",
 	"autowaypointclean",
+	"scrolldown",
+	"scrollup",
 	"showskysurface",
 	"showsurface",
 	"showslope",

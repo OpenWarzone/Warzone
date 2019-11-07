@@ -1526,7 +1526,18 @@ qboolean CG_WeaponCheck(int weap)
 CG_WeaponSelectable
 ===============
 */
-static qboolean CG_WeaponSelectable( int i ) {
+static qboolean CG_WeaponSelectable( int i ) 
+{
+	if (i < WP_FIRST_USEABLE)
+	{
+		return qfalse;
+	}
+
+	if (i > WP_NUM_USEABLE)
+	{
+		return qfalse;
+	}
+
 	if (!i)
 	{
 		return qfalse;
@@ -1576,7 +1587,7 @@ void CG_DrawWeaponSelect( void ) {
 	// count the number of weapons owned
 	count = 0;
 
-	for ( i = 1 ; i < WP_NUM_WEAPONS ; i++ )
+	for ( i = WP_FIRST_USEABLE; i <= WP_NUM_USEABLE; i++ )
 	{
 		if (HaveWeapon(&cg.predictedPlayerState, i))
 		{
@@ -1880,6 +1891,73 @@ void CG_PrevWeapon_f( void ) {
 	}
 }
 
+int CG_SelectWeaponForID(int num)
+{// New, clean, generic weapon switching system... Fast and smooth... and easy to switch to inventory character slots later...
+	int newNum = -1;
+
+	switch (num)
+	{
+	case 1:
+	{// Saber/Melee selection...
+		qboolean haveSaber = CG_WeaponSelectable(WP_SABER);
+		qboolean haveMelee = CG_WeaponSelectable(WP_MELEE);
+
+		if (cg.snap->ps.weapon == WP_MELEE && haveSaber)
+		{
+			newNum = WP_SABER;
+		}
+		else if (cg.snap->ps.weapon == WP_SABER && haveMelee)
+		{
+			centity_t *cent = &cg_entities[cg.snap->ps.clientNum];
+
+			if (cent->currentState.saberHolstered < 2)
+			{// Switch sabers off on first hit, then switch to melee on second...
+				trap->SendConsoleCommand("sv_saberswitch\n");
+				return WP_SABER;
+			}
+
+			newNum = WP_MELEE;
+		}
+		else if (haveSaber)
+		{
+			centity_t *cent = &cg_entities[cg.snap->ps.clientNum];
+
+			if (cg.snap->ps.weapon == WP_SABER)
+			{// Switch sabers on/off...
+				trap->SendConsoleCommand("sv_saberswitch\n");
+				return WP_SABER;
+			}
+
+			newNum = WP_SABER;
+		}
+		else if (haveMelee)
+		{
+			newNum = WP_MELEE;
+		}
+		else
+		{
+			return -1;
+		}
+
+		break;
+	}
+	case 2:
+		if (!CG_WeaponSelectable(WP_MODULIZED_WEAPON))
+		{
+			return -1;
+		}
+
+		newNum = WP_MODULIZED_WEAPON;
+		break;
+	default:
+		// Invalid...
+		return -1;
+		break;
+	}
+
+	return newNum;
+}
+
 /*
 ===============
 CG_Weapon_f
@@ -1888,10 +1966,10 @@ CG_Weapon_f
 void CG_Weapon_f( void ) {
 	int		num;
 
-	if ( !cg.snap ) {
+	if (!cg.snap) {
 		return;
 	}
-	if ( cg.snap->ps.pm_flags & PMF_FOLLOW ) {
+	if (cg.snap->ps.pm_flags & PMF_FOLLOW) {
 		return;
 	}
 
@@ -1900,107 +1978,7 @@ void CG_Weapon_f( void ) {
 		return;
 	}
 
-	num = atoi( CG_Argv( 1 ) );
-
-	if ( num < 1 || num > WP_NUM_USEABLE ) {
-		return;
-	}
-
-	//if (num == 1 && cg.snap->ps.weapon == WP_SABER)
-	//{
-	//	if (cg.predictedPlayerState.weaponTime < 1)
-	////	if (cg.snap->ps.weaponTime < 1)
-	//	{
-	//		trap->SendConsoleCommand("sv_saberswitch\n");
-	//	}
-	//	return;
-	//}
-	if (num == 1 && cg.snap->ps.weapon == WP_SABER)
-	{
-		//[MELEE]
-		//Switch to melee when blade is toggled if ojp_sabermelee is on
-		if (cg.snap->ps.weaponTime < 1)
-		{
-			if (ojp_sabermelee.integer && !cg.snap->ps.saberHolstered && CG_WeaponSelectable(WP_MELEE))
-			{
-				num = WP_MELEE;
-
-				cg.weaponSelectTime = cg.time;
-
-				if (cg.weaponSelect != num)
-				{
-					trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_WEAPON);
-					trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_WEAPONLOCAL);
-				}
-
-				cg.weaponSelect = num;
-			}
-			else
-			{
-				trap->SendConsoleCommand("sv_saberswitch\n");
-			}
-		}
-	}
-
-	//rww - hack to make weapon numbers same as single player
-	if (num > WP_FIRST_USEABLE)
-	{
-		num++;
-	}
-	else
-	{
-		if (HaveWeapon(&cg.snap->ps, WP_SABER))
-		{
-			num = WP_SABER;
-		}
-		else
-		{
-			num = WP_MELEE;
-		}
-	}
-
-	if (num > WP_NUM_USEABLE+1)
-	{ //other weapons are off limits due to not actually being weapon weapons
-		return;
-	}
-
-	if (num >= WP_THERMAL && num <= WP_DET_PACK)
-	{
-		int weap, i = 0;
-
-		if (cg.snap->ps.weapon >= WP_THERMAL && cg.snap->ps.weapon >= WP_FRAG_GRENADE 
-			&& cg.snap->ps.weapon >= WP_CYROBAN_GRENADE
-			&& cg.snap->ps.weapon <= WP_DET_PACK)
-		{
-			// already in cycle range so start with next cycle item
-			weap = cg.snap->ps.weapon + 1;
-		}
-		else
-		{
-			// not in cycle range, so start with thermal detonator
-			weap = WP_THERMAL;
-			//weap = WP_FRAG_GRENADE;
-		}
-
-		// prevent an endless loop
-		while ( i <= 4 )
-		{
-			if (weap > WP_DET_PACK)
-			{
-				weap = WP_THERMAL;
-				//weap = WP_FRAG_GRENADE;
-			}
-
-			if (CG_WeaponSelectable(weap))
-			{
-				num = weap;
-				break;
-			}
-
-			weap++;
-			i++;
-		}
-	}
+	num = CG_SelectWeaponForID(atoi(CG_Argv(1)));
 
 	if (!CG_WeaponSelectable(num))
 	{
@@ -2008,23 +1986,6 @@ void CG_Weapon_f( void ) {
 	}
 
 	cg.weaponSelectTime = cg.time;
-
-	if (!HaveWeapon(&cg.snap->ps, num))
-	{
-		if (num == WP_SABER)
-		{ //don't have saber, try melee on the same slot
-			num = WP_MELEE;
-
-			if (!HaveWeapon(&cg.snap->ps, num))
-			{
-				return;
-			}
-		}
-		else
-		{
-			return;		// don't have the weapon
-		}
-	}
 
 	if (cg.weaponSelect != num)
 	{
@@ -2053,75 +2014,7 @@ void CG_WeaponClean_f( void ) {
 		return;
 	}
 
-	num = atoi( CG_Argv( 1 ) );
-
-	if ( num < 1 || num > WP_NUM_USEABLE ) {
-		return;
-	}
-
-	if (num == 1 && cg.snap->ps.weapon == WP_SABER)
-	{
-		if (cg.snap->ps.weaponTime < 1)
-		{
-			trap->SendConsoleCommand("sv_saberswitch\n");
-		}
-		return;
-	}
-
-	if (num == WP_FIRST_USEABLE)
-	{
-		if (HaveWeapon(&cg.snap->ps, WP_SABER))
-		{
-			num = WP_SABER;
-		}
-		else
-		{
-			num = WP_MELEE;
-		}
-	}
-
-	if (num > WP_NUM_USEABLE+1)
-	{ //other weapons are off limits due to not actually being weapon weapons
-		return;
-	}
-
-	if (num >= WP_THERMAL && num <= WP_DET_PACK)
-	{
-		int weap, i = 0;
-
-		if (cg.snap->ps.weapon >= WP_THERMAL && cg.snap->ps.weapon >= WP_FRAG_GRENADE 
-			&& cg.snap->ps.weapon >= WP_CYROBAN_GRENADE
-			&& cg.snap->ps.weapon <= WP_DET_PACK)
-		{
-			// already in cycle range so start with next cycle item
-			weap = cg.snap->ps.weapon + 1;
-		}
-		else
-		{
-			// not in cycle range, so start with thermal detonator
-			weap = WP_THERMAL;
-			//weap = WP_FRAG_GRENADE;
-		}
-
-		// prevent an endless loop
-		while ( i <= 4 )
-		{
-			if (weap > WP_DET_PACK)
-			{
-				weap = WP_THERMAL;
-				//weap = WP_FRAG_GRENADE;
-			}
-
-			if (CG_WeaponSelectable(weap))
-			{
-				num = weap;
-				break;
-			}
-
-			weap++;
-			i++;
-		}
-	}
+	num = CG_SelectWeaponForID(atoi( CG_Argv( 1 ) ));
 
 	if (!CG_WeaponSelectable(num))
 	{
@@ -2129,23 +2022,6 @@ void CG_WeaponClean_f( void ) {
 	}
 
 	cg.weaponSelectTime = cg.time;
-
-	if (HaveWeapon(&cg.snap->ps, num))
-	{
-		if (num == WP_SABER)
-		{ //don't have saber, try melee on the same slot
-			num = WP_MELEE;
-
-			if (!HaveWeapon(&cg.snap->ps, num))
-			{
-				return;
-			}
-		}
-		else
-		{
-			return;		// don't have the weapon
-		}
-	}
 
 	if (cg.weaponSelect != num)
 	{

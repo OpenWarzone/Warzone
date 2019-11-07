@@ -415,6 +415,9 @@ extern void Warzone_Nav_CreateNavMesh(void);
 #endif //__USE_NAVMESH__
 extern void AWP_AutoWaypoint2(void);
 
+extern void CG_ScrollDown_f(void);
+extern void CG_ScrollUp_f(void);
+
 extern void CG_AddCubeMap(void);
 extern void CG_DisableCubeMap(void);
 extern void CG_EnableCubeMap(void);
@@ -464,6 +467,8 @@ static consoleCommand_t	commands[] = {
 	{ "prevframe",					CG_TestModelPrevFrame_f },
 	{ "prevskin",					CG_TestModelPrevSkin_f },
 	{ "reloadefx",					CG_ReloadLoadEfxPoints },
+	{ "scrolldown",					CG_ScrollDown_f },
+	{ "scrollup",					CG_ScrollUp_f },
 	{ "showforwardsurface",			CG_ShowForwardSurface },
 	{ "showlifts",					CG_ShowLifts },
 	{ "showskysurface",				CG_ShowSkySurface },
