@@ -933,6 +933,7 @@ G_InitGame
 extern void RemoveAllWP(void);
 extern void BG_ClearVehicleParseParms(void);
 extern void NPC_PrecacheWarzoneNPCs ( void );
+extern void G_EventModelPrecache(void);
 extern void FOLIAGE_LoadTrees( void );
 extern void JKG_InitDamageSystem(void);
 
@@ -1237,6 +1238,8 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 
 	// Precache the map's used NPCs...
 	NPC_PrecacheWarzoneNPCs();
+
+	G_EventModelPrecache();
 
 	JKG_InitDamageSystem();
 

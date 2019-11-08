@@ -6,6 +6,8 @@
 
 #include "cg_local.h"
 
+int numLocalSoundEntities = 0;
+
 #define	MAX_LOCAL_ENTITIES	2048 // 512
 localEntity_t	cg_localEntities[MAX_LOCAL_ENTITIES];
 localEntity_t	cg_activeLocalEntities;		// double linked list
@@ -773,6 +775,11 @@ void CG_AddLine( localEntity_t *le )
 	AddRefEntityToScene( re );
 }
 
+float mix(float x, float y, float a)
+{
+	return x * (1.0 - a) + y * a;
+}
+
 /*
 ===================
 CG_MapBirds
@@ -832,11 +839,6 @@ void CG_DrawBird(mapBirds_t *bird)
 	AddRefEntityToScene(&ent);
 
 	// Add sounds as well???
-}
-
-float mix(float x, float y, float a)
-{
-	return x * (1.0 - a) + y * a;
 }
 
 void CG_Birds(void)
@@ -946,11 +948,6 @@ void CG_Birds(void)
 		VectorMA(bird->origin, 72.0, bird->dir, bird->origin);
 
 		CG_DrawBird(bird);
-
-		/*if (cg_testvalue3.integer == 1)
-		{
-			trap->Print("Bird %i at %f %f %f. Dir %f.\n", i, bird->origin[0], bird->origin[1], bird->origin[2], bird->dir[YAW]);
-		}*/
 	}
 }
 
@@ -1000,13 +997,15 @@ centity_t *CG_FindEnemyShip(centity_t *myShip)
 
 extern void FX_WeaponBolt3D(vec3_t org, vec3_t fwd, float length, float radius, qhandle_t shader);
 
-#define MAX_SHIP_LASERS 256
+#define MAX_SHIP_LASERS 512//256
+#define MAX_SHIP_LASER_DRAW_DISTANCE 131072.0
 
 typedef struct shipLasers_s {
 	vec3_t		origin;
 	vec3_t		dir;
 	vec3_t		endOrigin;
 	int			team;
+	float		size;
 	qboolean	active;
 } shipLasers_t;
 
@@ -1061,6 +1060,12 @@ void CG_ShipLasersThink(void)
 
 			VectorMA(laser->origin, 96.0, laser->dir, laser->origin);
 
+			if (Distance(laser->origin, cg.refdef.vieworg) > MAX_SHIP_LASER_DRAW_DISTANCE)
+			{
+				laser->active = qfalse;
+				return;
+			}
+
 			if (Distance(laser->origin, laser->endOrigin) <= 96.0)
 			{// Explode and free this bolt...
 				laser->active = qfalse;
@@ -1070,7 +1075,7 @@ void CG_ShipLasersThink(void)
 
 			if (bolt3D > 0)
 			{// New 3D bolt enabled...
-				FX_WeaponBolt3D(laser->origin, laser->dir, 16.0, 16.0, bolt3D);
+				FX_WeaponBolt3D(laser->origin, laser->dir, laser->size, laser->size, bolt3D);
 			}
 		}
 	}
@@ -1099,21 +1104,23 @@ void CG_ShipLaserCreate(centity_t *myShip, centity_t *enemyShip)
 	{
 		vec3_t forward, endOrigin, startOrigin, enemyOrigin, fwd;
 
-#define SHIP_HALF_SIZE 16384 // TODO: Send real sizes with the game entity... This is capital size...
+//#define SHIP_HALF_SIZE 16384 // TODO: Send real sizes with the game entity... This is capital size...
+#define MY_SHIP_HALF_SIZE int(16384.0 * (float(myShip->currentState.iModelScale) / 112.0))
+#define ENEMY_SHIP_HALF_SIZE int(16384.0 * (float(enemyShip->currentState.iModelScale) / 112.0))
 		
 		// Assuming long ships, since we have no tags to use atm...
-		AngleVectors(myShip->lerpAngles, NULL/*fwd*/, fwd/*NULL*/, NULL); // FIXME: ship models are rotated 90...
+		AngleVectors(myShip->lerpAngles, NULL, fwd, NULL); // FIXME: ship models are rotated 90...
 		if (irand(0,1) == 0)
-			VectorMA(myShip->lerpOrigin, irand(0, SHIP_HALF_SIZE), fwd, startOrigin);
+			VectorMA(myShip->lerpOrigin, irand(0, MY_SHIP_HALF_SIZE), fwd, startOrigin);
 		else
-			VectorMA(myShip->lerpOrigin, -irand(0, SHIP_HALF_SIZE), fwd, startOrigin);
+			VectorMA(myShip->lerpOrigin, -irand(0, MY_SHIP_HALF_SIZE), fwd, startOrigin);
 
 		// Assuming long ships, since we have no tags to use atm...
-		AngleVectors(enemyShip->lerpAngles, NULL/*fwd*/, fwd/*NULL*/, NULL); // FIXME: ship models are rotated 90...
+		AngleVectors(enemyShip->lerpAngles, NULL, fwd, NULL); // FIXME: ship models are rotated 90...
 		if (irand(0, 1) == 0)
-			VectorMA(enemyShip->lerpOrigin, irand(0, SHIP_HALF_SIZE), fwd, enemyOrigin);
+			VectorMA(enemyShip->lerpOrigin, irand(0, ENEMY_SHIP_HALF_SIZE), fwd, enemyOrigin);
 		else
-			VectorMA(enemyShip->lerpOrigin, -irand(0, SHIP_HALF_SIZE), fwd, enemyOrigin);
+			VectorMA(enemyShip->lerpOrigin, -irand(0, ENEMY_SHIP_HALF_SIZE), fwd, enemyOrigin);
 
 		vec3_t offsetShot;
 		offsetShot[0] = irand(0, 512) - 256;
@@ -1137,6 +1144,7 @@ void CG_ShipLaserCreate(centity_t *myShip, centity_t *enemyShip)
 		VectorCopy(endOrigin, laser->endOrigin);
 		VectorCopy(forward, laser->dir);
 		laser->team = myShip->currentState.teamowner;
+		laser->size = 16.0;
 		laser->active = qtrue;
 
 		/*trap->Print("Ship shooting laser at another ship. Start %i %i %i. End %i %i %i. Dir %f %f %f.\n"
@@ -1148,13 +1156,591 @@ void CG_ShipLaserCreate(centity_t *myShip, centity_t *enemyShip)
 
 void CG_ShootAtEnemyShips(centity_t *myShip)
 {
-	if (irand(0, 20) != 0) return;
+	if (Distance(myShip->lerpOrigin, cg.refdef.vieworg) > MAX_SHIP_LASER_DRAW_DISTANCE)
+	{
+		return;
+	}
+
+#define SHIP_LASER_OUTPUT int(20.0 * (float(myShip->currentState.iModelScale) / 112.0))
+
+	if (irand(0, 40 - SHIP_LASER_OUTPUT) != 0) return;
 
 	centity_t *enemyShip = CG_FindEnemyShip(myShip);
 
 	if (enemyShip != NULL)
 	{
 		CG_ShipLaserCreate(myShip, enemyShip);
+	}
+}
+
+/*
+===================
+CG_ShipFighters
+
+for warzone event fighters... A reworked version of birds...
+===================
+*/
+
+#define FIGHTERS_MAX_DRAW_DISTANCE			131072.0
+#define FIGHTERS_MAX_LASER_DRAW_DISTANCE	65536.0
+#define FIGHTERS_MAX_CIRCLE_SIZE			512
+#define FIGHTERS_CIRCLE_CHANGE_RATE			0.999
+#define FIGHTERS_RETURN_HOME_DISTANCE		65536.0
+#define FIGHTERS_RETURN_HOME_POWER			16.0
+#define FIGHTER_ATTACK_RUN_DIR_CLOSENESS	0.5
+#define FIGHTER_LASER_CHANCE				70
+#define FIGHTER_CHASE_CHANCE				200
+#define FIGHTER_CHASE_MAX_DISTANCE			12288.0
+
+qboolean		eventFightersLoaded = qfalse;
+qhandle_t		fighterModels[2] = { { -1 } };
+qhandle_t		fighterSounds[2] = { { -1 } };
+
+int				numMapFighters = 0;
+mapFighters_t	*mapFighters[1024] = { { NULL } };
+
+void CG_DrawFighter(mapFighters_t *fighter, qhandle_t fighterModel)
+{
+	float dist = Distance(fighter->origin, cg.refdef.vieworg);
+
+	if (dist > FIGHTERS_MAX_DRAW_DISTANCE)
+	{// Early cull...
+		return;
+	}
+
+	refEntity_t ent;
+
+	// Draw the bolt core...
+	memset(&ent, 0, sizeof(refEntity_t));
+	ent.reType = RT_MODEL;
+
+	ent.modelScale[0] = 1.0;
+	ent.modelScale[1] = 1.0;
+	ent.modelScale[2] = 1.0;
+
+	VectorCopy(fighter->origin, ent.origin);
+	vectoangles(fighter->dir, ent.angles);
+	AnglesToAxis(ent.angles, ent.axis);
+	ScaleModelAxis(&ent);
+
+	ent.hModel = fighterModel;
+
+	AddRefEntityToScene(&ent);
+
+	if (dist < 16384)
+	{// Add sounds as well??? + 8192 because that marks local entities in the sound system for tracking...
+		trap->S_AddLoopingSound(fighter->localSoundEntityNum + 8192, ent.origin, vec3_origin, fighter->loopSound, CHAN_CULLRANGE_16384);
+	}
+}
+
+extern qboolean CG_InFOV(vec3_t spot, vec3_t from, vec3_t fromAngles, int hFOV, int vFOV);
+
+void CG_Fighters(centity_t *myShip)
+{
+	if (!eventFightersLoaded)
+	{
+		fighterModels[0] = trap->R_RegisterModel("models/map_objects/ships/tie_fighter.md3"); // imp fighter model
+		fighterSounds[0] = trap->S_RegisterSound("sound/vehicles/tie/loop.wav");
+
+		fighterModels[1] = trap->R_RegisterModel("models/map_objects/ships/x_wing_nogear.md3"); // rebel fighter model
+		fighterSounds[1] = trap->S_RegisterSound("sound/vehicles/x-wing/loop.wav");
+
+		eventFightersLoaded = qtrue;
+	}
+
+	if (myShip->currentState.teamowner != FACTION_EMPIRE && myShip->currentState.teamowner != FACTION_REBEL)
+	{// Team has no fighters (for now)...
+		return;
+	}
+
+	int FIGHTERS_COUNT = 0;
+	int ENEMY_FIGHTERS_COUNT = 0;
+
+	if (float(myShip->currentState.iModelScale) / 112.0 > 0.9)
+	{// Giant capital ships... (eg: Super Star Destroyers)...
+		FIGHTERS_COUNT = 16;
+		ENEMY_FIGHTERS_COUNT = 8;
+	}
+	else if (float(myShip->currentState.iModelScale) / 112.0 >= 0.5)
+	{// Capital ships... (eg: Star Destoyers or Calamari Cruisers)...
+		FIGHTERS_COUNT = 8;
+		ENEMY_FIGHTERS_COUNT = 4;
+	}
+
+	if (FIGHTERS_COUNT <= 0)
+	{// Ship is too small to have fighters...
+		return;
+	}
+
+	if (myShip->numFighters <= 0)
+	{
+		memset(myShip->fighters, 0, sizeof(myShip->fighters));
+
+		for (int i = 0; i < FIGHTERS_COUNT && i < 16; i++)
+		{
+			mapFighters_t *fighter = &myShip->fighters[i];
+
+			// In random positions near the ship...
+			fighter->origin[0] = myShip->lerpOrigin[0] + irand(0, 32768) - 16386;
+			fighter->origin[1] = myShip->lerpOrigin[1] + irand(0, 32768) - 16386;
+			fighter->origin[2] = myShip->lerpOrigin[2] - irand(4096, 8192);
+
+			fighter->rotate = 1.0;
+
+			if (irand(0, 1) == 1)
+			{// This one flies in counter clockwise...
+				fighter->rotate = -1.0;
+			}
+
+			fighter->circleSize = irand(1, FIGHTERS_MAX_CIRCLE_SIZE);
+
+			float a = ((float(cg.time) / 1000.0) / fighter->circleSize + i) * fighter->rotate;
+			float b = 0.0;
+			fighter->dir[0] = cos(a) * cos(b);
+			fighter->dir[1] = sin(a) * cos(b);
+			fighter->dir[2] = 0.0;// sin(b);
+
+			VectorCopy(fighter->origin, fighter->startOrigin);
+
+			//trap->Print("Fighter %i spawn at %f %f %f. Dir %f.\n", i, fighter->origin[0], fighter->origin[1], fighter->origin[2], fighter->dir[YAW]);
+
+			fighter->loopSound = fighterSounds[(myShip->currentState.teamowner == FACTION_EMPIRE) ? 0 : 1];
+			
+			fighter->team = myShip->currentState.teamowner;
+
+			// Allocate a local sound entity number so sound system can track the sound...
+			fighter->localSoundEntityNum = numLocalSoundEntities;
+			numLocalSoundEntities++;
+
+			myShip->numFighters++;
+
+			// Add it to the global fighter list as well, so we can do fighter vs fighter weapon fx...
+			mapFighters[numMapFighters] = fighter;
+			numMapFighters++;
+		}
+
+		trap->Print("Event ship %i given %i fighter escorts...\n", myShip->currentState.number, FIGHTERS_COUNT);
+
+		//
+		// Also assign enemy attacking fighters... Hmm, maybe only when we are within range of an enemy capital (or shooting at one)?
+		//
+		memset(myShip->enemyFighters, 0, sizeof(myShip->enemyFighters));
+
+		for (int i = 0; i < ENEMY_FIGHTERS_COUNT && i < 16; i++)
+		{
+			mapFighters_t *fighter = &myShip->enemyFighters[i];
+
+			// In random positions near the ship...
+			fighter->origin[0] = myShip->lerpOrigin[0] + irand(0, 32768) - 16386;
+			fighter->origin[1] = myShip->lerpOrigin[1] + irand(0, 32768) - 16386;
+			fighter->origin[2] = myShip->lerpOrigin[2] - irand(4096, 8192);
+
+			fighter->rotate = 1.0;
+
+			if (irand(0, 1) == 1)
+			{// This one flies in counter clockwise...
+				fighter->rotate = -1.0;
+			}
+
+			fighter->circleSize = irand(1, FIGHTERS_MAX_CIRCLE_SIZE);
+
+			float a = ((float(cg.time) / 1000.0) / fighter->circleSize + i) * fighter->rotate;
+			float b = 0.0;
+			fighter->dir[0] = cos(a) * cos(b);
+			fighter->dir[1] = sin(a) * cos(b);
+			fighter->dir[2] = 0.0;// sin(b);
+
+			VectorCopy(fighter->origin, fighter->startOrigin);
+
+			//trap->Print("Enemy fighter %i spawn at %f %f %f. Dir %f.\n", i, fighter->origin[0], fighter->origin[1], fighter->origin[2], fighter->dir[YAW]);
+
+			fighter->loopSound = fighterSounds[(myShip->currentState.teamowner == FACTION_EMPIRE) ? 1 : 0];
+
+			fighter->team = (myShip->currentState.teamowner == FACTION_EMPIRE) ? FACTION_REBEL : FACTION_EMPIRE;
+
+			// Allocate a local sound entity number so sound system can track the sound...
+			fighter->localSoundEntityNum = numLocalSoundEntities;
+			numLocalSoundEntities++;
+
+			myShip->numEnemyFighters++;
+
+			// Add it to the global fighter list as well, so we can do fighter vs fighter weapon fx...
+			mapFighters[numMapFighters] = fighter;
+			numMapFighters++;
+		}
+
+		trap->Print("Event ship %i given %i enemy fighter attackers...\n", myShip->currentState.number, ENEMY_FIGHTERS_COUNT);
+	}
+
+
+	//
+	// Draw all escort fighters...
+	//
+	qhandle_t fighterModel = fighterModels[(myShip->currentState.teamowner == FACTION_EMPIRE) ? 0 : 1];
+
+	if (fighterModel <= 0)
+	{// In case asset is somehow missing...
+		return;
+	}
+
+	// Update and draw escort fighters...
+	for (int i = 0; i < myShip->numFighters && i < 16; i++)
+	{
+		mapFighters_t *fighter = &myShip->fighters[i];
+
+		if (myShip->numEnemyFighters > 0 && fighter->chaseTime < cg.time && irand(0, FIGHTER_CHASE_CHANCE) == 0)
+		{
+			vec3_t myAngles;
+			vectoangles(fighter->dir, myAngles);
+			int closestTarget = -1;
+			float closestDistance = FIGHTER_CHASE_MAX_DISTANCE;
+
+			for (int f = 0; f < myShip->numEnemyFighters; f++)
+			{// Hmm, mapFighters may not be required now that I assigned enemy fighters to each ship as well...
+				mapFighters_t *thisFighter = &myShip->enemyFighters[f];
+
+				float enemyDist = Distance(thisFighter->origin, fighter->origin);
+
+				if (enemyDist < closestDistance && CG_InFOV(thisFighter->origin, fighter->origin, myAngles, 120, 120))
+				{
+					closestTarget = f;
+					closestDistance = enemyDist;
+				}
+			}
+
+			if (closestTarget != -1)
+			{
+				fighter->chaseTime = cg.time + 10000 + irand(5000, 15000); // 15->25 secs?
+				fighter->chaseTarget = closestTarget;
+			}
+		}
+
+		if (fighter->chaseTime > cg.time && fighter->chaseTarget)
+		{// Chase the enemy for a while...
+			mapFighters_t *wantedEnemy = &myShip->enemyFighters[fighter->chaseTarget];
+
+			vec3_t wantedDir, enemyOrg;
+
+			// Adjust the target direction, and slow the following fighter down as they get close...
+			float wantedDist = Distance(wantedEnemy->origin, fighter->origin);
+			float wantedOffsetStrength = Q_clamp(0.0, wantedDist / 8192.0, 1.0);
+			float wantedSpeedStrength = Q_clamp(0.0, wantedDist / 2048.0, 1.0);
+
+			// Randomize target direction a bit, so fighters don't get too close, and don't go through eachother too often...
+			VectorSubtract(wantedEnemy->origin, fighter->origin, wantedDir);
+			wantedDir[0] += (irand(0, 256) - 128) * wantedOffsetStrength;
+			wantedDir[1] += (irand(0, 256) - 128) * wantedOffsetStrength;
+			wantedDir[2] += (irand(0, 256) - 128) * wantedOffsetStrength;
+			VectorNormalize(wantedDir);
+
+			float wantedStrength = Q_clamp(0.0, 0.75, 1.0);
+			fighter->dir[0] = mix(fighter->dir[0], wantedDir[0], wantedStrength);
+			fighter->dir[1] = mix(fighter->dir[1], wantedDir[1], wantedStrength);
+			fighter->dir[2] = mix(fighter->dir[2], wantedDir[2], wantedStrength);
+
+			VectorMA(fighter->origin, mix(64.0, 72.0, wantedSpeedStrength), fighter->dir, fighter->origin);
+		}
+		else
+		{// Randomly fly around the event capital ship...
+			fighter->chaseTarget = 0;
+			fighter->chaseTime = 0;
+
+			// Randomly adjust the fighter's circle size over time...
+			if (irand(0, 1) == 1)
+			{
+				fighter->circleSize += FIGHTERS_CIRCLE_CHANGE_RATE;
+			}
+			else
+			{
+				fighter->circleSize -= FIGHTERS_CIRCLE_CHANGE_RATE;
+			}
+
+			fighter->circleSize = Q_clampi(1, fighter->circleSize, FIGHTERS_MAX_CIRCLE_SIZE);
+
+			if (irand(0, 100) == 0)
+			{// Randomly switch rotation directions...
+				fighter->rotate *= -1.0;
+			}
+
+			float a = ((float(cg.time) / 1000.0) / fighter->circleSize + i) * fighter->rotate;
+			float b = 1000.0;
+			vec3_t newdir;
+			newdir[0] = cos(a) * cos(b);
+			newdir[1] = sin(a) * cos(b);
+			newdir[2] = 0.0;// sin(b);
+
+			// Adjust direction over time to compensate for random rotation direction switching...
+			fighter->dir[0] = mix(fighter->dir[0], newdir[0], 0.01);
+			fighter->dir[1] = mix(fighter->dir[1], newdir[1], 0.01);
+			fighter->dir[2] = 0.0;
+			VectorNormalize(fighter->dir);
+
+			float distFromStart = DistanceHorizontal(fighter->origin, fighter->startOrigin);
+
+			// Stay near our start position...
+			vec3_t wantedDir;
+			VectorSubtract(fighter->startOrigin, fighter->origin, wantedDir);
+			VectorNormalize(wantedDir);
+
+			float returnStrength = pow(Q_clamp(0.0, distFromStart / FIGHTERS_RETURN_HOME_DISTANCE, 1.0), FIGHTERS_RETURN_HOME_POWER);
+
+			fighter->dir[0] = mix(fighter->dir[0], wantedDir[0], returnStrength);
+			fighter->dir[1] = mix(fighter->dir[1], wantedDir[1], returnStrength);
+			fighter->dir[2] = mix(fighter->dir[2], wantedDir[2], returnStrength); //0.0;// sin(b);
+			VectorNormalize(fighter->dir);
+
+			VectorMA(fighter->origin, 72.0, fighter->dir, fighter->origin);
+		}
+
+		CG_DrawFighter(fighter, fighterModel);
+
+		if (Distance(fighter->origin, cg.refdef.vieworg) < FIGHTERS_MAX_LASER_DRAW_DISTANCE && irand(0, FIGHTER_LASER_CHANCE) == 0)
+		{// Check for an enemy fighter or cap ship to shoot at...
+			qboolean	shouldFire = qfalse;
+			qboolean	fighterTarget = qfalse;
+			vec3_t		enemyPos;
+			float		enemyDistance;
+			float		enemyDirDistance;
+
+			for (int f = 0; f < numMapFighters; f++)
+			{// Hmm, mapFighters may not be required now that I assigned enemy fighters to each ship as well...
+				mapFighters_t *thisFighter = mapFighters[f];
+
+				if (thisFighter->team != fighter->team)
+				{// An enemy fighter, check distance...
+					float enemyDist = Distance(thisFighter->origin, fighter->origin);
+
+					if (enemyDist < 8192.0)
+					{// Within shooting range, check direction...
+						vec3_t fighterDir;
+						VectorSubtract(thisFighter->origin, fighter->origin, fighterDir);
+						VectorNormalize(fighterDir);
+
+						float directionCloseness = Distance(fighter->dir, fighterDir);
+
+						if (directionCloseness <= FIGHTER_ATTACK_RUN_DIR_CLOSENESS)
+						{
+							shouldFire = qtrue;
+							fighterTarget = qtrue;
+							VectorCopy(thisFighter->origin, enemyPos);
+							enemyDistance = enemyDist;
+							enemyDirDistance = (directionCloseness / FIGHTER_ATTACK_RUN_DIR_CLOSENESS);
+							break;
+						}
+					}
+				}
+			}
+
+			if (shouldFire)
+			{
+				int laserSlotID = CG_ShipLaserFindFreeSlot();
+
+				if (laserSlotID >= 0)
+				{
+					vec3_t endOrigin;
+					float distanceModifier = 1.0 - Q_clamp(0.0, enemyDistance / 8192.0, 1.0);
+					
+					if (!fighterTarget && distanceModifier <= 0.01 && enemyDirDistance >= 0.01)
+					{// Probably gonna actually hit them, so set exact enemy pos for bolt end point...
+						VectorCopy(enemyPos, endOrigin);
+					}
+					else
+					{
+						VectorMA(fighter->origin, enemyDistance * 4.0, fighter->dir, endOrigin);
+					}
+
+					shipLasers_t *laser = &shipLasers[laserSlotID];
+					VectorCopy(fighter->origin, laser->origin);
+					VectorCopy(endOrigin, laser->endOrigin);
+					VectorCopy(fighter->dir, laser->dir);
+					laser->team = myShip->currentState.teamowner;
+					laser->size = 8.0;
+					laser->active = qtrue;
+				}
+			}
+		}
+	}
+
+	//
+	// Draw all enemy fighters...
+	//
+	fighterModel = fighterModels[(myShip->currentState.teamowner == FACTION_EMPIRE) ? 1 : 0];
+
+	if (fighterModel <= 0)
+	{// In case asset is somehow missing...
+		return;
+	}
+
+	// Update and draw fighters...
+	for (int i = 0; i < myShip->numEnemyFighters && i < 8; i++)
+	{
+		mapFighters_t *fighter = &myShip->enemyFighters[i];
+
+		// Randomly adjust the fighter's circle size over time...
+		if (irand(0, 1) == 1)
+		{
+			fighter->circleSize += FIGHTERS_CIRCLE_CHANGE_RATE;
+		}
+		else
+		{
+			fighter->circleSize -= FIGHTERS_CIRCLE_CHANGE_RATE;
+		}
+
+		fighter->circleSize = Q_clampi(1, fighter->circleSize, FIGHTERS_MAX_CIRCLE_SIZE);
+
+		if (irand(0, 100) == 0)
+		{// Randomly switch rotation directions...
+			fighter->rotate *= -1.0;
+		}
+
+		float a = ((float(cg.time) / 1000.0) / fighter->circleSize + i) * fighter->rotate;
+		float b = 1000.0;
+		vec3_t newdir;
+		newdir[0] = cos(a) * cos(b);
+		newdir[1] = sin(a) * cos(b);
+		newdir[2] = 0.0;// sin(b);
+
+		// Always move back toward our start height (for after attack runs)...
+		vec3_t homeDir;
+		VectorSubtract(fighter->startOrigin, fighter->origin, homeDir);
+		VectorNormalize(homeDir);
+
+		// Adjust direction over time to compensate for random rotation direction switching...
+		fighter->dir[0] = mix(fighter->dir[0], newdir[0], 0.01);
+		fighter->dir[1] = mix(fighter->dir[1], newdir[1], 0.01);
+		fighter->dir[2] = mix(fighter->dir[2], homeDir[2], 0.01);
+		VectorNormalize(fighter->dir);
+
+		float distFromStart = DistanceHorizontal(fighter->origin, fighter->startOrigin);
+
+		// Stay near our start position...
+		vec3_t wantedDir;
+		VectorSubtract(fighter->startOrigin, fighter->origin, wantedDir);
+		VectorNormalize(wantedDir);
+
+		float returnStrength = pow(Q_clamp(0.0, distFromStart / FIGHTERS_RETURN_HOME_DISTANCE, 1.0), FIGHTERS_RETURN_HOME_POWER);
+
+		fighter->dir[0] = mix(fighter->dir[0], wantedDir[0], returnStrength);
+		fighter->dir[1] = mix(fighter->dir[1], wantedDir[1], returnStrength);
+		fighter->dir[2] = mix(fighter->dir[2], wantedDir[2], returnStrength); //0.0;// sin(b);
+		VectorNormalize(fighter->dir);
+
+
+		float capitalDistance = Distance(myShip->lerpOrigin, fighter->origin);
+
+		if (capitalDistance >= 12288.0 && capitalDistance <= 32768.0)
+		{// Check if we should move the fighter's direction up/down toward the cap ship to do an attack run...
+			vec3_t upDownDir, enemyUpDownDir, attackRunDir;
+			VectorCopy(fighter->dir, upDownDir);
+			upDownDir[2] = 0;
+
+			VectorSubtract(myShip->lerpOrigin, fighter->origin, enemyUpDownDir);
+			VectorNormalize(enemyUpDownDir);
+			VectorCopy(enemyUpDownDir, attackRunDir);
+			enemyUpDownDir[2] = 0;
+
+			float directionCloseness = Distance(upDownDir, enemyUpDownDir);
+
+			if (directionCloseness <= FIGHTER_ATTACK_RUN_DIR_CLOSENESS)
+			{// Seems we are pointing roughly at the capital ship, and in range, so adjust angles for the attack run!
+				directionCloseness = 1.0 - (directionCloseness / FIGHTER_ATTACK_RUN_DIR_CLOSENESS);
+				//trap->Print("Fighter %i attack run directionCloseness %f. Distance %f.\n", fighter->localSoundEntityNum, directionCloseness, capitalDistance);
+				fighter->dir[0] = mix(fighter->dir[0], attackRunDir[0], directionCloseness);
+				fighter->dir[1] = mix(fighter->dir[1], attackRunDir[1], directionCloseness);
+				fighter->dir[2] = mix(fighter->dir[2], attackRunDir[2], directionCloseness);
+				VectorNormalize(fighter->dir);
+			}
+		}
+
+		VectorMA(fighter->origin, 72.0, fighter->dir, fighter->origin);
+
+		CG_DrawFighter(fighter, fighterModel);
+
+		if (Distance(fighter->origin, cg.refdef.vieworg) < FIGHTERS_MAX_LASER_DRAW_DISTANCE && irand(0, FIGHTER_LASER_CHANCE) == 0)
+		{// Check for an enemy fighter or cap ship to shoot at...
+			qboolean	shouldFire = qfalse;
+			qboolean	fighterTarget = qfalse;
+			vec3_t		enemyPos;
+			float		enemyDistance;
+			float		enemyDirDistance;
+
+			if (capitalDistance <= 24576.0)
+			{// First check if we should fire at the capital ship...
+				vec3_t capitalDir;
+				VectorSubtract(myShip->lerpOrigin, fighter->origin, capitalDir);
+				VectorNormalize(capitalDir);
+
+				float directionCloseness = Distance(fighter->dir, capitalDir);
+
+				if (directionCloseness <= FIGHTER_ATTACK_RUN_DIR_CLOSENESS)
+				{// Seems we are pointing roughly at the capital ship, and in range, so shoot away!
+					shouldFire = qtrue;
+					VectorCopy(myShip->lerpOrigin, enemyPos);
+					enemyDistance = capitalDistance;
+					enemyDirDistance = (directionCloseness / FIGHTER_ATTACK_RUN_DIR_CLOSENESS);
+				}
+			}
+			
+			if (!shouldFire)
+			{
+				for (int f = 0; f < numMapFighters; f++)
+				{// Hmm, mapFighters may not be required now that I assigned enemy fighters to each ship as well...
+					mapFighters_t *thisFighter = mapFighters[f];
+
+					if (thisFighter->team != fighter->team)
+					{// An enemy fighter, check distance...
+						float enemyDist = Distance(thisFighter->origin, fighter->origin);
+
+						if (enemyDist < 8192.0)
+						{// Within shooting range, check direction...
+							vec3_t fighterDir;
+							VectorSubtract(thisFighter->origin, fighter->origin, fighterDir);
+							VectorNormalize(fighterDir);
+
+							float directionCloseness = Distance(fighter->dir, fighterDir);
+
+							if (directionCloseness <= FIGHTER_ATTACK_RUN_DIR_CLOSENESS)
+							{
+								shouldFire = qtrue;
+								fighterTarget = qtrue;
+								VectorCopy(thisFighter->origin, enemyPos);
+								enemyDistance = enemyDist;
+								enemyDirDistance = (directionCloseness / FIGHTER_ATTACK_RUN_DIR_CLOSENESS);
+								break;
+							}
+						}
+					}
+				}
+			}
+
+			if (shouldFire)
+			{
+				int laserSlotID = CG_ShipLaserFindFreeSlot();
+
+				if (laserSlotID >= 0)
+				{
+					vec3_t endOrigin;
+					float distanceModifier = 1.0 - Q_clamp(0.0, enemyDistance / 8192.0, 1.0);
+					
+					if (!fighterTarget && distanceModifier <= 0.01 && enemyDirDistance >= 0.01)
+					{// Probably gonna actually hit them, so set exact enemy pos for bolt end point...
+						VectorCopy(enemyPos, endOrigin);
+					}
+					else
+					{
+						VectorMA(fighter->origin, enemyDistance * 4.0, fighter->dir, endOrigin);
+					}
+
+					shipLasers_t *laser = &shipLasers[laserSlotID];
+					VectorCopy(fighter->origin, laser->origin);
+					VectorCopy(endOrigin, laser->endOrigin);
+					VectorCopy(fighter->dir, laser->dir);
+					laser->team = fighter->team;
+					laser->size = 8.0;
+					laser->active = qtrue;
+				}
+			}
+		}
 	}
 }
 

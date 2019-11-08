@@ -1885,6 +1885,7 @@ void CG_G2ServerBoneAngles(centity_t *cent);
 
 extern qboolean BG_GetRootSurfNameWithVariant(void *ghoul2, const char *rootSurfName, char *returnSurfName, int returnSize);
 extern void CG_ShootAtEnemyShips(centity_t *myShip);
+extern void CG_Fighters(centity_t *myShip);
 
 static void CG_ServerModel(centity_t *cent) {
 	refEntity_t			ent;
@@ -1986,6 +1987,31 @@ static void CG_ServerModel(centity_t *cent) {
 	// add to refresh list
 	AddRefEntityToScene(&ent);
 
+	if (cent->currentState.loopSound)
+	{
+		int realSoundIndex = cgs.gameSounds[cent->currentState.loopSound];
+
+		if (realSoundIndex != -1)
+		{
+			float SHIP_SIZE_FACTOR = float(cent->currentState.iModelScale) / 112.0;
+			
+			int SHIP_SOUND_CHANNEL;
+
+			if (SHIP_SIZE_FACTOR >= 0.8)
+				SHIP_SOUND_CHANNEL = CHAN_CULLRANGE_131072;
+			else if (SHIP_SIZE_FACTOR >= 0.5)
+				SHIP_SOUND_CHANNEL = CHAN_CULLRANGE_65536;
+			else if (SHIP_SIZE_FACTOR >= 0.3)
+				SHIP_SOUND_CHANNEL = CHAN_CULLRANGE_32768;
+			else if (SHIP_SIZE_FACTOR >= 0.1)
+				SHIP_SOUND_CHANNEL = CHAN_CULLRANGE_16384;
+			else
+				SHIP_SOUND_CHANNEL = CHAN_CULLRANGE_8192;
+
+			trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, realSoundIndex, SHIP_SOUND_CHANNEL);
+		}
+	}
+
 	switch (cent->currentState.teamowner)
 	{
 		case FACTION_WILDLIFE:
@@ -1995,11 +2021,13 @@ static void CG_ServerModel(centity_t *cent) {
 		break;
 		case FACTION_EMPIRE:
 		{
+			CG_Fighters(cent);
 			CG_ShootAtEnemyShips(cent);
 		}
 		break;
 		case FACTION_REBEL:
 		{
+			CG_Fighters(cent);
 			CG_ShootAtEnemyShips(cent);
 		}
 		break;

@@ -635,7 +635,7 @@ float BASS_GetVolumeForChannel ( int entchannel )
 	{
 		volume = item_vol;
 	}
-	else if (entchannel == CHAN_BODY)
+	else if (entchannel == CHAN_BODY || entchannel == CHAN_CULLRANGE_8192 || entchannel == CHAN_CULLRANGE_16384 || entchannel == CHAN_CULLRANGE_32768)
 	{
 		volume = body_vol;
 	}
@@ -2470,6 +2470,58 @@ void BASS_UpdateDynamicMusic( void )
 
 void BASS_AddMemoryLoopChannel(DWORD samplechan, int entityNum, int entityChannel, vec3_t origin, float volume, char *filename);
 
+qboolean BASS_EntityChannelHasSpecialCullrange(int entityChannel)
+{
+	switch (entityChannel)
+	{
+	case CHAN_CULLRANGE_8192:
+		return qtrue;
+		break;
+	case CHAN_CULLRANGE_16384:
+		return qtrue;
+		break;
+	case CHAN_CULLRANGE_32768:
+		return qtrue;
+		break;
+	case CHAN_CULLRANGE_65536:
+		return qtrue;
+		break;
+	case CHAN_CULLRANGE_131072:
+		return qtrue;
+		break;
+	default:
+		break;
+	}
+
+	return qfalse;
+}
+
+float BASS_CullRangeForEntityChannel(int entityChannel)
+{
+	switch (entityChannel)
+	{
+	case CHAN_CULLRANGE_8192:
+		return 8192;
+		break;
+	case CHAN_CULLRANGE_16384:
+		return 16384;
+		break;
+	case CHAN_CULLRANGE_32768:
+		return 32768;
+		break;
+	case CHAN_CULLRANGE_65536:
+		return 65536;
+		break;
+	case CHAN_CULLRANGE_131072:
+		return 131072;
+		break;
+	default:
+		break;
+	}
+
+	return MAX_SOUND_RANGE;
+}
+
 void BASS_AddMemoryChannel ( DWORD samplechan, int inEntityNum, int entityChannel, vec3_t origin, float volume, char *filename )
 {
 	int entityNum = (inEntityNum == -1 || inEntityNum >= ENTITYNUM_MAX_NORMAL) ? -1 : inEntityNum;
@@ -2491,7 +2543,9 @@ void BASS_AddMemoryChannel ( DWORD samplechan, int inEntityNum, int entityChanne
 
 	if (BASS_CheckSoundDisabled()) return;
 
-	if (origin && Distance(cl.snap.ps.origin, origin) > MAX_SOUND_RANGE)
+	float cullRange = BASS_CullRangeForEntityChannel(entityChannel);
+
+	if (origin && Distance(cl.snap.ps.origin, origin) > cullRange)
 	{
 #ifdef __BASS_DEBUG__
 		Com_Printf("BASS DEBUG: BASS_AddMemoryChannel starting sound %s (samplechan %lu) is out of range.\n", filename, samplechan);
@@ -2528,7 +2582,7 @@ void BASS_AddMemoryChannel ( DWORD samplechan, int inEntityNum, int entityChanne
 		VectorSet(c->origin, 0, 0, 0);
 	}
 
-	c->cullRange = 0;
+	c->cullRange = cullRange;
 	c->isLooping = qfalse;
 	c->isActive = qtrue;
 }
@@ -2542,7 +2596,7 @@ void BASS_AddEfxMemoryChannel(DWORD samplechan, int inEntityNum, int entityChann
 		return;
 	}
 
-	int entityNum = (inEntityNum == -1 || inEntityNum >= ENTITYNUM_MAX_NORMAL) ? -1 : inEntityNum;
+	int entityNum = ((inEntityNum == -1 || inEntityNum >= ENTITYNUM_MAX_NORMAL) && inEntityNum < 8192) ? -1 : inEntityNum; // 8192 is fake local cgame entities...
 
 	if (origin && Distance(cl.snap.ps.origin, origin) > cullRange)
 	{
@@ -2630,9 +2684,11 @@ void BASS_AddMemoryLoopChannel ( DWORD samplechan, int inEntityNum, int entityCh
 	}
 	*/
 
-	int entityNum = (inEntityNum == -1 || inEntityNum >= ENTITYNUM_MAX_NORMAL) ? -1 : inEntityNum;
+	int entityNum = ((inEntityNum == -1 || inEntityNum >= ENTITYNUM_MAX_NORMAL) && inEntityNum < 8192) ? -1 : inEntityNum; // 8192 is fake local cgame entities...
 
-	if (origin && Distance(cl.snap.ps.origin, origin) > MAX_SOUND_RANGE)
+	float cullRange = BASS_CullRangeForEntityChannel(entityChannel);
+
+	if (origin && Distance(cl.snap.ps.origin, origin) > cullRange)
 	{
 #ifdef __BASS_DEBUG__
 		Com_Printf("BASS DEBUG: BASS_AddMemoryLoopChannel starting sound %s (samplechan %lu) is out of range.\n", filename, samplechan);
@@ -2701,7 +2757,7 @@ void BASS_AddMemoryLoopChannel ( DWORD samplechan, int inEntityNum, int entityCh
 		VectorSet(c->origin, 0, 0, 0);
 	}
 
-	c->cullRange = 0;
+	c->cullRange = cullRange;
 	c->isLooping = qtrue;
 	c->isActive = qtrue;
 }
@@ -2713,7 +2769,7 @@ DWORD BASS_LoadMemorySample ( void *memory, int length )
 	if (BASS_CheckSoundDisabled()) return -1;
 
 	// Try to load the sample with the highest quality options we support...
-	if ((newchan=BASS_SampleLoad(TRUE,memory,0,(DWORD)length,(DWORD)MAX_SAMPLE_CHANNELS,BASS_SAMPLE_3D|BASS_SAMPLE_MONO|BASS_SAMPLE_OVER_VOL|BASS_FLOAT_AVAILABLE)))
+	if ((newchan=BASS_SampleLoad(TRUE, memory, 0, (DWORD)length, (DWORD)MAX_SAMPLE_CHANNELS, BASS_SAMPLE_3D | BASS_SAMPLE_MONO | BASS_SAMPLE_OVER_VOL | BASS_FLOAT_AVAILABLE)))
 	{
 		return newchan;
 	}
@@ -2744,7 +2800,7 @@ void BASS_StartStreamingSound ( char *filename, int entityNum, int entityChannel
 	if (!strncmp(filename, "http", 4))
 	{// http request...
 		//Com_Printf("Playing [HTTP] stream %s.\n", filename);
-		newchan = BASS_StreamCreateURL(filename,0,BASS_STREAM_BLOCK|BASS_STREAM_STATUS|BASS_STREAM_AUTOFREE,BASS_Stream_StatusProc,(void*)r);
+		newchan = BASS_StreamCreateURL(filename, 0, BASS_STREAM_BLOCK | BASS_STREAM_STATUS | BASS_STREAM_AUTOFREE, BASS_Stream_StatusProc, (void*)r);
 	}
 	else
 	{// local file...

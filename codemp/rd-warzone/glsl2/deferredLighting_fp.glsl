@@ -16,6 +16,8 @@
 	#ifdef USE_CUBEMAPS
 		#define __CUBEMAPS__
 	#endif //USE_CUBEMAPS
+
+	//#define __SSSSS__
 #endif //__LQ_MODE__
 
 #if defined(USE_BINDLESS_TEXTURES)
@@ -299,18 +301,6 @@ vec2 EncodeNormal(vec3 n)
 #endif //__ENCODE_NORMALS_RECONSTRUCT_Z__
 
 
-// c_precision of 128 fits within 7 base-10 digits
-const float c_precision = 128.0;
-const float c_precisionp1 = c_precision + 1.0;
-
-vec3 float2color(float value) {
-    vec3 color;
-    color.r = mod(value, c_precisionp1) / c_precision;
-    color.b = mod(floor(value / c_precisionp1), c_precisionp1) / c_precision;
-    color.g = floor(value / (c_precisionp1 * c_precisionp1)) / c_precision;
-    return color;
-}
-
 
 vec4 positionMapAtCoord ( vec2 coord )
 {
@@ -327,65 +317,65 @@ vec2 RB_PBR_DefaultsForMaterial(float MATERIAL_TYPE)
 
 	switch (int(MATERIAL_TYPE))
 	{
-	case MATERIAL_WATER:			// 13			// light covering of water on a surface
+	case MATERIAL_WATER:
 		specularReflectionScale = 0.1;
 		cubeReflectionScale = 0.775;
 		break;
-	case MATERIAL_SHORTGRASS:		// 5			// manicured lawn
+	case MATERIAL_SHORTGRASS:
 		specularReflectionScale = 0.0055;
 		cubeReflectionScale = 0.5125;
 		break;
-	case MATERIAL_LONGGRASS:		// 6			// long jungle grass
+	case MATERIAL_LONGGRASS:
 		specularReflectionScale = 0.0065;
 		cubeReflectionScale = 0.5125;
 		break;
-	case MATERIAL_SAND:				// 8			// sandy beach
+	case MATERIAL_SAND:
 		specularReflectionScale = 0.0055;
 		cubeReflectionScale = 0.0;
 		break;
-	case MATERIAL_CARPET:			// 27			// lush carpet
+	case MATERIAL_CARPET:
 		specularReflectionScale = 0.0015;
 		cubeReflectionScale = 0.0;
 		break;
-	case MATERIAL_GRAVEL:			// 9			// lots of small stones
+	case MATERIAL_GRAVEL:
 		specularReflectionScale = 0.0015;
 		cubeReflectionScale = 0.0;
 		break;
-	case MATERIAL_ROCK:				// 23			//
+	case MATERIAL_ROCK:
 	case MATERIAL_STONE:
 		specularReflectionScale = 0.002;
 		cubeReflectionScale = 0.0;
 		break;
-	case MATERIAL_TILES:			// 26			// tiled floor
+	case MATERIAL_TILES:
 		specularReflectionScale = 0.026;
 		cubeReflectionScale = 0.3625;
 		break;
-	case MATERIAL_SOLIDWOOD:		// 1			// freshly cut timber
+	case MATERIAL_SOLIDWOOD:
 	case MATERIAL_TREEBARK:
 		specularReflectionScale = 0.0015;
 		cubeReflectionScale = 0.0;
 		break;
-	case MATERIAL_HOLLOWWOOD:		// 2			// termite infested creaky wood
+	case MATERIAL_HOLLOWWOOD:
 		specularReflectionScale = 0.00075;
 		cubeReflectionScale = 0.0;
 		break;
-	case MATERIAL_POLISHEDWOOD:		// 3			// shiny polished wood
+	case MATERIAL_POLISHEDWOOD:
 		specularReflectionScale = 0.026;
 		cubeReflectionScale = 0.5125;
 		break;
-	case MATERIAL_SOLIDMETAL:		// 3			// solid girders
+	case MATERIAL_SOLIDMETAL:
 		specularReflectionScale = 0.098;
 		cubeReflectionScale = 0.985;
 		break;
-	case MATERIAL_HOLLOWMETAL:		// 4			// hollow metal machines -- UQ1: Used for weapons to force lower parallax and high reflection...
+	case MATERIAL_HOLLOWMETAL:
 		specularReflectionScale = 0.098;
 		cubeReflectionScale = 0.985;
 		break;
-	case MATERIAL_DRYLEAVES:		// 19			// dried up leaves on the floor
+	case MATERIAL_DRYLEAVES:
 		specularReflectionScale = 0.0026;
 		cubeReflectionScale = 0.0;
 		break;
-	case MATERIAL_GREENLEAVES:		// 20			// fresh leaves still on a tree
+	case MATERIAL_GREENLEAVES:
 		specularReflectionScale = 0.0055;
 		cubeReflectionScale = 0.5125;
 		break;
@@ -394,63 +384,63 @@ vec2 RB_PBR_DefaultsForMaterial(float MATERIAL_TYPE)
 		cubeReflectionScale = 0.5125;
 		break;
 	case MATERIAL_BIRD:
-	case MATERIAL_FABRIC:			// 21			// Cotton sheets
+	case MATERIAL_FABRIC:
 		specularReflectionScale = 0.0055;
 		cubeReflectionScale = 0.5125;
 		break;
-	case MATERIAL_CANVAS:			// 22			// tent material
+	case MATERIAL_CANVAS:
 		specularReflectionScale = 0.0045;
 		cubeReflectionScale = 0.0;
 		break;
-	case MATERIAL_MARBLE:			// 12			// marble floors
+	case MATERIAL_MARBLE:
 		specularReflectionScale = 0.025;
 		cubeReflectionScale = 0.595;
 		break;
-	case MATERIAL_SNOW:				// 14			// freshly laid snow
+	case MATERIAL_SNOW:
 		specularReflectionScale = 0.025;
 		cubeReflectionScale = 0.7375;
 		break;
-	case MATERIAL_MUD:				// 17			// wet soil
+	case MATERIAL_MUD:
 		specularReflectionScale = 0.003;
 		cubeReflectionScale = 0.0;
 		break;
-	case MATERIAL_DIRT:				// 7			// hard mud
+	case MATERIAL_DIRT:
 		specularReflectionScale = 0.002;
 		cubeReflectionScale = 0.0;
 		break;
-	case MATERIAL_CONCRETE:			// 11			// hardened concrete pavement
+	case MATERIAL_CONCRETE:
 		specularReflectionScale = 0.00175;
 		cubeReflectionScale = 0.0;
 		break;
-	case MATERIAL_FLESH:			// 16			// hung meat, corpses in the world
+	case MATERIAL_FLESH:
 		specularReflectionScale = 0.0045;
 		cubeReflectionScale = 0.0;
 		break;
-	case MATERIAL_RUBBER:			// 24			// hard tire like rubber
+	case MATERIAL_RUBBER:
 		specularReflectionScale = 0.0015;
 		cubeReflectionScale = 0.0;
 		break;
-	case MATERIAL_PLASTIC:			// 25			//
+	case MATERIAL_PLASTIC:
 		specularReflectionScale = 0.028;
 		cubeReflectionScale = 0.7375;
 		break;
-	case MATERIAL_PLASTER:			// 28			// drywall style plaster
+	case MATERIAL_PLASTER:
 		specularReflectionScale = 0.0025;
 		cubeReflectionScale = 0.0;
 		break;
-	case MATERIAL_SHATTERGLASS:		// 29			// glass with the Crisis Zone style shattering
+	case MATERIAL_SHATTERGLASS:
 		specularReflectionScale = 0.025;
 		cubeReflectionScale = 0.7525;
 		break;
-	case MATERIAL_ARMOR:			// 30			// body armor
+	case MATERIAL_ARMOR:
 		specularReflectionScale = 0.055;
 		cubeReflectionScale = 0.745;
 		break;
-	case MATERIAL_ICE:				// 15			// packed snow/solid ice
+	case MATERIAL_ICE:
 		specularReflectionScale = 0.045;
 		cubeReflectionScale = 0.835;
 		break;
-	case MATERIAL_GLASS:			// 10			//
+	case MATERIAL_GLASS:
 	case MATERIAL_DISTORTEDGLASS:
 	case MATERIAL_DISTORTEDPUSH:
 	case MATERIAL_DISTORTEDPULL:
@@ -459,11 +449,11 @@ vec2 RB_PBR_DefaultsForMaterial(float MATERIAL_TYPE)
 		specularReflectionScale = 0.035;
 		cubeReflectionScale = 0.775;
 		break;
-	case MATERIAL_BPGLASS:			// 18			// bulletproof glass
+	case MATERIAL_BPGLASS:
 		specularReflectionScale = 0.033;
 		cubeReflectionScale = 0.775;
 		break;
-	case MATERIAL_COMPUTER:			// 31			// computers/electronic equipment
+	case MATERIAL_COMPUTER:
 		specularReflectionScale = 0.042;
 		cubeReflectionScale = 0.76;
 		break;
@@ -1136,15 +1126,6 @@ float FBM( vec3 p )
 	p *= CLOUDS_CLOUDSCALE;
 
 	float f;
-	
-	/*
-	f = 0.5000 * Noise(p); p = cm*p;
-	f += 0.2500 * Noise(p); p = cm*p;
-	f += 0.1250 * Noise(p); p = cm*p;
-	f += 0.0625   * Noise(p); p = cm*p;
-	f += 0.03125  * Noise(p); p = cm*p;
-	f += 0.015625 * Noise(p);
-	*/
 
 	f = 0.5000 * Noise(p); p = cm*p;
 	f += 0.2500 * Noise(p); p = cm*p;
@@ -1208,7 +1189,6 @@ float CloudShadows(vec3 position)
 // For all settings: 1.0 = 100% 0.5=50% 1.5 = 150%
 vec3 ContrastSaturationBrightness(vec3 color, float con, float sat, float brt)
 {
-	// Increase or decrease theese values to adjust r, g and b color channels seperately
 	const float AvgLumR = 0.5;
 	const float AvgLumG = 0.5;
 	const float AvgLumB = 0.5;
@@ -1239,6 +1219,73 @@ vec3 ColorGrade( vec3 vColor )
 	vColor *= fMaxLum;  
 	return vColor;
 }
+
+#ifdef __SSSSS__
+#define SSSSS_STEPS			3.0
+#define SSSSS_CORRECTION	1.0
+#define SSSSS_STRENGTH		1.0
+vec4 SSSSS_Gather(vec4 inColor, vec2 texcoord, vec2 thisStep)
+{
+	const float w[6] = { 0.006,   0.061,   0.242,  0.242,  0.061, 0.006 };
+	const float o[6] = {  -1.0, -0.6667, -0.3333, 0.3333, 0.6667,   1.0 };
+
+	vec4 colorM = inColor;
+	float depthM = texture(u_DeluxeMap, texcoord).x;
+
+	vec4 colorBlurred = colorM;
+	colorBlurred.rgb *= 0.382;
+
+	// Calculate the step that we will use to fetch the surrounding pixels,
+	// where "thisStep" is:
+	//     thisStep = sssStrength * gaussianWidth * pixelSize * dir
+	// The closer the pixel, the stronger the effect needs to be, hence
+	// the factor 1.0 / depthM.
+	vec2 finalStep = colorM.a * thisStep / depthM;
+
+	for (int i = 0; i < 6; i++) {
+		vec2 offset = texcoord + (o[i] * finalStep);
+		vec3 color = texture(u_DiffuseMap, offset).rgb;
+		float depth =  texture(u_DeluxeMap, offset).x;
+
+		float s = min(0.0125 * SSSSS_CORRECTION * abs(depthM - depth), 1.0);
+		color = mix(color, colorM.rgb, s);
+
+		// Accumulate:
+		colorBlurred.rgb += w[i] * color;
+	}
+
+	return colorBlurred;
+}
+
+vec4 SSSSS(vec4 inColor, vec2 texcoord)
+{
+	if (SSSSS_STEPS <= 0.0)
+	{
+		return inColor;
+	}
+
+	vec4 finalColor = vec4(0.0);
+	float stepsDone = 1.0;
+
+	for (float x = -SSSSS_STEPS; x <= SSSSS_STEPS; x += 1.0)
+	{
+		vec2 thisStep = pixel * vec2(1.0, 0.0) * x * SSSSS_STRENGTH;
+		finalColor += SSSSS_Gather(finalColor / stepsDone, texcoord, thisStep);
+		stepsDone += 1.0;
+	}
+
+	for (float y = -SSSSS_STEPS; y <= SSSSS_STEPS; y += 1.0)
+	{
+		vec2 thisStep = pixel * vec2(0.0, 1.0) * y * SSSSS_STRENGTH;
+		finalColor += SSSSS_Gather(finalColor / stepsDone, texcoord, thisStep);
+		stepsDone += 1.0;
+	}
+
+	finalColor /= stepsDone; // x and y count * 2 directions of each
+
+	return finalColor;
+}
+#endif //__SSSSS__
 
 vec3 GetScreenPixel(inout vec2 texCoords)
 {
@@ -1273,7 +1320,6 @@ vec3 GetScreenPixel(inout vec2 texCoords)
 	}
 
 	vec3 norm = vec3(dMap.gb, 0.0) * 2.0 - 1.0;
-	//norm.z = sqrt(1.0 - dot(norm.xy, norm.xy)); // reconstruct Z from X and Y
 
 	vec2 distFromCenter = vec2(length(texCoords.x - 0.5), length(texCoords.y - 0.5));
 	float displacementStrengthMod = ((DISPLACEMENT_STRENGTH * materialMultiplier) / 18.0); // Default is 18.0. If using higher displacement, need more screen edge flattening, if less, less flattening.
@@ -1356,6 +1402,9 @@ void main(void)
 		return;
 	}
 
+#ifdef __SSSSS__
+	outColor = SSSSS(outColor, texCoords);
+#endif //__SSSSS__
 
 	vec2 materialSettings = RB_PBR_DefaultsForMaterial(position.a-1.0);
 	bool isPuddle = (position.a - 1.0 == MATERIAL_PUDDLE) ? true : false;
@@ -1943,7 +1992,7 @@ void main(void)
 					vec2 coord = texCoords + (vec2(float(x), float(y)) * pixel);
 #ifdef __ENABLE_GI__
 					vec4 giInfo = textureLod(u_SteepMap1, coord, 0.0);
-					vec3 illum = giInfo.rgb;//float2color(giInfo.g);
+					vec3 illum = giInfo.rgb;
 					msao += giInfo.a-1.0;
 					gi += illum;
 #else //!__ENABLE_GI__
@@ -1963,24 +2012,13 @@ void main(void)
 #ifdef __ENABLE_GI__
 			vec4 giInfo = textureLod(u_SteepMap1, texCoords, 0.0);
 			msao = giInfo.a-1.0;
-			gi = giInfo.rgb;//float2color(giInfo.g);
+			gi = giInfo.rgb;
 #else //!__ENABLE_GI__
 			msao = textureLod(u_SteepMap1, texCoords, 0.0).x;
 #endif //__ENABLE_GI__
 		}
 
 #ifdef __ENABLE_GI__
-		/*if (u_Local3.r > 1.0)
-		{
-			gl_FragColor = vec4(msao, msao, msao, 1.0);
-			return;
-		}
-		else if (u_Local3.r > 0.0)
-		{
-			gl_FragColor = vec4(gi.rgb, 1.0);
-			return;
-		}*/
-
 		float sao = clamp(msao, 0.0, 1.0);
 
 #if defined(__AMBIENT_OCCLUSION__)

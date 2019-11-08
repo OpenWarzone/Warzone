@@ -3993,7 +3993,7 @@ int GLSL_BeginLoadGPUShaders(void)
 		Q_strcat(extradefines, 1024, "#define REALTIME_CUBEMAPS\n");
 #endif //__REALTIME_CUBEMAP__
 
-		if (!GLSL_BeginLoadGPUShader(&tr.deferredLightingShader[0], "deferredLighting0", attribs, qtrue, qfalse, qfalse, qfalse/*qtrue*/, extradefines, qtrue, NULL, fallbackShader_deferredLighting_vp, fallbackShader_deferredLighting_fp, NULL, NULL, NULL))
+		if (!GLSL_BeginLoadGPUShader(&tr.deferredLightingShader[0], "deferredLighting0", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_deferredLighting_vp, fallbackShader_deferredLighting_fp, NULL, NULL, NULL))
 		{
 			ri->Error(ERR_FATAL, "Could not load deferredLighting0 shader!");
 		}
@@ -4025,7 +4025,7 @@ int GLSL_BeginLoadGPUShaders(void)
 		Q_strcat(extradefines, 1024, "#define REALTIME_CUBEMAPS\n");
 #endif //__REALTIME_CUBEMAP__
 
-		if (!GLSL_BeginLoadGPUShader(&tr.deferredLightingShader[1], "deferredLighting1", attribs, qtrue, qfalse, qfalse, qfalse/*qtrue*/, extradefines, qtrue, NULL, fallbackShader_deferredLighting_vp, fallbackShader_deferredLighting_fp, NULL, NULL, NULL))
+		if (!GLSL_BeginLoadGPUShader(&tr.deferredLightingShader[1], "deferredLighting1", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_deferredLighting_vp, fallbackShader_deferredLighting_fp, NULL, NULL, NULL))
 		{
 			ri->Error(ERR_FATAL, "Could not load deferredLighting1 shader!");
 		}
@@ -4055,7 +4055,7 @@ int GLSL_BeginLoadGPUShaders(void)
 		Q_strcat(extradefines, 1024, "#define REALTIME_CUBEMAPS\n");
 #endif //__REALTIME_CUBEMAP__
 
-		if (!GLSL_BeginLoadGPUShader(&tr.deferredLightingShader[2], "deferredLighting2", attribs, qtrue, qfalse, qfalse, qfalse/*qtrue*/, extradefines, qtrue, NULL, fallbackShader_deferredLighting_vp, fallbackShader_deferredLighting_fp, NULL, NULL, NULL))
+		if (!GLSL_BeginLoadGPUShader(&tr.deferredLightingShader[2], "deferredLighting2", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_deferredLighting_vp, fallbackShader_deferredLighting_fp, NULL, NULL, NULL))
 		{
 			ri->Error(ERR_FATAL, "Could not load deferredLighting2 shader!");
 		}

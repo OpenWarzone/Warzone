@@ -403,6 +403,19 @@ typedef struct cgLoopSound_s {
 	int entchannel;
 } cgLoopSound_t;
 
+typedef struct mapFighters_s {
+	vec3_t				origin;
+	vec3_t				dir;
+	vec3_t				startOrigin;
+	float				rotate;
+	float				circleSize;
+	qhandle_t			loopSound;
+	int					localSoundEntityNum;
+	int					team;
+	int					chaseTime;
+	int					chaseTarget;
+} mapFighters_t;
+
 // centity_t have a direct corespondence with gentity_t in the game, but
 // only the entityState_t is directly communicated to the cgame
 typedef struct centity_s {
@@ -573,7 +586,11 @@ typedef struct centity_s {
 	int altChargeTime;
 	int ChargeTime;
 
-
+	/* Event ship fighters */
+	int				numFighters = 0;
+	mapFighters_t	fighters[16];
+	int				numEnemyFighters = 0;
+	mapFighters_t	enemyFighters[8];
 
 } centity_t;
 

@@ -423,7 +423,7 @@ static qboolean R_LoadAssImp(model_t * mod, int lod, void *buffer, const char *m
 	//assImpImporter.SetPropertyFloat(AI_CONFIG_PP_GSN_MAX_SMOOTHING_ANGLE, 80.f);
 	assImpImporter.SetPropertyFloat(AI_CONFIG_PP_GSN_MAX_SMOOTHING_ANGLE, 45.f);
 
-#if 1
+#if 0
 #define aiProcessPreset_TargetRealtime_MaxQuality_Fix ( \
 	aiProcessPreset_TargetRealtime_Quality	|  \
 	aiProcess_FlipWindingOrder			|  \
@@ -450,7 +450,7 @@ static qboolean R_LoadAssImp(model_t * mod, int lod, void *buffer, const char *m
 	aiProcess_RemoveRedundantMaterials		|  \
     aiProcess_ValidateDataStructure			|  \
 	0 )
-#else
+#elif 0
 #define aiProcessPreset_TargetRealtime_MaxQuality_Fix ( \
 	aiProcess_OptimizeMeshes				|  \
 	aiProcess_GenSmoothNormals              |  \
@@ -472,6 +472,13 @@ static qboolean R_LoadAssImp(model_t * mod, int lod, void *buffer, const char *m
 	//   aiProcess_GenNormals
 
 	// >#AI_CONFIG_PP_GSN_MAX_SMOOTHING_ANGLE
+#else
+#define aiProcessPreset_TargetRealtime_MaxQuality_Fix ( \
+    aiProcess_ImproveCacheLocality          |  \
+    aiProcess_Triangulate                   |  \
+	0 )
+
+#define __INVERT_ASSIMP_NORMALS__
 #endif
 
 	const aiScene* scene = assImpImporter.ReadFileFromMemory(buffer, size, aiProcessPreset_TargetRealtime_MaxQuality_Fix, ext);
@@ -968,9 +975,15 @@ static qboolean R_LoadAssImp(model_t * mod, int lod, void *buffer, const char *m
 
 			aiVector3D norm = aiSurf->mNormals[j];
 
+#ifdef __INVERT_ASSIMP_NORMALS__
+			v->normal[0] = -norm.x;
+			v->normal[1] = -norm.y;
+			v->normal[2] = -norm.z;
+#else //!__INVERT_ASSIMP_NORMALS__
 			v->normal[0] = norm.x;
 			v->normal[1] = norm.y;
 			v->normal[2] = norm.z;
+#endif //__INVERT_ASSIMP_NORMALS__
 		}
 
 		// swap all the ST

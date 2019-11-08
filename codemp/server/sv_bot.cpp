@@ -655,7 +655,7 @@ void SV_BotInitCvars(void) {
 	Cvar_Get("bot_minplayers", "0", 0);					//minimum players in a team or the game
 	Cvar_Get("npc_pathing", "0", 0);					//should npcs use astar pathing?
 	Cvar_Get("npc_wptonav", "0", 0);					//should we add wp system waypoints to nav system? 2 will force even large lists to be added...
-	Cvar_Get("npc_precache", "0", 0);					//should we pre-load all the map's possible npcs when loading the map?
+	Cvar_Get("npc_precache", "1", 0);					//should we pre-load all the map's possible npcs when loading the map?
 	Cvar_Get("npc_imperials", "0", 0);					//minimum NPC imperials
 	Cvar_Get("npc_rebels", "0", 0);						//minimum NPC rebels
 	Cvar_Get("npc_mandalorians", "0", 0);				//minimum NPC mandalorians

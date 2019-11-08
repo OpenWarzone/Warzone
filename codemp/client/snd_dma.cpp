@@ -646,7 +646,7 @@ void S_StartSound(const vec3_t origin, int entityNum, int entchannel, sfxHandle_
 		Com_Printf("BASS_DEBUG: Entity %i playing sound %s (handle %i - bass id %ld) on channel %i at NULL org.\n", entityNum, s_knownSfx[ sfxHandle ].sSoundName, sfxHandle, s_knownSfx[ sfxHandle ].bassSampleID, entchannel);
 	*/
 
-	if (S_ShouldCull((float *)origin, qfalse, entityNum))
+	if (!BASS_EntityChannelHasSpecialCullrange(entchannel) && S_ShouldCull((float *)origin, qfalse, entityNum))
 		BASS_AddMemoryChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, forceSaberChannel ? CHAN_SABER : entchannel, (float *)origin, 0.25, s_knownSfx[sfxHandle].sSoundName);
 	else
 		BASS_AddMemoryChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, forceSaberChannel ? CHAN_SABER : entchannel, (float *)origin, 1.0, s_knownSfx[sfxHandle].sSoundName);
@@ -779,7 +779,7 @@ void S_AddLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocit
 	
 	if (entityNum >= 0 /*&& (cl.entityBaselines[entityNum].eType == ET_NPC || cl.entityBaselines[entityNum].eType == ET_PLAYER)*/)
 	{
-		if (origin)	if (Distance(cl.snap.ps.origin, origin) > 2048) return;
+		//if (origin)	if (Distance(cl.snap.ps.origin, origin) > 2048) return;
 		
 		/*
 		if (origin)
@@ -788,14 +788,14 @@ void S_AddLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocit
 			Com_Printf("BASS_DEBUG: Entity %i playing LOOPING sound %s (ID %i) on channel %i at NULL org.\n", entityNum, s_knownSfx[ sfxHandle ].sSoundName, (int)s_knownSfx[sfxHandle].bassSampleID, CHAN_BODY);
 		*/
 		
-		if (S_ShouldCull((float *)origin, qfalse, entityNum))
+		if (!BASS_EntityChannelHasSpecialCullrange(entchannel) && S_ShouldCull((float *)origin, qfalse, entityNum))
 			BASS_AddMemoryLoopChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, entchannel ? entchannel : CHAN_WEAPON, (float *)origin, 0.25, s_knownSfx[sfxHandle].sSoundName);
 		else
 			BASS_AddMemoryLoopChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, entchannel ? entchannel : CHAN_WEAPON, (float *)origin, 1.0, s_knownSfx[sfxHandle].sSoundName);
 	}
 	else
 	{
-		if (origin)	if (Distance(cl.snap.ps.origin, origin) > 2048) return;
+		//if (origin)	if (Distance(cl.snap.ps.origin, origin) > 2048) return;
 		/*
 		if (origin)
 			Com_Printf("BASS_DEBUG: Entity %i playing LOOPING sound %s on channel %i at org %f %f %f.\n", entityNum, s_knownSfx[ sfxHandle ].sSoundName, CHAN_AMBIENT, origin[0], origin[1], origin[2]);
@@ -803,7 +803,7 @@ void S_AddLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocit
 			Com_Printf("BASS_DEBUG: Entity %i playing LOOPING sound %s on channel %i at NULL org.\n", entityNum, s_knownSfx[ sfxHandle ].sSoundName, CHAN_AMBIENT);
 		*/
 
-		if (S_ShouldCull((float *)origin, qfalse, entityNum))
+		if (!BASS_EntityChannelHasSpecialCullrange(entchannel) && S_ShouldCull((float *)origin, qfalse, entityNum))
 			BASS_AddMemoryLoopChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, entchannel ? entchannel : CHAN_AMBIENT, (float *)origin, 0.25, s_knownSfx[sfxHandle].sSoundName);
 		else
 			BASS_AddMemoryLoopChannel(s_knownSfx[ sfxHandle ].bassSampleID, entityNum, entchannel ? entchannel : CHAN_AMBIENT, (float *)origin, 1.0, s_knownSfx[sfxHandle].sSoundName);

@@ -33,6 +33,38 @@ void G_EventShipThink(gentity_t *ent)
 	ent->nextthink = level.time + 1000;
 }
 
+void G_EventModelPrecache(void)
+{
+	G_ModelIndex("models/warzone/ships/isd/isd.3ds");
+	G_ModelIndex("models/warzone/ships/isd2/isd2.3ds");
+	G_ModelIndex("models/warzone/ships/dominator/dominator.3ds");
+	G_ModelIndex("models/warzone/ships/knight/knight.3ds");
+	G_ModelIndex("models/warzone/ships/victory/victory.3ds");
+	
+	G_ModelIndex("models/warzone/ships/calamari/calamari.3ds");
+	G_ModelIndex("models/warzone/ships/medfrig/medfrig.md3");
+	G_ModelIndex("models/warzone/ships/corvette/corvette.3ds");
+	G_ModelIndex("models/warzone/ships/falcon/falcon.md3");
+	G_ModelIndex("models/warzone/ships/u-wing/uwing.3ds");
+
+	G_ModelIndex("models/warzone/ships/bothan/bothan.3ds");
+
+	G_ModelIndex("models/warzone/ships/maleo1/maleo1.3ds");
+	
+	G_SoundIndex("sound/vehicles/shuttle/loop.wav");
+	G_SoundIndex("sound/movers/objects/shuttle_hover_8.wav");
+	G_SoundIndex("sound/movers/objects/raven_hover_9.wav");
+	G_SoundIndex("sound/movers/objects/raven_hover_4.wav");
+	G_SoundIndex("sound/vehicles/x-wing/loop.wav");
+	G_SoundIndex("sound/vehicles/ambience/cockpit_steady.wav");
+
+
+	// Used by cgame fighter escorts, so precache these as well...
+	G_ModelIndex("models/map_objects/ships/tie_fighter.md3");
+	G_ModelIndex("models/map_objects/ships/x_wing_nogear.md3");
+	G_SoundIndex("sound/vehicles/tie/loop.wav");
+}
+
 void G_CreateSpawnVesselForEventArea(int area)
 {
 	if (event_areas_has_ship[area])
@@ -44,6 +76,7 @@ void G_CreateSpawnVesselForEventArea(int area)
 	char modelName[128] = { { 0 } };
 	int modelFrame = 0;
 	int modelScale = 1;
+	int loopSound = 0;
 	float zOffset = 8192.0;
 
 	switch (team)
@@ -60,30 +93,35 @@ void G_CreateSpawnVesselForEventArea(int area)
 			if (choice == 0)
 			{
 				sprintf(modelName, "models/warzone/ships/isd/isd.3ds");
+				loopSound = G_SoundIndex("sound/vehicles/shuttle/loop.wav");
 				modelScale = 56;
 				zOffset = 32768.0;
 			}
 			else if (choice == 1)
 			{
 				sprintf(modelName, "models/warzone/ships/isd2/isd2.3ds");
+				loopSound = G_SoundIndex("sound/vehicles/shuttle/loop.wav");
 				modelScale = 56;
 				zOffset = 32768.0;
 			}
 			else if (choice == 2)
 			{
 				sprintf(modelName, "models/warzone/ships/dominator/dominator.3ds");
+				loopSound = G_SoundIndex("sound/vehicles/shuttle/loop.wav");
 				modelScale = 64;
 				zOffset = 49152.0;
 			}
 			else if (choice == 3)
 			{
 				sprintf(modelName, "models/warzone/ships/knight/knight.3ds");
+				loopSound = G_SoundIndex("sound/vehicles/shuttle/loop.wav");
 				modelScale = 112;
 				zOffset = 65536.0;
 			}
 			else
 			{
 				sprintf(modelName, "models/warzone/ships/victory/victory.3ds");
+				loopSound = G_SoundIndex("sound/vehicles/ambience/cockpit_steady.wav");
 				modelScale = 56;
 				zOffset = 32768.0;
 			}
@@ -91,16 +129,18 @@ void G_CreateSpawnVesselForEventArea(int area)
 		break;
 	case FACTION_REBEL:
 		{
-			int choice = irand(0, 3);
+			int choice = irand(0, 4);
 			if (choice == 0)
 			{
 				sprintf(modelName, "models/warzone/ships/calamari/calamari.3ds");
+				loopSound = G_SoundIndex("sound/movers/objects/shuttle_hover_8.wav");
 				modelScale = 56;
 				zOffset = 32768.0;
 			}
 			else if (choice == 1)
 			{
 				sprintf(modelName, "models/warzone/ships/medfrig/medfrig.md3");
+				loopSound = G_SoundIndex("sound/movers/objects/raven_hover_9.wav");
 				modelFrame = 0;
 				modelScale = 12;
 				zOffset = 6144.0;
@@ -108,6 +148,15 @@ void G_CreateSpawnVesselForEventArea(int area)
 			else if (choice == 2)
 			{
 				sprintf(modelName, "models/warzone/ships/corvette/corvette.3ds");
+				loopSound = G_SoundIndex("sound/movers/objects/raven_hover_4.wav");
+				modelFrame = 0;
+				modelScale = 16;
+				zOffset = 4096.0;
+			}
+			else if (choice == 3)
+			{
+				sprintf(modelName, "models/warzone/ships/falcon/falcon.md3");
+				loopSound = G_SoundIndex("sound/vehicles/x-wing/loop.wav");
 				modelFrame = 0;
 				modelScale = 16;
 				zOffset = 4096.0;
@@ -115,6 +164,7 @@ void G_CreateSpawnVesselForEventArea(int area)
 			else
 			{
 				sprintf(modelName, "models/warzone/ships/u-wing/uwing.3ds");
+				loopSound = G_SoundIndex("sound/vehicles/x-wing/loop.wav");
 				modelFrame = 0;
 				modelScale = 6;
 				zOffset = 2048.0;
@@ -124,6 +174,7 @@ void G_CreateSpawnVesselForEventArea(int area)
 	case FACTION_MANDALORIAN:
 		{
 			sprintf(modelName, "models/warzone/ships/bothan/bothan.3ds");
+			loopSound = G_SoundIndex("sound/vehicles/shuttle/loop.wav");
 			modelScale = 42;
 			zOffset = 24576.0;
 		}
@@ -131,6 +182,7 @@ void G_CreateSpawnVesselForEventArea(int area)
 	case FACTION_MERC:
 		{
 			sprintf(modelName, "models/warzone/ships/maleo1/maleo1.3ds");
+			loopSound = G_SoundIndex("sound/vehicles/shuttle/loop.wav");
 			modelScale = 56;
 			zOffset = 32768.0;
 		}
@@ -138,6 +190,7 @@ void G_CreateSpawnVesselForEventArea(int area)
 	case FACTION_PIRATES:
 		{
 			sprintf(modelName, "models/warzone/ships/maleo1/maleo1.3ds");
+			loopSound = G_SoundIndex("sound/vehicles/shuttle/loop.wav");
 			modelScale = 56;
 			zOffset = 32768.0;
 		}
@@ -174,7 +227,7 @@ void G_CreateSpawnVesselForEventArea(int area)
 
 	//ent->neverFree = qtrue; // hmmm
 
-	ent->s.loopSound = G_SoundIndex("sound/vehicles/shuttle/loop.wav");
+	ent->s.loopSound = loopSound;
 
 	//TODO: Come from sky and hover...
 	ent->nextthink = level.time + 200;

@@ -3018,6 +3018,8 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 		GLSL_SetBindlessTexture(shader, UNIFORM_SKYCUBEMAPNIGHT, &tr.skyCubeMapNight, 0);
 		GLSL_SetBindlessTexture(shader, UNIFORM_WATERPOSITIONMAP, &tr.random2KImage[0], 0);
 
+		//GLSL_SetBindlessTexture(shader, UNIFORM_DELUXEMAP, &tr.linearDepthImageZfar, 0); // NEEDED IF SSSSS IS TURNED ON
+
 #ifdef __SSDO__
 		if (r_ssdo->integer == 1)
 		{

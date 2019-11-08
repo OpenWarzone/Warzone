@@ -38,6 +38,8 @@ extern void BASS_FindAndStopSound ( DWORD handle );
 extern void BASS_StartMusic ( DWORD samplechan );
 extern void BASS_UpdateSounds ( void );
 extern void BASS_StopMusic( DWORD samplechan );
+extern qboolean BASS_EntityChannelHasSpecialCullrange(int entityChannel);
+extern float BASS_CullRangeForEntityChannel(int entityChannel);
 
 extern void BASS_SetEAX_NORMAL ( void );
 extern void BASS_SetEAX_FOREST(void);

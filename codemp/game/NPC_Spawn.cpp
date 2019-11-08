@@ -2283,7 +2283,7 @@ extern void NPC_PrecacheMapNPCs(void);
 void NPC_PrecacheWarzoneNPCs ( void )
 {
 #ifdef __PRECACHE_NPCS__
-	trap->Cvar_Register(&npc_precache, "npc_precache", "0", CVAR_ARCHIVE);
+	trap->Cvar_Register(&npc_precache, "npc_precache", "1", CVAR_ARCHIVE);
 
 	trap->Cvar_Register(&npc_imperials, "npc_imperials", "0", CVAR_ARCHIVE);
 	trap->Cvar_Register(&npc_rebels, "npc_rebels", "0", CVAR_ARCHIVE);
@@ -2336,10 +2336,8 @@ void NPC_PrecacheWarzoneNPCs ( void )
 		NPC_PrecacheType("civilian_r5d2");
 	}
 
-	if (npc_imperials.integer || npc_rebels.integer || npc_mandalorians.integer || npc_mercs.integer || npc_wildlife.integer)
-	{// If any of the spawnlists are enabled, then precache the NPCs in them all...
-		NPC_PrecacheMapNPCs();
-	}
+	// If any of the spawnlists are enabled, then precache the NPCs in them all...
+	NPC_PrecacheMapNPCs();
 #endif //__PRECACHE_NPCS__
 }
 
