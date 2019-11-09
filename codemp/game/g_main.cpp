@@ -1236,6 +1236,9 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 	NPC_LoadSpawnList( va("%s_wildlife", mapname.string) );
 	Com_Printf("^5--------------------------------\n");
 
+	// Setup event areas...
+	G_InitEventAreas();
+
 	// Precache the map's used NPCs...
 	NPC_PrecacheWarzoneNPCs();
 

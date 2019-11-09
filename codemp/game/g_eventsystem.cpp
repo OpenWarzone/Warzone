@@ -519,6 +519,30 @@ void G_SetupEventAreas(void)
 	}
 }
 
+void G_InitEventAreas(void)
+{
+	// Init everything...
+	num_event_areas = 0;
+	event_areas_initialized = qfalse;
+
+	memset(event_areas, 0, sizeof(event_areas));
+	memset(event_areas_current_team, 0, sizeof(event_areas_current_team));
+	memset(event_areas_spawn_count, 0, sizeof(event_areas_spawn_count));
+	memset(event_areas_has_ship, 0, sizeof(event_areas_has_ship));
+
+	for (int i = 0; i < MAX_GENTITIES; i++)
+	{
+		gentity_t *ent = &g_entities[i];
+
+		if (ent && ent->s.eType == ET_SERVERMODEL)
+		{
+			G_FreeEntity(ent);
+		}
+	}
+
+	G_SetupEventAreas();
+}
+
 qboolean WildlifeSpawnpointTooCloseToEvent(vec3_t pos)
 {
 	float eventBuffer = max(DISTANCE_BETWEEN_EVENTS * 0.5, 8192.0);

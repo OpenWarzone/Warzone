@@ -1225,9 +1225,6 @@ void G_CheckMinimumNpcs(void)
 		return;
 	}
 
-	// Setup event areas, if not already done...
-	G_SetupEventAreas();
-
 #ifndef __USE_NAVLIB_SPAWNPOINTS__
 	if (gWPNum <= 0)
 	{

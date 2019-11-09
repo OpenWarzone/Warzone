@@ -6,6 +6,10 @@
 
 #include "cg_local.h"
 
+extern void CG_InitFighters(void);
+extern void CG_InitLasers(void);
+extern void CG_InitBirds(void);
+
 int numLocalSoundEntities = 0;
 
 #define	MAX_LOCAL_ENTITIES	2048 // 512
@@ -30,6 +34,22 @@ void	CG_InitLocalEntities( void ) {
 	for ( i = 0 ; i < MAX_LOCAL_ENTITIES - 1 ; i++ ) {
 		cg_localEntities[i].next = &cg_localEntities[i+1];
 	}
+
+	//
+	// Also init all the new warzone stuff...
+	//
+
+	// Init local sound entities data...
+	numLocalSoundEntities = 0;
+
+	// Init all fighters data...
+	CG_InitFighters();
+
+	// Init all lasers...
+	CG_InitLasers();
+
+	// Init all birds...
+	CG_InitBirds();
 }
 
 
@@ -951,6 +971,11 @@ void CG_Birds(void)
 	}
 }
 
+void CG_InitBirds(void)
+{
+	numMapBirds = 0;
+	memset(mapBirds, 0, sizeof(mapBirds));
+}
 
 /*
 ===================
@@ -1058,7 +1083,8 @@ void CG_ShipLasersThink(void)
 				break;
 			}
 
-			VectorMA(laser->origin, 96.0, laser->dir, laser->origin);
+			float laserVelocity = 96.0 * (16.0 / laser->size); // 96.0 is cap ship laser velocity (size 16.0). 192.0 (96.0 * 2.0) is fighter laser velocity (size 8.0). Alg should support usage of stuff in between...
+			VectorMA(laser->origin, laserVelocity, laser->dir, laser->origin);
 
 			if (Distance(laser->origin, cg.refdef.vieworg) > MAX_SHIP_LASER_DRAW_DISTANCE)
 			{
@@ -1066,7 +1092,7 @@ void CG_ShipLasersThink(void)
 				return;
 			}
 
-			if (Distance(laser->origin, laser->endOrigin) <= 96.0)
+			if (Distance(laser->origin, laser->endOrigin) <= laserVelocity)
 			{// Explode and free this bolt...
 				laser->active = qfalse;
 				CG_SurfaceExplosion(laser->origin, laser->dir, 128.0, 0.5, qtrue);
@@ -1171,6 +1197,11 @@ void CG_ShootAtEnemyShips(centity_t *myShip)
 	{
 		CG_ShipLaserCreate(myShip, enemyShip);
 	}
+}
+
+void CG_InitLasers(void)
+{
+	memset(shipLasers, 0, sizeof(shipLasers));
 }
 
 /*
@@ -1319,7 +1350,7 @@ void CG_Fighters(centity_t *myShip)
 			numMapFighters++;
 		}
 
-		trap->Print("Event ship %i given %i fighter escorts...\n", myShip->currentState.number, FIGHTERS_COUNT);
+		//trap->Print("Event ship %i given %i fighter escorts...\n", myShip->currentState.number, FIGHTERS_COUNT);
 
 		//
 		// Also assign enemy attacking fighters... Hmm, maybe only when we are within range of an enemy capital (or shooting at one)?
@@ -1369,7 +1400,7 @@ void CG_Fighters(centity_t *myShip)
 			numMapFighters++;
 		}
 
-		trap->Print("Event ship %i given %i enemy fighter attackers...\n", myShip->currentState.number, ENEMY_FIGHTERS_COUNT);
+		//trap->Print("Event ship %i given %i enemy fighter attackers...\n", myShip->currentState.number, ENEMY_FIGHTERS_COUNT);
 	}
 
 
@@ -1742,6 +1773,20 @@ void CG_Fighters(centity_t *myShip)
 			}
 		}
 	}
+}
+
+void CG_InitFighters(void)
+{
+	for (int i = 0; i < MAX_GENTITIES; i++)
+	{
+		centity_t *cent = &cg_entities[i];
+		cent->numFighters = 0;
+		cent->numEnemyFighters = 0;
+		memset(cent->fighters, 0, sizeof(cent->fighters));
+	}
+
+	numMapFighters = 0;
+	memset(mapFighters, 0, sizeof(mapFighters));
 }
 
 /*

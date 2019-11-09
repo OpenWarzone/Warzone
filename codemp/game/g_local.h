@@ -1588,7 +1588,7 @@ extern gentity_t *gJMSaberEnt;
 //
 // g_eventsystem.cpp
 //
-void G_SetupEventAreas(void);
+void G_InitEventAreas(void);
 void FindRandomEventSpawnpoint(team_t team, vec3_t point);
 
 //

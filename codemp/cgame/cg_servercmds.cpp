@@ -1158,6 +1158,9 @@ A tournament restart will clear everything, but doesn't
 require a reload of all the media
 ===============
 */
+
+extern qboolean MAPPING_LoadMapInfo(void);
+
 static void CG_MapRestart( void ) {
 	if ( cg_showMiss.integer ) {
 		trap->Print( "CG_MapRestart\n" );
@@ -1201,6 +1204,9 @@ static void CG_MapRestart( void ) {
 	}
 	*/
 //	trap->Cvar_Set("cg_thirdPerson", "0");
+
+	// Reload mapinfo and reset forcefields...
+	MAPPING_LoadMapInfo();
 }
 
 /*
