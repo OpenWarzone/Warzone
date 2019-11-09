@@ -6450,6 +6450,37 @@ void CG_SaberCompWork(vec3_t start, vec3_t end, centity_t *owner, int saberNum, 
 	}
 }
 
+qboolean CG_SaberHasSound(centity_t *cent, clientInfo_t *client, int saberNum, int bladeNum, qboolean fromSaber, qboolean dontDraw)
+{
+	if (cent->currentState.number == cg.snap->ps.clientNum && (cg.weaponSelect != WP_SABER || cg.saberShutupTime > cg.time))
+	{// Compensate for delayed updates to entities from server...
+		return qfalse;
+	}
+
+	if (client->saber[saberNum].model[0])
+	{
+		int i = 0;
+		qboolean hasLen = qfalse;
+
+		while (i < client->saber[0].numBlades)
+		{
+			if (client->saber[0].blade[i].length)
+			{
+				hasLen = qtrue;
+				break;
+			}
+			i++;
+		}
+
+		if (!hasLen)
+		{
+			return qfalse;
+		}
+	}
+
+	return qtrue;
+}
+
 void CG_AddSaberBlade(centity_t *cent, centity_t *scent, refEntity_t *saber, int renderfx, int modelIndex, int saberNum, int bladeNum, vec3_t origin, vec3_t angles, qboolean fromSaber, qboolean dontDraw)
 {
 	vec3_t	org_, end, v,
@@ -6749,29 +6780,26 @@ JustDoIt:
 	CG_DoSaberTrails(cent, client, org_, end, axis_, (saber_colors_t)scolor, saberTrail, saberNum, bladeNum);
 	CG_Do3DSaber(org_, axis_[0], saberLen, client->saber[saberNum].blade[bladeNum].lengthMax, client->saber[saberNum].blade[bladeNum].radius, (saber_colors_t)scolor);
 
-	/*if (cg.snap->ps.clientNum == cent->currentState.number && !cent->currentState.saberInFlight)
-	{// UQ1: Play as local sound instead...
-		if (client->saber[saberNum].soundLoop)
-			trap->S_AddLoopingSound(-1, NULL, vec3_origin, client->saber[saberNum].soundLoop, CHAN_SABERLOCAL);
-		else
-			trap->S_AddLoopingSound(-1, NULL, vec3_origin, trap->S_RegisterSound("sound/weapons/saber/saberhum1.wav"), CHAN_SABERLOCAL);
-	}
-	else*/
+	if (CG_SaberHasSound(cent, client, saberNum, bladeNum, fromSaber, dontDraw))
 	{
 		if (client->saber[saberNum].soundLoop)
+		{
 			trap->S_AddLoopingSound(cent->currentState.number, org_, vec3_origin, client->saber[saberNum].soundLoop, CHAN_SABER);
+		}
 		else
+		{
 			trap->S_AddLoopingSound(cent->currentState.number, org_, vec3_origin, trap->S_RegisterSound("sound/weapons/saber/saberhum1.wav"), CHAN_SABER);
-	}
+		}
 
-	//[NewLightningEFX]
-	if (cent->currentState.emplacedOwner + 1000 > cg.time)
-	{
-		CG_BlockLightningEffect(client->saber[saberNum].blade[bladeNum].muzzlePoint, client->saber[saberNum].blade[bladeNum].muzzleDir, client->saber[saberNum].blade[bladeNum].length);
-		CG_BlockLightningEffect(client->saber[saberNum].blade[bladeNum].muzzlePoint, client->saber[saberNum].blade[bladeNum].muzzleDir, client->saber[saberNum].blade[bladeNum].length);
-		CG_BlockLightningEffect(client->saber[saberNum].blade[bladeNum].muzzlePoint, client->saber[saberNum].blade[bladeNum].muzzleDir, client->saber[saberNum].blade[bladeNum].length);
+		//[NewLightningEFX]
+		if (cent->currentState.emplacedOwner + 1000 > cg.time)
+		{
+			CG_BlockLightningEffect(client->saber[saberNum].blade[bladeNum].muzzlePoint, client->saber[saberNum].blade[bladeNum].muzzleDir, client->saber[saberNum].blade[bladeNum].length);
+			CG_BlockLightningEffect(client->saber[saberNum].blade[bladeNum].muzzlePoint, client->saber[saberNum].blade[bladeNum].muzzleDir, client->saber[saberNum].blade[bladeNum].length);
+			CG_BlockLightningEffect(client->saber[saberNum].blade[bladeNum].muzzlePoint, client->saber[saberNum].blade[bladeNum].muzzleDir, client->saber[saberNum].blade[bladeNum].length);
+		}
+		//[/NewLightningEFX]
 	}
-	//[/NewLightningEFX]
 }
 
 int CG_IsMindTricked(int trickIndex1, int trickIndex2, int trickIndex3, int trickIndex4, int client)

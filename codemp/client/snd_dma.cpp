@@ -758,7 +758,6 @@ Sort of a slow method though, isn't there some better way?
 void S_StopLoopingSound( int entityNum )
 {
 	BASS_StopLoopChannel(entityNum);
-	return;
 }
 
 /*

@@ -3812,7 +3812,7 @@ void ClientCommand( int clientNum ) {
 	command = (command_t *)bsearch( cmd, commands, numCommands, sizeof( commands[0] ), cmdcmp );
 	if ( !command )
 	{
-		trap->SendServerCommand( clientNum, va( "print \"SERVER: Unknown command \"%s\"\n\"", cmd ) );
+		trap->SendServerCommand( clientNum, va( "print \"SERVER: Unknown command \'%s\'\n\"", cmd ) );
 		return;
 	}
 

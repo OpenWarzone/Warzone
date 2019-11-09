@@ -2280,6 +2280,8 @@ extern vmCvar_t npc_vendors;
 
 extern void NPC_PrecacheMapNPCs(void);
 
+extern qboolean EVENTS_ENABLED;
+
 void NPC_PrecacheWarzoneNPCs ( void )
 {
 #ifdef __PRECACHE_NPCS__
@@ -2289,9 +2291,14 @@ void NPC_PrecacheWarzoneNPCs ( void )
 	trap->Cvar_Register(&npc_rebels, "npc_rebels", "0", CVAR_ARCHIVE);
 	trap->Cvar_Register(&npc_mandalorians, "npc_mandalorians", "0", CVAR_ARCHIVE);
 	trap->Cvar_Register(&npc_mercs, "npc_mercs", "0", CVAR_ARCHIVE);
-	trap->Cvar_Register(&npc_mercs, "npc_pirates", "0", CVAR_ARCHIVE);
+	trap->Cvar_Register(&npc_pirates, "npc_pirates", "0", CVAR_ARCHIVE);
 	trap->Cvar_Register(&npc_wildlife, "npc_wildlife", "0", CVAR_ARCHIVE);
 	trap->Cvar_Register(&npc_civilians, "npc_civilians", "0", CVAR_ARCHIVE);
+
+	if (!npc_imperials.integer && !npc_rebels.integer && !npc_mandalorians.integer && !npc_mercs.integer && !npc_pirates.integer && !npc_wildlife.integer && !npc_civilians.integer)
+	{// No point...
+		return;
+	}
 
 	//
 	// Padawans...

@@ -35,6 +35,8 @@ void G_EventShipThink(gentity_t *ent)
 
 void G_EventModelPrecache(void)
 {
+	if (!EVENTS_ENABLED) return;
+
 	G_ModelIndex("models/warzone/ships/isd/isd.3ds");
 	G_ModelIndex("models/warzone/ships/isd2/isd2.3ds");
 	G_ModelIndex("models/warzone/ships/dominator/dominator.3ds");

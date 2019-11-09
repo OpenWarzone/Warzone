@@ -1095,6 +1095,7 @@ typedef struct cg_s {
 	int			weaponSelectTime;
 	int			weaponAnimation;
 	int			weaponAnimationTime;
+	int			saberShutupTime;
 
 	// blend blobs
 	float		damageTime;

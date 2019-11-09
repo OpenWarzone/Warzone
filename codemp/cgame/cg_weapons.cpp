@@ -1832,6 +1832,8 @@ void CG_NextWeapon_f( void ) {
 	{
 		trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_WEAPON);
 		trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_WEAPONLOCAL);
+		trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_SABER);
+		trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_SABERLOCAL);
 	}
 }
 
@@ -1888,6 +1890,8 @@ void CG_PrevWeapon_f( void ) {
 	{
 		trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_WEAPON);
 		trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_WEAPONLOCAL);
+		trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_SABER);
+		trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_SABERLOCAL);
 	}
 }
 
@@ -1895,62 +1899,38 @@ int CG_SelectWeaponForID(int num)
 {// New, clean, generic weapon switching system... Fast and smooth... and easy to switch to inventory character slots later...
 	int newNum = -1;
 
+	if (cg.weaponSelectTime + WEAPON_SELECT_TIME > cg.time)
+	{
+		return -1;
+	}
+
 	switch (num)
 	{
 	case 1:
 	{// Saber/Melee selection...
-		qboolean haveSaber = CG_WeaponSelectable(WP_SABER);
-		qboolean haveMelee = CG_WeaponSelectable(WP_MELEE);
-
-		if (cg.snap->ps.weapon == WP_MELEE && haveSaber)
+		if (cg.snap->ps.weapon != WP_SABER)
 		{
+			cg.saberShutupTime = 0;
 			newNum = WP_SABER;
 		}
-		else if (cg.snap->ps.weapon == WP_SABER && haveMelee)
-		{
-			centity_t *cent = &cg_entities[cg.snap->ps.clientNum];
-
-			if (cent->currentState.saberHolstered < 2)
-			{// Switch sabers off on first hit, then switch to melee on second...
-				trap->SendConsoleCommand("sv_saberswitch\n");
-				return WP_SABER;
-			}
-
-			trap->S_StopLoopingSound(cg.snap->ps.clientNum);
-			newNum = WP_MELEE;
-		}
-		else if (haveSaber)
-		{
-			centity_t *cent = &cg_entities[cg.snap->ps.clientNum];
-
-			if (cg.snap->ps.weapon == WP_SABER)
-			{// Switch sabers on/off...
-				trap->SendConsoleCommand("sv_saberswitch\n");
-				return WP_SABER;
-			}
-
-			newNum = WP_SABER;
-		}
-		else if (haveMelee)
-		{
-			newNum = WP_MELEE;
+		else if (cg.snap->ps.saberHolstered < 2)
+		{// Switch sabers off on first hit, then switch to melee on second key press...
+			trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_SABER);
+			cg.saberShutupTime = cg.time + WEAPON_SELECT_TIME;
+			trap->SendConsoleCommand("sv_saberswitch\n");
+			return WP_SABER;
 		}
 		else
 		{
-			return -1;
+			trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_SABER);
+			newNum = WP_MELEE;
 		}
-
 		break;
 	}
 	case 2:
 		if (!CG_WeaponSelectable(WP_MODULIZED_WEAPON))
 		{
 			return -1;
-		}
-
-		if (cg.snap->ps.weapon == WP_SABER)
-		{
-			trap->S_StopLoopingSound(cg.snap->ps.clientNum);
 		}
 
 		newNum = WP_MODULIZED_WEAPON;
@@ -1991,53 +1971,22 @@ void CG_Weapon_f( void ) {
 		return;
 	}
 
-	cg.weaponSelectTime = cg.time;
-
 	if (cg.weaponSelect != num)
 	{
 		trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_WEAPON);
 		trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_WEAPONLOCAL);
-	}
+		trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_SABER);
+		trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_SABERLOCAL);
 
-	cg.weaponSelect = num;
-}
-
-
-//Version of the above which doesn't add +2 to a weapon.  The above can't
-//triger WP_MELEE.  Derogatory comments go here.
-void CG_WeaponClean_f( void ) {
-	int		num;
-
-	if ( !cg.snap ) {
-		return;
-	}
-	if ( cg.snap->ps.pm_flags & PMF_FOLLOW ) {
-		return;
-	}
-
-	if (cg.snap->ps.emplacedIndex)
-	{
-		return;
-	}
-
-	num = CG_SelectWeaponForID(atoi( CG_Argv( 1 ) ));
-
-	if (!CG_WeaponSelectable(num))
-	{
-		return;
+		if (num != WP_SABER)
+		{
+			cg.saberShutupTime = cg.time + WEAPON_SELECT_TIME;
+		}
 	}
 
 	cg.weaponSelectTime = cg.time;
-
-	if (cg.weaponSelect != num)
-	{
-		trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_WEAPON);
-		trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_WEAPONLOCAL);
-	}
-
 	cg.weaponSelect = num;
 }
-
 
 
 /*
@@ -2072,6 +2021,8 @@ void CG_OutOfAmmoChange( int oldWeapon )
 
 	trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_WEAPON);
 	trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_WEAPONLOCAL);
+	trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_SABER);
+	trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_SABERLOCAL);
 #endif
 }
 

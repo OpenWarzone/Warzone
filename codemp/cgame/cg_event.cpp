@@ -3591,6 +3591,11 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		}
 		trap->S_MuteSound(es->trickedentindex2, es->trickedentindex);
 		CG_S_StopLoopingSound(es->trickedentindex2, -1);
+
+		if (es->trickedentindex == CHAN_WEAPON)
+		{// Also mute saber channel...
+			trap->S_MuteSound(es->trickedentindex2, CHAN_SABER);
+		}
 		break;
 
 	case EV_VOICECMD_SOUND:
