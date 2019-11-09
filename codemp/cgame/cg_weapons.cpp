@@ -1916,6 +1916,7 @@ int CG_SelectWeaponForID(int num)
 				return WP_SABER;
 			}
 
+			trap->S_StopLoopingSound(cg.snap->ps.clientNum);
 			newNum = WP_MELEE;
 		}
 		else if (haveSaber)
@@ -1945,6 +1946,11 @@ int CG_SelectWeaponForID(int num)
 		if (!CG_WeaponSelectable(WP_MODULIZED_WEAPON))
 		{
 			return -1;
+		}
+
+		if (cg.snap->ps.weapon == WP_SABER)
+		{
+			trap->S_StopLoopingSound(cg.snap->ps.clientNum);
 		}
 
 		newNum = WP_MODULIZED_WEAPON;
