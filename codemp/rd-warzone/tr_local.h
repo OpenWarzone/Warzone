@@ -157,7 +157,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 // Post Process Effects...
 //
-//#define __SSRTGI__							// Experimental Screen Space Ray-Traced Global Illumination... Toughest Challenge in Real-Time 3D
 //#define __SSDO__								// Screen Space Directional Occlusion...
 
 //
@@ -619,9 +618,6 @@ extern cvar_t	*r_splatMapping;
 extern cvar_t	*r_parallaxScale;
 extern cvar_t	*r_blinnPhong;
 extern cvar_t	*r_ao;
-#ifdef __SSRTGI__
-extern cvar_t	*r_ssrtgi;
-#endif //__SSRTGI__
 extern cvar_t	*r_env;
 extern cvar_t	*r_debugEmissiveLights;
 extern cvar_t	*r_debugEmissiveRadiusScale;
@@ -3350,13 +3346,6 @@ typedef struct trGlobals_s {
 	//shaderProgram_t ssrCombineShader;
 	shaderProgram_t testshaderShader;
 	
-#ifdef __SSRTGI__
-	shaderProgram_t ssrtgiBufferSetupShader;
-	shaderProgram_t ssrtgiStencilSetupShader;
-	shaderProgram_t ssrtgiRayTraceShader;
-	shaderProgram_t ssrtgiCopyFilterShader;
-	shaderProgram_t ssrtgiOutputShader;
-#endif //__SSRTGI__
 
 	image_t        *anamorphicRenderFBOImage;
 	image_t        *bloomRenderFBOImage[3];
@@ -3414,24 +3403,6 @@ typedef struct trGlobals_s {
 	FBO_t		   *ssdmFbo;
 	image_t        *ssdmImage;
 
-#ifdef __SSRTGI__
-	FBO_t		   *ssrtgiBufferSetupFbo;
-	image_t        *ssrtgiColorImage;
-	image_t        *ssrtgiDepthImage;
-	image_t        *ssrtgiNormalImage;
-	
-	FBO_t		   *ssrtgiStencilSetupFbo;
-	image_t        *ssrtgiGBufferImage;
-
-	FBO_t		   *ssrtgiRayTraceFbo;
-	image_t        *ssrtgiGlobalIllminationImage;
-
-	FBO_t		   *ssrtgiCopyFilterFbo;
-	image_t        *ssrtgiGIPrevImage;
-	image_t        *ssrtgiGBufferPrevImage;
-
-	image_t        *ssrtgiJitterImage;
-#endif //__SSRTGI__
 
 	//
 	// UQ1: End Added shaders...

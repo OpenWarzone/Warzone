@@ -161,9 +161,6 @@ void DockPostProcess::MakeCvarList() {
 	AddCvar(r_anamorphic, 1);
 	AddCvar(r_ssdm, 2);
 	AddCvar(r_ao, 5);
-#ifdef __SSRTGI__
-	AddCvar(r_ssrtgi, 1);
-#endif //__SSRTGI__
 	AddCvar(r_cartoon, 3);
 #ifdef __SSDO__
 	AddCvar(r_ssdo, 1);

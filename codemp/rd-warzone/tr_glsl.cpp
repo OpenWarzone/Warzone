@@ -236,19 +236,6 @@ extern const char *fallbackShader_cellShade_fp;
 extern const char *fallbackShader_paint_vp;
 extern const char *fallbackShader_paint_fp;
 
-#ifdef __SSRTGI__
-extern const char *fallbackShader_ssrtgiBufferSetup_vp;
-extern const char *fallbackShader_ssrtgiBufferSetup_fp;
-extern const char *fallbackShader_ssrtgiStencilSetup_vp;
-extern const char *fallbackShader_ssrtgiStencilSetup_fp;
-extern const char *fallbackShader_ssrtgiRayTrace_vp;
-extern const char *fallbackShader_ssrtgiRayTrace_fp;
-extern const char *fallbackShader_ssrtgiCopyFilter_vp;
-extern const char *fallbackShader_ssrtgiCopyFilter_fp;
-extern const char *fallbackShader_ssrtgiOutput_vp;
-extern const char *fallbackShader_ssrtgiOutput_fp;
-#endif //__SSRTGI__
-
 extern const char *fallbackShader_testshader_vp;
 extern const char *fallbackShader_testshader_fp;
 
@@ -4303,48 +4290,6 @@ int GLSL_BeginLoadGPUShaders(void)
 		ri->Error(ERR_FATAL, "Could not load clouds shader!");
 	}
 
-#ifdef __SSRTGI__
-	attribs = ATTR_POSITION | ATTR_TEXCOORD0;
-	extradefines[0] = '\0';
-
-	if (!GLSL_BeginLoadGPUShader(&tr.ssrtgiBufferSetupShader, "ssrtgiBufferSetup", attribs, qtrue, qfalse, qfalse, qfalse, extradefines, qtrue, NULL, fallbackShader_ssrtgiBufferSetup_vp, fallbackShader_ssrtgiBufferSetup_fp, NULL, NULL, NULL))
-	{
-		ri->Error(ERR_FATAL, "Could not load ssrtgiBufferSetup shader!");
-	}
-
-	attribs = ATTR_POSITION | ATTR_TEXCOORD0;
-	extradefines[0] = '\0';
-
-	if (!GLSL_BeginLoadGPUShader(&tr.ssrtgiStencilSetupShader, "ssrtgiStencilSetup", attribs, qtrue, qfalse, qfalse, qfalse, extradefines, qtrue, NULL, fallbackShader_ssrtgiStencilSetup_vp, fallbackShader_ssrtgiStencilSetup_fp, NULL, NULL, NULL))
-	{
-		ri->Error(ERR_FATAL, "Could not load ssrtgiStencilSetup shader!");
-	}
-
-	attribs = ATTR_POSITION | ATTR_TEXCOORD0;
-	extradefines[0] = '\0';
-
-	if (!GLSL_BeginLoadGPUShader(&tr.ssrtgiRayTraceShader, "ssrtgiRayTrace", attribs, qtrue, qfalse, qfalse, qfalse, extradefines, qtrue, NULL, fallbackShader_ssrtgiRayTrace_vp, fallbackShader_ssrtgiRayTrace_fp, NULL, NULL, NULL))
-	{
-		ri->Error(ERR_FATAL, "Could not load ssrtgiRayTrace shader!");
-	}
-
-	attribs = ATTR_POSITION | ATTR_TEXCOORD0;
-	extradefines[0] = '\0';
-
-	if (!GLSL_BeginLoadGPUShader(&tr.ssrtgiCopyFilterShader, "ssrtgiCopyFilter", attribs, qtrue, qfalse, qfalse, qfalse, extradefines, qtrue, NULL, fallbackShader_ssrtgiCopyFilter_vp, fallbackShader_ssrtgiCopyFilter_fp, NULL, NULL, NULL))
-	{
-		ri->Error(ERR_FATAL, "Could not load ssrtgiCopyFilter shader!");
-	}
-
-	attribs = ATTR_POSITION | ATTR_TEXCOORD0;
-	extradefines[0] = '\0';
-
-	if (!GLSL_BeginLoadGPUShader(&tr.ssrtgiOutputShader, "ssrtgiOutput", attribs, qtrue, qfalse, qfalse, qfalse, extradefines, qtrue, NULL, fallbackShader_ssrtgiOutput_vp, fallbackShader_ssrtgiOutput_fp, NULL, NULL, NULL))
-	{
-		ri->Error(ERR_FATAL, "Could not load ssrtgiOutput shader!");
-	}
-#endif //__SSRTGI__
-
 
 	//
 	// UQ1: End Added...
@@ -6847,107 +6792,6 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 	numEtcShaders++;*/
 
-	
-#ifdef __SSRTGI__
-	if (!GLSL_EndLoadGPUShader(&tr.ssrtgiBufferSetupShader))
-	{
-		ri->Error(ERR_FATAL, "Could not load ssrtgiBufferSetup shader!");
-	}
-
-	GLSL_InitUniforms(&tr.ssrtgiBufferSetupShader);
-
-	GLSL_BindProgram(&tr.ssrtgiBufferSetupShader);
-	GLSL_SetUniformInt(&tr.ssrtgiBufferSetupShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
-	GLSL_SetUniformInt(&tr.ssrtgiBufferSetupShader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
-
-#if defined(_DEBUG)
-	GLSL_FinishGPUShader(&tr.ssrtgiBufferSetupShader);
-#endif
-
-	numEtcShaders++;
-
-
-	if (!GLSL_EndLoadGPUShader(&tr.ssrtgiStencilSetupShader))
-	{
-		ri->Error(ERR_FATAL, "Could not load ssrtgiStencilSetup shader!");
-	}
-
-	GLSL_InitUniforms(&tr.ssrtgiStencilSetupShader);
-
-	GLSL_BindProgram(&tr.ssrtgiStencilSetupShader);
-	GLSL_SetUniformInt(&tr.ssrtgiStencilSetupShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
-	GLSL_SetUniformInt(&tr.ssrtgiStencilSetupShader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
-	GLSL_SetUniformInt(&tr.ssrtgiStencilSetupShader, UNIFORM_NORMALMAP, TB_NORMALMAP);
-
-#if defined(_DEBUG)
-	GLSL_FinishGPUShader(&tr.ssrtgiStencilSetupShader);
-#endif
-
-	numEtcShaders++;
-
-
-	if (!GLSL_EndLoadGPUShader(&tr.ssrtgiRayTraceShader))
-	{
-		ri->Error(ERR_FATAL, "Could not load ssrtgiRayTrace shader!");
-	}
-
-	GLSL_InitUniforms(&tr.ssrtgiRayTraceShader);
-
-	GLSL_BindProgram(&tr.ssrtgiRayTraceShader);
-	GLSL_SetUniformInt(&tr.ssrtgiRayTraceShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
-	GLSL_SetUniformInt(&tr.ssrtgiRayTraceShader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
-	GLSL_SetUniformInt(&tr.ssrtgiRayTraceShader, UNIFORM_NORMALMAP, TB_NORMALMAP);
-	GLSL_SetUniformInt(&tr.ssrtgiRayTraceShader, UNIFORM_STEEPMAP, TB_STEEPMAP);
-	GLSL_SetUniformInt(&tr.ssrtgiRayTraceShader, UNIFORM_STEEPMAP1, TB_STEEPMAP1);
-	GLSL_SetUniformInt(&tr.ssrtgiRayTraceShader, UNIFORM_STEEPMAP2, TB_STEEPMAP2);
-	GLSL_SetUniformInt(&tr.ssrtgiRayTraceShader, UNIFORM_STEEPMAP3, TB_STEEPMAP3);
-
-#if defined(_DEBUG)
-	GLSL_FinishGPUShader(&tr.ssrtgiRayTraceShader);
-#endif
-
-	numEtcShaders++;
-
-
-	if (!GLSL_EndLoadGPUShader(&tr.ssrtgiCopyFilterShader))
-	{
-		ri->Error(ERR_FATAL, "Could not load ssrtgiCopyFilter shader!");
-	}
-
-	GLSL_InitUniforms(&tr.ssrtgiCopyFilterShader);
-
-	GLSL_BindProgram(&tr.ssrtgiCopyFilterShader);
-	GLSL_SetUniformInt(&tr.ssrtgiCopyFilterShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
-	GLSL_SetUniformInt(&tr.ssrtgiCopyFilterShader, UNIFORM_STEEPMAP, TB_STEEPMAP);
-	GLSL_SetUniformInt(&tr.ssrtgiCopyFilterShader, UNIFORM_STEEPMAP1, TB_STEEPMAP1);
-
-#if defined(_DEBUG)
-	GLSL_FinishGPUShader(&tr.ssrtgiCopyFilterShader);
-#endif
-
-	numEtcShaders++;
-
-
-	if (!GLSL_EndLoadGPUShader(&tr.ssrtgiOutputShader))
-	{
-		ri->Error(ERR_FATAL, "Could not load ssrtgiOutput shader!");
-	}
-
-	GLSL_InitUniforms(&tr.ssrtgiOutputShader);
-
-	GLSL_BindProgram(&tr.ssrtgiOutputShader);
-	GLSL_SetUniformInt(&tr.ssrtgiOutputShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
-	GLSL_SetUniformInt(&tr.ssrtgiOutputShader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
-	GLSL_SetUniformInt(&tr.ssrtgiOutputShader, UNIFORM_STEEPMAP, TB_STEEPMAP);
-	GLSL_SetUniformInt(&tr.ssrtgiOutputShader, UNIFORM_STEEPMAP1, TB_STEEPMAP1);
-
-#if defined(_DEBUG)
-	GLSL_FinishGPUShader(&tr.ssrtgiOutputShader);
-#endif
-
-	numEtcShaders++;
-#endif //__SSRTGI__
-
 
 	//
 	// UQ1: End Added...
@@ -7137,14 +6981,6 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.skyDomeShader);
 	GLSL_DeleteGPUShader(&tr.generateNormalMapShader);
 	
-#ifdef __SSRTGI__
-	GLSL_DeleteGPUShader(&tr.ssrtgiBufferSetupShader);
-	GLSL_DeleteGPUShader(&tr.ssrtgiStencilSetupShader);
-	GLSL_DeleteGPUShader(&tr.ssrtgiRayTraceShader);
-	GLSL_DeleteGPUShader(&tr.ssrtgiCopyFilterShader);
-	GLSL_DeleteGPUShader(&tr.ssrtgiOutputShader);
-#endif //__SSRTGI__
-
 	GLSL_BindProgram(NULL);
 }
 

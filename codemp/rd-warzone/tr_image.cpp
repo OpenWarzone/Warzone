@@ -5167,18 +5167,6 @@ void R_CreateBuiltinImages( void ) {
 
 	tr.ssdmImage = R_CreateImage("_ssdmImage", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
 
-#ifdef __SSRTGI__
-	tr.ssrtgiColorImage = R_CreateImage("_ssrtgiColorImage", NULL, NextPowerOfTwo(width), NextPowerOfTwo(height), IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_MIPMAP, GL_RGBA16F);
-	tr.ssrtgiDepthImage = R_CreateImage("_ssrtgiDepthImage", NULL, NextPowerOfTwo(width), NextPowerOfTwo(height), IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_MIPMAP, /*hdrFormat*/GL_R16F);
-	tr.ssrtgiNormalImage = R_CreateImage("_ssrtgiNormalImage", NULL, NextPowerOfTwo(width), NextPowerOfTwo(height), IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_MIPMAP, GL_RGBA16F);
-	tr.ssrtgiGBufferImage = R_CreateImage("_ssrtgiGBufferImage", NULL, NextPowerOfTwo(width), NextPowerOfTwo(height), IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA16F);
-	tr.ssrtgiGlobalIllminationImage = R_CreateImage("_ssrtgiGlobalIllminationImage", NULL, NextPowerOfTwo(width), NextPowerOfTwo(height), IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_MIPMAP, GL_RGBA16F);
-	tr.ssrtgiGIPrevImage = R_CreateImage("_ssrtgiGIPrevImage", NULL, NextPowerOfTwo(width), NextPowerOfTwo(height), IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA16F);
-	tr.ssrtgiGBufferPrevImage = R_CreateImage("_ssrtgiGBufferPrevImage", NULL, NextPowerOfTwo(width), NextPowerOfTwo(height), IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA16F);
-
-	tr.ssrtgiJitterImage = R_FindImageFile("gfx/ssrtgiJitter.png", IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE);
-#endif //__SSRTGI__
-
 	if (r_volumeLightHQ->integer)
 	{
 		tr.anamorphicRenderFBOImage = R_CreateImage("_anamorphic0", NULL, (width / 16) / vramScaleDiv, (height / 8) / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
