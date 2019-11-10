@@ -136,6 +136,20 @@ struct media {
 	struct nk_image iconRadio;
 	struct nk_image iconSettings;
 
+	struct nk_image characterBackground;
+	struct nk_image characterArm;
+	struct nk_image characterArtifact;
+	struct nk_image characterBody;
+	struct nk_image characterDevice;
+	struct nk_image characterFeet;
+	struct nk_image characterGloves;
+	struct nk_image characterHelmet;
+	struct nk_image characterImplant;
+	struct nk_image characterLegs;
+	struct nk_image characterRing;
+	struct nk_image characterWeapon;
+	struct nk_image characterWeapon2;
+
 #if defined(__GUI_SKINNED__)
 	// Skinning...
 	GLint skin;
@@ -299,7 +313,7 @@ set_style(struct nk_context *ctx, enum theme theme)
 		table[NK_COLOR_HEADER] = nk_rgba(0, 0, 0, gui_windowTransparancy->value*255.0/*220*/);
 		table[NK_COLOR_BORDER] = nk_rgba(16, 16, 16, gui_windowTransparancy->value*255);
 		table[NK_COLOR_BUTTON] = nk_rgba(0, 0, 0, 0);
-		table[NK_COLOR_BUTTON_HOVER] = nk_rgba(32, 32, 64, gui_windowTransparancy->value * 255);
+		table[NK_COLOR_BUTTON_HOVER] = nk_rgba(0, 0, 0, 0); //nk_rgba(32, 32, 64, gui_windowTransparancy->value * 255);
 		table[NK_COLOR_BUTTON_ACTIVE] = nk_rgba(0, 0, 0, 0); // nk_rgba(96, 96, 96, gui_windowTransparancy->value * 255);
 		table[NK_COLOR_TOGGLE] = nk_rgba(0, 0, 0, gui_windowTransparancy->value*255.0/*215*/);
 		table[NK_COLOR_TOGGLE_HOVER] = nk_rgba(45, 53, 111, 255);
@@ -1441,7 +1455,24 @@ GUI_MenuHoverTooltip(struct nk_context *ctx, struct media *media, char *tooltipT
 	if (ctx->last_widget_state & NK_WIDGET_STATE_HOVER
 		&& backEnd.ui_MouseCursor <= 0)
 	{// Hoverred...
-		uq_tooltip(ctx, tooltipText, media, &icon);
+		std::string finalText;
+
+		if (tooltipText[0] == '^')
+		{
+			finalText = tooltipText;
+		}
+		else
+		{// Make sure a color code always starts the tooltip... If not specified, use the default color (dark grey).
+			finalText = "^8";
+			finalText.append(tooltipText);
+		}
+		
+		if (finalText.at(finalText.length()-1) != '\n')
+		{// Always finish the line with a line break...
+			finalText.append("\n");
+		}
+		
+		uq_tooltip(ctx, finalText.c_str(), media, &icon);
 		nk_style_set_font(ctx, &media->font_20->handle);
 	}
 }
@@ -1666,7 +1697,7 @@ GUI_Abilities(struct nk_context *ctx, struct media *media)
 static void
 GUI_Character(struct nk_context *ctx, struct media *media)
 {
-	float size[2] = { 640.0, 480.0 };
+	float size[2] = { 340.0, 512.0 };
 
 	int i = 0;
 	nk_style_set_font(ctx, &media->font_20->handle);
@@ -1677,9 +1708,110 @@ GUI_Character(struct nk_context *ctx, struct media *media)
 	win->hasIcon = true;
 	win->icon = media->iconCharacter;
 
-	nk_layout_row_static(ctx, 120.0, size[0], 1);
+	win->hasImageBackground = true;
+	win->imageBackground = media->characterBackground;
+	
+	// Blank Row...
+	{
+		nk_layout_row_static(ctx, 62, 158, 2);
+		nk_label(ctx, "", NK_TEXT_ALIGN_LEFT);
+	}
 
-	nk_button_image_label(ctx, media->tools, "Sorry, character window is not yet implemented.", NK_TEXT_LEFT);
+	// Main slots...
+	nk_layout_row_static(ctx, 41, 158, 2);
+	ctx->style.button.border_color = nk_rgba(0, 0, 0, 0);
+
+	{// Left Slot 1... Occular Implant...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterImplant, "", NK_TEXT_ALIGN_LEFT);
+		GUI_MenuHoverTooltip(ctx, media, "Occular Implant", media->characterImplant);
+	}
+
+	{// Right Slot 1... Helmet...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterHelmet, "", NK_TEXT_ALIGN_RIGHT);
+		GUI_MenuHoverTooltip(ctx, media, "Head Armor", media->characterHelmet);
+	}
+
+	{// Left Slot 2... Body Implant...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterImplant, "", NK_TEXT_ALIGN_LEFT);
+		GUI_MenuHoverTooltip(ctx, media, "Body Implant", media->characterImplant);
+	}
+
+	{// Right Slot 2... Body Armor...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterBody, "", NK_TEXT_ALIGN_RIGHT);
+		GUI_MenuHoverTooltip(ctx, media, "Body Armor", media->characterBody);
+	}
+
+	{// Left Slot 3... Ring...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterRing, "", NK_TEXT_ALIGN_LEFT);
+		GUI_MenuHoverTooltip(ctx, media, "Ring", media->characterRing);
+	}
+
+	{// Right Slot 3... Arm Armor...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterArm, "", NK_TEXT_ALIGN_RIGHT);
+		GUI_MenuHoverTooltip(ctx, media, "Arm Armor", media->characterArm);
+	}
+
+	{// Left Slot 4... Device (shield/cloak/jetpack/etc)...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterDevice, "", NK_TEXT_ALIGN_LEFT);
+		GUI_MenuHoverTooltip(ctx, media, "Device", media->characterDevice);
+	}
+
+	{// Right Slot 4... Gloves...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterGloves, "", NK_TEXT_ALIGN_RIGHT);
+		GUI_MenuHoverTooltip(ctx, media, "Gloves", media->characterGloves);
+	}
+
+	{// Left Slot 5...  Device (shield/cloak/jetpack/etc)...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterDevice, "", NK_TEXT_ALIGN_LEFT);
+		GUI_MenuHoverTooltip(ctx, media, "Device", media->characterDevice);
+	}
+
+	{// Right Slot 5... Leg Armor...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterLegs, "", NK_TEXT_ALIGN_RIGHT);
+		GUI_MenuHoverTooltip(ctx, media, "Leg Armor", media->characterLegs);
+	}
+
+	{// Left Slot 6... Artifact...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterArtifact, "", NK_TEXT_ALIGN_LEFT);
+		GUI_MenuHoverTooltip(ctx, media, "Artifact", media->characterArtifact);
+	}
+
+	{// Right Slot 6... Shoes...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterFeet, "", NK_TEXT_ALIGN_RIGHT);
+		GUI_MenuHoverTooltip(ctx, media, "Shoes", media->characterFeet);
+	}
+
+	// Blank Row...
+	{
+		nk_layout_row_static(ctx, 61, 158, 2);
+		nk_label(ctx, "", NK_TEXT_ALIGN_LEFT);
+	}
+
+	nk_layout_row_static(ctx, 41, 158, 2);
+
+	{// Blank slot... Right Weapon...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterWeapon, "", NK_TEXT_ALIGN_RIGHT);
+		GUI_MenuHoverTooltip(ctx, media, "Primary Weapon", media->characterWeapon);
+	}
+
+	{// Blank slot... Left Weapon...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterWeapon2, "", NK_TEXT_ALIGN_LEFT);
+		GUI_MenuHoverTooltip(ctx, media, "Secondary Weapon or Shield", media->characterWeapon2);
+	}
 
 	nk_style_set_font(ctx, &media->font_14->handle);
 	nk_end(ctx);
@@ -3812,6 +3944,20 @@ void GUI_Init(void)
 	GUI_media.iconRadio = icon_load("Warzone/gui/windowIcons/radio.png");
 	GUI_media.iconSettings = icon_load("Warzone/gui/windowIcons/settings.png");
 
+	GUI_media.characterBackground = icon_load("Warzone/gui/backgrounds/character.png");
+	GUI_media.characterArm = icon_load("Warzone/gui/characterSlots/arm.png");
+	GUI_media.characterArtifact = icon_load("Warzone/gui/characterSlots/artifact.png");
+	GUI_media.characterBody = icon_load("Warzone/gui/characterSlots/body.png");
+	GUI_media.characterDevice = icon_load("Warzone/gui/characterSlots/device.png");
+	GUI_media.characterFeet = icon_load("Warzone/gui/characterSlots/feet.png");
+	GUI_media.characterGloves = icon_load("Warzone/gui/characterSlots/gloves.png");
+	GUI_media.characterHelmet = icon_load("Warzone/gui/characterSlots/helmet.png");
+	GUI_media.characterImplant = icon_load("Warzone/gui/characterSlots/implant.png");
+	GUI_media.characterLegs = icon_load("Warzone/gui/characterSlots/legs.png");
+	GUI_media.characterRing = icon_load("Warzone/gui/characterSlots/ring.png");
+	GUI_media.characterWeapon = icon_load("Warzone/gui/characterSlots/weapon.png");
+	GUI_media.characterWeapon2 = icon_load("Warzone/gui/characterSlots/weapon-shield.png");
+
 	GUI_media.inventoryBlank = icon_load("Warzone/gui/inventory/blank.png");
 
 	{// Geneate a fake inventory list for testing...
@@ -3886,6 +4032,20 @@ void GUI_Shutdown(void)
 	qglDeleteTextures(1, (const GLuint*)&GUI_media.iconRadio.handle.id);
 	qglDeleteTextures(1, (const GLuint*)&GUI_media.iconSettings.handle.id);
 
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterBackground.handle.id);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterArm.handle.id);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterArtifact.handle.id);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterBody.handle.id);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterDevice.handle.id);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterFeet.handle.id);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterGloves.handle.id);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterHelmet.handle.id);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterImplant.handle.id);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterLegs.handle.id);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterRing.handle.id);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterWeapon.handle.id);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterWeapon2.handle.id);
+
 #ifdef __GUI_SKINNED__
 	qglDeleteTextures(1, (const GLuint*)&GUI_media.skin);
 #endif
@@ -3898,6 +4058,20 @@ void GUI_Shutdown(void)
 	qglDeleteTextures(1, (const GLuint*)&GUI_media.iconPowers);
 	qglDeleteTextures(1, (const GLuint*)&GUI_media.iconRadio);
 	qglDeleteTextures(1, (const GLuint*)&GUI_media.iconSettings);
+
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterBackground);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterArm);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterArtifact);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterBody);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterDevice);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterFeet);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterGloves);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterHelmet);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterImplant);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterLegs);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterRing);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterWeapon);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterWeapon2);
 
 	qglDeleteTextures(1, (const GLuint*)&GUI_media.inventoryBlank);
 

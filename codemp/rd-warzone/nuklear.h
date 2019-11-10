@@ -5353,8 +5353,13 @@ struct nk_window {
     struct nk_panel *layout;
     float scrollbar_hiding_timer;
 
+#ifdef __WARZONE_UI__
 	bool hasIcon = false;
 	struct nk_image icon;
+
+	bool hasImageBackground = false;
+	struct nk_image imageBackground;
+#endif //__WARZONE_UI__
 
     /* persistent widget state */
     struct nk_property_state property;
@@ -15997,6 +16002,14 @@ nk_panel_begin(struct nk_context *ctx, const char *title, enum nk_panel_type pan
         if (style->window.fixed_background.type == NK_STYLE_ITEM_IMAGE)
             nk_draw_image(out, body, &style->window.fixed_background.data.image, nk_white);
         else nk_fill_rect(out, body, 0, style->window.fixed_background.data.color);
+
+#ifdef __WARZONE_UI__
+		/* window background images */
+		if (win->hasImageBackground)
+		{
+			nk_draw_image(out, body, &win->imageBackground, nk_white);
+		}
+#endif //__WARZONE_UI__
     }
 
     /* set clipping rectangle */
