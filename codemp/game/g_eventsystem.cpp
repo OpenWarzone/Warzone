@@ -4,6 +4,16 @@
 #include "b_local.h"
 #include <thread>
 
+//
+// Defines...
+//
+
+//#define __USE_ALL_IMPERIAL_SHIPS__					// Enables the victory Star Destroyer. It has too many textures and slows loading and renderring more than the others, so i'm disabling it for now...
+//#define __USE_ALL_REBEL_SHIPS__						// Use all the smaller rebel event ships? I don't think so for now, just use the calamari cruiser... Faster loading and better looking...
+
+//
+//
+//
 extern qboolean			EVENTS_ENABLED;
 extern float			EVENT_BUFFER;
 extern float			EVENT_TRACE_SIZE;
@@ -41,13 +51,19 @@ void G_EventModelPrecache(void)
 	G_ModelIndex("models/warzone/ships/isd2/isd2.3ds");
 	G_ModelIndex("models/warzone/ships/dominator/dominator.3ds");
 	G_ModelIndex("models/warzone/ships/knight/knight.3ds");
+#ifdef __USE_ALL_IMPERIAL_SHIPS__
 	G_ModelIndex("models/warzone/ships/victory/victory.3ds");
+#endif //__USE_ALL_IMPERIAL_SHIPS__
 	
 	G_ModelIndex("models/warzone/ships/calamari/calamari.3ds");
+#ifdef __USE_ALL_REBEL_SHIPS__
+	G_ModelIndex("models/warzone/ships/nebulonb2/neb.3ds");
 	G_ModelIndex("models/warzone/ships/medfrig/medfrig.md3");
 	G_ModelIndex("models/warzone/ships/corvette/corvette.3ds");
 	G_ModelIndex("models/warzone/ships/falcon/falcon.md3");
 	G_ModelIndex("models/warzone/ships/u-wing/uwing.3ds");
+	G_ModelIndex("models/warzone/ships/yt2400/yt2400.3ds");
+#endif //__USE_ALL_REBEL_SHIPS__
 
 	G_ModelIndex("models/warzone/ships/bothan/bothan.3ds");
 
@@ -90,7 +106,11 @@ void G_CreateSpawnVesselForEventArea(int area)
 		break;
 	case FACTION_EMPIRE:
 		{
+#ifdef __USE_ALL_IMPERIAL_SHIPS__
 			int choice = irand(0, 4);
+#else //!__USE_ALL_IMPERIAL_SHIPS__
+			int choice = irand(0, 3);
+#endif //__USE_ALL_IMPERIAL_SHIPS__
 
 			if (choice == 0)
 			{
@@ -113,13 +133,17 @@ void G_CreateSpawnVesselForEventArea(int area)
 				modelScale = 64;
 				zOffset = 49152.0;
 			}
-			else if (choice == 3)
+			else
+#ifdef __USE_ALL_IMPERIAL_SHIPS__
+				if (choice == 3)
+#endif //__USE_ALL_IMPERIAL_SHIPS__
 			{
 				sprintf(modelName, "models/warzone/ships/knight/knight.3ds");
 				loopSound = G_SoundIndex("sound/vehicles/shuttle/loop.wav");
 				modelScale = 112;
 				zOffset = 65536.0;
 			}
+#ifdef __USE_ALL_IMPERIAL_SHIPS__
 			else
 			{
 				sprintf(modelName, "models/warzone/ships/victory/victory.3ds");
@@ -127,11 +151,13 @@ void G_CreateSpawnVesselForEventArea(int area)
 				modelScale = 56;
 				zOffset = 32768.0;
 			}
+#endif //__USE_ALL_IMPERIAL_SHIPS__
 		}
 		break;
 	case FACTION_REBEL:
 		{
-			int choice = irand(0, 4);
+#ifdef __USE_ALL_REBEL_SHIPS__
+			int choice = irand(0, 5);
 			if (choice == 0)
 			{
 				sprintf(modelName, "models/warzone/ships/calamari/calamari.3ds");
@@ -141,7 +167,7 @@ void G_CreateSpawnVesselForEventArea(int area)
 			}
 			else if (choice == 1)
 			{
-				sprintf(modelName, "models/warzone/ships/medfrig/medfrig.md3");
+				sprintf(modelName, "models/warzone/ships/nebulonb2/neb.3ds");
 				loopSound = G_SoundIndex("sound/movers/objects/raven_hover_9.wav");
 				modelFrame = 0;
 				modelScale = 12;
@@ -149,13 +175,21 @@ void G_CreateSpawnVesselForEventArea(int area)
 			}
 			else if (choice == 2)
 			{
+				sprintf(modelName, "models/warzone/ships/medfrig/medfrig.md3");
+				loopSound = G_SoundIndex("sound/movers/objects/raven_hover_9.wav");
+				modelFrame = 0;
+				modelScale = 12;
+				zOffset = 6144.0;
+			}
+			else if (choice == 3)
+			{
 				sprintf(modelName, "models/warzone/ships/corvette/corvette.3ds");
 				loopSound = G_SoundIndex("sound/movers/objects/raven_hover_4.wav");
 				modelFrame = 0;
 				modelScale = 16;
 				zOffset = 4096.0;
 			}
-			else if (choice == 3)
+			else if (choice == 4)
 			{
 				sprintf(modelName, "models/warzone/ships/falcon/falcon.md3");
 				loopSound = G_SoundIndex("sound/vehicles/x-wing/loop.wav");
@@ -171,6 +205,12 @@ void G_CreateSpawnVesselForEventArea(int area)
 				modelScale = 6;
 				zOffset = 2048.0;
 			}
+#else //!__USE_ALL_REBEL_SHIPS__
+		sprintf(modelName, "models/warzone/ships/calamari/calamari.3ds");
+		loopSound = G_SoundIndex("sound/movers/objects/shuttle_hover_8.wav");
+		modelScale = 56;
+		zOffset = 32768.0;
+#endif //__USE_ALL_REBEL_SHIPS__
 		}
 		break;
 	case FACTION_MANDALORIAN:

@@ -1095,7 +1095,8 @@ void CG_ShipLasersThink(void)
 			if (Distance(laser->origin, laser->endOrigin) <= laserVelocity)
 			{// Explode and free this bolt...
 				laser->active = qfalse;
-				CG_SurfaceExplosion(laser->origin, laser->dir, 128.0, 0.5, qtrue);
+				CG_SurfaceExplosion(laser->origin, laser->dir, 128.0, 0.5, qfalse/*qtrue*/);
+				//AddLightToScene(laser->origin, /*200 + (rand() & 31)*/384 + irand(0, 256), 0.9f, 0.8f, 0.5f);
 				return;
 			}
 
