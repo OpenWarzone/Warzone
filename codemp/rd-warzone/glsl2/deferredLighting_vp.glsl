@@ -3,11 +3,13 @@
 attribute vec3	attr_Position;
 attribute vec2	attr_TexCoord0;
 
-uniform mat4	u_ModelViewProjectionMatrix;
 
-uniform float	u_Time;
+uniform mat4								u_ModelViewProjectionMatrix;
 
-uniform vec4	u_PrimaryLightOrigin;
+uniform float								u_Time;
+
+uniform vec3								u_ViewOrigin;
+uniform vec4								u_PrimaryLightOrigin;
 
 uniform vec4								u_Local8; // NIGHT_SCALE,		CLOUDS_CLOUDCOVER,		CLOUDS_CLOUDSCALE,		CLOUDS_SHADOWS_ENABLED
 
@@ -19,11 +21,12 @@ uniform vec4								u_Local8; // NIGHT_SCALE,		CLOUDS_CLOUDCOVER,		CLOUDS_CLOUDS
 #define CLOUDS_SHADOWS_ENABLED				u_Local8.a
 
 
-varying vec2   	var_TexCoords;
+varying vec2								var_TexCoords;
+
 
 #ifdef __CLOUD_SHADOWS__
 
-varying float	var_CloudShadow;
+varying float								var_CloudShadow;
 
 #define RAY_TRACE_STEPS 2 //55
 

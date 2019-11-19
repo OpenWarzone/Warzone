@@ -204,7 +204,7 @@ float CG_Get3DWeaponBoltWidth(const struct weaponInfo_s *weaponInfo, qboolean al
 	return 1.0; // Default size...
 }
 
-void FX_WeaponBolt3D(vec3_t org, vec3_t fwd, float length, float radius, qhandle_t shader)
+void FX_WeaponBolt3D(vec3_t org, vec3_t fwd, float length, float radius, qhandle_t shader, qboolean addLight)
 {
 	refEntity_t ent;
 
@@ -231,10 +231,12 @@ void FX_WeaponBolt3D(vec3_t org, vec3_t fwd, float length, float radius, qhandle
 
 	AddRefEntityToScene(&ent);
 
-	// Add light as well...
-	vec3_t lightColor;
-	VectorCopy(CG_Get3DWeaponBoltLightColor(shader), lightColor);
-	trap->R_AddLightToScene(org, 200 + (rand() & 31), lightColor[0] * 0.15, lightColor[1] * 0.15, lightColor[2] * 0.15);
+	if (addLight)
+	{// Add light as well...
+		vec3_t lightColor;
+		VectorCopy(CG_Get3DWeaponBoltLightColor(shader), lightColor);
+		trap->R_AddLightToScene(org, 200 + (rand() & 31), lightColor[0] /** 0.15*/, lightColor[1] /** 0.15*/, lightColor[2] /** 0.15*/);
+	}
 }
 
 //
@@ -308,7 +310,7 @@ void FX_SaberBolt3D(vec3_t org, vec3_t fwd, float length, float radius, qhandle_
 	// Add light as well...
 	vec3_t lightColor;
 	VectorCopy(CG_Get3DWeaponBoltLightColor(shader), lightColor);
-	trap->R_AddLightToScene(org, 200 + (rand() & 31), lightColor[0] * 0.15, lightColor[1] * 0.15, lightColor[2] * 0.15);
+	trap->R_AddLightToScene(org, 200 + (rand() & 31), lightColor[0] /** 0.15*/, lightColor[1] /** 0.15*/, lightColor[2] /** 0.15*/);
 }
 
 void CG_Do3DSaber(vec3_t origin, vec3_t dir, float length, float lengthMax, float radius, saber_colors_t color)

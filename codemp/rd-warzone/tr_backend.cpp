@@ -1596,7 +1596,12 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 
 			shader_t *thisShader = tr.sortedShaders[(drawSurf->sort >> QSORT_SHADERNUM_SHIFT) & (MAX_SHADERS - 1)];
 			int64_t thisEntityNum = (drawSurf->sort >> QSORT_REFENTITYNUM_SHIFT) & REFENTITYNUM_MASK;
-			//trRefEntity_t *thisEnt = &backEnd.refdef.entities[thisEntityNum];
+			trRefEntity_t *thisEnt = &backEnd.refdef.entities[thisEntityNum];
+
+			if (thisEnt->e.customShader)
+			{
+				thisShader = R_GetShaderByHandle(thisEnt->e.customShader);
+			}
 
 			if (!thisShader)
 			{
@@ -2558,11 +2563,8 @@ const void	*RB_DrawSurfs( const void *data ) {
 	}
 
 	if (!(backEnd.refdef.rdflags & RDF_NOWORLDMODEL) 
-		&& ((r_depthPrepass->integer && !DISABLE_DEPTH_PREPASS) || backEnd.viewParms.flags & VPF_DEPTHSHADOW)
-		/*&& tr.world == tr.worldSolid*/)
+		&& ((r_depthPrepass->integer && !DISABLE_DEPTH_PREPASS) || backEnd.viewParms.flags & VPF_DEPTHSHADOW))
 	{
-		//FBO_t *oldFbo = glState.currentFBO;
-
 		if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer)
 		{// Override occlusion for depth prepass and shadow pass...
 			//tr.viewParms.zFar = tr.occlusionOriginalZfar;
@@ -3580,19 +3582,6 @@ const void *RB_PostProcess(const void *data)
 				DEBUG_EndTimer(qtrue);
 			}
 		}*/
-
-#ifndef __SSDM_IN_DEFERRED_SHADER__
-		if (!SCREEN_BLUR && ENABLE_DISPLACEMENT_MAPPING && r_ssdm->integer)
-		{
-			if (!r_lowVram->integer)
-			{
-				DEBUG_StartTimer("SSDM", qtrue);
-				RB_SSDM(currentFbo, srcBox, currentOutFbo, dstBox);
-				RB_SwapFBOs(&currentFbo, &currentOutFbo);
-				DEBUG_EndTimer(qtrue);
-			}
-		}
-#endif //__SSDM_IN_DEFERRED_SHADER__
 
 		if (!SCREEN_BLUR && FOG_POST_ENABLED && r_fogPost->integer && !LATE_LIGHTING_ENABLED && (FOG_LINEAR_ENABLE || FOG_WORLD_ENABLE || FOG_LAYER_ENABLE))
 		{

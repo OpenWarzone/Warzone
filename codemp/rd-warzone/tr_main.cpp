@@ -1866,6 +1866,16 @@ void R_DecomposeSort(const uint64_t sort, int64_t *entityNum, shader_t **shader,
 	*entityNum = ( sort >> QSORT_REFENTITYNUM_SHIFT ) & REFENTITYNUM_MASK;
 	*postRender = (sort >> QSORT_POSTRENDER_SHIFT ) & 1;
 	//*dlightMap = sort & 1;
+
+	if (*entityNum != REFENTITYNUM_WORLD)
+	{
+		trRefEntity_t *thisEnt = &backEnd.refdef.entities[*entityNum];
+
+		if (thisEnt && thisEnt->e.customShader)
+		{
+			*shader = R_GetShaderByHandle(thisEnt->e.customShader);
+		}
+	}
 }
 
 /*
@@ -2387,13 +2397,13 @@ extern int					NUM_CLOSE_LIGHTS;
 extern int					CLOSEST_LIGHTS[MAX_DEFERRED_LIGHTS];
 extern vec2_t				CLOSEST_LIGHTS_SCREEN_POSITIONS[MAX_DEFERRED_LIGHTS];
 extern vec3_t				CLOSEST_LIGHTS_POSITIONS[MAX_DEFERRED_LIGHTS];
-extern float				CLOSEST_LIGHTS_DISTANCES[MAX_DEFERRED_LIGHTS];
+extern float				CLOSEST_LIGHTS_RADIUS[MAX_DEFERRED_LIGHTS];
 extern float				CLOSEST_LIGHTS_HEIGHTSCALES[MAX_DEFERRED_LIGHTS];
 extern vec3_t				CLOSEST_LIGHTS_COLORS[MAX_DEFERRED_LIGHTS];
 
 #define NUM_LIGHTS					NUM_CLOSE_LIGHTS
 #define LIGHTS_POSITIONS(a)			CLOSEST_LIGHTS_POSITIONS[a]
-#define LIGHTS_RADIUS(a)			CLOSEST_LIGHTS_DISTANCES[a]
+#define LIGHTS_RADIUS(a)			CLOSEST_LIGHTS_RADIUS[a]
 #elif 1 // Use the JKA dlights list...
 #define NUM_LIGHTS					backEnd.refdef.num_dlights
 #define LIGHTS_POSITIONS(a)			(backEnd.refdef.dlights[a].origin)
@@ -3959,6 +3969,3 @@ void R_RenderCubemapSideRealtime(vec3_t origin, int cubemapSide, qboolean subsce
 	}
 }
 #endif //__REALTIME_CUBEMAP__
-
-
-

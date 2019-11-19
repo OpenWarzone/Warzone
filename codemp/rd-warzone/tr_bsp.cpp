@@ -4964,15 +4964,14 @@ qboolean IgnoreCubemapsOnMap( void )
 float		MAP_WATER_LEVEL = 131072.0;
 float		MAP_WATER_LEVEL2 = 131072.0;
 
-#define		MAX_GLOW_LOCATIONS 65536
 int			NUM_MAP_GLOW_LOCATIONS = 0;
-vec3_t		MAP_GLOW_LOCATIONS[MAX_GLOW_LOCATIONS] = { 0 };
-vec4_t		MAP_GLOW_COLORS[MAX_GLOW_LOCATIONS] = { 0 };
-float		MAP_GLOW_RADIUSES[MAX_GLOW_LOCATIONS] = { 0 };
-float		MAP_GLOW_HEIGHTSCALES[MAX_GLOW_LOCATIONS] = { 0 };
-float		MAP_GLOW_CONEANGLE[MAX_GLOW_LOCATIONS] = { 0 };
-vec3_t		MAP_GLOW_CONEDIRECTION[MAX_GLOW_LOCATIONS] = { 0 };
-qboolean	MAP_GLOW_COLORS_AVILABLE[MAX_GLOW_LOCATIONS] = { qfalse };
+vec3_t		MAP_GLOW_LOCATIONS[MAX_EMISSIVE_LIGHTS] = { 0 };
+vec4_t		MAP_GLOW_COLORS[MAX_EMISSIVE_LIGHTS] = { 0 };
+float		MAP_GLOW_RADIUSES[MAX_EMISSIVE_LIGHTS] = { 0 };
+float		MAP_GLOW_HEIGHTSCALES[MAX_EMISSIVE_LIGHTS] = { 0 };
+float		MAP_GLOW_CONEANGLE[MAX_EMISSIVE_LIGHTS] = { 0 };
+vec3_t		MAP_GLOW_CONEDIRECTION[MAX_EMISSIVE_LIGHTS] = { 0 };
+qboolean	MAP_GLOW_COLORS_AVILABLE[MAX_EMISSIVE_LIGHTS] = { qfalse };
 
 extern void R_WorldToLocal (const vec3_t world, vec3_t local);
 extern void R_LocalPointToWorld (const vec3_t local, vec3_t world);
@@ -5192,6 +5191,7 @@ static void R_SetupMapGlowsAndWaterPlane( world_t *world )
 
 #define EMISSIVE_MERGE_RADIUS 128.0//64.0
 
+#if 1
 			if (hasGlow && bspSurf && surf->shader->name && surf->shader->name[0] != 0 && !StringContainsWord(surf->shader->name, "warzone/trees"))
 			{// Handle individual verts, since we can. So we don't loose individual lights with merging... Tree glows can be merged though...
 				hasGlow = qfalse;
@@ -5266,9 +5266,9 @@ static void R_SetupMapGlowsAndWaterPlane( world_t *world )
 						radius = Distance(TEMP_LIGHTS_MINS[l], TEMP_LIGHTS_MAXS[l]);
 
 						// Now we have a central point and radius, make a new emissive light there...
-						if (NUM_MAP_GLOW_LOCATIONS < MAX_GLOW_LOCATIONS)
+						if (NUM_MAP_GLOW_LOCATIONS < MAX_EMISSIVE_LIGHTS)
 						{
-							radius = Q_clamp(128.0/*64.0*/, radius, 192.0/*128.0*/);
+							radius = Q_clamp(128.0, radius, 192.0);
 
 #pragma omp critical (__MAP_GLOW_ADD__)
 							{
@@ -5303,6 +5303,7 @@ static void R_SetupMapGlowsAndWaterPlane( world_t *world )
 
 				radius = 0.0;
 			}
+#endif
 		}
 
 		if (surf->cullinfo.type & CULLINFO_SPHERE)
@@ -5334,16 +5335,17 @@ static void R_SetupMapGlowsAndWaterPlane( world_t *world )
 			}
 		}
 
+#if 0
 		if (hasGlow)
 		{
 			VectorScale(glowColor, emissiveColorScale, glowColor);
 
 #ifdef __ALLOW_MAP_GLOWS_MERGE__
 
-			int sameColorTooCloseID = R_CloseLightOfColorNear(surfOrigin, 16.0, glowColor, 99999.0);
-			int sameColorGlowNearID = R_CloseLightOfColorNear(surfOrigin, EMISSIVE_MERGE_RADIUS, glowColor, 1.0);
+			int sameColorTooCloseID = R_CloseLightOfColorNear(surfOrigin, 16.0, glowColor, 0.3/*99999.0*/);
+			int sameColorGlowNearID = R_CloseLightOfColorNear(surfOrigin, EMISSIVE_MERGE_RADIUS, glowColor, 0.3/*1.0*/);
 
-			if (emissiveConeAngle == 0.0 && sameColorTooCloseID >= 0)
+			if (/*emissiveConeAngle == 0.0 &&*/ sameColorTooCloseID >= 0)
 			{// Don't add this duplicate light at all... Just mix the colors... In case theres 2 overlayed textures of diff colors, etc...
 				MAP_GLOW_COLORS[sameColorTooCloseID][0] = (MAP_GLOW_COLORS[sameColorTooCloseID][0] + glowColor[0]) / 2.0;
 				MAP_GLOW_COLORS[sameColorTooCloseID][1] = (MAP_GLOW_COLORS[sameColorTooCloseID][1] + glowColor[1]) / 2.0;
@@ -5358,7 +5360,7 @@ static void R_SetupMapGlowsAndWaterPlane( world_t *world )
 						, MAP_GLOW_COLORS[sameColorTooCloseID][0], MAP_GLOW_COLORS[sameColorTooCloseID][1], MAP_GLOW_COLORS[sameColorTooCloseID][2]);
 				}
 			}
-			else if (emissiveConeAngle == 0.0 && sameColorGlowNearID >= 0)
+			else if (/*emissiveConeAngle == 0.0 &&*/ sameColorGlowNearID >= 0)
 			{// Already the same color light nearby... Merge...
 				// Add extra radius to the original one, instead of adding a new light...
 				float distFromOther = Distance(MAP_GLOW_LOCATIONS[sameColorGlowNearID], surfOrigin);
@@ -5394,7 +5396,7 @@ static void R_SetupMapGlowsAndWaterPlane( world_t *world )
 			}
 			else
 #endif //__ALLOW_MAP_GLOWS_MERGE__
-			if (NUM_MAP_GLOW_LOCATIONS < MAX_GLOW_LOCATIONS)
+			if (NUM_MAP_GLOW_LOCATIONS < MAX_EMISSIVE_LIGHTS)
 			{
 				radius = Q_clamp(64.0, radius, 128.0);
 				
@@ -5405,7 +5407,7 @@ static void R_SetupMapGlowsAndWaterPlane( world_t *world )
 					MAP_GLOW_RADIUSES[NUM_MAP_GLOW_LOCATIONS] = radius * emissiveRadiusScale * 2.25;
 					MAP_GLOW_HEIGHTSCALES[NUM_MAP_GLOW_LOCATIONS] = emissiveHeightScale;
 					
-					MAP_GLOW_CONEANGLE[NUM_MAP_GLOW_LOCATIONS] = emissiveConeAngle;
+					MAP_GLOW_CONEANGLE[NUM_MAP_GLOW_LOCATIONS] = 0;// emissiveConeAngle;
 					VectorCopy(emissiveConeDirection, MAP_GLOW_CONEDIRECTION[NUM_MAP_GLOW_LOCATIONS]);
 					
 					MAP_GLOW_COLORS_AVILABLE[NUM_MAP_GLOW_LOCATIONS] = qtrue;
@@ -5427,6 +5429,7 @@ static void R_SetupMapGlowsAndWaterPlane( world_t *world )
 				}
 			}
 		}
+#endif
 	}
 
 #ifdef __INDOOR_OUTDOOR_CULLING__

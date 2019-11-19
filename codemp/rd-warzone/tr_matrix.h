@@ -251,6 +251,9 @@ public:
 	/// Constructor initializing vector to (x,y,0).
 	vec3(vec2 &v);
 
+	/// Constructor initializing all elements to the given vec3_t.
+	explicit vec3(float *v) : x(v[0]), y(v[1]), z(v[2]) { }
+
 	/// Constructor initializing all elements to the given value.
 	explicit vec3(float s) : x(s), y(s), z(s) { }
 
@@ -283,6 +286,9 @@ public:
 	/// Multiplication of scalar by vector.
 	friend vec3 operator*(float s, const vec3& v) { return vec3(s*v.x,s*v.y,s*v.z); }
 	
+	/// Multiplication of vector by vector.
+	vec3 operator*(vec3 v) const { return vec3(v.x*x, v.y*y, v.z*z); }
+
 	/// Multiplication of vector by scalar.
 	vec3 operator*(float s) const { return vec3(s*x,s*y,s*z); }
 	
@@ -451,5 +457,10 @@ mat4 Perspective(const float fovy, const float aspect,
     return c;
 }
 
+bool RayIntersectBox(vec3 Origin, vec3 Dir, vec3 mins, vec3 maxs);
 
+vec3 min3(vec3 a, vec3 b);
+vec3 max3(vec3 a, vec3 b);
+vec2 min2(vec2 a, vec2 b);
+vec2 max2(vec2 a, vec2 b);
 #endif

@@ -1896,8 +1896,9 @@ void RB_SetStageImageDimensions(shaderProgram_t *sp, shaderStage_t *pStage)
 int			NUM_CLOSE_LIGHTS = 0;
 int			CLOSEST_LIGHTS[MAX_DEFERRED_LIGHTS] = {0};
 vec3_t		CLOSEST_LIGHTS_POSITIONS[MAX_DEFERRED_LIGHTS] = {0};
+float		CLOSEST_LIGHTS_WEIGHTS[MAX_DEFERRED_LIGHTS] = { 0 };
 vec2_t		CLOSEST_LIGHTS_SCREEN_POSITIONS[MAX_DEFERRED_LIGHTS];
-float		CLOSEST_LIGHTS_DISTANCES[MAX_DEFERRED_LIGHTS] = {0};
+float		CLOSEST_LIGHTS_RADIUS[MAX_DEFERRED_LIGHTS] = {0};
 float		CLOSEST_LIGHTS_HEIGHTSCALES[MAX_DEFERRED_LIGHTS] = { 0 };
 float		CLOSEST_LIGHTS_CONEANGLES[MAX_DEFERRED_LIGHTS] = { 0 };
 vec3_t		CLOSEST_LIGHTS_CONEDIRECTIONS[MAX_DEFERRED_LIGHTS] = { 0 };
@@ -1906,11 +1907,19 @@ vec3_t		CLOSEST_LIGHTS_COLORS[MAX_DEFERRED_LIGHTS] = {0};
 extern void WorldCoordToScreenCoord(vec3_t origin, float *x, float *y);
 extern qboolean Volumetric_Visible(vec3_t from, vec3_t to, qboolean isSun);
 extern void Volumetric_Trace(trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, const int passEntityNum, const int contentmask);
+
+int RB_CullPointAndRadius(const vec3_t pt, float radius)
+{
+	return R_CullPointAndRadiusEx(pt, radius, backEnd.viewParms.frustum, (backEnd.viewParms.flags & VPF_FARPLANEFRUSTUM) ? 5 : 4);
+}
+
 void RB_UpdateCloseLights ( void )
 {
 	if (!CLOSE_LIGHTS_UPDATE) return; // Already done for this frame...
 
 	NUM_CLOSE_LIGHTS = 0;
+
+	float dayNightFactor = mix(MAP_EMISSIVE_RADIUS_SCALE, MAP_EMISSIVE_RADIUS_SCALE_NIGHT, RB_NightScale());
 
 	//int MAX_CLOSE_LIGHTS = MAX_DEFERRED_LIGHTS;
 	int MAX_CLOSE_LIGHTS = r_lowVram->integer ? min(r_maxDeferredLights->integer, 8.0) : min(r_maxDeferredLights->integer, MAX_DEFERRED_LIGHTS);
@@ -1930,30 +1939,34 @@ void RB_UpdateCloseLights ( void )
 
 		if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer)
 		{// Check occlusion zfar distance as well...
-			if (distance > Q_min(tr.occlusionZfar * 1.75, tr.occlusionOriginalZfar))
+			if (distance > tr.occlusionZfar * 1.75)
 			{
 				continue;
 			}
 		}
 
+		float	this_weight = dl->radius / distance;
+
+		if (this_weight <= 0.05)
+		{// Will be too dark to even notice it, so skip...
+			continue;
+		}
+		
+		/*if (r_cullLights->integer && RB_CullPointAndRadius(dl->origin, dl->radius * dayNightFactor * 0.2 * r_debugEmissiveRadiusScale->value) == CULL_OUT)
+		{
+			continue;
+		}*/
+
 		if (NUM_CLOSE_LIGHTS < MAX_CLOSE_LIGHTS)
 		{// Have free light slots for a new light...
-#ifdef __LIGHT_OCCLUSION__
-			float x, y;
-			WorldCoordToScreenCoord(dl->origin, &x, &y);
-#endif //__LIGHT_OCCLUSION__
-
 			CLOSEST_LIGHTS[NUM_CLOSE_LIGHTS] = l;
 			VectorCopy(dl->origin, CLOSEST_LIGHTS_POSITIONS[NUM_CLOSE_LIGHTS]);
-			CLOSEST_LIGHTS_DISTANCES[NUM_CLOSE_LIGHTS] = dl->radius;
+			CLOSEST_LIGHTS_RADIUS[NUM_CLOSE_LIGHTS] = dl->radius;
+			CLOSEST_LIGHTS_WEIGHTS[NUM_CLOSE_LIGHTS] = dl->radius / distance;
 			CLOSEST_LIGHTS_HEIGHTSCALES[NUM_CLOSE_LIGHTS] = dl->heightScale;
 			CLOSEST_LIGHTS_COLORS[NUM_CLOSE_LIGHTS][0] = dl->color[0];
 			CLOSEST_LIGHTS_COLORS[NUM_CLOSE_LIGHTS][1] = dl->color[1];
 			CLOSEST_LIGHTS_COLORS[NUM_CLOSE_LIGHTS][2] = dl->color[2];
-#ifdef __LIGHT_OCCLUSION__
-			CLOSEST_LIGHTS_SCREEN_POSITIONS[NUM_CLOSE_LIGHTS][0] = x;
-			CLOSEST_LIGHTS_SCREEN_POSITIONS[NUM_CLOSE_LIGHTS][1] = y;
-#endif //__LIGHT_OCCLUSION__
 			CLOSEST_LIGHTS_CONEANGLES[NUM_CLOSE_LIGHTS] = dl->coneAngle;
 			VectorCopy(dl->coneDirection, CLOSEST_LIGHTS_CONEDIRECTIONS[NUM_CLOSE_LIGHTS]);
 			NUM_CLOSE_LIGHTS++;
@@ -1961,6 +1974,7 @@ void RB_UpdateCloseLights ( void )
 		}
 		else
 		{// See if this is closer then one of our other lights...
+#if 0
 			int		farthest_light = 0;
 			float	farthest_distance = 0.0;
 
@@ -1979,77 +1993,138 @@ void RB_UpdateCloseLights ( void )
 
 			if (distance < farthest_distance)
 			{// This light is closer. Replace this one in our array of closest lights...
-#ifdef __LIGHT_OCCLUSION__
-				float x, y;
-				WorldCoordToScreenCoord(dl->origin, &x, &y);
-#endif //__LIGHT_OCCLUSION__
-
 				CLOSEST_LIGHTS[farthest_light] = l;
 				VectorCopy(dl->origin, CLOSEST_LIGHTS_POSITIONS[farthest_light]);
-				CLOSEST_LIGHTS_DISTANCES[farthest_light] = dl->radius;
+				CLOSEST_LIGHTS_RADIUS[farthest_light] = dl->radius;
+				CLOSEST_LIGHTS_WEIGHTS[farthest_light] = dl->radius / distance;
 				CLOSEST_LIGHTS_HEIGHTSCALES[farthest_light] = dl->heightScale;
 				CLOSEST_LIGHTS_COLORS[farthest_light][0] = dl->color[0];
 				CLOSEST_LIGHTS_COLORS[farthest_light][1] = dl->color[1];
 				CLOSEST_LIGHTS_COLORS[farthest_light][2] = dl->color[2];
-#ifdef __LIGHT_OCCLUSION__
-				CLOSEST_LIGHTS_SCREEN_POSITIONS[farthest_light][0] = x;
-				CLOSEST_LIGHTS_SCREEN_POSITIONS[farthest_light][1] = y;
-#endif //__LIGHT_OCCLUSION__
 				CLOSEST_LIGHTS_CONEANGLES[farthest_light] = dl->coneAngle;
 				VectorCopy(dl->coneDirection, CLOSEST_LIGHTS_CONEDIRECTIONS[farthest_light]);
 			}
+#else
+			int		worst_light = -1;
+			float	worst_weight = 999999.0;
+
+			for (int i = 0; i < NUM_CLOSE_LIGHTS; i++)
+			{// Find the most distance light in our current list to replace, if this new option is closer...
+				dlight_t	*thisLight = &backEnd.refdef.dlights[CLOSEST_LIGHTS[i]];
+				float		weight = CLOSEST_LIGHTS_WEIGHTS[i];
+
+				if (weight < worst_weight)
+				{// This one is further!
+					worst_light = i;
+					worst_weight = weight;
+				}
+			}
+
+			if (worst_light >= 0 && this_weight > worst_weight)
+			{// This light is better. Replace this one in our array of closest lights...
+				CLOSEST_LIGHTS[worst_light] = l;
+				VectorCopy(dl->origin, CLOSEST_LIGHTS_POSITIONS[worst_light]);
+				CLOSEST_LIGHTS_WEIGHTS[worst_light] = this_weight;
+				CLOSEST_LIGHTS_RADIUS[worst_light] = dl->radius;
+				CLOSEST_LIGHTS_HEIGHTSCALES[worst_light] = dl->heightScale;
+				CLOSEST_LIGHTS_COLORS[worst_light][0] = dl->color[0];
+				CLOSEST_LIGHTS_COLORS[worst_light][1] = dl->color[1];
+				CLOSEST_LIGHTS_COLORS[worst_light][2] = dl->color[2];
+				CLOSEST_LIGHTS_CONEANGLES[worst_light] = dl->coneAngle;
+				VectorCopy(dl->coneDirection, CLOSEST_LIGHTS_CONEDIRECTIONS[worst_light]);
+			}
+#endif
 		}
 	}
 
 	for (int i = 0; i < NUM_CLOSE_LIGHTS; i++)
 	{
-		if (CLOSEST_LIGHTS_DISTANCES[i] < 0.0)
+		if (CLOSEST_LIGHTS_RADIUS[i] < 0.0)
 		{// Remove volume light markers...
-			CLOSEST_LIGHTS_DISTANCES[i] = -CLOSEST_LIGHTS_DISTANCES[i];
+			CLOSEST_LIGHTS_RADIUS[i] = -CLOSEST_LIGHTS_RADIUS[i];
 		}
-	}
-	int NUM_LIGHTS = r_lowVram->integer ? min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, 8.0)) : min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, MAX_DEFERRED_LIGHTS));
 
-	//if (NUM_CLOSE_LIGHTS >= min(r_maxDeferredLights->integer, MAX_DEFERRED_LIGHTS))
-	{// Sort them by radius...
+		// Normalize and desaturate the colors...
+		float whiteStrength = max(CLOSEST_LIGHTS_COLORS[i][0], max(CLOSEST_LIGHTS_COLORS[i][1], CLOSEST_LIGHTS_COLORS[i][2]));
+		float colorLength = CLOSEST_LIGHTS_COLORS[i][0] + CLOSEST_LIGHTS_COLORS[i][1] + CLOSEST_LIGHTS_COLORS[i][2];
+
+		// Normalize...
+		CLOSEST_LIGHTS_COLORS[i][0] = CLOSEST_LIGHTS_COLORS[i][0] / colorLength;
+		CLOSEST_LIGHTS_COLORS[i][1] = CLOSEST_LIGHTS_COLORS[i][1] / colorLength;
+		CLOSEST_LIGHTS_COLORS[i][2] = CLOSEST_LIGHTS_COLORS[i][2] / colorLength;
+
+		// Desaturate...
+		CLOSEST_LIGHTS_COLORS[i][0] = mix(CLOSEST_LIGHTS_COLORS[i][0], whiteStrength, 0.85);
+		CLOSEST_LIGHTS_COLORS[i][1] = mix(CLOSEST_LIGHTS_COLORS[i][0], whiteStrength, 0.85);
+		CLOSEST_LIGHTS_COLORS[i][2] = mix(CLOSEST_LIGHTS_COLORS[i][0], whiteStrength, 0.85);
+
+		float strength = Q_clamp(0.0, CLOSEST_LIGHTS_WEIGHTS[i], 1.0);
+		CLOSEST_LIGHTS_COLORS[i][0] *= strength;
+		CLOSEST_LIGHTS_COLORS[i][1] *= strength;
+		CLOSEST_LIGHTS_COLORS[i][2] *= strength;
+	}
+
+	{// Sort them by screen usage...
 		for (int i = 0; i < NUM_CLOSE_LIGHTS; i++)
 		{
-			for (int j = 0; j < NUM_CLOSE_LIGHTS; j++)
+			int bestChoice = i;
+
+			for (int j = i + 1; j < NUM_CLOSE_LIGHTS; j++)
 			{
-				if (i == j) continue;
-
-				if (CLOSEST_LIGHTS_DISTANCES[j] > CLOSEST_LIGHTS_DISTANCES[i])
+				if (CLOSEST_LIGHTS_WEIGHTS[j] > CLOSEST_LIGHTS_WEIGHTS[bestChoice])
 				{
-					int lightNum = CLOSEST_LIGHTS[i];
-					CLOSEST_LIGHTS[i] = CLOSEST_LIGHTS[j];
-					CLOSEST_LIGHTS[j] = lightNum;
-
-					vec3_t lightOrg;
-					VectorCopy(CLOSEST_LIGHTS_POSITIONS[i], lightOrg);
-					VectorCopy(CLOSEST_LIGHTS_POSITIONS[j], CLOSEST_LIGHTS_POSITIONS[i]);
-					VectorCopy(lightOrg, CLOSEST_LIGHTS_POSITIONS[j]);
-
-					float lightDist = CLOSEST_LIGHTS_DISTANCES[i];
-					CLOSEST_LIGHTS_DISTANCES[i] = CLOSEST_LIGHTS_DISTANCES[j];
-					CLOSEST_LIGHTS_DISTANCES[j] = lightDist;
-
-					float lightHS = CLOSEST_LIGHTS_HEIGHTSCALES[i];
-					CLOSEST_LIGHTS_HEIGHTSCALES[j] = CLOSEST_LIGHTS_HEIGHTSCALES[i];
-					CLOSEST_LIGHTS_HEIGHTSCALES[i] = lightHS;
-
-					vec3_t lightColor;
-					VectorCopy(CLOSEST_LIGHTS_COLORS[i], lightColor);
-					VectorCopy(CLOSEST_LIGHTS_COLORS[j], CLOSEST_LIGHTS_COLORS[i]);
-					VectorCopy(lightColor, CLOSEST_LIGHTS_COLORS[j]);
-
-					vec3_t lightDirection;
-					VectorCopy(CLOSEST_LIGHTS_CONEDIRECTIONS[i], lightDirection);
-					VectorCopy(CLOSEST_LIGHTS_CONEDIRECTIONS[j], CLOSEST_LIGHTS_CONEDIRECTIONS[i]);
-					VectorCopy(lightDirection, CLOSEST_LIGHTS_CONEDIRECTIONS[j]);
+					bestChoice = j;
 				}
+			}
+
+			if (bestChoice != i)
+			{
+				int lightNum = CLOSEST_LIGHTS[i];
+				CLOSEST_LIGHTS[i] = CLOSEST_LIGHTS[bestChoice];
+				CLOSEST_LIGHTS[bestChoice] = lightNum;
+
+				float lightDist = CLOSEST_LIGHTS_RADIUS[i];
+				CLOSEST_LIGHTS_RADIUS[i] = CLOSEST_LIGHTS_RADIUS[bestChoice];
+				CLOSEST_LIGHTS_RADIUS[bestChoice] = lightDist;
+
+				float lightWeight = CLOSEST_LIGHTS_WEIGHTS[i];
+				CLOSEST_LIGHTS_WEIGHTS[i] = CLOSEST_LIGHTS_WEIGHTS[bestChoice];
+				CLOSEST_LIGHTS_WEIGHTS[bestChoice] = lightWeight;
+
+				float lightHS = CLOSEST_LIGHTS_HEIGHTSCALES[i];
+				CLOSEST_LIGHTS_HEIGHTSCALES[i] = CLOSEST_LIGHTS_HEIGHTSCALES[bestChoice];
+				CLOSEST_LIGHTS_HEIGHTSCALES[bestChoice] = lightHS;
+
+				vec3_t lightOrg;
+				VectorCopy(CLOSEST_LIGHTS_POSITIONS[i], lightOrg);
+				VectorCopy(CLOSEST_LIGHTS_POSITIONS[bestChoice], CLOSEST_LIGHTS_POSITIONS[i]);
+				VectorCopy(lightOrg, CLOSEST_LIGHTS_POSITIONS[bestChoice]);
+
+				vec3_t lightColor;
+				VectorCopy(CLOSEST_LIGHTS_COLORS[i], lightColor);
+				VectorCopy(CLOSEST_LIGHTS_COLORS[i], CLOSEST_LIGHTS_COLORS[bestChoice]);
+				VectorCopy(lightColor, CLOSEST_LIGHTS_COLORS[bestChoice]);
+
+				vec3_t lightDirection;
+				VectorCopy(CLOSEST_LIGHTS_CONEDIRECTIONS[i], lightDirection);
+				VectorCopy(CLOSEST_LIGHTS_CONEDIRECTIONS[i], CLOSEST_LIGHTS_CONEDIRECTIONS[bestChoice]);
+				VectorCopy(lightDirection, CLOSEST_LIGHTS_CONEDIRECTIONS[bestChoice]);
 			}
 		}
 	}
+
+#if 0
+	if (r_testvalue0->integer)
+	{
+		for (int i = 0; i < NUM_CLOSE_LIGHTS; i++)
+		{
+			float dist = Distance(backEnd.refdef.vieworg, CLOSEST_LIGHTS_POSITIONS[i]);
+			float radius = CLOSEST_LIGHTS_RADIUS[i];
+
+			ri->Printf(PRINT_WARNING, "Light %i. Weight %f. Dist %f. Radius %f.\n", i, CLOSEST_LIGHTS_WEIGHTS[i], dist, radius);
+		}
+	}
+#endif
 
 #ifdef __CALCULATE_LIGHTDIR_FROM_LIGHT_AVERAGES__
 	//
@@ -2142,7 +2217,9 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	if (!ALLOW_PROCEDURALS_ON_MODELS 
 		&& backEnd.currentEntity != &tr.worldEntity 
 		&& backEnd.currentEntity != &backEnd.entity2D 
-		&& backEnd.renderPass != RENDERPASS_NONE)
+		&& backEnd.renderPass != RENDERPASS_NONE
+		&& backEnd.renderPass != RENDERPASS_POSTPROCESS
+		&& backEnd.renderPass != RENDERPASS_PSHADOWS)
 	{// Rendering of procedurals on model surfaces is disabled by default, but ALLOW_PROCEDURALS_ON_MODELS=1 in the [FIXES] section of mapinfo can be used to override this.
 		return;
 	}
@@ -2536,18 +2613,6 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			&& !(tr.viewParms.flags & VPF_SKYCUBEDAY)
 			&& !(tr.viewParms.flags & VPF_SKYCUBENIGHT))
 		{
-			/*
-			if (tess.shader->tesselation
-				&& tess.shader->tesselationLevel > 1.0
-				&& tess.shader->tesselationAlpha != 0.0)
-			{
-				useTesselation = 1;
-				tessInner = tess.shader->tesselationLevel;
-				tessOuter = tessInner;
-				tessAlpha = tess.shader->tesselationAlpha;
-			}
-			*/
-
 			useTesselation = 0;
 		}
 	}
@@ -3690,7 +3755,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformFloat(sp, UNIFORM_TIME, tess.shaderTime);
 
 			GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
-			//GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
+			GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
 
 			GLSL_SetUniformVec3(sp, UNIFORM_VIEWORIGIN, backEnd.viewParms.ori.origin);
 
@@ -3807,7 +3872,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformFloat(sp, UNIFORM_TIME, tess.shaderTime);
 
 			GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
-			//GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
+			GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
 
 			GLSL_SetUniformVec3(sp, UNIFORM_VIEWORIGIN, backEnd.viewParms.ori.origin);
 
@@ -3946,7 +4011,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformFloat(sp, UNIFORM_TIME, tess.shaderTime);
 
 			GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
-			//GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
+			GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
 
 			GLSL_SetUniformVec3(sp, UNIFORM_VIEWORIGIN, backEnd.viewParms.ori.origin);
 
@@ -4086,7 +4151,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformFloat(sp, UNIFORM_TIME, tess.shaderTime);
 
 			GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
-			//GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
+			GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
 
 			GLSL_SetUniformVec3(sp, UNIFORM_VIEWORIGIN, backEnd.viewParms.ori.origin);
 
@@ -4225,7 +4290,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformFloat(sp, UNIFORM_TIME, tess.shaderTime);
 
 			GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
-			//GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
+			GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
 
 			GLSL_SetUniformVec3(sp, UNIFORM_VIEWORIGIN, backEnd.viewParms.ori.origin);
 
@@ -4364,7 +4429,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformFloat(sp, UNIFORM_TIME, tess.shaderTime);
 
 			GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
-			//GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
+			GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
 
 			GLSL_SetUniformVec3(sp, UNIFORM_VIEWORIGIN, backEnd.viewParms.ori.origin);
 
@@ -4482,7 +4547,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformFloat(sp, UNIFORM_TIME, tess.shaderTime);
 
 			GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
-			//GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
+			GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
 
 			GLSL_SetUniformVec3(sp, UNIFORM_VIEWORIGIN, backEnd.viewParms.ori.origin);
 
@@ -4566,7 +4631,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformFloat(sp, UNIFORM_TIME, tess.shaderTime);
 
 			GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
-			//GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
+			GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
 
 			GLSL_SetUniformVec3(sp, UNIFORM_VIEWORIGIN, backEnd.viewParms.ori.origin);
 
@@ -5738,6 +5803,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				(GRASS3_ENABLED && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
 				(GRASS4_ENABLED && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL13, l13);
+
+			vec4_t l14;
+			VectorSet4(l14, WATEREDGE_RANGE_MULTIPLIER, 0.0, 0.0, 0.0);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL14, l14);
 		}
 		else if (isGrass && backEnd.renderPass == RENDERPASS_GRASS)
 		{
@@ -5775,6 +5844,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				(GRASS3_ENABLED && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
 				(GRASS4_ENABLED && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL13, l13);
+
+			vec4_t l14;
+			VectorSet4(l14, WATEREDGE_RANGE_MULTIPLIER, 0.0, 0.0, 0.0);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL14, l14);
 		}
 		else if (isGrass2 && backEnd.renderPass == RENDERPASS_GRASS2)
 		{
@@ -5811,6 +5884,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					(GRASS3_ENABLED && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
 					(GRASS4_ENABLED && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0);
 				GLSL_SetUniformVec4(sp, UNIFORM_LOCAL13, l13);
+
+				vec4_t l14;
+				VectorSet4(l14, WATEREDGE_RANGE_MULTIPLIER, 0.0, 0.0, 0.0);
+				GLSL_SetUniformVec4(sp, UNIFORM_LOCAL14, l14);
 			}
 		}
 		else if (isGrass3 && backEnd.renderPass == RENDERPASS_GRASS3)
@@ -5849,6 +5926,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				(GRASS2_ENABLED && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
 				(GRASS4_ENABLED && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL13, l13);
+
+			vec4_t l14;
+			VectorSet4(l14, WATEREDGE_RANGE_MULTIPLIER, 0.0, 0.0, 0.0);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL14, l14);
 		}
 		else if (isGrass4 && backEnd.renderPass == RENDERPASS_GRASS4)
 		{
@@ -5886,6 +5967,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				(GRASS2_ENABLED && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
 				(GRASS3_ENABLED && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL13, l13);
+
+			vec4_t l14;
+			VectorSet4(l14, WATEREDGE_RANGE_MULTIPLIER, 0.0, 0.0, 0.0);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL14, l14);
 		}
 		else if (isGroundFoliage && backEnd.renderPass == RENDERPASS_GROUNDFOLIAGE)
 		{
@@ -5900,6 +5985,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				VectorSet4(l12, 0.0, 0.0, 0.0, FOLIAGE_LOD_START_RANGE);
 				GLSL_SetUniformVec4(sp, UNIFORM_LOCAL12, l12);
 			}
+
+			vec4_t l14;
+			VectorSet4(l14, WATEREDGE_RANGE_MULTIPLIER, 0.0, 0.0, 0.0);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL14, l14);
 		}
 		else if (isVines && backEnd.renderPass == RENDERPASS_VINES)
 		{
@@ -6010,6 +6099,13 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL16, zero);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL17, zero);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL18, zero);
+		}
+
+		if (sp == &tr.lightAllSplatShader[0] || sp == &tr.lightAllSplatShader[1] || sp == &tr.lightAllSplatShader[2] || sp == &tr.lightAllSplatShader[3])
+		{// Send splatting details...
+			vec4_t vec;
+			VectorSet4(vec, STANDARD_SPLATMAP_STEEPANGLE, STANDARD_SPLATMAP_STEEPPCURVE, STANDARD_SPLATMAP_STEEPMINIMUM, STANDARD_SPLATMAP_STEEPMAXIMUM);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL19, vec);
 		}
 
 #if 0

@@ -403,8 +403,8 @@ void main()
 
 	gl_Position = u_ModelViewProjectionMatrix * vec4(finalPos, 1.0);
 
-	//finalPos = (u_ModelMatrix * vec4(finalPos, 1.0)).xyz;
-	//Normal_GS_in = (u_ModelMatrix * vec4(Normal_GS_in, 0.0)).xyz;
+	WorldPos_GS_in = (u_ModelMatrix * vec4(WorldPos_GS_in, 1.0)).xyz;
+	Normal_GS_in = (u_ModelMatrix * vec4(Normal_GS_in, 0.0)).xyz;
 
 	//WorldPos_GS_in = finalPos.xyz;
 	ViewDir_GS_in = u_ViewOrigin - finalPos;

@@ -1020,7 +1020,7 @@ centity_t *CG_FindEnemyShip(centity_t *myShip)
 	return enemyShip;
 }
 
-extern void FX_WeaponBolt3D(vec3_t org, vec3_t fwd, float length, float radius, qhandle_t shader);
+extern void FX_WeaponBolt3D(vec3_t org, vec3_t fwd, float length, float radius, qhandle_t shader, qboolean addLight);
 
 #define MAX_SHIP_LASERS 512//256
 #define MAX_SHIP_LASER_DRAW_DISTANCE 131072.0
@@ -1102,7 +1102,7 @@ void CG_ShipLasersThink(void)
 
 			if (bolt3D > 0)
 			{// New 3D bolt enabled...
-				FX_WeaponBolt3D(laser->origin, laser->dir, laser->size, laser->size, bolt3D);
+				FX_WeaponBolt3D(laser->origin, laser->dir, laser->size, laser->size, bolt3D, qfalse);
 			}
 		}
 	}
@@ -1451,7 +1451,7 @@ void CG_Fighters(centity_t *myShip)
 		{// Chase the enemy for a while...
 			mapFighters_t *wantedEnemy = &myShip->enemyFighters[fighter->chaseTarget];
 
-			vec3_t wantedDir, enemyOrg;
+			vec3_t wantedDir;
 
 			// Adjust the target direction, and slow the following fighter down as they get close...
 			float wantedDist = Distance(wantedEnemy->origin, fighter->origin);

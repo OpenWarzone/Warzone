@@ -52,12 +52,12 @@ CCALL void imgui_set_widthheight(int width, int height)   { imguidata.screen_wid
 
 
 
-CCALL void imgui_mouse_set_button(int button, kungbool state) { ImGuiIO& io = ImGui::GetIO(); io.MouseDown[button] = state;       }
+CCALL void imgui_mouse_set_button(int button, kungbool state) { ImGuiIO& io = ImGui::GetIO(); io.MouseDown[button] = state > 0 ? true : false;       }
 CCALL void imgui_mouse_wheel(float wheelDelta)                { ImGuiIO& io = ImGui::GetIO(); io.MouseWheel = wheelDelta; g_MouseWheel = wheelDelta;        }
-CCALL void imgui_on_key(int key, kungbool state)              { ImGuiIO& io = ImGui::GetIO(); io.KeysDown[key % 512] = state;     }
-CCALL void imgui_on_shift(kungbool state)                     { ImGuiIO& io = ImGui::GetIO(); io.KeyShift = state;                }
-CCALL void imgui_on_ctrl (kungbool state)                     { ImGuiIO& io = ImGui::GetIO(); io.KeyCtrl  = state;                }
-CCALL void imgui_on_alt  (kungbool state)                     { ImGuiIO& io = ImGui::GetIO(); io.KeyAlt   = state;                }
+CCALL void imgui_on_key(int key, kungbool state)              { ImGuiIO& io = ImGui::GetIO(); io.KeysDown[key % 512] = state > 0 ? true : false;     }
+CCALL void imgui_on_shift(kungbool state)                     { ImGuiIO& io = ImGui::GetIO(); io.KeyShift = state > 0 ? true : false;                }
+CCALL void imgui_on_ctrl (kungbool state)                     { ImGuiIO& io = ImGui::GetIO(); io.KeyCtrl  = state > 0 ? true : false;                }
+CCALL void imgui_on_alt  (kungbool state)                     { ImGuiIO& io = ImGui::GetIO(); io.KeyAlt   = state > 0 ? true : false;                }
 CCALL void imgui_on_text (char *text)                         { ImGuiIO& io = ImGui::GetIO(); io.AddInputCharactersUTF8(text);    }
 CCALL void imgui_set_ticks(unsigned int ticks)                { imguidata.global_ticks = ticks;                                   }
 
@@ -382,7 +382,7 @@ CCALL bool imgui_drag_float(char *label, float *v, float v_speed, float v_min, f
 CCALL void imgui_push_id(int id)                                                               {        ImGui::PushID(id);                                      }
 CCALL void imgui_pop_id(int id)                                                                {        ImGui::PopID();                                         }
 
-CCALL bool imgui_dock_closebuttonpressed(CDock *dock)                                    { return dock->closeButtonPressed;                               }
+CCALL bool imgui_dock_closebuttonpressed(CDock *dock)                                    { return dock->closeButtonPressed > 0 ? true : false;                               }
 CCALL void imgui_dock_closebuttonreset(CDock *dock)                                      { dock->closeButtonPressed = false;                              }
 
 CCALL void imgui_line(ImVec2 *a, ImVec2 *b, unsigned int color, float thickness) {

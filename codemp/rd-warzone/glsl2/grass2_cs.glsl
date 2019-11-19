@@ -186,11 +186,6 @@ void main()
 	// UQ1: Checked and distance is faster
 	float VertDist = distance(u_ViewOrigin, Pos);
 	float CULL_RANGE = MAX_RANGE + 1024;
-
-	if (Pos.z < MAP_WATER_LEVEL)
-	{
-		CULL_RANGE = (MAX_RANGE * 1.0/*2.0*/) + 1024;
-	}
 	
 	if (VertDist >= CULL_RANGE)
 	{// Early cull...

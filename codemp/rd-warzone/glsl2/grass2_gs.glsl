@@ -60,6 +60,7 @@ uniform sampler2D							u_HeightMap;
 #endif //defined(USE_BINDLESS_TEXTURES)
 
 uniform mat4								u_ModelViewProjectionMatrix;
+uniform mat4								u_ModelMatrix;
 
 uniform vec4								u_Settings1; // IS_DEPTH_PASS, 0.0, 0.0, LEAF_ALPHA_MULTIPLIER
 
@@ -74,6 +75,7 @@ uniform vec4								u_Local10; // foliageLODdistance, TERRAIN_TESS_OFFSET, 0.0, 
 uniform vec4								u_Local11; // GRASS_WIDTH_REPEATS, GRASS_MAX_SLOPE, GRASS_TYPE_UNIFORMALITY_SCALER, GRASS_RARE_PATCHES_ONLY
 uniform vec4								u_Local12; // GRASS_SIZE_MULTIPLIER_COMMON, GRASS_SIZE_MULTIPLIER_RARE, GRASS_SIZE_MULTIPLIER_UNDERWATER, GRASS_LOD_START_RANGE
 uniform vec4								u_Local13; // HAVE_GRASS_CONTROL, HAVE_GRASS_CONTROL1, HAVE_GRASS_CONTROL2, HAVE_GRASS_CONTROL3
+uniform vec4								u_Local14; // WATEREDGE_RANGE_MULTIPLIER, 0.0, 0.0, 0.0
 
 #define SHADER_MAP_SIZE						u_Local1.r
 #define SHADER_SWAY							u_Local1.g
@@ -113,6 +115,8 @@ uniform vec4								u_Local13; // HAVE_GRASS_CONTROL, HAVE_GRASS_CONTROL1, HAVE_
 #define HAVE_GRASS_CONTROL1					u_Local13.g
 #define HAVE_GRASS_CONTROL2					u_Local13.b
 #define HAVE_GRASS_CONTROL3					u_Local13.a
+
+#define WATEREDGE_RANGE_MULTIPLIER			u_Local14.a
 
 #define MAP_WATER_LEVEL						SHADER_WATER_LEVEL // TODO: Use water map
 #define GRASS_TYPE_UNIFORM_WATER			0.66
@@ -444,6 +448,31 @@ bool CheckGrassMapPosition(vec3 pos)
 	return false;
 }
 
+struct Ray {
+	vec3 Origin;
+	vec3 Dir;
+};
+
+struct AABB {
+	vec3 Min;
+	vec3 Max;
+};
+
+bool IntersectBox(in Ray r, in AABB aabb, out float t0, out float t1)
+{
+	vec3 invR = 1.0 / r.Dir;
+	vec3 tbot = invR * (aabb.Min - r.Origin);
+	vec3 ttop = invR * (aabb.Max - r.Origin);
+	vec3 tmin = min(ttop, tbot);
+	vec3 tmax = max(ttop, tbot);
+	vec2 t = max(tmin.xx, tmin.yz);
+	t0 = max(0.,max(t.x, t.y));
+	t  = min(tmax.xx, tmax.yz);
+	t1 = min(t.x, t.y);
+	//return (t0 <= t1) && (t1 >= 0.);
+	return (abs(t0) <= t1);
+}
+
 void main()
 {
 	bool fakeLOD = false;
@@ -461,6 +490,26 @@ void main()
 
 	vec3 vGrassFieldPos = (Vert1 + Vert2 + Vert3) / 3.0;   //Center of the triangle - copy for later
 														   //-----------------------------------
+
+#if 0
+	if (u_Local9.r > 0.0)
+	{
+		// clamp ray in boundary box
+		Ray r;
+		r.Origin = u_ViewOrigin;
+		r.Dir = vGrassFieldPos - u_ViewOrigin;
+
+		AABB box;
+		box.Min = u_Mins.xyz;
+		box.Max = u_Maxs.xyz;
+		float t1, t2;
+		
+		if (!IntersectBox(r, box, t1, t2)) 
+		{
+			return;
+		}
+	}
+#endif
 
 	if (!CheckGrassMapPosition(vGrassFieldPos))
 	{
@@ -482,7 +531,7 @@ void main()
 
 	if (vGrassFieldPos.z < MAP_WATER_LEVEL)
 	{
-		CULL_RANGE = MAX_RANGE * 1.0/*2.0*/;
+		CULL_RANGE = MAX_RANGE;
 	}
 
 
@@ -498,7 +547,12 @@ void main()
 	float heightAboveWater = vGrassFieldPos.z - MAP_WATER_LEVEL;
 	float heightAboveWaterLength = length(heightAboveWater);
 
-	if (heightAboveWaterLength <= 256.0/*192.0*//*128.0*/)
+	if (heightAboveWater > 0.0 && heightAboveWaterLength <= 256.0*WATEREDGE_RANGE_MULTIPLIER)
+	{// Too close to water edge...
+		return;
+	}
+
+	if (heightAboveWater < 0.0 && heightAboveWaterLength <= 256.0)
 	{// Too close to water edge...
 		return;
 	}
@@ -808,21 +862,25 @@ void main()
 
 		vVertPosition = va.xyz;
 		gl_Position = u_ModelViewProjectionMatrix * vec4(vVertPosition, 1.0);
+		vVertPosition = (u_ModelMatrix * vec4(vVertPosition, 1.0)).xyz;
 		vTexCoord = vec2(tcOffsetBegin[0], tcOffsetEnd[1]);
 		EmitVertex();
 
 		vVertPosition = vb.xyz;
 		gl_Position = u_ModelViewProjectionMatrix * vec4(vVertPosition, 1.0);
+		vVertPosition = (u_ModelMatrix * vec4(vVertPosition, 1.0)).xyz;
 		vTexCoord = vec2(tcOffsetEnd[0], tcOffsetEnd[1]);
 		EmitVertex();
 
 		vVertPosition = vc.xyz + playerOffset + vWindDirection*fWindPower;
 		gl_Position = u_ModelViewProjectionMatrix * vec4(vVertPosition, 1.0);
+		vVertPosition = (u_ModelMatrix * vec4(vVertPosition, 1.0)).xyz;
 		vTexCoord = vec2(tcOffsetBegin[0], tcOffsetBegin[1]);
 		EmitVertex();
 
 		vVertPosition = vd.xyz + playerOffset + vWindDirection*fWindPower;
 		gl_Position = u_ModelViewProjectionMatrix * vec4(vVertPosition, 1.0);
+		vVertPosition = (u_ModelMatrix * vec4(vVertPosition, 1.0)).xyz;
 		vTexCoord = vec2(tcOffsetEnd[0], tcOffsetBegin[1]);
 		EmitVertex();
 

@@ -1,13 +1,12 @@
 ﻿#define __PROCEDURALS_IN_DEFERRED_SHADER__
-#define __SSDM_IN_DEFERRED_SHADER__
-#define __LIGHTING_USE_MAX__
-#define __LIGHTING_USE_DESATURATE__
+//#define __USE_MAP_EMMISSIVE_BLOCK__
 
 #ifndef __LQ_MODE__
 	#define __AMBIENT_OCCLUSION__
 	#define __ENHANCED_AO__
 	#define __SCREEN_SPACE_REFLECTIONS__
 	#define __CLOUD_SHADOWS__
+	//#define __SSDO__
 
 	#ifdef __ENHANCED_AO__
 		#define __ENABLE_GI__
@@ -16,8 +15,6 @@
 	#ifdef USE_CUBEMAPS
 		#define __CUBEMAPS__
 	#endif //USE_CUBEMAPS
-
-	//#define __SSSSS__
 #endif //__LQ_MODE__
 
 #if defined(USE_BINDLESS_TEXTURES)
@@ -87,8 +84,10 @@ uniform sampler2D							u_ShadowMap;		// Screen Shadow Map
 #endif //USE_SHADOWMAP
 
 #ifndef __LQ_MODE__
-uniform sampler2D							u_HeightMap;		// SSDO Map
-uniform sampler2D							u_SplatMap1;		// SSDO Illumination Map
+#ifdef __SSDO__
+	uniform sampler2D							u_HeightMap;		// SSDO Map
+	uniform sampler2D							u_SplatMap1;		// SSDO Illumination Map
+#endif //__SSDO__
 uniform sampler2D							u_WaterEdgeMap;		// tr.shinyImage
 uniform samplerCube							u_SkyCubeMap;		// Day sky cubemap
 uniform samplerCube							u_SkyCubeMapNight;	// Night sky cubemap
@@ -98,34 +97,30 @@ uniform samplerCube							u_SkyCubeMapNight;	// Night sky cubemap
 uniform samplerCube							u_CubeMap;			// Closest cubemap
 #endif //__CUBEMAPS__
 
-#ifdef __SSDM_IN_DEFERRED_SHADER__
 uniform sampler2D							u_ScreenDepthMap;	// 512 depth map.
 uniform sampler2D							u_RoadMap;			// SSDM map.
-#endif //__SSDM_IN_DEFERRED_SHADER__
 #endif //defined(USE_BINDLESS_TEXTURES)
 
-
-#ifdef USE_LIGHTS_UBO
-layout(std140) uniform u_LightingBlock
-{
-	uniform int								u_lightCount;
-	uniform vec3							u_lightPositions2[MAX_DEFERRED_LIGHTS];
-	uniform float							u_lightDistances[MAX_DEFERRED_LIGHTS];
-	uniform vec3							u_lightColors[MAX_DEFERRED_LIGHTS];
-	//uniform float							u_lightConeAngles[MAX_DEFERRED_LIGHTS];
-	//uniform vec3							u_lightConeDirections[MAX_DEFERRED_LIGHTS];
-	uniform float							u_lightMaxDistance;
-};
-#else //!USE_LIGHTS_UBO
 uniform int									u_lightCount;
-uniform vec3								u_lightPositions2[MAX_DEFERRED_LIGHTS];
-uniform float								u_lightDistances[MAX_DEFERRED_LIGHTS];
-uniform vec3								u_lightColors[MAX_DEFERRED_LIGHTS];
-//uniform float								u_lightConeAngles[MAX_DEFERRED_LIGHTS];
-//uniform vec3								u_lightConeDirections[MAX_DEFERRED_LIGHTS];
-uniform float								u_lightMaxDistance;
-#endif //USE_LIGHTS_UBO
+uniform int									u_emissiveLightCount;
 
+struct Lights_t
+{
+	vec4										u_lightPositions2;
+	vec4										u_lightColors;
+};
+
+layout (std430, binding=2) buffer LightBlock
+{ 
+	Lights_t lights[];
+};
+
+#ifdef __USE_MAP_EMMISSIVE_BLOCK__
+layout (std430, binding=3) buffer EmissiveLightBlock
+{ 
+	Lights_t emissiveLights[];
+};
+#endif //__USE_MAP_EMMISSIVE_BLOCK__
 
 uniform mat4								u_ModelViewProjectionMatrix;
 
@@ -139,16 +134,12 @@ uniform vec4								u_Local5;	// CONTRAST,				SATURATION,						BRIGHTNESS,						
 uniform vec4								u_Local6;	// AO_MINBRIGHT,			AO_MULTBRIGHT,					VIBRANCY,						TRUEHDR_ENABLED
 uniform vec4								u_Local7;	// cubemapEnabled,			r_cubemapCullRange,				PROCEDURAL_SKY_ENABLED,			r_skyLightContribution
 uniform vec4								u_Local8;	// NIGHT_SCALE,				PROCEDURAL_CLOUDS_CLOUDCOVER,	PROCEDURAL_CLOUDS_CLOUDSCALE,	CLOUDS_SHADOWS_ENABLED
-uniform vec4								u_Local12;	// COLOR_GRADING_ENABLED,	USE_SSDO,						0.0,							0.0
+uniform vec4								u_Local11;	// DISPLACEMENT_MAPPING_STRENGTH, COLOR_GRADING_ENABLED,	USE_SSDO, 0.0
 
 #ifdef __PROCEDURALS_IN_DEFERRED_SHADER__
 uniform vec4								u_Local9;	// MAP_INFO_PLAYABLE_HEIGHT, PROCEDURAL_MOSS_ENABLED, PROCEDURAL_SNOW_ENABLED, PROCEDURAL_SNOW_ROCK_ONLY
 uniform vec4								u_Local10;	// PROCEDURAL_SNOW_LUMINOSITY_CURVE, PROCEDURAL_SNOW_BRIGHTNESS, PROCEDURAL_SNOW_HEIGHT_CURVE, PROCEDURAL_SNOW_LOWEST_ELEVATION
 #endif //__PROCEDURALS_IN_DEFERRED_SHADER__
-
-#ifdef __SSDM_IN_DEFERRED_SHADER__
-uniform vec4								u_Local11;	// DISPLACEMENT_MAPPING_STRENGTH, 0.0, 0.0, 0.0
-#endif //__SSDM_IN_DEFERRED_SHADER__
 
 uniform vec3								u_ViewOrigin;
 uniform vec4								u_PrimaryLightOrigin;
@@ -207,9 +198,6 @@ varying float								var_CloudShadow;
 #define CLOUDS_CLOUDSCALE					u_Local8.b
 #define CLOUDS_SHADOWS_ENABLED				u_Local8.a
 
-#define COLOR_GRADING_ENABLED				u_Local12.r
-#define USE_SSDO							u_Local12.g
-
 #ifdef __PROCEDURALS_IN_DEFERRED_SHADER__
 #define MAP_INFO_PLAYABLE_HEIGHT			u_Local9.r
 #define PROCEDURAL_MOSS_ENABLED				u_Local9.g
@@ -222,9 +210,9 @@ varying float								var_CloudShadow;
 #define PROCEDURAL_SNOW_LOWEST_ELEVATION	u_Local10.a
 #endif //__PROCEDURALS_IN_DEFERRED_SHADER__
 
-#ifdef __SSDM_IN_DEFERRED_SHADER__
 #define DISPLACEMENT_STRENGTH				u_Local11.r
-#endif //__SSDM_IN_DEFERRED_SHADER__
+#define COLOR_GRADING_ENABLED				u_Local11.g
+#define USE_SSDO							u_Local11.b
 
 #define WATER_ENABLED						u_Mins.a
 
@@ -1220,78 +1208,8 @@ vec3 ColorGrade( vec3 vColor )
 	return vColor;
 }
 
-#ifdef __SSSSS__
-#define SSSSS_STEPS			3.0
-#define SSSSS_CORRECTION	1.0
-#define SSSSS_STRENGTH		1.0
-vec4 SSSSS_Gather(vec4 inColor, vec2 texcoord, vec2 thisStep)
-{
-	const float w[6] = { 0.006,   0.061,   0.242,  0.242,  0.061, 0.006 };
-	const float o[6] = {  -1.0, -0.6667, -0.3333, 0.3333, 0.6667,   1.0 };
-
-	vec4 colorM = inColor;
-	float depthM = texture(u_DeluxeMap, texcoord).x;
-
-	vec4 colorBlurred = colorM;
-	colorBlurred.rgb *= 0.382;
-
-	// Calculate the step that we will use to fetch the surrounding pixels,
-	// where "thisStep" is:
-	//     thisStep = sssStrength * gaussianWidth * pixelSize * dir
-	// The closer the pixel, the stronger the effect needs to be, hence
-	// the factor 1.0 / depthM.
-	vec2 finalStep = colorM.a * thisStep / depthM;
-
-	for (int i = 0; i < 6; i++) {
-		vec2 offset = texcoord + (o[i] * finalStep);
-		vec3 color = texture(u_DiffuseMap, offset).rgb;
-		float depth =  texture(u_DeluxeMap, offset).x;
-
-		float s = min(0.0125 * SSSSS_CORRECTION * abs(depthM - depth), 1.0);
-		color = mix(color, colorM.rgb, s);
-
-		// Accumulate:
-		colorBlurred.rgb += w[i] * color;
-	}
-
-	return colorBlurred;
-}
-
-vec4 SSSSS(vec4 inColor, vec2 texcoord)
-{
-	if (SSSSS_STEPS <= 0.0)
-	{
-		return inColor;
-	}
-
-	vec4 finalColor = vec4(0.0);
-	float stepsDone = 1.0;
-
-	for (float x = -SSSSS_STEPS; x <= SSSSS_STEPS; x += 1.0)
-	{
-		vec2 thisStep = pixel * vec2(1.0, 0.0) * x * SSSSS_STRENGTH;
-		finalColor += SSSSS_Gather(finalColor / stepsDone, texcoord, thisStep);
-		stepsDone += 1.0;
-	}
-
-	for (float y = -SSSSS_STEPS; y <= SSSSS_STEPS; y += 1.0)
-	{
-		vec2 thisStep = pixel * vec2(0.0, 1.0) * y * SSSSS_STRENGTH;
-		finalColor += SSSSS_Gather(finalColor / stepsDone, texcoord, thisStep);
-		stepsDone += 1.0;
-	}
-
-	finalColor /= stepsDone; // x and y count * 2 directions of each
-
-	return finalColor;
-}
-#endif //__SSSSS__
-
 vec3 GetScreenPixel(inout vec2 texCoords)
 {
-#ifndef __SSDM_IN_DEFERRED_SHADER__
-	return texture(u_DiffuseMap, texCoords).rgb;
-#else //__SSDM_IN_DEFERRED_SHADER__
 	vec3 dMap = texture(u_RoadMap, texCoords).rgb;
 	vec3 color = texture(u_DiffuseMap, texCoords).rgb;
 
@@ -1342,7 +1260,6 @@ vec3 GetScreenPixel(inout vec2 texCoords)
 	color.rgb *= shadow;
 
 	return color;
-#endif //__SSDM_IN_DEFERRED_SHADER__
 }
 
 void main(void)
@@ -1351,6 +1268,7 @@ void main(void)
 	vec4 position = positionMapAtCoord(texCoords);
 	vec4 color = vec4(GetScreenPixel(texCoords), 1.0);
 	vec4 outColor = color;
+
 
 	if (position.a - 1.0 >= MATERIAL_SKY
 		|| position.a - 1.0 == MATERIAL_SUN
@@ -1401,10 +1319,6 @@ void main(void)
 		gl_FragColor.a = 1.0;
 		return;
 	}
-
-#ifdef __SSSSS__
-	outColor = SSSSS(outColor, texCoords);
-#endif //__SSSSS__
 
 	vec2 materialSettings = RB_PBR_DefaultsForMaterial(position.a-1.0);
 	bool isPuddle = (position.a - 1.0 == MATERIAL_PUDDLE) ? true : false;
@@ -1486,7 +1400,7 @@ void main(void)
 	float sun_occlusion = 1.0;
 	bool useOcclusion = false;
 
-#ifndef __LQ_MODE__
+#ifdef __SSDO__
 	if (USE_SSDO > 0.0)
 	{
 		useOcclusion = true;
@@ -1510,7 +1424,7 @@ void main(void)
 
 		outColor.rgb += illumination.rgb * 0.25;
 	}
-#endif //!__LQ_MODE__
+#endif //__SSDO__
 
 
 #ifdef __PROCEDURALS_IN_DEFERRED_SHADER__
@@ -1854,12 +1768,11 @@ void main(void)
 			{
 				for (int li = 0; li < u_lightCount; li++)
 				{
-					vec3 lightPos = u_lightPositions2[li].xyz;
+					vec3 lightPos = lights[li].u_lightPositions2.xyz;
 					float lightDist = distance(lightPos, position.xyz);
 					float coneModifier = 1.0;
 
-					//if ((lightDist * lightDist) > (u_lightDistances[li] * u_lightDistances[li]))
-					if (lightDist > u_lightDistances[li])
+					if (lightDist > lights[li].u_lightPositions2.w)
 					{
 						continue;
 					}
@@ -1890,26 +1803,22 @@ void main(void)
 					if (lightDistMult > 0.0)
 					{
 						// Attenuation...
-						float lightFade = 1.0 - clamp((lightDist * lightDist) / (u_lightDistances[li] * u_lightDistances[li]), 0.0, 1.0);
+						float lightFade = 1.0 - clamp((lightDist * lightDist) / (lights[li].u_lightPositions2.w * lights[li].u_lightPositions2.w), 0.0, 1.0);
 						lightFade = pow(lightFade, 2.0);
 
 						if (lightFade > 0.0)
 						{
 							float lightStrength = coneModifier * lightDistMult * lightFade * specularReflectivePower * 0.5;
-							float maxLightsScale = mix(0.01, 1.0, clamp(pow(1.0 - (lightPlayerDist / u_lightMaxDistance), 0.5), 0.0, 1.0));
+							float maxLightsScale = mix(0.01, 1.0, clamp(pow(1.0 - (lightPlayerDist / lights[li].u_lightColors.w), 0.5), 0.0, 1.0));
 							lightStrength *= maxLightsScale;
 
 							if (lightStrength > 0.0)
 							{
 								vec3 lightDir = normalize(lightPos - position.xyz);
-								vec3 lightColor = (u_lightColors[li].rgb / length(u_lightColors[li].rgb)) * MAP_EMISSIVE_COLOR_SCALE * maxLightsScale;
+								vec3 lightColor = lights[li].u_lightColors.rgb;
 								float selfShadow = clamp(pow(clamp(dot(-lightDir.rgb, bump.rgb), 0.0, 1.0), 8.0) * 0.6 + 0.6, 0.0, 1.0);
 
-#ifdef __LIGHTING_USE_DESATURATE__
-								lightColor.rgb = mix(lightColor.rgb, vec3(1.0), 0.85); // bend all lights towards white, to even strengths and make the jka colors less, ummm, cartoony... real world light is more grey then white/black.
-#endif //__LIGHTING_USE_DESATURATE__
-				
-								lightColor = lightColor * power * origColorStrength;
+								lightColor = lightColor * power * origColorStrength * maxLightsScale * MAP_EMISSIVE_COLOR_SCALE;
 
 								float lightSpecularPower = mix(0.1, 0.5, clamp(lightsReflectionFactor, 0.0, 1.0)) * clamp(lightStrength * phongFactor, 0.0, 1.0);
 
@@ -1922,29 +1831,21 @@ void main(void)
 								}
 #endif //__LQ_MODE__
 
-#ifdef __LIGHTING_USE_MAX__
 								addedLight.rgb = max(addedLight.rgb, blinn_phong(position.xyz, outColor.rgb, bump, E, lightDir, clamp(lightColor, 0.0, 1.0), lightSpecularPower, lightPos, wetness) * lightFade * selfShadow * light_occlusion);
-#else //!__LIGHTING_USE_MAX__
-								addedLight.rgb += blinn_phong(position.xyz, outColor.rgb, bump, E, lightDir, clamp(lightColor, 0.0, 1.0), lightSpecularPower, lightPos, wetness) * lightFade * selfShadow * light_occlusion;
-#endif //__LIGHTING_USE_MAX__
 
 								if (position.a - 1.0 == MATERIAL_GREENLEAVES || position.a - 1.0 == MATERIAL_PROCEDURALFOLIAGE)
 								{// Light bleeding through tree leaves...
 									float ndotl = clamp(dot(bump, -lightDir), 0.0, 1.0);
 									float diffuse = pow(ndotl, 2.0) * 4.0;
 
-#ifdef __LIGHTING_USE_MAX__
 									addedLight.rgb = max(addedLight.rgb, lightColor * diffuse * lightFade * selfShadow * lightSpecularPower);
-#else //!__LIGHTING_USE_MAX__
-									addedLight.rgb += lightColor * diffuse * lightFade * selfShadow * lightSpecularPower;
-#endif //__LIGHTING_USE_MAX__
 								}
 							}
 						}
 					}
 				}
 
-				addedLight.rgb *= lightsReflectionFactor; // More grey colors get more colorization from lights...
+				addedLight.rgb *= lightsReflectionFactor; // More grey colors get more colorization from ..
 				outColor.rgb = outColor.rgb + max(addedLight * PshadowValue, vec3(0.0));
 			}
 		}

@@ -422,14 +422,14 @@ void main()
 		finalPos = DeformPosition(finalPos, Normal_GS_in, TexCoord_GS_in.st);
 	}
 
-	finalPos = (u_ModelMatrix * vec4(finalPos, 1.0)).xyz;
+	WorldPos_GS_in = (u_ModelMatrix * vec4(finalPos, 1.0)).xyz;
 	Normal_GS_in = (u_ModelMatrix * vec4(Normal_GS_in, 0.0)).xyz;
 
 	//Normal_GS_in = uTessAlpha*(u_ModelMatrix * vec4(pnNormal, 0.0) + (1.0 - uTessAlpha)*(u_ModelMatrix * vec4(barNormal, 0.0);
 #else //__USE_GEOM_SHADER__
 	gl_Position = vec4(finalPos, 1.0);
 #endif //__USE_GEOM_SHADER__
-	WorldPos_GS_in = finalPos.xyz;
+	//WorldPos_GS_in = finalPos.xyz;
 	ViewDir_GS_in = u_ViewOrigin - finalPos;
 
 	TessDepth_GS_in = 0.0;

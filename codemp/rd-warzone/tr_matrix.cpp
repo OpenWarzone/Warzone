@@ -179,3 +179,61 @@ std::ostream& operator<<(std::ostream& os, const vec4& A)
 	os.width(w);
 	return os;
 }
+
+#define min1(x,y) ((x)<(y)?(x):(y))
+#define max1(x,y) ((x)>(y)?(x):(y))
+
+vec3 min3(vec3 a, vec3 b)
+{
+	vec3 out;
+	out.x = min1(a.x, b.x);
+	out.y = min1(a.y, b.y);
+	out.z = min1(a.z, b.z);
+	return out;
+}
+
+vec3 max3(vec3 a, vec3 b)
+{
+	vec3 out;
+	out.x = max1(a.x, b.x);
+	out.y = max1(a.y, b.y);
+	out.z = max1(a.z, b.z);
+	return out;
+}
+
+vec2 min2(vec2 a, vec2 b)
+{
+	vec2 out;
+	out.x = min1(a.x, b.x);
+	out.y = min1(a.y, b.y);
+	return out;
+}
+
+vec2 max2(vec2 a, vec2 b)
+{
+	vec2 out;
+	out.x = max1(a.x, b.x);
+	out.y = max1(a.y, b.y);
+	return out;
+}
+
+bool RayIntersectBox(vec3 Origin, vec3 Dir, vec3 mins, vec3 maxs)
+{
+	vec3 invR = 1.0 / Dir;
+	vec3 tbot = invR * (mins - Origin);
+	vec3 ttop = invR * (maxs - Origin);
+	vec3 tmin = min3(ttop, tbot);
+	vec3 tmax = max3(ttop, tbot);
+
+	vec2 t;
+	t.x = max1(tmin.x, tmin.y);
+	t.y = max1(tmin.x, tmin.z);
+
+	float t0 = max1(0.0, max1(t.x, t.y));
+
+	t.x = max1(tmin.x, tmin.y);
+	t.y = max1(tmin.x, tmin.z);
+
+	float t1 = min1(t.x, t.y);
+	return (abs(t0) <= t1);
+}

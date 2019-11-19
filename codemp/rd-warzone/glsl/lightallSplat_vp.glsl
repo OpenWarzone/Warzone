@@ -100,6 +100,7 @@ uniform vec4						u_Local13; // hasSteepMap, hasSteepMap1, hasSteepMap2, hasStee
 uniform vec4						u_Local14; // grassAliasImage
 uniform vec4						u_Local15; // seaGrassAliasImage
 uniform vec4						u_Local16; // GRASS_ENABLED, GRASS_DISTANCE, GRASS_MAX_SLOPE, 0.0
+uniform vec4						u_Local19; // STANDARD_SPLATMAP_STEEPANGLE, STANDARD_SPLATMAP_STEEPPCURVE, STANDARD_SPLATMAP_STEEPMINIMUM, STANDARD_SPLATMAP_STEEPMAXIMUM
 
 #define SHADER_MAP_SIZE				u_Local1.r
 #define SHADER_SWAY					u_Local1.g
@@ -129,6 +130,12 @@ uniform vec4						u_Local16; // GRASS_ENABLED, GRASS_DISTANCE, GRASS_MAX_SLOPE, 
 #define GRASS_ENABLED				u_Local16.r
 #define GRASS_DISTANCE				u_Local16.g
 #define GRASS_MAX_SLOPE				u_Local16.b
+
+#define SPLATMAP_STEEPANGLE			u_Local19.r
+#define SPLATMAP_STEEPCURVE			u_Local19.g
+#define SPLATMAP_STEEPMINIMUM		u_Local19.b
+#define SPLATMAP_STEEPMAXIMUM		u_Local19.a
+
 
 #ifdef __CHEAP_VERTS__
 uniform int					u_isWorld;
@@ -165,7 +172,6 @@ uniform float  u_FogEyeT;
 uniform vec4   u_FogColorMask;
 
 uniform mat4   u_ModelViewProjectionMatrix;
-//uniform mat4	u_ViewProjectionMatrix;
 uniform mat4   u_ModelMatrix;
 uniform mat4	u_NormalMatrix;
 
@@ -593,7 +599,6 @@ void main()
 	position.xyz += heightMap;
 #endif //__HEIGHTMAP_TERRAIN_TEST__
 
-	vec2 texCoords = attr_TexCoord0.st;
 
 #if 0
 	if (USE_DEFORM == 1.0)
@@ -604,27 +609,13 @@ void main()
 
 	gl_Position = u_ModelViewProjectionMatrix * vec4(position, 1.0);
 
-	vec3 preMMPos = position.xyz;
-
-#if 0
+#if 1
 	//if (USE_VERTEX_ANIM == 1.0 || USE_SKELETAL_ANIM == 1.0)
 	{
 		position = (u_ModelMatrix * vec4(position, 1.0)).xyz;
 		normal = (u_ModelMatrix * vec4(normal, 0.0)).xyz;
 	}
-
-	if (USE_TC == 1.0)
-	{
-		texCoords = GenTexCoords(u_TCGen0, position, normal, u_TCGen0Vector0, u_TCGen0Vector1);
-		texCoords = ModTexCoords(texCoords, position, u_DiffuseTexMatrix, u_DiffuseTexOffTurb);
-	}
 #endif
-
-
-	if (!(u_textureScale.x <= 0.0 && u_textureScale.y <= 0.0) && !(u_textureScale.x == 1.0 && u_textureScale.y == 1.0))
-	{
-		texCoords *= u_textureScale;
-	}
 
 	var_Color = CalcColor(position, normal);
 
@@ -635,7 +626,7 @@ void main()
 	}
 #endif
 
-	var_TexCoords = texCoords;
+	var_TexCoords = vec2(0.0);
 
 
 	if (USE_LIGHTMAP > 0.0)
@@ -671,29 +662,24 @@ void main()
 
 		if (SHADER_HAS_STEEPMAP > 0.0)
 		{// Steep maps...
-			if (pitch > 46.0 && USE_REGIONS <= 0.0)
+			if (USE_REGIONS > 0.0)
 			{
-				var_Slope = clamp(pow(clamp((pitch - 46.0) / 44.0, 0.0, 1.0), 0.75), 0.0, 1.0);
-				
-				if (USE_REGIONS > 0.0)
+				if (pitch > SPLATMAP_STEEPANGLE)
 				{
 					var_Slope = 0.0;
 				}
 				else
-				{
-					var_Slope = smoothstep(0.2, 0.7, var_Slope);
-				}
-			}
-			else
-			{
-				if (USE_REGIONS > 0.0)
 				{
 					var_Slope = clamp(pow(clamp(pitch / 90.0, 0.0, 1.0), 2.0), 0.0, 1.0);
 					var_Slope = smoothstep(0.5, 1.0, 1.0 - var_Slope);
 				}
-				else
+			}
+			else
+			{
+				if (pitch > SPLATMAP_STEEPANGLE)
 				{
-					var_Slope = 0.0;
+					var_Slope = clamp(pow(clamp((pitch - SPLATMAP_STEEPANGLE) / max(SPLATMAP_STEEPANGLE - 2.0, 1.0), 0.0, 1.0), SPLATMAP_STEEPCURVE), 0.0, 1.0);
+					var_Slope = smoothstep(SPLATMAP_STEEPMINIMUM, SPLATMAP_STEEPMAXIMUM, var_Slope);
 				}
 			}
 		}
@@ -705,7 +691,7 @@ void main()
 #if !defined(USE_TESSELLATION_3D)
 	if (USE_REGIONS > 0.0 || USE_TRIPLANAR > 0.0)
 	{
-		GetBlending(normalize(attr_Normal.xyz * 2.0 - 1.0));
+		GetBlending(normalize(normal.xyz/*attr_Normal.xyz * 2.0 - 1.0*/));
 	}
 #endif //!defined(USE_TESSELLATION_3D)
 

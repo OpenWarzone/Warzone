@@ -3,7 +3,7 @@
 #include "cg_local.h"
 #include "fx_local.h"
 
-extern void FX_WeaponBolt3D(vec3_t org, vec3_t fwd, float length, float radius, qhandle_t shader);
+extern void FX_WeaponBolt3D(vec3_t org, vec3_t fwd, float length, float radius, qhandle_t shader, qboolean addLight);
 
 //
 // UniqueOne's New - GENERIC - Weapon FX Code...
@@ -85,7 +85,7 @@ void FX_WeaponProjectileThink(centity_t *cent, const struct weaponInfo_s *weapon
 	
 	if (bolt3D > 0)
 	{// New 3D bolt enabled...
-		FX_WeaponBolt3D(cent->lerpOrigin, forward, CG_Get3DWeaponBoltLength(weapon, qfalse), CG_Get3DWeaponBoltWidth(weapon, qfalse), bolt3D);
+		FX_WeaponBolt3D(cent->lerpOrigin, forward, CG_Get3DWeaponBoltLength(weapon, qfalse), CG_Get3DWeaponBoltWidth(weapon, qfalse), bolt3D, qtrue);
 	}
 	else if (weapon->missileRenderfx > 0)
 	{// Old 2D system...
@@ -113,7 +113,7 @@ void FX_WeaponAltProjectileThink(centity_t *cent, const struct weaponInfo_s *wea
 
 	if (bolt3D > 0)
 	{// New 3D bolt enabled...
-		FX_WeaponBolt3D(cent->lerpOrigin, forward, CG_Get3DWeaponBoltLength(weapon, qtrue), CG_Get3DWeaponBoltWidth(weapon, qtrue), bolt3D);
+		FX_WeaponBolt3D(cent->lerpOrigin, forward, CG_Get3DWeaponBoltLength(weapon, qtrue), CG_Get3DWeaponBoltWidth(weapon, qtrue), bolt3D, qtrue);
 	}
 	else if (weapon->altMissileRenderfx > 0)
 	{// Old 2D system...

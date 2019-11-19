@@ -182,7 +182,7 @@ uniform vec4						u_PrimaryLightOrigin;
 uniform vec3						u_PrimaryLightColor;
 uniform float						u_PrimaryLightRadius;
 
-#if defined(USE_TESSELLATION)
+#if defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
 out vec3 Normal_CS_in;
 out vec2 TexCoord_CS_in;
 out vec2 envTC_CS_in;
@@ -597,7 +597,7 @@ void main()
 
 	vec2 texCoords = attr_TexCoord0.st;
 
-#if !defined(USE_TESSELLATION)
+#if !defined(USE_TESSELLATION) && !defined(USE_TESSELLATION_3D)
 	if (USE_DEFORM == 1.0)
 	{
 		position = DeformPosition(position, normal, attr_TexCoord0.st);
@@ -671,7 +671,7 @@ void main()
 	var_GrassSlope = length(pitch);
 	*/
 
-#if defined(USE_TESSELLATION)
+#if defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
 	WorldPos_CS_in = vec4(position.xyz, 1.0);
 	TexCoord_CS_in = var_TexCoords.xy;
 	envTC_CS_in = var_envTC.xy;

@@ -11194,7 +11194,8 @@ void CG_DrawMiscStaticModels( void ) {
 		else
 		{
 			ent.reType = RT_MODEL;
-			VectorSet(ent.modelScale, 1.0, 1.0, 1.0);
+			//VectorSet(ent.modelScale, 1.0, 1.0, 1.0);
+			VectorCopy(cgs.miscStaticModels[i].modelScale, ent.modelScale);
 		}
 
 		VectorCopy(cgs.miscStaticModels[i].org, cullorg);

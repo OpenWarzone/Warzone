@@ -63,6 +63,7 @@ uniform vec4								u_Local8; // GRASS_SURFACE_MINIMUM_SIZE, GRASS_DISTANCE_FROM
 uniform vec4								u_Local9; // testvalue0, 1, 2, 3
 uniform vec4								u_Local10; // foliageLODdistance, TERRAIN_TESS_OFFSET, 0.0, GRASS_TYPE_UNIFORMALITY
 uniform vec4								u_Local11; // FOLIAGE_LOD_START_RANGE, GRASS_MAX_SLOPE, GRASS_TYPE_UNIFORMALITY_SCALER, 0.0
+uniform vec4								u_Local14; // WATEREDGE_RANGE_MULTIPLIER, 0.0, 0.0, 0.0
 
 #define SHADER_MAP_SIZE						u_Local1.r
 #define SHADER_SWAY							u_Local1.g
@@ -91,6 +92,8 @@ uniform vec4								u_Local11; // FOLIAGE_LOD_START_RANGE, GRASS_MAX_SLOPE, GRAS
 #define GRASS_LOD_START_RANGE				u_Local11.r
 #define GRASS_MAX_SLOPE						u_Local11.g
 #define GRASS_TYPE_UNIFORMALITY_SCALER		u_Local11.b
+
+#define WATEREDGE_RANGE_MULTIPLIER			u_Local14.a
 
 #define MAP_WATER_LEVEL						SHADER_WATER_LEVEL // TODO: Use water map
 #define GRASS_TYPE_UNIFORM_WATER			0.66
@@ -408,7 +411,7 @@ void main()
 	vec2 tcOffsetBegin;
 	vec2 tcOffsetEnd;
 
-	if (vGrassFieldPos.z < MAP_WATER_LEVEL + 64.0)
+	if (vGrassFieldPos.z < MAP_WATER_LEVEL + 256.0*WATEREDGE_RANGE_MULTIPLIER)
 	{// underwater... todo?
 		return;
 	}

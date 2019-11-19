@@ -2723,6 +2723,16 @@ void RB_SurfaceVBOMDVMesh(srfVBOMDVMesh_t * surface)
 #endif
 
 	{
+		if (refEnt && refEnt->customShader)
+		{// Hmm, actually use it? :)
+			shader_t *customShader = R_GetShaderByHandle(refEnt->customShader);
+
+			if (tess.shader != customShader)
+			{
+				tess.shader = R_GetShaderByHandle(refEnt->customShader);
+			}
+		}
+
 		RB_BeginSurface(tess.shader, tess.fogNum, tess.cubemapIndex);
 
 		R_BindVBO(surface->vbo);

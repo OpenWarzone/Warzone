@@ -179,6 +179,7 @@ out vec2 TexCoord2_CS_in;
 out vec3 Blending_CS_in;
 out vec2 envTC_CS_in;
 out float Slope_CS_in;
+out float GrassSlope_CS_in;
 #endif
 
 
@@ -745,5 +746,6 @@ void main()
 	Blending_CS_in = vec3(0.0);
 	envTC_CS_in = vec2(0.0);
 	Slope_CS_in = 0.0;
+	GrassSlope_CS_in = 0.0;
 #endif //defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
 }

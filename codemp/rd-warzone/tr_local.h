@@ -130,11 +130,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define __USE_REGIONS__
 
-//#define __LIGHTS_UBO__							// Lights are in UBO block...
+//#define __USE_MAP_EMMISSIVE_BLOCK__			// Do map emissive lights as a SSBO block of it's own... --- TOO SLOW!
 
 
 #define	__PROCEDURALS_IN_DEFERRED_SHADER__		// Merge procedural draws into deferred light shader...
-#define __SSDM_IN_DEFERRED_SHADER__				// Merge SSDM draws into deferred light shader...
 
 #define __GENERATED_SKY_CUBES__					// Generate sky cubemaps from sky render instead of using map's skybox textures... Doesn't like non-procedural for some reason, so disabled.
 
@@ -218,7 +217,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define DISTANCE_BETWEEN_CUBEMAPS	1024
 
-#define	MAX_DEFERRED_LIGHTS			64//128
+#define	MAX_EMISSIVE_LIGHTS			65536
+#define	MAX_DEFERRED_LIGHTS			128//64
 #define MAX_DEFERRED_LIGHT_RANGE	8192.0
 
 #define MAX_IMAGE_PATH				256
@@ -295,15 +295,15 @@ extern float RB_NightScale(void);
 
 extern qboolean SHADOWS_ENABLED;
 
-#define MAX_GLOW_LOCATIONS 65536
+#define MAX_EMISSIVE_LIGHTS 65536
 extern int			NUM_MAP_GLOW_LOCATIONS;
-extern vec3_t		MAP_GLOW_LOCATIONS[MAX_GLOW_LOCATIONS];
-extern vec4_t		MAP_GLOW_COLORS[MAX_GLOW_LOCATIONS];
-extern qboolean		MAP_GLOW_COLORS_AVILABLE[MAX_GLOW_LOCATIONS];
-extern float		MAP_GLOW_RADIUSES[MAX_GLOW_LOCATIONS];
-extern float		MAP_GLOW_HEIGHTSCALES[MAX_GLOW_LOCATIONS];
-extern float		MAP_GLOW_CONEANGLE[MAX_GLOW_LOCATIONS];
-extern vec3_t		MAP_GLOW_CONEDIRECTION[MAX_GLOW_LOCATIONS];
+extern vec3_t		MAP_GLOW_LOCATIONS[MAX_EMISSIVE_LIGHTS];
+extern vec4_t		MAP_GLOW_COLORS[MAX_EMISSIVE_LIGHTS];
+extern qboolean		MAP_GLOW_COLORS_AVILABLE[MAX_EMISSIVE_LIGHTS];
+extern float		MAP_GLOW_RADIUSES[MAX_EMISSIVE_LIGHTS];
+extern float		MAP_GLOW_HEIGHTSCALES[MAX_EMISSIVE_LIGHTS];
+extern float		MAP_GLOW_CONEANGLE[MAX_EMISSIVE_LIGHTS];
+extern vec3_t		MAP_GLOW_CONEDIRECTION[MAX_EMISSIVE_LIGHTS];
 
 #define				MAX_WORLD_GLOW_DLIGHT_RANGE MAX_DEFERRED_LIGHT_RANGE
 #define				MAX_WORLD_GLOW_DLIGHTS (MAX_DEFERRED_LIGHTS - 1)
@@ -348,6 +348,7 @@ extern cvar_t	*r_mipMapTextures;
 extern cvar_t	*r_compressedTextures;
 
 extern cvar_t	*r_cullNoDraws;
+extern cvar_t	*r_cullLights;
 
 extern cvar_t	*r_drawIndirect;
 
@@ -874,25 +875,23 @@ typedef struct bindlessTexturesBlock_s
 	GLuint64 					u_MoonMaps[4];
 } bindlessTexturesBlock_t;
 
-typedef struct
+struct Lights_t
 {
-	GLfloat x;                    // X Component
-	GLfloat y;                    // Y Component
-	GLfloat z;                    // Z Component
-} GLVec3;
+	vec4_t										u_lightPositions2;
+	vec4_t										u_lightColors;
+};
 
-#ifdef __LIGHTS_UBO__
-typedef struct LightBlock_s
+struct LightBlock_t
 {
-	GLint										u_lightCount;
-	GLVec3										u_lightPositions2[MAX_DEFERRED_LIGHTS];
-	GLfloat										u_lightDistances[MAX_DEFERRED_LIGHTS];
-	GLVec3										u_lightColors[MAX_DEFERRED_LIGHTS];
-	//GLfloat									u_lightConeAngles[MAX_DEFERRED_LIGHTS];
-	//GLVec3									u_lightConeDirections[MAX_DEFERRED_LIGHTS];
-	GLfloat										u_lightMaxDistance;
-} LightBlock_t;
-#endif //__LIGHTS_UBO__
+	Lights_t lights[MAX_DEFERRED_LIGHTS];
+};
+
+#ifdef __USE_MAP_EMMISSIVE_BLOCK__
+struct EmissiveLightBlock_t
+{
+	Lights_t lights[MAX_EMISSIVE_LIGHTS];
+};
+#endif //__USE_MAP_EMMISSIVE_BLOCK__
 
 typedef struct dlight_s {
 	vec3_t	origin;
@@ -1903,6 +1902,7 @@ typedef enum
 	UNIFORM_TESSELATION_3D_INFO,
 
 	UNIFORM_LIGHTCOUNT,
+	UNIFORM_EMISSIVELIGHTCOUNT,
 	UNIFORM_LIGHTPOSITIONS2,
 	UNIFORM_LIGHTPOSITIONS,
 	UNIFORM_LIGHTDISTANCES,
@@ -1975,12 +1975,15 @@ typedef struct shaderProgram_s
 	qboolean					binaryLoaded = qfalse;
 #endif //__USE_GLSL_SHADER_CACHE__
 
-#ifdef __LIGHTS_UBO__
 	GLuint						LightsBindingPoint = 0;
 	LightBlock_t				LightsBlock;
 	LightBlock_t				LightsBlockPrevious;
-	GLuint						LightsBlockUBO = 0;
-#endif //__LIGHTS_UBO__
+	GLuint						LightsBlockSSBO = 0;
+
+#ifdef __USE_MAP_EMMISSIVE_BLOCK__
+	GLuint						EmissiveLightsBindingPoint = 0;
+	GLuint						EmissiveLightsBlockSSBO = 0;
+#endif //__USE_MAP_EMMISSIVE_BLOCK__
 } shaderProgram_t;
 
 // trRefdef_t holds everything that comes in refdef_t,

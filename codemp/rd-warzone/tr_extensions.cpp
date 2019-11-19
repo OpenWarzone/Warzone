@@ -120,6 +120,10 @@ PFNGLGETVERTEXATTRIBIUIVPROC qglGetVertexAttribIuiv;
 PFNGLTRANSFORMFEEDBACKVARYINGSPROC qglTransformFeedbackVaryings;
 PFNGLGETTRANSFORMFEEDBACKVARYINGPROC qglGetTransformFeedbackVarying;
 
+// SSBO's
+PFNGLGETPROGRAMRESOURCEINDEXPROC qglGetProgramResourceIndex;
+PFNGLSHADERSTORAGEBLOCKBINDINGPROC qglShaderStorageBlockBinding;
+
 // Uniform variables
 PFNGLGETUNIFORMLOCATIONPROC qglGetUniformLocation;
 PFNGLGETUNIFORMBLOCKINDEXPROC qglGetUniformBlockIndex;
@@ -357,6 +361,10 @@ void GLimp_InitExtraExtensions()
 	// Varying variables
 	GetGLFunction (qglTransformFeedbackVaryings, "glTransformFeedbackVaryings", qtrue);
 	GetGLFunction (qglGetTransformFeedbackVarying, "glGetTransformFeedbackVarying", qtrue);
+
+	// SSBO's
+	GetGLFunction(qglGetProgramResourceIndex, "glGetProgramResourceIndex", qtrue);
+	GetGLFunction(qglShaderStorageBlockBinding, "glShaderStorageBlockBinding", qtrue);
 
 	// Uniform variables
 	GetGLFunction (qglGetUniformLocation, "glGetUniformLocation", qtrue);

@@ -128,6 +128,7 @@ uniform vec4						u_Local15; // seaGrassAliasImage
 uniform vec4						u_Local16; // GRASS_ENABLED, GRASS_DISTANCE, GRASS_MAX_SLOPE, FAKE_GRASS_MINALPHA
 uniform vec4						u_Local17; // FAKE_GRASS_SCALE, FAKE_GRASS_SCALE_UNDERWATER, FAKE_GRASS_COLORMULT, FAKE_GRASS_COLORMULT_UNDERWATER
 uniform vec4						u_Local18; // FAKE_GRASS_MINALPHA_UW, FAKE_GRASS_UW_SIZE, FAKE_GRASS_ENABLED, 0.0
+uniform vec4						u_Local19; // STANDARD_SPLATMAP_STEEPANGLE, STANDARD_SPLATMAP_STEEPPCURVE, STANDARD_SPLATMAP_STEEPMINIMUM, STANDARD_SPLATMAP_STEEPMAXIMUM
 
 uniform vec2						u_Dimensions;
 uniform vec2						u_textureScale;
@@ -183,6 +184,11 @@ uniform float						u_zFar;
 #define FAKE_GRASS_MINALPHA_UW		u_Local18.r
 #define FAKE_GRASS_UW_SIZE			u_Local18.g
 #define FAKE_GRASS_ENABLED			u_Local18.b
+
+#define SPLATMAP_STEEPANGLE			u_Local19.r
+#define SPLATMAP_STEEPCURVE			u_Local19.g
+#define SPLATMAP_STEEPMINIMUM		u_Local19.b
+#define SPLATMAP_STEEPMAXIMUM		u_Local19.a
 
 #if defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
 
@@ -489,33 +495,8 @@ float GetDepthForPixel(vec4 color)
 }
 
 #ifdef USE_DETAIL_TEXTURES
-void AddDetail(inout vec4 color, in vec2 tc)
+void AddDetail(inout vec4 color)
 {
-/*
-	// Add fine detail to everything...
-	vec2 coord = vec2(0.0);
-
-	if (USE_DETAIL_COORD == 1.0 || USE_TEXTURECLAMP > 0.0 || USE_IS2D > 0.0)
-	{// From TC... 1:1 match to diffuse coordinates... (good for guns/models/etc for adding detail)
-		coord = tc;
-	}
-	else if (USE_DETAIL_COORD == 2.0 || USE_TRIPLANAR > 0.0 || USE_REGIONS > 0.0)
-	{// From world... Using map coords like splatmaps... (good for splat mapping, etc for varying terrain shading)
-		float xyoffset = (SHADER_MAP_SIZE - (SHADER_MAP_SIZE / 2.0)) / (SHADER_MAP_SIZE * 2.0);
-		coord = vec2(m_vertPos.xy / (SHADER_MAP_SIZE / 2.0)) * xyoffset;
-		coord *= (vec2(m_vertPos.z / (SHADER_MAP_SIZE / 2.0)) * xyoffset) * 2.0 - 1.0;
-	}
-	else
-	{// Standard... -1.0 -> +1.0 (good all-round option when matching specific coordinates is not needed)
-		coord = (tc * 2.0 - 1.0);
-	}
-
-    vec3 detail = texture(u_DetailMap, coord).rgb;
-
-	if (length(detail.rgb) <= 0.0) return;
-
-	color.rgb = color.rgb * detail.rgb * 2.0;
-*/
 	float grain = SmoothNoise(m_vertPos.xyz * 5.0) * 0.5 + 1.75;
 	color.rgb = mix(color.rgb, vec3(color.rgb * grain), 0.2);
 }
@@ -543,7 +524,6 @@ vec4 GetControlMap( bool isVertical )
 	control.r = SmoothNoise(vec3((m_vertPos.yzx * scale) + offset) * 64.0);
 	control.g = SmoothNoise(vec3((m_vertPos.xzy * scale) + offset) * 64.0);
 	control.b = SmoothNoise(vec3((m_vertPos.xyz * scale) + offset) * 64.0);
-	//control.rgb = clamp(control.rgb * u_Local9.g, 0.0, 1.0);
 #else
 	float offset = (SHADER_MAP_SIZE / 2.0) * scale;
 	vec4 xaxis = texture( u_SplatControlMap, (m_vertPos.yz * scale) + offset);
@@ -683,7 +663,7 @@ vec4 SmoothMix(vec3 color1, vec3 color2, float mixf)
 	return vec4((color1 * (1.0 - mixVal)) + (color2 * mixVal), 1.0);
 }
 
-vec4 GetSplatMap(vec2 texCoords, vec4 inColor, inout float depth)
+vec4 GetSplatMap(vec4 inColor, inout float depth)
 {
 	if (SHADER_HAS_SPLATMAP1 <= 0.0 && SHADER_HAS_SPLATMAP2 <= 0.0 && SHADER_HAS_SPLATMAP3 <= 0.0 && SHADER_HAS_ROADMAP <= 0.0)
 	{
@@ -742,7 +722,7 @@ vec4 GetSplatMap(vec2 texCoords, vec4 inColor, inout float depth)
 	return splatColor;
 }
 
-vec4 GetSteepMap(vec2 texCoords, vec4 inColor, inout float depth)
+vec4 GetSteepMap(vec4 inColor, inout float depth)
 {
 	if (SHADER_HAS_STEEPMAP1 <= 0.0 && SHADER_HAS_STEEPMAP2 <= 0.0 && SHADER_HAS_STEEPMAP3 <= 0.0)
 	{
@@ -792,70 +772,13 @@ vec4 GetSteepMap(vec2 texCoords, vec4 inColor, inout float depth)
 	return splatColor;
 }
 
-vec4 GetDiffuse2(vec2 texCoords, out float a1)
+vec4 GetDiffuse2(out float a1)
 {
+	float scale = SPLATMAP_SCALE;
 	a1 = 0.0;
 
 	if (USE_REGIONS > 0.0 || USE_TRIPLANAR > 0.0)
 	{
-		if (SHADER_SHOW_SPLAT > 0.0)
-		{
-			vec4 control = vec4(0.0);
-			
-			if (USE_TRIPLANAR >= 2.0)
-			{
-				return vec4(var_Color.rgb, 1.0);
-			}
-
-			if (SHADER_SHOW_SPLAT > 10.0)
-			{
-				control = texture(u_RoadMap, texCoords);
-			}
-			else if (SHADER_SHOW_SPLAT > 9.0)
-			{
-				control = texture(u_WaterEdgeMap, texCoords);
-			}
-			else if (SHADER_SHOW_SPLAT > 8.0)
-			{
-				control = texture(u_SteepMap3, texCoords);
-			}
-			else if (SHADER_SHOW_SPLAT > 7.0)
-			{
-				control = texture(u_SteepMap2, texCoords);
-			}
-			else if (SHADER_SHOW_SPLAT > 6.0)
-			{
-				control = texture(u_SteepMap1, texCoords);
-			}
-			else if (SHADER_SHOW_SPLAT > 5.0)
-			{
-				control = texture(u_SteepMap, texCoords);
-			}
-			else if (SHADER_SHOW_SPLAT > 4.0)
-			{
-				control = texture(u_SplatMap3, texCoords);
-			}
-			else if (SHADER_SHOW_SPLAT > 3.0)
-			{
-				control = texture(u_SplatMap2, texCoords);
-			}
-			else if (SHADER_SHOW_SPLAT > 2.0)
-			{
-				control = texture(u_SplatMap1, texCoords);
-			}
-			else if (SHADER_SHOW_SPLAT > 1.0)
-			{
-				control = GetControlMap(false);
-				control.rgb = control.aaa;
-			}
-			else
-			{
-				control = GetControlMap(false);
-			}
-		
-			return vec4(control.rgb, 1.0);
-		}
-
 		float scale = SPLATMAP_SCALE;
 
 #ifdef __USE_REGIONS__
@@ -863,7 +786,7 @@ vec4 GetDiffuse2(vec2 texCoords, out float a1)
 		{// Regions...
 			a1 = 0.0;
 			vec4 tex = GetMap(u_DiffuseMap, scale, a1);
-			return GetSplatMap(texCoords, tex, a1);
+			return GetSplatMap(tex, a1);
 		}
 		else
 #endif //__USE_REGIONS__
@@ -873,14 +796,14 @@ vec4 GetDiffuse2(vec2 texCoords, out float a1)
 				// Splat mapping...
 				a1 = 0.0;
 				vec4 tex = GetMap(u_DiffuseMap, scale, a1);
-				return GetSplatMap(texCoords, tex, a1);
+				return GetSplatMap(tex, a1);
 			}
 			else if (SHADER_HAS_SPLATMAP1 > 0.0 || SHADER_HAS_SPLATMAP2 > 0.0 || SHADER_HAS_SPLATMAP3 > 0.0 || (SHADER_HAS_ROADMAP > 0.0 && IsRoadmapMaterial()))
 			{// Steep maps (low angles)...
 				// Splat mapping...
 				a1 = 0.0;
 				vec4 tex = GetMap(u_DiffuseMap, scale, a1);
-				return GetSplatMap(texCoords, tex, a1);
+				return GetSplatMap(tex, a1);
 			}
 			else
 			{
@@ -891,7 +814,7 @@ vec4 GetDiffuse2(vec2 texCoords, out float a1)
 	}
 	else
 	{
-		return texture(u_DiffuseMap, texCoords);
+		return GetMap(u_DiffuseMap, scale, a1);
 	}
 }
 
@@ -906,10 +829,10 @@ float Raverage_approx(float n)
     return -0.0095*n6 + 0.1134*n5 - 0.5639*n4 + 1.4968*n3 - 2.2538*n2 + 1.9795*n - 0.7566;
 }
 
-vec4 GetDiffuse(vec2 texCoords, inout bool isFakeGrass)
+vec4 GetDiffuse(inout float fakeGrassFactor)
 {
 	float diffuseA = 0.0;
-	vec4 diffuse = GetDiffuse2(texCoords, diffuseA);
+	vec4 diffuse = GetDiffuse2(diffuseA);
 
 	if (USE_REGIONS > 0.0 || USE_TRIPLANAR > 0.0)
 	{
@@ -920,7 +843,7 @@ vec4 GetDiffuse(vec2 texCoords, inout bool isFakeGrass)
 
 			if (SHADER_HAS_STEEPMAP1 > 0.0 || SHADER_HAS_STEEPMAP2 > 0.0 || SHADER_HAS_STEEPMAP3 > 0.0)
 			{// Have steep splats to use, so do the splatting on those as well...
-				vec4 steep = GetSteepMap(texCoords, steepBaseTex, a1);
+				vec4 steep = GetSteepMap(steepBaseTex, a1);
 				diffuse.rgb = mix(diffuse.rgb, steep.rgb, var_Slope * steep.a);
 			}
 			else
@@ -1071,36 +994,39 @@ vec4 GetDiffuse(vec2 texCoords, inout bool isFakeGrass)
 			const float rpx = 1.0 / 2048.0;
 
 			float dist = distance(u_ViewOrigin.xyz, m_vertPos.xyz);
-			float gAlpha = clamp(dist / (GRASS_DISTANCE * 0.75), 0.0, 1.0);
+			float gAlpha = 0.0;
+			float grassStart = GRASS_DISTANCE * 0.25;
+			float grassMax = GRASS_DISTANCE * 3.0;
+
+			if (dist >= grassStart)
+			{
+				gAlpha = clamp((dist - grassStart) / (grassMax - grassStart), 0.0, 1.0);
+			}
 
 			if (u_Local14.a > 0.0 && m_vertPos.z >= waterBlendMaxZ && gAlpha > 0.0)
 			{// Fake above water distant grass...
-				//float g = SmoothNoise(m_vertPos * FAKE_GRASS_SCALE);
-				
-				//float g = noise(vec3(ivec3(vec3(m_vertPos.xy, 0.0) * FAKE_GRASS_SCALE)));
 				float g = texture(u_TextureMap, m_vertPos.xy * rpx * FAKE_GRASS_SCALE).r;
 				if (g > FAKE_GRASS_MINALPHA)
 				{
 					vec4 gColor = vec4(u_Local14.rgb * FAKE_GRASS_MULT, u_Local14.a);
 					diffuse = mix(diffuse, gColor, gAlpha * (g * 0.5 + 0.5));
-					isFakeGrass = true;
+					//fakeGrassFactor = gAlpha * (g * 0.5 + 0.5);
+					fakeGrassFactor = gAlpha * g;
 				}
 			}
 
-			float UNDERWATER_GRASS_BLEND_RANGE = (SHADER_WAVE_HEIGHT*2.0) + (SHADER_WAVE_HEIGHT * (randZeroOne() * 0.5 + 0.5));
+			float UNDERWATER_GRASS_BLEND_RANGE = (SHADER_WAVE_HEIGHT*2.0*WATEREDGE_RANGE_MULTIPLIER) + (SHADER_WAVE_HEIGHT*WATEREDGE_RANGE_MULTIPLIER * (randZeroOne() * 0.5 + 0.5));
 			float UNDERWATER_GRASS_BLEND_START = (SHADER_WATER_LEVEL - UNDERWATER_GRASS_BLEND_RANGE) - FAKE_GRASS_UW_SIZE;
 
 			if (u_Local15.a > 0.0 && m_vertPos.z <= UNDERWATER_GRASS_BLEND_START && gAlpha > 0.0)
 			{// Fake below water distant grass...
-				//float g = SmoothNoise(m_vertPos * FAKE_GRASS_SCALE_UNDERWATER);
-				
-				//float g = noise(vec3(ivec3(vec3(m_vertPos.xy, 0.0) * FAKE_GRASS_SCALE_UNDERWATER)));
 				float g = texture(u_TextureMap, m_vertPos.xy * rpx * FAKE_GRASS_SCALE_UNDERWATER).r;
 				if (g > FAKE_GRASS_MINALPHA_UW)
 				{
 					vec4 gColor = vec4(u_Local15.rgb * FAKE_GRASS_MULT_UNDERWATER, u_Local15.a);
 					diffuse = mix(diffuse, gColor, gAlpha * (g * 0.5 + 0.5));
-					isFakeGrass = true;
+					//fakeGrassFactor = gAlpha * (g * 0.5 + 0.5);
+					fakeGrassFactor = gAlpha * g;
 				}
 			}
 		}
@@ -1152,7 +1078,7 @@ float getdiffuseLight(vec3 n, vec3 l, float p) {
 
 void main()
 {
-#ifdef __DEBUG_TESS_CONTROL__
+/*#ifdef __DEBUG_TESS_CONTROL__
 	if (u_Local9.r > 0.0)
 	{
 		vec3 f = noise3d(m_vertPos.xyz * u_Local9.r);
@@ -1162,7 +1088,7 @@ void main()
 		out_Normal = vec4( vec3(EncodeNormal(m_Normal.xyz), 1.0), 1.0 );
 		return;
 	}
-#endif //__DEBUG_TESS_CONTROL__
+#endif //__DEBUG_TESS_CONTROL__*/
 
 	if (USE_IS2D <= 0.0 && distance(m_vertPos, u_ViewOrigin) > u_zFar)
 	{// Skip it all...
@@ -1178,15 +1104,6 @@ void main()
 
 	bool LIGHTMAP_ENABLED = (USE_LIGHTMAP > 0.0 && USE_GLOW_BUFFER != 1.0 && USE_IS2D <= 0.0) ? true : false;
 
-	vec2 texCoords = m_TexCoords.xy;
-
-#if 0 // Shouldn't need this on splatmap draws...
-	if (SHADER_SWAY > 0.0)
-	{// Sway...
-		texCoords += vec2(GetSway());
-	}
-#endif
-
 	vec4 colorMap = var_Color;
 
 	if (USE_TRIPLANAR >= 2.0)
@@ -1194,8 +1111,8 @@ void main()
 		colorMap = vec4(1.0);
 	}
 
-	bool isFakeGrass = false;
-	vec4 diffuse = GetDiffuse(texCoords, isFakeGrass);
+	float fakeGrassFactor = 0.0;
+	vec4 diffuse = GetDiffuse(fakeGrassFactor);
 
 	// Alter colors by shader's colormod setting...
 	diffuse.rgb += diffuse.rgb * u_ColorMod.rgb;
@@ -1206,29 +1123,16 @@ void main()
 
 	vec3 N = normalize(m_Normal.xyz);
 
-	if (isFakeGrass)
+	if (fakeGrassFactor > 0.0)
 	{// Fake vertical...
-		//N = normalize(vec3(m_Normal.xy, 0.0));
-		N = normalize(normalize(u_ViewOrigin.xyz - m_vertPos.xyz) + normalize(m_Normal));
+		N = mix(N, normalize(normalize(u_ViewOrigin.xyz - m_vertPos.xyz) + normalize(m_Normal)), fakeGrassFactor);
 	}
-
-#ifdef __USE_REAL_NORMALMAPS__
-	vec4 norm = vec4(0.0);
-
-#if 0 // Shouldn't need this on splatmap draws...
-	if (USE_GLOW_BUFFER != 1.0 && USE_IS2D <= 0.0 && USE_ISDETAIL <= 0.0 && USE_TRIPLANAR <= 0.0 && USE_REGIONS <= 0.0 && SHADER_HAS_NORMALMAP > 0.0)
-	{
-		norm = texture(u_NormalMap, texCoords);
-		norm.a = 1.0;
-	}
-#endif
-#endif //__USE_REAL_NORMALMAPS__
 
 
 #ifdef USE_DETAIL_TEXTURES
 	if (USE_TRIPLANAR >= 0.0 || USE_REGIONS >= 0.0)
 	{
-		AddDetail(diffuse, texCoords);
+		AddDetail(diffuse);
 	}
 #endif //USE_DETAIL_TEXTURES
 
@@ -1383,7 +1287,7 @@ void main()
 	// Wetness testing...
 	float FINAL_MATERIAL = SHADER_MATERIAL_TYPE+1.0;
 
-	if (isFakeGrass)
+	if (fakeGrassFactor >= 0.5)
 	{// Fake foliage...
 		FINAL_MATERIAL = MATERIAL_PROCEDURALFOLIAGE+1.0;
 	}
@@ -1409,9 +1313,6 @@ void main()
 			FINAL_MATERIAL = MATERIAL_PUDDLE+1;
 		}
 	}
-
-	//if (u_Local9.r > 0.0 && FINAL_MATERIAL == MATERIAL_PUDDLE+1)
-	//	gl_FragColor.rgba = vec4(1.0, 0.0, 0.0, 1.0);
 
 	if (/*USE_GLOW_BUFFER > 1.0 
 		&&*/ (SHADER_MATERIAL_TYPE == MATERIAL_SKYSCRAPER)

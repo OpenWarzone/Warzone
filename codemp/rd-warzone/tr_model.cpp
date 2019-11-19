@@ -420,8 +420,8 @@ static qboolean R_LoadAssImp(model_t * mod, int lod, void *buffer, const char *m
 
 #define ASSIMP_MODEL_SCALE 64.0
 
-	//assImpImporter.SetPropertyFloat(AI_CONFIG_PP_GSN_MAX_SMOOTHING_ANGLE, 80.f);
-	assImpImporter.SetPropertyFloat(AI_CONFIG_PP_GSN_MAX_SMOOTHING_ANGLE, 45.f);
+	//assImpImporter.SetPropertyFloat(AI_CONFIG_PP_GSN_MAX_SMOOTHING_ANGLE, 80.0f);
+	//assImpImporter.SetPropertyFloat(AI_CONFIG_PP_GSN_MAX_SMOOTHING_ANGLE, (ai_real)45.0f);
 
 #if 0
 #define aiProcessPreset_TargetRealtime_MaxQuality_Fix ( \
@@ -475,8 +475,20 @@ static qboolean R_LoadAssImp(model_t * mod, int lod, void *buffer, const char *m
 #else
 #define aiProcessPreset_TargetRealtime_MaxQuality_Fix ( \
     aiProcess_ImproveCacheLocality          |  \
+    aiProcess_FindInvalidData               |  \
+    aiProcess_ValidateDataStructure			|  \
     aiProcess_Triangulate                   |  \
+	aiProcess_ForceGenNormals               |  \
+	aiProcess_GenSmoothNormals              |  \
+	aiProcess_OptimizeMeshes                |  \
+	aiProcess_OptimizeGraph                 |  \
+	aiProcess_RemoveRedundantMaterials      |  \
+	aiProcess_JoinIdenticalVertices         |  \
+	aiProcess_FlipWindingOrder              |  \
+	aiProcess_GenUVCoords                   |  \
 	0 )
+
+
 
 #define __INVERT_ASSIMP_NORMALS__
 #endif

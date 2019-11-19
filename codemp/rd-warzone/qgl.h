@@ -893,6 +893,10 @@ extern PFNGLGETVERTEXATTRIBIUIVPROC qglGetVertexAttribIuiv;
 extern PFNGLTRANSFORMFEEDBACKVARYINGSPROC qglTransformFeedbackVaryings;
 extern PFNGLGETTRANSFORMFEEDBACKVARYINGPROC qglGetTransformFeedbackVarying;
 
+// SSBO's
+extern PFNGLGETPROGRAMRESOURCEINDEXPROC qglGetProgramResourceIndex;
+extern PFNGLSHADERSTORAGEBLOCKBINDINGPROC qglShaderStorageBlockBinding;
+
 // Uniform variables
 extern PFNGLGETUNIFORMLOCATIONPROC qglGetUniformLocation;
 extern PFNGLGETUNIFORMBLOCKINDEXPROC qglGetUniformBlockIndex;

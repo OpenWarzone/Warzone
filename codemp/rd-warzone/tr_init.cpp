@@ -43,6 +43,7 @@ cvar_t	*r_compressedTextures;
 cvar_t	*r_drawSort;
 
 cvar_t	*r_cullNoDraws;
+cvar_t	*r_cullLights;
 
 cvar_t	*r_drawIndirect;
 
@@ -1456,6 +1457,7 @@ void R_Register( void )
 	r_drawSort = ri->Cvar_Get("r_drawSort", "1", CVAR_ARCHIVE);
 
 	r_cullNoDraws = ri->Cvar_Get("r_cullNoDraws", "1", CVAR_ARCHIVE);
+	r_cullLights = ri->Cvar_Get("r_cullLights", "1", CVAR_ARCHIVE);
 
 	r_drawIndirect = ri->Cvar_Get("r_drawIndirect", "0", CVAR_ARCHIVE);
 
@@ -1515,7 +1517,7 @@ void R_Register( void )
 	r_roundImagesDown = ri->Cvar_Get ("r_roundImagesDown", "1", CVAR_ARCHIVE | CVAR_LATCH );
 	r_colorMipLevels = ri->Cvar_Get ("r_colorMipLevels", "0", CVAR_LATCH );
 	r_detailTextures = ri->Cvar_Get( "r_detailtextures", "1", CVAR_ARCHIVE | CVAR_LATCH );
-	r_maxDeferredLights = ri->Cvar_Get("r_maxDeferredLights", "24", CVAR_ARCHIVE);
+	r_maxDeferredLights = ri->Cvar_Get("r_maxDeferredLights", /*"24"*/"64", CVAR_ARCHIVE);
 	r_texturebits = ri->Cvar_Get( "r_texturebits", "32", CVAR_ARCHIVE | CVAR_LATCH );
 	r_colorbits = ri->Cvar_Get( "r_colorbits", "32", CVAR_ARCHIVE | CVAR_LATCH );
 	r_stencilbits = ri->Cvar_Get( "r_stencilbits", "8", CVAR_ARCHIVE | CVAR_LATCH );
@@ -1706,9 +1708,9 @@ void R_Register( void )
 	r_testvalue3 = ri->Cvar_Get( "r_testvalue3", "4.0", CVAR_ARCHIVE );
 	r_esharpening = ri->Cvar_Get( "r_esharpening", "true", CVAR_ARCHIVE );
 	//r_esharpening2 = ri->Cvar_Get( "r_esharpening2", "false", CVAR_ARCHIVE );
-	r_fxaa = ri->Cvar_Get( "r_fxaa", "true", CVAR_ARCHIVE );
+	r_fxaa = ri->Cvar_Get( "r_fxaa", "false", CVAR_ARCHIVE );
 	r_fxaaScanMod = ri->Cvar_Get("r_fxaaScanMod", "1.0", CVAR_ARCHIVE);
-	r_txaa = ri->Cvar_Get("r_txaa", "false", CVAR_ARCHIVE);
+	r_txaa = ri->Cvar_Get("r_txaa", "true", CVAR_ARCHIVE);
 	r_cloudQuality = ri->Cvar_Get("r_cloudQuality", "1", CVAR_ARCHIVE);
 	r_cloudshadows = ri->Cvar_Get("r_cloudshadows", "1", CVAR_ARCHIVE);
 	r_underwater = ri->Cvar_Get( "r_underwater", "1", CVAR_ARCHIVE );

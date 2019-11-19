@@ -448,6 +448,7 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_Tesselation3DInfo", GLSL_VEC4, 1 },
 
 	{ "u_lightCount", GLSL_INT, 1 },
+	{ "u_emissiveLightCount", GLSL_INT, 1 },
 	{ "u_lightPositions2", GLSL_VEC3, MAX_DEFERRED_LIGHTS },
 	{ "u_lightPositions", GLSL_VEC2, MAX_DEFERRED_LIGHTS },
 	{ "u_lightDistances", GLSL_FLOAT, MAX_DEFERRED_LIGHTS },
@@ -609,6 +610,10 @@ char *GLSL_GetHighestSupportedVersion(void)
 
 		if (glRefConfig.glslMajorVersion >= 5)
 			return "#version 500 core\n";
+		else if (glRefConfig.glslMajorVersion >= 4 && glRefConfig.glslMinorVersion >= 40)
+			return "#version 440 core\n";
+		else if (glRefConfig.glslMajorVersion >= 4 && glRefConfig.glslMinorVersion >= 30)
+			return "#version 430 core\n";
 		else if (glRefConfig.glslMajorVersion >= 4 && glRefConfig.glslMinorVersion >= 20)
 			return "#version 420 core\n";
 		else if (glRefConfig.glslMajorVersion >= 4 && glRefConfig.glslMinorVersion >= 10)
@@ -711,6 +716,15 @@ void GLSL_GetShaderHeader(GLenum shaderType, const GLcharARB *extra, std::string
 	else
 		dest.append(va("%s", GLSL_GetHighestSupportedVersion()));
 
+#ifdef __LIGHTS_SSBO__
+	dest.append("#extension GL_ARB_shader_storage_buffer_object : require\n");
+#endif //__LIGHTS_SSBO__
+
+	if (bindless && glRefConfig.bindlessTextures)
+	{
+		dest.append("#extension GL_ARB_bindless_texture : require\n");
+	}
+
 	fbufWidthScale = 1.0f / ((float)glConfig.vidWidth * r_superSampleMultiplier->value);
 	fbufHeightScale = 1.0f / ((float)glConfig.vidHeight * r_superSampleMultiplier->value);
 
@@ -726,13 +740,12 @@ void GLSL_GetShaderHeader(GLenum shaderType, const GLcharARB *extra, std::string
 
 	if (bindless && glRefConfig.bindlessTextures)
 	{
-		dest.append("#define USE_BINDLESS_TEXTURES\n\n");
-		dest.append("#extension GL_ARB_bindless_texture : require\n");
+		dest.append("#define USE_BINDLESS_TEXTURES\n");
 	}
 
-#ifdef __LIGHTS_UBO__
-	dest.append("#define USE_LIGHTS_UBO\n\n");
-#endif //__LIGHTS_UBO__
+#ifdef __LIGHTS_SSBO__
+	dest.append("#define USE_LIGHTS_SSBO\n");
+#endif //__LIGHTS_SSBO__
 
 	if (shaderType == GL_VERTEX_SHADER)
 	{
@@ -2781,13 +2794,13 @@ void GLSL_DeleteGPUShader(shaderProgram_t *program)
 			program->bindlessBlockUBO = 0;
 		}
 
-#ifdef __LIGHTS_UBO__
-		if (program->LightsBlockUBO)
+#ifdef __LIGHTS_SSBO__
+		if (program->LightsBlockSSBO)
 		{
-			qglDeleteBuffers(1, &program->LightsBlockUBO);
-			program->LightsBlockUBO = 0;
+			qglDeleteBuffers(1, &program->LightsBlockSSBO);
+			program->LightsBlockSSBO = 0;
 		}
-#endif //__LIGHTS_UBO__
+#endif //__LIGHTS_SSBO__
 
 		qglDeleteProgram(program->program);
 
