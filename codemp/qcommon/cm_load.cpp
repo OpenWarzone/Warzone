@@ -1361,6 +1361,8 @@ static void CM_LoadMap_Actual( const char *name, qboolean clientload, int *check
 	}
 
 #ifdef __BSP_USE_SHARED_MEMORY__
+	bool failedSharedMemory = false;
+
 	buf = NULL;
 	fileHandle_t h;
 	hSharedMemory *shared = NULL;
@@ -1370,24 +1372,51 @@ static void CM_LoadMap_Actual( const char *name, qboolean clientload, int *check
 	{
 		shared = OpenSharedMemory("CMSharedBSP", "CMSharedBSPMutex", iBSPLen);
 
-		newBuff = (void *)shared->hFileView;
-
-		FS_Read(newBuff, iBSPLen, h);
-		FS_FCloseFile(h);
-
-		buf = (int*)newBuff;	// so the rest of the code works as normal
-
-		/*
-		if (&cm == &cmg)
+		if (shared)
 		{
-			gpvCachedMapDiskImage = newBuff;
-			newBuff = 0;
-		}
-		*/
-		gpvCachedMapDiskImage = NULL;
+			//Com_Printf("Shared memory allocated OK! (%u).\n", iBSPLen);
 
-		// carry on as before...
-		//
+			newBuff = (void *)shared->hFileView;
+
+			FS_Read(newBuff, iBSPLen, h);
+			FS_FCloseFile(h);
+
+			buf = (int*)newBuff;	// so the rest of the code works as normal
+
+			/*
+			if (&cm == &cmg)
+			{
+				gpvCachedMapDiskImage = newBuff;
+				newBuff = 0;
+			}
+			*/
+			gpvCachedMapDiskImage = NULL;
+
+			// carry on as before...
+			//
+		}
+		else
+		{
+			newBuff = Z_Malloc(iBSPLen, TAG_BSP_DISKIMAGE);
+
+			FS_Read(newBuff, iBSPLen, h);
+			FS_FCloseFile(h);
+
+			buf = (int*)newBuff;	// so the rest of the code works as normal
+
+									/*
+									if (&cm == &cmg)
+									{
+									gpvCachedMapDiskImage = newBuff;
+									newBuff = 0;
+									}
+									*/
+			gpvCachedMapDiskImage = NULL;
+
+			failedSharedMemory = true;
+			// carry on as before...
+			//
+		}
 	}
 #elif !defined(BSPC)
 	//
@@ -1492,9 +1521,28 @@ static void CM_LoadMap_Actual( const char *name, qboolean clientload, int *check
 #else //__FREE_BSP_DATA__
 
 #ifdef __BSP_USE_SHARED_MEMORY__
-	CloseSharedMemory(shared);
-	buf = NULL;
-	gpvCachedMapDiskImage = NULL;
+	if (!failedSharedMemory)
+	{
+		CloseSharedMemory(shared);
+		buf = NULL;
+		gpvCachedMapDiskImage = NULL;
+	}
+	else
+	{
+		if (buf == gpvCachedMapDiskImage)
+		{
+			Z_Free(buf);
+			buf = NULL;
+			gpvCachedMapDiskImage = NULL;
+		}
+		else
+		{
+			Z_Free(gpvCachedMapDiskImage);
+			gpvCachedMapDiskImage = NULL;
+			Z_Free(buf);
+			buf = NULL;
+		}
+	}
 #else //!__BSP_USE_SHARED_MEMORY__
 	if (buf == gpvCachedMapDiskImage)
 	{

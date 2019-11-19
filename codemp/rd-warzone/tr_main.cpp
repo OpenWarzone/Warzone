@@ -1867,7 +1867,7 @@ void R_DecomposeSort(const uint64_t sort, int64_t *entityNum, shader_t **shader,
 	*postRender = (sort >> QSORT_POSTRENDER_SHIFT ) & 1;
 	//*dlightMap = sort & 1;
 
-	if (*entityNum != REFENTITYNUM_WORLD)
+	if (*entityNum != REFENTITYNUM_WORLD && backEnd.refdef.entities)
 	{
 		trRefEntity_t *thisEnt = &backEnd.refdef.entities[*entityNum];
 

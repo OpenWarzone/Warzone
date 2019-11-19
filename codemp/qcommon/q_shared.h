@@ -24,6 +24,8 @@
 
 //#define __DEBUG_ZALLOC__
 
+#define __USE_BIT7Z__								// New .pkw file support, 7zip (or rar or whatever really) archives that act like pk3's.
+
 #define __ENABLE_DEDICATED_CONSOLE_COLORS__			// Enable color on dedicated console...
 
 #define __MMO__

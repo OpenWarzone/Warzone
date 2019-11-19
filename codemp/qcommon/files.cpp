@@ -24,6 +24,45 @@
 #include "../client/fast_mutex.h"
 #include "../client/tinythread.h"
 
+
+#ifdef __USE_BIT7Z__
+#define BIT7Z_AUTO_FORMAT
+
+#include "../bit7z/include/bitarchiveinfo.hpp"
+#include "../bit7z/include/bitcompressor.hpp"
+#include "../bit7z/include/bitextractor.hpp"
+#include "../bit7z/include/bitstreamextractor.hpp"
+
+using namespace  bit7z;
+
+#pragma comment(lib, "../../lib/bit7z.lib")
+
+//Bit7zLibrary lib{ L"7z.dll" };
+Bit7zLibrary lib{ L"7za.dll" };
+BitExtractor extractor{ lib, BitFormat::Auto/*BitFormat::SevenZip*/ };
+BitStreamExtractor streamExtractor{ lib, BitFormat::Auto/*BitFormat::SevenZip*/ };
+
+#include <codecvt>
+
+std::wstring stringToWstring(const std::string& t_str)
+{
+	//setup converter
+	typedef std::codecvt_utf8<wchar_t> convert_type;
+	std::wstring_convert<convert_type, wchar_t> converter;
+
+	//use converter (.to_bytes: wstr->str, .from_bytes: str->wstr)
+	return converter.from_bytes(t_str);
+}
+
+std::string wstringToString(const std::wstring& wstr)
+{
+	using convert_typeX = std::codecvt_utf8<wchar_t>;
+	std::wstring_convert<convert_typeX, wchar_t> converterX;
+
+	return converterX.to_bytes(wstr);
+}
+#endif //__USE_BIT7Z__
+
 /*
 =============================================================================
 
@@ -243,6 +282,11 @@ typedef struct fileHandleData_s {
 	int			zipFilePos;
 	int			zipFileLen;
 	qboolean	zipFile;
+#ifdef __USE_BIT7Z__
+	qboolean	pkwFile;
+	uint32_t	pkwIndex;
+	char		pkwFilename[256];
+#endif //__USE_BIT7Z__
 	char		name[MAX_ZPATH];
 } fileHandleData_t;
 
@@ -1036,6 +1080,13 @@ void FS_FCloseFile( fileHandle_t f ) {
 		Com_Error( ERR_FATAL, "Filesystem call made without initialization\n" );
 	}
 
+#ifdef __USE_BIT7Z__
+	if (fsh[f].pkwFile == qtrue) {
+		Com_Memset(&fsh[f], 0, sizeof(fsh[f]));
+		return;
+	}
+#endif //__USE_BIT7Z__
+
 	if (fsh[f].zipFile == qtrue) {
 		unzCloseCurrentFile( fsh[f].handleFiles.file.z );
 		if ( fsh[f].handleFiles.unique ) {
@@ -1498,56 +1549,97 @@ long FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean unique
 							}
 						}
 
-						if ( uniqueFILE ) {
-							// open a new file on the pakfile
-							fsh[*file].handleFiles.file.z = unzOpen (pak->pakFilename);
-							if (fsh[*file].handleFiles.file.z == NULL) {
-								Com_Error (ERR_FATAL, "Couldn't open %s", pak->pakFilename);
+#ifdef __USE_BIT7Z__
+						if (!strcmp(COM_GetExtension(pak->pakFilename), "pkw"))
+						{
+							fsh[*file].handleFiles.file.z = NULL;
+							Q_strncpyz(fsh[*file].name, filename, sizeof(fsh[*file].name));
+							fsh[*file].pkwFile = qtrue;
+							Q_strncpyz(fsh[*file].pkwFilename, pak->pakFilename, sizeof(pak->pakFilename));
+
+							BitArchiveInfo arc{ lib, stringToWstring(fsh[*file].pkwFilename), BitFormat::Auto/*BitFormat::SevenZip*/ };
+
+							unsigned long len = -1;
+
+							auto arc_items = arc.items();
+							for (auto& item : arc_items) {
+								auto crc = item.getProperty(BitProperty::CRC);
+
+								if (crc.isEmpty())
+								{
+									continue;
+								}
+
+								std::string arcFile = wstringToString(item.path());
+
+								if (!FS_FilenameCompare(arcFile.c_str(), filename))
+								{
+									len = item.size();
+									fsh[*file].pkwIndex = item.index();
+									//Com_Printf("%s is %s. len %u. index %u.\n", arcFile.c_str(), filename, len, item.index());
+									break;
+								}
 							}
-						} else {
-							fsh[*file].handleFiles.file.z = pak->handle;
+
+							//FS_IN_USE = qfalse;
+							fsread_lock.unlock();
+							return len;
 						}
-						Q_strncpyz( fsh[*file].name, filename, sizeof( fsh[*file].name ) );
-						fsh[*file].zipFile = qtrue;
+						else
+#endif //__USE_BIT7Z__
+						{
+							if (uniqueFILE) {
+								// open a new file on the pakfile
+								fsh[*file].handleFiles.file.z = unzOpen(pak->pakFilename);
+								if (fsh[*file].handleFiles.file.z == NULL) {
+									Com_Error(ERR_FATAL, "Couldn't open %s", pak->pakFilename);
+								}
+							}
+							else {
+								fsh[*file].handleFiles.file.z = pak->handle;
+							}
+							Q_strncpyz(fsh[*file].name, filename, sizeof(fsh[*file].name));
+							fsh[*file].zipFile = qtrue;
 
-						// set the file position in the zip file (also sets the current file info)
-						unzSetOffset(fsh[*file].handleFiles.file.z, pakFile->pos);
+							// set the file position in the zip file (also sets the current file info)
+							unzSetOffset(fsh[*file].handleFiles.file.z, pakFile->pos);
 
-						// open the file in the zip
-						unzOpenCurrentFile(fsh[*file].handleFiles.file.z);
+							// open the file in the zip
+							unzOpenCurrentFile(fsh[*file].handleFiles.file.z);
 
 #if 0
-						zfi = (unz_s *)fsh[*file].handleFiles.file.z;
-						// in case the file was new
-						temp = zfi->filestream;
-						// set the file position in the zip file (also sets the current file info)
-						unzSetOffset(pak->handle, pakFile->pos);
-						// copy the file info into the unzip structure
-						Com_Memcpy( zfi, pak->handle, sizeof(unz_s) );
-						// we copy this back into the structure
-						zfi->filestream = temp;
-						// open the file in the zip
-						unzOpenCurrentFile( fsh[*file].handleFiles.file.z );
+							zfi = (unz_s *)fsh[*file].handleFiles.file.z;
+							// in case the file was new
+							temp = zfi->filestream;
+							// set the file position in the zip file (also sets the current file info)
+							unzSetOffset(pak->handle, pakFile->pos);
+							// copy the file info into the unzip structure
+							Com_Memcpy(zfi, pak->handle, sizeof(unz_s));
+							// we copy this back into the structure
+							zfi->filestream = temp;
+							// open the file in the zip
+							unzOpenCurrentFile(fsh[*file].handleFiles.file.z);
 #endif
-						fsh[*file].zipFilePos = pakFile->pos;
-						fsh[*file].zipFileLen = pakFile->len;
+							fsh[*file].zipFilePos = pakFile->pos;
+							fsh[*file].zipFileLen = pakFile->len;
 
-						if ( fs_debug->integer ) {
-							Com_Printf( "FS_FOpenFileRead: %s (found in '%s')\n",
-								filename, pak->pakFilename );
+							if (fs_debug->integer) {
+								Com_Printf("FS_FOpenFileRead: %s (found in '%s')\n",
+									filename, pak->pakFilename);
+							}
+#ifndef DEDICATED
+#ifndef FINAL_BUILD
+							// Check for unprecached files when in game but not in the menus
+							if ((cls.state == CA_ACTIVE) && !(Key_GetCatcher() & KEYCATCH_UI))
+							{
+								Com_Printf(S_COLOR_YELLOW "WARNING: File %s not precached\n", filename);
+							}
+#endif
+#endif // DEDICATED
+							//FS_IN_USE = qfalse;
+							fsread_lock.unlock();
+							return pakFile->len;
 						}
-	#ifndef DEDICATED
-	#ifndef FINAL_BUILD
-						// Check for unprecached files when in game but not in the menus
-						if((cls.state == CA_ACTIVE) && !(Key_GetCatcher( ) & KEYCATCH_UI))
-						{
-							Com_Printf(S_COLOR_YELLOW "WARNING: File %s not precached\n", filename);
-						}
-	#endif
-	#endif // DEDICATED
-						//FS_IN_USE = qfalse;
-						fsread_lock.unlock();
-						return pakFile->len;
 					}
 					pakFile = pakFile->next;
 				} while(pakFile != NULL);
@@ -1741,25 +1833,41 @@ int FS_Read( void *buffer, int len, fileHandle_t f ) {
 	buf = (byte *)buffer;
 	fs_readCount += len;
 
+#ifdef __USE_BIT7Z__
+	if (fsh[f].pkwFile == qtrue) 
+	{
+		//Com_Printf("Extracting %s.\n", fsh[f].name);
+		
+		vector< byte_t > out_buffer;
+		extractor.extract(stringToWstring(fsh[f].pkwFilename), out_buffer, fsh[f].pkwIndex);
+		memcpy(buffer, out_buffer.data(), len);
+		out_buffer.clear();
+		
+		//Com_Printf("out_buffer len %u.\n", len);
+		return len;
+	}
+	else
+#endif //__USE_BIT7Z__
 	if (fsh[f].zipFile == qfalse) {
 		remaining = len;
 		tries = 0;
 		while (remaining) {
 			block = remaining;
-			read = fread (buf, 1, block, fsh[f].handleFiles.file.o);
+			read = fread(buf, 1, block, fsh[f].handleFiles.file.o);
 			if (read == 0) {
 				// we might have been trying to read from a CD, which
 				// sometimes returns a 0 read on windows
 				if (!tries) {
 					tries = 1;
-				} else {
+				}
+				else {
 					//FS_IN_USE = qfalse;
-					return len-remaining;	//Com_Error (ERR_FATAL, "FS_Read: 0 bytes read");
+					return len - remaining;	//Com_Error (ERR_FATAL, "FS_Read: 0 bytes read");
 				}
 			}
 
 			if (read == -1) {
-				Com_Error (ERR_FATAL, "FS_Read: -1 bytes read");
+				Com_Error(ERR_FATAL, "FS_Read: -1 bytes read");
 			}
 
 			remaining -= read;
@@ -2249,6 +2357,139 @@ ZIP FILE LOADING
 ==========================================================================
 */
 
+#ifdef __USE_BIT7Z__
+static pack_t *FS_LoadPkwFile(const char *zipfile, const char *basename)
+{
+	fileInPack_t	*buildBuffer;
+	pack_t			*pack;
+	//unzFile			uf;
+	//int				err;
+	unz_global_info gi;
+	char			filename_inzip[MAX_ZPATH];
+	//unz_file_info	file_info;
+	int				len;
+	size_t			i;
+	long			hash;
+	int				fs_numHeaderLongs;
+	int				*fs_headerLongs;
+	char			*namePtr;
+
+	fs_lock.lock();
+
+	fs_numHeaderLongs = 0;
+
+	len = 0;
+
+	BitArchiveInfo arc{ lib, stringToWstring(zipfile), BitFormat::Auto/*BitFormat::SevenZip*/ };
+
+	//Com_Printf("FS_LoadPkwFile: Adding pkw %s (%s).\n", zipfile, basename);
+
+	gi.number_entry = 0;
+
+	auto arc_items = arc.items();
+	for (auto& item : arc_items) {
+		auto crc = item.getProperty(BitProperty::CRC);
+
+		if (crc.isEmpty())
+		{
+			continue;
+		}
+
+		std::string arcFile = wstringToString(item.path());
+		len += arcFile.length() + 1;
+		gi.number_entry++;
+	}
+	
+	gi.size_comment = 0;
+
+	buildBuffer = (struct fileInPack_s *)Z_Malloc((gi.number_entry * sizeof(fileInPack_t)) + len, TAG_FILESYS, qtrue);
+	namePtr = ((char *)buildBuffer) + gi.number_entry * sizeof(fileInPack_t);
+	fs_headerLongs = (int *)Z_Malloc((gi.number_entry + 1) * sizeof(int), TAG_FILESYS, qtrue);
+	fs_headerLongs[fs_numHeaderLongs++] = LittleLong(fs_checksumFeed);
+
+	// get the hash table size from the number of files in the zip
+	// because lots of custom pk3 files have less than 32 or 64 files
+	for (i = 1; i <= MAX_FILEHASH_SIZE; i <<= 1) {
+		if (i > gi.number_entry) {
+			break;
+		}
+	}
+
+	pack = (pack_t *)Z_Malloc(sizeof(pack_t) + i * sizeof(fileInPack_t *), TAG_FILESYS, qtrue);
+	pack->hashSize = i;
+	pack->hashTable = (fileInPack_t **)(((char *)pack) + sizeof(pack_t));
+	for (int j = 0; j < pack->hashSize; j++) {
+		pack->hashTable[j] = NULL;
+	}
+
+	Q_strncpyz(pack->pakFilename, zipfile, sizeof(pack->pakFilename));
+	Q_strncpyz(pack->pakBasename, basename, sizeof(pack->pakBasename));
+
+	// strip .pk3 if needed
+	int basePakNameLen = strlen(pack->pakBasename);
+	if (basePakNameLen > 4 && !Q_stricmp(pack->pakBasename + basePakNameLen - 4, ".pkw")) {
+		pack->pakBasename[basePakNameLen - 4] = 0;
+	}
+
+	pack->handle = NULL; // uf
+	pack->numfiles = gi.number_entry;
+
+	i = 0;
+
+	for (auto& item : arc_items) {
+		auto crc = item.getProperty(BitProperty::CRC);
+
+		if (crc.isEmpty())
+		{
+			continue;
+		}
+		
+		std::string arcFile = wstringToString(item.path());
+
+		Q_strncpyz(filename_inzip, arcFile.c_str(), arcFile.length()+1);
+
+		//Com_Printf("FS_LoadPkwFile:        PKW %s (%s). CRC %u.\n", zipfile, filename_inzip, !crc.isEmpty() ? crc.getUInt32() : 0);
+
+		if (item.size() > 0) {
+			fs_headerLongs[fs_numHeaderLongs++] = LittleLong(crc.getUInt32());
+		}
+		
+		Q_strlwr(filename_inzip);
+		hash = FS_HashFileName(filename_inzip, pack->hashSize);
+
+		//Com_Printf("FS_LoadPkwFile:        PKW %s (%s). HASH %u.\n", zipfile, filename_inzip, hash);
+
+		buildBuffer[i].name = namePtr;
+		strcpy(buildBuffer[i].name, filename_inzip);
+		namePtr += strlen(filename_inzip) + 1;
+
+		//Com_Printf("FS_LoadPkwFile:        PKW %s (%s). buildBuffer[i].name %s.\n", zipfile, filename_inzip, buildBuffer[i].name);
+
+		// store the file position in the zip
+		buildBuffer[i].pos = item.index();
+		buildBuffer[i].len = item.size();
+		buildBuffer[i].next = pack->hashTable[hash];
+		pack->hashTable[hash] = &buildBuffer[i];
+
+		//Com_Printf("FS_LoadPkwFile:        PKW %s (%s). POS %u. LEN %u.\n", zipfile, filename_inzip, buildBuffer[i].pos, buildBuffer[i].len);
+
+		i++;
+	}
+
+	pack->checksum = Com_BlockChecksum(&fs_headerLongs[1], sizeof(*fs_headerLongs) * (fs_numHeaderLongs - 1));
+	pack->pure_checksum = Com_BlockChecksum(fs_headerLongs, sizeof(*fs_headerLongs) * fs_numHeaderLongs);
+	pack->checksum = LittleLong(pack->checksum);
+	pack->pure_checksum = LittleLong(pack->pure_checksum);
+
+	Z_Free(fs_headerLongs);
+
+	pack->buildBuffer = buildBuffer;
+	//FS_IN_USE = qfalse;
+	fs_lock.unlock();
+	return pack;
+}
+#endif //__USE_BIT7Z__
+
 /*
 =================
 FS_LoadZipFile
@@ -2398,6 +2639,26 @@ qboolean FS_CompareZipChecksum(const char *zipfile)
 {
 	pack_t *thepak;
 	int index, checksum;
+
+#ifdef __USE_BIT7Z__
+	if (!strcmp(COM_GetExtension(zipfile), "pkw"))
+	{
+		thepak = FS_LoadPkwFile(zipfile, "");
+
+		if (thepak)
+		{
+			checksum = thepak->checksum;
+
+			for (index = 0; index < fs_numServerReferencedPaks; index++)
+			{
+				if (checksum == fs_serverReferencedPaks[index])
+					return qtrue;
+			}
+		}
+
+		return qfalse;
+	}
+#endif //__USE_BIT7Z__
 
 	thepak = FS_LoadZipFile(zipfile, "");
 
@@ -3226,6 +3487,29 @@ static void FS_AddGameDirectory( const char *path, const char *dir ) {
 
 	pakfiles = Sys_ListFiles( curpath, ".pk3", NULL, &numfiles, qfalse );
 
+#ifdef __USE_BIT7Z__
+	bool tooMany = false;
+	int numPkwfiles = 0;
+	char **pakfiles2 = Sys_ListFiles(curpath, ".pkw", NULL, &numPkwfiles, qfalse);
+
+	// sort them so that later alphabetic matches override
+	// earlier ones.  This makes pak1.pk3 override pak0.pk3
+	if (numfiles > MAX_PAKFILES) {
+		numfiles = MAX_PAKFILES;
+	}
+	for (i = 0; i < numfiles; i++) {
+		sorted[i] = pakfiles[i];
+	}
+	for (i = 0; i < numPkwfiles && numfiles + i < MAX_PAKFILES; i++) {
+		sorted[numfiles+i] = pakfiles2[i];
+	}
+	
+	numfiles += numPkwfiles;
+
+	if (numfiles > MAX_PAKFILES) {
+		numfiles = MAX_PAKFILES;
+	}
+#else //!__USE_BIT7Z__
 	// sort them so that later alphabetic matches override
 	// earlier ones.  This makes pak1.pk3 override pak0.pk3
 	if ( numfiles > MAX_PAKFILES ) {
@@ -3234,11 +3518,21 @@ static void FS_AddGameDirectory( const char *path, const char *dir ) {
 	for ( i = 0 ; i < numfiles ; i++ ) {
 		sorted[i] = pakfiles[i];
 	}
+#endif //__USE_BIT7Z__
 
 	qsort( sorted, numfiles, sizeof(char*), paksort );
 
 	for ( i = 0 ; i < numfiles ; i++ ) {
 		pakfile = FS_BuildOSPath( path, dir, sorted[i] );
+
+#ifdef __USE_BIT7Z__
+		if (!strcmp(COM_GetExtension(sorted[i]), "pkw"))
+		{
+			if ((pak = FS_LoadPkwFile(pakfile, sorted[i])) == 0)
+				continue;
+		}
+		else
+#endif //__USE_BIT7Z__
 		if ( ( pak = FS_LoadZipFile( pakfile, sorted[i] ) ) == 0 )
 			continue;
 		Q_strncpyz(pak->pakPathname, curpath, sizeof(pak->pakPathname));
@@ -3368,6 +3662,10 @@ qboolean FS_ComparePaks( char *neededpaks, int len, qboolean dlstring ) {
 				break;
 			}
 		}
+
+#ifdef __USE_BIT7Z__
+		// What to do here? hmmm...
+#endif //__USE_BIT7Z__
 
 		if ( !havepak && fs_serverReferencedPakNames[i] && *fs_serverReferencedPakNames[i] ) {
 			// Don't got it
@@ -3638,7 +3936,12 @@ void FS_Startup( const char *gameName ) {
 		missingFiles = fopen( "\\missing.txt", "ab" );
 	}
 #endif
+
+#ifdef __USE_BIT7Z__
+	Com_Printf("%d files in pk3/pkw files\n", fs_packFiles);
+#else //!__USE_BIT7Z__
 	Com_Printf( "%d files in pk3 files\n", fs_packFiles );
+#endif //__USE_BIT7Z__
 
 	FS_STARTUP_COMPLETE = qtrue;
 }
