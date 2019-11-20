@@ -163,6 +163,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 //#define __SORT_POLYS__							// Sorts polys by shader so when they draw, they get merged...
 #define __MERGE_DEPTHPASS_DRAWS__				// Merges non-alpha draws in depth prepass by using defaultshader for them...
+//#define __USE_DEPTHDRAWONLY__
 
 #define __FX_SORTING__
 #define __WATER_SORTING__
@@ -3435,13 +3436,6 @@ typedef struct trGlobals_s {
 
 	frontEndCounters_t		pc;
 	int						frontEndMsec;		// not in pc due to clearing issue
-
-	// Occlusion culling...
-	int						previousVisIndex;
-	cplane_t                previousFrustum[4];
-	vec3_t                  previousVisBounds[2];
-	qboolean                updateVisibleSurfaces;
-	int						updateOcclusion;
 
 	//
 	// put large tables at the end, so most elements will be

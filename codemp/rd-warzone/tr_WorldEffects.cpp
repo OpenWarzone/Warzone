@@ -1744,7 +1744,10 @@ public:
 		if (shader->isBindless)
 		{
 			GLSL_SetBindlessTexture(shader, UNIFORM_DIFFUSEMAP, &mImage, 0);
-			GLSL_SetBindlessTexture(shader, UNIFORM_HEIGHTMAP, &tr.waterHeightMapImage, 0);
+			if (tr.waterHeightMapImage)
+				GLSL_SetBindlessTexture(shader, UNIFORM_HEIGHTMAP, &tr.waterHeightMapImage, 0);
+			else
+				GLSL_SetBindlessTexture(shader, UNIFORM_HEIGHTMAP, &tr.whiteImage, 0);
 
 			GLSL_BindlessUpdate(shader);
 		}
@@ -1754,7 +1757,10 @@ public:
 			GL_BindToTMU(mImage, TB_DIFFUSEMAP);
 
 			GLSL_SetUniformInt(shader, UNIFORM_HEIGHTMAP, TB_HEIGHTMAP);
-			GL_BindToTMU(tr.waterHeightMapImage, TB_HEIGHTMAP);
+			if (tr.waterHeightMapImage)
+				GL_BindToTMU(tr.waterHeightMapImage, TB_HEIGHTMAP);
+			else
+				GL_BindToTMU(tr.whiteImage, TB_HEIGHTMAP);
 		}
 
 		{

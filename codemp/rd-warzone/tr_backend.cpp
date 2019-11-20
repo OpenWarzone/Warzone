@@ -1618,7 +1618,7 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 				continue;
 			}
 
-#ifdef __ZFAR_CULLING_ON_SURFACES__
+#if defined(__ZFAR_CULLING_ON_SURFACES__) && defined(__USE_DEPTHDRAWONLY__)
 			if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer)
 			{
 				if (!backEnd.depthFill
@@ -1632,7 +1632,7 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 					continue;
 				}
 			}
-#endif //__ZFAR_CULLING_ON_SURFACES__
+#endif //defined(__ZFAR_CULLING_ON_SURFACES__) && defined(__USE_DEPTHDRAWONLY__)
 
 			qboolean doDraw = qtrue;
 

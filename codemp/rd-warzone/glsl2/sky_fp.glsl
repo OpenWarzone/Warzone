@@ -2122,7 +2122,7 @@ void main()
 	}
 
 	out_Position = vec4(normalize(var_Position.xyz) * 524288.0, 1025.0);
-	out_Normal = vec4(EncodeNormal(var_Normal.rgb), 0.0, 1.0);
+	out_Normal = vec4(EncodeNormal(-skyViewDir.rbg/*var_Normal.rgb*/), 0.0, 1.0);
 #ifdef __USE_REAL_NORMALMAPS__
 	out_NormalDetail = vec4(0.0);
 #endif //__USE_REAL_NORMALMAPS__

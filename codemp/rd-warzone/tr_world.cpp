@@ -30,6 +30,7 @@ extern int		GRASS_DISTANCE;
 
 void RB_CullSurfaceOcclusion(msurface_t *surf)
 {
+#if defined(__USE_DEPTHDRAWONLY__) || defined(__ZFAR_CULLING_ON_SURFACES__) // Still mark them for the sake of sorting to lower priority...
 	if (!ENABLE_OCCLUSION_CULLING || !r_occlusion->integer)
 	{
 		surf->depthDrawOnly = qfalse;
@@ -51,20 +52,24 @@ void RB_CullSurfaceOcclusion(msurface_t *surf)
 		return;
 	}
 
-#ifdef __ZFAR_CULLING_ON_SURFACES__
-	if (surf->shader->materialType == MATERIAL_GREENLEAVES || (surf->shader->hasAlphaTestBits && !surf->shader->hasSplatMaps))
-	{// Tree leaves and alpha surfaces can be culled easier by occlusion culling...
-		if (surf->cullinfo.currentDistance > tr.occlusionZfarFoliage * 1.75)
-		{// Out of foliage view range, but we still want it on depth draws...
-			surf->depthDrawOnlyFoliage = qtrue;
+	#ifdef __ZFAR_CULLING_ON_SURFACES__
+		if (surf->shader->materialType == MATERIAL_GREENLEAVES || (surf->shader->hasAlphaTestBits && !surf->shader->hasSplatMaps))
+		{// Tree leaves and alpha surfaces can be culled easier by occlusion culling...
+			if (surf->cullinfo.currentDistance > tr.occlusionZfarFoliage * 1.75)
+			{// Out of foliage view range, but we still want it on depth draws...
+				surf->depthDrawOnlyFoliage = qtrue;
+			}
 		}
-	}
 
-	if (surf->cullinfo.currentDistance > tr.occlusionZfar * 1.75)
-	{// Out of view range, but we still want it on depth draws...
-		surf->depthDrawOnly = qtrue;
-	}
-#endif //__ZFAR_CULLING_ON_SURFACES__
+		if (surf->cullinfo.currentDistance > tr.occlusionZfar * 1.75)
+		{// Out of view range, but we still want it on depth draws...
+			surf->depthDrawOnly = qtrue;
+		}
+	#endif //__ZFAR_CULLING_ON_SURFACES__
+#else //!(defined(__USE_DEPTHDRAWONLY__) || defined(__ZFAR_CULLING_ON_SURFACES__))
+	surf->depthDrawOnly = qfalse;
+	surf->depthDrawOnlyFoliage = qfalse;
+#endif //defined(__USE_DEPTHDRAWONLY__) || defined(__ZFAR_CULLING_ON_SURFACES__)
 }
 
 /*
@@ -228,20 +233,15 @@ static qboolean	R_CullSurface(msurface_t *surf, int entityNum) {
 	}
 
 
-	/*if (r_testvalue0->integer)
-	{
-		RB_CullSurfaceOcclusion(surf);
-		if (surf->depthDrawOnly) return qtrue;
-		if (surf->depthDrawOnlyFoliage) return qtrue;
-	}*/
-
 	if (surf->cullinfo.type & CULLINFO_PLANE)
 	{
 		if (tr.currentModel && tr.currentModel->type == MOD_BRUSH)
 		{// UQ1: Hack!!! Disabled... These have cull issues...
 			RB_CullSurfaceOcclusion(surf);
+#ifdef __USE_DEPTHDRAWONLY__
 			if (surf->depthDrawOnly) return qtrue;
 			if (surf->depthDrawOnlyFoliage) return qtrue;
+#endif //__USE_DEPTHDRAWONLY__
 			return qfalse;
 		}
 
@@ -251,7 +251,9 @@ static qboolean	R_CullSurface(msurface_t *surf, int entityNum) {
 
 		if (!r_facePlaneCull->integer) {
 			RB_CullSurfaceOcclusion(surf);
+#ifdef __USE_DEPTHDRAWONLY__
 			if (surf->depthDrawOnlyFoliage) return qtrue;
+#endif //__USE_DEPTHDRAWONLY__
 			return qfalse;
 		}
 
@@ -260,7 +262,9 @@ static qboolean	R_CullSurface(msurface_t *surf, int entityNum) {
 		if (ct == CT_TWO_SIDED)
 		{
 			RB_CullSurfaceOcclusion(surf);
+#ifdef __USE_DEPTHDRAWONLY__
 			if (surf->depthDrawOnlyFoliage) return qtrue;
+#endif //__USE_DEPTHDRAWONLY__
 			return qfalse;
 		}
 
@@ -298,7 +302,9 @@ static qboolean	R_CullSurface(msurface_t *surf, int entityNum) {
 			}
 
 			RB_CullSurfaceOcclusion(surf);
+#ifdef __USE_DEPTHDRAWONLY__
 			if (surf->depthDrawOnlyFoliage) return qtrue;
+#endif //__USE_DEPTHDRAWONLY__
 			return qfalse;
 		}
 
@@ -319,7 +325,9 @@ static qboolean	R_CullSurface(msurface_t *surf, int entityNum) {
 		}
 
 		RB_CullSurfaceOcclusion(surf);
+#ifdef __USE_DEPTHDRAWONLY__
 		if (surf->depthDrawOnlyFoliage) return qtrue;
+#endif //__USE_DEPTHDRAWONLY__
 		return qfalse;
 	}
 
@@ -358,7 +366,9 @@ static qboolean	R_CullSurface(msurface_t *surf, int entityNum) {
 	}
 
 	RB_CullSurfaceOcclusion(surf);
+#ifdef __USE_DEPTHDRAWONLY__
 	if (surf->depthDrawOnlyFoliage) return qtrue;
+#endif //__USE_DEPTHDRAWONLY__
 	return qfalse;
 }
 

@@ -238,6 +238,11 @@ void RB_CheckOcclusions(void)
 
 		nextOcclusionCheck = 1; // Since we finished a query, allow next query to begin straight away...
 	}
+	else
+	{
+		tr.occlusionZfar = tr.distanceCull;
+		tr.occlusionZfarFoliage = tr.distanceCull;
+	}
 }
 
 void RB_MoveSky(void)
@@ -422,6 +427,7 @@ void RB_OcclusionCulling(void)
 
 				occlusionRangeId[numOcclusionQueries] = range;
 
+#if 1
 				vec2_t texCoords[4];
 
 				VectorSet2(texCoords[0], 0.0f, 0.0f);
@@ -457,6 +463,42 @@ void RB_OcclusionCulling(void)
 				VectorSet4(quadVerts[1], mRightPositionDown[0], mRightPositionDown[1], mRightPositionDown[2], 1.0);
 				VectorSet4(quadVerts[2], mRightPositionUp[0], mRightPositionUp[1], mRightPositionUp[2], 1.0);
 				VectorSet4(quadVerts[3], mLeftPositionUp[0], mLeftPositionUp[1], mLeftPositionUp[2], 1.0);
+#else
+				vec4_t quadVerts[4];
+				vec2_t texCoords[4];
+				vec4_t box;
+
+				box[0] = backEnd.viewParms.viewportX      * tr.volumetricFbo->width / ((float)glConfig.vidWidth * r_superSampleMultiplier->value);
+				box[1] = backEnd.viewParms.viewportY      * tr.volumetricFbo->height / ((float)glConfig.vidHeight * r_superSampleMultiplier->value);
+				box[2] = backEnd.viewParms.viewportWidth  * tr.volumetricFbo->width / ((float)glConfig.vidWidth * r_superSampleMultiplier->value);
+				box[3] = backEnd.viewParms.viewportHeight * tr.volumetricFbo->height / ((float)glConfig.vidHeight * r_superSampleMultiplier->value);
+
+				qglViewport(box[0], box[1], box[2], box[3]);
+				qglScissor(box[0], box[1], box[2], box[3]);
+
+				box[0] = backEnd.viewParms.viewportX / ((float)glConfig.vidWidth * r_superSampleMultiplier->value);
+				box[1] = backEnd.viewParms.viewportY / ((float)glConfig.vidHeight * r_superSampleMultiplier->value);
+				box[2] = box[0] + backEnd.viewParms.viewportWidth / ((float)glConfig.vidWidth * r_superSampleMultiplier->value);
+				box[3] = box[1] + backEnd.viewParms.viewportHeight / ((float)glConfig.vidHeight * r_superSampleMultiplier->value);
+
+				texCoords[0][0] = box[0]; texCoords[0][1] = box[3];
+				texCoords[1][0] = box[2]; texCoords[1][1] = box[3];
+				texCoords[2][0] = box[2]; texCoords[2][1] = box[1];
+				texCoords[3][0] = box[0]; texCoords[3][1] = box[1];
+
+				box[0] = -1.0f;
+				box[1] = -1.0f;
+				box[2] = 1.0f;
+				box[3] = 1.0f;
+
+				VectorSet4(quadVerts[0], box[0], box[3], 0, 1);
+				VectorSet4(quadVerts[1], box[2], box[3], 0, 1);
+				VectorSet4(quadVerts[2], box[2], box[1], 0, 1);
+				VectorSet4(quadVerts[3], box[0], box[1], 0, 1);
+
+				float depth = Q_clamp(0.0, z / (tr.distanceCull * 1.75), 1.0);
+				GL_SetDepthRange(depth, depth);
+#endif
 
 #ifdef __DEBUG_OCCLUSION__
 				if (r_occlusionDebug->integer >= 3)
