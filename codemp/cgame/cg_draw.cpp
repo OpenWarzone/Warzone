@@ -8777,13 +8777,9 @@ void CG_DrawDamage( void )
 			continue;
 		}
 
-		if (!CG_CheckClientVisibility(cent))
-		{
-			//continue;
-			skip = qtrue;
-		}
+		dist = Distance(cg.refdef.vieworg/*cg.snap->ps.origin*/, origin);
 
-		if (skip) continue;
+		if (dist > 2048.0f/*1024.0f*/) continue; // Too far...
 
 		VectorCopy( cent->lerpOrigin, origin );
 		origin[2] += 35;//30;
@@ -8792,10 +8788,6 @@ void CG_DrawDamage( void )
 		if ( cent->playerState->pm_flags & PMF_DUCKED )
 			origin[2] -= 18;
 
-		dist = Distance(cg.refdef.vieworg/*cg.snap->ps.origin*/, origin);
-
-		if (dist > 2048.0f/*1024.0f*/) continue; // Too far...
-
 		// Draw the NPC name!
 		if (!CG_WorldCoordToScreenCoordFloat(origin, &x, &y))
 		{
@@ -8803,6 +8795,11 @@ void CG_DrawDamage( void )
 		}
 
 		if (x < 0 || x > 640 || y < 0 || y > 480)
+		{
+			continue;
+		}
+
+		if (!CG_CheckClientVisibility(cent))
 		{
 			continue;
 		}
