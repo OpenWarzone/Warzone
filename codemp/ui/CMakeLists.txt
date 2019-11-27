@@ -12,6 +12,8 @@ endif(WIN32)
 set(MPUIDefines ${MPSharedDefines} "_UI")
 
 set(MPUIGameFiles
+  "${MPDir}/game/bg_inventory.cpp"
+  "${MPDir}/game/bg_inventory.h"
 	"${MPDir}/game/bg_misc.cpp"
 	"${MPDir}/game/bg_saberLoad.cpp"
 	"${MPDir}/game/bg_saga.cpp"

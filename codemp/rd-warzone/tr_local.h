@@ -266,6 +266,7 @@ extern int GLSL_BINDS_COUNT;
 #include <string>
 #include "../qcommon/inifile.h"
 #include "tr_mapping.h"
+#include "../game/bg_inventory.h"
 
 #ifdef _WIN32
 #include "win32\win_local.h"

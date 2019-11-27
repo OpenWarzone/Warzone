@@ -2046,6 +2046,13 @@ typedef struct playerState_s {
 
 	int			nextStyleSwitch;
 
+	// Inventory Data...
+	int				inventoryItems[64];
+	int				inventoryMod1[64];
+	int				inventoryMod2[64];
+	int				inventoryMod3[64];
+	int				inventoryEquipped[8];
+
 	//rww - spare values specifically for use by mod authors.
 	//See psf_overrides.txt if you want to increase the send
 	//amount of any of these above 1 bit.
@@ -2476,6 +2483,13 @@ typedef struct entityState_s {
 	int			extra_flags;
 
 	int			healFxTime;
+
+	// Inventory Data...
+	int				inventoryItems[64];
+	int				inventoryMod1[64];
+	int				inventoryMod2[64];
+	int				inventoryMod3[64];
+	int				inventoryEquipped[8];
 
 	//rww - spare values specifically for use by mod authors.
 	//See netf_overrides.txt if you want to increase the send

@@ -2033,6 +2033,9 @@ static void CG_RegisterGameAssets( void ) {
 	CG_LoadingString("Atmospherics");
 	CG_AtmosphericKludge();
 
+	// Initialize all possible game inventory items...
+	GenerateAllInventoryItems();
+
 	cg.loadLCARSStage = 9;
 }
 

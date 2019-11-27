@@ -1138,6 +1138,10 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 		G_LoadArenas();
 	}
 
+	Com_Printf("^5----- ^7Inventory Initialization^5 -----\n");
+	// Initialize all possible game inventory items...
+	GenerateAllInventoryItems();
+
 	Com_Printf ("^5------- ^7Tree Initialization^5 -------\n");
 	FOLIAGE_LoadTrees();
 	Com_Printf ("^5-----------------------------------\n");

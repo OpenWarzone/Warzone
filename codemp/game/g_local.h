@@ -824,9 +824,6 @@ struct gclient_s {
 	clientPersistant_t	pers;
 	clientSession_t		sess;
 
-	inventoryItem	*inventory[64];
-	int				inventoryCount;
-
 #ifdef __USE_NAVLIB__
 	navlibTarget_t	navigation;
 #endif //__USE_NAVLIB__

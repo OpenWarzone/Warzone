@@ -966,6 +966,12 @@ netField_t	entityStateFields[] =
 { NETF(csSounds_Jedi), 16 },
 { NETF(extra_flags), 32 },
 
+{ NETF(inventoryItems[64]), 32 },
+{ NETF(inventoryMod1[64]), 32 },
+{ NETF(inventoryMod2[64]), 32 },
+{ NETF(inventoryMod3[64]), 32 },
+{ NETF(inventoryEquipped[8]), 32 },
+
 //rww - for use by mod authors only
 { NETF(userInt1), 1 },
 { NETF(userInt2), 1 },
@@ -1417,6 +1423,12 @@ netField_t	playerStateFields[] =
 //{ PSF(hyperSpaceAngles[2]), 0 },//only used by vehicle?
 { PSF(nextStyleSwitch), 32 },
 
+{ PSF(inventoryItems[64]), 32 },
+{ PSF(inventoryMod1[64]), 32 },
+{ PSF(inventoryMod2[64]), 32 },
+{ PSF(inventoryMod3[64]), 32 },
+{ PSF(inventoryEquipped[8]), 32 },
+
 //rww - for use by mod authors only
 { PSF(userInt1), 1 },
 { PSF(userInt2), 1 },
@@ -1599,6 +1611,12 @@ netField_t	pilotPlayerStateFields[] =
 //{ PSF(hyperSpaceAngles[0]), 0 },//only used by vehicle?
 //{ PSF(hyperSpaceAngles[2]), 0 },//only used by vehicle?
 { PSF(nextStyleSwitch), 32 },
+
+{ PSF(inventoryItems[64]), 32 },
+{ PSF(inventoryMod1[64]), 32 },
+{ PSF(inventoryMod2[64]), 32 },
+{ PSF(inventoryMod3[64]), 32 },
+{ PSF(inventoryEquipped[8]), 32 },
 
 //rww - for use by mod authors only
 { PSF(userInt1), 1 },
@@ -2091,6 +2109,11 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, struct playerState_s *from, struct p
 	int				statsbits;
 	int				persistantbits;
 	int				powerupbits;
+	int				inventoryItemBits;
+	int				inventoryMod1Bits;
+	int				inventoryMod2Bits;
+	int				inventoryMod3Bits;
+	int				inventoryEquippedBits;
 	int				numFields;
 	int				c;
 	netField_t		*field;
@@ -2222,8 +2245,38 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, struct playerState_s *from, struct p
 			powerupbits |= 1<<i;
 		}
 	}
+	inventoryItemBits = 0;
+	for (i = 0; i<64; i++) {
+		if (to->inventoryItems[i] != from->inventoryItems[i]) {
+			inventoryItemBits |= 1 << i;
+		}
+	}
+	inventoryMod1Bits = 0;
+	for (i = 0; i<64; i++) {
+		if (to->inventoryMod1[i] != from->inventoryMod1[i]) {
+			inventoryMod1Bits |= 1 << i;
+		}
+	}
+	inventoryMod2Bits = 0;
+	for (i = 0; i<64; i++) {
+		if (to->inventoryMod2[i] != from->inventoryMod2[i]) {
+			inventoryMod2Bits |= 1 << i;
+		}
+	}
+	inventoryMod3Bits = 0;
+	for (i = 0; i<64; i++) {
+		if (to->inventoryMod3[i] != from->inventoryMod3[i]) {
+			inventoryMod3Bits |= 1 << i;
+		}
+	}
+	inventoryEquippedBits = 0;
+	for (i = 0; i<8; i++) {
+		if (to->inventoryEquipped[i] != from->inventoryEquipped[i]) {
+			inventoryEquippedBits |= 1 << i;
+		}
+	}
 
-	if (!statsbits && !persistantbits && !powerupbits) {
+	if (!statsbits && !persistantbits && !powerupbits && !inventoryItemBits && !inventoryMod1Bits && !inventoryMod2Bits && !inventoryMod3Bits && !inventoryEquippedBits) {
 		MSG_WriteBits( msg, 0, 1 );	// no change
 		oldsize += 4;
 #ifdef _ONEBIT_COMBO
@@ -2280,6 +2333,81 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, struct playerState_s *from, struct p
 				MSG_WriteLong( msg, to->powerups[i] );
 	} else {
 		MSG_WriteBits( msg, 0, 1 );	// no change
+	}
+
+	if (inventoryItemBits) {
+		MSG_WriteBits(msg, 1, 1);	// changed
+		MSG_WriteBits(msg, inventoryItemBits, 64);
+		for (i = 0; i<64; i++)
+		{
+			if (inventoryItemBits & (1 << i))
+			{
+				MSG_WriteLong(msg, to->inventoryItems[i]);
+			}
+		}
+	}
+	else {
+		MSG_WriteBits(msg, 0, 1);	// no change
+	}
+
+	if (inventoryMod1Bits) {
+		MSG_WriteBits(msg, 1, 1);	// changed
+		MSG_WriteBits(msg, inventoryMod1Bits, 64);
+		for (i = 0; i<64; i++)
+		{
+			if (inventoryMod1Bits & (1 << i))
+			{
+				MSG_WriteLong(msg, to->inventoryMod1[i]);
+			}
+		}
+	}
+	else {
+		MSG_WriteBits(msg, 0, 1);	// no change
+	}
+
+	if (inventoryMod2Bits) {
+		MSG_WriteBits(msg, 1, 1);	// changed
+		MSG_WriteBits(msg, inventoryMod2Bits, 64);
+		for (i = 0; i<64; i++)
+		{
+			if (inventoryMod2Bits & (1 << i))
+			{
+				MSG_WriteLong(msg, to->inventoryMod2[i]);
+			}
+	}
+	}
+	else {
+		MSG_WriteBits(msg, 0, 1);	// no change
+	}
+
+	if (inventoryMod3Bits) {
+		MSG_WriteBits(msg, 1, 1);	// changed
+		MSG_WriteBits(msg, inventoryMod3Bits, 64);
+		for (i = 0; i<64; i++)
+		{
+			if (inventoryMod3Bits & (1 << i))
+			{
+				MSG_WriteLong(msg, to->inventoryMod3[i]);
+			}
+		}
+	}
+	else {
+		MSG_WriteBits(msg, 0, 1);	// no change
+	}
+
+	if (inventoryEquippedBits) {
+		MSG_WriteBits(msg, 1, 1);	// changed
+		MSG_WriteBits(msg, inventoryEquippedBits, 8);
+		for (i = 0; i<8; i++)
+		{
+			if (inventoryEquippedBits & (1 << i))
+			{
+				MSG_WriteLong(msg, to->inventoryEquipped[i]);
+			}
+		}
+	}
+	else {
+		MSG_WriteBits(msg, 0, 1);	// no change
 	}
 
 #ifdef _ONEBIT_COMBO
@@ -2471,6 +2599,61 @@ void MSG_ReadDeltaPlayerstate (msg_t *msg, playerState_t *from, playerState_t *t
 			for (i=0 ; i<MAX_POWERUPS ; i++) {
 				if (bits & (1<<i) ) {
 					to->powerups[i] = MSG_ReadLong(msg);
+				}
+			}
+		}
+
+		// parse inventoryItems
+		if (MSG_ReadBits(msg, 1)) {
+			LOG("PS_INVENTORYITEMS");
+			bits = MSG_ReadBits(msg, 64);
+			for (i = 0; i<64; i++) {
+				if (bits & (1 << i)) {
+					to->inventoryItems[i] = MSG_ReadLong(msg);
+				}
+			}
+		}
+
+		// parse inventoryMod1
+		if (MSG_ReadBits(msg, 1)) {
+			LOG("PS_INVENTORYMOD1");
+			bits = MSG_ReadBits(msg, 64);
+			for (i = 0; i<64; i++) {
+				if (bits & (1 << i)) {
+					to->inventoryMod1[i] = MSG_ReadLong(msg);
+				}
+			}
+		}
+
+		// parse inventoryMod2
+		if (MSG_ReadBits(msg, 1)) {
+			LOG("PS_INVENTORYMOD2");
+			bits = MSG_ReadBits(msg, 64);
+			for (i = 0; i<64; i++) {
+				if (bits & (1 << i)) {
+					to->inventoryMod2[i] = MSG_ReadLong(msg);
+				}
+			}
+		}
+
+		// parse inventoryMod3
+		if (MSG_ReadBits(msg, 1)) {
+			LOG("PS_INVENTORYMOD3");
+			bits = MSG_ReadBits(msg, 64);
+			for (i = 0; i<64; i++) {
+				if (bits & (1 << i)) {
+					to->inventoryMod3[i] = MSG_ReadLong(msg);
+				}
+			}
+		}
+
+		// parse inventoryEquipped
+		if (MSG_ReadBits(msg, 1)) {
+			LOG("PS_INVENTORYEQUIPPED");
+			bits = MSG_ReadBits(msg, 8);
+			for (i = 0; i<8; i++) {
+				if (bits & (1 << i)) {
+					to->inventoryEquipped[i] = MSG_ReadLong(msg);
 				}
 			}
 		}

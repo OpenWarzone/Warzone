@@ -851,17 +851,6 @@ basic_demo(struct nk_context *ctx, struct media *media)
 *
 * ===============================================================*/
 
-
-typedef enum {
-	QUALITY_GREY,		// on weapons/sabers/items - 0 base stats and 0 mod slots.
-	QUALITY_WHITE,		// on weapons/sabers/items - 1 base stats and 0 mod slots.
-	QUALITY_GREEN,		// on weapons/sabers/items - 2 base stats and 0 mod slots.
-	QUALITY_BLUE,		// on weapons/sabers/items - 3 base stats and 1 mod slots.
-	QUALITY_PURPLE,		// on weapons/sabers/items - 3 base stats and 2 mod slots.
-	QUALITY_ORANGE,		// on weapons/sabers/items - 3 base stats and 3 mod slots.
-	QUALITY_GOLD		// on weapons/sabers/items - 3 base stats and 3 mod slots. 1.5x Stats Modifier.
-} itemQuality_t;
-
 nk_color ColorForQuality(int quality)
 {
 	nk_color color = nk_rgba(64, 64, 64, 255);
@@ -3836,6 +3825,9 @@ void GUI_Init(void)
 	}
 
 	ri->Printf(PRINT_WARNING, "GUI_Init: Textures Initialized.\n");
+
+	// Initialize all possible game inventory items...
+	GenerateAllInventoryItems();
 
 	// Init the quick bar...
 	GUI_InitQuickBar();
