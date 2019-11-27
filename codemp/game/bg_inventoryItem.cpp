@@ -326,7 +326,7 @@ void inventoryItem::setCrystal(int crystalType)
 
 void inventoryItem::setStat1(int statType, float statValue)
 {
-	if (!isModification() && m_quality <= QUALITY_WHITE) return; // Not available...
+	if (!isModification() && m_quality <= QUALITY_GREY) return; // Not available...
 	if (isCrystal()) return; // crystals can not have stats.
 	if (isModification() && (m_basicStat2 || m_basicStat3)) return; // mods can only have 1 stat type.
 	
@@ -336,7 +336,7 @@ void inventoryItem::setStat1(int statType, float statValue)
 
 void inventoryItem::setStat2(int statType, float statValue)
 {
-	if (!isModification() && m_quality <= QUALITY_GREEN) return; // Not available...
+	if (!isModification() && m_quality <= QUALITY_WHITE) return; // Not available...
 	if (isCrystal()) return; // crystals can not have stats.
 	if (isModification() && (m_basicStat1 || m_basicStat3)) return; // mods can only have 1 stat type.
 
@@ -346,7 +346,7 @@ void inventoryItem::setStat2(int statType, float statValue)
 
 void inventoryItem::setStat3(int statType, float statValue)
 {
-	if (!isModification() && m_quality <= QUALITY_BLUE) return; // Not available...
+	if (!isModification() && m_quality <= QUALITY_GREEN) return; // Not available...
 	if (isCrystal()) return; // crystals can not have stats.
 	if (isModification() && (m_basicStat1 || m_basicStat2)) return; // mods can only have 1 stat type.
 
@@ -356,7 +356,7 @@ void inventoryItem::setStat3(int statType, float statValue)
 
 void inventoryItem::setMod1(int statType, float statValue)
 {
-	if (m_quality <= QUALITY_PURPLE) return; // Not available...
+	if (m_quality <= QUALITY_BLUE) return; // Not available...
 	if (isCrystal()) return; // crystals can not have stats.
 	if (isModification()) return; // mods can't have mods :)
 
@@ -366,7 +366,7 @@ void inventoryItem::setMod1(int statType, float statValue)
 
 void inventoryItem::setMod2(int statType, float statValue)
 {
-	if (m_quality <= QUALITY_ORANGE) return; // Not available...
+	if (m_quality <= QUALITY_PURPLE) return; // Not available...
 	if (isCrystal()) return; // crystals can not have stats.
 	if (isModification()) return; // mods can't have mods :)
 
@@ -376,7 +376,7 @@ void inventoryItem::setMod2(int statType, float statValue)
 
 void inventoryItem::setMod3(int statType, float statValue)
 {
-	if (m_quality <= QUALITY_GOLD) return; // Not available...
+	if (m_quality <= QUALITY_ORANGE) return; // Not available...
 	if (isCrystal()) return; // crystals can not have stats.
 	if (isModification()) return; // mods can't have mods :)
 

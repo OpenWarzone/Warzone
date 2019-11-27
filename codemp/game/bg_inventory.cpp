@@ -1085,14 +1085,14 @@ void GenerateAllInventoryItems(void)
 					for (int stat3 = SABER_STAT3_DEFAULT; stat3 < SABER_STAT3_MAX; stat3++)
 					{
 						// Never add stat slots not available at this quality level...
-						if (quality <= QUALITY_WHITE && (stat1 > 0 || stat2 > 0 || stat3 > 0)) continue;
-						if (quality <= QUALITY_GREEN && (stat2 > 0 || stat3 > 0)) continue;
-						if (quality <= QUALITY_BLUE && (stat3 > 0)) continue;
+						if (quality <= QUALITY_GREY && (stat1 > 0 || stat2 > 0 || stat3 > 0)) continue;
+						if (quality <= QUALITY_WHITE && (stat2 > 0 || stat3 > 0)) continue;
+						if (quality <= QUALITY_GREEN && (stat3 > 0)) continue;
 
 						// Always fill required slotes for stats...
-						if (quality > QUALITY_BLUE && !(stat1 > 0 && stat2 > 0 && stat3 > 0)) continue;
-						if (quality > QUALITY_GREEN && !(stat1 > 0 && stat2 > 0)) continue;
-						if (quality > QUALITY_WHITE && !(stat1 > 0)) continue;
+						if (quality > QUALITY_GREEN && !(stat1 > 0 && stat2 > 0 && stat3 > 0)) continue;
+						if (quality > QUALITY_WHITE && !(stat1 > 0 && stat2 > 0)) continue;
+						if (quality > QUALITY_GREY && !(stat1 > 0)) continue;
 						if (!(crystal > 0)) continue;
 
 						inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, (itemQuality_t)quality, 1, -1);
@@ -1147,16 +1147,15 @@ void GenerateAllInventoryItems(void)
 					for (int stat3 = WEAPON_STAT3_SHOT_DEFAULT; stat3 < WEAPON_STAT3_MAX; stat3++)
 					{
 						// Never add stat slots not available at this quality level...
-						if (quality <= QUALITY_GREY && (stat1 > 0 || stat2 > 0 || stat3 > 0 || crystal > 0)) continue;
-						if (quality <= QUALITY_WHITE && (stat1 > 0 || stat2 > 0 || stat3 > 0)) continue;
-						if (quality <= QUALITY_GREEN && (stat2 > 0 || stat3 > 0)) continue;
-						if (quality <= QUALITY_BLUE && (stat3 > 0)) continue;
+						if (quality <= QUALITY_GREY && (stat1 > 0 || stat2 > 0 || stat3 > 0)) continue;
+						if (quality <= QUALITY_WHITE && (stat2 > 0 || stat3 > 0)) continue;
+						if (quality <= QUALITY_GREEN && (stat3 > 0)) continue;
 
 						// Always fill required slotes for stats...
-						if (quality > QUALITY_BLUE && !(stat1 > 0 && stat2 > 0 && stat3 > 0)) continue;
-						if (quality > QUALITY_GREEN && !(stat1 > 0 && stat2 > 0)) continue;
-						if (quality > QUALITY_WHITE && !(stat1 > 0)) continue;
-						if (quality > QUALITY_GREY && !(crystal > 0)) continue;
+						if (quality > QUALITY_GREEN && !(stat1 > 0 && stat2 > 0 && stat3 > 0)) continue;
+						if (quality > QUALITY_WHITE && !(stat1 > 0 && stat2 > 0)) continue;
+						if (quality > QUALITY_GREY && !(stat1 > 0)) continue;
+						if (!(crystal > 0)) continue;
 
 						inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, (itemQuality_t)quality, 1, -1);
 
