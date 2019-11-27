@@ -1,6 +1,8 @@
 #define __PER_PIXEL_NORMAL__
 //#define __USING_GEOM_SHADER__
 
+invariant gl_Position;
+
 attribute vec3	attr_InstancesPosition;
 attribute vec2	attr_InstancesTexCoord;
 

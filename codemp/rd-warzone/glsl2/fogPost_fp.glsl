@@ -66,6 +66,7 @@ uniform vec4		u_Local9;		// FOG_LAYER_BBOX
 uniform vec4		u_Local10;		// MAP_INFO_MINS[0], MAP_INFO_MINS[1], MAP_INFO_MINS[2], FOG_WORLD_FADE_ALTITUDE
 uniform vec4		u_Local11;		// MAP_INFO_MAXS[0], MAP_INFO_MAXS[1], MAP_INFO_MAXS[2], FOG_LINEAR_ENABLE
 uniform vec4		u_Local12;		// FOG_LINEAR_COLOR[0], FOG_LINEAR_COLOR[1], FOG_LINEAR_COLOR[2], FOG_LINEAR_ALPHA
+uniform vec4		u_Local13;		// FOG_LINEAR_Z_FADE, FOG_LINEAR_Z_ALPHAMULT, FOG_LINEAR_USE_POSITIONMAP, FOG_LINEAR_POSITIONMAP_MAX_RANGE
 uniform vec4		u_MapInfo;		// MAP_INFO_SIZE[0], MAP_INFO_SIZE[1], MAP_INFO_SIZE[2], FOG_LINEAR_RANGE_POW
 
 uniform vec3		u_ViewOrigin;
@@ -145,6 +146,11 @@ float			worldFogWindTime							= u_Time * worldFogWind * worldFogCloudiness * 20
 #define			FOG_LAYER_WIND						u_Local6.a
 
 #define			FOG_LAYER_SUN_COLOR					u_Local8.rgb
+
+#define			FOG_LINEAR_Z_FADE					u_Local13.r
+#define			FOG_LINEAR_Z_ALPHAMULT				u_Local13.g
+#define			FOG_LINEAR_USE_POSITIONMAP			u_Local13.b
+#define			FOG_LINEAR_POSITIONMAP_MAX_RANGE	u_Local13.a
 
 bool			FOG_LAYER_INVERT					= (u_Local6.r > 0.0) ? true : false;
 float			fogBottom							= FOG_LAYER_INVERT ? FOG_LAYER_ALTITUDE_TOP : FOG_LAYER_ALTITUDE_BOTTOM;
@@ -316,10 +322,26 @@ void main ( void )
 		//
 		if (u_Local11.a > 0.0)
 		{
-			float depth = textureLod(u_ScreenDepthMap, var_TexCoords, 0.0).r;
-			//depth = clamp(depth * 1.333, 0.0, 1.0);
-			depth = clamp(pow(depth, u_MapInfo.a), 0.0, 1.0);
-			fogColor = mix(fogColor, clamp(u_Local12.rgb, 0.0, 1.0) * fogNightColorScale, u_Local12.a * depth);
+			if (FOG_LINEAR_USE_POSITIONMAP > 0.0)
+			{
+				float depth = clamp(distance(u_ViewOrigin.xyz, pMap.xyz) / FOG_LINEAR_POSITIONMAP_MAX_RANGE, 0.0, 1.0);
+				depth = clamp(pow(depth, u_MapInfo.a), 0.0, 1.0);
+
+				vec3 dir = normalize(pMap.xyz);
+				float alpha = clamp(pow(1.0 - length(dir.z), FOG_LINEAR_Z_FADE) * FOG_LINEAR_Z_ALPHAMULT, 0.0, 1.0);
+
+				fogColor = mix(fogColor, clamp(u_Local12.rgb, 0.0, 1.0) * fogNightColorScale, u_Local12.a * depth * alpha);
+			}
+			else
+			{
+				float depth = textureLod(u_ScreenDepthMap, var_TexCoords, 0.0).r;
+				depth = clamp(pow(depth, u_MapInfo.a), 0.0, 1.0);
+
+				vec3 dir = normalize(pMap.xyz);
+				float alpha = clamp(pow(1.0 - length(dir.z), FOG_LINEAR_Z_FADE) * FOG_LINEAR_Z_ALPHAMULT, 0.0, 1.0);
+
+				fogColor = mix(fogColor, clamp(u_Local12.rgb, 0.0, 1.0) * fogNightColorScale, u_Local12.a * depth * alpha);
+			}
 		}
 
 		//

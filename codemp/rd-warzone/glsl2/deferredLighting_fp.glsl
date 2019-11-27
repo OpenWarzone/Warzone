@@ -1720,6 +1720,7 @@ void main(void)
 	if (SUN_PHONG_SCALE > 0.0 && specularReflectivePower > 0.0)
 	{// If r_blinnPhong is <= 0.0 then this is pointless...
 		float phongFactor = (SUN_PHONG_SCALE * 12.0);
+		vec3 lightingNormal = bump * vec3(1.0, 1.0, 0.25);
 
 		float PshadowValue = 1.0 - texture(u_RoadsControlMap, texCoords).a;
 
@@ -1737,13 +1738,13 @@ void main(void)
 
 				lightColor.rgb *= lightsReflectionFactor * phongFactor * origColorStrength * 8.0;
 
-				vec3 addColor = blinn_phong(position.xyz, outColor.rgb, bump, E, -sunDir, clamp(lightColor, 0.0, 1.0), 1.0, u_PrimaryLightOrigin.xyz, wetness);
+				vec3 addColor = blinn_phong(position.xyz, outColor.rgb, lightingNormal, E, -sunDir, clamp(lightColor, 0.0, 1.0), 1.0, u_PrimaryLightOrigin.xyz, wetness);
 
 				addColor *= sun_occlusion;
 
 				if (position.a - 1.0 == MATERIAL_GREENLEAVES || position.a - 1.0 == MATERIAL_PROCEDURALFOLIAGE)
 				{// Light bleeding through tree leaves...
-					float ndotl = clamp(dot(bump, sunDir), 0.0, 1.0);
+					float ndotl = clamp(dot(lightingNormal, sunDir), 0.0, 1.0);
 					float diffuse = pow(ndotl, 2.0) * 1.25;
 
 					addColor += lightColor * diffuse;
@@ -1816,7 +1817,7 @@ void main(void)
 							{
 								vec3 lightDir = normalize(lightPos - position.xyz);
 								vec3 lightColor = lights[li].u_lightColors.rgb;
-								float selfShadow = clamp(pow(clamp(dot(-lightDir.rgb, bump.rgb), 0.0, 1.0), 8.0) * 0.6 + 0.6, 0.0, 1.0);
+								float selfShadow = clamp(pow(clamp(dot(-lightDir.rgb, lightingNormal.rgb), 0.0, 1.0), 8.0) * 0.6 + 0.6, 0.0, 1.0);
 
 								lightColor = lightColor * power * origColorStrength * maxLightsScale * MAP_EMISSIVE_COLOR_SCALE;
 
@@ -1831,11 +1832,11 @@ void main(void)
 								}
 #endif //__LQ_MODE__
 
-								addedLight.rgb = max(addedLight.rgb, blinn_phong(position.xyz, outColor.rgb, bump, E, lightDir, clamp(lightColor, 0.0, 1.0), lightSpecularPower, lightPos, wetness) * lightFade * selfShadow * light_occlusion);
+								addedLight.rgb = max(addedLight.rgb, blinn_phong(position.xyz, outColor.rgb, lightingNormal, E, lightDir, clamp(lightColor, 0.0, 1.0), lightSpecularPower, lightPos, wetness) * lightFade * selfShadow * light_occlusion);
 
 								if (position.a - 1.0 == MATERIAL_GREENLEAVES || position.a - 1.0 == MATERIAL_PROCEDURALFOLIAGE)
 								{// Light bleeding through tree leaves...
-									float ndotl = clamp(dot(bump, -lightDir), 0.0, 1.0);
+									float ndotl = clamp(dot(lightingNormal, -lightDir), 0.0, 1.0);
 									float diffuse = pow(ndotl, 2.0) * 4.0;
 
 									addedLight.rgb = max(addedLight.rgb, lightColor * diffuse * lightFade * selfShadow * lightSpecularPower);

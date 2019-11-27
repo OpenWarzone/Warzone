@@ -718,16 +718,305 @@ static shader_t *ShaderForShaderNum( int shaderNum, const int *lightmapNums, con
 }
 
 #ifdef __REGENERATE_BSP_NORMALS__
-// assimp include files. These three are usually needed.
-#include "assimp/Importer.hpp"	//OO version Header!
-#include "assimp/postprocess.h"
-#include "assimp/scene.h"
-#include "assimp/DefaultLogger.hpp"
-#include "assimp/LogStream.hpp"
 
-extern qboolean ENABLE_REGEN_SMOOTH_NORMALS;
+#define FLIPPED_TRIANGLE_EPSILON 2.0
+
+#include "tr_matrix.h"
 
 #define MAX_SMOOTH_ERROR 0.8//1.0
+
+void FixInvertedNormalsForBSPSurface(srfBspSurface_t *cv)
+{
+#if 0
+	int numFixed = 0;
+
+#pragma omp parallel for schedule(dynamic)
+	for (int i = 0; i < cv->numIndexes; i += 3)
+	{
+		int numInverted = 0;
+		int numNotInverted = 0;
+		int numTested = 0;
+
+		int tri[3];
+		tri[0] = cv->indexes[i];
+		tri[1] = cv->indexes[i + 1];
+		tri[2] = cv->indexes[i + 2];
+
+		if (tri[0] >= cv->numVerts)
+		{
+			continue;
+		}
+		if (tri[1] >= cv->numVerts)
+		{
+			continue;
+		}
+		if (tri[2] >= cv->numVerts)
+		{
+			continue;
+		}
+
+		for (int j = 0; j < cv->numIndexes; j += 3)
+		{
+			if (i == j) continue;
+
+			int tri2[3];
+			tri2[0] = cv->indexes[j];
+			tri2[1] = cv->indexes[j + 1];
+			tri2[2] = cv->indexes[j + 2];
+
+			if (tri2[0] >= cv->numVerts)
+			{
+				continue;
+			}
+			if (tri2[1] >= cv->numVerts)
+			{
+				continue;
+			}
+			if (tri2[2] >= cv->numVerts)
+			{
+				continue;
+			}
+
+			if (tri2[0] == tri[0] || tri2[0] == tri[1] || tri2[0] == tri[2]
+				|| tri2[1] == tri[0] || tri2[1] == tri[1] || tri2[1] == tri[2]
+				|| tri2[2] == tri[0] || tri2[2] == tri[1] || tri2[2] == tri[2])
+			{// Shares a vert, check it against the original normals...
+				if (Distance(cv->verts[tri[0]].normal, cv->verts[tri2[0]].normal) >= FLIPPED_TRIANGLE_EPSILON
+					|| Distance(cv->verts[tri[1]].normal, cv->verts[tri2[0]].normal) >= FLIPPED_TRIANGLE_EPSILON
+					|| Distance(cv->verts[tri[2]].normal, cv->verts[tri2[0]].normal) >= FLIPPED_TRIANGLE_EPSILON
+					|| Distance(cv->verts[tri[0]].normal, cv->verts[tri2[1]].normal) >= FLIPPED_TRIANGLE_EPSILON
+					|| Distance(cv->verts[tri[1]].normal, cv->verts[tri2[1]].normal) >= FLIPPED_TRIANGLE_EPSILON
+					|| Distance(cv->verts[tri[2]].normal, cv->verts[tri2[1]].normal) >= FLIPPED_TRIANGLE_EPSILON
+					|| Distance(cv->verts[tri[0]].normal, cv->verts[tri2[2]].normal) >= FLIPPED_TRIANGLE_EPSILON
+					|| Distance(cv->verts[tri[1]].normal, cv->verts[tri2[2]].normal) >= FLIPPED_TRIANGLE_EPSILON
+					|| Distance(cv->verts[tri[2]].normal, cv->verts[tri2[2]].normal) >= FLIPPED_TRIANGLE_EPSILON)
+				{
+					numInverted++;
+				}
+				else
+				{
+					numNotInverted++;
+				}
+
+				numTested++;
+			}
+
+			if (numTested >= 3)
+			{// Good enough, hopefully...
+				break;
+			}
+		}
+
+		if (numInverted > numNotInverted)
+		{
+			cv->verts[tri[0]].normal[0] = -cv->verts[tri[0]].normal[0];
+			cv->verts[tri[0]].normal[1] = -cv->verts[tri[0]].normal[1];
+			cv->verts[tri[0]].normal[2] = -cv->verts[tri[0]].normal[2];
+
+			cv->verts[tri[1]].normal[0] = -cv->verts[tri[1]].normal[0];
+			cv->verts[tri[1]].normal[1] = -cv->verts[tri[1]].normal[1];
+			cv->verts[tri[1]].normal[2] = -cv->verts[tri[1]].normal[2];
+
+			cv->verts[tri[2]].normal[0] = -cv->verts[tri[2]].normal[0];
+			cv->verts[tri[2]].normal[1] = -cv->verts[tri[2]].normal[1];
+			cv->verts[tri[2]].normal[2] = -cv->verts[tri[2]].normal[2];
+
+			cv->indexes[i] = tri[0];
+			cv->indexes[i + 1] = tri[2];
+			cv->indexes[i + 2] = tri[1];
+
+			numFixed++;
+		}
+	}
+	
+	if (numFixed > 0)
+	{
+		ri->Printf(PRINT_WARNING, "%i flipped triangles were fixed.\n", numFixed);
+	}
+#elif 0
+	vec3 vMin0(1e10f, 1e10f, 1e10f);
+	vec3 vMin1(1e10f, 1e10f, 1e10f);
+	vec3 vMax0(-1e10f, -1e10f, -1e10f);
+	vec3 vMax1(-1e10f, -1e10f, -1e10f);
+
+	for (unsigned int i = 0; i < cv->numVerts; ++i)
+	{
+		vec3 xyz(cv->verts[i].xyz);
+
+		vMin1.x = min(vMin1.x, xyz.x);
+		vMin1.y = min(vMin1.y, xyz.y);
+		vMin1.z = min(vMin1.z, xyz.z);
+
+		vMax1.x = max(vMax1.x, xyz.x);
+		vMax1.y = max(vMax1.y, xyz.y);
+		vMax1.z = max(vMax1.z, xyz.z);
+
+		vec3 norm(cv->verts[i].normal);
+		const vec3 vWithNormal = xyz + norm;
+
+		vMin0.x = min(vMin0.x, vWithNormal.x);
+		vMin0.y = min(vMin0.y, vWithNormal.y);
+		vMin0.z = min(vMin0.z, vWithNormal.z);
+
+		vMax0.x = max(vMax0.x, vWithNormal.x);
+		vMax0.y = max(vMax0.y, vWithNormal.y);
+		vMax0.z = max(vMax0.z, vWithNormal.z);
+	}
+
+	const float fDelta0_x = (vMax0.x - vMin0.x);
+	const float fDelta0_y = (vMax0.y - vMin0.y);
+	const float fDelta0_z = (vMax0.z - vMin0.z);
+
+	const float fDelta1_x = (vMax1.x - vMin1.x);
+	const float fDelta1_y = (vMax1.y - vMin1.y);
+	const float fDelta1_z = (vMax1.z - vMin1.z);
+
+	// Check whether the boxes are overlapping
+	if ((fDelta0_x > 0.0f) != (fDelta1_x > 0.0f))return;
+	if ((fDelta0_y > 0.0f) != (fDelta1_y > 0.0f))return;
+	if ((fDelta0_z > 0.0f) != (fDelta1_z > 0.0f))return;
+
+	// Check whether this is a planar surface
+	const float fDelta1_yz = fDelta1_y * fDelta1_z;
+
+	if (fDelta1_x < 0.05f * std::sqrt(fDelta1_yz))return;
+	if (fDelta1_y < 0.05f * std::sqrt(fDelta1_z * fDelta1_x))return;
+	if (fDelta1_z < 0.05f * std::sqrt(fDelta1_y * fDelta1_x))return;
+
+	// now compare the volumes of the bounding boxes
+	if (std::fabs(fDelta0_x * fDelta0_y * fDelta0_z) < std::fabs(fDelta1_x * fDelta1_yz)) {
+		ri->Printf(PRINT_WARNING, "Normals are facing inwards (or the mesh is planar)\n");
+
+		// Invert normals
+		for (unsigned int i = 0; i < cv->numVerts; ++i)
+		{
+			cv->verts[i].normal[0] *= -1.0f;
+			cv->verts[i].normal[1] *= -1.0f;
+			cv->verts[i].normal[2] *= -1.0f;
+		}
+
+		// ... and flip faces
+		for (unsigned int b = 0; b < cv->numIndexes / 2; b++)
+		{
+			std::swap(cv->indexes[b], cv->indexes[cv->numIndexes - 1 - b]);
+		}
+		return;
+	}
+#elif 1
+#pragma omp parallel for schedule(dynamic)
+	for (int i = 0; i < cv->numIndexes; i += 3)
+	{
+		bool badWinding = false;
+
+		int tri[3];
+		tri[0] = cv->indexes[i];
+		tri[1] = cv->indexes[i + 1];
+		tri[2] = cv->indexes[i + 2];
+
+		if (tri[0] >= cv->numVerts)
+		{
+			continue;
+		}
+		if (tri[1] >= cv->numVerts)
+		{
+			continue;
+		}
+		if (tri[2] >= cv->numVerts)
+		{
+			continue;
+		}
+
+		float dist1 = Distance(cv->verts[tri[0]].normal, cv->verts[tri[1]].normal);
+		float dist2 = Distance(cv->verts[tri[0]].normal, cv->verts[tri[2]].normal);
+		float dist3 = Distance(cv->verts[tri[1]].normal, cv->verts[tri[2]].normal);
+
+		if (dist1 > MAX_SMOOTH_ERROR || dist2 > MAX_SMOOTH_ERROR || dist3 > MAX_SMOOTH_ERROR)
+		{
+			badWinding = true;
+		}
+
+		vec3 normAvg(0.0, 0.0, 0.0);
+
+		if (badWinding)
+		{
+			int count = 0;
+
+			for (int j = 0; j < cv->numVerts; j++)
+			{
+				if (j == tri[0] || j == tri[1] || j == tri[2]) continue;
+
+				if (Distance(cv->verts[tri[0]].xyz, cv->verts[j].xyz) <= 2048.0)
+				{
+					normAvg = normAvg + vec3(cv->verts[j].normal) * vec3(0.5) + vec3(0.5);
+					count++;
+				}
+			}
+
+			if (count > 0)
+			{
+				normAvg /= count;
+				normAvg = normAvg * vec3(2.0) - vec3(1.0);
+
+	#if 1
+				vec3_t n;
+				n[0] = normAvg.x;
+				n[1] = normAvg.y;
+				n[2] = normAvg.z;
+
+				int best = 0;
+				vec3 bestNorm(cv->verts[tri[0]].normal);
+				float bestDist = Distance(n, cv->verts[tri[0]].normal);
+
+				for (int z = 1; z < 3; z++)
+				{
+					float dist = Distance(n, cv->verts[tri[z]].normal);
+
+					if (dist < bestDist)
+					{
+						best = z;
+						bestDist = dist;
+						bestNorm.x = cv->verts[tri[z]].normal[0];
+						bestNorm.y = cv->verts[tri[z]].normal[1];
+						bestNorm.z = cv->verts[tri[z]].normal[2];
+					}
+				}
+
+				if (bestDist <= MAX_SMOOTH_ERROR)
+				{
+					for (int z = 0; z < 3; z++)
+					{
+						if (z != best)
+						{
+							cv->verts[tri[z]].normal[0] = bestNorm.x;
+							cv->verts[tri[z]].normal[1] = bestNorm.y;
+							cv->verts[tri[z]].normal[2] = bestNorm.z;
+						}
+					}
+				}
+				else
+				{
+					for (int z = 0; z < 3; z++)
+					{
+						cv->verts[tri[z]].normal[0] = normAvg.x;
+						cv->verts[tri[z]].normal[1] = normAvg.y;
+						cv->verts[tri[z]].normal[2] = normAvg.z;
+					}
+				}
+	#else
+				for (int z = 0; z < 3; z++)
+				{
+					cv->verts[tri[z]].normal[0] = normAvg.x;
+					cv->verts[tri[z]].normal[1] = normAvg.y;
+					cv->verts[tri[z]].normal[2] = normAvg.z;
+				}
+	#endif
+			}
+		}
+	}
+#endif
+}
+
+extern qboolean ENABLE_REGEN_SMOOTH_NORMALS;
 
 bool ValidForSmoothing(vec3_t v1, vec3_t n1, vec3_t v2, vec3_t n2)
 {
@@ -1077,7 +1366,8 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, float *hdrVertColors, 
 	surf->cullinfo.plane = cv->cullPlane;
 
 #ifdef __REGENERATE_BSP_NORMALS__
-	GenerateNormalsForBSPSurface(cv);
+	//GenerateNormalsForBSPSurface(cv);
+	FixInvertedNormalsForBSPSurface(cv);
 #endif //__REGENERATE_BSP_NORMALS__
 
 	//R_OptimizeMesh((uint32_t *)&cv->numVerts, (uint32_t *)&cv->numIndexes, cv->indexes, NULL);
@@ -1219,7 +1509,8 @@ static void ParseMesh ( dsurface_t *ds, drawVert_t *verts, float *hdrVertColors,
 	//R_OptimizeMesh((uint32_t *)&grid->numVerts, (uint32_t *)&grid->numIndexes, grid->indexes, NULL);
 
 #ifdef __REGENERATE_BSP_NORMALS__
-	GenerateNormalsForBSPSurface(grid);
+	//GenerateNormalsForBSPSurface(grid);
+	FixInvertedNormalsForBSPSurface(grid);
 #endif //__REGENERATE_BSP_NORMALS__
 
 	grid->sharedMemoryPointer = NULL;
@@ -1403,7 +1694,8 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, float *hdrVertColor
 	//R_OptimizeMesh((uint32_t *)&cv->numVerts, (uint32_t *)&cv->numIndexes, cv->indexes, NULL);
 
 #ifdef __REGENERATE_BSP_NORMALS__
-	GenerateNormalsForBSPSurface(cv);
+	//GenerateNormalsForBSPSurface(cv);
+	FixInvertedNormalsForBSPSurface(cv);
 #endif //__REGENERATE_BSP_NORMALS__
 
 	// Calculate tangent spaces
@@ -3830,18 +4122,6 @@ static	void R_LoadSubmodels( lump_t *l ) {
 			// Add this for limiting VBO surface creation
 			s_worldData->numWorldSurfaces = out->numSurfaces;
 		}
-
-#ifdef __REGENERATE_BSP_NORMALS__
-		/*
-		for (int s = 0; s < out->numSurfaces; s++)
-		{
-			msurface_t *surf = s_worldData->surfaces + (out->firstSurface + s);
-			srfBspSurface_t *bspSurf = (srfBspSurface_t*)surf->data;
-			GenerateNormalsForBSPSurface(bspSurf);
-			GenerateSmoothNormalsForSurface(bspSurf);
-		}
-		*/
-#endif //__REGENERATE_BSP_NORMALS__
 	}
 }
 

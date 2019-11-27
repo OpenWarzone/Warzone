@@ -175,7 +175,8 @@ float CloudShadows(void)
 
 void main()
 {
-	gl_Position = u_ModelViewProjectionMatrix * vec4(attr_Position, 1.0);
+	highp vec3 position = attr_Position;
+	gl_Position = u_ModelViewProjectionMatrix * vec4(position, 1.0);
 	var_TexCoords = attr_TexCoord0.st;
 
 #ifdef __CLOUD_SHADOWS__

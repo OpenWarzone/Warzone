@@ -1,3 +1,5 @@
+invariant gl_Position;
+
 attribute vec3		attr_InstancesPosition;
 attribute vec2		attr_InstancesTexCoord;
 

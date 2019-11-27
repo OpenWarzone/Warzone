@@ -122,9 +122,9 @@ struct media {
 	struct nk_image del;
 	struct nk_image edit;
 	struct nk_image volume;
-	struct nk_image inventory[64][7];
-	struct nk_image forcePowers[64];
-	struct nk_image inventoryBlank;
+	struct nk_image inventoryIcons[64][7];
+	struct nk_image forcePowerIcons[64];
+	struct nk_image inventoryIconsBlank;
 	struct nk_image menu[6];
 
 	struct nk_image iconMainMenu;
@@ -1312,7 +1312,7 @@ nuklearWindow_t nuklearWindows[] = {
 	MENU_POWERS,		8,		"Powers",		"^8Open the ^3powers ^8menu.\n\nThis is all your player's current skills. They can\nbe dragged to the quickbar or to the character screen.\n",
 	MENU_RADIO,			16,		"Radio",		"^8Open the ^3radio ^8menu.\n\nThis is your holonet radio uplink. You can select a\nradio station here to listen to from a list of available\nstations on this world.\n",
 	MENU_SETTINGS,		32,		"Settings",		"^8Open the ^3settings ^8menu.\n\nThis is the game settings window. You can\nconfigure game settings here.\n",
-	MENU_MAX,			0,		"Max",			"",
+	MENU_MAX,			64,		"Max",			"",
 };
 
 
@@ -1320,7 +1320,7 @@ bool	mainMenuOpen		= false;
 int		menuNoChangeTime	= 0; // To make sure we dont instantly close a window when openning (next frame)...
 int		windowsOpen			= MENU_NONE;
 
-qboolean GUI_IsWindowOpen(struct nk_context *ctx, nuklearMenus_t menu)
+qboolean GUI_IsWindowOpen(nuklearMenus_t menu)
 {
 	if (menu <= MENU_NONE || menu >= MENU_MAX) return qfalse;
 
@@ -1355,12 +1355,16 @@ void GUI_CloseWindow(struct nk_context *ctx, nuklearMenus_t menu)
 
 	for (int i = MENU_NONE + 1; i < MENU_MAX; i++)
 	{// Make sure another window has focus, if there is one...
-		nk_window *win = nk_window_find(ctx, nuklearWindows[i].windowName);
+		bool winOpen = !nk_window_is_hidden(ctx, nuklearWindows[i].windowName);
 
-		if (win && GUI_IsWindowOpen(ctx, (nuklearMenus_t)i))
+		if (winOpen && GUI_IsWindowOpen((nuklearMenus_t)i))
 		{
-			nk_window_set_focus(ctx, nuklearWindows[menu].windowName);
+			nk_window_set_focus(ctx, nuklearWindows[i].windowName);
 			break;
+		}
+		else if (winOpen)
+		{
+			GUI_CloseWindow(ctx, (nuklearMenus_t)i);
 		}
 	}
 }
@@ -1386,7 +1390,7 @@ void GUI_ToggleWindow(struct nk_context *ctx, nuklearMenus_t menu)
 
 	menuNoChangeTime = backEnd.refdef.time + 100;
 
-	if (!GUI_IsWindowOpen(ctx, menu))
+	if (!GUI_IsWindowOpen(menu))
 		GUI_OpenWindow(ctx, menu);
 	else
 		GUI_CloseWindow(ctx, menu);
@@ -1398,7 +1402,7 @@ void GUI_UpdateClosedWindows(struct nk_context *ctx)
 {// Sync our window management with nuklear's complete mess...
 	for (int i = MENU_NONE + 1; i < MENU_MAX; i++)
 	{
-		if (!GUI_IsWindowOpen(ctx, (nuklearMenus_t)i))
+		if (!GUI_IsWindowOpen((nuklearMenus_t)i))
 			continue;
 
 		nk_window *win = nk_window_find(ctx, nuklearWindows[i].windowName);
@@ -1452,8 +1456,7 @@ void GUI_CheckOpenWindows(struct nk_context *ctx)
 static void
 GUI_MenuHoverTooltip(struct nk_context *ctx, struct media *media, char *tooltipText, struct nk_image icon)
 {
-	if (ctx->last_widget_state & NK_WIDGET_STATE_HOVER
-		&& backEnd.ui_MouseCursor <= 0)
+	if (ctx->last_widget_state & NK_WIDGET_STATE_HOVER && !backEnd.ui_MouseCursor)
 	{// Hoverred...
 		std::string finalText;
 
@@ -2281,59 +2284,155 @@ int				noSelectTime = 0;
 
 /* ===============================================================
 *
+*                          INVENTORY
+*
+* ===============================================================*/
+
+typedef enum inventorySelectionType_s {
+	INVENTORY_TYPE_NONE,
+	INVENTORY_TYPE_INVENTORY,
+	INVENTORY_TYPE_FORCE,
+	INVENTORY_TYPE_MAX
+} inventorySelectionType_t;
+
+typedef struct uiItemInfo_s
+{
+	inventorySelectionType_t	type;
+	char						name[128];
+	char						tooltip[1024];
+	int							quality;
+	struct nk_image				*icon;
+} uiItemInfo_t;
+
+qboolean				inventoryInitialized = qfalse;
+uiItemInfo_t			inventoryItems[64];
+uiItemInfo_t			abilityItems[64];
+uiItemInfo_t			nullItem;
+
+static void
+GUI_SetInventoryItem(int slot, int quality, struct nk_image *icon, char *name, char *tooltip)
+{
+	if (slot < 0 || slot > 63) return;
+
+	memset(&inventoryItems[slot], 0, sizeof(inventoryItems[slot]));
+
+	inventoryItems[slot].type = INVENTORY_TYPE_INVENTORY;
+	inventoryItems[slot].quality = quality;
+	inventoryItems[slot].icon = icon;
+	strcpy(inventoryItems[slot].name, name);
+	strcpy(inventoryItems[slot].tooltip, tooltip);
+
+	//ri->Printf(PRINT_WARNING, "Inventory slot %i set to: type %i, quality %i, icon %i.\n", slot, (int)inventoryItems[slot].type, inventoryItems[slot].quality, inventoryItems[slot].icon->handle.id);
+}
+
+static void
+GUI_InitInventory(void)
+{
+	memset(&nullItem, 0, sizeof(nullItem));
+	
+	nullItem.type = INVENTORY_TYPE_NONE;
+	nullItem.quality = 0;
+	nullItem.icon = NULL;
+	strcpy(nullItem.name, "");
+	strcpy(nullItem.tooltip, "");
+
+	for (int i = 0; i < 64; i++)
+		memset(&inventoryItems[i], 0, sizeof(inventoryItems[i]));
+}
+
+static void
+GUI_SetAbilityItem(int slot, struct nk_image *icon, char *name, char *tooltip)
+{
+	if (slot < 0 || slot > 63) return;
+
+	memset(&abilityItems[slot], 0, sizeof(abilityItems[slot]));
+
+	abilityItems[slot].type = INVENTORY_TYPE_FORCE;
+	abilityItems[slot].quality = QUALITY_GREY;
+	abilityItems[slot].icon = icon;
+	strcpy(abilityItems[slot].name, name);
+	strcpy(abilityItems[slot].tooltip, tooltip);
+
+	//ri->Printf(PRINT_WARNING, "Ability slot %i set to: type %i, icon %i.\n", slot, (int)abilityItems[slot].type, abilityItems[slot].icon->handle.id);
+}
+
+static void
+GUI_InitAbilities(void)
+{
+	for (int i = 0; i < 64; i++)
+		memset(&abilityItems[i], 0, sizeof(abilityItems[i]));
+}
+
+int GUI_GetMouseCursor(void)
+{
+	if (!backEnd.ui_MouseCursor)
+	{
+		return 0;
+	}
+	else
+	{
+		uiItemInfo_t *cursor = (uiItemInfo_t *)backEnd.ui_MouseCursor;
+
+		if (!cursor || cursor == &nullItem)
+		{
+			return 0;
+		}
+
+		return cursor->icon->handle.id;
+	}
+}
+
+uint64_t GUI_GetMouseCursorBindless(void)
+{
+	if (!backEnd.ui_MouseCursor)
+	{
+		return 0;
+	}
+	else
+	{
+		uiItemInfo_t *cursor = (uiItemInfo_t *)backEnd.ui_MouseCursor;
+
+		if (!cursor || cursor == &nullItem)
+		{
+			return 0;
+		}
+
+		return cursor->icon->bindlessHandle;
+	}
+}
+
+/* ===============================================================
+*
 *                          QUICK BARS
 *
 * ===============================================================*/
 
-typedef enum quickbarItemType_s {
-	QUICKBAR_TYPE_NONE,
-	QUICKBAR_TYPE_INVENTORY,
-	QUICKBAR_TYPE_FORCE,
-	QUICKBAR_TYPE_MAX
-} quickbarItemType_t;
-
 typedef struct quickbarItemInfo_s
 {
-	quickbarItemType_t	type;
-	int					position;
-	int					quality;
-	int					iconImageID;
-	struct nk_image		icon;
+	uiItemInfo_t	*item;
 } quickbarItemInfo_t;
 
 qboolean				quickBarInitialized = qfalse;
-quickbarItemInfo_t		quickBarSelections[12] = { QUICKBAR_TYPE_NONE, 0, QUALITY_GREY, 0, 0 };
+quickbarItemInfo_t		quickBarSelections[12];
+
+static void
+GUI_SetQuickBarSlot(int slot, uiItemInfo_t *item)
+{
+	if (slot < 0 || slot > 11) return;
+
+	quickBarSelections[slot].item = item;
+
+	//ri->Printf(PRINT_WARNING, "Quickbar slot %i set to: type %i, quality %i, icon %i.\n", slot, (int)item->type, item->quality, item->icon->handle.id);
+}
 
 static void
 GUI_InitQuickBarSlot(int slot)
 {
 	if (slot < 0 || slot > 11) return;
 
-	quickBarSelections[slot] = { QUICKBAR_TYPE_NONE, 0, QUALITY_GREY, 0, 0 };
+	quickBarSelections[slot].item = &nullItem;
 }
 
-static void
-GUI_SetQuickBarSlot(struct nk_context *ctx, struct media *media, int slot, quickbarItemType_t type, int position, int quality)
-{
-	if (slot < 0 || slot > 11) return;
-
-	GUI_InitQuickBarSlot(slot);
-
-	quickBarSelections[slot].type = type;
-	quickBarSelections[slot].position = position;
-	quickBarSelections[slot].quality = quality;
-	
-	if (type == QUICKBAR_TYPE_INVENTORY)
-	{
-		quickBarSelections[slot].icon = media->inventory[position][quality];
-		quickBarSelections[slot].iconImageID = media->inventory[position][quality].handle.id;
-	}
-	else if (type == QUICKBAR_TYPE_FORCE)
-	{
-		quickBarSelections[slot].icon = media->forcePowers[position];
-		quickBarSelections[slot].iconImageID = media->forcePowers[position].handle.id;
-	}
-}
 
 static void 
 GUI_InitQuickBar(void)
@@ -2341,10 +2440,10 @@ GUI_InitQuickBar(void)
 	if (!quickBarInitialized)
 	{
 		for (int i = 0; i < 12; i++)
-		{
 			GUI_InitQuickBarSlot(i);
-		}
 
+		GUI_SetQuickBarSlot(0, &inventoryItems[0]);
+		GUI_SetQuickBarSlot(1, &inventoryItems[1]);
 		quickBarInitialized = qtrue;
 	}
 }
@@ -2352,10 +2451,8 @@ GUI_InitQuickBar(void)
 static void
 GUI_QuickBar(struct nk_context *ctx, struct media *media)
 {
-	GUI_InitQuickBar();
-
 	float size[2];
-	size[0] = 550.0;// 552.0;
+	size[0] = 550.0;
 	size[1] = 53.0;
 
 	int i = 0;
@@ -2374,143 +2471,55 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 
 		ctx->style.button.border_color = nk_rgba(0, 0, 0, 0);
 
-		if (quickBarSelections[i].type == QUICKBAR_TYPE_INVENTORY)
+		if (quickBarSelections[i].item && quickBarSelections[i].item->type == INVENTORY_TYPE_INVENTORY)
 		{
-			int quality = quickBarSelections[i].quality;
+			int quality = quickBarSelections[i].item->quality;
 			ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-			ret = nk_button_image_label(ctx, quickBarSelections[i].icon, "", NK_TEXT_CENTERED);
+			ret = nk_button_image_label(ctx, *quickBarSelections[i].item->icon, "", NK_TEXT_CENTERED);
 
-			if (ctx->last_widget_state & NK_WIDGET_STATE_HOVER
-				&& backEnd.ui_MouseCursor <= 0)
+			if (ctx->last_widget_state & NK_WIDGET_STATE_HOVER && !backEnd.ui_MouseCursor)
 			{// Hoverred...
-				char tooltipString[1024] = { 0 };
-
-				sprintf(tooltipString, "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
-					, va("%s^BMy schwartz is bigger than yours (%s)^b\n", ColorStringForQuality(quality), itemQualityNames[quality])
-					, "^POne handed weapon, Lightsaber\n"
-					, " \n"
-					, "^7Scaling Attribute: ^PStrength\n"
-					, "^7Damage: ^P78-102 ^8(^P40.5 DPS^8).\n"
-					, "^7Attacks per Second: ^P0.45\n"
-					, "^7Crit Chance: ^P+11.5%\n"
-					, "^7Crit Power: ^P+41.0%\n"
-					, " \n"
-					, "^0Purple Crystal: ^P+12.0% ^4electric^0, and ^P+12.0% ^Nheat ^0damage.\n"
-					, "^N-42.0% ^7Dexterity.\n"
-					, "^N-97.0% ^7Intelligence.\n"
-					, "^N+33.0% ^7Weight.\n"
-					, " \n"
-					, "^P+15.0% ^2bonus to trip over your own feet.\n"
-					, "^P+50.0% ^2bonus to asking dumb questions.\n"
-					, "^P+20.0% ^2bonus to epeen trolling.\n"
-					, " \n"
-					, "^5Value: Priceless.\n");
-
-				uq_tooltip(ctx, tooltipString, media, &quickBarSelections[i].icon);
+				uq_tooltip(ctx, quickBarSelections[i].item->tooltip, media, quickBarSelections[i].item->icon);
 			}
 		}
-		else if (quickBarSelections[i].type == QUICKBAR_TYPE_FORCE)
+		else if (quickBarSelections[i].item && quickBarSelections[i].item->type == INVENTORY_TYPE_FORCE)
 		{
 			ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-			ret = nk_button_image_label(ctx, quickBarSelections[i].icon, "", NK_TEXT_CENTERED);
+			ret = nk_button_image_label(ctx, *quickBarSelections[i].item->icon, "", NK_TEXT_CENTERED);
 
-			if (ctx->last_widget_state & NK_WIDGET_STATE_HOVER
-				&& backEnd.ui_MouseCursor <= 0)
+			if (ctx->last_widget_state & NK_WIDGET_STATE_HOVER && !backEnd.ui_MouseCursor)
 			{// Hoverred...
-				char tooltipString[1024] = { 0 };
-
-				sprintf(tooltipString, "%s%s%s%s%s%s%s%s"
-					, va("%s^BSome Force Power^b\n", ColorStringForQuality(QUALITY_BLUE))
-					, "^POne handed power, Force\n"
-					, " \n"
-					, "^7Scaling Attribute: ^PIntelligence\n"
-					, "^7Damage: ^P78-102 ^8(^P40.5 DPS^8).\n"
-					, "^7Attacks per Second: ^P0.45\n"
-					, "^7Crit Chance: ^P+11.5%\n"
-					, "^7Crit Power: ^P+41.0%\n");
-
-				uq_tooltip(ctx, tooltipString, media, &quickBarSelections[i].icon);
+				uq_tooltip(ctx, quickBarSelections[i].item->tooltip, media, quickBarSelections[i].item->icon);
 			}
 		}
 		else
 		{// Blank slot...
 			ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-			ret = nk_button_image_label(ctx, media->inventoryBlank, "", NK_TEXT_CENTERED);
+			ret = nk_button_image_label(ctx, media->inventoryIconsBlank, "", NK_TEXT_CENTERED);
 		}
 
-		if (ret != 0 && backEnd.ui_MouseCursor > 0 && noSelectTime <= backEnd.refdef.time)
+		if (ret != 0 && backEnd.ui_MouseCursor && noSelectTime <= backEnd.refdef.time)
 		{// Have something selected for drag, also clicked this quick slot, place the selected item here...
-			bool added = false;
+			uiItemInfo_t *oldItem = quickBarSelections[i].item;
+			uiItemInfo_t *selectedItem = (uiItemInfo_t *)backEnd.ui_MouseCursor;
 
-			// If it is an inv item, add it...
-			for (int j = 0; j < 64; ++j)
-			{
-				for (int quality = QUALITY_GREY; quality <= QUALITY_GOLD; quality++)
-				{
-					if (media->inventory[j][quality].handle.id == backEnd.ui_MouseCursor)
-					{
-						//ri->Printf(PRINT_ALL, "Dropped inventory item %i into quickbar slot %i... Old iconID was %i.\n", j, i, quickBarSelections[i].iconImageID);
+			GUI_SetQuickBarSlot(i, selectedItem);
 
-						int oldIcon = quickBarSelections[i].iconImageID;
-
-						GUI_SetQuickBarSlot(ctx, media, i, QUICKBAR_TYPE_INVENTORY, j, quality);
-
-						if (oldIcon > 0)
-						{// Drop this one, but also pick up whatever was there before to be moved...
-							backEnd.ui_MouseCursor = oldIcon;
-							noSelectTime = backEnd.refdef.time + 100;
-						}
-						else
-						{// Was empty slot, so just drop the new item there...
-							backEnd.ui_MouseCursor = -1;
-						}
-
-						added = true;
-						break;
-					}
-				}
-
-				if (added)
-				{
-					break;
-				}
+			if (oldItem && oldItem != &nullItem)
+			{// Drop this one, but also pick up whatever was there before to be moved...
+				backEnd.ui_MouseCursor = oldItem;
+				noSelectTime = backEnd.refdef.time + 100;
 			}
-
-			if (!added)
-			{
-				// If it is a force power, add it...
-				for (int j = 0; j < 64; ++j)
-				{
-					if (media->forcePowers[j].handle.id == backEnd.ui_MouseCursor)
-					{
-						//ri->Printf(PRINT_ALL, "Dropped power %i into quickbar slot %i... Old iconID was %i.\n", j, i, quickBarSelections[i].iconImageID);
-
-						int oldIcon = quickBarSelections[i].iconImageID;
-
-						GUI_SetQuickBarSlot(ctx, media, i, QUICKBAR_TYPE_FORCE, j, 0);
-						
-						if (oldIcon > 0)
-						{// Drop this one, but also pick up whatever was there before to be moved...
-							backEnd.ui_MouseCursor = oldIcon;
-							noSelectTime = backEnd.refdef.time + 100;
-						}
-						else
-						{// Was empty slot, so just drop the new item there...
-							backEnd.ui_MouseCursor = -1;
-						}
-
-						added = true;
-						break;
-					}
-				}
+			else
+			{// Was empty slot, so just drop the new item there...
+				backEnd.ui_MouseCursor = NULL;
 			}
 		}
 		else if (ret != 0 && noSelectTime <= backEnd.refdef.time)
 		{// Clicked on a slot, check if there is some icon there that the player wishes to move to somewhere else...
-			if (quickBarSelections[i].iconImageID > 0)
+			if (quickBarSelections[i].item && quickBarSelections[i].item != &nullItem)
 			{// Pick up whatever was there before to be moved...
-				//ri->Printf(PRINT_ALL, "Pickup quickbar item %i. IconID %i.\n", i, quickBarSelections[i].iconImageID);
-				backEnd.ui_MouseCursor = quickBarSelections[i].iconImageID;
+				backEnd.ui_MouseCursor = quickBarSelections[i].item;
 				GUI_InitQuickBarSlot(i);
 				noSelectTime = backEnd.refdef.time + 100;
 			}
@@ -2552,7 +2561,6 @@ GUI_Powers(struct nk_context *ctx, struct media *media)
 	*------------------------------------------------*/
 	nk_style_set_font(ctx, &media->font_14->handle);
 	nk_layout_row_static(ctx, 41, 41, 8);
-	//nk_spacing(ctx, 1);
 
 	int tooltipNum = -1;
 
@@ -2561,16 +2569,16 @@ GUI_Powers(struct nk_context *ctx, struct media *media)
 		int ret = 0;
 
 		ctx->style.button.border_color = nk_rgba(0, 0, 0, 0);
-
-		if (media->forcePowers[i].handle.id != media->inventoryBlank.handle.id)
+		
+		if (abilityItems[i].icon && abilityItems[i].icon->handle.id != media->inventoryIconsBlank.handle.id)
 		{
 			ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-			ret = nk_button_image_label(ctx, media->forcePowers[i], "", NK_TEXT_CENTERED);
+			ret = nk_button_image_label(ctx, *abilityItems[i].icon, "", NK_TEXT_CENTERED);
 		}
 		else
 		{// Blank slot...
 			ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-			ret = nk_button_image_label(ctx, media->inventoryBlank, "", NK_TEXT_CENTERED);
+			ret = nk_button_image_label(ctx, media->inventoryIconsBlank, "", NK_TEXT_CENTERED);
 		}
 
 		const struct nk_mouse_button btn1 = ctx->input.mouse.buttons[NK_BUTTON_LEFT];
@@ -2582,171 +2590,39 @@ GUI_Powers(struct nk_context *ctx, struct media *media)
 		bool hovered = false;
 
 		if (ctx->last_widget_state & NK_WIDGET_STATE_HOVER
-			//&& !selectedContextItem
-			&& backEnd.ui_MouseCursor <= 0
-			&& media->forcePowers[i].handle.id != media->inventoryBlank.handle.id)
+			&& !backEnd.ui_MouseCursor
+			&& abilityItems[i].icon
+			&& abilityItems[i].icon->handle.id != media->inventoryIconsBlank.handle.id)
 		{// Hoverred...
 			hovered = true;
-
-			char tooltipString[1024] = { 0 };
-
-			sprintf(tooltipString, "%s%s%s%s%s%s%s%s"
-				, va("%s^BSome Force Power^b\n", ColorStringForQuality(QUALITY_BLUE))
-				, "^POne handed power, Force\n"
-				, " \n"
-				, "^7Scaling Attribute: ^PIntelligence\n"
-				, "^7Damage: ^P78-102 ^8(^P40.5 DPS^8).\n"
-				, "^7Attacks per Second: ^P0.45\n"
-				, "^7Crit Chance: ^P+11.5%\n"
-				, "^7Crit Power: ^P+41.0%\n");
-
-			uq_tooltip(ctx, tooltipString, media, &media->forcePowers[i]);
+			uq_tooltip(ctx, abilityItems[i].tooltip, media, abilityItems[i].icon);
 		}
 
 		if (hovered
-			//&& !selectedContextItem
-			&& backEnd.ui_MouseCursor <= 0
+			&& !backEnd.ui_MouseCursor
 			&& noSelectTime <= backEnd.refdef.time
 			&& menuNoChangeTime <= backEnd.refdef.time
-			&& media->forcePowers[i].handle.id != media->inventoryBlank.handle.id)
+			&& abilityItems[i].icon
+			&& abilityItems[i].icon->handle.id != media->inventoryIconsBlank.handle.id)
 		{
 			if (leftClick)
 			{
-				backEnd.ui_MouseCursor = media->forcePowers[i].handle.id;
+				backEnd.ui_MouseCursor = &abilityItems[i];
 				noSelectTime = backEnd.refdef.time + 100;
 			}
-			/*else if (rightClick)
-			{
-				selectedContextItem = i + 1;
-				nk_widget(&selectedContextBounds, ctx);
-				noSelectTime = backEnd.refdef.time + 100;
-			}
-			else if (middleClick)
-			{
-				selectedContextItem = i + 1;
-				nk_widget(&selectedContextBounds, ctx);
-				noSelectTime = backEnd.refdef.time + 100;
-			}*/
 		}
 	}
 
 	nk_style_set_font(ctx, &media->font_14->handle);
 	nk_end(ctx);
 
-	if (backEnd.ui_MouseCursor > 0)
+	if (backEnd.ui_MouseCursor)
 	{// Have something selected for drag, skip tooltip stuff...
-		//selectedContextItem = 0;
 		tooltipNum = -1;
 		return;
 	}
-	/*else if (selectedContextItem)
-	{
-		tooltipNum = -1;
-		backEnd.ui_MouseCursor = -1;
 
-		struct nk_rect bounds2;
-		bounds2.x = selectedContextBounds.x;
-		bounds2.y = selectedContextBounds.y;
-		bounds2.w = 120.0;
-		bounds2.h = 340.0;// 292.0;
-
-		nk_begin(ctx, "Context", bounds2, NK_WINDOW_NO_SCROLLBAR);
-
-		//nk_window_set_focus(ctx, "Context");
-
-		int ret2 = nk_contextual_begin(ctx, NK_WINDOW_NO_SCROLLBAR, nk_vec2(bounds2.w, bounds2.h), selectedContextBounds);
-
-		nk_layout_row_dynamic(ctx, 20, 1);
-
-		int eRight = nk_contextual_item_image_label(ctx, media->play, "Equip Right", NK_TEXT_RIGHT);
-		int eLeft = nk_contextual_item_image_label(ctx, media->play, "Equip Left", NK_TEXT_RIGHT);
-		int qb1 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 1", NK_TEXT_RIGHT);
-		int qb2 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 2", NK_TEXT_RIGHT);
-		int qb3 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 3", NK_TEXT_RIGHT);
-		int qb4 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 4", NK_TEXT_RIGHT);
-		int qb5 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 5", NK_TEXT_RIGHT);
-		int qb6 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 6", NK_TEXT_RIGHT);
-		int qb7 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 7", NK_TEXT_RIGHT);
-		int qb8 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 8", NK_TEXT_RIGHT);
-		int qb9 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 9", NK_TEXT_RIGHT);
-		int qb10 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 10", NK_TEXT_RIGHT);
-		int qb11 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 11", NK_TEXT_RIGHT);
-		int qb12 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 12", NK_TEXT_RIGHT);
-		nk_contextual_end(ctx);
-
-		int selectedItem = selectedContextItem - 1;
-
-		if (eRight || eLeft || qb1 || qb2 || qb3 || qb4 || qb5 || qb6 || qb7 || qb8 || qb9 || qb10 || qb11 || qb12)
-		{
-			if (eRight)
-			{
-
-			}
-			else if (eLeft)
-			{
-
-			}
-			else if (qb1)
-			{
-				//quickBarSelections[0] = selectedItem;
-				GUI_SetQuickBarSlot(ctx, media, 0, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY);
-			}
-			else if (qb2)
-			{
-				GUI_SetQuickBarSlot(ctx, media, 1, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY);
-			}
-			else if (qb3)
-			{
-				GUI_SetQuickBarSlot(ctx, media, 2, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY);
-			}
-			else if (qb4)
-			{
-				GUI_SetQuickBarSlot(ctx, media, 3, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY);
-			}
-			else if (qb5)
-			{
-				GUI_SetQuickBarSlot(ctx, media, 4, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY);
-			}
-			else if (qb6)
-			{
-				GUI_SetQuickBarSlot(ctx, media, 5, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY);
-			}
-			else if (qb7)
-			{
-				GUI_SetQuickBarSlot(ctx, media, 6, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY);
-			}
-			else if (qb8)
-			{
-				GUI_SetQuickBarSlot(ctx, media, 7, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY);
-			}
-			else if (qb9)
-			{
-				GUI_SetQuickBarSlot(ctx, media, 8, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY);
-			}
-			else if (qb10)
-			{
-				GUI_SetQuickBarSlot(ctx, media, 9, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY);
-			}
-			else if (qb11)
-			{
-				GUI_SetQuickBarSlot(ctx, media, 10, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY);
-			}
-			else if (qb12)
-			{
-				GUI_SetQuickBarSlot(ctx, media, 11, QUICKBAR_TYPE_FORCE, selectedItem, QUALITY_GREY);
-			}
-
-			selectedContextItem = 0;
-
-			noSelectTime = backEnd.refdef.time + 500;
-		}
-
-		nk_end(ctx);
-		return;
-	}*/
-
-	//selectedContextItem = 0;
-	backEnd.ui_MouseCursor = -1;
+	backEnd.ui_MouseCursor = NULL;
 }
 
 /* ===============================================================
@@ -2791,17 +2667,17 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 		int quality = QUALITY_GREY;
 
 		ctx->style.button.border_color = nk_rgba(0, 0, 0, 0);
-
-		if (media->inventory[i][quality].handle.id != media->inventoryBlank.handle.id)
+		
+		if (inventoryItems[i].icon && inventoryItems[i].icon->handle.id != media->inventoryIconsBlank.handle.id)
 		{
 			quality = QUALITY_GOLD - Q_clamp(QUALITY_GREY, i / QUALITY_GOLD, QUALITY_GOLD);
 			ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-			ret = nk_button_image_label(ctx, media->inventory[i][quality], "", NK_TEXT_CENTERED);
+			ret = nk_button_image_label(ctx, *inventoryItems[i].icon, "", NK_TEXT_CENTERED);
 		}
 		else
 		{// Blank slot...
 			ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-			ret = nk_button_image_label(ctx, media->inventoryBlank, "", NK_TEXT_CENTERED);
+			ret = nk_button_image_label(ctx, media->inventoryIconsBlank, "", NK_TEXT_CENTERED);
 		}
 
 		const struct nk_mouse_button btn1 = ctx->input.mouse.buttons[NK_BUTTON_LEFT];
@@ -2813,187 +2689,42 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 		bool hovered = false;
 
 		if (ctx->last_widget_state & NK_WIDGET_STATE_HOVER
-			//&& !selectedContextItem
-			&& backEnd.ui_MouseCursor <= 0
-			&& media->inventory[i][quality].handle.id != media->inventoryBlank.handle.id)
+			&& !backEnd.ui_MouseCursor
+			&& inventoryItems[i].icon
+			&& inventoryItems[i].icon->handle.id != media->inventoryIconsBlank.handle.id)
 		{// Hoverred...
 			tooltipNum = i;
 			tooltipQuality = quality;
 			hovered = true;
-
-			char tooltipString[1024] = { 0 };
-
-			sprintf(tooltipString, "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
-				, va("%s^BMy schwartz is bigger than yours (%s)^b\n", ColorStringForQuality(tooltipQuality), itemQualityNames[tooltipQuality])
-				, "^POne handed weapon, Lightsaber\n"
-				, " \n"
-				, "^7Scaling Attribute: ^PStrength\n"
-				, "^7Damage: ^P78-102 ^8(^P40.5 DPS^8).\n"
-				, "^7Attacks per Second: ^P0.45\n"
-				, "^7Crit Chance: ^P+11.5%\n"
-				, "^7Crit Power: ^P+41.0%\n"
-				, " \n"
-				, "^0Purple Crystal: ^P+12.0% ^4electric^0, and ^P+12.0% ^Nheat ^0damage.\n"
-				, "^N-42.0% ^7Dexterity.\n"
-				, "^N-97.0% ^7Intelligence.\n"
-				, "^N+33.0% ^7Weight.\n"
-				, " \n"
-				, "^P+15.0% ^2bonus to trip over your own feet.\n"
-				, "^P+50.0% ^2bonus to asking dumb questions.\n"
-				, "^P+20.0% ^2bonus to epeen trolling.\n"
-				, " \n"
-				, "^5Value: Priceless.\n");
-
-			uq_tooltip(ctx, tooltipString, media, &media->inventory[i][quality]);
+			uq_tooltip(ctx, inventoryItems[i].tooltip, media, inventoryItems[i].icon);
 		}
 		
 		if (hovered 
-			//&& !selectedContextItem 
-			&& backEnd.ui_MouseCursor <= 0 
+			&& !backEnd.ui_MouseCursor
 			&& noSelectTime <= backEnd.refdef.time
 			&& menuNoChangeTime <= backEnd.refdef.time
-			&& media->inventory[i][quality].handle.id != media->inventoryBlank.handle.id)
+			&& inventoryItems[i].icon
+			&& inventoryItems[i].icon->handle.id != media->inventoryIconsBlank.handle.id)
 		{
 			if (leftClick)
 			{
-				backEnd.ui_MouseCursor = media->inventory[i][quality].handle.id;
+				backEnd.ui_MouseCursor = &inventoryItems[i];
 				noSelectTime = backEnd.refdef.time + 100;
 			}
-			/*else if (rightClick)
-			{
-				selectedContextItem = i + 1;
-				nk_widget(&selectedContextBounds, ctx);
-				noSelectTime = backEnd.refdef.time + 100;
-			}
-			else if (middleClick)
-			{
-				selectedContextItem = i + 1;
-				nk_widget(&selectedContextBounds, ctx);
-				noSelectTime = backEnd.refdef.time + 100;
-			}*/
 		}
 	}
 
 	nk_style_set_font(ctx, &media->font_14->handle);
 	nk_end(ctx);
 
-	if (backEnd.ui_MouseCursor > 0)
+	if (backEnd.ui_MouseCursor)
 	{// Have something selected for drag, skip tooltip stuff...
-		//selectedContextItem = 0;
 		tooltipNum = -1;
 		tooltipQuality = 0;
 		return;
 	}
-	/*else if (selectedContextItem)
-	{
-		tooltipNum = -1;
-		tooltipQuality = 0;
-		backEnd.ui_MouseCursor = -1;
-
-		struct nk_rect bounds2;
-		bounds2.x = selectedContextBounds.x;
-		bounds2.y = selectedContextBounds.y;
-		bounds2.w = 120.0;
-		bounds2.h = 340.0;// 292.0;
-
-		nk_begin(ctx, "Context", bounds2, NK_WINDOW_NO_SCROLLBAR);
-
-		//nk_window_set_focus(ctx, "Context");
-
-		int ret2 = nk_contextual_begin(ctx, NK_WINDOW_NO_SCROLLBAR, nk_vec2(bounds2.w, bounds2.h), selectedContextBounds);
-
-		nk_layout_row_dynamic(ctx, 20, 1);
-
-		int eRight = nk_contextual_item_image_label(ctx, media->play, "Equip Right", NK_TEXT_RIGHT);
-		int eLeft = nk_contextual_item_image_label(ctx, media->play, "Equip Left", NK_TEXT_RIGHT);
-		int qb1 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 1", NK_TEXT_RIGHT);
-		int qb2 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 2", NK_TEXT_RIGHT);
-		int qb3 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 3", NK_TEXT_RIGHT);
-		int qb4 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 4", NK_TEXT_RIGHT);
-		int qb5 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 5", NK_TEXT_RIGHT);
-		int qb6 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 6", NK_TEXT_RIGHT);
-		int qb7 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 7", NK_TEXT_RIGHT);
-		int qb8 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 8", NK_TEXT_RIGHT);
-		int qb9 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 9", NK_TEXT_RIGHT);
-		int qb10 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 10", NK_TEXT_RIGHT);
-		int qb11 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 11", NK_TEXT_RIGHT);
-		int qb12 = nk_contextual_item_image_label(ctx, media->stop, "Quickbar 12", NK_TEXT_RIGHT);
-		nk_contextual_end(ctx);
-
-		int selectedItem = selectedContextItem-1;
-
-		if (eRight || eLeft || qb1 || qb2 || qb3 || qb4 || qb5 || qb6 || qb7 || qb8 || qb9 || qb10 || qb11 || qb12)
-		{
-			int quality = QUALITY_GOLD - Q_clamp(QUALITY_GREY, selectedItem / QUALITY_GOLD, QUALITY_GOLD);
-
-			if (eRight)
-			{
-
-			}
-			else if (eLeft)
-			{
-
-			}
-			else if (qb1)
-			{
-				GUI_SetQuickBarSlot(ctx, media, 0, QUICKBAR_TYPE_INVENTORY, selectedItem, quality);
-			}
-			else if (qb2)
-			{
-				GUI_SetQuickBarSlot(ctx, media, 1, QUICKBAR_TYPE_INVENTORY, selectedItem, quality);
-			}
-			else if (qb3)
-			{
-				GUI_SetQuickBarSlot(ctx, media, 2, QUICKBAR_TYPE_INVENTORY, selectedItem, quality);
-			}
-			else if (qb4)
-			{
-				GUI_SetQuickBarSlot(ctx, media, 3, QUICKBAR_TYPE_INVENTORY, selectedItem, quality);
-			}
-			else if (qb5)
-			{
-				GUI_SetQuickBarSlot(ctx, media, 4, QUICKBAR_TYPE_INVENTORY, selectedItem, quality);
-			}
-			else if (qb6)
-			{
-				GUI_SetQuickBarSlot(ctx, media, 5, QUICKBAR_TYPE_INVENTORY, selectedItem, quality);
-			}
-			else if (qb7)
-			{
-				GUI_SetQuickBarSlot(ctx, media, 6, QUICKBAR_TYPE_INVENTORY, selectedItem, quality);
-			}
-			else if (qb8)
-			{
-				GUI_SetQuickBarSlot(ctx, media, 7, QUICKBAR_TYPE_INVENTORY, selectedItem, quality);
-			}
-			else if (qb9)
-			{
-				GUI_SetQuickBarSlot(ctx, media, 8, QUICKBAR_TYPE_INVENTORY, selectedItem, quality);
-			}
-			else if (qb10)
-			{
-				GUI_SetQuickBarSlot(ctx, media, 9, QUICKBAR_TYPE_INVENTORY, selectedItem, quality);
-			}
-			else if (qb11)
-			{
-				GUI_SetQuickBarSlot(ctx, media, 10, QUICKBAR_TYPE_INVENTORY, selectedItem, quality);
-			}
-			else if (qb12)
-			{
-				GUI_SetQuickBarSlot(ctx, media, 11, QUICKBAR_TYPE_INVENTORY, selectedItem, quality);
-			}
-
-			selectedContextItem = 0;
-
-			noSelectTime = backEnd.refdef.time + 500;
-		}
-
-		nk_end(ctx);
-		return;
-	}*/
-
-	//selectedContextItem = 0;
-	backEnd.ui_MouseCursor = -1;
+	
+	backEnd.ui_MouseCursor = NULL;
 }
 
 /* ===============================================================
@@ -3065,7 +2796,6 @@ static struct nk_image
 icon_load(const char *filename)
 {
 	int x, y, n;
-	GLuint tex;
 	unsigned char *data = stbi_load(filename, &x, &y, &n, 0);
 	if (!data) {
 		//die("[SDL]: failed to load image: %s", filename);
@@ -3073,6 +2803,8 @@ icon_load(const char *filename)
 		return icon_load("Warzone/gui/icons/error.png");
 	}
 
+#if 0
+	GLuint tex;
 	qglGenTextures(1, &tex);
 	qglBindTexture(GL_TEXTURE_2D, tex);
 	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
@@ -3081,8 +2813,21 @@ icon_load(const char *filename)
 	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	qglTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 	qglGenerateMipmap(GL_TEXTURE_2D);
+	
+	struct nk_image image;
+	image = nk_image_id((int)tex);
+	image.bindlessHandle = qglGetTextureHandle(image.handle.id);
+	qglMakeTextureHandleResident(image.bindlessHandle);
+#else
+	// Register through JKA's images system, for hashing...
+	image_t *jkaImage = R_CreateImage(filename, data, x, y, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_MIPMAP | IMGFLAG_CLAMPTOEDGE, 0);
+	struct nk_image image;
+	image = nk_image_id((int)jkaImage->texnum);
+	image.bindlessHandle = jkaImage->bindlessHandle;
+#endif
+
 	stbi_image_free(data);
-	return nk_image_id((int)tex);
+	return image;
 }
 
 void icon_merge_icons(byte *image, byte *background, int width, int height)
@@ -3131,7 +2876,6 @@ static struct nk_image
 icon_load_quality(const char *filename, int quality)
 {
 	int x, y, n;
-	GLuint tex;
 	unsigned char *data = stbi_load(filename, &x, &y, &n, 0);
 	if (!data) {
 		ri->Printf(PRINT_WARNING, "[SDL]: failed to load image: %s. Using error image.", filename);
@@ -3158,6 +2902,8 @@ icon_load_quality(const char *filename, int quality)
 	icon_merge_icons(data, bgdata, x, y);
 	stbi_image_free(bgdata);
 
+#if 0
+	GLuint tex;
 	qglGenTextures(1, &tex);
 	qglBindTexture(GL_TEXTURE_2D, tex);
 	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
@@ -3166,9 +2912,27 @@ icon_load_quality(const char *filename, int quality)
 	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	qglTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 	qglGenerateMipmap(GL_TEXTURE_2D);
+
+	struct nk_image image;
+	image = nk_image_id((int)tex);
+	image.bindlessHandle = qglGetTextureHandle(image.handle.id);
+	qglMakeTextureHandleResident(image.bindlessHandle);
+#else
+	// Register through JKA's images system, for hashing...
+	char strippedFilename[256] = { { 0 } };
+	char finalFilename[256] = { { 0 } };
+	COM_StripExtension(filename, strippedFilename, sizeof(finalFilename));
+	sprintf(finalFilename, "%s_%i.png", strippedFilename, quality);
+	ri->Printf(PRINT_WARNING, "Register inv quality filename %s.\n", finalFilename);
+	image_t *jkaImage = R_CreateImage(finalFilename, data, x, y, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_MIPMAP | IMGFLAG_CLAMPTOEDGE, 0);
+	struct nk_image image;
+	image = nk_image_id((int)jkaImage->texnum);
+	image.bindlessHandle = jkaImage->bindlessHandle;
+#endif
+
 	stbi_image_free(data);
 
-	return nk_image_id((int)tex);
+	return image;
 }
 
 static void
@@ -3841,6 +3605,40 @@ void GUI_Shutdown(void);
 
 qboolean GUI_Initialized = qfalse;
 
+void GUI_AddPlayerInventorySlot(int slot, int iconID, int quality)
+{
+	if (slot < 64)
+	{
+		char nameString[128] = { 0 };
+		char tooltipString[1024] = { 0 };
+
+		sprintf(nameString, "%s^BMy schwartz is bigger than yours (%s)^b\n", ColorStringForQuality(quality), itemQualityNames[quality]);
+
+		sprintf(tooltipString, "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
+			, nameString
+			, "^POne handed weapon, Lightsaber\n"
+			, " \n"
+			, "^7Scaling Attribute: ^PStrength\n"
+			, "^7Damage: ^P78-102 ^8(^P40.5 DPS^8).\n"
+			, "^7Attacks per Second: ^P0.45\n"
+			, "^7Crit Chance: ^P+11.5%\n"
+			, "^7Crit Power: ^P+41.0%\n"
+			, " \n"
+			, "^0Purple Crystal: ^P+12.0% ^4electric^0, and ^P+12.0% ^Nheat ^0damage.\n"
+			, "^N-42.0% ^7Dexterity.\n"
+			, "^N-97.0% ^7Intelligence.\n"
+			, "^N+33.0% ^7Weight.\n"
+			, " \n"
+			, "^P+15.0% ^2bonus to trip over your own feet.\n"
+			, "^P+50.0% ^2bonus to asking dumb questions.\n"
+			, "^P+20.0% ^2bonus to epeen trolling.\n"
+			, " \n"
+			, "^5Value: Priceless.\n");
+
+		GUI_SetInventoryItem(slot, quality, &GUI_media.inventoryIcons[iconID][quality], nameString, tooltipString);
+	}
+}
+
 void GUI_Init(void)
 {
 	if (GUI_Initialized)
@@ -3885,6 +3683,12 @@ void GUI_Init(void)
 	}
 	
 	ri->Printf(PRINT_WARNING, "GUI_Init: Device Initialized.\n");
+
+	// Init inventory items...
+	GUI_InitInventory();
+
+	// Init ability items...
+	GUI_InitAbilities();
 
 #if defined(__GUI_SKINNED__)
 	GUI_InitSkin();
@@ -3958,27 +3762,48 @@ void GUI_Init(void)
 	GUI_media.characterWeapon = icon_load("Warzone/gui/characterSlots/weapon.png");
 	GUI_media.characterWeapon2 = icon_load("Warzone/gui/characterSlots/weapon-shield.png");
 
-	GUI_media.inventoryBlank = icon_load("Warzone/gui/inventory/blank.png");
+	GUI_media.inventoryIconsBlank = icon_load("Warzone/gui/inventory/blank.png");
 
-	{// Geneate a fake inventory list for testing...
+	{// Load all the inventory icon possibilities...
 		int num = 1;
-		int num2 = 1;
-		for (int i = 0; i < 64; ++i) 
+		for (int quality = QUALITY_GOLD; quality >= QUALITY_GREY; quality--)
 		{
-			for (int quality = 0; quality < 7; quality++)
+			for (int i = 0; i < 25; ++i)
 			{
-				if (num2 >= 45)
-				{
-					GUI_media.inventory[i][quality] = GUI_media.inventoryBlank;
-				}
-				else
-				{
-					GUI_media.inventory[i][quality] = icon_load_quality(va("Warzone/gui/inventory/icon_%d.png", num), quality);
-				}
+				//ri->Printf(PRINT_WARNING, "Register Warzone/gui/inventory/icon_%d.png. quality %i.\n", num, quality);
+				GUI_media.inventoryIcons[i][quality] = icon_load_quality(va("Warzone/gui/inventory/icon_%d.png", num), quality);
+
+				num++;
+				if (num > 24) num = 1;
 			}
-			num++;
-			num2++;
-			if (num > 24) num = 1;
+		}
+
+		//
+		// Geneate a fake player inventory list for testing...
+		//
+
+		// Add base saber and gun...
+		int slot = 0;
+		GUI_AddPlayerInventorySlot(slot, 0, QUALITY_GOLD);
+		slot++;
+		GUI_AddPlayerInventorySlot(slot, 1, QUALITY_GOLD);
+		slot++;
+
+		// Add some completely random items to the rest of the slots for now, sorted by decsending quality...
+		int quality = QUALITY_GOLD;
+		int numAdded = 2;
+
+		for (; slot < 58; slot++)
+		{
+			GUI_AddPlayerInventorySlot(slot, irand(2,24), quality);
+			numAdded++;
+
+			if (numAdded > 8)
+			{
+				quality--;
+				quality = Q_clampi(QUALITY_GREY, quality, QUALITY_GOLD);
+				numAdded = 0;
+			}
 		}
 	}
 
@@ -3987,19 +3812,33 @@ void GUI_Init(void)
 		int num2 = 1;
 		for (int i = 0; i < 64; ++i)
 		{
-			if (num >= 62)
-			{
-				GUI_media.forcePowers[i] = GUI_media.inventoryBlank;
-			}
-			else
-			{
-				GUI_media.forcePowers[i] = icon_load(va("Warzone/gui/powers/icon_%d.png", num));
-			}
+			//ri->Printf(PRINT_WARNING, "Register Warzone/gui/powers/icon_%d.png\n", num);
+			GUI_media.forcePowerIcons[i] = icon_load(va("Warzone/gui/powers/icon_%d.png", num));
+
+			char nameString[128] = { 0 };
+			char tooltipString[1024] = { 0 };
+
+			sprintf(nameString, "%s^BSome Force Power^b\n", ColorStringForQuality(QUALITY_BLUE));
+
+			sprintf(tooltipString, "%s%s%s%s%s%s%s%s"
+				, nameString
+				, "^POne handed power, Force\n"
+				, " \n"
+				, "^7Scaling Attribute: ^PIntelligence\n"
+				, "^7Damage: ^P78-102 ^8(^P40.5 DPS^8).\n"
+				, "^7Attacks per Second: ^P0.45\n"
+				, "^7Crit Chance: ^P+11.5%\n"
+				, "^7Crit Power: ^P+41.0%\n");
+
+			GUI_SetAbilityItem(i, &GUI_media.forcePowerIcons[i], nameString, tooltipString);
 			num++;
 		}
 	}
 
 	ri->Printf(PRINT_WARNING, "GUI_Init: Textures Initialized.\n");
+
+	// Init the quick bar...
+	GUI_InitQuickBar();
 
 	GUI_Initialized = qtrue;
 }
@@ -4073,14 +3912,14 @@ void GUI_Shutdown(void)
 	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterWeapon);
 	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterWeapon2);
 
-	qglDeleteTextures(1, (const GLuint*)&GUI_media.inventoryBlank);
+	qglDeleteTextures(1, (const GLuint*)&GUI_media.inventoryIconsBlank);
 
 	{// Geneate a fake inventory list for testing...
 		for (int i = 0; i < 64; ++i)
 		{
 			for (int quality = 0; quality < 7; quality++)
 			{
-				qglDeleteTextures(1, (const GLuint*)&GUI_media.inventory[i][quality]);
+				qglDeleteTextures(1, (const GLuint*)&GUI_media.inventoryIcons[i][quality]);
 			}
 		}
 	}
@@ -4088,7 +3927,7 @@ void GUI_Shutdown(void)
 	{// Geneate a fake powers list for testing...
 		for (int i = 0; i < 64; ++i)
 		{
-			qglDeleteTextures(1, (const GLuint*)&GUI_media.forcePowers[i]);
+			qglDeleteTextures(1, (const GLuint*)&GUI_media.forcePowerIcons[i]);
 		}
 	}
 
@@ -4250,41 +4089,35 @@ void NuklearUI_Main(void)
 
 			bool quickbarAbleWindowOpen = false;
 
-			if (GUI_IsWindowOpen(&GUI_ctx, MENU_ABILITIES))
+			if (GUI_IsWindowOpen(MENU_ABILITIES))
 			{
 				GUI_Abilities(&GUI_ctx, &GUI_media);
 			}
 
-			if (GUI_IsWindowOpen(&GUI_ctx, MENU_CHARACTER))
+			if (GUI_IsWindowOpen(MENU_CHARACTER))
 			{
 				GUI_Character(&GUI_ctx, &GUI_media);
 				quickbarAbleWindowOpen = true;
 			}
 
-			if (GUI_IsWindowOpen(&GUI_ctx, MENU_INVENTORY))
+			if (GUI_IsWindowOpen(MENU_INVENTORY))
 			{
 				GUI_Inventory(&GUI_ctx, &GUI_media);
 				quickbarAbleWindowOpen = true;
 			}
 
-			if (GUI_IsWindowOpen(&GUI_ctx, MENU_POWERS))
+			if (GUI_IsWindowOpen(MENU_POWERS))
 			{
 				GUI_Powers(&GUI_ctx, &GUI_media);
 				quickbarAbleWindowOpen = true;
 			}
 
-			if (GUI_IsWindowOpen(&GUI_ctx, MENU_SETTINGS))
+			if (GUI_IsWindowOpen(MENU_SETTINGS))
 			{
 				GUI_Settings(&GUI_ctx, &GUI_media);
 			}
 
-			//if (!quickbarAbleWindowOpen && (/*selectedContextItem ||*/ backEnd.ui_MouseCursor > 0))
-			//{// Clear any seleted stuff when inventory/powers window is closed...
-			//	//selectedContextItem = 0;
-			//	backEnd.ui_MouseCursor = 0;
-			//}
-
-			if (GUI_IsWindowOpen(&GUI_ctx, MENU_RADIO))
+			if (GUI_IsWindowOpen(MENU_RADIO))
 			{
 				GUI_Radio(&GUI_ctx, &GUI_media);
 			}
@@ -4300,12 +4133,11 @@ void NuklearUI_Main(void)
 				mainMenuOpen = false;
 			}
 
-			if (/*selectedContextItem ||*/ backEnd.ui_MouseCursor > 0 && noSelectTime <= backEnd.refdef.time)
+			if (backEnd.ui_MouseCursor && noSelectTime <= backEnd.refdef.time)
 			{// If the user clicked somewhere not handled by the ui with either a drag object selected, or a right click menu open, then remove/close them... TODO: Add "trash item" here...
 				if (nk_input_is_mouse_released(&GUI_ctx.input, NK_BUTTON_LEFT))
 				{
-					//selectedContextItem = 0;
-					backEnd.ui_MouseCursor = 0;
+					backEnd.ui_MouseCursor = NULL;
 				}
 			}
 		}
@@ -4333,10 +4165,9 @@ void NuklearUI_Main(void)
 
 			GUI_CloseAllWindows(&GUI_ctx);
 
-			if (mainMenuOpen || /*selectedContextItem ||*/ backEnd.ui_MouseCursor > 0)
+			if (mainMenuOpen || backEnd.ui_MouseCursor)
 			{// UI closed, disable any context menu or mouse cursor (drag/drop) settings...
-				//selectedContextItem = 0;
-				backEnd.ui_MouseCursor = 0;
+				backEnd.ui_MouseCursor = NULL;
 				mainMenuOpen = false;
 			}
 		}

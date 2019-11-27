@@ -22,6 +22,8 @@
 
 #define __DEVELOPER_MODE__							// Use to completely disable PRINT_DEVELOPER prints for release. They are a waste of CPU time for normal users...
 
+//#define __OPENGL_SHARED_CONTEXTS__							// Use OpenGL shared contexts...
+
 //#define __DEBUG_ZALLOC__
 
 #define __USE_BIT7Z__								// New .pkw file support, 7zip (or rar or whatever really) archives that act like pk3's.

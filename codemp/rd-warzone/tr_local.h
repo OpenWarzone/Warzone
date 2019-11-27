@@ -58,6 +58,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //#define __LODMODEL_INSTANCING__				// Experimental lodmodel > instancing crap... Broken...
 //#define __DLIGHT_BMODEL__						// Bmodel dlights. They are handled by deferred shader like everything else now...
 
+#define __TWO_SIDED_TERRAIN__					// Draw splat mapped terrain 2 sided, as a hack fix for inverted triangles exported by programs...
+
 //#define __INVERSE_DEPTH_BUFFERS__				// Inverted depth buffer...
 
 //#define __RENDER_HEIGHTMAP__
@@ -2833,6 +2835,11 @@ typedef struct glstate_s {
 	matrix_t		invProjection;
 	matrix_t		viewTrans;
 	matrix_t		invEyeProjection;
+
+#ifdef __OPENGL_SHARED_CONTEXTS__
+	HDC		hDC;
+	HGLRC   sharedGLRC[8];	// handle to shared GL rendering contexts
+#endif //__OPENGL_SHARED_CONTEXTS__
 } glstate_t;
 
 typedef enum {
@@ -2945,7 +2952,7 @@ typedef struct {
 	trRefEntity_t		*currentEntity;
 	qboolean			skyRenderedThisView;	// flag for drawing sun
 
-	int					ui_MouseCursor = -1;
+	void				*ui_MouseCursor;
 
 	renderPasses_t		renderPass;
 
@@ -3885,6 +3892,7 @@ void    GL_SetModelviewMatrix(matrix_t matrix);
 void	GL_TexEnv( int env );
 void	GL_Cull( int cullType );
 void	GLSL_SetBindlessTexture(shaderProgram_t *program, int uniformNum, image_t **images, int arrayID);
+void	GLSL_SetBindlessTextureHandle(shaderProgram_t *program, int uniformNum, uint64_t bindlessHandle, int arrayID);
 
 #define LERP( a, b, w ) ( ( a ) * ( 1.0f - ( w ) ) + ( b ) * ( w ) )
 #define LUMA( red, green, blue ) ( 0.2126f * ( red ) + 0.7152f * ( green ) + 0.0722f * ( blue ) )
@@ -4814,6 +4822,13 @@ int GetVBOArea(vec3_t origin);
 
 void GL_SetDepthRange(GLclampd zNear, GLclampd zFar);
 void GL_SetDepthFunc(GLenum func);
+
+
+/*
+tr_nuklear_gui.cpp
+*/
+int GUI_GetMouseCursor(void);
+uint64_t GUI_GetMouseCursorBindless(void);
 
 #include "tr_glsl.h"
 

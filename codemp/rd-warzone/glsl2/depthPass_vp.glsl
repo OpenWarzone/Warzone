@@ -1,5 +1,7 @@
 #define USE_EDGE_TESSELLATION
 
+invariant gl_Position;
+
 attribute vec2				attr_TexCoord0;
 attribute vec2				attr_TexCoord1;
 

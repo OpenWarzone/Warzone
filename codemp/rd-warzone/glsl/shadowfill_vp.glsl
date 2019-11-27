@@ -1,5 +1,7 @@
 #define USE_EDGE_TESSELLATION
 
+invariant gl_Position;
+
 #if defined(USE_BINDLESS_TEXTURES)
 layout(std140) uniform u_bindlessTexturesBlock
 {

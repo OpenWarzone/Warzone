@@ -456,6 +456,14 @@ static int GLW_MakeContext( PIXELFORMATDESCRIPTOR *pPFD )
 		{
 			glw_state.hGLRC = wglCreateContextAttribsARB(glw_state.hDC, 0, attribs);
 			//DebugBreak();
+
+#ifdef __OPENGL_SHARED_CONTEXTS__
+			glState.hDC = glw_state.hDC;
+			glState.sharedGLRC[0] = glw_state.hGLRC;
+
+			for (int i = 1; i < 8; i++)
+				glState.sharedGLRC[i] = wglCreateContextAttribsARB(glw_state.hDC, glw_state.hGLRC, attribs);
+#endif //__OPENGL_SHARED_CONTEXTS__
 		}
 
 		Com_Printf ("...making context current: " );

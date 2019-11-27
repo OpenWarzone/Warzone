@@ -2372,6 +2372,152 @@ void GLSL_SetBindlessTexture(shaderProgram_t *program, int uniformNum, image_t *
 	}
 }
 
+void GLSL_SetBindlessTextureHandle(shaderProgram_t *program, int uniformNum, uint64_t bindlessHandle, int arrayID)
+{
+	if (program->isBindless && uniformNum >= UNIFORM_DIFFUSEMAP && uniformNum <= UNIFORM_MOONMAPS)
+	{// When using bindless textures, we simply set the appropriate array value...
+		if (!bindlessHandle)
+		{
+			ri->Printf(PRINT_WARNING, "GLSL_SetBindlessTextureHandle: Fix ya code doofus, you set a NULL texture for uniform %i.\n", uniformNum);
+			return;
+		}
+
+		GLSL_BindlessInitialize(program);
+
+		bindlessTexturesBlock_t *block = &program->bindlessBlock;
+
+		switch (uniformNum)
+		{
+		case UNIFORM_DIFFUSEMAP:
+			block->u_DiffuseMap = bindlessHandle;
+			break;
+		case UNIFORM_LIGHTMAP:
+			block->u_LightMap = bindlessHandle;
+			break;
+		case UNIFORM_NORMALMAP:
+			block->u_NormalMap = bindlessHandle;
+			break;
+		case UNIFORM_DELUXEMAP:
+			block->u_DeluxeMap = bindlessHandle;
+			break;
+		case UNIFORM_SPECULARMAP:
+			block->u_SpecularMap = bindlessHandle;
+			break;
+		case UNIFORM_POSITIONMAP:
+			block->u_PositionMap = bindlessHandle;
+			break;
+		case UNIFORM_WATERPOSITIONMAP:
+			block->u_WaterPositionMap = bindlessHandle;
+			break;
+		case UNIFORM_WATERHEIGHTMAP:
+			block->u_WaterHeightMap = bindlessHandle;
+			break;
+		case UNIFORM_HEIGHTMAP:
+			block->u_HeightMap = bindlessHandle;
+			break;
+		case UNIFORM_GLOWMAP:
+			block->u_GlowMap = bindlessHandle;
+			break;
+		case UNIFORM_ENVMAP:
+			block->u_EnvironmentMap = bindlessHandle;
+			break;
+		case UNIFORM_TEXTUREMAP:
+			block->u_TextureMap = bindlessHandle;
+			break;
+		case UNIFORM_LEVELSMAP:
+			block->u_LevelsMap = bindlessHandle;
+			break;
+		case UNIFORM_CUBEMAP:
+			block->u_CubeMap = bindlessHandle;
+			break;
+		case UNIFORM_SKYCUBEMAP:
+			block->u_SkyCubeMap = bindlessHandle;
+			break;
+		case UNIFORM_SKYCUBEMAPNIGHT:
+			block->u_SkyCubeMapNight = bindlessHandle;
+			break;
+		case UNIFORM_EMISSIVECUBE:
+			block->u_EmissiveCubeMap = bindlessHandle;
+			break;
+		case UNIFORM_OVERLAYMAP:
+			block->u_OverlayMap = bindlessHandle;
+			break;
+		case UNIFORM_STEEPMAP:
+			block->u_SteepMap = bindlessHandle;
+			break;
+		case UNIFORM_STEEPMAP1:
+			block->u_SteepMap1 = bindlessHandle;
+			break;
+		case UNIFORM_STEEPMAP2:
+			block->u_SteepMap2 = bindlessHandle;
+			break;
+		case UNIFORM_STEEPMAP3:
+			block->u_SteepMap3 = bindlessHandle;
+			break;
+		case UNIFORM_WATER_EDGE_MAP:
+			block->u_WaterEdgeMap = bindlessHandle;
+			break;
+		case UNIFORM_SPLATCONTROLMAP:
+			block->u_SplatControlMap = bindlessHandle;
+			break;
+		case UNIFORM_SPLATMAP1:
+			block->u_SplatMap1 = bindlessHandle;
+			break;
+		case UNIFORM_SPLATMAP2:
+			block->u_SplatMap2 = bindlessHandle;
+			break;
+		case UNIFORM_SPLATMAP3:
+			block->u_SplatMap3 = bindlessHandle;
+			break;
+		case UNIFORM_ROADSCONTROLMAP:
+			block->u_RoadsControlMap = bindlessHandle;
+			break;
+		case UNIFORM_ROADMAP:
+			block->u_RoadMap = bindlessHandle;
+			break;
+		case UNIFORM_DETAILMAP:
+			block->u_DetailMap = bindlessHandle;
+			break;
+		case UNIFORM_SCREENIMAGEMAP:
+			block->u_ScreenImageMap = bindlessHandle;
+			break;
+		case UNIFORM_SCREENDEPTHMAP:
+			block->u_ScreenDepthMap = bindlessHandle;
+			break;
+		case UNIFORM_SHADOWMAP:
+			block->u_ShadowMap = bindlessHandle;
+			break;
+		case UNIFORM_SHADOWMAP2:
+			block->u_ShadowMap2 = bindlessHandle;
+			break;
+		case UNIFORM_SHADOWMAP3:
+			block->u_ShadowMap3 = bindlessHandle;
+			break;
+		case UNIFORM_SHADOWMAP4:
+			block->u_ShadowMap4 = bindlessHandle;
+			break;
+		case UNIFORM_SHADOWMAP5:
+			block->u_ShadowMap5 = bindlessHandle;
+			break;
+		case UNIFORM_VOLUMEMAP:
+			block->u_VolumeMap = bindlessHandle;
+			break;
+		case UNIFORM_MOONMAPS:
+			block->u_MoonMaps[arrayID] = bindlessHandle;
+			break;
+		}
+
+#ifdef __BINDLESS_OFFSETS__
+		GLSL_BindlessUpdate(program);
+#endif //__BINDLESS_OFFSETS__
+
+		/*if (origProgram)
+		{
+		GLSL_BindProgram(origProgram);
+		}*/
+	}
+}
+
 void GLSL_SetUniformInt(shaderProgram_t *program, int uniformNum, GLint value)
 {
 	if (program->isBindless && uniformNum >= UNIFORM_DIFFUSEMAP && uniformNum <= UNIFORM_MOONMAPS)

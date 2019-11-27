@@ -1,5 +1,7 @@
 //#define __EXPERIMETNAL_CHARACTER_EDITOR__
 
+invariant gl_Position;
+
 attribute vec2 attr_TexCoord0;
 
 attribute vec2 attr_TexCoord1;
@@ -524,8 +526,8 @@ float wingFlap(void)
 
 void main()
 {
-	vec3 position;
-	vec3 normal;
+	highp vec3 position;
+	highp vec3 normal;
 
 	/*
 	vec3 heightMap = vec3(0.0);

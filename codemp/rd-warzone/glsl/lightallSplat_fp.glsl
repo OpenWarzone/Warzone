@@ -4,6 +4,7 @@
 #define __HIGH_PASS_SHARPEN__
 #define __USE_REGIONS__
 #define __USE_PROCEDURAL_NOISE__
+#define __USE_DISTANCE_BLEND__
 
 
 #define SCREEN_MAPS_ALPHA_THRESHOLD 0.666
@@ -569,7 +570,7 @@ vec3 Enhance(in sampler2D tex, in vec2 uv, vec3 color, float level)
 }
 #endif //defined(__HIGH_PASS_SHARPEN__)
 
-vec4 GetMap( in sampler2D tex, float scale, inout float depth)
+vec4 GetMapFinal( in sampler2D tex, float scale, inout float depth)
 {
 	vec4 xaxis;
 	vec4 yaxis;
@@ -611,7 +612,18 @@ vec4 GetMap( in sampler2D tex, float scale, inout float depth)
 	return color;
 }
 
-vec4 GetMapLod( in sampler2D tex, float scale, inout float depth, in float lodLevel)
+vec4 GetMap( in sampler2D tex, float scale, inout float depth)
+{
+#ifdef __USE_DISTANCE_BLEND__
+	vec4 col1 = GetMapFinal( tex, scale, depth);
+	vec4 col2 = GetMapFinal( tex, scale * 0.0333, depth);
+	return mix(col1, col2, clamp(pow(gl_FragCoord.z, 1024.0), 0.25, 0.75));
+#else //!__USE_DISTANCE_BLEND__
+	return GetMapFinal( tex, scale, depth);
+#endif //__USE_DISTANCE_BLEND__
+}
+
+vec4 GetMapLodFinal( in sampler2D tex, float scale, inout float depth, in float lodLevel)
 {
 	vec4 xaxis;
 	vec4 yaxis;
@@ -654,6 +666,17 @@ vec4 GetMapLod( in sampler2D tex, float scale, inout float depth, in float lodLe
 	}
 
 	return color;
+}
+
+vec4 GetMapLod( in sampler2D tex, float scale, inout float depth, in float lodLevel)
+{
+#ifdef __USE_DISTANCE_BLEND__
+	vec4 col1 = GetMapLodFinal( tex, scale, depth, lodLevel);
+	vec4 col2 = GetMapLodFinal( tex, scale * 0.0333, depth, lodLevel);
+	return mix(col1, col2, clamp(pow(gl_FragCoord.z, 1024.0), 0.25, 0.75));
+#else //!__USE_DISTANCE_BLEND__
+	return GetMapLodFinal( tex, scale, depth, lodLevel);
+#endif //__USE_DISTANCE_BLEND__
 }
 
 vec4 SmoothMix(vec3 color1, vec3 color2, float mixf)
@@ -1078,18 +1101,7 @@ float getdiffuseLight(vec3 n, vec3 l, float p) {
 
 void main()
 {
-/*#ifdef __DEBUG_TESS_CONTROL__
-	if (u_Local9.r > 0.0)
-	{
-		vec3 f = noise3d(m_vertPos.xyz * u_Local9.r);
-		gl_FragColor = vec4(f, 1.0);
-		out_Glow = vec4(0.0);
-		out_Position = vec4(m_vertPos.xyz, SHADER_MATERIAL_TYPE+1.0);
-		out_Normal = vec4( vec3(EncodeNormal(m_Normal.xyz), 1.0), 1.0 );
-		return;
-	}
-#endif //__DEBUG_TESS_CONTROL__*/
-
+#if 0
 	if (USE_IS2D <= 0.0 && distance(m_vertPos, u_ViewOrigin) > u_zFar)
 	{// Skip it all...
 		gl_FragColor = vec4(0.0);
@@ -1101,6 +1113,7 @@ void main()
 #endif //__USE_REAL_NORMALMAPS__
 		return;
 	}
+#endif
 
 	bool LIGHTMAP_ENABLED = (USE_LIGHTMAP > 0.0 && USE_GLOW_BUFFER != 1.0 && USE_IS2D <= 0.0) ? true : false;
 
@@ -1121,11 +1134,11 @@ void main()
 	gl_FragColor.a = clamp(diffuse.a * colorMap.a, 0.0, 1.0);
 
 
-	vec3 N = normalize(m_Normal.xyz);
+	vec3 N = m_Normal.xyz;
 
 	if (fakeGrassFactor > 0.0)
 	{// Fake vertical...
-		N = mix(N, normalize(normalize(u_ViewOrigin.xyz - m_vertPos.xyz) + normalize(m_Normal)), fakeGrassFactor);
+		N = mix(N, normalize(normalize(u_ViewOrigin.xyz - m_vertPos.xyz) + m_Normal), fakeGrassFactor);
 	}
 
 
@@ -1306,7 +1319,6 @@ void main()
 		vec3 wetDiffuse = 1.0-A;
 		gl_FragColor.rgb = mix(gl_FragColor.rgb, wetDiffuse.rgb, clamp(PUDDLE_STRENGTH * 5.0, 0.0, 1.0));
 		gl_FragColor.rgb = mix(gl_FragColor.rgb, wetDiffuse.rgb, clamp(PUDDLE_STRENGTH * 5.0, 0.0, 1.0));
-		//gl_FragColor.rgb = max(gl_FragColor.rgb - mix(0.0, 0.1, PUDDLE_STRENGTH), 0.0);
 
 		if (!(m_TessDepth > mix(-0.5, -0.2, PUDDLE_STRENGTH)) && N.z * 0.5 + 0.5 >= 0.9999)
 		{// Rain puddles...
@@ -1334,17 +1346,6 @@ void main()
 #define glow_const_2 (255.0 / 229.0)
 		glowColor.rgb = clamp((clamp(glowColor.rgb - glow_const_1, 0.0, 1.0)) * glow_const_2, 0.0, 1.0);
 		glowColor.rgb *= SHADER_GLOW_STRENGTH;
-
-		//float glowMax = clamp(length(glowColor.rgb) / 3.0, 0.0, 1.0);//clamp(max(glowColor.r, max(glowColor.g, glowColor.b)), 0.0, 1.0);
-		//glowColor.a *= glowMax;
-		//glowColor.rgb *= glowColor.a;
-
-		//gl_FragColor.rgb = mix(gl_FragColor.rgb, glowColor.rgb, glowColor.a);
-		//gl_FragColor.a = max(gl_FragColor.a, glowColor.a);
-
-		//float gMax = max(glowColor.r, max(glowColor.g, glowColor.b));
-		//if (gMax > 1.0)
-		//	glowColor.rgb = glowColor.rgb / gMax;
 
 		glowColor.a = clamp(glowColor.a, 0.0, 1.0);
 		out_Glow = glowColor;

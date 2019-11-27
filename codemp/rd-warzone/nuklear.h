@@ -464,7 +464,11 @@ struct nk_rect {float x,y,w,h;};
 struct nk_recti {short x,y,w,h;};
 typedef char nk_glyph[NK_UTF_SIZE];
 typedef union {void *ptr; int id;} nk_handle;
+#ifdef __WARZONE_UI__
+struct nk_image { nk_handle handle; uint64_t bindlessHandle; unsigned short w, h; unsigned short region[4]; };
+#else //!__WARZONE_UI__
 struct nk_image {nk_handle handle;unsigned short w,h;unsigned short region[4];};
+#endif //__WARZONE_UI__
 struct nk_cursor {struct nk_image img; struct nk_vec2 size, offset;};
 struct nk_scroll {nk_uint x, y;};
 
@@ -19752,6 +19756,9 @@ nk_image_id(int id)
     s.region[1] = 0;
     s.region[2] = 0;
     s.region[3] = 0;
+#ifdef __WARZONE_UI__
+	s.bindlessHandle = 0;
+#endif //__WARZONE_UI__
     return s;
 }
 NK_API int

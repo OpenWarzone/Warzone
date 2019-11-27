@@ -1544,6 +1544,10 @@ qboolean	FOG_LAYER_INVERT = qfalse;
 vec3_t		FOG_LINEAR_COLOR = { 1.0 };
 float		FOG_LINEAR_ALPHA = 0.65;
 float		FOG_LINEAR_RANGE_POW = 4.0;
+float		FOG_LINEAR_Z_FADE = 1.0;
+float		FOG_LINEAR_Z_ALPHAMULT = 1.0;
+qboolean	FOG_LINEAR_USE_POSITIONMAP = qfalse;
+float		FOG_LINEAR_POSITIONMAP_MAX_RANGE = 32768.0;
 qboolean	FOG_WORLD_ENABLE = qtrue;
 vec3_t		FOG_WORLD_COLOR = { 0 };
 vec3_t		FOG_WORLD_COLOR_SUN = { 0 };
@@ -2437,6 +2441,11 @@ void MAPPING_LoadMapInfo(void)
 			FOG_LINEAR_COLOR[2] = atof(IniRead(mapname, "FOG", "FOG_LINEAR_COLOR_B", "1.0"));
 			FOG_LINEAR_ALPHA = atof(IniRead(mapname, "FOG", "FOG_LINEAR_ALPHA", "0.65"));
 			FOG_LINEAR_RANGE_POW = atof(IniRead(mapname, "FOG", "FOG_LINEAR_RANGE_POW", "4.0"));
+			FOG_LINEAR_Z_FADE = atof(IniRead(mapname, "FOG", "FOG_LINEAR_Z_FADE", "1.0"));
+			FOG_LINEAR_Z_ALPHAMULT = atof(IniRead(mapname, "FOG", "FOG_LINEAR_Z_ALPHAMULT", "1.0"));
+
+			FOG_LINEAR_USE_POSITIONMAP = (atoi(IniRead(mapname, "FOG", "FOG_LINEAR_USE_POSITIONMAP", "0")) > 0) ? qtrue : qfalse;
+			FOG_LINEAR_POSITIONMAP_MAX_RANGE = atof(IniRead(mapname, "FOG", "FOG_LINEAR_POSITIONMAP_MAX_RANGE", "32768.0"));
 		}
 
 		FOG_WORLD_ENABLE = (atoi(IniRead(mapname, "FOG", "FOG_WORLD_ENABLE", "0")) > 0) ? qtrue : qfalse;

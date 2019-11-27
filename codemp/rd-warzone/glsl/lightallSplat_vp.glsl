@@ -1,5 +1,7 @@
 #define USE_EDGE_TESSELLATION
 
+invariant gl_Position;
+
 attribute vec2 attr_TexCoord0;
 
 attribute vec2 attr_TexCoord1;
@@ -565,8 +567,8 @@ vec3 OffsetForPosition(vec3 pos)
 
 void main()
 {
-	vec3 position;
-	vec3 normal;
+	highp vec3 position;
+	highp vec3 normal;
 
 #ifdef __HEIGHTMAP_TERRAIN_TEST__
 	vec3 heightMap = vec3(0.0);

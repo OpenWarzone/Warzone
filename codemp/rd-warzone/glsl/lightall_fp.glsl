@@ -728,7 +728,7 @@ void main()
 
 	bool LIGHTMAP_ENABLED = (USE_LIGHTMAP > 0.0 && USE_GLOW_BUFFER != 1.0 && USE_IS2D <= 0.0) ? true : false;
 	vec2 texCoords = m_TexCoords.xy;
-	vec3 N = normalize(m_Normal.xyz);
+	vec3 N = m_Normal.xyz;
 
 	if (SHADER_SWAY > 0.0)
 	{// Sway...

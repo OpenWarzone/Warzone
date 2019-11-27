@@ -2757,6 +2757,13 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgT
 		image->TMU = 0;
 	}
 
+#ifdef __OPENGL_SHARED_CONTEXTS__
+	if (qwglGetCurrentContext() != glState.sharedGLRC[omp_get_thread_num()])
+	{
+		qwglMakeCurrent(glState.hDC, glState.sharedGLRC[omp_get_thread_num()]);
+	}
+#endif //__OPENGL_SHARED_CONTEXTS__
+
 	GL_SelectTexture( image->TMU );
 
 	if (image->flags & IMGFLAG_3D_VOLUMETRIC)
@@ -3012,6 +3019,10 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgT
 	image->next = hashTable[hash];
 	hashTable[hash] = image;
 
+#ifdef __OPENGL_SHARED_CONTEXTS__
+	qwglMakeCurrent(glState.hDC, glState.sharedGLRC[0]);
+#endif //__OPENGL_SHARED_CONTEXTS__
+
 	return image;
 }
 
@@ -3063,6 +3074,14 @@ image_t *R_CreateCubemapFromImageDatas(const char *name, byte **pic, int width, 
 	image->internalFormat = internalFormat;
 
 	image->TMU = 0;
+
+#ifdef __OPENGL_SHARED_CONTEXTS__
+	if (qwglGetCurrentContext() != glState.sharedGLRC[omp_get_thread_num()])
+	{
+		qwglMakeCurrent(glState.hDC, glState.sharedGLRC[omp_get_thread_num()]);
+	}
+#endif //__OPENGL_SHARED_CONTEXTS__
+
 	GL_SelectTexture(image->TMU);
 
 	if (image->flags & IMGFLAG_CUBEMAP)
@@ -3175,6 +3194,10 @@ image_t *R_CreateCubemapFromImageDatas(const char *name, byte **pic, int width, 
 	hash = generateHashValue(name);
 	image->next = hashTable[hash];
 	hashTable[hash] = image;
+
+#ifdef __OPENGL_SHARED_CONTEXTS__
+	qwglMakeCurrent(glState.hDC, glState.sharedGLRC[0]);
+#endif //__OPENGL_SHARED_CONTEXTS__
 
 	return image;
 }

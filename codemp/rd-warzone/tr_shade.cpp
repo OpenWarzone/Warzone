@@ -5112,8 +5112,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				{
 					if (!(pStage->stateBits & GLS_ATEST_BITS))
 						GLSL_SetBindlessTexture(sp, UNIFORM_DIFFUSEMAP, &tr.whiteImage, 0);
-					/*else if (tess.shader->isCursor && backEnd.ui_MouseCursor > 0)
-						GL_BindImageIDToTMU(backEnd.ui_MouseCursor, TB_COLORMAP);*/ // override with nuklear's selected icon for drag/drop stuff... ****** FIXME - BINDLESS ID ******
+					else if (tess.shader->isCursor && GUI_GetMouseCursorBindless())
+						GLSL_SetBindlessTextureHandle(sp, UNIFORM_DIFFUSEMAP, GUI_GetMouseCursorBindless(), 0); // override with nuklear's selected icon for drag/drop stuff...
 					else if (pStage->bundle[TB_COLORMAP].image[0] != 0)
 						GLSL_SetBindlessTexture(sp, UNIFORM_DIFFUSEMAP, &pStage->bundle[TB_COLORMAP].image[0], 0);
 				}
@@ -5179,9 +5179,9 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					}
 					else
 					{
-						/*if (tess.shader->isCursor && backEnd.ui_MouseCursor > 0)
-							GL_BindImageIDToTMU(backEnd.ui_MouseCursor, TB_DIFFUSEMAP); // override with nuklear's selected icon for drag/drop stuff... ****** FIXME - BINDLESS ID ******
-						else*/ if (pStage->bundle[TB_ROOFMAP].image[0]) // Roofmap becomes the triplanar flat surface texture...
+						if (tess.shader->isCursor && GUI_GetMouseCursorBindless())
+							GLSL_SetBindlessTextureHandle(sp, UNIFORM_DIFFUSEMAP, GUI_GetMouseCursorBindless(), 0); // override with nuklear's selected icon for drag/drop stuff...
+						else if (pStage->bundle[TB_ROOFMAP].image[0]) // Roofmap becomes the triplanar flat surface texture...
 							GLSL_SetBindlessTexture(sp, UNIFORM_DIFFUSEMAP, &pStage->bundle[TB_ROOFMAP].image[0], 0);
 						else if (pStage->bundle[TB_DIFFUSEMAP].image[0])
 							GLSL_SetBindlessTexture(sp, UNIFORM_DIFFUSEMAP, &pStage->bundle[TB_DIFFUSEMAP].image[0], 0);
@@ -5244,8 +5244,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				{
 					if (!(pStage->stateBits & GLS_ATEST_BITS))
 						GL_BindToTMU(tr.whiteImage, 0);
-					else if (tess.shader->isCursor && backEnd.ui_MouseCursor > 0)
-						GL_BindImageIDToTMU(backEnd.ui_MouseCursor, TB_COLORMAP); // override with nuklear's selected icon for drag/drop stuff...
+					else if (tess.shader->isCursor && GUI_GetMouseCursor())
+						GL_BindImageIDToTMU(GUI_GetMouseCursor(), TB_COLORMAP); // override with nuklear's selected icon for drag/drop stuff...
 					else if (pStage->bundle[TB_COLORMAP].image[0] != 0)
 						R_BindAnimatedImageToTMU(&pStage->bundle[TB_COLORMAP], TB_COLORMAP);
 				}
@@ -5311,8 +5311,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					}
 					else
 					{
-						if (tess.shader->isCursor && backEnd.ui_MouseCursor > 0)
-							GL_BindImageIDToTMU(backEnd.ui_MouseCursor, TB_DIFFUSEMAP); // override with nuklear's selected icon for drag/drop stuff...
+						if (tess.shader->isCursor && GUI_GetMouseCursor())
+							GL_BindImageIDToTMU(GUI_GetMouseCursor(), TB_DIFFUSEMAP); // override with nuklear's selected icon for drag/drop stuff...
 						else if (pStage->bundle[TB_ROOFMAP].image[0]) // Roofmap becomes the triplanar flat surface texture...
 							R_BindAnimatedImageToTMU(&pStage->bundle[TB_ROOFMAP], TB_DIFFUSEMAP);
 						else if (pStage->bundle[TB_DIFFUSEMAP].image[0])
@@ -6106,6 +6106,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			vec4_t vec;
 			VectorSet4(vec, STANDARD_SPLATMAP_STEEPANGLE, STANDARD_SPLATMAP_STEEPPCURVE, STANDARD_SPLATMAP_STEEPMINIMUM, STANDARD_SPLATMAP_STEEPMAXIMUM);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL19, vec);
+
+#ifdef __TWO_SIDED_TERRAIN__
+			GL_Cull(CT_TWO_SIDED); // TEMP HACK FOR INVERTED TERRAIN WINDINGS/NORMALS...
+#endif //__TWO_SIDED_TERRAIN__
 		}
 
 #if 0

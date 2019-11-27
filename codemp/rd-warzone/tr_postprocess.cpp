@@ -4159,6 +4159,12 @@ void RB_FogPostShader(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrB
 	}
 
 	{
+		vec4_t local13;
+		VectorSet4(local13, FOG_LINEAR_Z_FADE, FOG_LINEAR_Z_ALPHAMULT, FOG_LINEAR_USE_POSITIONMAP, FOG_LINEAR_POSITIONMAP_MAX_RANGE);
+		GLSL_SetUniformVec4(&tr.fogPostShader, UNIFORM_LOCAL13, local13);
+	}
+
+	{
 		vec4_t loc;
 		VectorSet4(loc, MAP_INFO_SIZE[0], MAP_INFO_SIZE[1], MAP_INFO_SIZE[2], FOG_LINEAR_RANGE_POW);
 		GLSL_SetUniformVec4(&tr.fogPostShader, UNIFORM_MAPINFO, loc);
