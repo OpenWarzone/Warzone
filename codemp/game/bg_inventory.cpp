@@ -1439,3 +1439,49 @@ void GenerateAllInventoryItems(void)
 	// Probably UI, don't need this there...
 #endif //defined(rd_warzone_x86_EXPORTS)
 }
+
+#if defined(_GAME)
+inventoryItem *BG_FindBaseInventoryItem(int bgItemID, int quality, int crystal, int stat1, int stat2, int stat3)
+{
+	for (int i = 0; i < allInventoryItemsCount; i++)
+	{
+		inventoryItem *item = allInventoryItems[i];
+		
+		if (item->getBaseItemID() != bgItemID) continue;
+		if (item->getQuality() != quality) continue;
+		if (item->getCrystal() != crystal) continue;
+		if (item->getBasicStat1() != stat1) continue;
+		if (item->getBasicStat2() != stat2) continue;
+		if (item->getBasicStat3() != stat3) continue;
+
+		return item;
+	}
+
+	return NULL;
+}
+
+void BG_CreatePlayerInventoryItem(playerState_t *ps, int psSlot, int bgItemID, int quality, int crystal, int stat1, int stat2, int stat3)
+{
+	if (!ps) return;
+	if (psSlot > 63) return;
+
+	if (psSlot < 0)
+	{// Find a slot...
+		for (int i = 0; i < 64; i++)
+		{
+			if (ps->inventoryItems[i] < 0)
+			{
+				psSlot = i;
+				break;
+			}
+		}
+	}
+
+	inventoryItem *item = BG_FindBaseInventoryItem(bgItemID, quality, crystal, stat1, stat2, stat3);
+
+	if (item)
+	{
+		ps->inventoryItems[psSlot] = item->getItemID();
+	}
+}
+#endif //defined(_GAME)

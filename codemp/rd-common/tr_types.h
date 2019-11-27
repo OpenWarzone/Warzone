@@ -245,6 +245,21 @@ typedef struct refEntity_s {
 	float		endTime;
 	float		saberLength;
 
+
+	qboolean	isLocalPlayer;
+	int			localPlayerGameEntityNum;
+	qboolean	isHumanoid;
+
+	qboolean	ignoreCull;
+	qboolean	noMerge;
+
+	// Inventory system...
+	int			**playerInventory;
+	int			**playerInventoryMod1;
+	int			**playerInventoryMod2;
+	int			**playerInventoryMod3;
+	int			**playerEquipped;
+
 /*
 Ghoul2 Insert Start
 */
@@ -256,12 +271,6 @@ Ghoul2 Insert Start
 /*
 Ghoul2 Insert End
 */
-	qboolean	isLocalPlayer;
-	int			localPlayerGameEntityNum;
-	qboolean	isHumanoid;
-
-	qboolean	ignoreCull;
-	qboolean	noMerge;
 } refEntity_t;
 
 /*

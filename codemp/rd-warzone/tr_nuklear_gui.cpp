@@ -3628,6 +3628,21 @@ void GUI_AddPlayerInventorySlot(int slot, int iconID, int quality)
 	}
 }
 
+int **playerInventory;
+int **playerInventoryMod1;
+int **playerInventoryMod2;
+int **playerInventoryMod3;
+int **playerInventoryEquipped;
+
+void GUI_SetPlayerInventory(int **inventory, int **inventoryMod1, int **inventoryMod2, int **inventoryMod3, int **inventoryEquipped)
+{
+	playerInventory = inventory;
+	playerInventoryMod1 = inventoryMod1;
+	playerInventoryMod2 = inventoryMod2;
+	playerInventoryMod3 = inventoryMod3;
+	playerInventoryEquipped = inventoryEquipped;
+}
+
 void GUI_Init(void)
 {
 	if (GUI_Initialized)

@@ -597,6 +597,10 @@ void RE_AddRefEntityToScene(const refEntity_t *ent) {
 		backEnd.localPlayerEntityNum = r_numentities;
 		backEnd.localPlayerEntity = &backEndData->entities[r_numentities];
 		backEnd.localPlayerValid = qtrue;
+
+		// Send inventory list to GUI as pointers...
+		extern void GUI_SetPlayerInventory(int **inventory, int **inventoryMod1, int **inventoryMod2, int **inventoryMod3, int **inventoryEquipped);
+		GUI_SetPlayerInventory(ent->playerInventory, ent->playerInventoryMod1, ent->playerInventoryMod2, ent->playerInventoryMod3, ent->playerEquipped);
 	}
 #ifdef __HUMANOIDS_BEND_GRASS__
 	else if (ent->isHumanoid)

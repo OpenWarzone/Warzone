@@ -11580,26 +11580,34 @@ stillDoSaber:
 		}
 	}
 
-	if (!(cent->currentState.powerups & (1 << PW_CLOAKED)))
-	{ //don't add the normal model if cloaked
-		CG_CheckThirdPersonAlpha( cent, &legs );
+	CG_CheckThirdPersonAlpha( cent, &legs );
 		
-		if (cent->currentState.number == cg.clientNum)
-		{// Mark this refent as being the player, so that we can use it's position in renderer...
-			legs.isLocalPlayer = qtrue;
-			legs.localPlayerGameEntityNum = cg.clientNum;
-			legs.isHumanoid = qtrue;
-		}
-		else
-		{
-			legs.isLocalPlayer = qfalse;
-			legs.isHumanoid = qtrue;
-		}
+	if (cent->currentState.number == cg.clientNum)
+	{// Mark this refent as being the player, so that we can use it's position in renderer... Also send inventory pointers...
+		legs.isLocalPlayer = qtrue;
+		legs.localPlayerGameEntityNum = cg.clientNum;
+		legs.isHumanoid = qtrue;
+
+		legs.playerInventory = (int **)&cg.snap->ps.inventoryItems;
+		legs.playerInventoryMod1 = (int **)&cg.snap->ps.inventoryMod1;
+		legs.playerInventoryMod2 = (int **)&cg.snap->ps.inventoryMod2;
+		legs.playerInventoryMod3 = (int **)&cg.snap->ps.inventoryMod3;
+		legs.playerEquipped = (int **)&cg.snap->ps.inventoryEquipped;
 
 		AddRefEntityToScene(&legs);
-
-		legs.isLocalPlayer = qfalse;
 	}
+	else if (!(cent->currentState.powerups & (1 << PW_CLOAKED)))
+	{ //don't add the normal model if cloaked
+		legs.isLocalPlayer = qfalse;
+		legs.isHumanoid = qtrue;
+	}
+	else
+	{
+		AddRefEntityToScene(&legs);
+	}
+
+	legs.isLocalPlayer = qfalse;
+
 
 	//cent->frame_minus2 = cent->frame_minus1;
 	VectorCopy(cent->frame_minus1, cent->frame_minus2);
