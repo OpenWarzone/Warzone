@@ -970,7 +970,7 @@ netField_t	entityStateFields[] =
 { NETF(inventoryMod1[64]), 16 },
 { NETF(inventoryMod2[64]), 16 },
 { NETF(inventoryMod3[64]), 16 },
-{ NETF(inventoryEquipped[8]), 16 },
+{ NETF(inventoryEquipped[16]), 16 },
 
 //rww - for use by mod authors only
 { NETF(userInt1), 1 },
@@ -1427,7 +1427,7 @@ netField_t	playerStateFields[] =
 { PSF(inventoryMod1[64]), 16 },
 { PSF(inventoryMod2[64]), 16 },
 { PSF(inventoryMod3[64]), 16 },
-{ PSF(inventoryEquipped[8]), 16 },
+{ PSF(inventoryEquipped[16]), 16 },
 
 //rww - for use by mod authors only
 { PSF(userInt1), 1 },
@@ -1616,7 +1616,7 @@ netField_t	pilotPlayerStateFields[] =
 { PSF(inventoryMod1[64]), 16 },
 { PSF(inventoryMod2[64]), 16 },
 { PSF(inventoryMod3[64]), 16 },
-{ PSF(inventoryEquipped[8]), 16 },
+{ PSF(inventoryEquipped[16]), 16 },
 
 //rww - for use by mod authors only
 { PSF(userInt1), 1 },
@@ -2270,7 +2270,7 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, struct playerState_s *from, struct p
 		}
 	}
 	inventoryEquippedBits = 0;
-	for (i = 0; i<8; i++) {
+	for (i = 0; i<16; i++) {
 		if (to->inventoryEquipped[i] != from->inventoryEquipped[i]) {
 			inventoryEquippedBits |= 1 << i;
 		}
@@ -2397,8 +2397,8 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, struct playerState_s *from, struct p
 
 	if (inventoryEquippedBits) {
 		MSG_WriteBits(msg, 1, 1);	// changed
-		MSG_WriteBits(msg, inventoryEquippedBits, 4);
-		for (i = 0; i<8; i++)
+		MSG_WriteBits(msg, inventoryEquippedBits, 8);
+		for (i = 0; i<16; i++)
 		{
 			if (inventoryEquippedBits & (1 << i))
 			{
@@ -2650,8 +2650,8 @@ void MSG_ReadDeltaPlayerstate (msg_t *msg, playerState_t *from, playerState_t *t
 		// parse inventoryEquipped
 		if (MSG_ReadBits(msg, 1)) {
 			LOG("PS_INVENTORYEQUIPPED");
-			bits = MSG_ReadBits(msg, 4);
-			for (i = 0; i<8; i++) {
+			bits = MSG_ReadBits(msg, 8);
+			for (i = 0; i<16; i++) {
 				if (bits & (1 << i)) {
 					to->inventoryEquipped[i] = MSG_ReadShort(msg);
 				}

@@ -60,7 +60,7 @@ uint16_t *playerInventory;
 uint16_t *playerInventoryMod1;
 uint16_t *playerInventoryMod2;
 uint16_t *playerInventoryMod3;
-uint16_t *playerInventoryEquipped;
+int *playerInventoryEquipped; // The slot that the item is in in inventory... BEWARE: Can be -1 when none!
 
 
 /* macros */
@@ -1780,7 +1780,7 @@ int GUI_FindInventoryBestWeapon(void)
 
 struct nk_image GUI_GetInventoryIconForEquipped(uint16_t slot)
 {
-	inventoryItem *item = BG_GetInventoryItemByID(playerInventoryEquipped[slot]);
+	inventoryItem *item = BG_GetInventoryItemByID(playerInventory[playerInventoryEquipped[slot]]);
 
 	if (item->getBaseItem()->giTag == WP_SABER)
 	{
@@ -1921,15 +1921,19 @@ GUI_Character(struct nk_context *ctx, struct media *media)
 
 		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
 		
-		if (playerInventoryEquipped[0] > 0)
+		if (playerInventoryEquipped[0] >= 0)
 		{// This is an equipped item... Add it to character slot...
 			struct nk_image icon = GUI_GetInventoryIconForEquipped(0);
 			
 			if (icon.handle.id)
 			{
-				inventoryItem *item = BG_GetInventoryItemByID(playerInventoryEquipped[0]);
+				inventoryItem *item = BG_GetInventoryItemByID(playerInventory[playerInventoryEquipped[0]]);
+				inventoryItem *mod1 = BG_GetInventoryItemByID(playerInventoryMod1[playerInventoryEquipped[0]]);
+				inventoryItem *mod2 = BG_GetInventoryItemByID(playerInventoryMod2[playerInventoryEquipped[0]]);
+				inventoryItem *mod3 = BG_GetInventoryItemByID(playerInventoryMod3[playerInventoryEquipped[0]]);
+				
 				char tooltip[1024] = { { 0 } };
-				strcpy(tooltip, item->getTooltip());
+				strcpy(tooltip, item->getTooltip(playerInventoryMod1[playerInventoryEquipped[0]], playerInventoryMod1[playerInventoryEquipped[1]], playerInventoryMod1[playerInventoryEquipped[2]]));
 				int ret = nk_button_image_label(ctx, icon, "", NK_TEXT_ALIGN_RIGHT);
 				GUI_MenuHoverTooltip(ctx, media, tooltip, media->characterWeapon);
 				found = true;
@@ -3787,7 +3791,7 @@ void GUI_UpdateInventory(void)
 
 			if (item->getBaseItem()->giTag == WP_SABER)
 			{
-				GUI_SetPlayerInventorySlot(i, 0, item->getQuality(), item->getName(), item->getTooltip());
+				GUI_SetPlayerInventorySlot(i, 0, item->getQuality(), item->getName(), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
 			}
 			else if (item->getBaseItem()->giTag == WP_MODULIZED_WEAPON)
 			{
@@ -3795,19 +3799,19 @@ void GUI_UpdateInventory(void)
 				{// TODO: A better way, that uses all the possible icons...
 					case WEAPON_STAT1_DEFAULT:						// Pistol
 					default:
-						GUI_SetPlayerInventorySlot(i, 8, item->getQuality(), item->getName(), item->getTooltip());
+						GUI_SetPlayerInventorySlot(i, 8, item->getQuality(), item->getName(), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
 						break;
 					case WEAPON_STAT1_FIRE_ACCURACY_MODIFIER:		// Sniper Rifle
-						GUI_SetPlayerInventorySlot(i, 13, item->getQuality(), item->getName(), item->getTooltip());
+						GUI_SetPlayerInventorySlot(i, 13, item->getQuality(), item->getName(), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
 						break;
 					case WEAPON_STAT1_FIRE_RATE_MODIFIER:			// Blaster Rifle
-						GUI_SetPlayerInventorySlot(i, 14, item->getQuality(), item->getName(), item->getTooltip());
+						GUI_SetPlayerInventorySlot(i, 14, item->getQuality(), item->getName(), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
 						break;
 					case WEAPON_STAT1_VELOCITY_MODIFIER:			// Assault Rifle
-						GUI_SetPlayerInventorySlot(i, 1, item->getQuality(), item->getName(), item->getTooltip());
+						GUI_SetPlayerInventorySlot(i, 1, item->getQuality(), item->getName(), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
 						break;
 					case WEAPON_STAT1_HEAT_ACCUMULATION_MODIFIER:	// Heavy Blster
-						GUI_SetPlayerInventorySlot(i, 10, item->getQuality(), item->getName(), item->getTooltip());
+						GUI_SetPlayerInventorySlot(i, 10, item->getQuality(), item->getName(), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
 						break;
 				}
 			}
@@ -3818,7 +3822,7 @@ void GUI_UpdateInventory(void)
 	GUI_InitQuickBar();
 }
 
-void GUI_SetPlayerInventory(uint16_t *inventory, uint16_t *inventoryMod1, uint16_t *inventoryMod2, uint16_t *inventoryMod3, uint16_t *inventoryEquipped)
+void GUI_SetPlayerInventory(uint16_t *inventory, uint16_t *inventoryMod1, uint16_t *inventoryMod2, uint16_t *inventoryMod3, int *inventoryEquipped)
 {
 	playerInventory = inventory;
 	playerInventoryMod1 = inventoryMod1;

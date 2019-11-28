@@ -258,7 +258,7 @@ typedef struct refEntity_s {
 	uint16_t			*playerInventoryMod1;
 	uint16_t			*playerInventoryMod2;
 	uint16_t			*playerInventoryMod3;
-	uint16_t			*playerEquipped;
+	int					*playerEquipped;
 
 /*
 Ghoul2 Insert Start

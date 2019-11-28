@@ -8,7 +8,6 @@
 
 #include <string>
 
-extern void GenerateAllInventoryItems(void);
 extern const char *itemQualityTooltips[];
 extern const char *weaponCrystalTooltips[];
 extern const char *itemCrystalTooltips[];
@@ -156,14 +155,6 @@ private:
 	float				m_basicStat2value;		// m_basicStat2 strength multiplier
 	float				m_basicStat3value;		// m_basicStat3 strength multiplier
 
-	// Installed module modifier stats... The item can support up to 3 extra modules.
-	uint16_t			m_modStat1;				// weapons: weaponStat1_t. sabers: saberStat1_t. items: itemStat_t
-	uint16_t			m_modStat2;				// weapons: weaponStat2_t. sabers: saberStat2_t. items: itemStat_t
-	uint16_t			m_modStat3;				// weapons: weaponStat3_t. sabers: saberStat3_t. items: itemStat_t
-	float				m_modStatValue1;		// m_modStat1 strength multiplier
-	float				m_modStatValue2;		// m_modStat2 strength multiplier
-	float				m_modStatValue3;		// m_modStat3 strength multiplier
-
 	//
 	// Private Internal Functions...
 	//
@@ -187,16 +178,11 @@ public:
 	void setQuantity(uint16_t);
 
 	// Base item modifier stats...
+	void setCrystal(uint16_t);
 	void setStat1(uint16_t, float);
 	void setStat2(uint16_t, float);
 	void setStat3(uint16_t, float);
 
-	// Installed module modifier stats...
-	void setCrystal(uint16_t);
-	void setMod1(uint16_t, float);
-	void setMod2(uint16_t, float);
-	void setMod3(uint16_t, float);
-	
 	//
 	// Item Accessing Functions...
 	//
@@ -207,8 +193,8 @@ public:
 	const char *getName();
 	char *getDescription();
 	uint16_t getQuantity();
-	float getCost();
-	float getStackCost();
+	float getCost(uint16_t modItemID1, uint16_t modItemID2, uint16_t modItemID3);
+	float getStackCost(uint16_t modItemID1, uint16_t modItemID2, uint16_t modItemID3);
 	char *getModel();
 	char *getIcon();
 	float getCrystalPower(void);
@@ -217,6 +203,7 @@ public:
 	qboolean isCrystal();
 
 	// Base item modifier stats...
+	uint16_t getCrystal();
 	uint16_t getBasicStat1();
 	uint16_t getBasicStat2();
 	uint16_t getBasicStat3();
@@ -224,26 +211,27 @@ public:
 	float getBasicStat2Value();
 	float getBasicStat3Value();
 
-	// Installed module modifier stats...
-	uint16_t getCrystal();
-	uint16_t getMod1Stat();
-	uint16_t getMod2Stat();
-	uint16_t getMod3Stat();
-	float getMod1Value();
-	float getMod2Value();
-	float getMod3Value();
+	// Installed module modifier stats... modItemID is needed from ps->inventoryMod#[#]
+	uint16_t getMod1Stat(uint16_t modItemID);
+	uint16_t getMod2Stat(uint16_t modItemID);
+	uint16_t getMod3Stat(uint16_t modItemID);
+	float getMod1Value(uint16_t modItemID);
+	float getMod2Value(uint16_t modItemID);
+	float getMod3Value(uint16_t modItemID);
 
 	// Visual looks for each stat (which model to use). Modules used first, Stats used as fallback...
-	uint16_t getVisualType1();
-	uint16_t getVisualType2();
-	uint16_t getVisualType3();
+	uint16_t getVisualType1(uint16_t modItemID);
+	uint16_t getVisualType2(uint16_t modItemID);
+	uint16_t getVisualType3(uint16_t modItemID);
 
 	const char *getColorStringForQuality();
-	const char *getTooltip();
+	const char *getTooltip(uint16_t modItemID1, uint16_t modItemID2, uint16_t modItemID3); // Can parse modItemID# = 0 for base tooltip without any mods...
 };
 
 //
 // Global Stuff...
 //
 
+extern inventoryItem *BG_GetInventoryItemByID(uint16_t id);
+extern void GenerateAllInventoryItems(void);
 #endif

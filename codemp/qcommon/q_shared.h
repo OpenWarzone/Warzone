@@ -2051,7 +2051,7 @@ typedef struct playerState_s {
 	uint16_t		inventoryMod1[64] = { { 0 } }; // Need to keep values < 65536 for transmission
 	uint16_t		inventoryMod2[64] = { { 0 } }; // Need to keep values < 65536 for transmission
 	uint16_t		inventoryMod3[64] = { { 0 } }; // Need to keep values < 65536 for transmission
-	uint16_t		inventoryEquipped[8] = { { 0 } }; // Need to keep values < 65536 for transmission
+	int				inventoryEquipped[16] = { { -1 } }; // Inventory Slot ID of the item...
 
 	//rww - spare values specifically for use by mod authors.
 	//See psf_overrides.txt if you want to increase the send
@@ -2489,7 +2489,7 @@ typedef struct entityState_s {
 	uint16_t		inventoryMod1[64] = { { 0 } }; // Need to keep values < 65536 for transmission
 	uint16_t		inventoryMod2[64] = { { 0 } }; // Need to keep values < 65536 for transmission
 	uint16_t		inventoryMod3[64] = { { 0 } }; // Need to keep values < 65536 for transmission
-	uint16_t		inventoryEquipped[8] = { { 0 } }; // Need to keep values < 65536 for transmission
+	int				inventoryEquipped[16] = { { -1 } }; // Inventory Slot ID of the item...
 
 	//rww - spare values specifically for use by mod authors.
 	//See netf_overrides.txt if you want to increase the send

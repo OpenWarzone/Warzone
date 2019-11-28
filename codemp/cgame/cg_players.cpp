@@ -11592,7 +11592,7 @@ stillDoSaber:
 		legs.playerInventoryMod1 = (uint16_t *)&cg.snap->ps.inventoryMod1;
 		legs.playerInventoryMod2 = (uint16_t *)&cg.snap->ps.inventoryMod2;
 		legs.playerInventoryMod3 = (uint16_t *)&cg.snap->ps.inventoryMod3;
-		legs.playerEquipped = (uint16_t *)&cg.snap->ps.inventoryEquipped;
+		legs.playerEquipped = (int *)&cg.snap->ps.inventoryEquipped;
 
 		AddRefEntityToScene(&legs);
 	}

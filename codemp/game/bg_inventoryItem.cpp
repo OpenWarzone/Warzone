@@ -11,6 +11,8 @@
 #include "tr_local.h"
 #endif
 
+extern inventoryItem *BG_GetInventoryItemByID(uint16_t id);
+
 //
 // Configuration Defines...
 //
@@ -236,12 +238,6 @@ inventoryItem::inventoryItem(uint16_t itemID)
 	m_basicStat1value = 0.0;
 	m_basicStat2value = 0.0;
 	m_basicStat3value = 0.0;
-	m_modStat1 = 0;
-	m_modStat2 = 0;
-	m_modStat3 = 0;
-	m_modStatValue1 = 0.0;
-	m_modStatValue2 = 0.0;
-	m_modStatValue3 = 0.0;
 }
 
 inventoryItem::inventoryItem(uint16_t itemID, uint16_t bgItemID, itemQuality_t quality, uint16_t amount = 1)
@@ -271,12 +267,6 @@ inventoryItem::inventoryItem(uint16_t itemID, uint16_t bgItemID, itemQuality_t q
 	m_basicStat1value = 0.0;
 	m_basicStat2value = 0.0;
 	m_basicStat3value = 0.0;
-	m_modStat1 = 0;
-	m_modStat2 = 0;
-	m_modStat3 = 0;
-	m_modStatValue1 = 0.0;
-	m_modStatValue2 = 0.0;
-	m_modStatValue3 = 0.0;
 }
 
 inventoryItem::~inventoryItem()
@@ -340,36 +330,6 @@ void inventoryItem::setStat3(uint16_t statType, float statValue)
 
 	m_basicStat3 = statType;
 	m_basicStat3value = statValue;
-}
-
-void inventoryItem::setMod1(uint16_t statType, float statValue)
-{
-	if (m_quality <= QUALITY_BLUE) return; // Not available...
-	if (isCrystal()) return; // crystals can not have stats.
-	if (isModification()) return; // mods can't have mods :)
-
-	m_modStat1 = statType;
-	m_modStatValue1 = statValue;
-}
-
-void inventoryItem::setMod2(uint16_t statType, float statValue)
-{
-	if (m_quality <= QUALITY_PURPLE) return; // Not available...
-	if (isCrystal()) return; // crystals can not have stats.
-	if (isModification()) return; // mods can't have mods :)
-
-	m_modStat2 = statType;
-	m_modStatValue2 = statValue;
-}
-
-void inventoryItem::setMod3(uint16_t statType, float statValue)
-{
-	if (m_quality <= QUALITY_ORANGE) return; // Not available...
-	if (isCrystal()) return; // crystals can not have stats.
-	if (isModification()) return; // mods can't have mods :)
-
-	m_modStat3 = statType;
-	m_modStatValue3 = statValue;
 }
 
 //
@@ -525,71 +485,71 @@ uint16_t inventoryItem::getCrystal()
 	return m_crystal;
 }
 
-uint16_t inventoryItem::getMod1Stat()
+uint16_t inventoryItem::getMod1Stat(uint16_t modItemID)
 {
-	return m_modStat1;
+	return BG_GetInventoryItemByID(modItemID)->getBasicStat1();
 }
 
-uint16_t inventoryItem::getMod2Stat()
+uint16_t inventoryItem::getMod2Stat(uint16_t modItemID)
 {
-	return m_modStat2;
+	return BG_GetInventoryItemByID(modItemID)->getBasicStat2();
 }
 
-uint16_t inventoryItem::getMod3Stat()
+uint16_t inventoryItem::getMod3Stat(uint16_t modItemID)
 {
-	return m_modStat3;
+	return BG_GetInventoryItemByID(modItemID)->getBasicStat3();
 }
 
-float inventoryItem::getMod1Value()
+float inventoryItem::getMod1Value(uint16_t modItemID)
 {
-	return m_modStatValue1;
+	return BG_GetInventoryItemByID(modItemID)->getBasicStat1Value();
 }
 
-float inventoryItem::getMod2Value()
+float inventoryItem::getMod2Value(uint16_t modItemID)
 {
-	return m_modStatValue2;
+	return BG_GetInventoryItemByID(modItemID)->getBasicStat2Value();
 }
 
-float inventoryItem::getMod3Value()
+float inventoryItem::getMod3Value(uint16_t modItemID)
 {
-	return m_modStatValue3;
+	return BG_GetInventoryItemByID(modItemID)->getBasicStat3Value();
 }
 
-uint16_t inventoryItem::getVisualType1()
+uint16_t inventoryItem::getVisualType1(uint16_t modItemID)
 {
-	return m_modStat1 ? m_modStat1 : m_basicStat1;
+	return getMod1Stat(modItemID) ? getMod1Stat(modItemID) : m_basicStat1;
 }
 
-uint16_t inventoryItem::getVisualType2()
+uint16_t inventoryItem::getVisualType2(uint16_t modItemID)
 {
-	return m_modStat2 ? m_modStat2 : m_basicStat2;
+	return getMod2Stat(modItemID) ? getMod2Stat(modItemID) : m_basicStat2;
 }
 
-uint16_t inventoryItem::getVisualType3()
+uint16_t inventoryItem::getVisualType3(uint16_t modItemID)
 {
-	return m_modStat3 ? m_modStat3 : m_basicStat3;
+	return getMod3Stat(modItemID) ? getMod3Stat(modItemID) : m_basicStat3;
 }
 
 float inventoryItem::getCrystalPower(void)
 {
-	return 0.01 * pow(float(m_quality + 1), 1.1);
+	return 0.005 * pow(float(m_quality + 1), 1.1);
 }
 
-float inventoryItem::getCost()
+float inventoryItem::getCost(uint16_t modItemID1, uint16_t modItemID2, uint16_t modItemID3)
 {// Apply multipliers based on how many extra stats this item has...
 	float crystalCostMultiplier = getCrystal() ? 1.5 * (1.0 + getCrystalPower()) : 1.0;
 	float statCostMultiplier1 = getBasicStat1() ? 1.25 * (1.0 + getBasicStat1Value()) : 1.0;
 	float statCostMultiplier2 = getBasicStat1() ? 1.25 * (1.0 + getBasicStat2Value()) : 1.0;
 	float statCostMultiplier3 = getBasicStat1() ? 1.25 * (1.0 + getBasicStat3Value()) : 1.0;
-	float modCostMultiplier1 = getMod1Stat() ? 1.25 * (1.0 + getMod1Value()) : 1.0;
-	float modCostMultiplier2 = getMod2Stat() ? 1.25 * (1.0 + getMod2Value()) : 1.0;
-	float modCostMultiplier3 = getMod3Stat() ? 1.25 * (1.0 + getMod3Value()) : 1.0;
+	float modCostMultiplier1 = getMod1Stat(modItemID1) ? 1.25 * (1.0 + getMod1Value(modItemID1)) : 1.0;
+	float modCostMultiplier2 = getMod2Stat(modItemID2) ? 1.25 * (1.0 + getMod2Value(modItemID2)) : 1.0;
+	float modCostMultiplier3 = getMod3Stat(modItemID3) ? 1.25 * (1.0 + getMod3Value(modItemID3)) : 1.0;
 	return getBaseItem()->price * statCostMultiplier1 * statCostMultiplier2 * statCostMultiplier3 * modCostMultiplier1 * modCostMultiplier2 * modCostMultiplier3 * crystalCostMultiplier * qualityPriceModifier[m_quality];
 }
 
-float inventoryItem::getStackCost()
+float inventoryItem::getStackCost(uint16_t modItemID1, uint16_t modItemID2, uint16_t modItemID3)
 {// Apply multipliers based on how many extra stats this item has...
-	return getCost() * (m_quantity <= 1) ? 1 : m_quantity;
+	return getCost(modItemID1, modItemID2, modItemID3) * (m_quantity <= 1) ? 1 : m_quantity;
 }
 
 const char *inventoryItem::getColorStringForQuality()
@@ -624,7 +584,7 @@ const char *inventoryItem::getColorStringForQuality()
 	return "^5";
 }
 
-const char *inventoryItem::getTooltip()
+const char *inventoryItem::getTooltip(uint16_t modItemID1, uint16_t modItemID2, uint16_t modItemID3)
 {
 	int giType = getBaseItem()->giType;
 	
@@ -643,15 +603,14 @@ const char *inventoryItem::getTooltip()
 		tooltipText.append(va(itemStatTooltips[getBasicStat1()], getBasicStat1Value() * 100.0, getBasicStat1Value() * 100.0));
 		tooltipText.append(va(itemStatTooltips[getBasicStat2()], getBasicStat2Value() * 100.0, getBasicStat2Value() * 100.0));
 		tooltipText.append(va(itemStatTooltips[getBasicStat3()], getBasicStat3Value() * 100.0, getBasicStat3Value() * 100.0));
-		tooltipText.append(" \n");
-		tooltipText.append(va(itemStatTooltips[getMod1Stat()], getMod1Value() * 100.0, getMod1Value() * 100.0));
-		tooltipText.append(va(itemStatTooltips[getMod2Stat()], getMod2Value() * 100.0, getMod2Value() * 100.0));
-		tooltipText.append(va(itemStatTooltips[getMod3Stat()], getMod3Value() * 100.0, getMod3Value() * 100.0));
+		tooltipText.append(va(itemStatTooltips[getMod1Stat(modItemID1)], getMod1Value(modItemID1) * 100.0, getMod1Value(modItemID1) * 100.0));
+		tooltipText.append(va(itemStatTooltips[getMod2Stat(modItemID2)], getMod2Value(modItemID2) * 100.0, getMod2Value(modItemID2) * 100.0));
+		tooltipText.append(va(itemStatTooltips[getMod3Stat(modItemID3)], getMod3Value(modItemID3) * 100.0, getMod3Value(modItemID3) * 100.0));
 		tooltipText.append(" \n");
 		if (m_quantity > 1)
-			tooltipText.append(va("^5Value: ^P%i (%i per item).\n", (int)getStackCost(), (int)getCost()));
+			tooltipText.append(va("^5Value: ^P%i (%i per item).\n", (int)getStackCost(modItemID1, modItemID2, modItemID3), (int)getCost(modItemID1, modItemID2, modItemID3)));
 		else
-			tooltipText.append(va("^5Value: ^P%i.\n", (int)getCost()));
+			tooltipText.append(va("^5Value: ^P%i.\n", (int)getCost(modItemID1, modItemID2, modItemID3)));
 		break;
 	case IT_ITEM_MODIFICATION:
 	case IT_ITEM_CRYSTAL:
@@ -664,15 +623,14 @@ const char *inventoryItem::getTooltip()
 		tooltipText.append(va(itemStatTooltips[getBasicStat1()], getBasicStat1Value() * 100.0, getBasicStat1Value() * 100.0));
 		tooltipText.append(va(itemStatTooltips[getBasicStat2()], getBasicStat2Value() * 100.0, getBasicStat2Value() * 100.0));
 		tooltipText.append(va(itemStatTooltips[getBasicStat3()], getBasicStat3Value() * 100.0, getBasicStat3Value() * 100.0));
-		tooltipText.append(" \n");
-		tooltipText.append(va(itemStatTooltips[getMod1Stat()], getMod1Value() * 100.0, getMod1Value() * 100.0));
-		tooltipText.append(va(itemStatTooltips[getMod2Stat()], getMod2Value() * 100.0, getMod2Value() * 100.0));
-		tooltipText.append(va(itemStatTooltips[getMod3Stat()], getMod3Value() * 100.0, getMod3Value() * 100.0));
+		tooltipText.append(va(itemStatTooltips[getMod1Stat(modItemID1)], getMod1Value(modItemID1) * 100.0, getMod1Value(modItemID1) * 100.0));
+		tooltipText.append(va(itemStatTooltips[getMod2Stat(modItemID2)], getMod2Value(modItemID2) * 100.0, getMod2Value(modItemID2) * 100.0));
+		tooltipText.append(va(itemStatTooltips[getMod3Stat(modItemID3)], getMod3Value(modItemID3) * 100.0, getMod3Value(modItemID3) * 100.0));
 		tooltipText.append(" \n");
 		if (m_quantity > 1)
-			tooltipText.append(va("^5Value: ^P%i (%i per item).\n", (int)getStackCost(), (int)getCost()));
+			tooltipText.append(va("^5Value: ^P%i (%i per item).\n", (int)getStackCost(modItemID1, modItemID2, modItemID3), (int)getCost(modItemID1, modItemID2, modItemID3)));
 		else
-			tooltipText.append(va("^5Value: ^P%i.\n", (int)getCost()));
+			tooltipText.append(va("^5Value: ^P%i.\n", (int)getCost(modItemID1, modItemID2, modItemID3)));
 		break;
 	case IT_WEAPON_MODIFICATION:
 	case IT_WEAPON_CRYSTAL:
@@ -685,15 +643,14 @@ const char *inventoryItem::getTooltip()
 		tooltipText.append(va(weaponStat1Tooltips[getBasicStat1()], getBasicStat1Value() * 100.0, getBasicStat1Value() * 100.0));
 		tooltipText.append(va(weaponStat2Tooltips[getBasicStat2()], getBasicStat2Value() * 100.0, getBasicStat2Value() * 100.0));
 		tooltipText.append(va(weaponStat3Tooltips[getBasicStat3()], getBasicStat3Value() * 100.0, getBasicStat3Value() * 100.0));
-		tooltipText.append(" \n");
-		tooltipText.append(va(weaponStat1Tooltips[getMod1Stat()], getMod1Value() * 100.0, getMod1Value() * 100.0));
-		tooltipText.append(va(weaponStat2Tooltips[getMod2Stat()], getMod2Value() * 100.0, getMod2Value() * 100.0));
-		tooltipText.append(va(weaponStat3Tooltips[getMod3Stat()], getMod3Value() * 100.0, getMod3Value() * 100.0));
+		tooltipText.append(va(weaponStat1Tooltips[getMod1Stat(modItemID1)], getMod1Value(modItemID1) * 100.0, getMod1Value(modItemID1) * 100.0));
+		tooltipText.append(va(weaponStat2Tooltips[getMod2Stat(modItemID2)], getMod2Value(modItemID2) * 100.0, getMod2Value(modItemID2) * 100.0));
+		tooltipText.append(va(weaponStat3Tooltips[getMod3Stat(modItemID3)], getMod3Value(modItemID3) * 100.0, getMod3Value(modItemID3) * 100.0));
 		tooltipText.append(" \n");
 		if (m_quantity > 1)
-			tooltipText.append(va("^5Value: ^P%i (%i per item).\n", (int)getStackCost(), (int)getCost()));
+			tooltipText.append(va("^5Value: ^P%i (%i per item).\n", (int)getStackCost(modItemID1, modItemID2, modItemID3), (int)getCost(modItemID1, modItemID2, modItemID3)));
 		else
-			tooltipText.append(va("^5Value: ^P%i.\n", (int)getCost()));
+			tooltipText.append(va("^5Value: ^P%i.\n", (int)getCost(modItemID1, modItemID2, modItemID3)));
 		break;
 	case IT_SABER_MODIFICATION:
 	case IT_SABER_CRYSTAL:
@@ -706,15 +663,14 @@ const char *inventoryItem::getTooltip()
 		tooltipText.append(va(saberStat1Tooltips[getBasicStat1()], getBasicStat1Value() * 100.0, getBasicStat1Value() * 100.0));
 		tooltipText.append(va(saberStat2Tooltips[getBasicStat2()], getBasicStat2Value() * 100.0, getBasicStat2Value() * 100.0));
 		tooltipText.append(va(saberStat3Tooltips[getBasicStat3()], getBasicStat3Value() * 100.0, getBasicStat3Value() * 100.0));
-		tooltipText.append(" \n");
-		tooltipText.append(va(saberStat1Tooltips[getMod1Stat()], getMod1Value() * 100.0, getMod1Value() * 100.0));
-		tooltipText.append(va(saberStat2Tooltips[getMod2Stat()], getMod2Value() * 100.0, getMod2Value() * 100.0));
-		tooltipText.append(va(saberStat3Tooltips[getMod3Stat()], getMod3Value() * 100.0, getMod3Value() * 100.0));
+		tooltipText.append(va(saberStat1Tooltips[getMod1Stat(modItemID1)], getMod1Value(modItemID1) * 100.0, getMod1Value(modItemID1) * 100.0));
+		tooltipText.append(va(saberStat2Tooltips[getMod2Stat(modItemID2)], getMod2Value(modItemID2) * 100.0, getMod2Value(modItemID2) * 100.0));
+		tooltipText.append(va(saberStat3Tooltips[getMod3Stat(modItemID3)], getMod3Value(modItemID3) * 100.0, getMod3Value(modItemID3) * 100.0));
 		tooltipText.append(" \n");
 		if (m_quantity > 1)
-			tooltipText.append(va("^5Value: ^P%i (%i per item).\n", (int)getStackCost(), (int)getCost()));
+			tooltipText.append(va("^5Value: ^P%i (%i per item).\n", (int)getStackCost(modItemID1, modItemID2, modItemID3), (int)getCost(modItemID1, modItemID2, modItemID3)));
 		else
-			tooltipText.append(va("^5Value: ^P%i.\n", (int)getCost()));
+			tooltipText.append(va("^5Value: ^P%i.\n", (int)getCost(modItemID1, modItemID2, modItemID3)));
 		break;
 	case IT_WEAPON:
 		if (getBaseItem()->giTag == WP_SABER)
@@ -725,29 +681,47 @@ const char *inventoryItem::getTooltip()
 			tooltipText.append(va("^5%s\n", getDescription()));
 			tooltipText.append(" \n");
 			tooltipText.append("^7Scaling Attribute: ^PStrength\n");
-			tooltipText.append("^7Damage: ^P78-102 ^8(^P40.5 DPS^8).\n");
-			tooltipText.append("^7Attacks per Second: ^P0.45\n");
-			tooltipText.append("^7Crit Chance: ^P+11.5%\n");
-			tooltipText.append("^7Crit Power: ^P+41.0%\n");
+			tooltipText.append("^7Damage: ^P78-102 ^8(^P30.2 DPS^8).\n");
+			tooltipText.append("^7Attacks per Second: ^P1.85\n");
+			tooltipText.append("^7Crit Chance: ^P+9.5%\n");
+			tooltipText.append("^7Crit Power: ^P+58.3%\n");
 			tooltipText.append(" \n");
 			tooltipText.append(va(weaponCrystalTooltips[getCrystal()], getCrystalPower() * 100.0, getCrystalPower() * 100.0));
 			tooltipText.append(va(saberStat1Tooltips[getBasicStat1()], getBasicStat1Value() * 100.0, getBasicStat1Value() * 100.0));
 			tooltipText.append(va(saberStat2Tooltips[getBasicStat2()], getBasicStat2Value() * 100.0, getBasicStat2Value() * 100.0));
 			tooltipText.append(va(saberStat3Tooltips[getBasicStat3()], getBasicStat3Value() * 100.0, getBasicStat3Value() * 100.0));
-			tooltipText.append(" \n");
-			tooltipText.append(va(saberStat1Tooltips[getMod1Stat()], getMod1Value() * 100.0, getMod1Value() * 100.0));
-			tooltipText.append(va(saberStat2Tooltips[getMod2Stat()], getMod2Value() * 100.0, getMod2Value() * 100.0));
-			tooltipText.append(va(saberStat3Tooltips[getMod3Stat()], getMod3Value() * 100.0, getMod3Value() * 100.0));
+			tooltipText.append(va(saberStat1Tooltips[getMod1Stat(modItemID1)], getMod1Value(modItemID1) * 100.0, getMod1Value(modItemID1) * 100.0));
+			tooltipText.append(va(saberStat2Tooltips[getMod2Stat(modItemID2)], getMod2Value(modItemID2) * 100.0, getMod2Value(modItemID2) * 100.0));
+			tooltipText.append(va(saberStat3Tooltips[getMod3Stat(modItemID3)], getMod3Value(modItemID3) * 100.0, getMod3Value(modItemID3) * 100.0));
 			tooltipText.append(" \n");
 			if (m_quantity > 1)
-				tooltipText.append(va("^5Value: ^P%i (%i per item).\n", (int)getStackCost(), (int)getCost()));
+				tooltipText.append(va("^5Value: ^P%i (%i per item).\n", (int)getStackCost(modItemID1, modItemID2, modItemID3), (int)getCost(modItemID1, modItemID2, modItemID3)));
 			else
-				tooltipText.append(va("^5Value: ^P%i.\n", (int)getCost()));
+				tooltipText.append(va("^5Value: ^P%i.\n", (int)getCost(modItemID1, modItemID2, modItemID3)));
 		}
 		else
 		{
 			tooltipText = va("^B%s^b\n", getName());
-			tooltipText.append("^POne handed weapon, Gun\n");
+			switch (getBasicStat1())
+			{
+			case WEAPON_STAT1_DEFAULT:
+			default:
+				tooltipText.append("^POne handed weapon, Pistol\n");
+				break;
+			case WEAPON_STAT1_FIRE_ACCURACY_MODIFIER:
+				tooltipText.append("^PTwo handed weapon, Sniper Rifle\n");
+				break;
+			case WEAPON_STAT1_FIRE_RATE_MODIFIER:
+				tooltipText.append("^PTwo handed weapon, Blaster Rifle\n");
+				break;
+			case WEAPON_STAT1_VELOCITY_MODIFIER:
+				tooltipText.append("^PTwo handed weapon, Assault Rifle\n");
+				break;
+			case WEAPON_STAT1_HEAT_ACCUMULATION_MODIFIER:
+				tooltipText.append("^PTwo handed weapon, Heavy Blaster\n");
+				break;
+			}
+			
 			tooltipText.append(" \n");
 			tooltipText.append(va("^5%s\n", getDescription()));
 			tooltipText.append(" \n");
@@ -760,16 +734,15 @@ const char *inventoryItem::getTooltip()
 			tooltipText.append(va(weaponCrystalTooltips[getCrystal()], getCrystalPower() * 100.0, getCrystalPower() * 100.0));
 			tooltipText.append(va(weaponStat1Tooltips[getBasicStat1()], getBasicStat1Value() * 100.0, getBasicStat1Value() * 100.0));
 			tooltipText.append(va(weaponStat2Tooltips[getBasicStat2()], getBasicStat2Value() * 100.0, getBasicStat2Value() * 100.0));
+			tooltipText.append(va(weaponStat1Tooltips[getMod1Stat(modItemID1)], getMod1Value(modItemID1) * 100.0, getMod1Value(modItemID1) * 100.0));
+			tooltipText.append(va(weaponStat2Tooltips[getMod2Stat(modItemID2)], getMod2Value(modItemID2) * 100.0, getMod2Value(modItemID2) * 100.0));
 			tooltipText.append(va(weaponStat3Tooltips[getBasicStat3()], getBasicStat3Value() * 100.0, getBasicStat3Value() * 100.0));
-			tooltipText.append(" \n");
-			tooltipText.append(va(weaponStat1Tooltips[getMod1Stat()], getMod1Value() * 100.0, getMod1Value() * 100.0));
-			tooltipText.append(va(weaponStat2Tooltips[getMod2Stat()], getMod2Value() * 100.0, getMod2Value() * 100.0));
-			tooltipText.append(va(weaponStat3Tooltips[getMod3Stat()], getMod3Value() * 100.0, getMod3Value() * 100.0));
+			tooltipText.append(va(weaponStat3Tooltips[getMod3Stat(modItemID3)], getMod3Value(modItemID3) * 100.0, getMod3Value(modItemID3) * 100.0));
 			tooltipText.append(" \n");
 			if (m_quantity > 1)
-				tooltipText.append(va("^5Value: ^P%i (%i per item).\n", (int)getStackCost(), (int)getCost()));
+				tooltipText.append(va("^5Value: ^P%i (%i per item).\n", (int)getStackCost(modItemID1, modItemID2, modItemID3), (int)getCost(modItemID1, modItemID2, modItemID3)));
 			else
-				tooltipText.append(va("^5Value: ^P%i.\n", (int)getCost()));
+				tooltipText.append(va("^5Value: ^P%i.\n", (int)getCost(modItemID1, modItemID2, modItemID3)));
 		}
 		break;
 	default:
