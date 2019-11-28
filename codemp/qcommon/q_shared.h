@@ -2047,11 +2047,11 @@ typedef struct playerState_s {
 	int			nextStyleSwitch;
 
 	// Inventory Data...
-	int				inventoryItems[64] = { { -1 } };
-	int				inventoryMod1[64] = { { -1 } };
-	int				inventoryMod2[64] = { { -1 } };
-	int				inventoryMod3[64] = { { -1 } };
-	int				inventoryEquipped[8] = { { -1 } };
+	int				inventoryItems[64] = { { 0 } };
+	int				inventoryMod1[64] = { { 0 } };
+	int				inventoryMod2[64] = { { 0 } };
+	int				inventoryMod3[64] = { { 0 } };
+	int				inventoryEquipped[8] = { { 0 } };
 
 	//rww - spare values specifically for use by mod authors.
 	//See psf_overrides.txt if you want to increase the send
@@ -2485,11 +2485,11 @@ typedef struct entityState_s {
 	int			healFxTime;
 
 	// Inventory Data...
-	int				inventoryItems[64] = { { -1 } };
-	int				inventoryMod1[64] = { { -1 } };
-	int				inventoryMod2[64] = { { -1 } };
-	int				inventoryMod3[64] = { { -1 } };
-	int				inventoryEquipped[8] = { { -1 } };
+	int				inventoryItems[64] = { { 0 } };
+	int				inventoryMod1[64] = { { 0 } };
+	int				inventoryMod2[64] = { { 0 } };
+	int				inventoryMod3[64] = { { 0 } };
+	int				inventoryEquipped[8] = { { 0 } };
 
 	//rww - spare values specifically for use by mod authors.
 	//See netf_overrides.txt if you want to increase the send

@@ -1046,7 +1046,7 @@ inventoryItem	*allInventoryItems[1048576];
 //
 float StatRollForQuality(int quality)
 {
-	return 0.01 * pow(float(quality + 1), 2.0);
+	return 0.01 * pow(float(quality + 1), 1.1);
 }
 
 void GenerateAllInventoryItems(void)
@@ -1064,12 +1064,37 @@ void GenerateAllInventoryItems(void)
 	return;
 	*/
 
+	allInventoryItemsCount = 0;
+
+	//
+	// Blank Item...
+	//
+
+	// Blank slot...
+	int bgItemID = 0;
+
+	{
+		// Never add stat slots not available at this quality level...
+		inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, QUALITY_GREY, 1, -1);
+
+		item->setItemID(allInventoryItemsCount);
+		item->setBaseItem(bgItemID);
+		item->setQuality(QUALITY_GREY);
+		item->setCrystal(ITEM_CRYSTAL_DEFAULT);
+
+		item->setQuantity(1);
+
+		allInventoryItems[allInventoryItemsCount] = item;
+		allInventoryItemsCount++;
+	}
+
+
 	//
 	// Sabers...
 	//
-	int bgItemID = 38;
+	bgItemID = 38;
 
-	allInventorySabersStart = 0;
+	allInventorySabersStart = allInventoryItemsCount;
 
 	// Sabers...
 	for (int quality = QUALITY_GREY; quality <= QUALITY_GOLD; quality++)

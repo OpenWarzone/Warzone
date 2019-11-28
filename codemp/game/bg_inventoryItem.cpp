@@ -15,7 +15,6 @@
 // Configuration Defines...
 //
 
-//#define __DATABASE_ENABLED__
 
 
 //
@@ -88,11 +87,11 @@ const char *itemCrystalTooltips[] = {
 };
 
 const char *weaponStat1Names[] = {
-	"",
-	"Accurate ",					// Rifle
-	"Quickfire ",					// Blaster
-	"Fast ",						// Sniper
-	"Cooled ",						// Heavy
+	"",								// Pistol
+	"Accurate ",					// Sniper Rifle
+	"Quickfire ",					// Blaster Rifle
+	"Fast ",						// Assault Rifle
+	"Cooled ",						// Heavy Blaster
 };
 
 const char *weaponStat1Tooltips[] = {
@@ -440,28 +439,22 @@ const char *inventoryItem::getName()
 		}
 		else
 		{
-			/*
-			const char *weaponStat1Names[] = {
-	"",
-	"Accurate ",					// Rifle
-	"Quickfire ",					// Blaster
-	"Fast ",						// Sniper
-	"Cooled ",						// Heavy
-};
-*/
 			switch (getBasicStat1())
 			{
-			case 0:
+			case WEAPON_STAT1_DEFAULT:
 			default:
 				tooltipText = va("%s%s%s%s%s%s (%s)", getColorStringForQuality(), weaponStat1Names[getBasicStat1()], weaponStat2Names[getBasicStat2()], weaponStat3Names[getBasicStat3()], "Pistol", weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
 				break;
-			case 1:
-				tooltipText = va("%s%s%s%s%s%s (%s)", getColorStringForQuality(), weaponStat1Names[getBasicStat1()], weaponStat2Names[getBasicStat2()], weaponStat3Names[getBasicStat3()], "Blaster Rifle", weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
-				break;
-			case 2:
+			case WEAPON_STAT1_FIRE_ACCURACY_MODIFIER:
 				tooltipText = va("%s%s%s%s%s%s (%s)", getColorStringForQuality(), weaponStat1Names[getBasicStat1()], weaponStat2Names[getBasicStat2()], weaponStat3Names[getBasicStat3()], "Sniper Rifle", weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
 				break;
-			case 3:
+			case WEAPON_STAT1_FIRE_RATE_MODIFIER:
+				tooltipText = va("%s%s%s%s%s%s (%s)", getColorStringForQuality(), weaponStat1Names[getBasicStat1()], weaponStat2Names[getBasicStat2()], weaponStat3Names[getBasicStat3()], "Blaster Rifle", weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
+				break;
+			case WEAPON_STAT1_VELOCITY_MODIFIER:
+				tooltipText = va("%s%s%s%s%s%s (%s)", getColorStringForQuality(), weaponStat1Names[getBasicStat1()], weaponStat2Names[getBasicStat2()], weaponStat3Names[getBasicStat3()], "Assault Rifle", weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
+				break;
+			case WEAPON_STAT1_HEAT_ACCUMULATION_MODIFIER:
 				tooltipText = va("%s%s%s%s%s%s (%s)", getColorStringForQuality(), weaponStat1Names[getBasicStat1()], weaponStat2Names[getBasicStat2()], weaponStat3Names[getBasicStat3()], "Heavy Blaster", weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
 				break;
 			}
@@ -650,13 +643,13 @@ const char *inventoryItem::getTooltip()
 		tooltipText.append(va("^5%s\n", getDescription()));
 		tooltipText.append(" \n");
 		tooltipText.append(itemCrystalTooltips[getCrystal()]);
-		tooltipText.append(va(itemStatTooltips[getBasicStat1()], getBasicStat1Value()));
-		tooltipText.append(va(itemStatTooltips[getBasicStat2()], getBasicStat2Value()));
-		tooltipText.append(va(itemStatTooltips[getBasicStat3()], getBasicStat3Value()));
+		tooltipText.append(va(itemStatTooltips[getBasicStat1()], getBasicStat1Value() * 100.0));
+		tooltipText.append(va(itemStatTooltips[getBasicStat2()], getBasicStat2Value() * 100.0));
+		tooltipText.append(va(itemStatTooltips[getBasicStat3()], getBasicStat3Value() * 100.0));
 		tooltipText.append(" \n");
-		tooltipText.append(va(itemStatTooltips[getMod1Stat()], getMod1Value()));
-		tooltipText.append(va(itemStatTooltips[getMod2Stat()], getMod2Value()));
-		tooltipText.append(va(itemStatTooltips[getMod3Stat()], getMod3Value()));
+		tooltipText.append(va(itemStatTooltips[getMod1Stat()], getMod1Value() * 100.0));
+		tooltipText.append(va(itemStatTooltips[getMod2Stat()], getMod2Value() * 100.0));
+		tooltipText.append(va(itemStatTooltips[getMod3Stat()], getMod3Value() * 100.0));
 		tooltipText.append(" \n");
 		tooltipText.append(va("^5Value: ^P%i.\n", getStackCost()));
 		break;
@@ -668,13 +661,13 @@ const char *inventoryItem::getTooltip()
 		tooltipText.append(va("^5%s\n", getDescription()));
 		tooltipText.append(" \n");
 		tooltipText.append(itemCrystalTooltips[getCrystal()]);
-		tooltipText.append(va(itemStatTooltips[getBasicStat1()], getBasicStat1Value()));
-		tooltipText.append(va(itemStatTooltips[getBasicStat2()], getBasicStat2Value()));
-		tooltipText.append(va(itemStatTooltips[getBasicStat3()], getBasicStat3Value()));
+		tooltipText.append(va(itemStatTooltips[getBasicStat1()], getBasicStat1Value() * 100.0));
+		tooltipText.append(va(itemStatTooltips[getBasicStat2()], getBasicStat2Value() * 100.0));
+		tooltipText.append(va(itemStatTooltips[getBasicStat3()], getBasicStat3Value() * 100.0));
 		tooltipText.append(" \n");
-		tooltipText.append(va(itemStatTooltips[getMod1Stat()], getMod1Value()));
-		tooltipText.append(va(itemStatTooltips[getMod2Stat()], getMod2Value()));
-		tooltipText.append(va(itemStatTooltips[getMod3Stat()], getMod3Value()));
+		tooltipText.append(va(itemStatTooltips[getMod1Stat()], getMod1Value() * 100.0));
+		tooltipText.append(va(itemStatTooltips[getMod2Stat()], getMod2Value() * 100.0));
+		tooltipText.append(va(itemStatTooltips[getMod3Stat()], getMod3Value() * 100.0));
 		tooltipText.append(" \n");
 		tooltipText.append(va("^5Value: ^P%i.\n", getStackCost()));
 		break;
@@ -686,13 +679,13 @@ const char *inventoryItem::getTooltip()
 		tooltipText.append(va("^5%s\n", getDescription()));
 		tooltipText.append(" \n");
 		tooltipText.append(weaponCrystalTooltips[getCrystal()]);
-		tooltipText.append(va(weaponStat1Tooltips[getBasicStat1()], getBasicStat1Value()));
-		tooltipText.append(va(weaponStat2Tooltips[getBasicStat2()], getBasicStat2Value()));
-		tooltipText.append(va(weaponStat3Tooltips[getBasicStat3()], getBasicStat3Value()));
+		tooltipText.append(va(weaponStat1Tooltips[getBasicStat1()], getBasicStat1Value() * 100.0));
+		tooltipText.append(va(weaponStat2Tooltips[getBasicStat2()], getBasicStat2Value() * 100.0));
+		tooltipText.append(va(weaponStat3Tooltips[getBasicStat3()], getBasicStat3Value() * 100.0));
 		tooltipText.append(" \n");
-		tooltipText.append(va(weaponStat1Tooltips[getMod1Stat()], getMod1Value()));
-		tooltipText.append(va(weaponStat2Tooltips[getMod2Stat()], getMod2Value()));
-		tooltipText.append(va(weaponStat3Tooltips[getMod3Stat()], getMod3Value()));
+		tooltipText.append(va(weaponStat1Tooltips[getMod1Stat()], getMod1Value() * 100.0));
+		tooltipText.append(va(weaponStat2Tooltips[getMod2Stat()], getMod2Value() * 100.0));
+		tooltipText.append(va(weaponStat3Tooltips[getMod3Stat()], getMod3Value() * 100.0));
 		tooltipText.append(" \n");
 		tooltipText.append(va("^5Value: ^P%i.\n", getStackCost()));
 		break;
@@ -704,13 +697,13 @@ const char *inventoryItem::getTooltip()
 		tooltipText.append(va("^5%s\n", getDescription()));
 		tooltipText.append(" \n");
 		tooltipText.append(weaponCrystalTooltips[getCrystal()]);
-		tooltipText.append(va(saberStat1Tooltips[getBasicStat1()], getBasicStat1Value()));
-		tooltipText.append(va(saberStat2Tooltips[getBasicStat2()], getBasicStat2Value()));
-		tooltipText.append(va(saberStat3Tooltips[getBasicStat3()], getBasicStat3Value()));
+		tooltipText.append(va(saberStat1Tooltips[getBasicStat1()], getBasicStat1Value() * 100.0));
+		tooltipText.append(va(saberStat2Tooltips[getBasicStat2()], getBasicStat2Value() * 100.0));
+		tooltipText.append(va(saberStat3Tooltips[getBasicStat3()], getBasicStat3Value() * 100.0));
 		tooltipText.append(" \n");
-		tooltipText.append(va(saberStat1Tooltips[getMod1Stat()], getMod1Value()));
-		tooltipText.append(va(saberStat2Tooltips[getMod2Stat()], getMod2Value()));
-		tooltipText.append(va(saberStat3Tooltips[getMod3Stat()], getMod3Value()));
+		tooltipText.append(va(saberStat1Tooltips[getMod1Stat()], getMod1Value() * 100.0));
+		tooltipText.append(va(saberStat2Tooltips[getMod2Stat()], getMod2Value() * 100.0));
+		tooltipText.append(va(saberStat3Tooltips[getMod3Stat()], getMod3Value() * 100.0));
 		tooltipText.append(" \n");
 		tooltipText.append(va("^5Value: ^P%i.\n", getStackCost()));
 		break;
@@ -729,13 +722,13 @@ const char *inventoryItem::getTooltip()
 			tooltipText.append("^7Crit Power: ^P+41.0%\n");
 			tooltipText.append(" \n");
 			tooltipText.append(weaponCrystalTooltips[getCrystal()]);
-			tooltipText.append(va(saberStat1Tooltips[getBasicStat1()], getBasicStat1Value()));
-			tooltipText.append(va(saberStat2Tooltips[getBasicStat2()], getBasicStat2Value()));
-			tooltipText.append(va(saberStat3Tooltips[getBasicStat3()], getBasicStat3Value()));
+			tooltipText.append(va(saberStat1Tooltips[getBasicStat1()], getBasicStat1Value() * 100.0));
+			tooltipText.append(va(saberStat2Tooltips[getBasicStat2()], getBasicStat2Value() * 100.0));
+			tooltipText.append(va(saberStat3Tooltips[getBasicStat3()], getBasicStat3Value() * 100.0));
 			tooltipText.append(" \n");
-			tooltipText.append(va(saberStat1Tooltips[getMod1Stat()], getMod1Value()));
-			tooltipText.append(va(saberStat2Tooltips[getMod2Stat()], getMod2Value()));
-			tooltipText.append(va(saberStat3Tooltips[getMod3Stat()], getMod3Value()));
+			tooltipText.append(va(saberStat1Tooltips[getMod1Stat()], getMod1Value() * 100.0));
+			tooltipText.append(va(saberStat2Tooltips[getMod2Stat()], getMod2Value() * 100.0));
+			tooltipText.append(va(saberStat3Tooltips[getMod3Stat()], getMod3Value() * 100.0));
 			tooltipText.append(" \n");
 			tooltipText.append(va("^5Value: ^P%i.\n", getStackCost()));
 		}
@@ -753,13 +746,13 @@ const char *inventoryItem::getTooltip()
 			tooltipText.append("^7Crit Power: ^P+41.0%\n");
 			tooltipText.append(" \n");
 			tooltipText.append(weaponCrystalTooltips[getCrystal()]);
-			tooltipText.append(va(weaponStat1Tooltips[getBasicStat1()], getBasicStat1Value()));
-			tooltipText.append(va(weaponStat2Tooltips[getBasicStat2()], getBasicStat2Value()));
-			tooltipText.append(va(weaponStat3Tooltips[getBasicStat3()], getBasicStat3Value()));
+			tooltipText.append(va(weaponStat1Tooltips[getBasicStat1()], getBasicStat1Value() * 100.0));
+			tooltipText.append(va(weaponStat2Tooltips[getBasicStat2()], getBasicStat2Value() * 100.0));
+			tooltipText.append(va(weaponStat3Tooltips[getBasicStat3()], getBasicStat3Value() * 100.0));
 			tooltipText.append(" \n");
-			tooltipText.append(va(weaponStat1Tooltips[getMod1Stat()], getMod1Value()));
-			tooltipText.append(va(weaponStat2Tooltips[getMod2Stat()], getMod2Value()));
-			tooltipText.append(va(weaponStat3Tooltips[getMod3Stat()], getMod3Value()));
+			tooltipText.append(va(weaponStat1Tooltips[getMod1Stat()], getMod1Value() * 100.0));
+			tooltipText.append(va(weaponStat2Tooltips[getMod2Stat()], getMod2Value() * 100.0));
+			tooltipText.append(va(weaponStat3Tooltips[getMod3Stat()], getMod3Value() * 100.0));
 			tooltipText.append(" \n");
 			tooltipText.append(va("^5Value: ^P%i.\n", getStackCost()));
 		}

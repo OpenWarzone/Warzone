@@ -4071,7 +4071,7 @@ qboolean NPC_LoadSpawnList( char *listname )
 	//	SPAWNGROUPS_INITIALIZED = qtrue;
 	//}
 
-	Com_Printf("^4Parsing spawnlist file^5:^3 spawnGroups/%s.spawnGroups\n", listname);
+	//Com_Printf("^4Parsing spawnlist file^5:^3 spawnGroups/%s.spawnGroups\n", listname);
 
 	handle = trap->PC_LoadSource(va("spawnGroups/%s.spawnGroups", listname));
 
