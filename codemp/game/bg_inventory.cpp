@@ -1128,8 +1128,8 @@ void GenerateAllInventoryItems(void)
 						item->setCrystal((itemPowerCrystal_t)crystal);
 
 						item->setStat1(stat1, roll);
-						item->setStat2(stat2, roll);
-						item->setStat3(stat3, roll);
+						item->setStat2(stat2, roll*1.15);
+						item->setStat3(stat3, roll*1.25);
 
 						item->setQuantity(1);
 
@@ -1190,8 +1190,8 @@ void GenerateAllInventoryItems(void)
 						item->setCrystal((itemPowerCrystal_t)crystal);
 
 						item->setStat1(stat1, roll);
-						item->setStat2(stat2, roll);
-						item->setStat3(stat3, roll);
+						item->setStat2(stat2, roll*1.15);
+						item->setStat3(stat3, roll*1.25);
 
 						item->setQuantity(1);
 
@@ -1254,7 +1254,7 @@ void GenerateAllInventoryItems(void)
 			item->setQuality((itemQuality_t)quality);
 			item->setCrystal((itemPowerCrystal_t)0);
 
-			item->setStat2(stat2, roll);
+			item->setStat2(stat2, roll * 1.15);
 
 			item->setQuantity(1);
 
@@ -1275,7 +1275,7 @@ void GenerateAllInventoryItems(void)
 			item->setQuality((itemQuality_t)quality);
 			item->setCrystal((itemPowerCrystal_t)0);
 
-			item->setStat3(stat3, roll);
+			item->setStat3(stat3, roll * 1.25);
 
 			item->setQuantity(1);
 
@@ -1372,7 +1372,7 @@ void GenerateAllInventoryItems(void)
 			item->setQuality((itemQuality_t)quality);
 			item->setCrystal((itemPowerCrystal_t)0);
 
-			item->setStat2(stat2, roll);
+			item->setStat2(stat2, roll * 1.15);
 
 			item->setQuantity(1);
 
@@ -1393,7 +1393,7 @@ void GenerateAllInventoryItems(void)
 			item->setQuality((itemQuality_t)quality);
 			item->setCrystal((itemPowerCrystal_t)0);
 
-			item->setStat3(stat3, roll);
+			item->setStat3(stat3, roll * 1.25);
 
 			item->setQuantity(1);
 
@@ -1551,7 +1551,7 @@ int BG_CountInventoryItems(playerState_t *ps)
 int BG_FindInventoryBestSaber(playerState_t *ps)
 {
 	int saberSlot = -1;
-	uint16_t oldSaberQuality = 0;
+	float oldSaberCost = 0;
 
 	for (int i = 0; i < 64; i++)
 	{
@@ -1561,10 +1561,10 @@ int BG_FindInventoryBestSaber(playerState_t *ps)
 
 			if (item->getBaseItem()->giTag == WP_SABER)
 			{
-				if (item->getQuality() > oldSaberQuality)
+				if (item->getCost(ps->inventoryMod1[i], ps->inventoryMod2[i], ps->inventoryMod3[i]) > oldSaberCost)
 				{
 					saberSlot = i;
-					oldSaberQuality = item->getQuality();
+					oldSaberCost = item->getCost(ps->inventoryMod1[i], ps->inventoryMod2[i], ps->inventoryMod3[i]);
 				}
 			}
 		}
@@ -1576,7 +1576,7 @@ int BG_FindInventoryBestSaber(playerState_t *ps)
 int BG_FindInventoryBestWeapon(playerState_t *ps)
 {
 	int gunSlot = -1;
-	uint16_t oldGunQuality = 0;
+	float oldGunCost = 0;
 
 	for (int i = 0; i < 64; i++)
 	{
@@ -1586,10 +1586,10 @@ int BG_FindInventoryBestWeapon(playerState_t *ps)
 
 			if (item->getBaseItem()->giTag == WP_MODULIZED_WEAPON)
 			{
-				if (item->getQuality() > oldGunQuality)
+				if (item->getCost(ps->inventoryMod1[i], ps->inventoryMod2[i], ps->inventoryMod3[i]) > oldGunCost)
 				{
 					gunSlot = i;
-					oldGunQuality = item->getQuality();
+					oldGunCost = item->getCost(ps->inventoryMod1[i], ps->inventoryMod2[i], ps->inventoryMod3[i]);
 				}
 			}
 		}

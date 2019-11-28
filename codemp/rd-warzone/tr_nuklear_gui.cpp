@@ -1731,7 +1731,7 @@ GUI_Abilities(struct nk_context *ctx, struct media *media)
 int GUI_FindInventoryBestSaber(void)
 {
 	int saberSlot = -1;
-	uint16_t oldSaberQuality = 0;
+	float oldSaberCost = 0;
 
 	for (int i = 0; i < 64; i++)
 	{
@@ -1741,10 +1741,10 @@ int GUI_FindInventoryBestSaber(void)
 
 			if (item->getBaseItem()->giTag == WP_SABER)
 			{
-				if (item->getQuality() > oldSaberQuality)
+				if (item->getCost(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]) > oldSaberCost)
 				{
 					saberSlot = i;
-					oldSaberQuality = item->getQuality();
+					oldSaberCost = item->getCost(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]);
 				}
 			}
 		}
@@ -1756,7 +1756,7 @@ int GUI_FindInventoryBestSaber(void)
 int GUI_FindInventoryBestWeapon(void)
 {
 	int gunSlot = -1;
-	uint16_t oldGunQuality = 0;
+	float oldGunCost = 0;
 
 	for (int i = 0; i < 64; i++)
 	{
@@ -1766,10 +1766,10 @@ int GUI_FindInventoryBestWeapon(void)
 
 			if (item->getBaseItem()->giTag == WP_MODULIZED_WEAPON)
 			{
-				if (item->getQuality() > oldGunQuality)
+				if (item->getCost(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]) > oldGunCost)
 				{
 					gunSlot = i;
-					oldGunQuality = item->getQuality();
+					oldGunCost = item->getCost(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]);
 				}
 			}
 		}
