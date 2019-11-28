@@ -254,11 +254,11 @@ typedef struct refEntity_s {
 	qboolean	noMerge;
 
 	// Inventory system...
-	int			**playerInventory;
-	int			**playerInventoryMod1;
-	int			**playerInventoryMod2;
-	int			**playerInventoryMod3;
-	int			**playerEquipped;
+	uint16_t			*playerInventory;
+	uint16_t			*playerInventoryMod1;
+	uint16_t			*playerInventoryMod2;
+	uint16_t			*playerInventoryMod3;
+	uint16_t			*playerEquipped;
 
 /*
 Ghoul2 Insert Start

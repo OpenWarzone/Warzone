@@ -55,6 +55,14 @@
 
 #include "tr_local.h"
 
+
+uint16_t *playerInventory;
+uint16_t *playerInventoryMod1;
+uint16_t *playerInventoryMod2;
+uint16_t *playerInventoryMod3;
+uint16_t *playerInventoryEquipped;
+
+
 /* macros */
 #define FBO_WIDTH (glConfig.vidWidth * r_superSampleMultiplier->value)
 #define FBO_HEIGHT (glConfig.vidHeight * r_superSampleMultiplier->value)
@@ -343,6 +351,7 @@ set_style(struct nk_context *ctx, enum theme theme)
 	}
 }
 #endif
+
 
 /* ===============================================================
 *
@@ -1269,6 +1278,38 @@ int uq_radio(struct nk_context *ctx, struct media *media, char *label, int curre
 
 /* ===============================================================
 *
+*                          DEVICE
+*
+* ===============================================================*/
+struct nk_glfw_vertex {
+	float position[2];
+	float uv[2];
+	nk_byte col[4];
+};
+
+struct device {
+	struct nk_buffer cmds;
+	struct nk_draw_null_texture null;
+	GLuint vbo, vao, ebo;
+	GLuint prog;
+	GLuint vert_shdr;
+	GLuint frag_shdr;
+	GLint attrib_pos;
+	GLint attrib_uv;
+	GLint attrib_col;
+	GLint uniform_tex;
+	GLint uniform_proj;
+	GLuint font_tex;
+};
+
+/* GUI */
+struct device GUI_device;
+struct nk_font_atlas GUI_atlas;
+struct media GUI_media;
+struct nk_context GUI_ctx;
+
+/* ===============================================================
+*
 *                          MAIN MENU
 *
 * ===============================================================*/
@@ -1686,6 +1727,88 @@ GUI_Abilities(struct nk_context *ctx, struct media *media)
 *                          CHARACTER
 *
 * ===============================================================*/
+
+int GUI_FindInventoryBestSaber(void)
+{
+	int saberSlot = -1;
+	uint16_t oldSaberQuality = 0;
+
+	for (int i = 0; i < 64; i++)
+	{
+		if (playerInventory[i] > 0)
+		{
+			inventoryItem *item = BG_GetInventoryItemByID(playerInventory[i]);
+
+			if (item->getBaseItem()->giTag == WP_SABER)
+			{
+				if (item->getQuality() > oldSaberQuality)
+				{
+					saberSlot = i;
+					oldSaberQuality = item->getQuality();
+				}
+			}
+		}
+	}
+
+	return saberSlot;
+}
+
+int GUI_FindInventoryBestWeapon(void)
+{
+	int gunSlot = -1;
+	uint16_t oldGunQuality = 0;
+
+	for (int i = 0; i < 64; i++)
+	{
+		if (playerInventory[i] > 0)
+		{
+			inventoryItem *item = BG_GetInventoryItemByID(playerInventory[i]);
+
+			if (item->getBaseItem()->giTag == WP_MODULIZED_WEAPON)
+			{
+				if (item->getQuality() > oldGunQuality)
+				{
+					gunSlot = i;
+					oldGunQuality = item->getQuality();
+				}
+			}
+		}
+	}
+
+	return gunSlot;
+}
+
+struct nk_image GUI_GetInventoryIconForEquipped(uint16_t slot)
+{
+	inventoryItem *item = BG_GetInventoryItemByID(playerInventoryEquipped[slot]);
+
+	if (item->getBaseItem()->giTag == WP_SABER)
+	{
+		return GUI_media.inventoryIcons[0][item->getQuality()];
+	}
+	else if (item->getBaseItem()->giTag == WP_MODULIZED_WEAPON)
+	{
+		switch (item->getBasicStat1())
+		{// TODO: A better way, that uses all the possible icons...
+		case WEAPON_STAT1_DEFAULT:						// Pistol
+		default:
+			return GUI_media.inventoryIcons[8][item->getQuality()];
+			break;
+		case WEAPON_STAT1_FIRE_ACCURACY_MODIFIER:		// Sniper Rifle
+			return GUI_media.inventoryIcons[13][item->getQuality()];
+			break;
+		case WEAPON_STAT1_FIRE_RATE_MODIFIER:			// Blaster Rifle
+			return GUI_media.inventoryIcons[14][item->getQuality()];
+			break;
+		case WEAPON_STAT1_VELOCITY_MODIFIER:			// Assault Rifle
+			return GUI_media.inventoryIcons[1][item->getQuality()];
+			break;
+		case WEAPON_STAT1_HEAT_ACCUMULATION_MODIFIER:	// Heavy Blster
+			return GUI_media.inventoryIcons[10][item->getQuality()];
+			break;
+		}
+	}
+}
 static void
 GUI_Character(struct nk_context *ctx, struct media *media)
 {
@@ -1793,10 +1916,31 @@ GUI_Character(struct nk_context *ctx, struct media *media)
 
 	nk_layout_row_static(ctx, 41, 158, 2);
 
-	{// Blank slot... Right Weapon...
+	{// Right Weapon...
+		bool found = false;
+
 		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-		int ret = nk_button_image_label(ctx, media->characterWeapon, "", NK_TEXT_ALIGN_RIGHT);
-		GUI_MenuHoverTooltip(ctx, media, "Primary Weapon", media->characterWeapon);
+		
+		if (playerInventoryEquipped[0] > 0)
+		{// This is an equipped item... Add it to character slot...
+			struct nk_image icon = GUI_GetInventoryIconForEquipped(0);
+			
+			if (icon.handle.id)
+			{
+				inventoryItem *item = BG_GetInventoryItemByID(playerInventoryEquipped[0]);
+				char tooltip[1024] = { { 0 } };
+				strcpy(tooltip, item->getTooltip());
+				int ret = nk_button_image_label(ctx, icon, "", NK_TEXT_ALIGN_RIGHT);
+				GUI_MenuHoverTooltip(ctx, media, tooltip, media->characterWeapon);
+				found = true;
+			}
+		}
+		
+		if (!found)
+		{// Blank slot...
+			int ret = nk_button_image_label(ctx, media->characterWeapon, "", NK_TEXT_ALIGN_RIGHT);
+			GUI_MenuHoverTooltip(ctx, media, "Primary Weapon", media->characterWeapon);
+		}
 	}
 
 	{// Blank slot... Left Weapon...
@@ -2429,10 +2573,36 @@ GUI_InitQuickBar(void)
 	if (!quickBarInitialized)
 	{
 		for (int i = 0; i < 12; i++)
+		{
 			GUI_InitQuickBarSlot(i);
+		}
+
+		/*
+		int bestSaber = GUI_FindInventoryBestSaber();
+		int bestWeapon = GUI_FindInventoryBestWeapon();
+
+		if (bestSaber > -1 && bestWeapon > -1)
+		{
+			GUI_SetQuickBarSlot(0, &inventoryItems[bestSaber]);
+			GUI_SetQuickBarSlot(1, &inventoryItems[bestWeapon]);
+		}
+		else if (bestSaber > -1)
+		{
+			GUI_SetQuickBarSlot(0, &inventoryItems[bestSaber]);
+		}
+		else if (bestWeapon > -1)
+		{
+			GUI_SetQuickBarSlot(0, &inventoryItems[bestWeapon]);
+		}
+		else
+		{// Nothing to add, should never happen, but whatever...
+			
+		}
+		*/
 
 		GUI_SetQuickBarSlot(0, &inventoryItems[0]);
 		GUI_SetQuickBarSlot(1, &inventoryItems[1]);
+
 		quickBarInitialized = qtrue;
 	}
 }
@@ -2716,32 +2886,6 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 	backEnd.ui_MouseCursor = NULL;
 }
 
-/* ===============================================================
-*
-*                          DEVICE
-*
-* ===============================================================*/
-struct nk_glfw_vertex {
-	float position[2];
-	float uv[2];
-	nk_byte col[4];
-};
-
-struct device {
-	struct nk_buffer cmds;
-	struct nk_draw_null_texture null;
-	GLuint vbo, vao, ebo;
-	GLuint prog;
-	GLuint vert_shdr;
-	GLuint frag_shdr;
-	GLint attrib_pos;
-	GLint attrib_uv;
-	GLint attrib_col;
-	GLint uniform_tex;
-	GLint uniform_proj;
-	GLuint font_tex;
-};
-
 static void
 die(const char *fmt, ...)
 {
@@ -2912,7 +3056,7 @@ icon_load_quality(const char *filename, int quality)
 	char finalFilename[256] = { { 0 } };
 	COM_StripExtension(filename, strippedFilename, sizeof(finalFilename));
 	sprintf(finalFilename, "%s_%i.png", strippedFilename, quality);
-	ri->Printf(PRINT_WARNING, "Register inv quality filename %s.\n", finalFilename);
+	//ri->Printf(PRINT_WARNING, "Register inv quality filename %s.\n", finalFilename);
 	image_t *jkaImage = R_CreateImage(finalFilename, data, x, y, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_MIPMAP | IMGFLAG_CLAMPTOEDGE, 0);
 	struct nk_image image;
 	image = nk_image_id((int)jkaImage->texnum);
@@ -3279,12 +3423,6 @@ static void scroll_input(GLFWwindow *win, double _, double yoff)
 }*/
 
 
-/* GUI */
-struct device GUI_device;
-struct nk_font_atlas GUI_atlas;
-struct media GUI_media;
-struct nk_context GUI_ctx;
-
 #if defined(__GUI_SKINNED__)
 void GUI_InitSkin()
 {
@@ -3594,53 +3732,101 @@ void GUI_Shutdown(void);
 
 qboolean GUI_Initialized = qfalse;
 
-void GUI_AddPlayerInventorySlot(int slot, int iconID, int quality)
+void GUI_SetPlayerInventorySlot(int slot, int iconID, int quality, const char *name, const char *tooltip)
 {
 	if (slot < 64)
 	{
 		char nameString[128] = { 0 };
 		char tooltipString[1024] = { 0 };
 
-		sprintf(nameString, "%s^BMy schwartz is bigger than yours (%s)^b\n", ColorStringForQuality(quality), itemQualityNames[quality]);
+		if (name && name[0])
+			strcpy(nameString, name);
+		else
+			sprintf(nameString, "%s^BMy schwartz is bigger than yours (%s)^b\n", ColorStringForQuality(quality), itemQualityNames[quality]);
 
-		sprintf(tooltipString, "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
-			, nameString
-			, "^POne handed weapon, Lightsaber\n"
-			, " \n"
-			, "^7Scaling Attribute: ^PStrength\n"
-			, "^7Damage: ^P78-102 ^8(^P40.5 DPS^8).\n"
-			, "^7Attacks per Second: ^P0.45\n"
-			, "^7Crit Chance: ^P+11.5%\n"
-			, "^7Crit Power: ^P+41.0%\n"
-			, " \n"
-			, "^0Purple Crystal: ^P+12.0% ^4electric^0, and ^P+12.0% ^Nheat ^0damage.\n"
-			, "^N-42.0% ^7Dexterity.\n"
-			, "^N-97.0% ^7Intelligence.\n"
-			, "^N+33.0% ^7Weight.\n"
-			, " \n"
-			, "^P+15.0% ^2bonus to trip over your own feet.\n"
-			, "^P+50.0% ^2bonus to asking dumb questions.\n"
-			, "^P+20.0% ^2bonus to epeen trolling.\n"
-			, " \n"
-			, "^5Value: Priceless.\n");
+		if (tooltip && tooltip[0])
+			strcpy(tooltipString, tooltip);
+		else
+		{
+			sprintf(tooltipString, "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
+				, nameString
+				, "^POne handed weapon, Lightsaber\n"
+				, " \n"
+				, "^7Scaling Attribute: ^PStrength\n"
+				, "^7Damage: ^P78-102 ^8(^P40.5 DPS^8).\n"
+				, "^7Attacks per Second: ^P0.45\n"
+				, "^7Crit Chance: ^P+11.5%\n"
+				, "^7Crit Power: ^P+41.0%\n"
+				, " \n"
+				, "^0Purple Crystal: ^P+12.0% ^4electric^0, and ^P+12.0% ^Nheat ^0damage.\n"
+				, "^N-42.0% ^7Dexterity.\n"
+				, "^N-97.0% ^7Intelligence.\n"
+				, "^N+33.0% ^7Weight.\n"
+				, " \n"
+				, "^P+15.0% ^2bonus to trip over your own feet.\n"
+				, "^P+50.0% ^2bonus to asking dumb questions.\n"
+				, "^P+20.0% ^2bonus to epeen trolling.\n"
+				, " \n"
+				, "^5Value: Priceless.\n");
+		}
 
 		GUI_SetInventoryItem(slot, quality, &GUI_media.inventoryIcons[iconID][quality], nameString, tooltipString);
 	}
 }
 
-int **playerInventory;
-int **playerInventoryMod1;
-int **playerInventoryMod2;
-int **playerInventoryMod3;
-int **playerInventoryEquipped;
 
-void GUI_SetPlayerInventory(int **inventory, int **inventoryMod1, int **inventoryMod2, int **inventoryMod3, int **inventoryEquipped)
+void GUI_UpdateInventory(void)
+{
+	for (int i = 0; i < 64; i++)
+	{
+		if (playerInventory[i] > 0)
+		{
+			inventoryItem *item = BG_GetInventoryItemByID(playerInventory[i]);
+			
+			//ri->Printf(PRINT_ALL, "Inv %i. ItemID %i. Quality %i. Type %s.\n", i, playerInventory[i], item->getQuality(), (item->getBaseItem()->giTag == WP_SABER) ? "SABER" : "GUN");
+
+			if (item->getBaseItem()->giTag == WP_SABER)
+			{
+				GUI_SetPlayerInventorySlot(i, 0, item->getQuality(), item->getName(), item->getTooltip());
+			}
+			else if (item->getBaseItem()->giTag == WP_MODULIZED_WEAPON)
+			{
+				switch (item->getBasicStat1())
+				{// TODO: A better way, that uses all the possible icons...
+					case WEAPON_STAT1_DEFAULT:						// Pistol
+					default:
+						GUI_SetPlayerInventorySlot(i, 8, item->getQuality(), item->getName(), item->getTooltip());
+						break;
+					case WEAPON_STAT1_FIRE_ACCURACY_MODIFIER:		// Sniper Rifle
+						GUI_SetPlayerInventorySlot(i, 13, item->getQuality(), item->getName(), item->getTooltip());
+						break;
+					case WEAPON_STAT1_FIRE_RATE_MODIFIER:			// Blaster Rifle
+						GUI_SetPlayerInventorySlot(i, 14, item->getQuality(), item->getName(), item->getTooltip());
+						break;
+					case WEAPON_STAT1_VELOCITY_MODIFIER:			// Assault Rifle
+						GUI_SetPlayerInventorySlot(i, 1, item->getQuality(), item->getName(), item->getTooltip());
+						break;
+					case WEAPON_STAT1_HEAT_ACCUMULATION_MODIFIER:	// Heavy Blster
+						GUI_SetPlayerInventorySlot(i, 10, item->getQuality(), item->getName(), item->getTooltip());
+						break;
+				}
+			}
+		}
+	}
+
+	// Init the quick bar, if needed...
+	GUI_InitQuickBar();
+}
+
+void GUI_SetPlayerInventory(uint16_t *inventory, uint16_t *inventoryMod1, uint16_t *inventoryMod2, uint16_t *inventoryMod3, uint16_t *inventoryEquipped)
 {
 	playerInventory = inventory;
 	playerInventoryMod1 = inventoryMod1;
 	playerInventoryMod2 = inventoryMod2;
 	playerInventoryMod3 = inventoryMod3;
 	playerInventoryEquipped = inventoryEquipped;
+
+	GUI_UpdateInventory();
 }
 
 void GUI_Init(void)
@@ -3769,28 +3955,27 @@ void GUI_Init(void)
 	GUI_media.inventoryIconsBlank = icon_load("Warzone/gui/inventory/blank.png");
 
 	{// Load all the inventory icon possibilities...
-		int num = 1;
-		for (int quality = QUALITY_GOLD; quality >= QUALITY_GREY; quality--)
+#define NUM_CURRENT_INV_ICON_OPTIONS 24
+		
+		for (int i = 0; i < NUM_CURRENT_INV_ICON_OPTIONS; ++i)
 		{
-			for (int i = 0; i < 25; ++i)
+			for (int quality = QUALITY_GREY; quality <= QUALITY_GOLD; quality++)
 			{
 				//ri->Printf(PRINT_WARNING, "Register Warzone/gui/inventory/icon_%d.png. quality %i.\n", num, quality);
-				GUI_media.inventoryIcons[i][quality] = icon_load_quality(va("Warzone/gui/inventory/icon_%d.png", num), quality);
-
-				num++;
-				if (num > 24) num = 1;
+				GUI_media.inventoryIcons[i][quality] = icon_load_quality(va("Warzone/gui/inventory/icon_%d.png", i+1), quality);
 			}
 		}
 
+#if 0
 		//
 		// Geneate a fake player inventory list for testing...
 		//
 
 		// Add base saber and gun...
 		int slot = 0;
-		GUI_AddPlayerInventorySlot(slot, 0, QUALITY_GOLD);
+		GUI_SetPlayerInventorySlot(slot, 0, QUALITY_GOLD, NULL, NULL);
 		slot++;
-		GUI_AddPlayerInventorySlot(slot, 1, QUALITY_GOLD);
+		GUI_SetPlayerInventorySlot(slot, 1, QUALITY_GOLD, NULL, NULL);
 		slot++;
 
 		// Add some completely random items to the rest of the slots for now, sorted by decsending quality...
@@ -3799,16 +3984,17 @@ void GUI_Init(void)
 
 		for (; slot < 58; slot++)
 		{
-			GUI_AddPlayerInventorySlot(slot, irand(2,24), quality);
+			GUI_SetPlayerInventorySlot(slot, irand(2,24), quality, NULL, NULL);
 			numAdded++;
 
 			if (numAdded > 8)
 			{
 				quality--;
-				quality = Q_clampi(QUALITY_GREY, quality, QUALITY_GOLD);
+				quality = Q_clampi(QUALITY_GREY, quality, QUALITY_GOLD, NULL, NULL);
 				numAdded = 0;
 			}
 		}
+#endif
 	}
 
 	{// Geneate a fake powers list for testing...
@@ -3843,9 +4029,6 @@ void GUI_Init(void)
 
 	// Initialize all possible game inventory items...
 	GenerateAllInventoryItems();
-
-	// Init the quick bar...
-	GUI_InitQuickBar();
 
 	GUI_Initialized = qtrue;
 }

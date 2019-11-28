@@ -20,12 +20,14 @@
 //
 // A quality based price scale modifier... Used internally... Matches levels of itemQuality_t.
 //
-float qualityPriceModifier[5] = {
+const float qualityPriceModifier[] = {
 	1.0,
+	1.333,
 	2.0,
-	4.0,
-	8.0,
-	16.0
+	3.5,
+	5.75,
+	9.5,
+	12.0,
 };
 
 const char *itemQualityTooltips[] = {
@@ -52,14 +54,14 @@ const char *weaponCrystalNames[] = {
 
 const char *weaponCrystalTooltips[] = {
 	"",
-	"^P+%.1f% ^Nheat damage.\n",
-	"^P+%.1f% ^2kinetic damage.\n",
-	"^P+%.1f% ^4electric damage.\n",
-	"^P+%.1f% ^7cold damage.\n",
-	"^P+%.1f% ^Nheat^3, and ^P%.1f% ^2kinetic ^3damage.\n",
-	"^P+%.1f% ^4electric^0, and ^P%.1f% ^Nheat ^0damage.\n",
-	"^P+%.1f% ^7cold^9, and ^P%.1f% ^2kinetic ^9damage.\n",
-	"^P+%.1f% ^Nheat^6, and ^P%.1f% ^7cold ^6damage.\n",
+	"^B^P+%.1f%% ^Nheat^7 damage from crystal.^b\n",
+	"^B^P+%.1f%% ^2kinetic^7 damage from crystal.^b\n",
+	"^B^P+%.1f%% ^4electric^7 damage from crystal.^b\n",
+	"^B^P+%.1f%% ^7cold^7 damage from crystal.^b\n",
+	"^B^P+%.1f%% ^Nheat^7, and ^P%.1f%% ^2kinetic^7 damage from crystal.^b\n",
+	"^B^P+%.1f%% ^4electric^7, and ^P%.1f%% ^Nheat^7 damage from crystal.^b\n",
+	"^B^P+%.1f%% ^7cold^7, and ^P%.1f%% ^2kinetic^7 damage from crystal.^b\n",
+	"^B^P+%.1f%% ^Nheat^7, and ^P%.1f%% ^7cold^7 damage from crystal.^b\n",
 };
 
 const char *itemCrystalNames[] = {
@@ -76,14 +78,14 @@ const char *itemCrystalNames[] = {
 
 const char *itemCrystalTooltips[] = {
 	"",
-	"^P+%.1f% ^Nresistance to heat damage.\n",
-	"^P+%.1f% ^3resistance to kinetic damage.\n",
-	"^P+%.1f% ^4resistance to electric damage.\n",
-	"^P+%.1f% ^7resistance to cold damage.\n",
-	"^P+%.1f% ^3resistance to ^Nheat^3, and ^P+%.1f% ^2kinetic ^3damage.\n",
-	"^P+%.1f% ^0resistance to ^4electric^0, and ^P+%.1f% ^Nheat ^0damage.\n",
-	"^P+%.1f% ^9resistance to ^7cold^9, and ^P+%.1f% ^2kinetic ^9damage.\n",
-	"^P+%.1f% ^6resistance to ^Nheat^6, and ^P+%.1f% ^7cold ^6damage.\n",
+	"^B^P+%.1f%% ^7resistance to ^Nheat^7 damage from crystal.^b\n",
+	"^B^P+%.1f%% ^7resistance to ^3kinetic^7 damage from crystal.^b\n",
+	"^B^P+%.1f%% ^7resistance to ^4electric^7 damage from crystal.^b\n",
+	"^B^P+%.1f%% ^7resistance to ^7cold^7 damage from crystal.^b\n",
+	"^B^P+%.1f%% ^7resistance to ^Nheat^7, and ^P+%.1f%% ^2kinetic^7 damage from crystal.^b\n",
+	"^B^P+%.1f%% ^7resistance to ^4electric^7, and ^P+%.1f%% ^Nheat^7 damage from crystal.^b\n",
+	"^B^P+%.1f%% ^7resistance to ^7cold^7, and ^P+%.1f%% ^2kinetic^7 damage from crystal.^b\n",
+	"^B^P+%.1f%% ^7resistance to ^Nheat^7, and ^P+%.1f%% ^7cold^7 damage from crystal.^b\n",
 };
 
 const char *weaponStat1Names[] = {
@@ -96,10 +98,10 @@ const char *weaponStat1Names[] = {
 
 const char *weaponStat1Tooltips[] = {
 	"",
-	"^P+%.1f% ^7bonus to accuracy.\n",
-	"^P+%.1f% ^7bonus to rate of fire.\n",
-	"^P+%.1f% ^7bonus to velocity.\n",
-	"^P+%.1f% ^7reduction to heat accumulation.\n",
+	"^P+%.1f%% ^7bonus to accuracy.\n",
+	"^P+%.1f%% ^7bonus to rate of fire.\n",
+	"^P+%.1f%% ^7bonus to velocity.\n",
+	"^P+%.1f%% ^7reduction to heat accumulation.\n",
 };
 
 const char *weaponStat2Names[] = {
@@ -111,9 +113,9 @@ const char *weaponStat2Names[] = {
 
 const char *weaponStat2Tooltips[] = {
 	"",
-	"^P+%.1f% ^7bonus to damage.\n",
-	"^P+%.1f% ^7bonus to critical chance.\n",
-	"^P+%.1f% ^7bonus to critical power.\n",
+	"^P+%.1f%% ^7bonus to damage.\n",
+	"^P+%.1f%% ^7bonus to critical chance.\n",
+	"^P+%.1f%% ^7bonus to critical power.\n",
 };
 
 const char *weaponStat3Names[] = {
@@ -141,9 +143,9 @@ const char *saberStat1Names[] = {
 
 const char *saberStat1Tooltips[] = {
 	"",
-	"^P+%.1f% ^7bonus to melee blocking chance.\n",
-	"^P+%.1f% ^7bonus to ranged blocking chance.\n",
-	"^P+%.1f% ^7bonus to stagger chance.\n",
+	"^P+%.1f%% ^7bonus to melee blocking chance.\n",
+	"^P+%.1f%% ^7bonus to ranged blocking chance.\n",
+	"^P+%.1f%% ^7bonus to stagger chance.\n",
 };
 
 const char *saberStat2Names[] = {
@@ -158,12 +160,12 @@ const char *saberStat2Names[] = {
 
 const char *saberStat2Tooltips[] = {
 	"",
-	"^P+%.1f% ^7bonus to damage.\n",
-	"^P+%.1f% ^7bonus to critical chance.\n",
-	"^P+%.1f% ^7bonus to critical power.\n",
-	"^P+%.1f% ^7bonus shield penetration.\n",
-	"^P+%.1f% ^7bonus health drain.\n",
-	"^P+%.1f% ^7bonus power drain.\n",
+	"^P+%.1f%% ^7bonus to damage.\n",
+	"^P+%.1f%% ^7bonus to critical chance.\n",
+	"^P+%.1f%% ^7bonus to critical power.\n",
+	"^P+%.1f%% ^7bonus shield penetration.\n",
+	"^P+%.1f%% ^7bonus health drain.\n",
+	"^P+%.1f%% ^7bonus power drain.\n",
 };
 
 const char *saberStat3Names[] = {
@@ -174,8 +176,8 @@ const char *saberStat3Names[] = {
 
 const char *saberStat3Tooltips[] = {
 	"",
-	"^P+%.1f% ^7bonus to blade length.\n",
-	"^P+%.1f% ^7bonus to attack speed.\n",
+	"^P+%.1f%% ^7bonus to blade length.\n",
+	"^P+%.1f%% ^7bonus to attack speed.\n",
 };
 
 const char *itemStatNames[] = {
@@ -197,25 +199,25 @@ const char *itemStatNames[] = {
 
 const char *itemStatTooltips[] = {
 	"",
-	"^P+%.1f% ^7bonus to maximum health.\n",
-	"^P+%.1f% ^7bonus to health regeneration.\n",
-	"^P+%.1f% ^7bonus to maximum shields.\n",
-	"^P+%.1f% ^7bonus to shield regeneration.\n",
-	"^P+%.1f% ^7bonus to maximum force power.\n",
-	"^P+%.1f% ^7bonus to force power regeneration.\n",
-	"^P+%.1f% ^7bonus to strength.\n",
-	"^P+%.1f% ^7bonus to evasion.\n",
-	"^P+%.1f% ^7bonus to speed.\n",
-	"^P+%.1f% ^7bonus to speed and %.1f% bonus to evasion.\n",
-	"^P+%.1f% ^7bonus to blocking.\n",
-	"^P+%.1f% ^7damage reduction.\n",
-	"^P+%.1f% ^7shield penetration reduction.\n",
+	"^P+%.1f%% ^7bonus to maximum health.\n",
+	"^P+%.1f%% ^7bonus to health regeneration.\n",
+	"^P+%.1f%% ^7bonus to maximum shields.\n",
+	"^P+%.1f%% ^7bonus to shield regeneration.\n",
+	"^P+%.1f%% ^7bonus to maximum force power.\n",
+	"^P+%.1f%% ^7bonus to force power regeneration.\n",
+	"^P+%.1f%% ^7bonus to strength.\n",
+	"^P+%.1f%% ^7bonus to evasion.\n",
+	"^P+%.1f%% ^7bonus to speed.\n",
+	"^P+%.1f%% ^7bonus to speed and %.1f%% bonus to evasion.\n",
+	"^P+%.1f%% ^7bonus to blocking.\n",
+	"^P+%.1f%% ^7damage reduction.\n",
+	"^P+%.1f%% ^7shield penetration reduction.\n",
 };
 
 //
 // Construction/Destruction...
 //
-inventoryItem::inventoryItem(int itemID)
+inventoryItem::inventoryItem(uint16_t itemID)
 {
 	m_itemID = itemID;
 	m_bgItemID = 0;
@@ -226,10 +228,6 @@ inventoryItem::inventoryItem(int itemID)
 	memset(&m_model, 0, sizeof(m_model));
 	memset(&m_icon, 0, sizeof(m_icon));
 #endif
-
-	m_transmitted = qfalse;
-
-	m_destroyTime = -1;
 
 	m_crystal = 0;
 	m_basicStat1 = 0;
@@ -246,7 +244,7 @@ inventoryItem::inventoryItem(int itemID)
 	m_modStatValue3 = 0.0;
 }
 
-inventoryItem::inventoryItem(int itemID, int bgItemID, itemQuality_t quality, int amount = 1, int destroyTime = -1)
+inventoryItem::inventoryItem(uint16_t itemID, uint16_t bgItemID, itemQuality_t quality, uint16_t amount = 1)
 {
 	m_itemID = itemID;
 	m_bgItemID = bgItemID;
@@ -266,8 +264,6 @@ inventoryItem::inventoryItem(int itemID, int bgItemID, itemQuality_t quality, in
 	}
 #endif
 
-	m_transmitted = qfalse;
-
 	m_crystal = 0;
 	m_basicStat1 = 0;
 	m_basicStat2 = 0;
@@ -281,8 +277,6 @@ inventoryItem::inventoryItem(int itemID, int bgItemID, itemQuality_t quality, in
 	m_modStatValue1 = 0.0;
 	m_modStatValue2 = 0.0;
 	m_modStatValue3 = 0.0;
-
-	m_destroyTime = destroyTime;
 }
 
 inventoryItem::~inventoryItem()
@@ -293,12 +287,12 @@ inventoryItem::~inventoryItem()
 //
 // Item Setup Functions...
 //
-void inventoryItem::setItemID(int itemID)
+void inventoryItem::setItemID(uint16_t itemID)
 {
 	m_itemID = itemID;
 }
 
-void inventoryItem::setBaseItem(int bgItemID)
+void inventoryItem::setBaseItem(uint16_t bgItemID)
 {
 	m_bgItemID = bgItemID;
 }
@@ -308,22 +302,17 @@ void inventoryItem::setQuality(itemQuality_t quality)
 	m_quality = quality;
 }
 
-void inventoryItem::setQuantity(int amount)
+void inventoryItem::setQuantity(uint16_t amount)
 {
 	m_quantity = amount;
 }
 
-void inventoryItem::setDestroyTime(int destroyTime)
-{
-	m_destroyTime = destroyTime;
-}
-
-void inventoryItem::setCrystal(int crystalType)
+void inventoryItem::setCrystal(uint16_t crystalType)
 {
 	m_crystal = crystalType;
 }
 
-void inventoryItem::setStat1(int statType, float statValue)
+void inventoryItem::setStat1(uint16_t statType, float statValue)
 {
 	if (!isModification() && m_quality <= QUALITY_GREY) return; // Not available...
 	if (isCrystal()) return; // crystals can not have stats.
@@ -333,7 +322,7 @@ void inventoryItem::setStat1(int statType, float statValue)
 	m_basicStat1value = statValue;
 }
 
-void inventoryItem::setStat2(int statType, float statValue)
+void inventoryItem::setStat2(uint16_t statType, float statValue)
 {
 	if (!isModification() && m_quality <= QUALITY_WHITE) return; // Not available...
 	if (isCrystal()) return; // crystals can not have stats.
@@ -343,7 +332,7 @@ void inventoryItem::setStat2(int statType, float statValue)
 	m_basicStat2value = statValue;
 }
 
-void inventoryItem::setStat3(int statType, float statValue)
+void inventoryItem::setStat3(uint16_t statType, float statValue)
 {
 	if (!isModification() && m_quality <= QUALITY_GREEN) return; // Not available...
 	if (isCrystal()) return; // crystals can not have stats.
@@ -353,7 +342,7 @@ void inventoryItem::setStat3(int statType, float statValue)
 	m_basicStat3value = statValue;
 }
 
-void inventoryItem::setMod1(int statType, float statValue)
+void inventoryItem::setMod1(uint16_t statType, float statValue)
 {
 	if (m_quality <= QUALITY_BLUE) return; // Not available...
 	if (isCrystal()) return; // crystals can not have stats.
@@ -363,7 +352,7 @@ void inventoryItem::setMod1(int statType, float statValue)
 	m_modStatValue1 = statValue;
 }
 
-void inventoryItem::setMod2(int statType, float statValue)
+void inventoryItem::setMod2(uint16_t statType, float statValue)
 {
 	if (m_quality <= QUALITY_PURPLE) return; // Not available...
 	if (isCrystal()) return; // crystals can not have stats.
@@ -373,7 +362,7 @@ void inventoryItem::setMod2(int statType, float statValue)
 	m_modStatValue2 = statValue;
 }
 
-void inventoryItem::setMod3(int statType, float statValue)
+void inventoryItem::setMod3(uint16_t statType, float statValue)
 {
 	if (m_quality <= QUALITY_ORANGE) return; // Not available...
 	if (isCrystal()) return; // crystals can not have stats.
@@ -386,7 +375,7 @@ void inventoryItem::setMod3(int statType, float statValue)
 //
 // Item Accessing Functions...
 //
-int inventoryItem::getItemID()
+uint16_t inventoryItem::getItemID()
 {
 	return m_itemID;
 }
@@ -396,7 +385,7 @@ gitem_t *inventoryItem::getBaseItem()
 	return &bg_itemlist[m_bgItemID];
 }
 
-int inventoryItem::getBaseItemID()
+uint16_t inventoryItem::getBaseItemID()
 {
 	return m_bgItemID;
 }
@@ -496,22 +485,22 @@ itemQuality_t inventoryItem::getQuality()
 	return m_quality;
 }
 
-int inventoryItem::getQuantity()
+uint16_t inventoryItem::getQuantity()
 {
 	return m_quantity;
 }
 
-int inventoryItem::getBasicStat1()
+uint16_t inventoryItem::getBasicStat1()
 {
 	return m_basicStat1;
 }
 
-int inventoryItem::getBasicStat2()
+uint16_t inventoryItem::getBasicStat2()
 {
 	return m_basicStat2;
 }
 
-int inventoryItem::getBasicStat3()
+uint16_t inventoryItem::getBasicStat3()
 {
 	return m_basicStat3;
 }
@@ -531,22 +520,22 @@ float inventoryItem::getBasicStat3Value()
 	return m_basicStat3value;
 }
 
-int inventoryItem::getCrystal()
+uint16_t inventoryItem::getCrystal()
 {
 	return m_crystal;
 }
 
-int inventoryItem::getMod1Stat()
+uint16_t inventoryItem::getMod1Stat()
 {
 	return m_modStat1;
 }
 
-int inventoryItem::getMod2Stat()
+uint16_t inventoryItem::getMod2Stat()
 {
 	return m_modStat2;
 }
 
-int inventoryItem::getMod3Stat()
+uint16_t inventoryItem::getMod3Stat()
 {
 	return m_modStat3;
 }
@@ -566,33 +555,41 @@ float inventoryItem::getMod3Value()
 	return m_modStatValue3;
 }
 
-double inventoryItem::getCost()
+uint16_t inventoryItem::getVisualType1()
+{
+	return m_modStat1 ? m_modStat1 : m_basicStat1;
+}
+
+uint16_t inventoryItem::getVisualType2()
+{
+	return m_modStat2 ? m_modStat2 : m_basicStat2;
+}
+
+uint16_t inventoryItem::getVisualType3()
+{
+	return m_modStat3 ? m_modStat3 : m_basicStat3;
+}
+
+float inventoryItem::getCrystalPower(void)
+{
+	return 0.01 * pow(float(m_quality + 1), 1.1);
+}
+
+float inventoryItem::getCost()
 {// Apply multipliers based on how many extra stats this item has...
-	double crystalCostMultiplier = getCrystal() ? 1.5 : 0.0;
-	double statCostMultiplier1 = getBasicStat1() ? 1.25 : 0.0;
-	double statCostMultiplier2 = getBasicStat1() ? 1.25 : 0.0;
-	double statCostMultiplier3 = getBasicStat1() ? 1.25 : 0.0;
-	double modCostMultiplier1 = getMod1Stat() ? 1.25 : 0.0;
-	double modCostMultiplier2 = getMod2Stat() ? 1.25 : 0.0;
-	double modCostMultiplier3 = getMod3Stat() ? 1.25 : 0.0;
+	float crystalCostMultiplier = getCrystal() ? 1.5 * (1.0 + getCrystalPower()) : 1.0;
+	float statCostMultiplier1 = getBasicStat1() ? 1.25 * (1.0 + getBasicStat1Value()) : 1.0;
+	float statCostMultiplier2 = getBasicStat1() ? 1.25 * (1.0 + getBasicStat2Value()) : 1.0;
+	float statCostMultiplier3 = getBasicStat1() ? 1.25 * (1.0 + getBasicStat3Value()) : 1.0;
+	float modCostMultiplier1 = getMod1Stat() ? 1.25 * (1.0 + getMod1Value()) : 1.0;
+	float modCostMultiplier2 = getMod2Stat() ? 1.25 * (1.0 + getMod2Value()) : 1.0;
+	float modCostMultiplier3 = getMod3Stat() ? 1.25 * (1.0 + getMod3Value()) : 1.0;
 	return getBaseItem()->price * statCostMultiplier1 * statCostMultiplier2 * statCostMultiplier3 * modCostMultiplier1 * modCostMultiplier2 * modCostMultiplier3 * crystalCostMultiplier * qualityPriceModifier[m_quality];
 }
 
-double inventoryItem::getStackCost()
+float inventoryItem::getStackCost()
 {// Apply multipliers based on how many extra stats this item has...
-	double crystalCostMultiplier = getCrystal() ? 1.5 : 0.0;
-	double statCostMultiplier1 = getBasicStat1() ? 1.25 : 0.0;
-	double statCostMultiplier2 = getBasicStat1() ? 1.25 : 0.0;
-	double statCostMultiplier3 = getBasicStat1() ? 1.25 : 0.0;
-	double modCostMultiplier1 = getMod1Stat() ? 1.25 : 0.0;
-	double modCostMultiplier2 = getMod2Stat() ? 1.25 : 0.0;
-	double modCostMultiplier3 = getMod3Stat() ? 1.25 : 0.0;
-	return getBaseItem()->price * m_quantity * statCostMultiplier1 * statCostMultiplier2 * statCostMultiplier3 * modCostMultiplier1 * modCostMultiplier2 * modCostMultiplier3 * crystalCostMultiplier * qualityPriceModifier[m_quality];
-}
-
-int inventoryItem::getDestroyTime()
-{
-	return m_destroyTime;
+	return getCost() * (m_quantity <= 1) ? 1 : m_quantity;
 }
 
 const char *inventoryItem::getColorStringForQuality()
@@ -642,16 +639,19 @@ const char *inventoryItem::getTooltip()
 		tooltipText.append(" \n");
 		tooltipText.append(va("^5%s\n", getDescription()));
 		tooltipText.append(" \n");
-		tooltipText.append(itemCrystalTooltips[getCrystal()]);
-		tooltipText.append(va(itemStatTooltips[getBasicStat1()], getBasicStat1Value() * 100.0));
-		tooltipText.append(va(itemStatTooltips[getBasicStat2()], getBasicStat2Value() * 100.0));
-		tooltipText.append(va(itemStatTooltips[getBasicStat3()], getBasicStat3Value() * 100.0));
+		tooltipText.append(va(itemCrystalTooltips[getCrystal()], getCrystalPower() * 100.0, getCrystalPower() * 100.0));
+		tooltipText.append(va(itemStatTooltips[getBasicStat1()], getBasicStat1Value() * 100.0, getBasicStat1Value() * 100.0));
+		tooltipText.append(va(itemStatTooltips[getBasicStat2()], getBasicStat2Value() * 100.0, getBasicStat2Value() * 100.0));
+		tooltipText.append(va(itemStatTooltips[getBasicStat3()], getBasicStat3Value() * 100.0, getBasicStat3Value() * 100.0));
 		tooltipText.append(" \n");
-		tooltipText.append(va(itemStatTooltips[getMod1Stat()], getMod1Value() * 100.0));
-		tooltipText.append(va(itemStatTooltips[getMod2Stat()], getMod2Value() * 100.0));
-		tooltipText.append(va(itemStatTooltips[getMod3Stat()], getMod3Value() * 100.0));
+		tooltipText.append(va(itemStatTooltips[getMod1Stat()], getMod1Value() * 100.0, getMod1Value() * 100.0));
+		tooltipText.append(va(itemStatTooltips[getMod2Stat()], getMod2Value() * 100.0, getMod2Value() * 100.0));
+		tooltipText.append(va(itemStatTooltips[getMod3Stat()], getMod3Value() * 100.0, getMod3Value() * 100.0));
 		tooltipText.append(" \n");
-		tooltipText.append(va("^5Value: ^P%i.\n", getStackCost()));
+		if (m_quantity > 1)
+			tooltipText.append(va("^5Value: ^P%i (%i per item).\n", (int)getStackCost(), (int)getCost()));
+		else
+			tooltipText.append(va("^5Value: ^P%i.\n", (int)getCost()));
 		break;
 	case IT_ITEM_MODIFICATION:
 	case IT_ITEM_CRYSTAL:
@@ -660,16 +660,19 @@ const char *inventoryItem::getTooltip()
 		tooltipText.append(" \n");
 		tooltipText.append(va("^5%s\n", getDescription()));
 		tooltipText.append(" \n");
-		tooltipText.append(itemCrystalTooltips[getCrystal()]);
-		tooltipText.append(va(itemStatTooltips[getBasicStat1()], getBasicStat1Value() * 100.0));
-		tooltipText.append(va(itemStatTooltips[getBasicStat2()], getBasicStat2Value() * 100.0));
-		tooltipText.append(va(itemStatTooltips[getBasicStat3()], getBasicStat3Value() * 100.0));
+		tooltipText.append(va(itemCrystalTooltips[getCrystal()], getCrystalPower() * 100.0, getCrystalPower() * 100.0));
+		tooltipText.append(va(itemStatTooltips[getBasicStat1()], getBasicStat1Value() * 100.0, getBasicStat1Value() * 100.0));
+		tooltipText.append(va(itemStatTooltips[getBasicStat2()], getBasicStat2Value() * 100.0, getBasicStat2Value() * 100.0));
+		tooltipText.append(va(itemStatTooltips[getBasicStat3()], getBasicStat3Value() * 100.0, getBasicStat3Value() * 100.0));
 		tooltipText.append(" \n");
-		tooltipText.append(va(itemStatTooltips[getMod1Stat()], getMod1Value() * 100.0));
-		tooltipText.append(va(itemStatTooltips[getMod2Stat()], getMod2Value() * 100.0));
-		tooltipText.append(va(itemStatTooltips[getMod3Stat()], getMod3Value() * 100.0));
+		tooltipText.append(va(itemStatTooltips[getMod1Stat()], getMod1Value() * 100.0, getMod1Value() * 100.0));
+		tooltipText.append(va(itemStatTooltips[getMod2Stat()], getMod2Value() * 100.0, getMod2Value() * 100.0));
+		tooltipText.append(va(itemStatTooltips[getMod3Stat()], getMod3Value() * 100.0, getMod3Value() * 100.0));
 		tooltipText.append(" \n");
-		tooltipText.append(va("^5Value: ^P%i.\n", getStackCost()));
+		if (m_quantity > 1)
+			tooltipText.append(va("^5Value: ^P%i (%i per item).\n", (int)getStackCost(), (int)getCost()));
+		else
+			tooltipText.append(va("^5Value: ^P%i.\n", (int)getCost()));
 		break;
 	case IT_WEAPON_MODIFICATION:
 	case IT_WEAPON_CRYSTAL:
@@ -678,16 +681,19 @@ const char *inventoryItem::getTooltip()
 		tooltipText.append(" \n");
 		tooltipText.append(va("^5%s\n", getDescription()));
 		tooltipText.append(" \n");
-		tooltipText.append(weaponCrystalTooltips[getCrystal()]);
-		tooltipText.append(va(weaponStat1Tooltips[getBasicStat1()], getBasicStat1Value() * 100.0));
-		tooltipText.append(va(weaponStat2Tooltips[getBasicStat2()], getBasicStat2Value() * 100.0));
-		tooltipText.append(va(weaponStat3Tooltips[getBasicStat3()], getBasicStat3Value() * 100.0));
+		tooltipText.append(va(weaponCrystalTooltips[getCrystal()], getCrystalPower() * 100.0, getCrystalPower() * 100.0));
+		tooltipText.append(va(weaponStat1Tooltips[getBasicStat1()], getBasicStat1Value() * 100.0, getBasicStat1Value() * 100.0));
+		tooltipText.append(va(weaponStat2Tooltips[getBasicStat2()], getBasicStat2Value() * 100.0, getBasicStat2Value() * 100.0));
+		tooltipText.append(va(weaponStat3Tooltips[getBasicStat3()], getBasicStat3Value() * 100.0, getBasicStat3Value() * 100.0));
 		tooltipText.append(" \n");
-		tooltipText.append(va(weaponStat1Tooltips[getMod1Stat()], getMod1Value() * 100.0));
-		tooltipText.append(va(weaponStat2Tooltips[getMod2Stat()], getMod2Value() * 100.0));
-		tooltipText.append(va(weaponStat3Tooltips[getMod3Stat()], getMod3Value() * 100.0));
+		tooltipText.append(va(weaponStat1Tooltips[getMod1Stat()], getMod1Value() * 100.0, getMod1Value() * 100.0));
+		tooltipText.append(va(weaponStat2Tooltips[getMod2Stat()], getMod2Value() * 100.0, getMod2Value() * 100.0));
+		tooltipText.append(va(weaponStat3Tooltips[getMod3Stat()], getMod3Value() * 100.0, getMod3Value() * 100.0));
 		tooltipText.append(" \n");
-		tooltipText.append(va("^5Value: ^P%i.\n", getStackCost()));
+		if (m_quantity > 1)
+			tooltipText.append(va("^5Value: ^P%i (%i per item).\n", (int)getStackCost(), (int)getCost()));
+		else
+			tooltipText.append(va("^5Value: ^P%i.\n", (int)getCost()));
 		break;
 	case IT_SABER_MODIFICATION:
 	case IT_SABER_CRYSTAL:
@@ -696,16 +702,19 @@ const char *inventoryItem::getTooltip()
 		tooltipText.append(" \n");
 		tooltipText.append(va("^5%s\n", getDescription()));
 		tooltipText.append(" \n");
-		tooltipText.append(weaponCrystalTooltips[getCrystal()]);
-		tooltipText.append(va(saberStat1Tooltips[getBasicStat1()], getBasicStat1Value() * 100.0));
-		tooltipText.append(va(saberStat2Tooltips[getBasicStat2()], getBasicStat2Value() * 100.0));
-		tooltipText.append(va(saberStat3Tooltips[getBasicStat3()], getBasicStat3Value() * 100.0));
+		tooltipText.append(va(weaponCrystalTooltips[getCrystal()], getCrystalPower() * 100.0, getCrystalPower() * 100.0));
+		tooltipText.append(va(saberStat1Tooltips[getBasicStat1()], getBasicStat1Value() * 100.0, getBasicStat1Value() * 100.0));
+		tooltipText.append(va(saberStat2Tooltips[getBasicStat2()], getBasicStat2Value() * 100.0, getBasicStat2Value() * 100.0));
+		tooltipText.append(va(saberStat3Tooltips[getBasicStat3()], getBasicStat3Value() * 100.0, getBasicStat3Value() * 100.0));
 		tooltipText.append(" \n");
-		tooltipText.append(va(saberStat1Tooltips[getMod1Stat()], getMod1Value() * 100.0));
-		tooltipText.append(va(saberStat2Tooltips[getMod2Stat()], getMod2Value() * 100.0));
-		tooltipText.append(va(saberStat3Tooltips[getMod3Stat()], getMod3Value() * 100.0));
+		tooltipText.append(va(saberStat1Tooltips[getMod1Stat()], getMod1Value() * 100.0, getMod1Value() * 100.0));
+		tooltipText.append(va(saberStat2Tooltips[getMod2Stat()], getMod2Value() * 100.0, getMod2Value() * 100.0));
+		tooltipText.append(va(saberStat3Tooltips[getMod3Stat()], getMod3Value() * 100.0, getMod3Value() * 100.0));
 		tooltipText.append(" \n");
-		tooltipText.append(va("^5Value: ^P%i.\n", getStackCost()));
+		if (m_quantity > 1)
+			tooltipText.append(va("^5Value: ^P%i (%i per item).\n", (int)getStackCost(), (int)getCost()));
+		else
+			tooltipText.append(va("^5Value: ^P%i.\n", (int)getCost()));
 		break;
 	case IT_WEAPON:
 		if (getBaseItem()->giTag == WP_SABER)
@@ -721,16 +730,19 @@ const char *inventoryItem::getTooltip()
 			tooltipText.append("^7Crit Chance: ^P+11.5%\n");
 			tooltipText.append("^7Crit Power: ^P+41.0%\n");
 			tooltipText.append(" \n");
-			tooltipText.append(weaponCrystalTooltips[getCrystal()]);
-			tooltipText.append(va(saberStat1Tooltips[getBasicStat1()], getBasicStat1Value() * 100.0));
-			tooltipText.append(va(saberStat2Tooltips[getBasicStat2()], getBasicStat2Value() * 100.0));
-			tooltipText.append(va(saberStat3Tooltips[getBasicStat3()], getBasicStat3Value() * 100.0));
+			tooltipText.append(va(weaponCrystalTooltips[getCrystal()], getCrystalPower() * 100.0, getCrystalPower() * 100.0));
+			tooltipText.append(va(saberStat1Tooltips[getBasicStat1()], getBasicStat1Value() * 100.0, getBasicStat1Value() * 100.0));
+			tooltipText.append(va(saberStat2Tooltips[getBasicStat2()], getBasicStat2Value() * 100.0, getBasicStat2Value() * 100.0));
+			tooltipText.append(va(saberStat3Tooltips[getBasicStat3()], getBasicStat3Value() * 100.0, getBasicStat3Value() * 100.0));
 			tooltipText.append(" \n");
-			tooltipText.append(va(saberStat1Tooltips[getMod1Stat()], getMod1Value() * 100.0));
-			tooltipText.append(va(saberStat2Tooltips[getMod2Stat()], getMod2Value() * 100.0));
-			tooltipText.append(va(saberStat3Tooltips[getMod3Stat()], getMod3Value() * 100.0));
+			tooltipText.append(va(saberStat1Tooltips[getMod1Stat()], getMod1Value() * 100.0, getMod1Value() * 100.0));
+			tooltipText.append(va(saberStat2Tooltips[getMod2Stat()], getMod2Value() * 100.0, getMod2Value() * 100.0));
+			tooltipText.append(va(saberStat3Tooltips[getMod3Stat()], getMod3Value() * 100.0, getMod3Value() * 100.0));
 			tooltipText.append(" \n");
-			tooltipText.append(va("^5Value: ^P%i.\n", getStackCost()));
+			if (m_quantity > 1)
+				tooltipText.append(va("^5Value: ^P%i (%i per item).\n", (int)getStackCost(), (int)getCost()));
+			else
+				tooltipText.append(va("^5Value: ^P%i.\n", (int)getCost()));
 		}
 		else
 		{
@@ -739,22 +751,25 @@ const char *inventoryItem::getTooltip()
 			tooltipText.append(" \n");
 			tooltipText.append(va("^5%s\n", getDescription()));
 			tooltipText.append(" \n");
-			tooltipText.append("^7Scaling Attribute: ^PStrength\n");
+			tooltipText.append("^7Scaling Attribute: ^PDexterity\n");
 			tooltipText.append("^7Damage: ^P78-102 ^8(^P40.5 DPS^8).\n");
 			tooltipText.append("^7Attacks per Second: ^P0.45\n");
 			tooltipText.append("^7Crit Chance: ^P+11.5%\n");
 			tooltipText.append("^7Crit Power: ^P+41.0%\n");
 			tooltipText.append(" \n");
-			tooltipText.append(weaponCrystalTooltips[getCrystal()]);
-			tooltipText.append(va(weaponStat1Tooltips[getBasicStat1()], getBasicStat1Value() * 100.0));
-			tooltipText.append(va(weaponStat2Tooltips[getBasicStat2()], getBasicStat2Value() * 100.0));
-			tooltipText.append(va(weaponStat3Tooltips[getBasicStat3()], getBasicStat3Value() * 100.0));
+			tooltipText.append(va(weaponCrystalTooltips[getCrystal()], getCrystalPower() * 100.0, getCrystalPower() * 100.0));
+			tooltipText.append(va(weaponStat1Tooltips[getBasicStat1()], getBasicStat1Value() * 100.0, getBasicStat1Value() * 100.0));
+			tooltipText.append(va(weaponStat2Tooltips[getBasicStat2()], getBasicStat2Value() * 100.0, getBasicStat2Value() * 100.0));
+			tooltipText.append(va(weaponStat3Tooltips[getBasicStat3()], getBasicStat3Value() * 100.0, getBasicStat3Value() * 100.0));
 			tooltipText.append(" \n");
-			tooltipText.append(va(weaponStat1Tooltips[getMod1Stat()], getMod1Value() * 100.0));
-			tooltipText.append(va(weaponStat2Tooltips[getMod2Stat()], getMod2Value() * 100.0));
-			tooltipText.append(va(weaponStat3Tooltips[getMod3Stat()], getMod3Value() * 100.0));
+			tooltipText.append(va(weaponStat1Tooltips[getMod1Stat()], getMod1Value() * 100.0, getMod1Value() * 100.0));
+			tooltipText.append(va(weaponStat2Tooltips[getMod2Stat()], getMod2Value() * 100.0, getMod2Value() * 100.0));
+			tooltipText.append(va(weaponStat3Tooltips[getMod3Stat()], getMod3Value() * 100.0, getMod3Value() * 100.0));
 			tooltipText.append(" \n");
-			tooltipText.append(va("^5Value: ^P%i.\n", getStackCost()));
+			if (m_quantity > 1)
+				tooltipText.append(va("^5Value: ^P%i (%i per item).\n", (int)getStackCost(), (int)getCost()));
+			else
+				tooltipText.append(va("^5Value: ^P%i.\n", (int)getCost()));
 		}
 		break;
 	default:
@@ -767,7 +782,7 @@ const char *inventoryItem::getTooltip()
 
 qboolean inventoryItem::isModification()
 {
-	int giType = getBaseItem()->giType;
+	uint16_t giType = getBaseItem()->giType;
 
 	if (giType == IT_ITEM_MODIFICATION || giType == IT_WEAPON_MODIFICATION || giType == IT_SABER_MODIFICATION)
 		return qtrue;
@@ -777,7 +792,7 @@ qboolean inventoryItem::isModification()
 
 qboolean inventoryItem::isCrystal()
 {
-	int giType = getBaseItem()->giType;
+	uint16_t giType = getBaseItem()->giType;
 
 	if (giType == IT_SABER_CRYSTAL || giType == IT_WEAPON_CRYSTAL || giType == IT_ITEM_CRYSTAL)
 		return qtrue;

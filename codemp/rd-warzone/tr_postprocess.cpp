@@ -3321,7 +3321,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 			}
 
 			// Send new data to shader, if it has changed...
-			if (memcmp(&shader->LightsBlock, &shader->LightsBlockPrevious, sizeof(shader->LightsBlock)))
+			if (memcmp(&shader->LightsBlock, &shader->LightsBlockPrevious, sizeof(shader->LightsBlock)) != 0)
 			{
 				qglBindBuffer(GL_SHADER_STORAGE_BUFFER, shader->LightsBlockSSBO);
 				//LightBlock_t *p = (LightBlock_t *)qglMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
@@ -3351,7 +3351,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 
 			// Send new data to shader, if it has changed...
 			/*
-			if (memcmp(&shader->LightsBlock, &shader->LightsBlockPrevious, sizeof(shader->LightsBlock)))
+			if (memcmp(&shader->LightsBlock, &shader->LightsBlockPrevious, sizeof(shader->LightsBlock)) != 0)
 			{
 				qglBindBuffer(GL_SHADER_STORAGE_BUFFER, shader->LightsBlockSSBO);
 				LightBlock_t *p = (LightBlock_t *)qglMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);

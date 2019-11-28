@@ -3996,6 +3996,7 @@ void ClientSpawn(gentity_t *ent) {
 			client->ps.weapon = WP_SABER;
 			client->ps.primaryWeapon = WP_SABER;
 			client->ps.secondaryWeapon = WP_MODULIZED_WEAPON;
+			BG_CreatePlayerDefaultJediInventory(&client->ps, client->sess.sessionTeam);
 		}
 		else
 		{//no force powers set
@@ -4003,6 +4004,7 @@ void ClientSpawn(gentity_t *ent) {
 			client->ps.trueJedi = qfalse;
 			client->ps.primaryWeapon = WP_MELEE;
 			client->ps.secondaryWeapon = WP_MODULIZED_WEAPON;
+			BG_CreatePlayerDefaultGunnerInventory(&client->ps, client->sess.sessionTeam);
 		}
 	}
 	else
@@ -4012,12 +4014,14 @@ void ClientSpawn(gentity_t *ent) {
 		{
 			//always get free saber level 1 in holocron
 			client->ps.primaryWeapon = WP_SABER;
+			BG_CreatePlayerDefaultJediInventory(&client->ps, client->sess.sessionTeam);
 		}
 		else
 		{
 			if (client->ps.fd.forcePowerLevel[FP_SABER_OFFENSE])
 			{
 				client->ps.primaryWeapon = WP_SABER;
+				BG_CreatePlayerDefaultJediInventory(&client->ps, client->sess.sessionTeam);
 			}
 			else
 			{ //if you don't have saber attack rank then you don't get a saber
@@ -4028,24 +4032,29 @@ void ClientSpawn(gentity_t *ent) {
 		if (level.gametype != GT_SIEGE)
 		{
 			client->ps.secondaryWeapon = WP_MODULIZED_WEAPON;
+			BG_CreatePlayerDefaultGunnerInventory(&client->ps, client->sess.sessionTeam);
 		}
 
 		if (level.gametype == GT_JEDIMASTER)
 		{
 			client->ps.primaryWeapon = WP_MELEE;
+			BG_CreatePlayerDefaultGunnerInventory(&client->ps, client->sess.sessionTeam);
 		}
 
 		if (HaveWeapon(&client->ps, WP_SABER))
 		{
 			client->ps.weapon = WP_SABER;
+			BG_CreatePlayerDefaultJediInventory(&client->ps, client->sess.sessionTeam);
 		}
 		else if (HaveWeapon(&client->ps, WP_MODULIZED_WEAPON))
 		{
 			client->ps.weapon = WP_MODULIZED_WEAPON;
+			BG_CreatePlayerDefaultGunnerInventory(&client->ps, client->sess.sessionTeam);
 		}
 		else
 		{
 			client->ps.weapon = WP_MELEE;
+			BG_CreatePlayerDefaultGunnerInventory(&client->ps, client->sess.sessionTeam);
 		}
 	}
 	//[SaberSys] Melee To FFA
@@ -4059,6 +4068,7 @@ void ClientSpawn(gentity_t *ent) {
 	if (HaveWeapon(&client->ps, WP_SABER))
 	{
 		client->ps.weapon = WP_SABER;
+		BG_CreatePlayerDefaultJediInventory(&client->ps, client->sess.sessionTeam);
 	}
 	else if (HaveWeapon(&client->ps, WP_MELEE))
 	{
@@ -4082,10 +4092,12 @@ void ClientSpawn(gentity_t *ent) {
 		if (HaveWeapon(&client->ps, WP_SABER))
 		{
 			client->ps.weapon = WP_SABER;
+			BG_CreatePlayerDefaultJediInventory(&client->ps, client->sess.sessionTeam);
 		}
 		else if (HaveWeapon(&client->ps, WP_MODULIZED_WEAPON))
 		{
 			client->ps.weapon = WP_MODULIZED_WEAPON;
+			BG_CreatePlayerDefaultGunnerInventory(&client->ps, client->sess.sessionTeam);
 		}
 		else
 		{

@@ -138,26 +138,24 @@ void G_CacheGametype( void )
 	trap->Cvar_Set( "g_gametype", va( "%i", level.gametype ) );
 }
 
-model_scale_list_t model_scale_list[512];
+model_scale_list_t model_scale_list[1024];
 
-int num_scale_models = -1;
+int num_scale_models = 0;
 qboolean scale_models_loaded = qfalse;
 
 void Load_Model_Scales( void )
 {// Load model scales from external file.
-	char *s, *t;
-	int len;
-	fileHandle_t	f;
-	char *buf;
-	qboolean alt = qfalse;
-
 	if (scale_models_loaded) return;
 
-	len = trap->FS_Open( "modelscale.cfg\0", &f, FS_READ );
+	char			*s, *t;
+	fileHandle_t	f;
+	qboolean alt = qfalse;
+
+	int len = trap->FS_Open( "modelscale.cfg", &f, FS_READ );
 
 	if ( !f )
 	{
-		trap->Print("^1*** ^3WARNING^5: No model scale file.\n", "modelscale.cfg");
+		Com_Printf("^1*** ^3WARNING^5: No model scale file.\n", "modelscale.cfg");
 		return;
 	}
 
@@ -167,14 +165,15 @@ void Load_Model_Scales( void )
 		return;
 	}
 
-	buf = (char *)malloc(len+1);
-	memset(buf, 0, len+1);
+	char *buf = (char *)malloc(len+1);
 
 	if ( buf == NULL )
 	{//alloc memory for buffer
 		trap->FS_Close( f );
 		return;
 	}
+
+	memset(buf, 0, len + 1);
 
 	trap->FS_Read( buf, len, f );
 	trap->FS_Close( f );
@@ -204,21 +203,20 @@ void Load_Model_Scales( void )
 
 		if (*t)
 		{
-			if ( !Q_strncmp( "//", va("%s", t), 2 ) == 0 
-				&& strlen(va("%s", t)) > 1)
+			if ( !Q_strncmp( "//", t, 2 ) == 0 && strlen(t) > 1)
 			{// Not a comment either... Record it in our list...
 				if (!alt)
 				{// First value...
-					strcpy(model_scale_list[num_scale_models].botName, va("%s", t));
+					strcpy(model_scale_list[num_scale_models].botName, t);
 					alt = qtrue;
-					//G_Printf("^5%s ", model_scale_list[num_scale_models].botName);
+					//Com_Printf("^5%s ", model_scale_list[num_scale_models].botName);
 				}
 				else
 				{// The scale value itself...
 					model_scale_list[num_scale_models].scale = 100*atof(t);
 					num_scale_models++;
 					alt = qfalse;
-					//G_Printf("Scale %f.\n", atof(t));
+					//Com_Printf("Scale %f.\n", atof(t));
 				}
 			}
 		}
@@ -226,16 +224,11 @@ void Load_Model_Scales( void )
 		t = s;
 	}
 
-	num_scale_models--;
-
 	Com_Printf("^1*** ^3MODEL-SCALE^5: There are ^7%i^5 player model scales in the current database.\n", num_scale_models);
 
 	free(buf);
 
-	//if (num_scale_models > 0)
 	scale_models_loaded = qtrue;
-
-	//free(buf);
 }
 
 extern void SP_info_player_deathmatch( gentity_t *ent );

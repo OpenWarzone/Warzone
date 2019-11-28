@@ -1289,7 +1289,7 @@ typedef struct level_locals_s {
 } level_locals_t;
 
 typedef struct {
-	char		botName[MAX_QPATH];
+	char		botName[/*MAX_QPATH*/128];
 	int			scale;
 } model_scale_list_t;
 
@@ -1893,3 +1893,7 @@ qboolean FOLIAGE_TreeSolidBlocking(gentity_t *ent, vec3_t moveOrg);
 void BG_SetAnim(playerState_t *ps, animation_t *animations, int setAnimParts, int anim, int setAnimFlags);
 void G_SoundOnEnt(gentity_t *ent, soundChannel_t channel, const char *soundPath);
 
+// bg_inventory*
+void BG_CreatePlayerInventoryItem(playerState_t *ps, int psSlot, uint16_t bgItemID, uint16_t quality, uint16_t crystal, uint16_t stat1, uint16_t stat2, uint16_t stat3);
+void BG_CreatePlayerDefaultJediInventory(playerState_t *ps, team_t team);
+void BG_CreatePlayerDefaultGunnerInventory(playerState_t *ps, team_t team);

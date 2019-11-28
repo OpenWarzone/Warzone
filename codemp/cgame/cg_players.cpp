@@ -11588,11 +11588,11 @@ stillDoSaber:
 		legs.localPlayerGameEntityNum = cg.clientNum;
 		legs.isHumanoid = qtrue;
 
-		legs.playerInventory = (int **)&cg.snap->ps.inventoryItems;
-		legs.playerInventoryMod1 = (int **)&cg.snap->ps.inventoryMod1;
-		legs.playerInventoryMod2 = (int **)&cg.snap->ps.inventoryMod2;
-		legs.playerInventoryMod3 = (int **)&cg.snap->ps.inventoryMod3;
-		legs.playerEquipped = (int **)&cg.snap->ps.inventoryEquipped;
+		legs.playerInventory = (uint16_t *)&cg.snap->ps.inventoryItems;
+		legs.playerInventoryMod1 = (uint16_t *)&cg.snap->ps.inventoryMod1;
+		legs.playerInventoryMod2 = (uint16_t *)&cg.snap->ps.inventoryMod2;
+		legs.playerInventoryMod3 = (uint16_t *)&cg.snap->ps.inventoryMod3;
+		legs.playerEquipped = (uint16_t *)&cg.snap->ps.inventoryEquipped;
 
 		AddRefEntityToScene(&legs);
 	}

@@ -866,7 +866,7 @@ gitem_t	bg_itemlist[] =
 		/* precache */ "",
 		/* sounds */ "",
 		"A Khyber Crystal. Usually uniquely attuned to the force user, this crystal is used in the crafting of Lightsaber weapons. Controls the color and bonus effects of the blade.",					// description
-		400,
+		85,
 	},
 
 	{
@@ -883,7 +883,7 @@ gitem_t	bg_itemlist[] =
 		/* precache */ "",
 		/* sounds */ "",
 		"A Saber Modification. Used in the crafting of Lightsaber weapons. Adjusts the various strengths of the Lightsaber to suit it's wielder.",					// description
-		300,
+		80,
 	},
 
 	{
@@ -900,7 +900,7 @@ gitem_t	bg_itemlist[] =
 		/* precache */ "",
 		/* sounds */ "",
 		"A Weapon Crystal. Used to focus the beam in the crafting of guns weapons. Adjusts the damage types and color of the weapon's shots.",					// description
-		400,
+		75,
 	},
 
 	{
@@ -917,7 +917,7 @@ gitem_t	bg_itemlist[] =
 		/* precache */ "",
 		/* sounds */ "",
 		"A Weapon Modification. Used in the crafting of guns. Adjusts the various strengths of the weapon to suit it's owner.",					// description
-		300,
+		70,
 	},
 
 	{
@@ -934,7 +934,7 @@ gitem_t	bg_itemlist[] =
 		/* precache */ "",
 		/* sounds */ "",
 		"An Item Crystal. Used to focus the shielding in the crafting of wearable items. Adjusts the damage resistances of the item.",					// description
-		400,
+		75,
 	},
 
 	{
@@ -951,7 +951,7 @@ gitem_t	bg_itemlist[] =
 		/* precache */ "",
 		/* sounds */ "",
 		"A Wearable Modification. Used in the crafting of wearable items. Augments the item to suit it's owner.",					// description
-		300,
+		70,
 	},
 
 	//
@@ -995,7 +995,7 @@ gitem_t	bg_itemlist[] =
 		/* precache */ "",
 		/* sounds */ "",
 		"An elegant weapon from a more civilized age.",				// description
-		1420,
+		150,
 	},
 
 	/*QUAKED weapon_modular (.3 .3 1) (-16 -16 -16) (16 16 16) suspended
@@ -1014,7 +1014,7 @@ gitem_t	bg_itemlist[] =
 		/* precache */ "",
 		/* sounds */ "",
 		"This weapons looks like it was designed to be upgradable.",				// description
-		530,
+		110,
 	},
 
 	// end of list marker
@@ -1026,25 +1026,25 @@ int		bg_numItems = sizeof(bg_itemlist) / sizeof(bg_itemlist[0]) - 1;
 //
 // ALL INVENTORY POSSIBILITIES...
 //
-int				allInventoryItemsCount = 0;
-int				allInventorySabersStart = 0;
-int				allInventorySabersEnd = 0;
-int				allInventorySaberModsStart = 0;
-int				allInventorySaberModsEnd = 0;
-int				allInventorySaberCrystalsStart = 0;
-int				allInventorySaberCrystalsEnd = 0;
-int				allInventoryWeaponsStart = 0;
-int				allInventoryWeaponsEnd = 0;
-int				allInventoryWeaponModsStart = 0;
-int				allInventoryWeaponModsEnd = 0;
-int				allInventoryWeaponCrystalsStart = 0;
-int				allInventoryWeaponCrystalsEnd = 0;
-inventoryItem	*allInventoryItems[1048576];
+uint16_t				allInventoryItemsCount = 0;
+uint16_t				allInventorySabersStart = 0;
+uint16_t				allInventorySabersEnd = 0;
+uint16_t				allInventorySaberModsStart = 0;
+uint16_t				allInventorySaberModsEnd = 0;
+uint16_t				allInventorySaberCrystalsStart = 0;
+uint16_t				allInventorySaberCrystalsEnd = 0;
+uint16_t				allInventoryWeaponsStart = 0;
+uint16_t				allInventoryWeaponsEnd = 0;
+uint16_t				allInventoryWeaponModsStart = 0;
+uint16_t				allInventoryWeaponModsEnd = 0;
+uint16_t				allInventoryWeaponCrystalsStart = 0;
+uint16_t				allInventoryWeaponCrystalsEnd = 0;
+inventoryItem			*allInventoryItems[65536]; // need to keep < 65536 for transmission...
 
 //
 //
 //
-float StatRollForQuality(int quality)
+float StatRollForQuality(uint16_t quality)
 {
 	return 0.01 * pow(float(quality + 1), 1.1);
 }
@@ -1075,7 +1075,7 @@ void GenerateAllInventoryItems(void)
 
 	{
 		// Never add stat slots not available at this quality level...
-		inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, QUALITY_GREY, 1, -1);
+		inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, QUALITY_GREY, 1);
 
 		item->setItemID(allInventoryItemsCount);
 		item->setBaseItem(bgItemID);
@@ -1097,17 +1097,17 @@ void GenerateAllInventoryItems(void)
 	allInventorySabersStart = allInventoryItemsCount;
 
 	// Sabers...
-	for (int quality = QUALITY_GREY; quality <= QUALITY_GOLD; quality++)
+	for (uint16_t quality = QUALITY_GREY; quality <= QUALITY_GOLD; quality++)
 	{
 		float roll = StatRollForQuality(quality);
 
-		for (int crystal = ITEM_CRYSTAL_RED; crystal < ITEM_CRYSTAL_MAX; crystal++)
+		for (uint16_t crystal = ITEM_CRYSTAL_RED; crystal < ITEM_CRYSTAL_MAX; crystal++)
 		{
-			for (int stat1 = SABER_STAT1_DEFAULT; stat1 < SABER_STAT1_MAX; stat1++)
+			for (uint16_t stat1 = SABER_STAT1_DEFAULT; stat1 < SABER_STAT1_MAX; stat1++)
 			{
-				for (int stat2 = SABER_STAT2_DEFAULT; stat2 < SABER_STAT2_MAX; stat2++)
+				for (uint16_t stat2 = SABER_STAT2_DEFAULT; stat2 < SABER_STAT2_MAX; stat2++)
 				{
-					for (int stat3 = SABER_STAT3_DEFAULT; stat3 < SABER_STAT3_MAX; stat3++)
+					for (uint16_t stat3 = SABER_STAT3_DEFAULT; stat3 < SABER_STAT3_MAX; stat3++)
 					{
 						// Never add stat slots not available at this quality level...
 						if (quality <= QUALITY_GREY && (stat1 > 0 || stat2 > 0 || stat3 > 0)) continue;
@@ -1120,7 +1120,7 @@ void GenerateAllInventoryItems(void)
 						if (quality > QUALITY_GREY && !(stat1 > 0)) continue;
 						if (!(crystal > 0)) continue;
 
-						inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, (itemQuality_t)quality, 1, -1);
+						inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, (itemQuality_t)quality, 1);
 
 						item->setItemID(allInventoryItemsCount);
 						item->setBaseItem(bgItemID);
@@ -1159,17 +1159,17 @@ void GenerateAllInventoryItems(void)
 	// Modulated weapon...
 	bgItemID = 39;
 
-	for (int quality = QUALITY_GREY; quality <= QUALITY_GOLD; quality++)
+	for (uint16_t quality = QUALITY_GREY; quality <= QUALITY_GOLD; quality++)
 	{
 		float roll = StatRollForQuality(quality);
 
-		for (int crystal = ITEM_CRYSTAL_DEFAULT; crystal < ITEM_CRYSTAL_MAX; crystal++)
+		for (uint16_t crystal = ITEM_CRYSTAL_DEFAULT; crystal < ITEM_CRYSTAL_MAX; crystal++)
 		{
-			for (int stat1 = WEAPON_STAT1_DEFAULT; stat1 < WEAPON_STAT1_MAX; stat1++)
+			for (uint16_t stat1 = WEAPON_STAT1_DEFAULT; stat1 < WEAPON_STAT1_MAX; stat1++)
 			{
-				for (int stat2 = WEAPON_STAT2_DEFAULT; stat2 < WEAPON_STAT2_MAX; stat2++)
+				for (uint16_t stat2 = WEAPON_STAT2_DEFAULT; stat2 < WEAPON_STAT2_MAX; stat2++)
 				{
-					for (int stat3 = WEAPON_STAT3_SHOT_DEFAULT; stat3 < WEAPON_STAT3_MAX; stat3++)
+					for (uint16_t stat3 = WEAPON_STAT3_SHOT_DEFAULT; stat3 < WEAPON_STAT3_MAX; stat3++)
 					{
 						// Never add stat slots not available at this quality level...
 						if (quality <= QUALITY_GREY && (stat1 > 0 || stat2 > 0 || stat3 > 0)) continue;
@@ -1182,7 +1182,7 @@ void GenerateAllInventoryItems(void)
 						if (quality > QUALITY_GREY && !(stat1 > 0)) continue;
 						if (!(crystal > 0)) continue;
 
-						inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, (itemQuality_t)quality, 1, -1);
+						inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, (itemQuality_t)quality, 1);
 
 						item->setItemID(allInventoryItemsCount);
 						item->setBaseItem(bgItemID);
@@ -1197,6 +1197,7 @@ void GenerateAllInventoryItems(void)
 
 //#if defined(_GAME)
 //						trap->Print("^1*** ^3INVENTORY-GAME^5: Weapon %i. Name: %s\n", allInventoryItemsCount, item->getName());
+//						trap->Print("^1*** ^3INVENTORY-GAME^5: Weapon %i. Name: %s - %s\n", allInventoryItemsCount, item->getName(), va(weaponCrystalTooltips[crystal], roll * 100.0, roll * 100.0));
 //#endif
 
 						allInventoryItems[allInventoryItemsCount] = item;
@@ -1219,13 +1220,13 @@ void GenerateAllInventoryItems(void)
 
 	allInventorySaberModsStart = allInventoryItemsCount;
 
-	for (int quality = QUALITY_GREEN; quality <= QUALITY_GOLD; quality++)
+	for (uint16_t quality = QUALITY_GREEN; quality <= QUALITY_GOLD; quality++)
 	{
 		float roll = StatRollForQuality(quality);
 
-		for (int stat1 = SABER_STAT1_MELEE_BLOCKING; stat1 < SABER_STAT1_MAX; stat1++)
+		for (uint16_t stat1 = SABER_STAT1_MELEE_BLOCKING; stat1 < SABER_STAT1_MAX; stat1++)
 		{
-			inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, (itemQuality_t)quality, 1, -1);
+			inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, (itemQuality_t)quality, 1);
 
 			item->setItemID(allInventoryItemsCount);
 			item->setBaseItem(bgItemID);
@@ -1244,9 +1245,9 @@ void GenerateAllInventoryItems(void)
 			allInventoryItemsCount++;
 		}
 
-		for (int stat2 = SABER_STAT2_DAMAGE_MODIFIER; stat2 < SABER_STAT2_MAX; stat2++)
+		for (uint16_t stat2 = SABER_STAT2_DAMAGE_MODIFIER; stat2 < SABER_STAT2_MAX; stat2++)
 		{
-			inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, (itemQuality_t)quality, 1, -1);
+			inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, (itemQuality_t)quality, 1);
 
 			item->setItemID(allInventoryItemsCount);
 			item->setBaseItem(bgItemID);
@@ -1265,9 +1266,9 @@ void GenerateAllInventoryItems(void)
 			allInventoryItemsCount++;
 		}
 
-		for (int stat3 = SABER_STAT3_LENGTH_MODIFIER; stat3 < SABER_STAT3_MAX; stat3++)
+		for (uint16_t stat3 = SABER_STAT3_LENGTH_MODIFIER; stat3 < SABER_STAT3_MAX; stat3++)
 		{
-			inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, (itemQuality_t)quality, 1, -1);
+			inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, (itemQuality_t)quality, 1);
 
 			item->setItemID(allInventoryItemsCount);
 			item->setBaseItem(bgItemID);
@@ -1300,13 +1301,13 @@ void GenerateAllInventoryItems(void)
 
 	allInventorySaberCrystalsStart = allInventoryItemsCount;
 
-	for (int quality = QUALITY_GREEN; quality <= QUALITY_GOLD; quality++)
+	for (uint16_t quality = QUALITY_GREEN; quality <= QUALITY_GOLD; quality++)
 	{
 		float roll = StatRollForQuality(quality);
 
-		for (int crystal = ITEM_CRYSTAL_RED; crystal < ITEM_CRYSTAL_MAX; crystal++)
+		for (uint16_t crystal = ITEM_CRYSTAL_RED; crystal < ITEM_CRYSTAL_MAX; crystal++)
 		{
-			inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, (itemQuality_t)quality, 1, -1);
+			inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, (itemQuality_t)quality, 1);
 
 			item->setItemID(allInventoryItemsCount);
 			item->setBaseItem(bgItemID);
@@ -1337,13 +1338,13 @@ void GenerateAllInventoryItems(void)
 
 	allInventoryWeaponModsStart = allInventoryItemsCount;
 
-	for (int quality = QUALITY_GREEN; quality <= QUALITY_GOLD; quality++)
+	for (uint16_t quality = QUALITY_GREEN; quality <= QUALITY_GOLD; quality++)
 	{
 		float roll = StatRollForQuality(quality);
 
-		for (int stat1 = WEAPON_STAT1_FIRE_ACCURACY_MODIFIER; stat1 < WEAPON_STAT1_MAX; stat1++)
+		for (uint16_t stat1 = WEAPON_STAT1_FIRE_ACCURACY_MODIFIER; stat1 < WEAPON_STAT1_MAX; stat1++)
 		{
-			inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, (itemQuality_t)quality, 1, -1);
+			inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, (itemQuality_t)quality, 1);
 
 			item->setItemID(allInventoryItemsCount);
 			item->setBaseItem(bgItemID);
@@ -1362,9 +1363,9 @@ void GenerateAllInventoryItems(void)
 			allInventoryItemsCount++;
 		}
 
-		for (int stat2 = WEAPON_STAT2_FIRE_DAMAGE_MODIFIER; stat2 < WEAPON_STAT2_MAX; stat2++)
+		for (uint16_t stat2 = WEAPON_STAT2_FIRE_DAMAGE_MODIFIER; stat2 < WEAPON_STAT2_MAX; stat2++)
 		{
-			inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, (itemQuality_t)quality, 1, -1);
+			inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, (itemQuality_t)quality, 1);
 
 			item->setItemID(allInventoryItemsCount);
 			item->setBaseItem(bgItemID);
@@ -1383,9 +1384,9 @@ void GenerateAllInventoryItems(void)
 			allInventoryItemsCount++;
 		}
 
-		for (int stat3 = WEAPON_STAT3_SHOT_BOUNCE; stat3 < WEAPON_STAT3_MAX; stat3++)
+		for (uint16_t stat3 = WEAPON_STAT3_SHOT_BOUNCE; stat3 < WEAPON_STAT3_MAX; stat3++)
 		{
-			inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, (itemQuality_t)quality, 1, -1);
+			inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, (itemQuality_t)quality, 1);
 
 			item->setItemID(allInventoryItemsCount);
 			item->setBaseItem(bgItemID);
@@ -1419,13 +1420,13 @@ void GenerateAllInventoryItems(void)
 
 	allInventoryWeaponCrystalsStart = allInventoryItemsCount;
 
-	for (int quality = QUALITY_GREEN; quality <= QUALITY_GOLD; quality++)
+	for (uint16_t quality = QUALITY_GREEN; quality <= QUALITY_GOLD; quality++)
 	{
 		float roll = StatRollForQuality(quality);
 
-		for (int crystal = ITEM_CRYSTAL_RED; crystal < ITEM_CRYSTAL_MAX; crystal++)
+		for (uint16_t crystal = ITEM_CRYSTAL_RED; crystal < ITEM_CRYSTAL_MAX; crystal++)
 		{
-			inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, (itemQuality_t)quality, 1, -1);
+			inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, (itemQuality_t)quality, 1);
 
 			item->setItemID(allInventoryItemsCount);
 			item->setBaseItem(bgItemID);
@@ -1452,22 +1453,29 @@ void GenerateAllInventoryItems(void)
 	//
 
 #if defined(rd_warzone_x86_EXPORTS)
-	ri->Printf(PRINT_ALL, "^1*** ^3INVENTORY-GUI^5: Generated %i total inventory possibilities.\n", allInventoryItemsCount);
-	ri->Printf(PRINT_ALL, "^1*** ^3INVENTORY-GUI^5: %i base sabers possible (plus %i saber mods and %i saber crystals).\n", numSabers, numSaberMods, numSaberCrystals);
-	ri->Printf(PRINT_ALL, "^1*** ^3INVENTORY-GUI^5: %i base weapons possible (plus %i weapon mods and %i weapon crystals).\n", numWeapons, numWeaponMods, numWeaponCrystals);
+	ri->Printf(PRINT_ALL, "^1*** ^3INVENTORY-GUI^5: Generated %u total inventory possibilities.\n", allInventoryItemsCount);
+	ri->Printf(PRINT_ALL, "^1*** ^3INVENTORY-GUI^5: %u base sabers possible (plus %u saber mods and %u saber crystals).\n", numSabers, numSaberMods, numSaberCrystals);
+	ri->Printf(PRINT_ALL, "^1*** ^3INVENTORY-GUI^5: %u base weapons possible (plus %u weapon mods and %u weapon crystals).\n", numWeapons, numWeaponMods, numWeaponCrystals);
 #elif defined(_CGAME) || defined(_GAME)
-	trap->Print("^1*** ^3INVENTORY^5: Generated %i total inventory possibilities.\n", allInventoryItemsCount);
-	trap->Print("^1*** ^3INVENTORY^5: %i base sabers possible (plus %i saber mods and %i saber crystals).\n", numSabers, numSaberMods, numSaberCrystals);
-	trap->Print("^1*** ^3INVENTORY^5: %i base weapons possible (plus %i weapon mods and %i weapon crystals).\n", numWeapons, numWeaponMods, numWeaponCrystals);
+	trap->Print("^1*** ^3INVENTORY^5: Generated %u total inventory possibilities.\n", allInventoryItemsCount);
+	trap->Print("^1*** ^3INVENTORY^5: %u base sabers possible (plus %u saber mods and %u saber crystals).\n", numSabers, numSaberMods, numSaberCrystals);
+	trap->Print("^1*** ^3INVENTORY^5: %u base weapons possible (plus %u weapon mods and %u weapon crystals).\n", numWeapons, numWeaponMods, numWeaponCrystals);
 #else //!defined(rd_warzone_x86_EXPORTS)
 	// Probably UI, don't need this there...
 #endif //defined(rd_warzone_x86_EXPORTS)
 }
 
-#if defined(_GAME)
-inventoryItem *BG_FindBaseInventoryItem(int bgItemID, int quality, int crystal, int stat1, int stat2, int stat3)
+inventoryItem *BG_GetInventoryItemByID(uint16_t id)
 {
-	for (int i = 0; i < allInventoryItemsCount; i++)
+	if (id >= allInventoryItemsCount) return allInventoryItems[0];
+
+	return allInventoryItems[id];
+}
+
+#if defined(_GAME)
+inventoryItem *BG_FindBaseInventoryItem(uint16_t bgItemID, uint16_t quality, uint16_t crystal, uint16_t stat1, uint16_t stat2, uint16_t stat3)
+{
+	for (uint16_t i = 0; i < allInventoryItemsCount; i++)
 	{
 		inventoryItem *item = allInventoryItems[i];
 		
@@ -1484,28 +1492,228 @@ inventoryItem *BG_FindBaseInventoryItem(int bgItemID, int quality, int crystal, 
 	return NULL;
 }
 
-void BG_CreatePlayerInventoryItem(playerState_t *ps, int psSlot, int bgItemID, int quality, int crystal, int stat1, int stat2, int stat3)
+void BG_CreatePlayerInventoryItem(playerState_t *ps, int psSlot /* -1 to find a free slot */, uint16_t bgItemID, uint16_t quality, uint16_t crystal, uint16_t stat1, uint16_t stat2, uint16_t stat3)
 {
 	if (!ps) return;
 	if (psSlot > 63) return;
 
+	uint16_t useSlot = psSlot;
+
 	if (psSlot < 0)
-	{// Find a slot...
+	{// Find a free slot...
+		int bestSlot = -1;
+
 		for (int i = 0; i < 64; i++)
 		{
-			if (ps->inventoryItems[i] < 0)
+			if (ps->inventoryItems[i] == 0)
 			{
-				psSlot = i;
+				bestSlot = i;
 				break;
+			}
+		}
+
+		if (bestSlot >= 0)
+		{// We found a free slot to use...
+			useSlot = bestSlot;
+		}
+		else
+		{// All slots are full...
+			return;
+		}
+	}
+
+	if (ps->inventoryItems[useSlot] == 0)
+	{// Never replace a current item...
+		inventoryItem *item = BG_FindBaseInventoryItem(bgItemID, quality, crystal, stat1, stat2, stat3);
+
+		if (item)
+		{
+			ps->inventoryItems[useSlot] = item->getItemID();
+		}
+	}
+}
+
+int BG_CountInventoryItems(playerState_t *ps)
+{
+	int count = 0;
+
+	for (int i = 0; i < 64; i++)
+	{
+		if (ps->inventoryItems[i] > 0)
+		{
+			count++;
+		}
+	}
+
+	return count;
+}
+
+int BG_FindInventoryBestSaber(playerState_t *ps)
+{
+	int saberSlot = -1;
+	uint16_t oldSaberQuality = 0;
+
+	for (int i = 0; i < 64; i++)
+	{
+		if (ps->inventoryItems[i] > 0)
+		{
+			inventoryItem *item = allInventoryItems[ps->inventoryItems[i]];
+
+			if (item->getBaseItem()->giTag == WP_SABER)
+			{
+				if (item->getQuality() > oldSaberQuality)
+				{
+					saberSlot = i;
+					oldSaberQuality = item->getQuality();
+				}
 			}
 		}
 	}
 
-	inventoryItem *item = BG_FindBaseInventoryItem(bgItemID, quality, crystal, stat1, stat2, stat3);
+	return saberSlot;
+}
 
-	if (item)
+int BG_FindInventoryBestWeapon(playerState_t *ps)
+{
+	int gunSlot = -1;
+	uint16_t oldGunQuality = 0;
+
+	for (int i = 0; i < 64; i++)
 	{
-		ps->inventoryItems[psSlot] = item->getItemID();
+		if (ps->inventoryItems[i] > 0)
+		{
+			inventoryItem *item = allInventoryItems[ps->inventoryItems[i]];
+
+			if (item->getBaseItem()->giTag == WP_MODULIZED_WEAPON)
+			{
+				if (item->getQuality() > oldGunQuality)
+				{
+					gunSlot = i;
+					oldGunQuality = item->getQuality();
+				}
+			}
+		}
+	}
+
+	return gunSlot;
+}
+
+void BG_CreatePlayerDefaultJediInventory(playerState_t *ps, team_t team)
+{
+	if (BG_CountInventoryItems(ps) > 0)
+	{
+		return;
+	}
+
+	qboolean haveSaber = qfalse;
+	qboolean haveWeapon = qfalse;
+
+	int bestSaber = BG_FindInventoryBestSaber(ps);
+
+	if (bestSaber >= 0)
+	{
+		haveSaber = qtrue;
+	}
+
+	int bestWeapon = BG_FindInventoryBestWeapon(ps);
+
+	if (bestWeapon >= 0)
+	{
+		haveWeapon = qtrue;
+	}
+
+	if (haveSaber && haveWeapon)
+	{// Already have items in inventory, keep it as it is...
+		if (ps->inventoryEquipped[0] == 0)
+		{
+			ps->inventoryEquipped[0] = ps->inventoryItems[bestSaber];
+		}
+		return;
+	}
+
+#if 0
+	haveSaber = qfalse;
+	haveWeapon = qfalse;
+
+	/* testing - give a bunch of random items */
+	for (int i = 0; i < 64; i++)
+	{
+		while (ps->inventoryItems[i] == 0) // make sure we find a valid combo, and don't replace anything...
+		{
+			if (i == 0)
+				BG_CreatePlayerInventoryItem(ps, i, 38, QUALITY_GOLD, irand(ITEM_CRYSTAL_RED, ITEM_CRYSTAL_PINK), irand(SABER_STAT1_DEFAULT, SABER_STAT1_MAX - 1), irand(SABER_STAT2_DEFAULT, SABER_STAT2_MAX - 1), irand(SABER_STAT3_DEFAULT, SABER_STAT3_MAX - 1));
+			else if (i == 1)
+				BG_CreatePlayerInventoryItem(ps, i, 39, QUALITY_GOLD, irand(ITEM_CRYSTAL_RED, ITEM_CRYSTAL_PINK), irand(WEAPON_STAT1_DEFAULT, WEAPON_STAT1_MAX - 1), irand(WEAPON_STAT2_DEFAULT, WEAPON_STAT2_MAX - 1), irand(WEAPON_STAT3_SHOT_DEFAULT, WEAPON_STAT3_MAX - 1));
+			else if (irand(0, 10) == 1) // occasional random saber
+				BG_CreatePlayerInventoryItem(ps, i, 38, irand(QUALITY_GREY, QUALITY_GOLD), irand(ITEM_CRYSTAL_RED, ITEM_CRYSTAL_PINK), irand(SABER_STAT1_DEFAULT, SABER_STAT1_MAX - 1), irand(SABER_STAT2_DEFAULT, SABER_STAT2_MAX - 1), irand(SABER_STAT3_DEFAULT, SABER_STAT3_MAX - 1));
+			else // random gun
+				BG_CreatePlayerInventoryItem(ps, i, 39, irand(QUALITY_GREY, QUALITY_GOLD), irand(ITEM_CRYSTAL_RED, ITEM_CRYSTAL_PINK), irand(WEAPON_STAT1_DEFAULT, WEAPON_STAT1_MAX - 1), irand(WEAPON_STAT2_DEFAULT, WEAPON_STAT2_MAX - 1), irand(WEAPON_STAT3_SHOT_DEFAULT, WEAPON_STAT3_MAX - 1));
+		}
+	}
+
+	bestSaber = BG_FindInventoryBestSaber(ps);
+	bestWeapon = BG_FindInventoryBestWeapon(ps);
+
+	if (bestSaber >= 0)
+	{
+		haveSaber = qtrue;
+	}
+
+	if (bestWeapon >= 0)
+	{
+		haveWeapon = qtrue;
+	}
+#endif
+
+	if (!haveSaber)
+	{// Give them the default saber...
+		BG_CreatePlayerInventoryItem(ps, -1, 38, QUALITY_GREY, team == FACTION_EMPIRE ? ITEM_CRYSTAL_RED : ITEM_CRYSTAL_BLUE, SABER_STAT1_DEFAULT, SABER_STAT2_DEFAULT, SABER_STAT3_DEFAULT);
+
+		if (ps->inventoryEquipped[0] == 0)
+		{
+			bestSaber = BG_FindInventoryBestSaber(ps);
+			ps->inventoryEquipped[0] = ps->inventoryItems[bestSaber]; // equip in inventory's primary weapon slot
+		}
+	}
+	else if (ps->inventoryEquipped[0] == 0)
+	{// Equip the best saber...
+		ps->inventoryEquipped[0] = ps->inventoryItems[bestSaber]; // equip in inventory's primary weapon slot
+	}
+
+	if (!haveWeapon)
+	{// Give them the default gun in slot 1 (2)...
+		BG_CreatePlayerInventoryItem(ps, -1, 39, QUALITY_GREY, team == FACTION_EMPIRE ? ITEM_CRYSTAL_RED : ITEM_CRYSTAL_BLUE, WEAPON_STAT1_DEFAULT, WEAPON_STAT2_DEFAULT, WEAPON_STAT3_SHOT_DEFAULT);
+	}
+}
+
+void BG_CreatePlayerDefaultGunnerInventory(playerState_t *ps, team_t team)
+{
+	if (BG_CountInventoryItems(ps) > 0)
+	{
+		return;
+	}
+
+	qboolean haveWeapon = qfalse;
+	int bestWeapon = BG_FindInventoryBestWeapon(ps);
+
+	if (bestWeapon >= 0)
+	{
+		haveWeapon = qtrue;
+	}
+
+	if (!haveWeapon)
+	{// Give them the default gun...
+		BG_CreatePlayerInventoryItem(ps, -1, 39, QUALITY_GREY, team == FACTION_EMPIRE ? ITEM_CRYSTAL_RED : ITEM_CRYSTAL_BLUE, WEAPON_STAT1_DEFAULT, WEAPON_STAT2_DEFAULT, WEAPON_STAT3_SHOT_DEFAULT);
+		
+		if (ps->inventoryEquipped[0] == 0)
+		{
+			bestWeapon = BG_FindInventoryBestWeapon(ps);
+			ps->inventoryEquipped[0] = ps->inventoryItems[bestWeapon]; // equip in inventory's primary weapon slot
+		}
+	}
+	else if (ps->inventoryEquipped[0] == 0)
+	{// Equip the best gun...
+		ps->inventoryEquipped[0] = ps->inventoryItems[bestWeapon]; // equip in inventory's primary weapon slot
 	}
 }
 #endif //defined(_GAME)

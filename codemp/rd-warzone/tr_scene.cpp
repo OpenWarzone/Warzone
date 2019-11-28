@@ -599,7 +599,7 @@ void RE_AddRefEntityToScene(const refEntity_t *ent) {
 		backEnd.localPlayerValid = qtrue;
 
 		// Send inventory list to GUI as pointers...
-		extern void GUI_SetPlayerInventory(int **inventory, int **inventoryMod1, int **inventoryMod2, int **inventoryMod3, int **inventoryEquipped);
+		extern void GUI_SetPlayerInventory(uint16_t *inventory, uint16_t *inventoryMod1, uint16_t *inventoryMod2, uint16_t *inventoryMod3, uint16_t *inventoryEquipped);
 		GUI_SetPlayerInventory(ent->playerInventory, ent->playerInventoryMod1, ent->playerInventoryMod2, ent->playerInventoryMod3, ent->playerEquipped);
 	}
 #ifdef __HUMANOIDS_BEND_GRASS__

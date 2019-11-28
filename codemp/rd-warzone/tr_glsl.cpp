@@ -1929,7 +1929,7 @@ void GLSL_BindlessUpdate(shaderProgram_t *program)
 	GLSL_BindlessInitialize(program);
 
 #ifndef __BINDLESS_OFFSETS__
-	if (!memcmp(&program->bindlessBlock, &program->bindlessBlockPrevious, sizeof(program->bindlessBlock)))
+	if (memcmp(&program->bindlessBlock, &program->bindlessBlockPrevious, sizeof(program->bindlessBlock)) == 0)
 	{// Has not changed...
 		return;
 	}
