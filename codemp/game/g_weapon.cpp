@@ -565,6 +565,16 @@ void WP_FireBlasterMissile(gentity_t *ent, vec3_t start, vec3_t dir, int velocit
 
 	// we don't want it to bounce forever
 	missile->bounceCount = 8;
+
+	if (ent->client && weapon == WP_MODULIZED_WEAPON)
+	{
+		uint16_t crystal = BG_EquippedWeaponCrystal(&ent->client->ps);
+		missile->s.temporaryWeapon = crystal;
+	}
+	else
+	{
+		missile->s.temporaryWeapon = 0;
+	}
 }
 
 //---------------------------------------------------------
@@ -1350,6 +1360,356 @@ static void WP_BowcasterMainFire(gentity_t *ent)
 	}
 }
 
+
+//---------------------------------------------------------
+static void WP_ModulatedWeaponFire(gentity_t *ent, int damage, float velocity, float accuracy, int width, int bounces, int explosion, int beam)
+//---------------------------------------------------------
+{
+	float		vel;
+	vec3_t		angs, dir;
+	gentity_t	*missile;
+	int i;
+
+	if (!(width & 1))
+	{
+		// if we aren't odd, knock us down a level
+		width--;
+	}
+
+	//scale the damage down based on how many are about to be fired
+	if (width <= 1)
+	{// ALWAYS AT LEAST 1 BOLT!
+		width = 1;
+	}
+	else if (width == 2)
+	{
+		damage = int(float(damage) * 0.85);
+	}
+	else if (width == 3)
+	{
+		damage = int(float(damage) * 0.725);
+	}
+	else if (width == 4)
+	{
+		damage = int(float(damage) * 0.625);
+	}
+	else
+	{
+		damage = int(float(damage) * 0.5);
+	}
+
+	for (i = 0; i < width; i++)
+	{
+		// create a range of different velocities
+		vel = velocity * (crandom() * BOWCASTER_VEL_RANGE + 1.0f);
+
+		vectoangles(forward, angs);
+
+		// add some slop to the alt-fire direction
+		angs[PITCH] += crandom() * accuracy * 0.2f;
+		angs[YAW] += ((i + 0.5f) * accuracy - width * 0.5f * accuracy);
+
+		AngleVectors(angs, dir, NULL, NULL);
+
+		if (beam <= 0)
+		{
+			missile = CreateMissile(muzzle, dir, vel, 10000, ent, qtrue);
+
+			missile->classname = "bowcaster_alt_proj";
+			missile->s.weapon = ent->s.weapon;
+
+			VectorSet(missile->r.maxs, BOWCASTER_SIZE, BOWCASTER_SIZE, BOWCASTER_SIZE);
+			VectorScale(missile->r.maxs, -1, missile->r.mins);
+
+			missile->damage = damage;
+			missile->dflags = DAMAGE_DEATH_KNOCKBACK;
+			missile->methodOfDeath = MOD_BOWCASTER;
+			missile->clipmask = MASK_SHOT | CONTENTS_LIGHTSABER;
+
+			if (ent->client)
+			{// Send the crystal color for client...
+				uint16_t crystal = BG_EquippedWeaponCrystal(&ent->client->ps);
+				missile->s.temporaryWeapon = crystal;
+			}
+			else
+			{
+				missile->s.temporaryWeapon = 0;
+			}
+
+			// do we want it to bounce?
+			if (bounces > 0)
+			{
+				missile->flags |= FL_BOUNCE;
+				missile->bounceCount = bounces;
+			}
+			else
+			{
+				missile->bounceCount = 0;
+			}
+
+			if (explosion > 0)
+			{
+				missile->splashDamage = missile->damage = damage  * explosion;
+				missile->splashRadius = 64 * explosion;
+			}
+		}
+		else
+		{// Using disruptor code...
+			int			skip;
+			qboolean	render_impact = qtrue;
+			vec3_t		start, end;
+			trace_t		tr;
+			gentity_t	*traceEnt, *tent;
+			float		shotRange = 8192.0f;
+			int			i;
+			int			count, maxCount = 60;
+			int			traces = DISRUPTOR_ALT_TRACES;
+			qboolean	fullCharge = qfalse;
+
+			VectorCopy(muzzle, start);
+			count = 9;// 4;// (level.time - ent->client->ps.weaponChargeTime) / DISRUPTOR_CHARGE_UNIT;
+
+			if (count < 1)
+			{
+				count = 1;
+			}
+			else if (count >= maxCount)
+			{
+				count = maxCount;
+				fullCharge = qtrue;
+			}
+
+			// more powerful charges go through more things
+			if (count < 10)
+			{
+				traces = 1;
+			}
+			else if (count < 20)
+			{
+				traces = 2;
+			}
+
+			damage += count;
+
+			skip = ent->s.number;
+
+			for (i = 0; i < traces; i++)
+			{
+				VectorMA(start, shotRange, dir, end);
+
+				if (d_projectileGhoul2Collision.integer)
+				{
+					trap->Trace(&tr, start, NULL, NULL, end, skip, MASK_SHOT, qfalse, G2TRFLAG_DOGHOULTRACE | G2TRFLAG_GETSURFINDEX | G2TRFLAG_THICK | G2TRFLAG_HITCORPSES, g_g2TraceLod.integer);
+				}
+				else
+				{
+					trap->Trace(&tr, start, NULL, NULL, end, skip, MASK_SHOT, qfalse, 0, 0);
+				}
+
+				if (tr.entityNum == ent->s.number)
+				{
+					// should never happen, but basically we don't want to consider a hit to ourselves?
+					// Get ready for an attempt to trace through another person
+					//VectorCopy( tr.endpos, muzzle2 );
+					VectorCopy(tr.endpos, start);
+					skip = tr.entityNum;
+					continue;
+				}
+
+				traceEnt = &g_entities[tr.entityNum];
+
+				if (d_projectileGhoul2Collision.integer && traceEnt->inuse && traceEnt->client)
+				{ //g2 collision checks -rww
+					if (traceEnt->ghoul2)
+					{ //since we used G2TRFLAG_GETSURFINDEX, tr.surfaceFlags will actually contain the index of the surface on the ghoul2 model we collided with.
+						traceEnt->client->g2LastSurfaceHit = tr.surfaceFlags;
+						traceEnt->client->g2LastSurfaceTime = level.time;
+						tr.surfaceFlags = 0; //clear the surface flags after, since we actually care about them in here.
+					}
+				}
+
+				if (tr.surfaceFlags & SURF_NOIMPACT)
+				{
+					render_impact = qfalse;
+				}
+
+				if (traceEnt && traceEnt->client && traceEnt->client->ps.duelInProgress &&
+					traceEnt->client->ps.duelIndex != ent->s.number)
+				{
+					skip = tr.entityNum;
+					VectorCopy(tr.endpos, start);
+					continue;
+				}
+
+				if (Jedi_DodgeEvasion(traceEnt, ent, &tr, G_GetHitLocation(traceEnt, tr.endpos)))
+				{
+					skip = tr.entityNum;
+					VectorCopy(tr.endpos, start);
+					continue;
+				}
+				else if (traceEnt && traceEnt->client && traceEnt->client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE] >= FORCE_LEVEL_3)
+				{
+					//if (WP_SaberCanBlock(traceEnt, tr.endpos, 0, MOD_DISRUPTOR, qtrue, 0))
+					if (WP_SaberCanBlock(ent, traceEnt, tr.endpos, ent->r.currentOrigin,
+						0, MOD_DISRUPTOR, qtrue, damage))
+					{ //broadcast and stop the shot because it was blocked
+						gentity_t *te = NULL;
+
+						tent = G_TempEntity(tr.endpos, EV_DISRUPTOR_SNIPER_SHOT);
+						VectorCopy(muzzle, tent->s.origin2);
+						tent->s.shouldtarget = fullCharge;
+						tent->s.eventParm = ent->s.number;
+
+						te = G_TempEntity(tr.endpos, EV_SABER_BLOCK);
+						VectorCopy(tr.endpos, te->s.origin);
+						VectorCopy(tr.plane.normal, te->s.angles);
+						if (!te->s.angles[0] && !te->s.angles[1] && !te->s.angles[2])
+						{
+							te->s.angles[1] = 1;
+						}
+						te->s.eventParm = 0;
+						te->s.weapon = 0;//saberNum
+						te->s.legsAnim = 0;//bladeNum
+
+						return;
+					}
+				}
+
+				// always render a shot beam, doing this the old way because I don't much feel like overriding the effect.
+				tent = G_TempEntity(tr.endpos, EV_DISRUPTOR_SNIPER_SHOT);
+				VectorCopy(muzzle, tent->s.origin2);
+				tent->s.shouldtarget = fullCharge;
+				tent->s.eventParm = ent->s.number;
+
+				// If the beam hits a skybox, etc. it would look foolish to add impact effects
+				if (render_impact)
+				{
+					if (traceEnt->takedamage && traceEnt->client)
+					{
+						tent->s.otherEntityNum = traceEnt->s.number;
+
+						// Create a simple impact type mark
+						tent = G_TempEntity(tr.endpos, EV_MISSILE_MISS);
+						tent->s.eventParm = DirToByte(tr.plane.normal);
+						tent->s.eFlags |= EF_ALT_FIRING;
+
+						if (LogAccuracyHit(traceEnt, ent))
+						{
+							if (ent->client)
+							{
+								ent->client->accuracy_hits++;
+							}
+						}
+					}
+					else
+					{
+						if (traceEnt->r.svFlags & SVF_GLASS_BRUSH
+							|| traceEnt->takedamage
+							|| traceEnt->s.eType == ET_MOVER)
+						{
+							if (traceEnt->takedamage)
+							{
+								G_Damage(traceEnt, ent, ent, dir, tr.endpos, damage,
+									DAMAGE_NO_KNOCKBACK, MOD_DISRUPTOR_SNIPER);
+
+								tent = G_TempEntity(tr.endpos, EV_DISRUPTOR_HIT);
+								tent->s.eventParm = DirToByte(tr.plane.normal);
+							}
+						}
+						else
+						{
+							// Hmmm, maybe don't make any marks on things that could break
+							tent = G_TempEntity(tr.endpos, EV_DISRUPTOR_SNIPER_MISS);
+							tent->s.eventParm = DirToByte(tr.plane.normal);
+						}
+						break; // and don't try any more traces
+					}
+
+					if ((traceEnt->flags&FL_SHIELDED))
+					{//stops us cold
+						break;
+					}
+
+					if (traceEnt->takedamage)
+					{
+						vec3_t preAng;
+						int preHealth = traceEnt->health;
+						int preLegs = 0;
+						int preTorso = 0;
+
+						if (traceEnt->client)
+						{
+							preLegs = traceEnt->client->ps.legsAnim;
+							preTorso = traceEnt->client->ps.torsoAnim;
+							VectorCopy(traceEnt->client->ps.viewangles, preAng);
+						}
+
+						G_Damage(traceEnt, ent, ent, dir, tr.endpos, damage, DAMAGE_NO_KNOCKBACK, MOD_DISRUPTOR_SNIPER);
+
+						if (traceEnt->client && preHealth > 0 && traceEnt->health <= 0 && fullCharge &&
+							G_CanDisruptify(traceEnt))
+						{ //was killed by a fully charged sniper shot, so disintegrate
+							VectorCopy(preAng, traceEnt->client->ps.viewangles);
+
+							traceEnt->client->ps.eFlags |= EF_DISINTEGRATION;
+							VectorCopy(tr.endpos, traceEnt->client->ps.lastHitLoc);
+
+							traceEnt->client->ps.legsAnim = preLegs;
+							traceEnt->client->ps.torsoAnim = preTorso;
+
+							traceEnt->r.contents = 0;
+
+							VectorClear(traceEnt->client->ps.velocity);
+						}
+
+						tent = G_TempEntity(tr.endpos, EV_DISRUPTOR_HIT);
+						tent->s.eventParm = DirToByte(tr.plane.normal);
+						if (traceEnt->client)
+						{
+							tent->s.weapon = 1;
+						}
+
+						if (explosion > 0)
+						{// Add splash radius from explosive mod...
+							float splashRadius = 64.0 * explosion;
+							for (int s = 0; s < MAX_GENTITIES; s++)
+							{
+								gentity_t *spEnt = &g_entities[s];
+
+								if (spEnt && spEnt->client && spEnt->health && spEnt != traceEnt && !(spEnt->flags & FL_SHIELDED))
+								{
+									G_Damage(traceEnt, ent, ent, dir, spEnt->r.currentOrigin, damage * 1.0 - Q_clamp(0.1, (Distance(tr.endpos, spEnt->r.currentOrigin) / splashRadius), 1.0), DAMAGE_NO_KNOCKBACK, MOD_DISRUPTOR_SNIPER);
+								}
+							}
+						}
+					}
+					else if (explosion > 0)
+					{// Add splash radius from explosive mod...
+						float splashRadius = 64.0 * explosion;
+						for (int s = 0; s < MAX_GENTITIES; s++)
+						{
+							gentity_t *spEnt = &g_entities[s];
+
+							if (spEnt && spEnt->client && spEnt->health && traceEnt->takedamage && !(spEnt->flags & FL_SHIELDED))
+							{
+								G_Damage(traceEnt, ent, ent, dir, spEnt->r.currentOrigin, damage * 1.0 - Q_clamp(0.1, (Distance(tr.endpos, spEnt->r.currentOrigin) / splashRadius), 1.0), DAMAGE_NO_KNOCKBACK, MOD_DISRUPTOR_SNIPER);
+							}
+						}
+					}
+				}
+				else // not rendering impact, must be a skybox or other similar thing?
+				{
+					break; // don't try anymore traces
+				}
+
+				// Get ready for an attempt to trace through another person
+				VectorCopy(tr.endpos, muzzle);
+				VectorCopy(tr.endpos, start);
+				skip = tr.entityNum;
+			}
+		}
+	}
+}
 
 //---------------------------------------------------------
 static void WP_FireBowcaster(gentity_t *ent, qboolean altFire)
@@ -5579,12 +5939,68 @@ void FireWeapon(gentity_t *ent, qboolean altFire) {
 			break;
 
 		case WP_MODULIZED_WEAPON:
-			if (altFire)
-				WP_FireBlaster(ent, altFire, weaponData[ent->client->ps.weapon].boltSpeed, weaponData[ent->client->ps.weapon].dmg, weaponData[ent->client->ps.weapon].accuracy, ent->s.weapon);
-			else
-				WP_FireBlaster(ent, altFire, weaponData[ent->client->ps.weapon].boltSpeed, weaponData[ent->client->ps.weapon].dmg, 0.5, ent->s.weapon);
-			break;
+			{
+				uint16_t	stat3 = BG_EquippedWeapon(&ent->client->ps)->getBasicStat3();
+				uint16_t	mod3 = BG_EquippedMod3(&ent->client->ps)->getBasicStat3();
 
+				int bounces = 0;
+				int width = 0;
+				int explosion = 0;
+				int beam = 0;
+
+				if (stat3 == WEAPON_STAT3_SHOT_BOUNCE)
+				{
+					bounces += 3;
+				}
+
+				if (mod3 == WEAPON_STAT3_SHOT_BOUNCE)
+				{
+					bounces += 3;
+				}
+
+				bounces = Q_clampi(0, bounces, 5);
+
+				if (stat3 == WEAPON_STAT3_SHOT_WIDE)
+				{
+					width += 3;
+				}
+
+				if (mod3 == WEAPON_STAT3_SHOT_WIDE)
+				{
+					width += 3;
+				}
+
+				width = Q_clampi(0, width, 5);
+
+				if (stat3 == WEAPON_STAT3_SHOT_EXPLOSIVE)
+				{
+					explosion++;
+				}
+
+				if (mod3 == WEAPON_STAT3_SHOT_EXPLOSIVE)
+				{
+					explosion++;
+				}
+
+				explosion = Q_clampi(0, explosion, 2);
+
+				if (stat3 == WEAPON_STAT3_SHOT_BEAM)
+				{
+					beam++;
+				}
+
+				if (mod3 == WEAPON_STAT3_SHOT_BEAM)
+				{
+					beam++;
+				}
+
+				int damage = weaponData[ent->s.weapon].dmg;
+				float velocity = weaponData[ent->s.weapon].boltSpeed;
+				float accuracy = weaponData[ent->client->ps.weapon].accuracy;
+
+				WP_ModulatedWeaponFire(ent, damage, velocity, accuracy, width, bounces, explosion, beam);
+			}
+			break;
 		case WP_FRAG_GRENADE:
 			WP_FireFragGrenade(ent, altFire);
 			break;

@@ -54,6 +54,7 @@ typedef enum {
 // For weapons/weapon-mods slot 1 only.
 typedef enum {
 	WEAPON_STAT1_DEFAULT,						// Pistol
+	WEAPON_STAT1_HEAVY_PISTOL,					// Pistol
 	WEAPON_STAT1_FIRE_ACCURACY_MODIFIER,		// Sniper Rifle
 	WEAPON_STAT1_FIRE_RATE_MODIFIER,			// Blaster Rifle
 	WEAPON_STAT1_VELOCITY_MODIFIER,				// Assault Rifle
@@ -223,6 +224,8 @@ public:
 	uint16_t getVisualType1(uint16_t modItemID);
 	uint16_t getVisualType2(uint16_t modItemID);
 	uint16_t getVisualType3(uint16_t modItemID);
+
+	bool getIsTwoHanded(uint16_t modItemID1 = 0);
 
 	const char *getColorStringForQuality();
 	const char *getTooltip(uint16_t modItemID1, uint16_t modItemID2, uint16_t modItemID3); // Can parse modItemID# = 0 for base tooltip without any mods...

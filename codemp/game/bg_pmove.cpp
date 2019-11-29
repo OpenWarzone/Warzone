@@ -4382,7 +4382,21 @@ static void PM_CrashLand( void ) {
 			}
 			else
 			{
-				PM_StartTorsoAnim( WeaponReadyAnim[pm->ps->weapon] );
+				if (pm->ps->weapon == WP_MODULIZED_WEAPON)
+				{
+					if (BG_EquippedWeaponIsTwoHanded(pm->ps))
+					{// 2 handed anim...
+						PM_StartTorsoAnim(WeaponReadyAnim[pm->ps->weapon]);
+					}
+					else
+					{// Pistol anim...
+						PM_StartTorsoAnim(TORSO_WEAPONREADY2);
+					}
+				}
+				else
+				{
+					PM_StartTorsoAnim(WeaponReadyAnim[pm->ps->weapon]);
+				}
 			}
 		}
 	}
@@ -6258,6 +6272,17 @@ static void PM_Footsteps( void ) {
 							if (pm->ps->weapon == WP_SABER)
 							{
 								PM_ContinueLegsAnim(PM_LegsSlopeBackTransition(PM_GetSaberStance()));
+							}
+							else if (pm->ps->weapon == WP_MODULIZED_WEAPON)
+							{
+								if (BG_EquippedWeaponIsTwoHanded(pm->ps))
+								{// 2 handed anim...
+									PM_ContinueLegsAnim(PM_LegsSlopeBackTransition(BOTH_STAND3/*WeaponReadyLegsAnim[pm->ps->weapon]*/));
+								}
+								else
+								{// Pistol anim...
+									PM_ContinueLegsAnim(PM_LegsSlopeBackTransition(BOTH_STAND6));
+								}
 							}
 							else
 							{
@@ -8539,10 +8564,20 @@ static void PM_Weapon( void )
 			}
 			else
 			{
-				if ((pm->ps->torsoAnim) == WeaponAttackAnim[pm->ps->weapon] &&
+				int wantedReadyAnim = WeaponReadyAnim[pm->ps->weapon];
+
+				if (pm->ps->weapon == WP_MODULIZED_WEAPON)
+				{
+					if (!BG_EquippedWeaponIsTwoHanded(pm->ps))
+					{// Pistol anim...
+						wantedReadyAnim = TORSO_WEAPONREADY2;
+					}
+				}
+
+				if ((pm->ps->torsoAnim) == wantedReadyAnim &&
 					(pm->ps->weaponTime-700) <= 0)
 				{
-					PM_StartTorsoAnim( WeaponReadyAnim[pm->ps->weapon] );
+					PM_StartTorsoAnim(wantedReadyAnim);
 				}
 			}
 		}
@@ -8741,7 +8776,21 @@ static void PM_Weapon( void )
 					}
 					else
 					{
-						PM_StartTorsoAnim( WeaponReadyAnim[pm->ps->weapon] );
+						if (pm->ps->weapon == WP_MODULIZED_WEAPON)
+						{
+							if (BG_EquippedWeaponIsTwoHanded(pm->ps))
+							{// 2 handed anim...
+								PM_StartTorsoAnim(WeaponReadyAnim[pm->ps->weapon]);
+							}
+							else
+							{// Pistol anim...
+								PM_StartTorsoAnim(TORSO_WEAPONREADY2);
+							}
+						}
+						else
+						{
+							PM_StartTorsoAnim(WeaponReadyAnim[pm->ps->weapon]);
+						}
 					}
 				}
 			}
@@ -8749,16 +8798,40 @@ static void PM_Weapon( void )
 		return;
 	}
 
+	int wantedReadyAnim = WeaponReadyAnim[pm->ps->weapon];
+
+	if (pm->ps->weapon == WP_MODULIZED_WEAPON)
+	{
+		if (!BG_EquippedWeaponIsTwoHanded(pm->ps))
+		{// Pistol anim...
+			wantedReadyAnim = TORSO_WEAPONREADY2;
+		}
+	}
+
 	if (PM_CanSetWeaponAnims() &&
 		!PM_IsRocketTrooper() &&
 		pm->ps->weaponstate == WEAPON_READY && pm->ps->weaponTime <= 0 &&
 		pm->ps->weapon >= WP_MODULIZED_WEAPON &&
 		pm->ps->torsoTimer <= 0 &&
-		(pm->ps->torsoAnim) != WeaponReadyAnim[pm->ps->weapon] &&
+		(pm->ps->torsoAnim) != wantedReadyAnim &&
 		pm->ps->torsoAnim != TORSO_WEAPONIDLE3 &&
 		pm->ps->weapon != WP_EMPLACED_GUN)
 	{
-		PM_StartTorsoAnim( WeaponReadyAnim[pm->ps->weapon] );
+		if (pm->ps->weapon == WP_MODULIZED_WEAPON)
+		{
+			if (BG_EquippedWeaponIsTwoHanded(pm->ps))
+			{// 2 handed anim...
+				PM_StartTorsoAnim(WeaponReadyAnim[pm->ps->weapon]);
+			}
+			else
+			{// Pistol anim...
+				PM_StartTorsoAnim(TORSO_WEAPONREADY2);
+			}
+		}
+		else
+		{
+			PM_StartTorsoAnim(WeaponReadyAnim[pm->ps->weapon]);
+		}
 	}
 	else if (PM_CanSetWeaponAnims() &&
 		pm->ps->weapon == WP_MELEE)
@@ -8806,7 +8879,21 @@ static void PM_Weapon( void )
 		}
 		else if (PM_CanSetWeaponAnims())
 		{
-			PM_StartTorsoAnim( WeaponReadyAnim[pm->ps->weapon] );
+			if (pm->ps->weapon == WP_MODULIZED_WEAPON)
+			{
+				if (BG_EquippedWeaponIsTwoHanded(pm->ps))
+				{// 2 handed anim...
+					PM_StartTorsoAnim(WeaponReadyAnim[pm->ps->weapon]);
+				}
+				else
+				{// Pistol anim...
+					PM_StartTorsoAnim(TORSO_WEAPONREADY2);
+				}
+			}
+			else
+			{
+				PM_StartTorsoAnim(WeaponReadyAnim[pm->ps->weapon]);
+			}
 		}
 	}
 	else if (((pm->ps->torsoAnim) != TORSO_WEAPONREADY4 &&
@@ -9119,6 +9206,17 @@ static void PM_Weapon( void )
 				}
 			}
 		}//[/NewSaberSys]
+	else if (pm->ps->weapon == WP_MODULIZED_WEAPON)
+	{
+		if (BG_EquippedWeaponIsTwoHanded(pm->ps))
+		{// 2 handed anim...
+			PM_StartTorsoAnim(/*WeaponAttackAnim[pm->ps->weapon]*/DC15_FIRE);
+		}
+		else
+		{// Pistol anim...
+			PM_StartTorsoAnim(TORSO_CLONEPISTOLFIRE);
+		}
+	}
 	else
 	{
 		PM_StartTorsoAnim( WeaponAttackAnim[pm->ps->weapon] );
@@ -10890,9 +10988,26 @@ void BG_G2PlayerAngles(void *ghoul2, int motionBolt, entityState_t *cent, int ti
 	VectorClear( torsoAngles );
 	// --------- yaw -------------
 
+	int wantedReadyAnim = WeaponReadyAnim[cent->weapon];
+
+	if (cent->weapon == WP_MODULIZED_WEAPON)
+	{
+#if defined(_CGAME)
+		if (cg_entities[cent->number].playerState && !BG_EquippedWeaponIsTwoHanded(cg_entities[cent->number].playerState))
+		{// Pistol anim...
+			wantedReadyAnim = TORSO_WEAPONREADY2;
+		}
+#elif defined(_CGAME)
+		if (g_entities[cent->number].client && !BG_EquippedWeaponIsTwoHanded(cg_entities[cent->number].client->ps))
+		{// Pistol anim...
+			wantedReadyAnim = TORSO_WEAPONREADY2;
+		}
+#endif //defined(_CGAME)
+	}
+
 	// allow yaw to drift a bit
 	if ((( cent->legsAnim ) != BOTH_STAND1) ||
-			( cent->torsoAnim ) != WeaponReadyAnim[cent->weapon]  )
+			( cent->torsoAnim ) != wantedReadyAnim)
 	{
 		// if not standing still, always point all in the same direction
 		//cent->pe.torso.yawing = qtrue;	// always center

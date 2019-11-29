@@ -761,6 +761,7 @@ void G_CheckMinimumPlayers( void ) {
 	*/
 }
 
+vmCvar_t npc_followers;
 vmCvar_t npc_pathing;
 
 #ifdef __NPC_MINPLAYERS__
@@ -1268,6 +1269,7 @@ void G_CheckMinimumNpcs(void)
 	trap->Cvar_Update(&npc_pirates);
 	trap->Cvar_Update(&npc_wildlife);
 	trap->Cvar_Update(&npc_pathing);
+	trap->Cvar_Update(&npc_followers);
 	min_imperials = npc_imperials.integer;
 	min_rebels = npc_rebels.integer;
 	min_mandalorians = npc_mandalorians.integer;
@@ -2422,6 +2424,7 @@ void G_InitBots( void ) {
 #endif //__NPC_MINPLAYERS__
 	trap->Cvar_Register(&npc_pathing, "npc_pathing", "0", CVAR_ARCHIVE);
 	trap->Cvar_Register(&npc_wptonav, "npc_wptonav", "0", CVAR_ARCHIVE);
+	trap->Cvar_Register(&npc_followers, "npc_followers", "0", CVAR_ARCHIVE);
 
 	// Load village/town/city location info...
 	G_LoadVillageData();

@@ -652,6 +652,7 @@ void SV_BotInitCvars(void) {
 	Cvar_Get("bot_grapple", "0", 0);					//enable grapple
 	Cvar_Get("bot_rocketjump", "1", 0);					//enable rocket jumping
 	Cvar_Get("bot_challenge", "0", 0);					//challenging bot
+	Cvar_Get("npc_followers", "0", 0);					//spawn padawans and hk47's to follow players...
 	Cvar_Get("bot_minplayers", "0", 0);					//minimum players in a team or the game
 	Cvar_Get("npc_pathing", "0", 0);					//should npcs use astar pathing?
 	Cvar_Get("npc_wptonav", "0", 0);					//should we add wp system waypoints to nav system? 2 will force even large lists to be added...

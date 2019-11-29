@@ -1341,7 +1341,7 @@ to handle mirrors,
 
 int NEXT_SHADOWMAP_UPDATE[6] = { { 0 } };
 vec3_t SHADOWMAP_LAST_VIEWANGLES[6] = { { 0 } };
-vec3_t SHADOWMAP_LAST_VIEWORIGIN[6] = { { -999999.9 } }; // -999999.9 to force update on first draw...
+vec3_t SHADOWMAP_LAST_VIEWORIGIN[6] = { { -999999.9f } }; // -999999.9 to force update on first draw...
 
 extern void Volumetric_Trace(trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, const int passEntityNum, const int contentmask);
 

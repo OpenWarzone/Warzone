@@ -402,7 +402,7 @@ std::string R_FindAndAdjustShaderNames(std::string modelName, std::string surfac
 
 static qboolean R_LoadAssImp(model_t * mod, int lod, void *buffer, const char *modName, int size, const char *ext)
 {
-	int					f, i, j;
+	int					i, j;
 
 	mdvModel_t			*mdvModel;
 	mdvFrame_t			*frame;
@@ -1432,7 +1432,7 @@ void R_NifRotate(float *pos)
 
 static qboolean R_LoadNIF(model_t * mod, int lod, void *buffer, const char *modName, int size, const char *ext)
 {
-	int					f, i, j;
+	int					i, j;
 
 	mdvModel_t			*mdvModel;
 	mdvFrame_t			*frame;

@@ -23,13 +23,13 @@ extern inventoryItem *BG_GetInventoryItemByID(uint16_t id);
 // A quality based price scale modifier... Used internally... Matches levels of itemQuality_t.
 //
 const float qualityPriceModifier[] = {
-	1.0,
-	1.333,
-	2.0,
-	3.5,
-	5.75,
-	9.5,
-	12.0,
+	1.0f,
+	1.333f,
+	2.0f,
+	3.5f,
+	5.75f,
+	9.5f,
+	12.0f,
 };
 
 const char *itemQualityTooltips[] = {
@@ -92,6 +92,7 @@ const char *itemCrystalTooltips[] = {
 
 const char *weaponStat1Names[] = {
 	"",								// Pistol
+	"Skirmishing ",					// Pistol
 	"Accurate ",					// Sniper Rifle
 	"Quickfire ",					// Blaster Rifle
 	"Fast ",						// Assault Rifle
@@ -100,6 +101,7 @@ const char *weaponStat1Names[] = {
 
 const char *weaponStat1Tooltips[] = {
 	"",
+	"^P+%.1f%% ^7bonus to damage at close range.\n",
 	"^P+%.1f%% ^7bonus to accuracy.\n",
 	"^P+%.1f%% ^7bonus to rate of fire.\n",
 	"^P+%.1f%% ^7bonus to velocity.\n",
@@ -155,7 +157,7 @@ const char *saberStat2Names[] = {
 	"Deadly ",
 	"Pinpointing ",
 	"Charged ",
-	"Penetrating ",
+	"Piercing ",
 	"Vampyric ",
 	"Leeching ",
 };
@@ -394,6 +396,9 @@ const char *inventoryItem::getName()
 			default:
 				tooltipText = va("%s%s%s%s%s%s (%s)", getColorStringForQuality(), weaponStat1Names[getBasicStat1()], weaponStat2Names[getBasicStat2()], weaponStat3Names[getBasicStat3()], "Pistol", weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
 				break;
+			case WEAPON_STAT1_HEAVY_PISTOL:
+				tooltipText = va("%s%s%s%s%s%s (%s)", getColorStringForQuality(), weaponStat1Names[getBasicStat1()], weaponStat2Names[getBasicStat2()], weaponStat3Names[getBasicStat3()], "Heavy Pistol", weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
+				break;
 			case WEAPON_STAT1_FIRE_ACCURACY_MODIFIER:
 				tooltipText = va("%s%s%s%s%s%s (%s)", getColorStringForQuality(), weaponStat1Names[getBasicStat1()], weaponStat2Names[getBasicStat2()], weaponStat3Names[getBasicStat3()], "Sniper Rifle", weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
 				break;
@@ -552,6 +557,25 @@ float inventoryItem::getStackCost(uint16_t modItemID1, uint16_t modItemID2, uint
 	return getCost(modItemID1, modItemID2, modItemID3) * (m_quantity <= 1) ? 1 : m_quantity;
 }
 
+bool inventoryItem::getIsTwoHanded(uint16_t modItemID1)
+{
+	bool		isTwoHanded = true;
+	uint16_t	stat1Type = (modItemID1 && getMod1Stat(modItemID1)) ? getMod1Stat(modItemID1) : getBasicStat1();
+
+	switch (stat1Type)
+	{
+	case WEAPON_STAT1_DEFAULT:
+	case WEAPON_STAT1_HEAVY_PISTOL:
+		isTwoHanded = false;
+		break;
+	default:
+		isTwoHanded = true;
+		break;
+	}
+
+	return isTwoHanded;
+}
+
 const char *inventoryItem::getColorStringForQuality()
 {
 	switch (getQuality())
@@ -707,6 +731,9 @@ const char *inventoryItem::getTooltip(uint16_t modItemID1, uint16_t modItemID2, 
 			case WEAPON_STAT1_DEFAULT:
 			default:
 				tooltipText.append("^POne handed weapon, Pistol\n");
+				break;
+			case WEAPON_STAT1_HEAVY_PISTOL:
+				tooltipText.append("^POne handed weapon, Heavy Pistol\n");
 				break;
 			case WEAPON_STAT1_FIRE_ACCURACY_MODIFIER:
 				tooltipText.append("^PTwo handed weapon, Sniper Rifle\n");

@@ -51,7 +51,7 @@ qboolean NPC_JetpackFallingEmergencyCheck (gentity_t *NPC)
 
 qboolean NPC_JetpackHeightCheck(gentity_t *NPC)
 {
-	int i;
+	//int i;
 
 	if (NPC->npc_jetpack_height_last_check > level.time - 5000)
 	{

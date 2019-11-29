@@ -3179,7 +3179,7 @@ void R_RenderSunShadowMaps(const refdef_t *fd, int level, vec4_t sunDir, float l
 	vec3_t lightViewAxis[3];
 	vec3_t lightOrigin;
 	float splitZNear, splitZFar;
-	float viewZNear, viewZFar;
+	float viewZNear;// , viewZFar;
 	vec3_t lightviewBounds[2];
 	qboolean lightViewIndependentOfCameraView = qtrue;// qfalse;
 

@@ -9,6 +9,8 @@
 #include "bg_vehicles.h"
 #include "g_nav.h"
 
+extern vmCvar_t npc_followers;
+
 extern void NPC_PrecacheAnimationCFG( const char *NPC_type );
 void NPC_Precache ( gentity_t *spawner );
 extern qboolean NPC_NeedPadawan_Spawn (gentity_t *player);
@@ -2269,6 +2271,7 @@ void NPC_PrecacheType( char *NPC_type )
 
 vmCvar_t npc_precache;
 
+extern vmCvar_t npc_followers;
 extern vmCvar_t npc_imperials;
 extern vmCvar_t npc_rebels;
 extern vmCvar_t npc_mandalorians;
@@ -2504,11 +2507,12 @@ void SP_NPC_spawner( gentity_t *self)
 		self->s.origin[1] -= 16;
 		if (OrgVisibleBox(origin, playerMins, playerMaxs, self->s.origin, -1))
 		{
-			if (NPC_NeedPadawan_Spawn(NULL)
+			if (npc_followers.integer
+				&& NPC_NeedPadawan_Spawn(NULL)
 				&& (!Q_stricmpn("jedi", self->NPC_type, 4)
-				|| !Q_stricmpn("Jedi", self->NPC_type, 4)
-				|| !Q_stricmpn("Kyle", self->NPC_type, 4)
-				|| !Q_stricmpn("Luke", self->NPC_type, 4)))
+					|| !Q_stricmpn("Jedi", self->NPC_type, 4)
+					|| !Q_stricmpn("Kyle", self->NPC_type, 4)
+					|| !Q_stricmpn("Luke", self->NPC_type, 4)))
 			{// Spawned a jedi. Spawn a padawan for them as well...
 #if 0
 				int choice = irand(1,36);
@@ -2607,11 +2611,12 @@ void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team )
 			VectorCopy(origin, self->s.origin);
 		}
 
-		if (NPC_NeedPadawan_Spawn(NULL)
+		if (npc_followers.integer
+			&& NPC_NeedPadawan_Spawn(NULL)
 			&& (!Q_stricmpn("jedi", group.npcNames[0], 4)
-			|| !Q_stricmpn("Jedi", group.npcNames[0], 4)
-			|| !Q_stricmpn("Kyle", group.npcNames[0], 4)
-			|| !Q_stricmpn("Luke", group.npcNames[0], 4)))
+				|| !Q_stricmpn("Jedi", group.npcNames[0], 4)
+				|| !Q_stricmpn("Kyle", group.npcNames[0], 4)
+				|| !Q_stricmpn("Luke", group.npcNames[0], 4)))
 		{// Spawned a jedi. Spawn a padawan for them as well...
 			VectorCopy(origin, self->s.origin);
 			self->s.origin[0] -= 64;
@@ -2679,7 +2684,8 @@ void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team )
 				return;
 			}
 		}
-		/*else if (NPC_NeedFollower_Spawn()
+		/*else if (npc_followers.integer 
+			&& NPC_NeedFollower_Spawn()
 			&& (!Q_stricmpn("jedi", group.npcNames[0], 4)
 				|| !Q_stricmpn("Jedi", group.npcNames[0], 4)
 				|| !Q_stricmpn("Kyle", group.npcNames[0], 4)

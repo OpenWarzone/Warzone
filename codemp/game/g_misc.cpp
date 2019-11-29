@@ -1190,7 +1190,7 @@ void Use_Shooter( gentity_t *ent, gentity_t *other, gentity_t *activator ) {
 	VectorNormalize( dir );
 
 	switch ( ent->s.weapon ) {
-	//case WP_BLASTER:
+	case WP_MODULIZED_WEAPON:
 	default:
 		WP_FireBlasterMissile( ent, ent->s.origin, dir, BLASTER_SHOOT_SPEED, BLASTER_DAMAGE, qfalse, ent->s.weapon );
 		break;

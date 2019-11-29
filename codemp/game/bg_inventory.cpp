@@ -1342,7 +1342,7 @@ void GenerateAllInventoryItems(void)
 	{
 		float roll = StatRollForQuality(quality);
 
-		for (uint16_t stat1 = WEAPON_STAT1_FIRE_ACCURACY_MODIFIER; stat1 < WEAPON_STAT1_MAX; stat1++)
+		for (uint16_t stat1 = WEAPON_STAT1_HEAVY_PISTOL; stat1 < WEAPON_STAT1_MAX; stat1++)
 		{
 			inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, (itemQuality_t)quality, 1);
 
@@ -1471,6 +1471,11 @@ inventoryItem *BG_GetInventoryItemByID(uint16_t id)
 
 	return allInventoryItems[id];
 }
+
+
+//
+// Basic player inventory functions...
+//
 
 #if defined(_GAME)
 inventoryItem *BG_FindBaseInventoryItem(uint16_t bgItemID, int quality, int crystal, uint16_t stat1, uint16_t stat2, uint16_t stat3)
@@ -1674,7 +1679,7 @@ void BG_CreatePlayerDefaultJediInventory(playerState_t *ps, team_t team)
 
 				if (newItem->getQuality() >= QUALITY_PURPLE)
 				{
-					inventoryItem *stat1 = BG_FindBaseInventoryItem(34, irand(newItem->getQuality() - 2, QUALITY_GOLD), -1, irand(WEAPON_STAT1_FIRE_ACCURACY_MODIFIER, WEAPON_STAT1_MAX - 1), 0, 0);
+					inventoryItem *stat1 = BG_FindBaseInventoryItem(34, irand(newItem->getQuality() - 2, QUALITY_GOLD), -1, irand(WEAPON_STAT1_HEAVY_PISTOL, WEAPON_STAT1_MAX - 1), 0, 0);
 					ps->inventoryMod1[i] = stat1->getItemID();
 
 					if (newItem->getQuality() >= QUALITY_ORANGE)
@@ -1724,7 +1729,7 @@ void BG_CreatePlayerDefaultJediInventory(playerState_t *ps, team_t team)
 
 				if (newItem->getQuality() >= QUALITY_PURPLE)
 				{
-					inventoryItem *stat1 = BG_FindBaseInventoryItem(34, irand(newItem->getQuality() - 2, QUALITY_GOLD), -1, irand(WEAPON_STAT1_FIRE_ACCURACY_MODIFIER, WEAPON_STAT1_MAX - 1), 0, 0);
+					inventoryItem *stat1 = BG_FindBaseInventoryItem(34, irand(newItem->getQuality() - 2, QUALITY_GOLD), -1, irand(WEAPON_STAT1_HEAVY_PISTOL, WEAPON_STAT1_MAX - 1), 0, 0);
 					ps->inventoryMod1[i] = stat1->getItemID();
 
 					if (newItem->getQuality() >= QUALITY_ORANGE)
@@ -1809,3 +1814,189 @@ void BG_CreatePlayerDefaultGunnerInventory(playerState_t *ps, team_t team)
 	}
 }
 #endif //defined(_GAME)
+
+
+
+
+//
+// Currently equipped item convenience functions...
+//
+
+#if defined(_CGAME) || defined(_GAME)
+inventoryItem *BG_EquippedWeapon(playerState_t *ps)
+{
+	if (ps->weapon != WP_MODULIZED_WEAPON)
+	{
+		return BG_GetInventoryItemByID(0);
+	}
+
+	if (ps->inventoryEquipped[0] < 0)
+	{
+		return BG_GetInventoryItemByID(0);
+	}
+
+	return BG_GetInventoryItemByID(ps->inventoryItems[ps->inventoryEquipped[0]]);
+}
+
+inventoryItem *BG_EquippedMod1(playerState_t *ps)
+{
+	if (ps->weapon != WP_MODULIZED_WEAPON)
+	{
+		return BG_GetInventoryItemByID(0);
+	}
+
+	if (ps->inventoryEquipped[0] < 0)
+	{
+		return BG_GetInventoryItemByID(0);
+	}
+
+	return BG_GetInventoryItemByID(ps->inventoryMod1[ps->inventoryEquipped[0]]);
+}
+
+inventoryItem *BG_EquippedMod2(playerState_t *ps)
+{
+	if (ps->weapon != WP_MODULIZED_WEAPON)
+	{
+		return BG_GetInventoryItemByID(0);
+	}
+
+	if (ps->inventoryEquipped[0] < 0)
+	{
+		return BG_GetInventoryItemByID(0);
+	}
+
+	return BG_GetInventoryItemByID(ps->inventoryMod2[ps->inventoryEquipped[0]]);
+}
+
+inventoryItem *BG_EquippedMod3(playerState_t *ps)
+{
+	if (ps->weapon != WP_MODULIZED_WEAPON)
+	{
+		return BG_GetInventoryItemByID(0);
+	}
+
+	if (ps->inventoryEquipped[0] < 0)
+	{
+		return BG_GetInventoryItemByID(0);
+	}
+
+	return BG_GetInventoryItemByID(ps->inventoryMod3[ps->inventoryEquipped[0]]);
+}
+
+qboolean BG_EquippedWeaponIsTwoHanded(playerState_t *ps)
+{
+	if (ps->weapon != WP_MODULIZED_WEAPON)
+	{
+		return qfalse;
+	}
+
+	if (ps->inventoryEquipped[0] < 0)
+	{
+		return qfalse;
+	}
+	
+	inventoryItem *item = BG_GetInventoryItemByID(ps->inventoryItems[ps->inventoryEquipped[0]]);
+
+	uint16_t itemStat1 = item->getBasicStat1();
+
+	if (ps->inventoryMod1[ps->inventoryEquipped[0]])
+	{
+		inventoryItem *mod1 = BG_GetInventoryItemByID(ps->inventoryMod1[ps->inventoryEquipped[0]]);
+		itemStat1 = mod1->getBasicStat1();
+	}
+
+	return item->getIsTwoHanded(itemStat1) ? qtrue : qfalse;
+}
+
+uint16_t BG_EquippedWeaponVisualType1(playerState_t *ps)
+{
+	if (ps->weapon != WP_MODULIZED_WEAPON)
+	{
+		return WEAPON_STAT1_DEFAULT;
+	}
+
+	if (ps->inventoryEquipped[0] < 0)
+	{
+		return WEAPON_STAT1_DEFAULT;
+	}
+
+	inventoryItem *item = BG_GetInventoryItemByID(ps->inventoryItems[ps->inventoryEquipped[0]]);
+
+	uint16_t itemStat = item->getBasicStat1();
+
+	if (ps->inventoryMod1[ps->inventoryEquipped[0]])
+	{
+		inventoryItem *mod = BG_GetInventoryItemByID(ps->inventoryMod1[ps->inventoryEquipped[0]]);
+		itemStat = mod->getBasicStat1();
+	}
+
+	return itemStat;
+}
+
+uint16_t BG_EquippedWeaponVisualType2(playerState_t *ps)
+{
+	if (ps->weapon != WP_MODULIZED_WEAPON)
+	{
+		return WEAPON_STAT2_DEFAULT;
+	}
+
+	if (ps->inventoryEquipped[0] < 0)
+	{
+		return WEAPON_STAT2_DEFAULT;
+	}
+
+	inventoryItem *item = BG_GetInventoryItemByID(ps->inventoryItems[ps->inventoryEquipped[0]]);
+
+	uint16_t itemStat = item->getBasicStat2();
+
+	if (ps->inventoryMod2[ps->inventoryEquipped[0]])
+	{
+		inventoryItem *mod = BG_GetInventoryItemByID(ps->inventoryMod2[ps->inventoryEquipped[0]]);
+		itemStat = mod->getBasicStat2();
+	}
+
+	return itemStat;
+}
+
+uint16_t BG_EquippedWeaponVisualType3(playerState_t *ps)
+{
+	if (ps->weapon != WP_MODULIZED_WEAPON)
+	{
+		return WEAPON_STAT3_SHOT_DEFAULT;
+	}
+
+	if (ps->inventoryEquipped[0] < 0)
+	{
+		return WEAPON_STAT3_SHOT_DEFAULT;
+	}
+
+	inventoryItem *item = BG_GetInventoryItemByID(ps->inventoryItems[ps->inventoryEquipped[0]]);
+
+	uint16_t itemStat = item->getBasicStat3();
+
+	if (ps->inventoryMod3[ps->inventoryEquipped[0]])
+	{
+		inventoryItem *mod = BG_GetInventoryItemByID(ps->inventoryMod3[ps->inventoryEquipped[0]]);
+		itemStat = mod->getBasicStat3();
+	}
+
+	return itemStat;
+}
+
+uint16_t BG_EquippedWeaponCrystal(playerState_t *ps)
+{
+	if (ps->weapon != WP_MODULIZED_WEAPON)
+	{
+		return ITEM_CRYSTAL_DEFAULT;
+	}
+
+	if (ps->inventoryEquipped[0] < 0)
+	{
+		return ITEM_CRYSTAL_DEFAULT;
+	}
+
+	inventoryItem *item = BG_GetInventoryItemByID(ps->inventoryItems[ps->inventoryEquipped[0]]);
+	return item->getCrystal();
+}
+
+#endif //defined(_CGAME) || defined(_GAME)

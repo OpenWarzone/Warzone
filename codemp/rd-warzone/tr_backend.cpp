@@ -3145,7 +3145,7 @@ const void *RB_PostProcess(const void *data)
 	const postProcessCommand_t *cmd = (const postProcessCommand_t *)data;
 	FBO_t *srcFbo;
 	vec4i_t srcBox, dstBox;
-	qboolean autoExposure;
+	//qboolean autoExposure;
 
 	// finish any 2D drawing if needed
 	if(tess.numIndexes)

@@ -4642,7 +4642,7 @@ image_t	*R_BakeTextures(char names[16][512], int numNames, const char *outputNam
 			pics[i] = pic;
 #ifdef __TINY_IMAGE_LOADER__
 			tImages[i] = tImage;
-			isTilImage[i] = isTIL;
+			isTilImage[i] = isTIL ? true : false;
 #endif //__TINY_IMAGE_LOADER__
 			hasAlpha[i] = USE_ALPHA ? true : false;
 		}

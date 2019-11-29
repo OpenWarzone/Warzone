@@ -4368,7 +4368,9 @@ void ClientSpawn(gentity_t *ent) {
 
 	ent->padawan = NULL;
 
-	if ((g_gametype.integer == GT_WARZONE || g_gametype.integer == GT_INSTANCE) && ent->s.primaryWeapon == WP_SABER)
+	extern vmCvar_t npc_followers;
+
+	if (npc_followers.integer && (g_gametype.integer == GT_WARZONE || g_gametype.integer == GT_INSTANCE) && ent->s.primaryWeapon == WP_SABER)
 	{
 		if (ent->client->sess.sessionTeam == FACTION_REBEL)
 		{// Spawn a padawan for this jedi player...

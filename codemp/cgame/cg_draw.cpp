@@ -4749,7 +4749,7 @@ CG_DrawFPS
 
 int CG_GetCurrentFPS( void )
 {
-	int			w;
+	//int			w;
 	static unsigned short previousTimes[FPS_FRAMES];
 	static unsigned short index;
 	static int	previous, lastupdate;

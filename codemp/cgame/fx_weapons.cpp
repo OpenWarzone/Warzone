@@ -72,6 +72,22 @@ FX_WeaponProjectileThink
 */
 void FX_WeaponProjectileThink(centity_t *cent, const struct weaponInfo_s *weapon)
 {
+	/*switch (cent->currentState.primaryWeapon)
+	{
+	case WEAPON_STAT3_SHOT_DEFAULT:
+	default:
+		break;
+	case WEAPON_STAT3_SHOT_BOUNCE:
+		break;
+	case WEAPON_STAT3_SHOT_EXPLOSIVE:
+		FX_RepeaterAltProjectileThink(cent, weapon);
+		break;
+	case WEAPON_STAT3_SHOT_BEAM:
+		break;
+	case WEAPON_STAT3_SHOT_WIDE:
+		break;
+	}*/
+
 	vec3_t forward;
 
 	if (VectorNormalize2(cent->currentState.pos.trDelta, forward) == 0.0f)
@@ -79,7 +95,40 @@ void FX_WeaponProjectileThink(centity_t *cent, const struct weaponInfo_s *weapon
 		forward[2] = 1.0f;
 	}
 
-	qhandle_t bolt3D = CG_Get3DWeaponBoltColor(weapon, qfalse);
+	qhandle_t bolt3D = 0;
+
+	switch (cent->currentState.temporaryWeapon)
+	{// Were we sent a specific color to use???
+	case ITEM_CRYSTAL_RED:				// Bonus Heat Damage/Resistance
+		bolt3D = cgs.media.redBlasterShot;
+		break;
+	case ITEM_CRYSTAL_GREEN:				// Bonus Kinetic (force) Damage/Resistance
+		bolt3D = cgs.media.greenBlasterShot;
+		break;
+	case ITEM_CRYSTAL_BLUE:				// Bonus Electric Damage/Resistance
+		bolt3D = cgs.media.blueBlasterShot;
+		break;
+	case ITEM_CRYSTAL_WHITE:				// Bonus Cold Damage/Resistance
+		bolt3D = cgs.media.whiteBlasterShot;
+		break;
+	case ITEM_CRYSTAL_YELLOW:			// Bonus 1/2 Heat + 1/2 Kinetic Damage/Resistance
+		bolt3D = cgs.media.yellowBlasterShot;
+		break;
+	case ITEM_CRYSTAL_PURPLE:			// Bonus 1/2 Electric + 1/2 Heat Damage/Resistance
+		bolt3D = cgs.media.PurpleBlasterShot;
+		break;
+	case ITEM_CRYSTAL_ORANGE:			// Bonus 1/2 Cold + 1/2 Kinetic Damage/Resistance
+		bolt3D = cgs.media.orangeBlasterShot;
+		break;
+	case ITEM_CRYSTAL_PINK:				// Bonus 1/2 Electric + 1/2 Cold Damage/Resistance
+		bolt3D = cgs.media.BlasterBolt_Cap_BluePurple; // TODO: Add actual pink...
+		break;
+	case ITEM_CRYSTAL_DEFAULT:			// GREY shots/blade? No special damage/resistance type...
+	default:
+		// Nope...
+		bolt3D = CG_Get3DWeaponBoltColor(weapon, qfalse);
+		break;
+	}
 
 	//trap->Print("bolt id is %i.\n", bolt3D);
 	
@@ -102,6 +151,22 @@ FX_WeaponProjectileThink
 */
 void FX_WeaponAltProjectileThink(centity_t *cent, const struct weaponInfo_s *weapon)
 {
+	/*switch (cent->currentState.primaryWeapon)
+	{
+	case WEAPON_STAT3_SHOT_DEFAULT:
+	default:
+		break;
+	case WEAPON_STAT3_SHOT_BOUNCE:
+		break;
+	case WEAPON_STAT3_SHOT_EXPLOSIVE:
+		FX_RepeaterAltProjectileThink(cent, weapon);
+		break;
+	case WEAPON_STAT3_SHOT_BEAM:
+		break;
+	case WEAPON_STAT3_SHOT_WIDE:
+		break;
+	}*/
+
 	vec3_t forward;
 
 	if (VectorNormalize2(cent->currentState.pos.trDelta, forward) == 0.0f)
@@ -109,7 +174,40 @@ void FX_WeaponAltProjectileThink(centity_t *cent, const struct weaponInfo_s *wea
 		forward[2] = 1.0f;
 	}
 	
-	qhandle_t bolt3D = CG_Get3DWeaponBoltColor(weapon, qtrue);
+	qhandle_t bolt3D = 0;
+
+	switch (cent->currentState.temporaryWeapon)
+	{// Were we sent a specific color to use???
+	case ITEM_CRYSTAL_RED:				// Bonus Heat Damage/Resistance
+		bolt3D = cgs.media.redBlasterShot;
+		break;
+	case ITEM_CRYSTAL_GREEN:				// Bonus Kinetic (force) Damage/Resistance
+		bolt3D = cgs.media.greenBlasterShot;
+		break;
+	case ITEM_CRYSTAL_BLUE:				// Bonus Electric Damage/Resistance
+		bolt3D = cgs.media.blueBlasterShot;
+		break;
+	case ITEM_CRYSTAL_WHITE:				// Bonus Cold Damage/Resistance
+		bolt3D = cgs.media.whiteBlasterShot;
+		break;
+	case ITEM_CRYSTAL_YELLOW:			// Bonus 1/2 Heat + 1/2 Kinetic Damage/Resistance
+		bolt3D = cgs.media.yellowBlasterShot;
+		break;
+	case ITEM_CRYSTAL_PURPLE:			// Bonus 1/2 Electric + 1/2 Heat Damage/Resistance
+		bolt3D = cgs.media.PurpleBlasterShot;
+		break;
+	case ITEM_CRYSTAL_ORANGE:			// Bonus 1/2 Cold + 1/2 Kinetic Damage/Resistance
+		bolt3D = cgs.media.orangeBlasterShot;
+		break;
+	case ITEM_CRYSTAL_PINK:				// Bonus 1/2 Electric + 1/2 Cold Damage/Resistance
+		bolt3D = cgs.media.BlasterBolt_Cap_BluePurple; // TODO: Add actual pink...
+		break;
+	case ITEM_CRYSTAL_DEFAULT:			// GREY shots/blade? No special damage/resistance type...
+	default:
+		// Nope...
+		bolt3D = CG_Get3DWeaponBoltColor(weapon, qtrue);
+		break;
+	}
 
 	if (bolt3D > 0)
 	{// New 3D bolt enabled...

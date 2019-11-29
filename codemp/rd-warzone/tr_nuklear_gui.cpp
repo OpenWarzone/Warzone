@@ -1792,6 +1792,9 @@ struct nk_image GUI_GetInventoryIconForEquipped(uint16_t slot)
 		{// TODO: A better way, that uses all the possible icons...
 		case WEAPON_STAT1_DEFAULT:						// Pistol
 		default:
+			return GUI_media.inventoryIcons[4][item->getQuality()];
+			break;
+		case WEAPON_STAT1_HEAVY_PISTOL:
 			return GUI_media.inventoryIcons[8][item->getQuality()];
 			break;
 		case WEAPON_STAT1_FIRE_ACCURACY_MODIFIER:		// Sniper Rifle
@@ -1807,6 +1810,10 @@ struct nk_image GUI_GetInventoryIconForEquipped(uint16_t slot)
 			return GUI_media.inventoryIcons[10][item->getQuality()];
 			break;
 		}
+	}
+	else
+	{
+		return GUI_media.inventoryIcons[4][item->getQuality()];
 	}
 }
 static void
@@ -1933,7 +1940,7 @@ GUI_Character(struct nk_context *ctx, struct media *media)
 				inventoryItem *mod3 = BG_GetInventoryItemByID(playerInventoryMod3[playerInventoryEquipped[0]]);
 				
 				char tooltip[1024] = { { 0 } };
-				strcpy(tooltip, item->getTooltip(playerInventoryMod1[playerInventoryEquipped[0]], playerInventoryMod1[playerInventoryEquipped[1]], playerInventoryMod1[playerInventoryEquipped[2]]));
+				strcpy(tooltip, item->getTooltip(mod1->getItemID(), mod2->getItemID(), mod3->getItemID()));
 				int ret = nk_button_image_label(ctx, icon, "", NK_TEXT_ALIGN_RIGHT);
 				GUI_MenuHoverTooltip(ctx, media, tooltip, media->characterWeapon);
 				found = true;
@@ -3786,7 +3793,10 @@ void GUI_UpdateInventory(void)
 		if (playerInventory[i] > 0)
 		{
 			inventoryItem *item = BG_GetInventoryItemByID(playerInventory[i]);
-			
+			inventoryItem *mod1 = (playerInventoryMod1[i] > 0) ? BG_GetInventoryItemByID(playerInventoryMod1[i]) : NULL;
+			//inventoryItem *mod2 = (playerInventoryMod2[i] > 0) ? BG_GetInventoryItemByID(playerInventoryMod2[i]) : NULL;
+			//inventoryItem *mod3 = (playerInventoryMod3[i] > 0) ? BG_GetInventoryItemByID(playerInventoryMod3[i]) : NULL;
+
 			//ri->Printf(PRINT_ALL, "Inv %i. ItemID %i. Quality %i. Type %s.\n", i, playerInventory[i], item->getQuality(), (item->getBaseItem()->giTag == WP_SABER) ? "SABER" : "GUN");
 
 			if (item->getBaseItem()->giTag == WP_SABER)
@@ -3795,10 +3805,15 @@ void GUI_UpdateInventory(void)
 			}
 			else if (item->getBaseItem()->giTag == WP_MODULIZED_WEAPON)
 			{
-				switch (item->getBasicStat1())
+				int itemStat1 = (playerInventoryMod1[i] > 0 && mod1) ? mod1->getBasicStat1() : item->getBasicStat1();
+
+				switch (itemStat1)
 				{// TODO: A better way, that uses all the possible icons...
 					case WEAPON_STAT1_DEFAULT:						// Pistol
 					default:
+						GUI_SetPlayerInventorySlot(i, 4, item->getQuality(), item->getName(), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
+						break;
+					case WEAPON_STAT1_HEAVY_PISTOL:					// Heavy Pistol
 						GUI_SetPlayerInventorySlot(i, 8, item->getQuality(), item->getName(), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
 						break;
 					case WEAPON_STAT1_FIRE_ACCURACY_MODIFIER:		// Sniper Rifle

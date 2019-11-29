@@ -497,45 +497,227 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 		// Add the attachments...
 		//
 
-		{// Barrel...
-			memset(&barrel, 0, sizeof(barrel));
-			VectorCopy(parent->lightingOrigin, gun.lightingOrigin);
-			barrel.shadowPlane = parent->shadowPlane;
-			barrel.renderfx = parent->renderfx;
-			barrel.hModel = trap->R_RegisterModel("models/wzweapons/barrel_1.md3");
-			AnglesToAxis(vec3_origin, barrel.axis);
-			CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_barrel");
-			CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
-		}
 		{// Clip...
-			memset(&barrel, 0, sizeof(barrel));
-			VectorCopy(parent->lightingOrigin, gun.lightingOrigin);
-			barrel.shadowPlane = parent->shadowPlane;
-			barrel.renderfx = parent->renderfx;
-			barrel.hModel = trap->R_RegisterModel("models/wzweapons/clip_1.md3");
-			AnglesToAxis(vec3_origin, barrel.axis);
-			CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_clip");
-			CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
+			switch (BG_EquippedWeaponVisualType1(cent->playerState))
+			{
+			case WEAPON_STAT1_DEFAULT: // Pistol
+			default:
+				break;
+			case WEAPON_STAT1_HEAVY_PISTOL: // Pistol
+				break;
+			case WEAPON_STAT1_FIRE_ACCURACY_MODIFIER: // Sniper Rifle
+				break;
+			case WEAPON_STAT1_FIRE_RATE_MODIFIER: // Blaster Rifle
+				memset(&barrel, 0, sizeof(barrel));
+				VectorCopy(parent->lightingOrigin, gun.lightingOrigin);
+				barrel.shadowPlane = parent->shadowPlane;
+				barrel.renderfx = parent->renderfx;
+				barrel.hModel = trap->R_RegisterModel("models/wzweapons/clip_1.md3");
+				AnglesToAxis(vec3_origin, barrel.axis);
+				CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_clip");
+				CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
+				break;
+			case WEAPON_STAT1_VELOCITY_MODIFIER: // Assault Rifle
+				break;
+			case WEAPON_STAT1_HEAT_ACCUMULATION_MODIFIER: // Heavy Blster
+				memset(&barrel, 0, sizeof(barrel));
+				VectorCopy(parent->lightingOrigin, gun.lightingOrigin);
+				barrel.shadowPlane = parent->shadowPlane;
+				barrel.renderfx = parent->renderfx;
+				barrel.hModel = trap->R_RegisterModel("models/wzweapons/clip_1.md3");
+				AnglesToAxis(vec3_origin, barrel.axis);
+				CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_clip");
+				CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
+				break;
+			}
 		}
-		{// Scope...
-			memset(&barrel, 0, sizeof(barrel));
-			VectorCopy(parent->lightingOrigin, gun.lightingOrigin);
-			barrel.shadowPlane = parent->shadowPlane;
-			barrel.renderfx = parent->renderfx;
-			barrel.hModel = trap->R_RegisterModel("models/wzweapons/scope_1.md3");
-			AnglesToAxis(vec3_origin, barrel.axis);
-			CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_scope");
-			CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
-		}
+
 		{// Stock...
-			memset(&barrel, 0, sizeof(barrel));
-			VectorCopy(parent->lightingOrigin, gun.lightingOrigin);
-			barrel.shadowPlane = parent->shadowPlane;
-			barrel.renderfx = parent->renderfx;
-			barrel.hModel = trap->R_RegisterModel("models/wzweapons/stock_1.md3");
-			AnglesToAxis(vec3_origin, barrel.axis);
-			CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_stock");
-			CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
+			if (BG_EquippedWeaponIsTwoHanded(cent->playerState))
+			{
+				switch (BG_EquippedWeaponVisualType1(cent->playerState))
+				{
+				case WEAPON_STAT1_DEFAULT: // Pistol
+				default:
+					break;
+				case WEAPON_STAT1_HEAVY_PISTOL: // Pistol
+					break;
+				case WEAPON_STAT1_FIRE_ACCURACY_MODIFIER: // Sniper Rifle
+					memset(&barrel, 0, sizeof(barrel));
+					VectorCopy(parent->lightingOrigin, gun.lightingOrigin);
+					barrel.shadowPlane = parent->shadowPlane;
+					barrel.renderfx = parent->renderfx;
+					barrel.hModel = trap->R_RegisterModel("models/wzweapons/stock_1.md3");
+					AnglesToAxis(vec3_origin, barrel.axis);
+					CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_stock");
+					CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
+					break;
+				case WEAPON_STAT1_FIRE_RATE_MODIFIER: // Blaster Rifle
+					memset(&barrel, 0, sizeof(barrel));
+					VectorCopy(parent->lightingOrigin, gun.lightingOrigin);
+					barrel.shadowPlane = parent->shadowPlane;
+					barrel.renderfx = parent->renderfx;
+					barrel.hModel = trap->R_RegisterModel("models/wzweapons/stock_1.md3");
+					AnglesToAxis(vec3_origin, barrel.axis);
+					CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_stock");
+					CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
+					break;
+				case WEAPON_STAT1_VELOCITY_MODIFIER: // Assault Rifle
+					memset(&barrel, 0, sizeof(barrel));
+					VectorCopy(parent->lightingOrigin, gun.lightingOrigin);
+					barrel.shadowPlane = parent->shadowPlane;
+					barrel.renderfx = parent->renderfx;
+					barrel.hModel = trap->R_RegisterModel("models/wzweapons/stock_1.md3");
+					AnglesToAxis(vec3_origin, barrel.axis);
+					CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_stock");
+					CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
+					break;
+				case WEAPON_STAT1_HEAT_ACCUMULATION_MODIFIER: // Heavy Blster
+					memset(&barrel, 0, sizeof(barrel));
+					VectorCopy(parent->lightingOrigin, gun.lightingOrigin);
+					barrel.shadowPlane = parent->shadowPlane;
+					barrel.renderfx = parent->renderfx;
+					barrel.hModel = trap->R_RegisterModel("models/wzweapons/stock_1.md3");
+					AnglesToAxis(vec3_origin, barrel.axis);
+					CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_stock");
+					CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
+					break;
+				}
+			}
+		}
+
+		{// Scope...
+			switch (BG_EquippedWeaponVisualType2(cent->playerState))
+			{
+			case WEAPON_STAT2_DEFAULT:
+			default:
+				break;
+			case WEAPON_STAT2_FIRE_DAMAGE_MODIFIER:
+				memset(&barrel, 0, sizeof(barrel));
+				VectorCopy(parent->lightingOrigin, gun.lightingOrigin);
+				barrel.shadowPlane = parent->shadowPlane;
+				barrel.renderfx = parent->renderfx;
+				barrel.hModel = trap->R_RegisterModel("models/wzweapons/scope_3.md3");
+				AnglesToAxis(vec3_origin, barrel.axis);
+				CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_scope");
+				CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
+				break;
+			case WEAPON_STAT2_CRITICAL_CHANCE_MODIFIER:
+				memset(&barrel, 0, sizeof(barrel));
+				VectorCopy(parent->lightingOrigin, gun.lightingOrigin);
+				barrel.shadowPlane = parent->shadowPlane;
+				barrel.renderfx = parent->renderfx;
+				barrel.hModel = trap->R_RegisterModel("models/wzweapons/scope_1.md3");
+				AnglesToAxis(vec3_origin, barrel.axis);
+				CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_scope");
+				CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
+				break;
+			case WEAPON_STAT2_CRITICAL_POWER_MODIFIER:
+				memset(&barrel, 0, sizeof(barrel));
+				VectorCopy(parent->lightingOrigin, gun.lightingOrigin);
+				barrel.shadowPlane = parent->shadowPlane;
+				barrel.renderfx = parent->renderfx;
+				barrel.hModel = trap->R_RegisterModel("models/wzweapons/scope_2.md3");
+				AnglesToAxis(vec3_origin, barrel.axis);
+				CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_scope");
+				CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
+				break;
+			case WEAPON_STAT1_HEAT_ACCUMULATION_MODIFIER:
+				memset(&barrel, 0, sizeof(barrel));
+				VectorCopy(parent->lightingOrigin, gun.lightingOrigin);
+				barrel.shadowPlane = parent->shadowPlane;
+				barrel.renderfx = parent->renderfx;
+				barrel.hModel = trap->R_RegisterModel("models/wzweapons/scope_3.md3");
+				AnglesToAxis(vec3_origin, barrel.axis);
+				CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_scope");
+				CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
+				break;
+			}
+		}
+
+		{// Barrel...
+			if (BG_EquippedWeaponIsTwoHanded(cent->playerState))
+			{
+				switch (BG_EquippedWeaponVisualType3(cent->playerState))
+				{
+				case WEAPON_STAT3_SHOT_DEFAULT:
+				default:
+					break;
+				case WEAPON_STAT3_SHOT_BOUNCE:
+					memset(&barrel, 0, sizeof(barrel));
+					VectorCopy(parent->lightingOrigin, gun.lightingOrigin);
+					barrel.shadowPlane = parent->shadowPlane;
+					barrel.renderfx = parent->renderfx;
+					barrel.hModel = trap->R_RegisterModel("models/wzweapons/barrel_2.md3");
+					AnglesToAxis(vec3_origin, barrel.axis);
+					CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_barrel");
+					CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
+					break;
+				case WEAPON_STAT3_SHOT_EXPLOSIVE:
+					memset(&barrel, 0, sizeof(barrel));
+					VectorCopy(parent->lightingOrigin, gun.lightingOrigin);
+					barrel.shadowPlane = parent->shadowPlane;
+					barrel.renderfx = parent->renderfx;
+					barrel.hModel = trap->R_RegisterModel("models/wzweapons/barrel_1.md3");
+					AnglesToAxis(vec3_origin, barrel.axis);
+					CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_barrel");
+					CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
+					break;
+				case WEAPON_STAT3_SHOT_BEAM:
+					memset(&barrel, 0, sizeof(barrel));
+					VectorCopy(parent->lightingOrigin, gun.lightingOrigin);
+					barrel.shadowPlane = parent->shadowPlane;
+					barrel.renderfx = parent->renderfx;
+					barrel.hModel = trap->R_RegisterModel("models/wzweapons/barrel_3.md3");
+					AnglesToAxis(vec3_origin, barrel.axis);
+					CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_barrel");
+					CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
+					break;
+				case WEAPON_STAT3_SHOT_WIDE:
+					memset(&barrel, 0, sizeof(barrel));
+					VectorCopy(parent->lightingOrigin, gun.lightingOrigin);
+					barrel.shadowPlane = parent->shadowPlane;
+					barrel.renderfx = parent->renderfx;
+					barrel.hModel = trap->R_RegisterModel("models/wzweapons/barrel_3.md3");
+					AnglesToAxis(vec3_origin, barrel.axis);
+					CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_barrel");
+					CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
+					break;
+				}
+			}
+			else
+			{
+				switch (BG_EquippedWeaponVisualType3(cent->playerState))
+				{
+				case WEAPON_STAT3_SHOT_DEFAULT:
+				default:
+					break;
+				case WEAPON_STAT3_SHOT_BOUNCE:
+					break;
+				case WEAPON_STAT3_SHOT_EXPLOSIVE:
+					memset(&barrel, 0, sizeof(barrel));
+					VectorCopy(parent->lightingOrigin, gun.lightingOrigin);
+					barrel.shadowPlane = parent->shadowPlane;
+					barrel.renderfx = parent->renderfx;
+					barrel.hModel = trap->R_RegisterModel("models/wzweapons/barrel_2.md3");
+					AnglesToAxis(vec3_origin, barrel.axis);
+					CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_barrel");
+					CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
+					break;
+				case WEAPON_STAT3_SHOT_BEAM:
+					break;
+				case WEAPON_STAT3_SHOT_WIDE:
+					memset(&barrel, 0, sizeof(barrel));
+					VectorCopy(parent->lightingOrigin, gun.lightingOrigin);
+					barrel.shadowPlane = parent->shadowPlane;
+					barrel.renderfx = parent->renderfx;
+					barrel.hModel = trap->R_RegisterModel("models/wzweapons/barrel_3.md3");
+					AnglesToAxis(vec3_origin, barrel.axis);
+					CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_barrel");
+					CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
+					break;
+				}
+			}
 		}
 		
 #if 0 // UQ1: Not sure any of this makes sense until modules that support spinning and stuff are added...
