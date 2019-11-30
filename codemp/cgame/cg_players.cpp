@@ -11596,13 +11596,15 @@ stillDoSaber:
 
 		AddRefEntityToScene(&legs);
 	}
-	else if (!(cent->currentState.powerups & (1 << PW_CLOAKED)))
+	else if (cent->currentState.powerups & (1 << PW_CLOAKED))
 	{ //don't add the normal model if cloaked
 		legs.isLocalPlayer = qfalse;
 		legs.isHumanoid = qtrue;
 	}
 	else
 	{
+		legs.isLocalPlayer = qfalse;
+		legs.isHumanoid = qtrue;
 		AddRefEntityToScene(&legs);
 	}
 

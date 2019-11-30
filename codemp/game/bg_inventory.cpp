@@ -1603,6 +1603,65 @@ int BG_FindInventoryBestWeapon(playerState_t *ps)
 	return gunSlot;
 }
 
+void BG_CreateRandomNPCInventory(playerState_t *ps, team_t team)
+{
+	if (ps->weapon == WP_SABER)
+	{
+		BG_CreatePlayerInventoryItem(ps, 0, 38, irand(QUALITY_GREY, QUALITY_GOLD), irand(ITEM_CRYSTAL_RED, ITEM_CRYSTAL_PINK), irand(SABER_STAT1_DEFAULT, SABER_STAT1_MAX - 1), irand(SABER_STAT2_DEFAULT, SABER_STAT2_MAX - 1), irand(SABER_STAT3_DEFAULT, SABER_STAT3_MAX - 1));
+
+		// Add random mods...
+		inventoryItem *newItem = allInventoryItems[ps->inventoryItems[0]];
+		uint16_t weaponQuality = Q_clamp(QUALITY_GREY, newItem->getQuality() - 2, QUALITY_GOLD);
+
+		if (newItem->getQuality() >= QUALITY_PURPLE)
+		{
+			inventoryItem *stat1 = BG_FindBaseInventoryItem(32, irand(weaponQuality, QUALITY_GOLD), -1, irand(SABER_STAT1_MELEE_BLOCKING, SABER_STAT1_MAX - 1), 0, 0);
+			ps->inventoryMod1[0] = stat1->getItemID();
+
+			if (newItem->getQuality() >= QUALITY_ORANGE)
+			{
+				inventoryItem *stat2 = BG_FindBaseInventoryItem(32, irand(weaponQuality, QUALITY_GOLD), -1, 0, irand(SABER_STAT2_DAMAGE_MODIFIER, SABER_STAT2_MAX - 1), 0);
+				ps->inventoryMod2[0] = stat2->getItemID();
+
+				if (newItem->getQuality() >= QUALITY_GOLD)
+				{
+					inventoryItem *stat3 = BG_FindBaseInventoryItem(32, irand(weaponQuality, QUALITY_GOLD), -1, 0, 0, irand(SABER_STAT3_LENGTH_MODIFIER, SABER_STAT3_MAX - 1));
+					ps->inventoryMod3[0] = stat3->getItemID();
+				}
+			}
+		}
+	}
+	else
+	{
+		BG_CreatePlayerInventoryItem(ps, 0, 39, irand(QUALITY_GREY, QUALITY_GOLD), irand(ITEM_CRYSTAL_RED, ITEM_CRYSTAL_PINK), irand(WEAPON_STAT1_DEFAULT, WEAPON_STAT1_MAX - 1), irand(WEAPON_STAT2_DEFAULT, WEAPON_STAT2_MAX - 1), irand(WEAPON_STAT3_SHOT_DEFAULT, WEAPON_STAT3_MAX - 1));
+
+		// Add random mods...
+		inventoryItem *newItem = allInventoryItems[ps->inventoryItems[0]];
+		uint16_t weaponQuality = Q_clamp(QUALITY_GREY, newItem->getQuality() - 2, QUALITY_GOLD);
+
+		if (newItem->getQuality() >= QUALITY_PURPLE)
+		{
+			inventoryItem *stat1 = BG_FindBaseInventoryItem(34, irand(weaponQuality, QUALITY_GOLD), -1, irand(WEAPON_STAT1_HEAVY_PISTOL, WEAPON_STAT1_MAX - 1), 0, 0);
+			ps->inventoryMod1[0] = stat1->getItemID();
+
+			if (newItem->getQuality() >= QUALITY_ORANGE)
+			{
+				inventoryItem *stat2 = BG_FindBaseInventoryItem(34, irand(weaponQuality, QUALITY_GOLD), -1, 0, irand(WEAPON_STAT2_FIRE_DAMAGE_MODIFIER, WEAPON_STAT2_MAX - 1), 0);
+				ps->inventoryMod2[0] = stat2->getItemID();
+
+				if (newItem->getQuality() >= QUALITY_GOLD)
+				{
+					inventoryItem *stat3 = BG_FindBaseInventoryItem(34, irand(weaponQuality, QUALITY_GOLD), -1, 0, 0, irand(WEAPON_STAT3_SHOT_BOUNCE, WEAPON_STAT3_MAX - 1));
+					ps->inventoryMod3[0] = stat3->getItemID();
+				}
+			}
+		}
+	}
+
+	// Always equip the 1st inventory slot...
+	ps->inventoryEquipped[0] = 0;
+}
+
 void BG_CreatePlayerDefaultJediInventory(playerState_t *ps, team_t team)
 {
 	if (BG_CountInventoryItems(ps) > 0)

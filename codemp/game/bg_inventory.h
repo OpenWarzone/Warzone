@@ -3,6 +3,10 @@
 extern int		bg_numItems;
 extern gitem_t	bg_itemlist[];
 
+#if defined(_GAME)
+extern void BG_CreateRandomNPCInventory(playerState_t *ps, team_t team);
+#endif //defined(_GAME)
+
 // Basic lookups stuff... Returns whole item info...
 extern inventoryItem *BG_GetInventoryItemByID(uint16_t id);
 extern inventoryItem *BG_EquippedWeapon(playerState_t *ps);

@@ -1560,6 +1560,16 @@ static void WP_ModulatedWeaponFire(gentity_t *ent, int damage, float velocity, f
 						tent->s.shouldtarget = fullCharge;
 						tent->s.eventParm = ent->s.number;
 
+						if (ent->client)
+						{// Send the crystal color for client...
+							uint16_t crystal = BG_EquippedWeaponCrystal(&ent->client->ps);
+							tent->s.temporaryWeapon = crystal;
+						}
+						else
+						{
+							tent->s.temporaryWeapon = 0;
+						}
+
 						te = G_TempEntity(tr.endpos, EV_SABER_BLOCK);
 						VectorCopy(tr.endpos, te->s.origin);
 						VectorCopy(tr.plane.normal, te->s.angles);
@@ -1581,6 +1591,16 @@ static void WP_ModulatedWeaponFire(gentity_t *ent, int damage, float velocity, f
 				tent->s.shouldtarget = fullCharge;
 				tent->s.eventParm = ent->s.number;
 
+				if (ent->client)
+				{// Send the crystal color for client...
+					uint16_t crystal = BG_EquippedWeaponCrystal(&ent->client->ps);
+					tent->s.temporaryWeapon = crystal;
+				}
+				else
+				{
+					tent->s.temporaryWeapon = 0;
+				}
+
 				// If the beam hits a skybox, etc. it would look foolish to add impact effects
 				if (render_impact)
 				{
@@ -1588,10 +1608,12 @@ static void WP_ModulatedWeaponFire(gentity_t *ent, int damage, float velocity, f
 					{
 						tent->s.otherEntityNum = traceEnt->s.number;
 
+#if 0
 						// Create a simple impact type mark
 						tent = G_TempEntity(tr.endpos, EV_MISSILE_MISS);
 						tent->s.eventParm = DirToByte(tr.plane.normal);
 						tent->s.eFlags |= EF_ALT_FIRING;
+#endif
 
 						if (LogAccuracyHit(traceEnt, ent))
 						{
@@ -1612,15 +1634,19 @@ static void WP_ModulatedWeaponFire(gentity_t *ent, int damage, float velocity, f
 								G_Damage(traceEnt, ent, ent, dir, tr.endpos, damage,
 									DAMAGE_NO_KNOCKBACK, MOD_DISRUPTOR_SNIPER);
 
+#if 0
 								tent = G_TempEntity(tr.endpos, EV_DISRUPTOR_HIT);
 								tent->s.eventParm = DirToByte(tr.plane.normal);
+#endif
 							}
 						}
 						else
 						{
+#if 0
 							// Hmmm, maybe don't make any marks on things that could break
 							tent = G_TempEntity(tr.endpos, EV_DISRUPTOR_SNIPER_MISS);
 							tent->s.eventParm = DirToByte(tr.plane.normal);
+#endif
 						}
 						break; // and don't try any more traces
 					}
@@ -1662,12 +1688,14 @@ static void WP_ModulatedWeaponFire(gentity_t *ent, int damage, float velocity, f
 							VectorClear(traceEnt->client->ps.velocity);
 						}
 
+#if 0
 						tent = G_TempEntity(tr.endpos, EV_DISRUPTOR_HIT);
 						tent->s.eventParm = DirToByte(tr.plane.normal);
 						if (traceEnt->client)
 						{
 							tent->s.weapon = 1;
 						}
+#endif
 
 						if (explosion > 0)
 						{// Add splash radius from explosive mod...

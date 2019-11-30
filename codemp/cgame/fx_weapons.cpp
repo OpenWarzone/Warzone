@@ -72,22 +72,6 @@ FX_WeaponProjectileThink
 */
 void FX_WeaponProjectileThink(centity_t *cent, const struct weaponInfo_s *weapon)
 {
-	/*switch (cent->currentState.primaryWeapon)
-	{
-	case WEAPON_STAT3_SHOT_DEFAULT:
-	default:
-		break;
-	case WEAPON_STAT3_SHOT_BOUNCE:
-		break;
-	case WEAPON_STAT3_SHOT_EXPLOSIVE:
-		FX_RepeaterAltProjectileThink(cent, weapon);
-		break;
-	case WEAPON_STAT3_SHOT_BEAM:
-		break;
-	case WEAPON_STAT3_SHOT_WIDE:
-		break;
-	}*/
-
 	vec3_t forward;
 
 	if (VectorNormalize2(cent->currentState.pos.trDelta, forward) == 0.0f)
@@ -151,22 +135,6 @@ FX_WeaponProjectileThink
 */
 void FX_WeaponAltProjectileThink(centity_t *cent, const struct weaponInfo_s *weapon)
 {
-	/*switch (cent->currentState.primaryWeapon)
-	{
-	case WEAPON_STAT3_SHOT_DEFAULT:
-	default:
-		break;
-	case WEAPON_STAT3_SHOT_BOUNCE:
-		break;
-	case WEAPON_STAT3_SHOT_EXPLOSIVE:
-		FX_RepeaterAltProjectileThink(cent, weapon);
-		break;
-	case WEAPON_STAT3_SHOT_BEAM:
-		break;
-	case WEAPON_STAT3_SHOT_WIDE:
-		break;
-	}*/
-
 	vec3_t forward;
 
 	if (VectorNormalize2(cent->currentState.pos.trDelta, forward) == 0.0f)
