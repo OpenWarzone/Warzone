@@ -4,7 +4,7 @@ extern int		bg_numItems;
 extern gitem_t	bg_itemlist[];
 
 #if defined(_GAME)
-extern void BG_CreateRandomNPCInventory(playerState_t *ps, team_t team);
+extern void BG_CreateRandomNPCInventory(int entityNum); // Sorry, don't have access to gentity_t here...
 #endif //defined(_GAME)
 
 // Basic lookups stuff... Returns whole item info...

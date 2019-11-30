@@ -966,25 +966,12 @@ netField_t	entityStateFields[] =
 { NETF(csSounds_Jedi), 16 },
 { NETF(extra_flags), 32 },
 
+{ NETF(inventoryBlank[16]), 16 },
 { NETF(inventoryItems[64]), 16 },
 { NETF(inventoryMod1[64]), 16 },
 { NETF(inventoryMod2[64]), 16 },
 { NETF(inventoryMod3[64]), 16 },
 { NETF(inventoryEquipped[16]), 16 },
-
-//rww - for use by mod authors only
-{ NETF(userInt1), 1 },
-{ NETF(userInt2), 1 },
-{ NETF(userInt3), 1 },
-{ NETF(userFloat1), 1 },
-{ NETF(userFloat2), 1 },
-{ NETF(userFloat3), 1 },
-{ NETF(userVec1[0]), 1 },
-{ NETF(userVec1[1]), 1 },
-{ NETF(userVec1[2]), 1 },
-{ NETF(userVec2[0]), 1 },
-{ NETF(userVec2[1]), 1 },
-{ NETF(userVec2[2]), 1 }
 };
 
 // if (int)f == f and (int)f + ( 1<<(FLOAT_INT_BITS-1) ) < ( 1 << FLOAT_INT_BITS )
@@ -1423,25 +1410,12 @@ netField_t	playerStateFields[] =
 //{ PSF(hyperSpaceAngles[2]), 0 },//only used by vehicle?
 { PSF(nextStyleSwitch), 32 },
 
+{ PSF(inventoryBlank[16]), 16 },
 { PSF(inventoryItems[64]), 16 },
 { PSF(inventoryMod1[64]), 16 },
 { PSF(inventoryMod2[64]), 16 },
 { PSF(inventoryMod3[64]), 16 },
 { PSF(inventoryEquipped[16]), 16 },
-
-//rww - for use by mod authors only
-{ PSF(userInt1), 1 },
-{ PSF(userInt2), 1 },
-{ PSF(userInt3), 1 },
-{ PSF(userFloat1), 1 },
-{ PSF(userFloat2), 1 },
-{ PSF(userFloat3), 1 },
-{ PSF(userVec1[0]), 1 },
-{ PSF(userVec1[1]), 1 },
-{ PSF(userVec1[2]), 1 },
-{ PSF(userVec2[0]), 1 },
-{ PSF(userVec2[1]), 1 },
-{ PSF(userVec2[2]), 1 }
 };
 
 netField_t	pilotPlayerStateFields[] =
@@ -1617,20 +1591,6 @@ netField_t	pilotPlayerStateFields[] =
 { PSF(inventoryMod2[64]), 16 },
 { PSF(inventoryMod3[64]), 16 },
 { PSF(inventoryEquipped[16]), 16 },
-
-//rww - for use by mod authors only
-{ PSF(userInt1), 1 },
-{ PSF(userInt2), 1 },
-{ PSF(userInt3), 1 },
-{ PSF(userFloat1), 1 },
-{ PSF(userFloat2), 1 },
-{ PSF(userFloat3), 1 },
-{ PSF(userVec1[0]), 1 },
-{ PSF(userVec1[1]), 1 },
-{ PSF(userVec1[2]), 1 },
-{ PSF(userVec2[0]), 1 },
-{ PSF(userVec2[1]), 1 },
-{ PSF(userVec2[2]), 1 }
 };
 
 netField_t	vehPlayerStateFields[] =
@@ -1704,20 +1664,6 @@ netField_t	vehPlayerStateFields[] =
 { PSF(hyperSpaceAngles[0]), 0 },
 { PSF(hyperSpaceAngles[2]), 0 },
 { PSF(nextStyleSwitch), 32 },
-
-//rww - for use by mod authors only
-{ PSF(userInt1), 1 },
-{ PSF(userInt2), 1 },
-{ PSF(userInt3), 1 },
-{ PSF(userFloat1), 1 },
-{ PSF(userFloat2), 1 },
-{ PSF(userFloat3), 1 },
-{ PSF(userVec1[0]), 1 },
-{ PSF(userVec1[1]), 1 },
-{ PSF(userVec1[2]), 1 },
-{ PSF(userVec2[0]), 1 },
-{ PSF(userVec2[1]), 1 },
-{ PSF(userVec2[2]), 1 }
 };
 
 //=====_OPTIMIZED_VEHICLE_NETWORKING=======================================================================
@@ -1868,20 +1814,6 @@ netField_t	playerStateFields[] =
 { PSF(hyperSpaceAngles[0]), 0 },
 { PSF(hyperSpaceAngles[2]), 0 },
 { PSF(nextStyleSwitch), 32 },
-
-//rww - for use by mod authors only
-{ PSF(userInt1), 1 },
-{ PSF(userInt2), 1 },
-{ PSF(userInt3), 1 },
-{ PSF(userFloat1), 1 },
-{ PSF(userFloat2), 1 },
-{ PSF(userFloat3), 1 },
-{ PSF(userVec1[0]), 1 },
-{ PSF(userVec1[1]), 1 },
-{ PSF(userVec1[2]), 1 },
-{ PSF(userVec2[0]), 1 },
-{ PSF(userVec2[1]), 1 },
-{ PSF(userVec2[2]), 1 }
 };
 
 //=====_OPTIMIZED_VEHICLE_NETWORKING=======================================================================
@@ -1902,6 +1834,7 @@ static bitStorage_t		*g_psfBitStorage = NULL;
 //rww - Check the overrides files to see if the mod wants anything changed
 void MSG_CheckNETFPSFOverrides(qboolean psfOverrides)
 {
+#if 0
 	char overrideFile[4096];
 	char entryName[4096];
 	char bits[4096];
@@ -2091,6 +2024,7 @@ void MSG_CheckNETFPSFOverrides(qboolean psfOverrides)
 
 		i++;
 	}
+#endif
 }
 
 /*
@@ -2109,6 +2043,7 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, struct playerState_s *from, struct p
 	int				statsbits;
 	int				persistantbits;
 	int				powerupbits;
+	int				inventoryBlankBits;
 	int				inventoryItemBits;
 	int				inventoryMod1Bits;
 	int				inventoryMod2Bits;
@@ -2245,6 +2180,12 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, struct playerState_s *from, struct p
 			powerupbits |= 1<<i;
 		}
 	}
+	inventoryBlankBits = 0;
+	for (i = 0; i<16; i++) {
+		if (to->inventoryBlank[i] != from->inventoryBlank[i]) {
+			inventoryBlankBits |= 1 << i;
+		}
+	}
 	inventoryItemBits = 0;
 	for (i = 0; i<64; i++) {
 		if (to->inventoryItems[i] != from->inventoryItems[i]) {
@@ -2276,7 +2217,7 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, struct playerState_s *from, struct p
 		}
 	}
 
-	if (!statsbits && !persistantbits && !powerupbits && !inventoryItemBits && !inventoryMod1Bits && !inventoryMod2Bits && !inventoryMod3Bits && !inventoryEquippedBits) {
+	if (!statsbits && !persistantbits && !powerupbits && !inventoryBlankBits && !inventoryItemBits && !inventoryMod1Bits && !inventoryMod2Bits && !inventoryMod3Bits && !inventoryEquippedBits) {
 		MSG_WriteBits( msg, 0, 1 );	// no change
 		oldsize += 4;
 #ifdef _ONEBIT_COMBO
@@ -2333,6 +2274,21 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, struct playerState_s *from, struct p
 				MSG_WriteLong( msg, to->powerups[i] );
 	} else {
 		MSG_WriteBits( msg, 0, 1 );	// no change
+	}
+
+	if (inventoryBlankBits) {
+		MSG_WriteBits(msg, 1, 1);	// changed
+		MSG_WriteBits(msg, inventoryBlankBits, 8);
+		for (i = 0; i<16; i++)
+		{
+			if (inventoryEquippedBits & (1 << i))
+			{
+				MSG_WriteShort(msg, to->inventoryBlank[i]);
+			}
+		}
+	}
+	else {
+		MSG_WriteBits(msg, 0, 1);	// no change
 	}
 
 	if (inventoryItemBits) {
@@ -2599,6 +2555,17 @@ void MSG_ReadDeltaPlayerstate (msg_t *msg, playerState_t *from, playerState_t *t
 			for (i=0 ; i<MAX_POWERUPS ; i++) {
 				if (bits & (1<<i) ) {
 					to->powerups[i] = MSG_ReadLong(msg);
+				}
+			}
+		}
+
+		// parse inventoryBlank
+		if (MSG_ReadBits(msg, 1)) {
+			LOG("PS_INVENTORYBLANK");
+			bits = MSG_ReadBits(msg, 8);
+			for (i = 0; i<16; i++) {
+				if (bits & (1 << i)) {
+					to->inventoryBlank[i] = MSG_ReadShort(msg);
 				}
 			}
 		}

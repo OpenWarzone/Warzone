@@ -426,7 +426,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 		return;
 	}
 
-	if (cent->currentState.number == cg.snap->ps.clientNum && !cg.renderingThirdPerson && thirdPerson/*!ps*/)
+	if (cent->currentState.number == cg.snap->ps.clientNum && !cg.renderingThirdPerson && thirdPerson)
 	{// Skip drawing the G2 weapon while in 1st person because we draw the feet/torso...
 		return;
 	}
@@ -455,9 +455,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 		extern clientInfo_t *CG_GetClientInfoForEnt(centity_t *ent);
 		clientInfo_t	*ci = CG_GetClientInfoForEnt(cent);
 
-
 		mdxaBone_t 		boltMatrix;
-
 
 		if (!trap->G2API_HasGhoul2ModelOnIndex(&(cent->ghoul2), 0))
 		{ //it's quite possible that we may have have no weapon model and be in a valid state, so return here if this is the case
@@ -496,6 +494,23 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 		//
 		// Add the attachments...
 		//
+
+		if (cent->currentState.eType == ET_NPC)
+		{
+			//cent->playerState->weapon = weaponNum;
+
+			/*trap->Print("NPC %i. equipped %i (%i). item %u (%u). mod1 %u (%u). mod2 %u (%u). mod3 %u (%u). Visuals %u %u %u.\n"
+				, cent->currentState.number
+				, cent->playerState->inventoryEquipped[0], cent->currentState.inventoryEquipped[0]
+				, cent->playerState->inventoryItems[0], cent->currentState.inventoryItems[0]
+				, cent->playerState->inventoryMod1[0], cent->currentState.inventoryMod1[0]
+				, cent->playerState->inventoryMod2[0], cent->currentState.inventoryMod2[0]
+				, cent->playerState->inventoryMod3[0], cent->currentState.inventoryMod3[0]
+				, BG_EquippedWeaponVisualType1(cent->playerState)
+				, BG_EquippedWeaponVisualType2(cent->playerState)
+				, BG_EquippedWeaponVisualType3(cent->playerState));
+				*/
+		}
 
 		{// Clip...
 			switch (BG_EquippedWeaponVisualType1(cent->playerState))

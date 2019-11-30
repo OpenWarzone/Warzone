@@ -170,11 +170,6 @@ void SP_light( gentity_t *self ) {
 				b = 255;
 			}
 			
-			if (light < 0) 
-				self->s.extra_flags = 1; // volume light
-			else 
-				self->s.extra_flags = 0; // not volume light
-
 			i = light / 4;
 			if ( i > 255 ) {
 				i = 255;

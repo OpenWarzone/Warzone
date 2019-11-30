@@ -2047,6 +2047,7 @@ typedef struct playerState_s {
 	int			nextStyleSwitch;
 
 	// Inventory Data...
+	int				inventoryBlank[16] = { { -1 } };
 	uint16_t		inventoryItems[64] = { { 0 } }; // Need to keep values < 65536 for transmission
 	uint16_t		inventoryMod1[64] = { { 0 } }; // Need to keep values < 65536 for transmission
 	uint16_t		inventoryMod2[64] = { { 0 } }; // Need to keep values < 65536 for transmission
@@ -2485,6 +2486,7 @@ typedef struct entityState_s {
 	int			healFxTime;
 
 	// Inventory Data...
+	int				inventoryBlank[16] = { { -1 } };
 	uint16_t		inventoryItems[64] = { { 0 } }; // Need to keep values < 65536 for transmission
 	uint16_t		inventoryMod1[64] = { { 0 } }; // Need to keep values < 65536 for transmission
 	uint16_t		inventoryMod2[64] = { { 0 } }; // Need to keep values < 65536 for transmission

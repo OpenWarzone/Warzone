@@ -1478,66 +1478,6 @@ inventoryItem *BG_GetInventoryItemByID(uint16_t id)
 //
 
 #if defined(_GAME)
-inventoryItem *BG_FindBaseInventoryItem(uint16_t bgItemID, int quality, int crystal, uint16_t stat1, uint16_t stat2, uint16_t stat3)
-{
-	for (uint16_t i = 0; i < allInventoryItemsCount; i++)
-	{
-		inventoryItem *item = allInventoryItems[i];
-		
-		if (item->getBaseItemID() != bgItemID) continue;
-		if (quality >= 0 && item->getQuality() != quality) continue;
-		if (crystal >= 0 && item->getCrystal() != crystal) continue;
-		if (item->getBasicStat1() != stat1) continue;
-		if (item->getBasicStat2() != stat2) continue;
-		if (item->getBasicStat3() != stat3) continue;
-
-		return item;
-	}
-
-	return NULL;
-}
-
-void BG_CreatePlayerInventoryItem(playerState_t *ps, int psSlot /* -1 to find a free slot */, uint16_t bgItemID, uint16_t quality, uint16_t crystal, uint16_t stat1, uint16_t stat2, uint16_t stat3)
-{
-	if (!ps) return;
-	if (psSlot > 63) return;
-
-	uint16_t useSlot = psSlot;
-
-	if (psSlot < 0)
-	{// Find a free slot...
-		int bestSlot = -1;
-
-		for (int i = 0; i < 64; i++)
-		{
-			if (ps->inventoryItems[i] == 0)
-			{
-				bestSlot = i;
-				break;
-			}
-		}
-
-		if (bestSlot >= 0)
-		{// We found a free slot to use...
-			useSlot = bestSlot;
-		}
-		else
-		{// All slots are full...
-			return;
-		}
-	}
-
-	if (ps->inventoryItems[useSlot] == 0)
-	{// Never replace a current item...
-		inventoryItem *item = BG_FindBaseInventoryItem(bgItemID, quality, crystal, stat1, stat2, stat3);
-
-		if (item)
-		{
-			ps->inventoryItems[useSlot] = item->getItemID();
-		}
-	}
-}
-
 int BG_CountInventoryItems(playerState_t *ps)
 {
 	int count = 0;
@@ -1603,15 +1543,121 @@ int BG_FindInventoryBestWeapon(playerState_t *ps)
 	return gunSlot;
 }
 
-void BG_CreateRandomNPCInventory(playerState_t *ps, team_t team)
+inventoryItem *BG_FindBaseInventoryItem(uint16_t bgItemID, int quality, int crystal, uint16_t stat1, uint16_t stat2, uint16_t stat3)
 {
+	for (uint16_t i = 0; i < allInventoryItemsCount; i++)
+	{
+		inventoryItem *item = allInventoryItems[i];
+		
+		if (item->getBaseItemID() != bgItemID) continue;
+		if (quality >= 0 && item->getQuality() != quality) continue;
+		if (crystal >= 0 && item->getCrystal() != crystal) continue;
+		if (stat1 >= 0 && item->getBasicStat1() != stat1) continue;
+		if (stat2 >= 0 && item->getBasicStat2() != stat2) continue;
+		if (stat3 >= 0 && item->getBasicStat3() != stat3) continue;
+
+		return item;
+	}
+
+	return NULL;
+}
+
+inventoryItem *BG_CreatePlayerInventoryItem(playerState_t *ps, int psSlot /* -1 to find a free slot */, uint16_t bgItemID, uint16_t quality, uint16_t crystal, uint16_t stat1, uint16_t stat2, uint16_t stat3)
+{
+	if (!ps) return NULL;
+	if (psSlot > 63) return NULL;
+
+	uint16_t useSlot = psSlot;
+
+	if (psSlot < 0)
+	{// Find a free slot...
+		int bestSlot = -1;
+
+		for (int i = 0; i < 64; i++)
+		{
+			if (ps->inventoryItems[i] == 0)
+			{
+				bestSlot = i;
+				break;
+			}
+		}
+
+		if (bestSlot >= 0)
+		{// We found a free slot to use...
+			useSlot = bestSlot;
+		}
+		else
+		{// All slots are full...
+			return NULL;
+		}
+	}
+
+	if (ps->inventoryItems[useSlot] == 0)
+	{// Never replace a current item...
+		inventoryItem *item = BG_FindBaseInventoryItem(bgItemID, quality, crystal, stat1, stat2, stat3);
+
+		if (item)
+		{
+			ps->inventoryItems[useSlot] = item->getItemID();
+			return item;
+		}
+	}
+
+	return NULL;
+}
+
+void BG_CreateRandomNPCInventory(int entityNum)
+{
+	if (entityNum >= MAX_GENTITIES)
+	{
+		return;
+	}
+
+	gentity_t *ent = &g_entities[entityNum];
+
+	if (!ent)
+	{
+		return;
+	}
+
+	if (!ent->client)
+	{
+		trap->Print("BG_CreateRandomNPCInventory: NPC %i has no client structure.\n", entityNum);
+		return;
+	}
+
+	playerState_t *ps = &ent->client->ps;
+	team_t team = ent->client->sess.sessionTeam;
+
+	itemPowerCrystal_t crystal = ITEM_CRYSTAL_RED;
+
+	switch (team)
+	{
+	case FACTION_EMPIRE:
+		crystal = ITEM_CRYSTAL_RED;
+		break;
+	case FACTION_REBEL:
+		crystal = ITEM_CRYSTAL_BLUE;
+		break;
+	default:
+		crystal = (itemPowerCrystal_t)irand(ITEM_CRYSTAL_RED, ITEM_CRYSTAL_PINK);
+		break;
+	}
+
 	if (ps->weapon == WP_SABER)
 	{
-		BG_CreatePlayerInventoryItem(ps, 0, 38, irand(QUALITY_GREY, QUALITY_GOLD), irand(ITEM_CRYSTAL_RED, ITEM_CRYSTAL_PINK), irand(SABER_STAT1_DEFAULT, SABER_STAT1_MAX - 1), irand(SABER_STAT2_DEFAULT, SABER_STAT2_MAX - 1), irand(SABER_STAT3_DEFAULT, SABER_STAT3_MAX - 1));
+		inventoryItem *newItem = NULL;
+
+		while (!newItem)
+		{
+			newItem = BG_CreatePlayerInventoryItem(ps, 0, 38, irand(QUALITY_GREY, QUALITY_GOLD), crystal, irand(SABER_STAT1_DEFAULT, SABER_STAT1_MAX - 1), irand(SABER_STAT2_DEFAULT, SABER_STAT2_MAX - 1), irand(SABER_STAT3_DEFAULT, SABER_STAT3_MAX - 1));
+		}
 
 		// Add random mods...
-		inventoryItem *newItem = allInventoryItems[ps->inventoryItems[0]];
 		uint16_t weaponQuality = Q_clamp(QUALITY_GREY, newItem->getQuality() - 2, QUALITY_GOLD);
+
+		// Always equip the 1st inventory slot...
+		ps->inventoryEquipped[0] = 0;
 
 		if (newItem->getQuality() >= QUALITY_PURPLE)
 		{
@@ -1630,14 +1676,23 @@ void BG_CreateRandomNPCInventory(playerState_t *ps, team_t team)
 				}
 			}
 		}
+
+		//trap->Print("NPC %i given saber %u (%s). mod1 %u mod2 %u mod3 %u.\n", entityNum, ps->inventoryItems[0], newItem->getName(), ps->inventoryMod1[0], ps->inventoryMod2[0], ps->inventoryMod3[0]);
 	}
 	else
 	{
-		BG_CreatePlayerInventoryItem(ps, 0, 39, irand(QUALITY_GREY, QUALITY_GOLD), irand(ITEM_CRYSTAL_RED, ITEM_CRYSTAL_PINK), irand(WEAPON_STAT1_DEFAULT, WEAPON_STAT1_MAX - 1), irand(WEAPON_STAT2_DEFAULT, WEAPON_STAT2_MAX - 1), irand(WEAPON_STAT3_SHOT_DEFAULT, WEAPON_STAT3_MAX - 1));
+		inventoryItem *newItem = NULL;
+
+		while (!newItem)
+		{
+			newItem = BG_CreatePlayerInventoryItem(ps, 0, 39, irand(QUALITY_GREY, QUALITY_GOLD), crystal, irand(WEAPON_STAT1_DEFAULT, WEAPON_STAT1_MAX - 1), irand(WEAPON_STAT2_DEFAULT, WEAPON_STAT2_MAX - 1), irand(WEAPON_STAT3_SHOT_DEFAULT, WEAPON_STAT3_MAX - 1));
+		}
 
 		// Add random mods...
-		inventoryItem *newItem = allInventoryItems[ps->inventoryItems[0]];
 		uint16_t weaponQuality = Q_clamp(QUALITY_GREY, newItem->getQuality() - 2, QUALITY_GOLD);
+
+		// Always equip the 1st inventory slot...
+		ps->inventoryEquipped[0] = 0;
 
 		if (newItem->getQuality() >= QUALITY_PURPLE)
 		{
@@ -1656,10 +1711,9 @@ void BG_CreateRandomNPCInventory(playerState_t *ps, team_t team)
 				}
 			}
 		}
-	}
 
-	// Always equip the 1st inventory slot...
-	ps->inventoryEquipped[0] = 0;
+		//trap->Print("NPC %i given weapon %u (%s). mod1 %u mod2 %u mod3 %u.\n", entityNum, ps->inventoryItems[0], newItem->getName(), ps->inventoryMod1[0], ps->inventoryMod2[0], ps->inventoryMod3[0]);
+	}
 }
 
 void BG_CreatePlayerDefaultJediInventory(playerState_t *ps, team_t team)

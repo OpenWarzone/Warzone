@@ -7833,7 +7833,6 @@ void CG_G2Animated( centity_t *cent )
 	float angSmoothFactor = 0.7f;
 #endif
 
-
 	if (!cent->ghoul2)
 	{ //Initialize this g2 anim ent, then return (will start rendering next frame)
 		CG_G2AnimEntModelLoad(cent);
@@ -7913,6 +7912,38 @@ void CG_G2Animated( centity_t *cent )
 	cent->lerpAngles[YAW] = cent->smoothYaw+(cent->lerpAngles[YAW]-cent->smoothYaw)*angSmoothFactor;
 	cent->smoothYaw = cent->lerpAngles[YAW];
 #endif
+
+	if (cent->playerState)
+	{// Make sure that their inventory is up to date...
+	 memcpy(&cent->playerState->inventoryItems, &cent->currentState.inventoryItems, sizeof(cent->currentState.inventoryItems));
+	 memcpy(&cent->playerState->inventoryMod1, &cent->currentState.inventoryMod1, sizeof(cent->currentState.inventoryMod1));
+	 memcpy(&cent->playerState->inventoryMod2, &cent->currentState.inventoryMod2, sizeof(cent->currentState.inventoryMod2));
+	 memcpy(&cent->playerState->inventoryMod3, &cent->currentState.inventoryMod3, sizeof(cent->currentState.inventoryMod3));
+	 memcpy(&cent->playerState->inventoryEquipped, &cent->currentState.inventoryEquipped, sizeof(cent->currentState.inventoryEquipped));
+
+	 cent->playerState->weapon = cent->currentState.weapon; // we will need this...
+
+		/*if (cent->currentState.eType == ET_NPC)
+		{
+			trap->Print("NPC %i. equipped %i (%i). item %u (%u). mod1 %u (%u). mod2 %u (%u). mod3 %u (%u).\n"
+				, cent->currentState.number
+				, cent->playerState->inventoryEquipped[0], cent->currentState.inventoryEquipped[0]
+				, cent->playerState->inventoryItems[0], cent->currentState.inventoryItems[0]
+				, cent->playerState->inventoryMod1[0], cent->currentState.inventoryMod1[0]
+				, cent->playerState->inventoryMod2[0], cent->currentState.inventoryMod2[0]
+				, cent->playerState->inventoryMod3[0], cent->currentState.inventoryMod3[0]);
+		}
+		else if (cent->currentState.eType == ET_PLAYER)
+		{
+			trap->Print("PLAYER %i. equipped %i (%i). item %u (%u). mod1 %u (%u). mod2 %u (%u). mod3 %u (%u).\n"
+				, cent->currentState.number
+				, cent->playerState->inventoryEquipped[0], cent->currentState.inventoryEquipped[0]
+				, cent->playerState->inventoryItems[0], cent->currentState.inventoryItems[0]
+				, cent->playerState->inventoryMod1[0], cent->currentState.inventoryMod1[0]
+				, cent->playerState->inventoryMod2[0], cent->currentState.inventoryMod2[0]
+				, cent->playerState->inventoryMod3[0], cent->currentState.inventoryMod3[0]);
+		}*/
+	}
 
 	//now just render as a player
 	CG_Player(cent);

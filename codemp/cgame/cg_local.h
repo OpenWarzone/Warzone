@@ -207,9 +207,6 @@ typedef struct debuffVisualsData_s
 typedef struct clientInfo_s {
 	qboolean		infoValid;
 
-	inventoryItem	*inventory[64];
-	int				inventoryCount;
-
 	float			colorOverride[3];
 
 	saberInfo_t		saber[MAX_SABERS];

@@ -351,22 +351,6 @@ static void CG_EntityEffects( centity_t *cent ) {
 		b = (float) ((cl >> 16) & 0xFF) / 255.0;
 		i = (float) ((cl >> 24) & 0xFF) * 4.0;
 
-		if (cent->currentState.extra_flags == 1)
-		{// Volume light...
-			float total = 0;
-			float multiplier = 1.0;
-			i = -i;
-			total = r + g + b;
-			total /= 3.0;
-			if (total > 0.6)
-				multiplier = 0.5; // de-amplify really bright lights to reduce flicker...
-			if (total < 0.333)
-				multiplier = 1.5; // Amplify dull lights...
-			r *= multiplier;
-			g *= multiplier;
-			b *= multiplier;
-		}
-
 		AddLightToScene( cent->lerpOrigin, i, r, g, b );
 	}
 

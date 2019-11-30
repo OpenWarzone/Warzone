@@ -2057,8 +2057,11 @@ finish:
 	// Init conversation search timer... So that they do not find a partner instantly...
 	newent->NPC->conversationSearchTime = level.time + 10000 + irand(0, 10000);
 
-	// Add a random RNG weapon to the npc, a saber or a weapon based on type of npc...
-	BG_CreateRandomNPCInventory(&newent->client->ps, newent->client->sess.sessionTeam);
+	if (!newent->m_pVehicle)
+	{
+		// Add a random RNG weapon to the npc, a saber or a weapon based on type of npc...
+		BG_CreateRandomNPCInventory(newent->s.number);
+	}
 
 	return newent;
 }

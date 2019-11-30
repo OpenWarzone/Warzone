@@ -3800,6 +3800,15 @@ void ClientThink_real( gentity_t *ent ) {
 		}
 	}
 
+	/*
+	trap->Print("npc %i. equipped %i (%i). item %u (%u). mod1 %u (%u). mod2 %u (%u). mod3 %u (%u).\n"
+		, ent->s.number
+		, ent->s.inventoryEquipped[0], ent->client->ps.inventoryEquipped[0]
+		, ent->client->ps.inventoryItems[0], ent->s.inventoryItems[0]
+		, ent->client->ps.inventoryMod1[0], ent->s.inventoryMod1[0]
+		, ent->client->ps.inventoryMod2[0], ent->s.inventoryMod2[0]
+		, ent->client->ps.inventoryMod3[0], ent->s.inventoryMod3[0]);
+		*/
 }
 
 /*

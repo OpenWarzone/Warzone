@@ -4499,7 +4499,7 @@ weapChecks:
 						newmove = LS_A_TL2BR + (curmove - LS_S_TL2BR);
 					}
 				}
-				else if (PM_SaberInBounce(curmove) && pm->ps->userInt3 & (1 << FLAG_PARRIED))
+				else if (PM_SaberInBounce(curmove) & (1 << FLAG_PARRIED))
 				{//can't combo if we were parried.
 					newmove = LS_READY;
 				}
