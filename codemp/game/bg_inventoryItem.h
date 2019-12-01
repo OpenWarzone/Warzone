@@ -191,7 +191,7 @@ public:
 	gitem_t	*getBaseItem();
 	uint16_t getBaseItemID();
 	itemQuality_t getQuality();
-	const char *getName();
+	const char *getName(uint16_t modItemID1);
 	char *getDescription();
 	uint16_t getQuantity();
 	float getCost(uint16_t modItemID1, uint16_t modItemID2, uint16_t modItemID3);

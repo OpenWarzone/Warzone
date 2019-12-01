@@ -554,27 +554,39 @@ void Cmd_KillOther_f( gentity_t *ent )
 	G_Kill( otherEnt );
 }
 
-void Cmd_EquipWeaponSlot_f(gentity_t *ent)
+void Cmd_EquipSlot_f(gentity_t *ent)
 {
 	char	slotindex[MAX_TOKEN_CHARS];
+	char	invslotindex[MAX_TOKEN_CHARS];
 
-	if (trap->Argc() < 2) {
-		trap->SendServerCommand(ent - g_entities, "print \"Usage: equipweaponslot <invSlotNum>\n\"");
+	if (trap->Argc() < 3) {
+		//trap->SendServerCommand(ent - g_entities, "print \"Usage: equipslot <slotNum> <invSlotNum>\n\"");
 		return;
 	}
 
 	trap->Argv(1, slotindex, sizeof(slotindex));
+	trap->Argv(2, invslotindex, sizeof(invslotindex));
 
 	uint16_t slot = atoi(slotindex);
+	uint16_t invslot = atoi(invslotindex);
 
-	if (slot < 0 || slot > 63)
+	if (ent->client->ps.inventoryEquipped[slot] == invslot)
 	{
-		trap->SendServerCommand(ent - g_entities, va("print \"Inventory slot %i is invalid.\n\"", slot));
+		return;
+	}
+
+	if (invslot < 0 || invslot > 63)
+	{
+		//trap->SendServerCommand(ent - g_entities, va("print \"Inventory slot %i is invalid.\n\"", invslot));
+	}
+	else if (slot < 0 || slot > 15)
+	{
+		//trap->SendServerCommand(ent - g_entities, va("print \"Equip slot %i is invalid.\n\"", invslot));
 	}
 	else
 	{
-		ent->client->ps.inventoryEquipped[0] = slot;
-		trap->SendServerCommand(ent - g_entities, va("print \"Item in inventory slot %i is now equipped weapon.\n\"", slot));
+		ent->client->ps.inventoryEquipped[slot] = invslot;
+		//trap->SendServerCommand(ent - g_entities, va("print \"Item in inventory slot %i is now equipped weapon.\n\"", invslot));
 	}
 }
 
@@ -3622,7 +3634,7 @@ command_t commands[] = {
 	{ "d_save",				Cmd_Save_Dungeon_F,			CMD_CHEAT | CMD_ALIVE },
 	{ "d_load",				Cmd_Load_Dungeon_F,			CMD_CHEAT | CMD_ALIVE },//[/Create Dungeon]
 #endif
-	{ "equipweaponslot",	Cmd_EquipWeaponSlot_f,		CMD_NOINTERMISSION },
+	{ "equipslot",			Cmd_EquipSlot_f,			0 },
 	{ "follow",				Cmd_Follow_f,				CMD_NOINTERMISSION },
 	{ "follownext",			Cmd_FollowNext_f,			CMD_NOINTERMISSION },
 	{ "followprev",			Cmd_FollowPrev_f,			CMD_NOINTERMISSION },

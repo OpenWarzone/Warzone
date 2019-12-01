@@ -1018,8 +1018,8 @@ vec4 GetDiffuse(inout float fakeGrassFactor)
 
 			float dist = distance(u_ViewOrigin.xyz, m_vertPos.xyz);
 			float gAlpha = 0.0;
-			float grassStart = GRASS_DISTANCE * 0.25;
-			float grassMax = GRASS_DISTANCE * 3.0;
+			float grassStart = 0.0;//GRASS_DISTANCE * 0.25;
+			float grassMax = GRASS_DISTANCE;//GRASS_DISTANCE * 3.0;
 
 			if (dist >= grassStart)
 			{

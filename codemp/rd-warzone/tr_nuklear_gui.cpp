@@ -1310,9 +1310,19 @@ struct nk_context GUI_ctx;
 
 /* ===============================================================
 *
+* SELECTED ITEM STUFF (shared between quickbar, inventory and powers)
+*
+* ===============================================================*/
+
+int				noSelectTime = 0;
+
+
+/* ===============================================================
+*
 *                          MAIN MENU
 *
 * ===============================================================*/
+
 
 typedef enum nuklearMenus_s {
 	MENU_NONE,
@@ -1788,7 +1798,7 @@ struct nk_image GUI_GetInventoryIconForEquipped(uint16_t slot)
 	}
 	else if (item->getBaseItem()->giTag == WP_MODULIZED_WEAPON)
 	{
-		switch (item->getBasicStat1())
+		switch (item->getVisualType1(playerInventoryMod1[playerInventoryEquipped[slot]]))
 		{// TODO: A better way, that uses all the possible icons...
 		case WEAPON_STAT1_DEFAULT:						// Pistol
 		default:
@@ -1816,153 +1826,46 @@ struct nk_image GUI_GetInventoryIconForEquipped(uint16_t slot)
 		return GUI_media.inventoryIcons[4][item->getQuality()];
 	}
 }
-static void
-GUI_Character(struct nk_context *ctx, struct media *media)
+
+struct nk_image GUI_GetInventoryIconForInvSlot(uint16_t slot)
 {
-	float size[2] = { 340.0, 512.0 };
+	inventoryItem *item = BG_GetInventoryItemByID(playerInventory[slot]);
 
-	int i = 0;
-	nk_style_set_font(ctx, &media->font_20->handle);
-	nk_begin(ctx, "Character", nk_rect(128.0, 128.0, size[0], size[1]), NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_TITLE | NK_WINDOW_CLOSABLE | NK_WINDOW_NO_SCROLLBAR);
-
-	// Icon...
-	nk_window *win = nk_window_find(ctx, "Character");
-	win->hasIcon = true;
-	win->icon = media->iconCharacter;
-
-	win->hasImageBackground = true;
-	win->imageBackground = media->characterBackground;
-	
-	// Blank Row...
+	if (item->getBaseItem()->giTag == WP_SABER)
 	{
-		nk_layout_row_static(ctx, 62, 158, 2);
-		nk_label(ctx, "", NK_TEXT_ALIGN_LEFT);
+		return GUI_media.inventoryIcons[0][item->getQuality()];
 	}
-
-	// Main slots...
-	nk_layout_row_static(ctx, 41, 158, 2);
-	ctx->style.button.border_color = nk_rgba(0, 0, 0, 0);
-
-	{// Left Slot 1... Occular Implant...
-		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-		int ret = nk_button_image_label(ctx, media->characterImplant, "", NK_TEXT_ALIGN_LEFT);
-		GUI_MenuHoverTooltip(ctx, media, "Occular Implant", media->characterImplant);
-	}
-
-	{// Right Slot 1... Helmet...
-		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-		int ret = nk_button_image_label(ctx, media->characterHelmet, "", NK_TEXT_ALIGN_RIGHT);
-		GUI_MenuHoverTooltip(ctx, media, "Head Armor", media->characterHelmet);
-	}
-
-	{// Left Slot 2... Body Implant...
-		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-		int ret = nk_button_image_label(ctx, media->characterImplant, "", NK_TEXT_ALIGN_LEFT);
-		GUI_MenuHoverTooltip(ctx, media, "Body Implant", media->characterImplant);
-	}
-
-	{// Right Slot 2... Body Armor...
-		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-		int ret = nk_button_image_label(ctx, media->characterBody, "", NK_TEXT_ALIGN_RIGHT);
-		GUI_MenuHoverTooltip(ctx, media, "Body Armor", media->characterBody);
-	}
-
-	{// Left Slot 3... Ring...
-		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-		int ret = nk_button_image_label(ctx, media->characterRing, "", NK_TEXT_ALIGN_LEFT);
-		GUI_MenuHoverTooltip(ctx, media, "Ring", media->characterRing);
-	}
-
-	{// Right Slot 3... Arm Armor...
-		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-		int ret = nk_button_image_label(ctx, media->characterArm, "", NK_TEXT_ALIGN_RIGHT);
-		GUI_MenuHoverTooltip(ctx, media, "Arm Armor", media->characterArm);
-	}
-
-	{// Left Slot 4... Device (shield/cloak/jetpack/etc)...
-		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-		int ret = nk_button_image_label(ctx, media->characterDevice, "", NK_TEXT_ALIGN_LEFT);
-		GUI_MenuHoverTooltip(ctx, media, "Device", media->characterDevice);
-	}
-
-	{// Right Slot 4... Gloves...
-		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-		int ret = nk_button_image_label(ctx, media->characterGloves, "", NK_TEXT_ALIGN_RIGHT);
-		GUI_MenuHoverTooltip(ctx, media, "Gloves", media->characterGloves);
-	}
-
-	{// Left Slot 5...  Device (shield/cloak/jetpack/etc)...
-		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-		int ret = nk_button_image_label(ctx, media->characterDevice, "", NK_TEXT_ALIGN_LEFT);
-		GUI_MenuHoverTooltip(ctx, media, "Device", media->characterDevice);
-	}
-
-	{// Right Slot 5... Leg Armor...
-		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-		int ret = nk_button_image_label(ctx, media->characterLegs, "", NK_TEXT_ALIGN_RIGHT);
-		GUI_MenuHoverTooltip(ctx, media, "Leg Armor", media->characterLegs);
-	}
-
-	{// Left Slot 6... Artifact...
-		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-		int ret = nk_button_image_label(ctx, media->characterArtifact, "", NK_TEXT_ALIGN_LEFT);
-		GUI_MenuHoverTooltip(ctx, media, "Artifact", media->characterArtifact);
-	}
-
-	{// Right Slot 6... Shoes...
-		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-		int ret = nk_button_image_label(ctx, media->characterFeet, "", NK_TEXT_ALIGN_RIGHT);
-		GUI_MenuHoverTooltip(ctx, media, "Shoes", media->characterFeet);
-	}
-
-	// Blank Row...
+	else if (item->getBaseItem()->giTag == WP_MODULIZED_WEAPON)
 	{
-		nk_layout_row_static(ctx, 61, 158, 2);
-		nk_label(ctx, "", NK_TEXT_ALIGN_LEFT);
-	}
-
-	nk_layout_row_static(ctx, 41, 158, 2);
-
-	{// Right Weapon...
-		bool found = false;
-
-		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-		
-		if (playerInventoryEquipped[0] >= 0)
-		{// This is an equipped item... Add it to character slot...
-			struct nk_image icon = GUI_GetInventoryIconForEquipped(0);
-			
-			if (icon.handle.id)
-			{
-				inventoryItem *item = BG_GetInventoryItemByID(playerInventory[playerInventoryEquipped[0]]);
-				inventoryItem *mod1 = BG_GetInventoryItemByID(playerInventoryMod1[playerInventoryEquipped[0]]);
-				inventoryItem *mod2 = BG_GetInventoryItemByID(playerInventoryMod2[playerInventoryEquipped[0]]);
-				inventoryItem *mod3 = BG_GetInventoryItemByID(playerInventoryMod3[playerInventoryEquipped[0]]);
-				
-				char tooltip[1024] = { { 0 } };
-				strcpy(tooltip, item->getTooltip(mod1->getItemID(), mod2->getItemID(), mod3->getItemID()));
-				int ret = nk_button_image_label(ctx, icon, "", NK_TEXT_ALIGN_RIGHT);
-				GUI_MenuHoverTooltip(ctx, media, tooltip, media->characterWeapon);
-				found = true;
-			}
-		}
-		
-		if (!found)
-		{// Blank slot...
-			int ret = nk_button_image_label(ctx, media->characterWeapon, "", NK_TEXT_ALIGN_RIGHT);
-			GUI_MenuHoverTooltip(ctx, media, "Primary Weapon", media->characterWeapon);
+		switch (item->getVisualType1(playerInventoryMod1[slot]))
+		{// TODO: A better way, that uses all the possible icons...
+		case WEAPON_STAT1_DEFAULT:						// Pistol
+		default:
+			return GUI_media.inventoryIcons[4][item->getQuality()];
+			break;
+		case WEAPON_STAT1_HEAVY_PISTOL:
+			return GUI_media.inventoryIcons[8][item->getQuality()];
+			break;
+		case WEAPON_STAT1_FIRE_ACCURACY_MODIFIER:		// Sniper Rifle
+			return GUI_media.inventoryIcons[13][item->getQuality()];
+			break;
+		case WEAPON_STAT1_FIRE_RATE_MODIFIER:			// Blaster Rifle
+			return GUI_media.inventoryIcons[14][item->getQuality()];
+			break;
+		case WEAPON_STAT1_VELOCITY_MODIFIER:			// Assault Rifle
+			return GUI_media.inventoryIcons[1][item->getQuality()];
+			break;
+		case WEAPON_STAT1_HEAT_ACCUMULATION_MODIFIER:	// Heavy Blster
+			return GUI_media.inventoryIcons[10][item->getQuality()];
+			break;
 		}
 	}
-
-	{// Blank slot... Left Weapon...
-		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-		int ret = nk_button_image_label(ctx, media->characterWeapon2, "", NK_TEXT_ALIGN_LEFT);
-		GUI_MenuHoverTooltip(ctx, media, "Secondary Weapon or Shield", media->characterWeapon2);
+	else
+	{
+		return GUI_media.inventoryIcons[4][item->getQuality()];
 	}
-
-	nk_style_set_font(ctx, &media->font_14->handle);
-	nk_end(ctx);
 }
+
 
 /* ===============================================================
 *
@@ -2418,16 +2321,6 @@ GUI_Radio(struct nk_context *ctx, struct media *media)
 
 /* ===============================================================
 *
-* SELECTED ITEM STUFF (shared between quickbar, inventory and powers)
-*
-* ===============================================================*/
-
-int				noSelectTime = 0;
-//int				selectedContextItem = 0;
-//struct nk_rect	selectedContextBounds;
-
-/* ===============================================================
-*
 *                          INVENTORY
 *
 * ===============================================================*/
@@ -2446,6 +2339,7 @@ typedef struct uiItemInfo_s
 	char						tooltip[1024];
 	int							quality;
 	struct nk_image				*icon;
+	int							invSlot;
 } uiItemInfo_t;
 
 qboolean				inventoryInitialized = qfalse;
@@ -2463,6 +2357,7 @@ GUI_SetInventoryItem(int slot, int quality, struct nk_image *icon, char *name, c
 	inventoryItems[slot].type = INVENTORY_TYPE_INVENTORY;
 	inventoryItems[slot].quality = quality;
 	inventoryItems[slot].icon = icon;
+	inventoryItems[slot].invSlot = slot;
 	strcpy(inventoryItems[slot].name, name);
 	strcpy(inventoryItems[slot].tooltip, tooltip);
 
@@ -2479,6 +2374,7 @@ GUI_InitInventory(void)
 	nullItem.icon = NULL;
 	strcpy(nullItem.name, "");
 	strcpy(nullItem.tooltip, "");
+	nullItem.invSlot = -1;
 
 	for (int i = 0; i < 64; i++)
 		memset(&inventoryItems[i], 0, sizeof(inventoryItems[i]));
@@ -2494,6 +2390,7 @@ GUI_SetAbilityItem(int slot, struct nk_image *icon, char *name, char *tooltip)
 	abilityItems[slot].type = INVENTORY_TYPE_FORCE;
 	abilityItems[slot].quality = QUALITY_GREY;
 	abilityItems[slot].icon = icon;
+	abilityItems[slot].invSlot = slot;
 	strcpy(abilityItems[slot].name, name);
 	strcpy(abilityItems[slot].tooltip, tooltip);
 
@@ -2565,6 +2462,10 @@ GUI_SetQuickBarSlot(int slot, uiItemInfo_t *item)
 	if (slot < 0 || slot > 11) return;
 
 	quickBarSelections[slot].item = item;
+
+	char cvar[64] = { { 0 } };
+	sprintf(cvar, "cg_quickbar%i", slot + 1);
+	ri->Cvar_SetValue(cvar, item->invSlot);
 
 	//ri->Printf(PRINT_WARNING, "Quickbar slot %i set to: type %i, quality %i, icon %i.\n", slot, (int)item->type, item->quality, item->icon->handle.id);
 }
@@ -2838,11 +2739,17 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 
 		ctx->style.button.border_color = nk_rgba(0, 0, 0, 0);
 		
-		if (inventoryItems[i].icon && inventoryItems[i].icon->handle.id != media->inventoryIconsBlank.handle.id)
+		if (playerInventory[i] > 0)
 		{
+			/*inventoryItem *item = BG_GetInventoryItemByID(playerInventory[i]);
+			inventoryItem *mod1 = BG_GetInventoryItemByID(playerInventoryMod1[i]);
+			inventoryItem *mod2 = BG_GetInventoryItemByID(playerInventoryMod2[i]);
+			inventoryItem *mod3 = BG_GetInventoryItemByID(playerInventoryMod3[i]);*/
+
+			struct nk_image icon = GUI_GetInventoryIconForInvSlot(i);
 			quality = QUALITY_GOLD - Q_clamp(QUALITY_GREY, i / QUALITY_GOLD, QUALITY_GOLD);
 			ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-			ret = nk_button_image_label(ctx, *inventoryItems[i].icon, "", NK_TEXT_CENTERED);
+			ret = nk_button_image_label(ctx, icon, "", NK_TEXT_CENTERED);
 		}
 		else
 		{// Blank slot...
@@ -2895,6 +2802,184 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 	}
 	
 	backEnd.ui_MouseCursor = NULL;
+}
+
+static void
+GUI_Character(struct nk_context *ctx, struct media *media)
+{
+	float size[2] = { 340.0, 512.0 };
+
+	int i = 0;
+	nk_style_set_font(ctx, &media->font_20->handle);
+	nk_begin(ctx, "Character", nk_rect(128.0, 128.0, size[0], size[1]), NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_TITLE | NK_WINDOW_CLOSABLE | NK_WINDOW_NO_SCROLLBAR);
+
+	// Icon...
+	nk_window *win = nk_window_find(ctx, "Character");
+	win->hasIcon = true;
+	win->icon = media->iconCharacter;
+
+	win->hasImageBackground = true;
+	win->imageBackground = media->characterBackground;
+
+	// Blank Row...
+	{
+		nk_layout_row_static(ctx, 62, 158, 2);
+		nk_label(ctx, "", NK_TEXT_ALIGN_LEFT);
+	}
+
+	// Main slots...
+	nk_layout_row_static(ctx, 41, 158, 2);
+	ctx->style.button.border_color = nk_rgba(0, 0, 0, 0);
+
+	{// Left Slot 1... Occular Implant...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterImplant, "", NK_TEXT_ALIGN_LEFT);
+		GUI_MenuHoverTooltip(ctx, media, "Occular Implant", media->characterImplant);
+	}
+
+	{// Right Slot 1... Helmet...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterHelmet, "", NK_TEXT_ALIGN_RIGHT);
+		GUI_MenuHoverTooltip(ctx, media, "Head Armor", media->characterHelmet);
+	}
+
+	{// Left Slot 2... Body Implant...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterImplant, "", NK_TEXT_ALIGN_LEFT);
+		GUI_MenuHoverTooltip(ctx, media, "Body Implant", media->characterImplant);
+	}
+
+	{// Right Slot 2... Body Armor...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterBody, "", NK_TEXT_ALIGN_RIGHT);
+		GUI_MenuHoverTooltip(ctx, media, "Body Armor", media->characterBody);
+	}
+
+	{// Left Slot 3... Ring...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterRing, "", NK_TEXT_ALIGN_LEFT);
+		GUI_MenuHoverTooltip(ctx, media, "Ring", media->characterRing);
+	}
+
+	{// Right Slot 3... Arm Armor...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterArm, "", NK_TEXT_ALIGN_RIGHT);
+		GUI_MenuHoverTooltip(ctx, media, "Arm Armor", media->characterArm);
+	}
+
+	{// Left Slot 4... Device (shield/cloak/jetpack/etc)...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterDevice, "", NK_TEXT_ALIGN_LEFT);
+		GUI_MenuHoverTooltip(ctx, media, "Device", media->characterDevice);
+	}
+
+	{// Right Slot 4... Gloves...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterGloves, "", NK_TEXT_ALIGN_RIGHT);
+		GUI_MenuHoverTooltip(ctx, media, "Gloves", media->characterGloves);
+	}
+
+	{// Left Slot 5...  Device (shield/cloak/jetpack/etc)...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterDevice, "", NK_TEXT_ALIGN_LEFT);
+		GUI_MenuHoverTooltip(ctx, media, "Device", media->characterDevice);
+	}
+
+	{// Right Slot 5... Leg Armor...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterLegs, "", NK_TEXT_ALIGN_RIGHT);
+		GUI_MenuHoverTooltip(ctx, media, "Leg Armor", media->characterLegs);
+	}
+
+	{// Left Slot 6... Artifact...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterArtifact, "", NK_TEXT_ALIGN_LEFT);
+		GUI_MenuHoverTooltip(ctx, media, "Artifact", media->characterArtifact);
+	}
+
+	{// Right Slot 6... Shoes...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterFeet, "", NK_TEXT_ALIGN_RIGHT);
+		GUI_MenuHoverTooltip(ctx, media, "Shoes", media->characterFeet);
+	}
+
+	// Blank Row...
+	{
+		nk_layout_row_static(ctx, 61, 158, 2);
+		nk_label(ctx, "", NK_TEXT_ALIGN_LEFT);
+	}
+
+	nk_layout_row_static(ctx, 41, 158, 2);
+
+	{// Right Weapon...
+		int ret = 0;
+		bool found = false;
+
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+
+		if (playerInventoryEquipped[0] >= 0)
+		{// This is an equipped item... Add it to character slot...
+			struct nk_image icon = GUI_GetInventoryIconForEquipped(0);
+
+			if (icon.handle.id)
+			{
+				inventoryItem *item = BG_GetInventoryItemByID(playerInventory[playerInventoryEquipped[0]]);
+				inventoryItem *mod1 = BG_GetInventoryItemByID(playerInventoryMod1[playerInventoryEquipped[0]]);
+				inventoryItem *mod2 = BG_GetInventoryItemByID(playerInventoryMod2[playerInventoryEquipped[0]]);
+				inventoryItem *mod3 = BG_GetInventoryItemByID(playerInventoryMod3[playerInventoryEquipped[0]]);
+
+				char tooltip[1024] = { { 0 } };
+				strcpy(tooltip, item->getTooltip(mod1->getItemID(), mod2->getItemID(), mod3->getItemID()));
+				ret = nk_button_image_label(ctx, icon, "", NK_TEXT_ALIGN_RIGHT);
+				GUI_MenuHoverTooltip(ctx, media, tooltip, media->characterWeapon);
+				found = true;
+
+				if (ret != 0 && backEnd.ui_MouseCursor && noSelectTime <= backEnd.refdef.time)
+				{// Have something selected for drag, also clicked this quick slot, place the selected item here...
+					uiItemInfo_t *selectedItem = (uiItemInfo_t *)backEnd.ui_MouseCursor;
+					char value[64] = { { 0 } };
+					ri->Cvar_SetValue("cg_equipment0", selectedItem->invSlot);
+					backEnd.ui_MouseCursor = NULL;
+
+					playerInventoryEquipped[0] = selectedItem->invSlot;
+				}
+				else if (ret != 0 && noSelectTime <= backEnd.refdef.time)
+				{// Clicked on a slot, check if there is some icon there that the player wishes to move to somewhere else...
+					backEnd.ui_MouseCursor = &inventoryItems[playerInventoryEquipped[0]];
+					ri->Cvar_SetValue("cg_equipment0", -1);
+
+					playerInventoryEquipped[0] = 0;
+
+					noSelectTime = backEnd.refdef.time + 100;
+				}
+			}
+		}
+
+		if (!found)
+		{// Blank slot...
+			ret = nk_button_image_label(ctx, media->characterWeapon, "", NK_TEXT_ALIGN_RIGHT);
+			GUI_MenuHoverTooltip(ctx, media, "Primary Weapon", media->characterWeapon);
+
+			if (ret != 0 && backEnd.ui_MouseCursor && noSelectTime <= backEnd.refdef.time)
+			{// Have something selected for drag, also clicked this quick slot, place the selected item here...
+				uiItemInfo_t *selectedItem = (uiItemInfo_t *)backEnd.ui_MouseCursor;
+				char value[64] = { { 0 } };
+				ri->Cvar_SetValue("cg_equipment0", selectedItem->invSlot);
+				backEnd.ui_MouseCursor = NULL;
+
+				playerInventoryEquipped[0] = selectedItem->invSlot;
+			}
+		}
+	}
+
+	{// Blank slot... Left Weapon...
+		ctx->style.button.padding = nk_vec2(-1.0, -1.0);
+		int ret = nk_button_image_label(ctx, media->characterWeapon2, "", NK_TEXT_ALIGN_LEFT);
+		GUI_MenuHoverTooltip(ctx, media, "Secondary Weapon or Shield", media->characterWeapon2);
+	}
+
+	nk_style_set_font(ctx, &media->font_14->handle);
+	nk_end(ctx);
 }
 
 static void
@@ -3793,40 +3878,37 @@ void GUI_UpdateInventory(void)
 		if (playerInventory[i] > 0)
 		{
 			inventoryItem *item = BG_GetInventoryItemByID(playerInventory[i]);
-			inventoryItem *mod1 = (playerInventoryMod1[i] > 0) ? BG_GetInventoryItemByID(playerInventoryMod1[i]) : NULL;
-			//inventoryItem *mod2 = (playerInventoryMod2[i] > 0) ? BG_GetInventoryItemByID(playerInventoryMod2[i]) : NULL;
-			//inventoryItem *mod3 = (playerInventoryMod3[i] > 0) ? BG_GetInventoryItemByID(playerInventoryMod3[i]) : NULL;
 
 			//ri->Printf(PRINT_ALL, "Inv %i. ItemID %i. Quality %i. Type %s.\n", i, playerInventory[i], item->getQuality(), (item->getBaseItem()->giTag == WP_SABER) ? "SABER" : "GUN");
 
 			if (item->getBaseItem()->giTag == WP_SABER)
 			{
-				GUI_SetPlayerInventorySlot(i, 0, item->getQuality(), item->getName(), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
+				GUI_SetPlayerInventorySlot(i, 0, item->getQuality(), item->getName(playerInventoryMod1[i]), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
 			}
 			else if (item->getBaseItem()->giTag == WP_MODULIZED_WEAPON)
 			{
-				int itemStat1 = (playerInventoryMod1[i] > 0 && mod1) ? mod1->getBasicStat1() : item->getBasicStat1();
+				uint16_t itemStat1 = item->getVisualType1(playerInventoryMod1[i]);
 
 				switch (itemStat1)
 				{// TODO: A better way, that uses all the possible icons...
 					case WEAPON_STAT1_DEFAULT:						// Pistol
 					default:
-						GUI_SetPlayerInventorySlot(i, 4, item->getQuality(), item->getName(), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
+						GUI_SetPlayerInventorySlot(i, 4, item->getQuality(), item->getName(playerInventoryMod1[i]), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
 						break;
 					case WEAPON_STAT1_HEAVY_PISTOL:					// Heavy Pistol
-						GUI_SetPlayerInventorySlot(i, 8, item->getQuality(), item->getName(), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
+						GUI_SetPlayerInventorySlot(i, 8, item->getQuality(), item->getName(playerInventoryMod1[i]), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
 						break;
 					case WEAPON_STAT1_FIRE_ACCURACY_MODIFIER:		// Sniper Rifle
-						GUI_SetPlayerInventorySlot(i, 13, item->getQuality(), item->getName(), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
+						GUI_SetPlayerInventorySlot(i, 13, item->getQuality(), item->getName(playerInventoryMod1[i]), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
 						break;
 					case WEAPON_STAT1_FIRE_RATE_MODIFIER:			// Blaster Rifle
-						GUI_SetPlayerInventorySlot(i, 14, item->getQuality(), item->getName(), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
+						GUI_SetPlayerInventorySlot(i, 14, item->getQuality(), item->getName(playerInventoryMod1[i]), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
 						break;
 					case WEAPON_STAT1_VELOCITY_MODIFIER:			// Assault Rifle
-						GUI_SetPlayerInventorySlot(i, 1, item->getQuality(), item->getName(), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
+						GUI_SetPlayerInventorySlot(i, 1, item->getQuality(), item->getName(playerInventoryMod1[i]), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
 						break;
 					case WEAPON_STAT1_HEAT_ACCUMULATION_MODIFIER:	// Heavy Blster
-						GUI_SetPlayerInventorySlot(i, 10, item->getQuality(), item->getName(), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
+						GUI_SetPlayerInventorySlot(i, 10, item->getQuality(), item->getName(playerInventoryMod1[i]), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
 						break;
 				}
 			}

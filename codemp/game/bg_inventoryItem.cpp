@@ -352,7 +352,7 @@ uint16_t inventoryItem::getBaseItemID()
 	return m_bgItemID;
 }
 
-const char *inventoryItem::getName()
+const char *inventoryItem::getName(uint16_t modItemID1)
 {
 	//return getBaseItem()->name;
 	int giType = getBaseItem()->giType;
@@ -390,7 +390,7 @@ const char *inventoryItem::getName()
 		}
 		else
 		{
-			switch (getBasicStat1())
+			switch (getVisualType1(modItemID1))
 			{
 			case WEAPON_STAT1_DEFAULT:
 			default:
@@ -618,7 +618,7 @@ const char *inventoryItem::getTooltip(uint16_t modItemID1, uint16_t modItemID2, 
 	switch (giType)
 	{
 	case IT_WEARABLE:
-		tooltipText = va("^B%s^b\n", getName());
+		tooltipText = va("^B%s^b\n", getName(modItemID1));
 		tooltipText.append("^PClothing\n");
 		tooltipText.append(" \n");
 		tooltipText.append(va("^5%s\n", getDescription()));
@@ -638,7 +638,7 @@ const char *inventoryItem::getTooltip(uint16_t modItemID1, uint16_t modItemID2, 
 		break;
 	case IT_ITEM_MODIFICATION:
 	case IT_ITEM_CRYSTAL:
-		tooltipText = va("^B%s^b\n", getName());
+		tooltipText = va("^B%s^b\n", getName(modItemID1));
 		tooltipText.append(va("^PItem %s\n", IT_ITEM_CRYSTAL ? "Crystal" : "Modification"));
 		tooltipText.append(" \n");
 		tooltipText.append(va("^5%s\n", getDescription()));
@@ -658,7 +658,7 @@ const char *inventoryItem::getTooltip(uint16_t modItemID1, uint16_t modItemID2, 
 		break;
 	case IT_WEAPON_MODIFICATION:
 	case IT_WEAPON_CRYSTAL:
-		tooltipText = va("^B%s^b\n", getName());
+		tooltipText = va("^B%s^b\n", getName(modItemID1));
 		tooltipText.append(va("^PWeapon %s\n", IT_WEAPON_CRYSTAL ? "Crystal" : "Modification"));
 		tooltipText.append(" \n");
 		tooltipText.append(va("^5%s\n", getDescription()));
@@ -678,7 +678,7 @@ const char *inventoryItem::getTooltip(uint16_t modItemID1, uint16_t modItemID2, 
 		break;
 	case IT_SABER_MODIFICATION:
 	case IT_SABER_CRYSTAL:
-		tooltipText = va("^B%s^b\n", getName());
+		tooltipText = va("^B%s^b\n", getName(modItemID1));
 		tooltipText.append(va("^PLightsaber %s\n", IT_SABER_CRYSTAL ? "Crystal" : "Modification"));
 		tooltipText.append(" \n");
 		tooltipText.append(va("^5%s\n", getDescription()));
@@ -699,7 +699,7 @@ const char *inventoryItem::getTooltip(uint16_t modItemID1, uint16_t modItemID2, 
 	case IT_WEAPON:
 		if (getBaseItem()->giTag == WP_SABER)
 		{
-			tooltipText = va("^B%s^b\n", getName());
+			tooltipText = va("^B%s^b\n", getName(modItemID1));
 			tooltipText.append("^POne handed weapon, Lightsaber\n");
 			tooltipText.append(" \n");
 			tooltipText.append(va("^5%s\n", getDescription()));
@@ -725,8 +725,8 @@ const char *inventoryItem::getTooltip(uint16_t modItemID1, uint16_t modItemID2, 
 		}
 		else
 		{
-			tooltipText = va("^B%s^b\n", getName());
-			switch (getBasicStat1())
+			tooltipText = va("^B%s^b\n", getName(modItemID1));
+			switch (getVisualType1(modItemID1))
 			{
 			case WEAPON_STAT1_DEFAULT:
 			default:

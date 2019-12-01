@@ -1723,7 +1723,7 @@ qboolean CG_WeaponCheck(int weap)
 CG_WeaponSelectable
 ===============
 */
-static qboolean CG_WeaponSelectable( int i ) 
+/*static*/ qboolean CG_WeaponSelectable( int i ) 
 {
 	if (i < WP_FIRST_USEABLE)
 	{
@@ -1830,7 +1830,8 @@ void CG_DrawWeaponSelect( void ) {
 	pad = 12;
 
 	x = 320;
-	y = 410;
+	//y = 410;
+	y = 370;
 
 	// Background
 //	memcpy(calcColor, colorTable[CT_WHITE], sizeof(vec4_t));
@@ -1982,6 +1983,7 @@ CG_NextWeapon_f
 ===============
 */
 void CG_NextWeapon_f( void ) {
+#if 0
 	int		i;
 	int		original;
 
@@ -2032,6 +2034,7 @@ void CG_NextWeapon_f( void ) {
 		trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_SABER);
 		trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_SABERLOCAL);
 	}
+#endif
 }
 
 /*
@@ -2040,6 +2043,7 @@ CG_PrevWeapon_f
 ===============
 */
 void CG_PrevWeapon_f( void ) {
+#if 0
 	int		i;
 	int		original;
 
@@ -2090,10 +2094,15 @@ void CG_PrevWeapon_f( void ) {
 		trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_SABER);
 		trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_SABERLOCAL);
 	}
+#endif
 }
+
+extern int QUICKBAR_CURRENT[12];
+extern int EQUIPPED_CURRENT[16];
 
 int CG_SelectWeaponForID(int num)
 {// New, clean, generic weapon switching system... Fast and smooth... and easy to switch to inventory character slots later...
+#if 0
 	int newNum = -1;
 
 	if (cg.weaponSelectTime + WEAPON_SELECT_TIME > cg.time)
@@ -2139,6 +2148,107 @@ int CG_SelectWeaponForID(int num)
 	}
 
 	return newNum;
+#else
+	int newNum = -1;
+
+	if (cg.weaponSelectTime + WEAPON_SELECT_TIME > cg.time)
+	{
+		return -1;
+	}
+
+	/*
+	switch (num)
+	{
+	case 1:
+	{// Saber/Melee selection...
+		if (cg.snap->ps.weapon != WP_SABER)
+		{
+			cg.saberShutupTime = 0;
+			newNum = WP_SABER;
+		}
+		else if (cg.snap->ps.saberHolstered < 2)
+		{// Switch sabers off on first hit, then switch to melee on second key press...
+			trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_SABER);
+			cg.saberShutupTime = cg.time + WEAPON_SELECT_TIME;
+			trap->SendConsoleCommand("sv_saberswitch\n");
+			return WP_SABER;
+		}
+		else
+		{
+			trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_SABER);
+			newNum = WP_MELEE;
+		}
+		break;
+	}
+	case 2:
+		if (!CG_WeaponSelectable(WP_MODULIZED_WEAPON))
+		{
+			return -1;
+		}
+
+		newNum = WP_MODULIZED_WEAPON;
+		break;
+	default:
+		// Invalid...
+		return -1;
+		break;
+	}
+	*/
+
+	if (num < 1)
+	{
+		return -1;
+	}
+
+	if (QUICKBAR_CURRENT[num - 1] >= 0)
+	{
+		uint32_t slot = QUICKBAR_CURRENT[num - 1];
+
+		if (cg.snap->ps.inventoryItems[slot] <= 0)
+		{
+			return -1;
+		}
+
+		inventoryItem *item = BG_GetInventoryItemByID(cg.snap->ps.inventoryItems[slot]);
+
+		if (item->getBaseItem()->giTag == WP_SABER)
+		{
+			if (cg.snap->ps.weapon != WP_SABER)
+			{
+				cg.saberShutupTime = 0;
+				newNum = WP_SABER;
+				trap->SendClientCommand(va("equipslot 0 %i", slot));
+			}
+			else if (cg.snap->ps.saberHolstered < 2)
+			{// Switch sabers off on first hit, then switch to melee on second key press...
+				trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_SABER);
+				cg.saberShutupTime = cg.time + WEAPON_SELECT_TIME;
+				trap->SendConsoleCommand("sv_saberswitch\n");
+				trap->SendClientCommand(va("equipslot 0 %i", slot));
+				return WP_SABER;
+			}
+			else
+			{
+				trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_SABER);
+				newNum = WP_MELEE;
+				trap->SendClientCommand(va("equipslot 0 %i", slot));
+			}
+		}
+		else if (item->getBaseItem()->giTag == WP_MODULIZED_WEAPON)
+		{
+			if (!CG_WeaponSelectable(WP_MODULIZED_WEAPON))
+			{
+				return -1;
+			}
+
+			newNum = WP_MODULIZED_WEAPON;
+
+			trap->SendClientCommand(va("equipslot 0 %i", slot));
+		}
+	}
+
+	return newNum;
+#endif
 }
 
 /*
