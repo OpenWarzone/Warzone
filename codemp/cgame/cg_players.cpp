@@ -18,7 +18,7 @@ extern void CG_AddBracketedEnt(centity_t *cent);	//cg_ents.c
 extern qboolean CG_InFighter( void );
 extern qboolean WP_SaberBladeUseSecondBladeStyle( saberInfo_t *saber, int bladeNum );
 
-extern void CG_Do3DSaber(vec3_t origin, vec3_t dir, float length, float lengthMax, float radius, saber_colors_t color);
+extern void CG_Do3DSaber(centity_t *cent, vec3_t origin, vec3_t dir, float length, float lengthMax, float radius, saber_colors_t color);
 extern void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t _org, vec3_t end, vec3_t *axis_, saber_colors_t color, saberTrail_t *saberTrail, int saberNum, int bladeNum);
 
 
@@ -6778,7 +6778,7 @@ JustDoIt:
 	}
 
 	CG_DoSaberTrails(cent, client, org_, end, axis_, (saber_colors_t)scolor, saberTrail, saberNum, bladeNum);
-	CG_Do3DSaber(org_, axis_[0], saberLen, client->saber[saberNum].blade[bladeNum].lengthMax, client->saber[saberNum].blade[bladeNum].radius, (saber_colors_t)scolor);
+	CG_Do3DSaber(cent, org_, axis_[0], saberLen, client->saber[saberNum].blade[bladeNum].lengthMax, client->saber[saberNum].blade[bladeNum].radius, (saber_colors_t)scolor);
 
 	if (CG_SaberHasSound(cent, client, saberNum, bladeNum, fromSaber, dontDraw))
 	{

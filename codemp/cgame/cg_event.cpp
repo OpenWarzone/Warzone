@@ -2321,17 +2321,87 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 
 			assert(weapon >= 0 && weapon < WP_NUM_WEAPONS);
 
-			weaponInfo = &cg_weapons[weapon];
-
-			assert(weaponInfo);
-
-			if (weaponInfo->selectSound)
+			if (weapon == WP_SABER)
 			{
-				trap->S_StartSound (NULL, es->number, CHAN_AUTO, weaponInfo->selectSound );
+				clientInfo_t *client = NULL;
+
+				if (cg_entities[es->number].currentState.eType == ET_NPC)
+				{
+					client = cg_entities[es->number].npcClient;
+				}
+				else if (es->number < MAX_CLIENTS)
+				{
+					client = &cgs.clientinfo[es->number];
+				}
+
+				/*
+				// TODO: When the different sabers have their own sounds...
+				if (ci->saber[0].soundOn)
+				{
+					trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_SABER, ci->saber[0].soundOn);
+				}
+
+				if (ci->saber[1].soundOn)
+				{
+					trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_SABER, ci->saber[1].soundOn);
+				}
+				*/
+
+				// Minimize saber lengths...
+				BG_SI_SetDesiredLength(&client->saber[0], 0, -1);
+				BG_SI_SetDesiredLength(&client->saber[1], 0, -1);
+
+				if (cg.snap->ps.saberHolstered == 2)
+				{// Turn saber back on again...
+					trap->SendConsoleCommand("sv_saberswitch\n");
+				}
+
+				trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_SABER, trap->S_RegisterSound("sound/weapons/saber/saberon.wav"));
 			}
-			else if (weapon != WP_SABER)
-			{ //not sure what SP is doing for this but I don't want a select sound for saber (it has the saber-turn-on)
-				trap->S_StartSound (NULL, es->number, CHAN_AUTO, cgs.media.selectSound );
+			else
+			{
+				if (cent->currentState.number == cg.snap->ps.clientNum)
+				{// If local client, shut up saber sounds...
+					cg.saberShutupTime = cg.time + WEAPON_SELECT_TIME;
+					trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_SABER);
+					trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_SABERLOCAL);
+					trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_WEAPON);
+					trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_WEAPONLOCAL);
+				}
+				
+				// Get the best sound for this gun type...
+				int slot0 = cent->playerState->inventoryEquipped[0];
+
+				if (slot0 < 0)
+				{
+					slot0 = 0;
+				}
+				
+				inventoryItem *item = BG_GetInventoryItemByID(cent->playerState->inventoryItems[slot0]);
+				uint16_t itemStat1 = item->getVisualType1(cent->playerState->inventoryMod1[slot0]);
+
+				switch (itemStat1)
+				{
+				case WEAPON_STAT1_DEFAULT:						// Pistol
+				default:
+					trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_WEAPON, trap->S_RegisterSound("sound/weapons/select_pistol.mp3"));
+					break;
+				case WEAPON_STAT1_HEAVY_PISTOL:					// Heavy Pistol
+					trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_WEAPON, trap->S_RegisterSound("sound/weapons/select_rifle.mp3"));
+					break;
+				case WEAPON_STAT1_FIRE_ACCURACY_MODIFIER:		// Sniper Rifle
+					trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_WEAPON, trap->S_RegisterSound("sound/weapons/select_sniper.mp3"));
+					break;
+				case WEAPON_STAT1_FIRE_RATE_MODIFIER:			// Blaster Rifle
+					trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_WEAPON, trap->S_RegisterSound("sound/weapons/select_carbine.mp3"));
+					break;
+				case WEAPON_STAT1_VELOCITY_MODIFIER:			// Assault Rifle
+					trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_WEAPON, trap->S_RegisterSound("sound/weapons/select_array.mp3"));
+					break;
+				case WEAPON_STAT1_HEAT_ACCUMULATION_MODIFIER:	// Heavy Blster
+					trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_WEAPON, trap->S_RegisterSound("sound/weapons/select_repeater.mp3"));
+					break;
+				}
 			}
 		}
 		break;
@@ -2776,8 +2846,8 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 
 	case EV_DISRUPTOR_MAIN_SHOT:
 		DEBUGNAME("EV_DISRUPTOR_MAIN_SHOT");
-		if (cent->currentState.eventParm != cg.snap->ps.clientNum ||
-			cg.renderingThirdPerson)
+#if 0
+		if (cent->currentState.eventParm != cg.snap->ps.clientNum || cg.renderingThirdPerson)
 		{ //h4q3ry
 			CG_GetClientWeaponMuzzleBoltPoint(cent->currentState.eventParm, cent->currentState.origin2);
 		}
@@ -2809,11 +2879,16 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		}
 		
 		FX_DisruptorMainShot(cent, cent->currentState.origin2, cent->lerpOrigin);
+#else
+		VectorCopy(cg_entities[cent->currentState.eventParm].muzzlePoint, cent->currentState.origin2);
+		FX_DisruptorMainShot(cent, cent->currentState.origin2, cent->lerpOrigin);
+#endif
 		break;
 
 
 	case EV_DISRUPTOR_SNIPER_SHOT:
 		DEBUGNAME("EV_DISRUPTOR_SNIPER_SHOT");
+#if 0
 		if (cent->currentState.eventParm != cg.snap->ps.clientNum ||
 			cg.renderingThirdPerson)
 		{ //h4q3ry
@@ -2827,6 +2902,10 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			}
 		}
 		FX_DisruptorAltShot( cent, cent->currentState.origin2, cent->lerpOrigin, cent->currentState.shouldtarget );
+#else
+		VectorCopy(cg_entities[cent->currentState.eventParm].muzzlePoint, cent->currentState.origin2);
+		FX_DisruptorAltShot(cent, cent->currentState.origin2, cent->lerpOrigin, cent->currentState.shouldtarget);
+#endif
 		break;
 
 	case EV_DISRUPTOR_SNIPER_MISS:

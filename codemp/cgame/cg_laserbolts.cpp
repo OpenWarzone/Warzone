@@ -313,7 +313,7 @@ void FX_SaberBolt3D(vec3_t org, vec3_t fwd, float length, float radius, qhandle_
 	trap->R_AddLightToScene(org, 200 + (rand() & 31), lightColor[0] /** 0.15*/, lightColor[1] /** 0.15*/, lightColor[2] /** 0.15*/);
 }
 
-void CG_Do3DSaber(vec3_t origin, vec3_t dir, float length, float lengthMax, float radius, saber_colors_t color)
+void CG_Do3DSaber(centity_t *cent, vec3_t origin, vec3_t dir, float length, float lengthMax, float radius, saber_colors_t color)
 {
 	vec3_t		mid;
 
@@ -326,8 +326,46 @@ void CG_Do3DSaber(vec3_t origin, vec3_t dir, float length, float lengthMax, floa
 	// Find the midpoint of the saber for lighting purposes
 	VectorMA(origin, length * 0.5f, dir, mid);
 
+	qhandle_t bolt3D = 0;
+
+	//inventoryItem *item = BG_GetInventoryItemByID(cent->playerState->inventoryItems[cent->playerState->inventoryEquipped[0]]);
+	//Com_Printf("Saber %u (crystal %u - %u).\n", item->getItemID(), item->getCrystal(), BG_EquippedWeaponCrystal(cent->playerState));
+
+	switch (BG_EquippedWeaponCrystal(cent->playerState))
+	{
+	case ITEM_CRYSTAL_RED:				// Bonus Heat Damage/Resistance
+		bolt3D = cgs.media.redBlasterShot;
+		break;
+	case ITEM_CRYSTAL_GREEN:				// Bonus Kinetic (force) Damage/Resistance
+		bolt3D = cgs.media.greenBlasterShot;
+		break;
+	case ITEM_CRYSTAL_BLUE:				// Bonus Electric Damage/Resistance
+		bolt3D = cgs.media.blueBlasterShot;
+		break;
+	case ITEM_CRYSTAL_WHITE:				// Bonus Cold Damage/Resistance
+		bolt3D = cgs.media.whiteBlasterShot;
+		break;
+	case ITEM_CRYSTAL_YELLOW:			// Bonus 1/2 Heat + 1/2 Kinetic Damage/Resistance
+		bolt3D = cgs.media.yellowBlasterShot;
+		break;
+	case ITEM_CRYSTAL_PURPLE:			// Bonus 1/2 Electric + 1/2 Heat Damage/Resistance
+		bolt3D = cgs.media.PurpleBlasterShot;
+		break;
+	case ITEM_CRYSTAL_ORANGE:			// Bonus 1/2 Cold + 1/2 Kinetic Damage/Resistance
+		bolt3D = cgs.media.orangeBlasterShot;
+		break;
+	case ITEM_CRYSTAL_PINK:				// Bonus 1/2 Electric + 1/2 Cold Damage/Resistance
+		bolt3D = cgs.media.BlasterBolt_Cap_BluePurple; // TODO: Add actual pink...
+		break;
+	case ITEM_CRYSTAL_DEFAULT:			// GREY shots/blade? No special damage/resistance type...
+	default:
+		// Nope...
+		bolt3D = CG_GetSaberBoltColor(color);// cgs.media.whiteBlasterShot;
+		break;
+	}
+
 	float len = length / lengthMax;
-	FX_SaberBolt3D(mid, dir, cg_saberLengthMult.value * len, cg_saberRadiusMult.value, CG_GetSaberBoltColor(color));
+	FX_SaberBolt3D(mid, dir, cg_saberLengthMult.value * len, cg_saberRadiusMult.value, bolt3D);
 }
 
 #define SABER_TRAIL_TIME	40.0f
@@ -377,6 +415,7 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 			{
 				float diff = 0;
 
+#if 0
 				switch (scolor)
 				{
 				case SABER_RED:
@@ -409,6 +448,47 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 					VectorSet(rgb1, 0.0f, 64.0f, 255.0f);
 					break;
 				}
+#else
+				qhandle_t bolt3D = 0;
+
+				switch (BG_EquippedWeaponCrystal(cent->playerState))
+				{
+				case ITEM_CRYSTAL_RED:				// Bonus Heat Damage/Resistance
+					bolt3D = cgs.media.redBlasterShot;
+					break;
+				case ITEM_CRYSTAL_GREEN:				// Bonus Kinetic (force) Damage/Resistance
+					bolt3D = cgs.media.greenBlasterShot;
+					break;
+				case ITEM_CRYSTAL_BLUE:				// Bonus Electric Damage/Resistance
+					bolt3D = cgs.media.blueBlasterShot;
+					break;
+				case ITEM_CRYSTAL_WHITE:				// Bonus Cold Damage/Resistance
+					bolt3D = cgs.media.whiteBlasterShot;
+					break;
+				case ITEM_CRYSTAL_YELLOW:			// Bonus 1/2 Heat + 1/2 Kinetic Damage/Resistance
+					bolt3D = cgs.media.yellowBlasterShot;
+					break;
+				case ITEM_CRYSTAL_PURPLE:			// Bonus 1/2 Electric + 1/2 Heat Damage/Resistance
+					bolt3D = cgs.media.PurpleBlasterShot;
+					break;
+				case ITEM_CRYSTAL_ORANGE:			// Bonus 1/2 Cold + 1/2 Kinetic Damage/Resistance
+					bolt3D = cgs.media.orangeBlasterShot;
+					break;
+				case ITEM_CRYSTAL_PINK:				// Bonus 1/2 Electric + 1/2 Cold Damage/Resistance
+					bolt3D = cgs.media.BlasterBolt_Cap_BluePurple; // TODO: Add actual pink...
+					break;
+				case ITEM_CRYSTAL_DEFAULT:			// GREY shots/blade? No special damage/resistance type...
+				default:
+					// Nope...
+					bolt3D = CG_GetSaberBoltColor(scolor);// cgs.media.whiteBlasterShot;
+					break;
+				}
+
+				VectorCopy(CG_Get3DWeaponBoltLightColor(bolt3D), rgb1);
+				rgb1[0] *= 255.0;
+				rgb1[1] *= 255.0;
+				rgb1[2] *= 255.0;
+#endif
 
 				// Here we will use the happy process of filling a struct in with arguments and passing it to a trap function
 				// so that we can take the struct and fill in an actual CTrail type using the data within it once we get it

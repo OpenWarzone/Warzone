@@ -3551,6 +3551,7 @@ CG_AddCEntity
 static void CG_AddCEntity( centity_t *cent ) {
 	// event-only entities will have been dealt with already
 	if ( cent->currentState.eType >= ET_EVENTS ) {
+		CG_CheckEvents(cent);
 		return;
 	}
 
@@ -3560,12 +3561,14 @@ static void CG_AddCEntity( centity_t *cent ) {
 			cent->currentState.eType == ET_PLAYER ||
 			cent->currentState.eType == ET_INVISIBLE)
 		{
+			CG_CheckEvents(cent);
 			return;
 		}
 		if ( cent->currentState.eType == ET_NPC )
 		{//NPC in intermission
 			if ( cent->currentState.NPC_class == CLASS_VEHICLE )
 			{//don't render vehicles in intermissions, allow other NPCs for scripts
+				CG_CheckEvents(cent);
 				return;
 			}
 		}
@@ -3662,6 +3665,8 @@ Ghoul2 Insert End
 		CG_ServerModel(cent);
 		break;
 	}
+
+	CG_CheckEvents(cent);
 }
 
 void CG_ManualEntityRender(centity_t *cent)

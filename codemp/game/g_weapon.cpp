@@ -1430,10 +1430,24 @@ static void WP_ModulatedWeaponFire(gentity_t *ent, int damage, float velocity, f
 			{// Send the crystal color for client...
 				uint16_t crystal = BG_EquippedWeaponCrystal(&ent->client->ps);
 				missile->s.temporaryWeapon = crystal;
+
+#ifdef __SEND_FULL_WEAPON_INFO_WITH_BOLT__
+				// Also send all the original weapon info...
+				missile->s.boneIndex1 = BG_EquippedWeapon(&ent->client->ps)->getItemID();
+				missile->s.boneIndex2 = BG_EquippedMod1(&ent->client->ps)->getItemID();
+				missile->s.boneIndex3 = BG_EquippedMod2(&ent->client->ps)->getItemID();
+				missile->s.boneIndex4 = BG_EquippedMod3(&ent->client->ps)->getItemID();
+#endif //__SEND_FULL_WEAPON_INFO_WITH_BOLT__
 			}
 			else
 			{
 				missile->s.temporaryWeapon = 0;
+#ifdef __SEND_FULL_WEAPON_INFO_WITH_BOLT__
+				missile->s.boneIndex1 = 0;
+				missile->s.boneIndex2 = 0;
+				missile->s.boneIndex3 = 0;
+				missile->s.boneIndex4 = 0;
+#endif //__SEND_FULL_WEAPON_INFO_WITH_BOLT__
 			}
 
 			// do we want it to bounce?
@@ -1541,7 +1555,7 @@ static void WP_ModulatedWeaponFire(gentity_t *ent, int damage, float velocity, f
 					continue;
 				}
 
-				if (Jedi_DodgeEvasion(traceEnt, ent, &tr, G_GetHitLocation(traceEnt, tr.endpos)))
+				if (traceEnt && Jedi_DodgeEvasion(traceEnt, ent, &tr, G_GetHitLocation(traceEnt, tr.endpos)))
 				{
 					skip = tr.entityNum;
 					VectorCopy(tr.endpos, start);
@@ -1549,9 +1563,7 @@ static void WP_ModulatedWeaponFire(gentity_t *ent, int damage, float velocity, f
 				}
 				else if (traceEnt && traceEnt->client && traceEnt->client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE] >= FORCE_LEVEL_3)
 				{
-					//if (WP_SaberCanBlock(traceEnt, tr.endpos, 0, MOD_DISRUPTOR, qtrue, 0))
-					if (WP_SaberCanBlock(ent, traceEnt, tr.endpos, ent->r.currentOrigin,
-						0, MOD_DISRUPTOR, qtrue, damage))
+					if (WP_SaberCanBlock(ent, traceEnt, tr.endpos, ent->r.currentOrigin, 0, MOD_DISRUPTOR, qtrue, damage))
 					{ //broadcast and stop the shot because it was blocked
 						gentity_t *te = NULL;
 
@@ -1564,10 +1576,24 @@ static void WP_ModulatedWeaponFire(gentity_t *ent, int damage, float velocity, f
 						{// Send the crystal color for client...
 							uint16_t crystal = BG_EquippedWeaponCrystal(&ent->client->ps);
 							tent->s.temporaryWeapon = crystal;
+
+#ifdef __SEND_FULL_WEAPON_INFO_WITH_BOLT__
+							// Also send all the original weapon info...
+							tent->s.boneIndex1 = BG_EquippedWeapon(&ent->client->ps)->getItemID();
+							tent->s.boneIndex2 = BG_EquippedMod1(&ent->client->ps)->getItemID();
+							tent->s.boneIndex3 = BG_EquippedMod2(&ent->client->ps)->getItemID();
+							tent->s.boneIndex4 = BG_EquippedMod3(&ent->client->ps)->getItemID();
+#endif //__SEND_FULL_WEAPON_INFO_WITH_BOLT__
 						}
 						else
 						{
 							tent->s.temporaryWeapon = 0;
+#ifdef __SEND_FULL_WEAPON_INFO_WITH_BOLT__
+							tent->s.boneIndex1 = 0;
+							tent->s.boneIndex2 = 0;
+							tent->s.boneIndex3 = 0;
+							tent->s.boneIndex4 = 0;
+#endif //__SEND_FULL_WEAPON_INFO_WITH_BOLT__
 						}
 
 						te = G_TempEntity(tr.endpos, EV_SABER_BLOCK);
@@ -1595,10 +1621,24 @@ static void WP_ModulatedWeaponFire(gentity_t *ent, int damage, float velocity, f
 				{// Send the crystal color for client...
 					uint16_t crystal = BG_EquippedWeaponCrystal(&ent->client->ps);
 					tent->s.temporaryWeapon = crystal;
+
+#ifdef __SEND_FULL_WEAPON_INFO_WITH_BOLT__
+					// Also send all the original weapon info...
+					tent->s.boneIndex1 = BG_EquippedWeapon(&ent->client->ps)->getItemID();
+					tent->s.boneIndex2 = BG_EquippedMod1(&ent->client->ps)->getItemID();
+					tent->s.boneIndex3 = BG_EquippedMod2(&ent->client->ps)->getItemID();
+					tent->s.boneIndex4 = BG_EquippedMod3(&ent->client->ps)->getItemID();
+#endif //__SEND_FULL_WEAPON_INFO_WITH_BOLT__
 				}
 				else
 				{
 					tent->s.temporaryWeapon = 0;
+#ifdef __SEND_FULL_WEAPON_INFO_WITH_BOLT__
+					tent->s.boneIndex1 = 0;
+					tent->s.boneIndex2 = 0;
+					tent->s.boneIndex3 = 0;
+					tent->s.boneIndex4 = 0;
+#endif //__SEND_FULL_WEAPON_INFO_WITH_BOLT__
 				}
 
 				// If the beam hits a skybox, etc. it would look foolish to add impact effects
@@ -1631,8 +1671,7 @@ static void WP_ModulatedWeaponFire(gentity_t *ent, int damage, float velocity, f
 						{
 							if (traceEnt->takedamage)
 							{
-								G_Damage(traceEnt, ent, ent, dir, tr.endpos, damage,
-									DAMAGE_NO_KNOCKBACK, MOD_DISRUPTOR_SNIPER);
+								G_Damage(traceEnt, ent, ent, dir, tr.endpos, damage, DAMAGE_NO_KNOCKBACK, MOD_DISRUPTOR_SNIPER);
 
 #if 0
 								tent = G_TempEntity(tr.endpos, EV_DISRUPTOR_HIT);
@@ -1672,8 +1711,7 @@ static void WP_ModulatedWeaponFire(gentity_t *ent, int damage, float velocity, f
 
 						G_Damage(traceEnt, ent, ent, dir, tr.endpos, damage, DAMAGE_NO_KNOCKBACK, MOD_DISRUPTOR_SNIPER);
 
-						if (traceEnt->client && preHealth > 0 && traceEnt->health <= 0 && fullCharge &&
-							G_CanDisruptify(traceEnt))
+						if (traceEnt->client && preHealth > 0 && traceEnt->health <= 0 && fullCharge && G_CanDisruptify(traceEnt))
 						{ //was killed by a fully charged sniper shot, so disintegrate
 							VectorCopy(preAng, traceEnt->client->ps.viewangles);
 
@@ -4812,24 +4850,22 @@ qboolean G_GetWeaponMuzzleBoltPoint(gentity_t *ent, vec3_t to, int hand)
 		//trap->Print("G_GetWeaponMuzzleBoltPoint: Failed to find *flash bone for entity %i. %s\n", ent->s.number, ent->NPC ? "is NPC." : "not NPC!");
 		return qfalse;
 	}
-
-	//VectorSet(angles, 0, ent->client->ps.viewangles[YAW], 0);
-	//VectorCopy(ent->client->ps.origin, origin);
 	
 	// Try to predict next frame position (as current frame results in the old JKA shots behind you issues)
-	VectorMA( ent->s.pos.trBase, 0.2/*g_debugValue.value*/, ent->s.pos.trDelta, lerpOrigin );
-	VectorMA( ent->s.apos.trBase, 0.2/*g_debugValue.value*/, ent->s.apos.trDelta, lerpAngles );
+#if 1
+	VectorMA( ent->s.pos.trBase, 0.025, ent->s.pos.trDelta, lerpOrigin );
+	VectorMA( ent->s.apos.trBase, 0.025, ent->s.apos.trDelta, lerpAngles );
+#else
+	VectorCopy(ent->s.pos.trBase, lerpOrigin);
+	VectorCopy(ent->s.apos.trBase, lerpAngles);
+#endif
 
 	VectorSet(angles, 0, lerpAngles[YAW], 0);
 	VectorCopy(lerpOrigin, origin);
 	
-	//trap->G2API_GetBoltMatrix(ent->ghoul2, modelIndex, 0, &boltMatrix, angles, origin, level.time, NULL, /*vec3_origin*/ent->modelScale);
-	trap->G2API_GetBoltMatrix_NoRecNoRot(ent->ghoul2, modelIndex, 0, &boltMatrix, angles, origin, level.time, NULL, /*vec3_origin*/ent->modelScale);
-	//trap->G2API_GetBoltMatrix_NoReconstruct(ent->ghoul2, modelIndex, 0, &boltMatrix, angles, origin, level.time, NULL, /*vec3_origin*/ent->modelScale);
+	trap->G2API_GetBoltMatrix_NoRecNoRot(ent->ghoul2, modelIndex, 0, &boltMatrix, angles, origin, level.time, NULL, ent->modelScale);
 
 	BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, to);
-
-	//trap->Print("Found *flash bone for entity %i. %s\n", ent->s.number, ent->NPC ? "is NPC." : "not NPC!");
 
 	return qtrue;
 }

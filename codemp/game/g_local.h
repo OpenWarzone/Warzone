@@ -1897,3 +1897,5 @@ void G_SoundOnEnt(gentity_t *ent, soundChannel_t channel, const char *soundPath)
 inventoryItem *BG_CreatePlayerInventoryItem(playerState_t *ps, int psSlot, uint16_t bgItemID, uint16_t quality, uint16_t crystal, uint16_t stat1, uint16_t stat2, uint16_t stat3);
 void BG_CreatePlayerDefaultJediInventory(playerState_t *ps, team_t team);
 void BG_CreatePlayerDefaultGunnerInventory(playerState_t *ps, team_t team);
+void BG_CreateRandomNPCInventory(gentity_t *ent);
+void BG_LootInventoryFromNPC(gentity_t *player, gentity_t *victim);

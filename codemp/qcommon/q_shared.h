@@ -2054,18 +2054,6 @@ typedef struct playerState_s {
 	uint16_t		inventoryMod3[64] = { { 0 } }; // Need to keep values < 65536 for transmission
 	int				inventoryEquipped[16] = { { -1 } }; // Inventory Slot ID of the item...
 
-	//rww - spare values specifically for use by mod authors.
-	//See psf_overrides.txt if you want to increase the send
-	//amount of any of these above 1 bit.
-	int			userInt1;
-	int			userInt2;
-	int			userInt3;
-	float		userFloat1;
-	float		userFloat2;
-	float		userFloat3;
-	vec3_t		userVec1;
-	vec3_t		userVec2;
-
 #ifdef _ONEBIT_COMBO
 	int			deltaOneBits;
 	int			deltaNumBits;

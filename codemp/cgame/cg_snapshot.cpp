@@ -62,7 +62,7 @@ static void CG_TransitionEntity( centity_t *cent ) {
 	cent->interpolate = qfalse;
 
 	// check for events
-	CG_CheckEvents( cent );
+	//CG_CheckEvents( cent );
 }
 
 
@@ -117,7 +117,7 @@ void CG_SetInitialSnapshot( snapshot_t *snap ) {
 		CG_ResetEntity( cent );
 
 		// check for events
-		CG_CheckEvents( cent );
+		//CG_CheckEvents( cent );
 	}
 }
 

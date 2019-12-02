@@ -3866,12 +3866,13 @@ const void *RB_PostProcess(const void *data)
 			DEBUG_EndTimer(qtrue);
 		}
 
+#if 0 // FIXME: TXAA is broken atm...
 		if (!SCREEN_BLUR && r_txaa->integer) // meh. disabled. too blurry
 		{
 			DEBUG_StartTimer("TXAA", qtrue);
 			//RB_TXAA(currentFbo, srcBox, currentOutFbo, dstBox);
 			RB_TXAA(currentFbo, srcBox, srcFbo, dstBox);
-			RB_SwapFBOs(&currentFbo, &currentOutFbo);
+			//RB_SwapFBOs(&currentFbo, &currentOutFbo);
 			DEBUG_EndTimer(qtrue);
 		}
 		else if (!SCREEN_BLUR && (r_fxaa->integer /*|| r_txaa->integer*/))
@@ -3879,9 +3880,17 @@ const void *RB_PostProcess(const void *data)
 			DEBUG_StartTimer("FXAA", qtrue);
 			//RB_FXAA(currentFbo, srcBox, currentOutFbo, dstBox);
 			RB_FXAA(currentFbo, srcBox, srcFbo, dstBox);
-			RB_SwapFBOs(&currentFbo, &currentOutFbo);
+			//RB_SwapFBOs(&currentFbo, &currentOutFbo);
 			DEBUG_EndTimer(qtrue);
 		}
+#else
+		if (!SCREEN_BLUR && (r_fxaa->integer || r_txaa->integer))
+		{
+			DEBUG_StartTimer("FXAA", qtrue);
+			RB_FXAA(currentFbo, srcBox, srcFbo, dstBox);
+			DEBUG_EndTimer(qtrue);
+		}
+#endif
 		else
 		{
 			DEBUG_StartTimer("Final Blit", qtrue);

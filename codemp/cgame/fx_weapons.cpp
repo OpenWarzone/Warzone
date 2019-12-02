@@ -114,6 +114,14 @@ void FX_WeaponProjectileThink(centity_t *cent, const struct weaponInfo_s *weapon
 		break;
 	}
 
+#ifdef __SEND_FULL_WEAPON_INFO_WITH_BOLT__
+	// Also grab all the original weapon info...
+	inventoryItem *gun = BG_GetInventoryItemByID(cent->currentState.boneIndex1);
+	inventoryItem *mod1 = BG_GetInventoryItemByID(cent->currentState.boneIndex2);
+	inventoryItem *mod2 = BG_GetInventoryItemByID(cent->currentState.boneIndex3);
+	inventoryItem *mod3 = BG_GetInventoryItemByID(cent->currentState.boneIndex4);
+#endif //__SEND_FULL_WEAPON_INFO_WITH_BOLT__
+
 	//trap->Print("bolt id is %i.\n", bolt3D);
 	
 	if (bolt3D > 0)
@@ -176,6 +184,15 @@ void FX_WeaponAltProjectileThink(centity_t *cent, const struct weaponInfo_s *wea
 		bolt3D = CG_Get3DWeaponBoltColor(weapon, qtrue);
 		break;
 	}
+
+#ifdef __SEND_FULL_WEAPON_INFO_WITH_BOLT__
+	// Also grab all the original weapon info...
+	inventoryItem *gun = BG_GetInventoryItemByID(cent->currentState.boneIndex1);
+	inventoryItem *mod1 = BG_GetInventoryItemByID(cent->currentState.boneIndex2);
+	inventoryItem *mod2 = BG_GetInventoryItemByID(cent->currentState.boneIndex3);
+	inventoryItem *mod3 = BG_GetInventoryItemByID(cent->currentState.boneIndex4);
+#endif //__SEND_FULL_WEAPON_INFO_WITH_BOLT__
+
 
 	if (bolt3D > 0)
 	{// New 3D bolt enabled...

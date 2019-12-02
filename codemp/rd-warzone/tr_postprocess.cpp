@@ -3324,15 +3324,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 			if (memcmp(&shader->LightsBlock, &shader->LightsBlockPrevious, sizeof(shader->LightsBlock)) != 0)
 			{
 				qglBindBuffer(GL_SHADER_STORAGE_BUFFER, shader->LightsBlockSSBO);
-				//LightBlock_t *p = (LightBlock_t *)qglMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
-				//LightBlock_t *p = (LightBlock_t *)qglMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(Lights_t) * NUM_CURRENT_EMISSIVE_LIGHTS, GL_WRITE_ONLY); // crashes - NULL returned???
-				//memcpy(p, &shader->LightsBlock, sizeof(Lights_t) * NUM_CURRENT_EMISSIVE_LIGHTS);
-				//qglUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-				
-				//qglBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Lights_t) * NUM_CURRENT_EMISSIVE_LIGHTS, &shader->LightsBlock, GL_DYNAMIC_COPY);
 				qglBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(Lights_t) * NUM_CURRENT_EMISSIVE_LIGHTS, &shader->LightsBlock);
-
-				// Update our previous copy buffer so we can skip updates...
 				memcpy(&shader->LightsBlockPrevious, &shader->LightsBlock, sizeof(shader->LightsBlock));
 			}
 
@@ -3348,22 +3340,6 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 			GLSL_InitializeLights(shader);
 
 			GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, 0);
-
-			// Send new data to shader, if it has changed...
-			/*
-			if (memcmp(&shader->LightsBlock, &shader->LightsBlockPrevious, sizeof(shader->LightsBlock)) != 0)
-			{
-				qglBindBuffer(GL_SHADER_STORAGE_BUFFER, shader->LightsBlockSSBO);
-				LightBlock_t *p = (LightBlock_t *)qglMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
-				memcpy(p, &shader->LightsBlock, sizeof(shader->LightsBlock));
-				qglUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-
-				// Update our previous copy buffer so we can skip updates...
-				memcpy(&shader->LightsBlockPrevious, &shader->LightsBlock, sizeof(shader->LightsBlock));
-			}
-
-			qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, shader->LightsBindingPoint, shader->LightsBlockSSBO);
-			*/
 #ifdef __USE_MAP_EMMISSIVE_BLOCK__
 			GLSL_SetUniformInt(shader, UNIFORM_EMISSIVELIGHTCOUNT, NUM_MAP_GLOW_LOCATIONS);
 			qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, shader->EmissiveLightsBindingPoint, shader->EmissiveLightsBlockSSBO);
@@ -4510,7 +4486,7 @@ void RB_TXAA(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		GLSL_SetUniformVec2(&tr.txaaShader, UNIFORM_DIMENSIONS, screensize);
 	}
 
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.txaaShader, colorWhite, 0);
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, shader, colorWhite, 0);
 
 	// Copy the output to previous image for usage next frame...
 	FBO_FastBlit(ldrFbo, ldrBox, tr.txaaPreviousFBO, ldrBox, GL_COLOR_BUFFER_BIT, GL_NEAREST);

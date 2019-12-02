@@ -63,6 +63,8 @@ uint16_t *playerInventoryMod3;
 int *playerInventoryEquipped; // The slot that the item is in in inventory... BEWARE: Can be -1 when none!
 
 
+void GUI_UpdateInventory(void); // below
+
 /* macros */
 #define FBO_WIDTH (glConfig.vidWidth * r_superSampleMultiplier->value)
 #define FBO_HEIGHT (glConfig.vidHeight * r_superSampleMultiplier->value)
@@ -2381,6 +2383,15 @@ GUI_InitInventory(void)
 }
 
 static void
+GUI_InitInventorySlot(int slot)
+{
+	if (slot >= 0 && slot < 64)
+	{
+		memset(&inventoryItems[slot], 0, sizeof(inventoryItems[slot]));
+	}
+}
+
+static void
 GUI_SetAbilityItem(int slot, struct nk_image *icon, char *name, char *tooltip)
 {
 	if (slot < 0 || slot > 63) return;
@@ -2414,7 +2425,7 @@ int GUI_GetMouseCursor(void)
 	{
 		uiItemInfo_t *cursor = (uiItemInfo_t *)backEnd.ui_MouseCursor;
 
-		if (!cursor || cursor == &nullItem)
+		if (!cursor || cursor == &nullItem || !cursor->icon)
 		{
 			return 0;
 		}
@@ -2433,7 +2444,7 @@ uint64_t GUI_GetMouseCursorBindless(void)
 	{
 		uiItemInfo_t *cursor = (uiItemInfo_t *)backEnd.ui_MouseCursor;
 
-		if (!cursor || cursor == &nullItem)
+		if (!cursor || cursor == &nullItem || !cursor->icon)
 		{
 			return 0;
 		}
@@ -2464,7 +2475,7 @@ GUI_SetQuickBarSlot(int slot, uiItemInfo_t *item)
 	quickBarSelections[slot].item = item;
 
 	char cvar[64] = { { 0 } };
-	sprintf(cvar, "cg_quickbar%i", slot + 1);
+	sprintf(cvar, "inv_quickbar%i", slot + 1);
 	ri->Cvar_SetValue(cvar, item->invSlot);
 
 	//ri->Printf(PRINT_WARNING, "Quickbar slot %i set to: type %i, quality %i, icon %i.\n", slot, (int)item->type, item->quality, item->icon->handle.id);
@@ -2579,11 +2590,13 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 			if (oldItem && oldItem != &nullItem)
 			{// Drop this one, but also pick up whatever was there before to be moved...
 				backEnd.ui_MouseCursor = oldItem;
+				backEnd.ui_MouseCursorTrashAvailable = false;
 				noSelectTime = backEnd.refdef.time + 100;
 			}
 			else
 			{// Was empty slot, so just drop the new item there...
 				backEnd.ui_MouseCursor = NULL;
+				backEnd.ui_MouseCursorTrashAvailable = false;
 			}
 		}
 		else if (ret != 0 && noSelectTime <= backEnd.refdef.time)
@@ -2591,6 +2604,7 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 			if (quickBarSelections[i].item && quickBarSelections[i].item != &nullItem)
 			{// Pick up whatever was there before to be moved...
 				backEnd.ui_MouseCursor = quickBarSelections[i].item;
+				backEnd.ui_MouseCursorTrashAvailable = false;
 				GUI_InitQuickBarSlot(i);
 				noSelectTime = backEnd.refdef.time + 100;
 			}
@@ -2679,6 +2693,7 @@ GUI_Powers(struct nk_context *ctx, struct media *media)
 			if (leftClick)
 			{
 				backEnd.ui_MouseCursor = &abilityItems[i];
+				backEnd.ui_MouseCursorTrashAvailable = false;
 				noSelectTime = backEnd.refdef.time + 100;
 			}
 		}
@@ -2694,6 +2709,7 @@ GUI_Powers(struct nk_context *ctx, struct media *media)
 	}
 
 	backEnd.ui_MouseCursor = NULL;
+	backEnd.ui_MouseCursorTrashAvailable = false;
 }
 
 /* ===============================================================
@@ -2731,6 +2747,7 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 
 	int tooltipNum = -1;
 	int tooltipQuality = QUALITY_GREY;
+	bool skipSelect = false;
 	
 	for (i = 0; i < 64; ++i)
 	{
@@ -2741,20 +2758,158 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 		
 		if (playerInventory[i] > 0)
 		{
-			/*inventoryItem *item = BG_GetInventoryItemByID(playerInventory[i]);
-			inventoryItem *mod1 = BG_GetInventoryItemByID(playerInventoryMod1[i]);
-			inventoryItem *mod2 = BG_GetInventoryItemByID(playerInventoryMod2[i]);
-			inventoryItem *mod3 = BG_GetInventoryItemByID(playerInventoryMod3[i]);*/
-
 			struct nk_image icon = GUI_GetInventoryIconForInvSlot(i);
 			quality = QUALITY_GOLD - Q_clamp(QUALITY_GREY, i / QUALITY_GOLD, QUALITY_GOLD);
 			ctx->style.button.padding = nk_vec2(-1.0, -1.0);
 			ret = nk_button_image_label(ctx, icon, "", NK_TEXT_CENTERED);
+
+			if (ret != 0 && backEnd.ui_MouseCursor && noSelectTime <= backEnd.refdef.time)
+			{// Have something selected for drag, also clicked this slot, place the selected item here...
+				uiItemInfo_t *selectedItem = (uiItemInfo_t *)backEnd.ui_MouseCursor;
+
+				if (selectedItem->invSlot == i)
+				{// Dropped back into it's original slot...
+					backEnd.ui_MouseCursor = NULL;
+					backEnd.ui_MouseCursorTrashAvailable = false;
+					skipSelect = true;
+				}
+				else
+				{// Place the item into the new slot, and move the old item in this slot to where it was...
+					int selectedSlot = selectedItem->invSlot;
+					int selectedQB = -1;
+					int thisQB = -1;
+
+					// See if these slots are in the quickbar, so we can swap them there...
+					for (int qb = 0; qb < 12; qb++)
+					{
+						if (quickBarSelections[qb].item && quickBarSelections[qb].item != &nullItem && quickBarSelections[qb].item->type == INVENTORY_TYPE_INVENTORY && quickBarSelections[qb].item->invSlot == selectedSlot)
+						{// Found it in the quickbar, we need to change it's linkage...
+							if (selectedQB < 0)
+							{
+								selectedQB = qb;
+							}
+							else
+							{// Should only be in the quickbar once...
+								GUI_InitQuickBarSlot(qb);
+							}
+						}
+
+						if (quickBarSelections[qb].item && quickBarSelections[qb].item != &nullItem && quickBarSelections[qb].item->type == INVENTORY_TYPE_INVENTORY && quickBarSelections[qb].item->invSlot == i)
+						{// Found it in the quickbar, we need to change it's linkage...
+							if (thisQB < 0)
+							{
+								thisQB = qb;
+							}
+							else
+							{// Should only be in the quickbar once...
+								GUI_InitQuickBarSlot(qb);
+							}
+						}
+					}
+
+					uiItemInfo_t *thisIT = &inventoryItems[i];
+
+					// Store any item/mod info that was in this new slot...
+					uint16_t oldInv = playerInventory[i];
+					uint16_t oldMod1 = playerInventoryMod1[i];
+					uint16_t oldMod2 = playerInventoryMod2[i];
+					uint16_t oldMod3 = playerInventoryMod3[i];
+
+					// Replace this new slot with the new item...
+					playerInventory[i] = playerInventory[selectedSlot];
+					playerInventoryMod1[i] = playerInventoryMod1[selectedSlot];
+					playerInventoryMod2[i] = playerInventoryMod2[selectedSlot];
+					playerInventoryMod3[i] = playerInventoryMod3[selectedSlot];
+
+					// Replace the old slot with the old item...
+					playerInventory[selectedSlot] = oldInv;
+					playerInventoryMod1[selectedSlot] = oldMod1;
+					playerInventoryMod2[selectedSlot] = oldMod2;
+					playerInventoryMod3[selectedSlot] = oldMod3;
+
+					ri->Cvar_SetValue("inv_moveslotstart", selectedSlot);
+					ri->Cvar_SetValue("inv_moveslotend", i);
+
+					backEnd.ui_MouseCursor = NULL;
+					backEnd.ui_MouseCursorTrashAvailable = false;
+					skipSelect = true;
+
+					GUI_UpdateInventory();
+
+					if (selectedQB != -1)
+					{
+						GUI_SetQuickBarSlot(thisQB, selectedItem);
+						selectedItem->invSlot = i;
+					}
+
+					if (thisQB != -1)
+					{
+						GUI_SetQuickBarSlot(selectedQB, thisIT);
+						thisIT->invSlot = selectedSlot;
+					}
+				}
+			}
 		}
 		else
 		{// Blank slot...
 			ctx->style.button.padding = nk_vec2(-1.0, -1.0);
 			ret = nk_button_image_label(ctx, media->inventoryIconsBlank, "", NK_TEXT_CENTERED);
+
+			if (ret != 0 && backEnd.ui_MouseCursor && noSelectTime <= backEnd.refdef.time)
+			{// Have something selected for drag, also clicked this quick slot, place the selected item here...
+				uiItemInfo_t *selectedItem = (uiItemInfo_t *)backEnd.ui_MouseCursor;
+
+				if (selectedItem->invSlot == i)
+				{// Dropped back into it's original slot...
+					backEnd.ui_MouseCursor = NULL;
+					backEnd.ui_MouseCursorTrashAvailable = false;
+				}
+				else
+				{// Place the item into the new slot, and move the old item in this slot to where it was...
+					int selectedSlot = selectedItem->invSlot;
+					int selectedQB = -1;
+
+					for (int qb = 0; qb < 12; qb++)
+					{
+						if (quickBarSelections[qb].item && quickBarSelections[qb].item != &nullItem && quickBarSelections[qb].item->type == INVENTORY_TYPE_INVENTORY && quickBarSelections[qb].item->invSlot == selectedSlot)
+						{// Found it in the quickbar, so remove it there...
+							if (selectedQB < 0)
+							{
+								selectedQB = qb;
+							}
+
+							GUI_InitQuickBarSlot(qb);
+						}
+					}
+
+					// Replace this new slot with the new item...
+					playerInventory[i] = playerInventory[selectedSlot];
+					playerInventoryMod1[i] = playerInventoryMod1[selectedSlot];
+					playerInventoryMod2[i] = playerInventoryMod2[selectedSlot];
+					playerInventoryMod3[i] = playerInventoryMod3[selectedSlot];
+
+					// Replace the old slot with an empty slot...
+					playerInventory[selectedSlot] = 0;
+					playerInventoryMod1[selectedSlot] = 0;
+					playerInventoryMod2[selectedSlot] = 0;
+					playerInventoryMod3[selectedSlot] = 0;
+
+					ri->Cvar_SetValue("inv_moveslotstart", selectedSlot);
+					ri->Cvar_SetValue("inv_moveslotend", i);
+
+					backEnd.ui_MouseCursor = NULL;
+					backEnd.ui_MouseCursorTrashAvailable = false;
+					skipSelect = true;
+
+					GUI_UpdateInventory();
+
+					if (selectedQB != -1)
+					{
+						GUI_SetQuickBarSlot(selectedQB, selectedItem);
+						selectedItem->invSlot = i;
+					}
+				}
+			}
 		}
 
 		const struct nk_mouse_button btn1 = ctx->input.mouse.buttons[NK_BUTTON_LEFT];
@@ -2778,6 +2933,7 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 		
 		if (hovered 
 			&& !backEnd.ui_MouseCursor
+			&& !skipSelect
 			&& noSelectTime <= backEnd.refdef.time
 			&& menuNoChangeTime <= backEnd.refdef.time
 			&& inventoryItems[i].icon
@@ -2786,7 +2942,26 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 			if (leftClick)
 			{
 				backEnd.ui_MouseCursor = &inventoryItems[i];
+				backEnd.ui_MouseCursorTrashAvailable = true;
 				noSelectTime = backEnd.refdef.time + 100;
+			}
+			else if (rightClick)
+			{
+				ri->Cvar_SetValue("inv_trashslot", i);
+				playerInventory[i] = 0;
+				playerInventoryMod1[i] = 0;
+				playerInventoryMod2[i] = 0;
+				playerInventoryMod3[i] = 0;
+
+				for (int qb = 0; qb < 12; qb++)
+				{
+					if (quickBarSelections[qb].item && quickBarSelections[qb].item != &nullItem && quickBarSelections[qb].item->type == INVENTORY_TYPE_INVENTORY && quickBarSelections[qb].item->invSlot == i)
+					{// Found it in the quickbar, so remove it there...
+						GUI_InitQuickBarSlot(qb);
+					}
+				}
+
+				GUI_UpdateInventory();
 			}
 		}
 	}
@@ -2802,6 +2977,7 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 	}
 	
 	backEnd.ui_MouseCursor = NULL;
+	backEnd.ui_MouseCursorTrashAvailable = false;
 }
 
 static void
@@ -2938,15 +3114,17 @@ GUI_Character(struct nk_context *ctx, struct media *media)
 				{// Have something selected for drag, also clicked this quick slot, place the selected item here...
 					uiItemInfo_t *selectedItem = (uiItemInfo_t *)backEnd.ui_MouseCursor;
 					char value[64] = { { 0 } };
-					ri->Cvar_SetValue("cg_equipment0", selectedItem->invSlot);
+					ri->Cvar_SetValue("inv_equipment0", selectedItem->invSlot);
 					backEnd.ui_MouseCursor = NULL;
+					backEnd.ui_MouseCursorTrashAvailable = false;
 
 					playerInventoryEquipped[0] = selectedItem->invSlot;
 				}
 				else if (ret != 0 && noSelectTime <= backEnd.refdef.time)
 				{// Clicked on a slot, check if there is some icon there that the player wishes to move to somewhere else...
 					backEnd.ui_MouseCursor = &inventoryItems[playerInventoryEquipped[0]];
-					ri->Cvar_SetValue("cg_equipment0", -1);
+					backEnd.ui_MouseCursorTrashAvailable = false;
+					ri->Cvar_SetValue("inv_equipment0", -1);
 
 					playerInventoryEquipped[0] = 0;
 
@@ -2964,10 +3142,15 @@ GUI_Character(struct nk_context *ctx, struct media *media)
 			{// Have something selected for drag, also clicked this quick slot, place the selected item here...
 				uiItemInfo_t *selectedItem = (uiItemInfo_t *)backEnd.ui_MouseCursor;
 				char value[64] = { { 0 } };
-				ri->Cvar_SetValue("cg_equipment0", selectedItem->invSlot);
+				ri->Cvar_SetValue("inv_equipment0", selectedItem->invSlot);
 				backEnd.ui_MouseCursor = NULL;
+				backEnd.ui_MouseCursorTrashAvailable = false;
 
 				playerInventoryEquipped[0] = selectedItem->invSlot;
+			}
+			else
+			{
+				ri->Cvar_SetValue("inv_equipment0", -1);
 			}
 		}
 	}
@@ -3913,6 +4096,10 @@ void GUI_UpdateInventory(void)
 				}
 			}
 		}
+		else
+		{
+			GUI_InitInventorySlot(i);
+		}
 	}
 
 	// Init the quick bar, if needed...
@@ -4428,7 +4615,24 @@ void NuklearUI_Main(void)
 			{// If the user clicked somewhere not handled by the ui with either a drag object selected, or a right click menu open, then remove/close them... TODO: Add "trash item" here...
 				if (nk_input_is_mouse_released(&GUI_ctx.input, NK_BUTTON_LEFT))
 				{
+					if (backEnd.ui_MouseCursorTrashAvailable)
+					{// Trash the selected item...
+						uiItemInfo_t *cursor = (uiItemInfo_t *)backEnd.ui_MouseCursor;
+
+						if (cursor)
+						{
+							ri->Cvar_SetValue("inv_trashslot", cursor->invSlot);
+							playerInventory[cursor->invSlot] = 0;
+							playerInventoryMod1[cursor->invSlot] = 0;
+							playerInventoryMod2[cursor->invSlot] = 0;
+							playerInventoryMod3[cursor->invSlot] = 0;
+						}
+					}
+
 					backEnd.ui_MouseCursor = NULL;
+					backEnd.ui_MouseCursorTrashAvailable = false;
+
+					GUI_UpdateInventory();
 				}
 			}
 		}
@@ -4459,6 +4663,7 @@ void NuklearUI_Main(void)
 			if (mainMenuOpen || backEnd.ui_MouseCursor)
 			{// UI closed, disable any context menu or mouse cursor (drag/drop) settings...
 				backEnd.ui_MouseCursor = NULL;
+				backEnd.ui_MouseCursorTrashAvailable = false;
 				mainMenuOpen = false;
 			}
 		}

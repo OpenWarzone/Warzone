@@ -1691,85 +1691,114 @@ int EQUIPPED_CURRENT[16] = { { -1 } };
 void CG_CheckInventoryQuickbars( void )
 {
 	//
+	// Inventory Item Trashing...
+	//
+
+	if (inv_trashslot.integer >= 0)
+	{// Tell server to trash the item in the given slot...
+		if (inv_trashslot.integer < 64)
+		{
+			trap->SendClientCommand(va("trashslot %i", inv_trashslot.integer));
+		}
+
+		trap->Cvar_Set("inv_trashslot", "-1");
+	}
+
+	//
+	// Inventory Item Moving...
+	//
+
+	if (inv_moveslotstart.integer >= 0 && inv_moveslotend.integer >= 0)
+	{
+		if (inv_moveslotstart.integer < 64 && inv_moveslotend.integer < 64)
+		{
+			trap->SendClientCommand(va("moveslot %i %i", inv_moveslotstart.integer, inv_moveslotend.integer));
+		}
+
+		trap->Cvar_Set("inv_moveslotstart", "-1");
+		trap->Cvar_Set("inv_moveslotend", "-1");
+	}
+
+	//
 	// Quickbar Updating...
 	//
 
-	if (cg_quickbar1.integer != QUICKBAR_CURRENT[0])
+	if (inv_quickbar1.integer != QUICKBAR_CURRENT[0])
 	{
-		//trap->SendClientCommand(va("equipquickbar 1 %i", cg_quickbar1.integer));
-		QUICKBAR_CURRENT[0] = cg_quickbar1.integer;
+		//trap->SendClientCommand(va("equipquickbar 1 %i", inv_quickbar1.integer));
+		QUICKBAR_CURRENT[0] = inv_quickbar1.integer;
 	}
 
-	if (cg_quickbar2.integer != QUICKBAR_CURRENT[1])
+	if (inv_quickbar2.integer != QUICKBAR_CURRENT[1])
 	{
-		//trap->SendClientCommand(va("equipquickbar 2 %i", cg_quickbar2.integer));
-		QUICKBAR_CURRENT[1] = cg_quickbar2.integer;
+		//trap->SendClientCommand(va("equipquickbar 2 %i", inv_quickbar2.integer));
+		QUICKBAR_CURRENT[1] = inv_quickbar2.integer;
 	}
 
-	if (cg_quickbar3.integer != QUICKBAR_CURRENT[2])
+	if (inv_quickbar3.integer != QUICKBAR_CURRENT[2])
 	{
-		//trap->SendClientCommand(va("equipquickbar 3 %i", cg_quickbar3.integer));
-		QUICKBAR_CURRENT[2] = cg_quickbar3.integer;
+		//trap->SendClientCommand(va("equipquickbar 3 %i", inv_quickbar3.integer));
+		QUICKBAR_CURRENT[2] = inv_quickbar3.integer;
 	}
 
-	if (cg_quickbar4.integer != QUICKBAR_CURRENT[3])
+	if (inv_quickbar4.integer != QUICKBAR_CURRENT[3])
 	{
-		//trap->SendClientCommand(va("equipquickbar 4 %i", cg_quickbar4.integer));
-		QUICKBAR_CURRENT[3] = cg_quickbar4.integer;
+		//trap->SendClientCommand(va("equipquickbar 4 %i", inv_quickbar4.integer));
+		QUICKBAR_CURRENT[3] = inv_quickbar4.integer;
 	}
 
-	if (cg_quickbar5.integer != QUICKBAR_CURRENT[4])
+	if (inv_quickbar5.integer != QUICKBAR_CURRENT[4])
 	{
-		//trap->SendClientCommand(va("equipquickbar 5 %i", cg_quickbar5.integer));
-		QUICKBAR_CURRENT[4] = cg_quickbar5.integer;
+		//trap->SendClientCommand(va("equipquickbar 5 %i", inv_quickbar5.integer));
+		QUICKBAR_CURRENT[4] = inv_quickbar5.integer;
 	}
 
-	if (cg_quickbar6.integer != QUICKBAR_CURRENT[5])
+	if (inv_quickbar6.integer != QUICKBAR_CURRENT[5])
 	{
-		//trap->SendClientCommand(va("equipquickbar 6 %i", cg_quickbar6.integer));
-		QUICKBAR_CURRENT[5] = cg_quickbar6.integer;
+		//trap->SendClientCommand(va("equipquickbar 6 %i", inv_quickbar6.integer));
+		QUICKBAR_CURRENT[5] = inv_quickbar6.integer;
 	}
 
-	if (cg_quickbar7.integer != QUICKBAR_CURRENT[6])
+	if (inv_quickbar7.integer != QUICKBAR_CURRENT[6])
 	{
-		//trap->SendClientCommand(va("equipquickbar 7 %i", cg_quickbar7.integer));
-		QUICKBAR_CURRENT[6] = cg_quickbar7.integer;
+		//trap->SendClientCommand(va("equipquickbar 7 %i", inv_quickbar7.integer));
+		QUICKBAR_CURRENT[6] = inv_quickbar7.integer;
 	}
 
-	if (cg_quickbar8.integer != QUICKBAR_CURRENT[7])
+	if (inv_quickbar8.integer != QUICKBAR_CURRENT[7])
 	{
-		//trap->SendClientCommand(va("equipquickbar 8 %i", cg_quickbar8.integer));
-		QUICKBAR_CURRENT[7] = cg_quickbar8.integer;
+		//trap->SendClientCommand(va("equipquickbar 8 %i", inv_quickbar8.integer));
+		QUICKBAR_CURRENT[7] = inv_quickbar8.integer;
 	}
 
-	if (cg_quickbar9.integer != QUICKBAR_CURRENT[8])
+	if (inv_quickbar9.integer != QUICKBAR_CURRENT[8])
 	{
-		//trap->SendClientCommand(va("equipquickbar 9 %i", cg_quickbar9.integer));
-		QUICKBAR_CURRENT[8] = cg_quickbar9.integer;
+		//trap->SendClientCommand(va("equipquickbar 9 %i", inv_quickbar9.integer));
+		QUICKBAR_CURRENT[8] = inv_quickbar9.integer;
 	}
 
-	if (cg_quickbar10.integer != QUICKBAR_CURRENT[9])
+	if (inv_quickbar10.integer != QUICKBAR_CURRENT[9])
 	{
-		//trap->SendClientCommand(va("equipquickbar 10 %i", cg_quickbar10.integer));
-		QUICKBAR_CURRENT[9] = cg_quickbar10.integer;
+		//trap->SendClientCommand(va("equipquickbar 10 %i", inv_quickbar10.integer));
+		QUICKBAR_CURRENT[9] = inv_quickbar10.integer;
 	}
 
-	if (cg_quickbar11.integer != QUICKBAR_CURRENT[10])
+	if (inv_quickbar11.integer != QUICKBAR_CURRENT[10])
 	{
-		//trap->SendClientCommand(va("equipquickbar 11 %i", cg_quickbar11.integer));
-		QUICKBAR_CURRENT[10] = cg_quickbar11.integer;
+		//trap->SendClientCommand(va("equipquickbar 11 %i", inv_quickbar11.integer));
+		QUICKBAR_CURRENT[10] = inv_quickbar11.integer;
 	}
 
-	if (cg_quickbar12.integer != QUICKBAR_CURRENT[11])
+	if (inv_quickbar12.integer != QUICKBAR_CURRENT[11])
 	{
-		//trap->SendClientCommand(va("equipquickbar 12 %i", cg_quickbar12.integer));
-		QUICKBAR_CURRENT[11] = cg_quickbar12.integer;
+		//trap->SendClientCommand(va("equipquickbar 12 %i", inv_quickbar12.integer));
+		QUICKBAR_CURRENT[11] = inv_quickbar12.integer;
 	}
 
 	//
 	// Equip Slot Updating...
 	//
-	if (cg_equipment0.integer != EQUIPPED_CURRENT[0] && cg_equipment0.integer >= 0)
+	if (inv_equipment0.integer != EQUIPPED_CURRENT[0] && inv_equipment0.integer >= 0)
 	{
 		int		num;
 
@@ -1785,7 +1814,7 @@ void CG_CheckInventoryQuickbars( void )
 			return;
 		}
 
-		inventoryItem *item = BG_GetInventoryItemByID(cg.snap->ps.inventoryItems[cg_equipment0.integer]);
+		inventoryItem *item = BG_GetInventoryItemByID(cg.snap->ps.inventoryItems[inv_equipment0.integer]);
 
 		if (item->getBaseItem()->giTag == WP_SABER)
 		{
@@ -1814,102 +1843,102 @@ void CG_CheckInventoryQuickbars( void )
 				}
 			}
 
-			trap->SendClientCommand(va("equipslot 0 %i", cg_equipment0.integer));
-			EQUIPPED_CURRENT[0] = cg_equipment0.integer;
+			trap->SendClientCommand(va("equipslot 0 %i", inv_equipment0.integer));
+			EQUIPPED_CURRENT[0] = inv_equipment0.integer;
 
 			cg.weaponSelectTime = cg.time;
 			cg.weaponSelect = num;
 		}
 	}
 
-	if (cg_equipment1.integer != EQUIPPED_CURRENT[1])
+	if (inv_equipment1.integer != EQUIPPED_CURRENT[1])
 	{
-		trap->SendClientCommand(va("equipslot 1 %i", cg_equipment1.integer));
-		EQUIPPED_CURRENT[1] = cg_equipment1.integer;
+		trap->SendClientCommand(va("equipslot 1 %i", inv_equipment1.integer));
+		EQUIPPED_CURRENT[1] = inv_equipment1.integer;
 	}
 
-	if (cg_equipment2.integer != EQUIPPED_CURRENT[2])
+	if (inv_equipment2.integer != EQUIPPED_CURRENT[2])
 	{
-		trap->SendClientCommand(va("equipslot 2 %i", cg_equipment2.integer));
-		EQUIPPED_CURRENT[2] = cg_equipment2.integer;
+		trap->SendClientCommand(va("equipslot 2 %i", inv_equipment2.integer));
+		EQUIPPED_CURRENT[2] = inv_equipment2.integer;
 	}
 
-	if (cg_equipment3.integer != EQUIPPED_CURRENT[3])
+	if (inv_equipment3.integer != EQUIPPED_CURRENT[3])
 	{
-		trap->SendClientCommand(va("equipslot 3 %i", cg_equipment3.integer));
-		EQUIPPED_CURRENT[3] = cg_equipment3.integer;
+		trap->SendClientCommand(va("equipslot 3 %i", inv_equipment3.integer));
+		EQUIPPED_CURRENT[3] = inv_equipment3.integer;
 	}
 
-	if (cg_equipment4.integer != EQUIPPED_CURRENT[4])
+	if (inv_equipment4.integer != EQUIPPED_CURRENT[4])
 	{
-		trap->SendClientCommand(va("equipslot 4 %i", cg_equipment4.integer));
-		EQUIPPED_CURRENT[4] = cg_equipment4.integer;
+		trap->SendClientCommand(va("equipslot 4 %i", inv_equipment4.integer));
+		EQUIPPED_CURRENT[4] = inv_equipment4.integer;
 	}
 
-	if (cg_equipment5.integer != EQUIPPED_CURRENT[5])
+	if (inv_equipment5.integer != EQUIPPED_CURRENT[5])
 	{
-		trap->SendClientCommand(va("equipslot 5 %i", cg_equipment5.integer));
-		EQUIPPED_CURRENT[5] = cg_equipment5.integer;
+		trap->SendClientCommand(va("equipslot 5 %i", inv_equipment5.integer));
+		EQUIPPED_CURRENT[5] = inv_equipment5.integer;
 	}
 
-	if (cg_equipment6.integer != EQUIPPED_CURRENT[6])
+	if (inv_equipment6.integer != EQUIPPED_CURRENT[6])
 	{
-		trap->SendClientCommand(va("equipslot 6 %i", cg_equipment6.integer));
-		EQUIPPED_CURRENT[6] = cg_equipment6.integer;
+		trap->SendClientCommand(va("equipslot 6 %i", inv_equipment6.integer));
+		EQUIPPED_CURRENT[6] = inv_equipment6.integer;
 	}
 
-	if (cg_equipment7.integer != EQUIPPED_CURRENT[7])
+	if (inv_equipment7.integer != EQUIPPED_CURRENT[7])
 	{
-		trap->SendClientCommand(va("equipslot 7 %i", cg_equipment7.integer));
-		EQUIPPED_CURRENT[7] = cg_equipment7.integer;
+		trap->SendClientCommand(va("equipslot 7 %i", inv_equipment7.integer));
+		EQUIPPED_CURRENT[7] = inv_equipment7.integer;
 	}
 
-	if (cg_equipment8.integer != EQUIPPED_CURRENT[8])
+	if (inv_equipment8.integer != EQUIPPED_CURRENT[8])
 	{
-		trap->SendClientCommand(va("equipslot 8 %i", cg_equipment8.integer));
-		EQUIPPED_CURRENT[8] = cg_equipment8.integer;
+		trap->SendClientCommand(va("equipslot 8 %i", inv_equipment8.integer));
+		EQUIPPED_CURRENT[8] = inv_equipment8.integer;
 	}
 
-	if (cg_equipment9.integer != EQUIPPED_CURRENT[9])
+	if (inv_equipment9.integer != EQUIPPED_CURRENT[9])
 	{
-		trap->SendClientCommand(va("equipslot 9 %i", cg_equipment9.integer));
-		EQUIPPED_CURRENT[9] = cg_equipment9.integer;
+		trap->SendClientCommand(va("equipslot 9 %i", inv_equipment9.integer));
+		EQUIPPED_CURRENT[9] = inv_equipment9.integer;
 	}
 
-	if (cg_equipment10.integer != EQUIPPED_CURRENT[10])
+	if (inv_equipment10.integer != EQUIPPED_CURRENT[10])
 	{
-		trap->SendClientCommand(va("equipslot 10 %i", cg_equipment10.integer));
-		EQUIPPED_CURRENT[10] = cg_equipment10.integer;
+		trap->SendClientCommand(va("equipslot 10 %i", inv_equipment10.integer));
+		EQUIPPED_CURRENT[10] = inv_equipment10.integer;
 	}
 
-	if (cg_equipment11.integer != EQUIPPED_CURRENT[11])
+	if (inv_equipment11.integer != EQUIPPED_CURRENT[11])
 	{
-		trap->SendClientCommand(va("equipslot 11 %i", cg_equipment11.integer));
-		EQUIPPED_CURRENT[11] = cg_equipment11.integer;
+		trap->SendClientCommand(va("equipslot 11 %i", inv_equipment11.integer));
+		EQUIPPED_CURRENT[11] = inv_equipment11.integer;
 	}
 
-	if (cg_equipment12.integer != EQUIPPED_CURRENT[12])
+	if (inv_equipment12.integer != EQUIPPED_CURRENT[12])
 	{
-		trap->SendClientCommand(va("equipslot 12 %i", cg_equipment12.integer));
-		EQUIPPED_CURRENT[12] = cg_equipment12.integer;
+		trap->SendClientCommand(va("equipslot 12 %i", inv_equipment12.integer));
+		EQUIPPED_CURRENT[12] = inv_equipment12.integer;
 	}
 
-	if (cg_equipment13.integer != EQUIPPED_CURRENT[13])
+	if (inv_equipment13.integer != EQUIPPED_CURRENT[13])
 	{
-		trap->SendClientCommand(va("equipslot 13 %i", cg_equipment13.integer));
-		EQUIPPED_CURRENT[13] = cg_equipment13.integer;
+		trap->SendClientCommand(va("equipslot 13 %i", inv_equipment13.integer));
+		EQUIPPED_CURRENT[13] = inv_equipment13.integer;
 	}
 
-	if (cg_equipment14.integer != EQUIPPED_CURRENT[14])
+	if (inv_equipment14.integer != EQUIPPED_CURRENT[14])
 	{
-		trap->SendClientCommand(va("equipslot 14 %i", cg_equipment14.integer));
-		EQUIPPED_CURRENT[14] = cg_equipment14.integer;
+		trap->SendClientCommand(va("equipslot 14 %i", inv_equipment14.integer));
+		EQUIPPED_CURRENT[14] = inv_equipment14.integer;
 	}
 
-	if (cg_equipment15.integer != EQUIPPED_CURRENT[15])
+	if (inv_equipment15.integer != EQUIPPED_CURRENT[15])
 	{
-		trap->SendClientCommand(va("equipslot 15 %i", cg_equipment15.integer));
-		EQUIPPED_CURRENT[15] = cg_equipment15.integer;
+		trap->SendClientCommand(va("equipslot 15 %i", inv_equipment15.integer));
+		EQUIPPED_CURRENT[15] = inv_equipment15.integer;
 	}
 }
 

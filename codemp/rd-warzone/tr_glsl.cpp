@@ -2240,6 +2240,8 @@ void GLSL_SetBindlessTexture(shaderProgram_t *program, int uniformNum, image_t *
 			, (images[0] && images[0]->imgName && images[0]->imgName[0] != 0) ? images[0]->imgName : "unknown image"
 			, bindlessHandle);*/
 
+		qglMakeTextureHandleResident(bindlessHandle);
+
 		switch (uniformNum)
 		{
 		case UNIFORM_DIFFUSEMAP:
@@ -2385,6 +2387,8 @@ void GLSL_SetBindlessTextureHandle(shaderProgram_t *program, int uniformNum, uin
 		GLSL_BindlessInitialize(program);
 
 		bindlessTexturesBlock_t *block = &program->bindlessBlock;
+
+		qglMakeTextureHandleResident(bindlessHandle);
 
 		switch (uniformNum)
 		{

@@ -165,7 +165,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 //#define __SORT_POLYS__							// Sorts polys by shader so when they draw, they get merged...
 #define __MERGE_DEPTHPASS_DRAWS__				// Merges non-alpha draws in depth prepass by using defaultshader for them...
-//#define __USE_DEPTHDRAWONLY__
+#define __USE_DEPTHDRAWONLY__
 
 #define __FX_SORTING__
 #define __WATER_SORTING__
@@ -2954,6 +2954,7 @@ typedef struct {
 	qboolean			skyRenderedThisView;	// flag for drawing sun
 
 	void				*ui_MouseCursor;
+	bool				ui_MouseCursorTrashAvailable;
 
 	renderPasses_t		renderPass;
 

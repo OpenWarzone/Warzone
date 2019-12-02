@@ -2977,6 +2977,16 @@ extern void RunEmplacedWeapon( gentity_t *ent, usercmd_t **ucmd );
 			}
 		}
 	}
+
+	//
+	//
+	// NPC Inventory Looting...
+	// TEMPORARY: Automatically loot their inventory...
+	//
+	if (self->s.eType == ET_NPC && self->client && attacker->s.eType == ET_PLAYER && attacker->client)
+	{
+		BG_LootInventoryFromNPC(attacker, self);
+	}
 }
 
 

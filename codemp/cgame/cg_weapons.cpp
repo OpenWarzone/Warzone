@@ -389,6 +389,30 @@ void CG_PositionRotatedEntityOnG2Bolt(refEntity_t *entity, void *g2parent, vec3_
 	}
 }
 
+void CG_SetFlashInformation(centity_t *cent, refEntity_t gun, refEntity_t *flash)
+{// Sets cent->muzzlePoint and cent->muzzleDir, and sets the flash refEntity...
+	vec3_t			flashorigin, flashdir;
+
+	memset(flash, 0, sizeof(flash));
+	AnglesToAxis(vec3_origin, flash->axis);
+	CG_PositionRotatedEntityOnTag(flash, &gun, gun.hModel, "tag_flash");
+	VectorCopy(flash->origin, flashorigin);
+	VectorCopy(flash->axis[0], flashdir);
+
+	/*if (cg_debugMuzzle.integer)
+	{
+		vec3_t start, end, fdir;
+		VectorCopy(flashorigin, start);
+		VectorCopy(flashdir, fdir);
+		VectorMA(start, 131072, fdir, end);
+		CG_AddDebugMuzzleLine(start, end);
+	}*/
+
+	// UQ1: Record position to be used later in code instead of a stupid hard coded array...
+	VectorCopy(flashorigin, cent->muzzlePoint);
+	VectorCopy(flashdir, cent->muzzleDir);
+}
+
 /*
 =============
 CG_AddPlayerWeapon
@@ -401,7 +425,7 @@ sound should only be done on the world model case.
 void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent, int team, vec3_t newAngles, qboolean thirdPerson ) {
 	refEntity_t				gun;
 	refEntity_t				barrel;
-	//vec3_t					angles;
+	//vec3_t				angles;
 	weapon_t				weaponNum;
 	weaponInfo_t			*weapon;
 	centity_t				*nonPredictedCent;
@@ -472,45 +496,97 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 
 		matrix3_t axis;
 
-		//find bolt rotation unit vectors
-		BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_X, axis[0]);  //left/right	
-		BG_GiveMeVectorFromMatrix(&boltMatrix, NEGATIVE_Z, axis[1]);  //fwd/back
-		BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_Y, axis[2]);  //up/down?!
+		if (cent->currentState.number == cg.snap->ps.clientNum)
+		{
+			//trap->G2API_SetBoneAnim
+			/*extern vec3_t cg_crosshairPos;
+			
+			if (cg_testvalue2.integer)
+				trap->G2API_SetBoneAngles(cent->ghoul2, 0, "rhand", cent->lerpAngles, BONE_ANGLES_REPLACE, NEGATIVE_Y, NEGATIVE_X, POSITIVE_Z, NULL, 100, cg.time);
+			if (cg_testvalue3.integer)
+				trap->G2API_SetBoneAngles(cent->ghoul2, 0, "lhand", cent->lerpAngles, BONE_ANGLES_REPLACE, NEGATIVE_Y, NEGATIVE_X, POSITIVE_Z, NULL, 100, cg.time);
 
-																	  //rotational transitions
-																	  //configure the initial rotational axis
-		VectorCopy(axis[1], gun.axis[0]);
-		VectorScale(axis[0], -1, gun.axis[1]); //reversed since this is a right hand rule system.
-		VectorCopy(axis[2], gun.axis[2]);
+			if (cg_testvalue0.integer && VectorLength(cg_crosshairPos) != 0.0)
+			{
+				// Towards crosshair instead maybe?
+				vec3_t dir, angles;
 
-		//debug/config rotation statement.
-		extern void ApplyAxisRotation(vec3_t axis[3], int rotType, float value);
-		ApplyAxisRotation(gun.axis, PITCH, 90.0);
+				VectorSubtract(cg_crosshairPos, cent->lerpOrigin, dir);
+				VectorNormalize(dir);
+				vectoangles(dir, angles);
+				AnglesToAxis(angles, axis);
 
-		AxisToAngles(gun.axis, gun.angles);
+				extern void ApplyAxisRotation(vec3_t axis[3], int rotType, float value);
+				ApplyAxisRotation(axis, YAW, cg_thirdPersonAngle.value * cg_testvalue1.value);
+
+				VectorCopy(axis[1], gun.axis[0]);
+				VectorScale(axis[0], -1, gun.axis[1]); //reversed since this is a right hand rule system.
+				VectorCopy(axis[2], gun.axis[2]);
+				AxisToAngles(gun.axis, gun.angles);
+			}
+			else*/
+			{
+				// Always point the gun forwards, regardless of animation...
+				AnglesToAxis(cent->lerpAngles, axis);
+				VectorCopy(axis[1], gun.axis[0]);
+				VectorScale(axis[0], -1, gun.axis[1]); //reversed since this is a right hand rule system.
+				VectorCopy(axis[2], gun.axis[2]);
+				AxisToAngles(gun.axis, gun.angles);
+
+				if (cent->currentState.torsoAnim == TORSO_WEAPONREADY3)
+				{
+					gun.origin[2] += 0.8 + (0.03 * cent->playerState->viewangles[PITCH]);
+				}
+				else if (cent->currentState.torsoAnim == TORSO_WEAPONREADY2)
+				{
+					gun.origin[2] += 0.8 + (0.03 * cent->playerState->viewangles[PITCH]);
+				}
+				/*else if (cent->currentState.torsoAnim == DC15_FIRE)
+				{
+					gun.origin[2] += cg_testvalue1.value + (cg_testvalue2.value * cent->playerState->viewangles[cg_testvalue0.integer]);
+				}
+				else if (cent->currentState.torsoAnim == TORSO_CLONEPISTOLFIRE)
+				{
+					gun.origin[2] += cg_testvalue1.value + (cg_testvalue2.value * cent->playerState->viewangles[cg_testvalue0.integer]);
+				}
+				else
+				{
+					gun.origin[2] += cg_testvalue1.value + (cg_testvalue2.value * cent->playerState->viewangles[cg_testvalue0.integer]);
+				}*/
+			}
+		}
+		else
+		{
+#if 0 // This is dumb and makes no sense when the animations do not have the hand exactly on the correct angles (forward)...
+			//find bolt rotation unit vectors
+			BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_X, axis[0]);  //left/right	
+			BG_GiveMeVectorFromMatrix(&boltMatrix, NEGATIVE_Z, axis[1]);  //fwd/back
+			BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_Y, axis[2]);  //up/down?!
+			VectorCopy(axis[1], gun.axis[0]);
+			VectorScale(axis[0], -1, gun.axis[1]); //reversed since this is a right hand rule system.
+			VectorCopy(axis[2], gun.axis[2]);
+			extern void ApplyAxisRotation(vec3_t axis[3], int rotType, float value);
+			ApplyAxisRotation(gun.axis, PITCH, 90.0);
+			AxisToAngles(gun.axis, gun.angles);
+#else
+			// Always point the gun forwards, regardless of animation...
+			AnglesToAxis(cent->lerpAngles, axis);
+			VectorCopy(axis[1], gun.axis[0]);
+			VectorScale(axis[0], -1, gun.axis[1]); //reversed since this is a right hand rule system.
+			VectorCopy(axis[2], gun.axis[2]);
+			AxisToAngles(gun.axis, gun.angles);
+#endif
+		}
 
 		CG_AddWeaponWithPowerups(&gun, cent->currentState.powerups);
+
+
+		// Setup cent->flashorigin and cent->flashdir...
+		CG_SetFlashInformation(cent, gun, &flash);
 
 		//
 		// Add the attachments...
 		//
-
-		if (cent->currentState.eType == ET_NPC)
-		{
-			//cent->playerState->weapon = weaponNum;
-
-			/*trap->Print("NPC %i. equipped %i (%i). item %u (%u). mod1 %u (%u). mod2 %u (%u). mod3 %u (%u). Visuals %u %u %u.\n"
-				, cent->currentState.number
-				, cent->playerState->inventoryEquipped[0], cent->currentState.inventoryEquipped[0]
-				, cent->playerState->inventoryItems[0], cent->currentState.inventoryItems[0]
-				, cent->playerState->inventoryMod1[0], cent->currentState.inventoryMod1[0]
-				, cent->playerState->inventoryMod2[0], cent->currentState.inventoryMod2[0]
-				, cent->playerState->inventoryMod3[0], cent->currentState.inventoryMod3[0]
-				, BG_EquippedWeaponVisualType1(cent->playerState)
-				, BG_EquippedWeaponVisualType2(cent->playerState)
-				, BG_EquippedWeaponVisualType3(cent->playerState));
-				*/
-		}
 
 		{// Clip...
 			switch (BG_EquippedWeaponVisualType1(cent->playerState))
@@ -667,6 +743,9 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 					AnglesToAxis(vec3_origin, barrel.axis);
 					CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_barrel");
 					CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
+					
+					// Setup cent->flashorigin and cent->flashdir to the mod's flash, overriding the base gun model's...
+					CG_SetFlashInformation(cent, barrel, &flash);
 					break;
 				case WEAPON_STAT3_SHOT_EXPLOSIVE:
 					memset(&barrel, 0, sizeof(barrel));
@@ -677,6 +756,9 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 					AnglesToAxis(vec3_origin, barrel.axis);
 					CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_barrel");
 					CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
+
+					// Setup cent->flashorigin and cent->flashdir to the mod's flash, overriding the base gun model's...
+					CG_SetFlashInformation(cent, barrel, &flash);
 					break;
 				case WEAPON_STAT3_SHOT_BEAM:
 					memset(&barrel, 0, sizeof(barrel));
@@ -687,6 +769,9 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 					AnglesToAxis(vec3_origin, barrel.axis);
 					CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_barrel");
 					CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
+
+					// Setup cent->flashorigin and cent->flashdir to the mod's flash, overriding the base gun model's...
+					CG_SetFlashInformation(cent, barrel, &flash);
 					break;
 				case WEAPON_STAT3_SHOT_WIDE:
 					memset(&barrel, 0, sizeof(barrel));
@@ -697,6 +782,9 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 					AnglesToAxis(vec3_origin, barrel.axis);
 					CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_barrel");
 					CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
+
+					// Setup cent->flashorigin and cent->flashdir to the mod's flash, overriding the base gun model's...
+					CG_SetFlashInformation(cent, barrel, &flash);
 					break;
 				}
 			}
@@ -718,6 +806,9 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 					AnglesToAxis(vec3_origin, barrel.axis);
 					CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_barrel");
 					CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
+
+					// Setup cent->flashorigin and cent->flashdir to the mod's flash, overriding the base gun model's...
+					CG_SetFlashInformation(cent, barrel, &flash);
 					break;
 				case WEAPON_STAT3_SHOT_BEAM:
 					break;
@@ -730,95 +821,47 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 					AnglesToAxis(vec3_origin, barrel.axis);
 					CG_PositionRotatedEntityOnTag(&barrel, &gun, gun.hModel, "tag_barrel");
 					CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
+
+					// Setup cent->flashorigin and cent->flashdir to the mod's flash, overriding the base gun model's...
+					CG_SetFlashInformation(cent, barrel, &flash);
 					break;
 				}
 			}
 		}
 		
 #if 0 // UQ1: Not sure any of this makes sense until modules that support spinning and stuff are added...
-		if ((cent->currentState.eFlags & EF_FIRING || ((ps) && ps->weaponstate == WEAPON_FIRING)))
+		if (((cent->currentState.eFlags & EF_FIRING) || (ps && ps->weaponstate == WEAPON_FIRING)))
 		{
 			if (weapon->isBlasterCanon)
 			{
-				trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->spinSound, CHAN_WEAPON);
+				trap->S_AddLoopingSound(cent->currentState.number, flash.origin, vec3_origin, weapon->spinSound, CHAN_WEAPON);
 			}
 			else if (weapon->firingSound) // UQ1: This was playing a crapload of NULL's... Not sure if this was changed to weap->flashsounds???? Stoiss????
 			{
-				trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->firingSound, CHAN_WEAPON);
+				trap->S_AddLoopingSound(cent->currentState.number, flash.origin, vec3_origin, weapon->firingSound, CHAN_WEAPON);
 			}
-			/*else
-			{// UQ1: Add this??? I think it's already handled by CG_FireWeapon()
-				// play a sound
-				for (c = 0; c < 4; c++) {
-					if (!weapon->flashSound[c]) {
-						break;
-					}
-				}
-				if (c > 0) {
-					c = rand() % c;
-					if (weapon->flashSound[c])
-					{
-						if (cent->currentState.number == cg.clientNum)
-							trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_WEAPONLOCAL, weapon->flashSound[c]);
-						else
-							trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_WEAPON, weapon->flashSound[c]);
-					}
-				}
-			}*/
 
 			cent->pe.lightningFiring = qtrue;
 		}
-		/*else if ((cent->currentState.eFlags & EF_ALT_FIRING || ((ps) && ps->weaponstate == WEAPON_FIRING)))
-		{// UQ1: Add this??? I think it's already handled by CG_FireWeapon()
-			if (weapon->isBlasterCanon)
-			{
-				trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->spinSound, CHAN_WEAPON);
-			}
-			else if (weapon->firingSound) // UQ1: This was playing a crapload of NULL's... Not sure if this was changed to weap->flashsounds???? Stoiss????
-			{
-				trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->firingSound, CHAN_WEAPON);
-			}
-			else
-			{
-				// play a sound
-				for (c = 0; c < 4; c++) {
-					if (!weapon->altFlashSound[c]) {
-						break;
-					}
-				}
-				if (c > 0) {
-					c = rand() % c;
-					if (weapon->altFlashSound[c])
-					{
-						if (cent->currentState.number == cg.clientNum)
-							trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_WEAPONLOCAL, weapon->altFlashSound[c]);
-						else
-							trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_WEAPON, weapon->altFlashSound[c]);
-					}
-				}
-			}
-
-			cent->pe.lightningFiring = qtrue;
-		}*/
-		else
+		else if (weapon->isBlasterCanon)
 		{
-			if (weapon->isBlasterCanon)
-			{
-				if (cent->pe.lightningFiring && weapon->spindownSound)
-				{
-					if (cent->currentState.clientNum == cg.clientNum)
-						trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_WEAPONLOCAL, weapon->spindownSound);
-					else
-						trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_WEAPON, weapon->spindownSound);
-				}
-			}
-			else if (weapon->readySound)
+			if (cent->pe.lightningFiring && weapon->spindownSound)
 			{
 				if (cent->currentState.clientNum == cg.clientNum)
-					trap->S_AddLoopingSound(cent->currentState.number, vec3_origin, vec3_origin, weapon->readySound, CHAN_WEAPON);
+					trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_WEAPONLOCAL, weapon->spindownSound);
 				else
-					trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->readySound, CHAN_WEAPON);
+					trap->S_StartSound(cent->lerpOrigin, cent->currentState.number, CHAN_WEAPON, weapon->spindownSound);
 			}
+
+			cent->pe.lightningFiring = qfalse;
+		}
+		else if (weapon->readySound)
+		{
+			if (cent->currentState.clientNum == cg.clientNum)
+				trap->S_AddLoopingSound(cent->currentState.number, vec3_origin, vec3_origin, weapon->readySound, CHAN_WEAPON);
+			else
+				trap->S_AddLoopingSound(cent->currentState.number, cent->lerpOrigin, vec3_origin, weapon->readySound, CHAN_WEAPON);
+
 			cent->pe.lightningFiring = qfalse;
 		}
 #endif
@@ -1075,18 +1118,34 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 				CG_AddWeaponWithPowerups(&barrel, cent->currentState.powerups);
 			}
 		}
+
+		// Setup cent->flashorigin and cent->flashdir...
+		CG_SetFlashInformation(cent, gun, &flash);
 	}
 #else
 	else
+	{
 		return;
+	}
 #endif
 
-/*
-Ghoul2 Insert End
-*/
+	/*
+	Ghoul2 Insert End
+	*/
 
-	memset (&flash, 0, sizeof(flash));
-	CG_PositionEntityOnTag( &flash, &gun, gun.hModel, "tag_flash");
+	{
+		VectorCopy(flash.origin, flashorigin);
+		VectorCopy(flash.axis[0], flashdir);
+
+		if (cg_debugMuzzle.integer)
+		{
+			vec3_t start, end, fdir;
+			VectorCopy(flashorigin, start);
+			VectorCopy(flashdir, fdir);
+			VectorMA(start, 131072, fdir, end);
+			CG_AddDebugMuzzleLine(start, end);
+		}
+	}
 
 	VectorCopy(flash.origin, cg.lastFPFlashPoint);
 
@@ -1156,36 +1215,7 @@ Ghoul2 Insert End
 	if (ps 
 		|| cg.renderingThirdPerson 
 		|| cent->currentState.number != cg.predictedPlayerState.clientNum)
-	{	// Make sure we don't do the thirdperson model effects for the local player if we're in first person
-		refEntity_t	flash;
-
-		memset (&flash, 0, sizeof(flash));
-
-		if (!thirdPerson)
-		{
-			CG_PositionEntityOnTag( &flash, &gun, gun.hModel, "tag_flash");
-			VectorCopy(flash.origin, flashorigin);
-			VectorCopy(flash.axis[0], flashdir);
-		}
-		else
-		{
-			mdxaBone_t 		boltMatrix;
-
-			if (!trap->G2API_HasGhoul2ModelOnIndex(&(cent->ghoul2), 1))
-			{ //it's quite possible that we may have have no weapon model and be in a valid state, so return here if this is the case
-				return;
-			}
-
-			// go away and get me the bolt position for this frame please
- 			if (!(trap->G2API_GetBoltMatrix(cent->ghoul2, 1, 0, &boltMatrix, newAngles, cent->lerpOrigin, cg.time, cgs.gameModels, cent->modelScale)))
-			{	// Couldn't find bolt point.
-				return;
-			}
-
-			BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, flashorigin);
-			BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_X, flashdir);
-		}
-
+	{// Make sure we don't do the thirdperson model effects for the local player if we're in first person
 		//if ( cg.time - cent->muzzleFlashTime <= MUZZLE_FLASH_TIME + 10 )// this need to be there or else it fucks up the muzzle flash efx by playing it all the time
 		if (cent->currentState.modelindex2 == WEAPON_CHARGING_ALT)
 		{	// Check the alt firing first.
@@ -1422,24 +1452,10 @@ Ghoul2 Insert End
 		if (weaponNum != WP_SABER)
 		{// Saber doesn't have flash. This was causing there to be a light when it is off...
 			if ( weapon->flashDlightColor[0] || weapon->flashDlightColor[1] || weapon->flashDlightColor[2] ) {
-				AddLightToScene( flashorigin, 300 + (rand()&31), weapon->flashDlightColor[0],
-					weapon->flashDlightColor[1], weapon->flashDlightColor[2] );
+				AddLightToScene( flashorigin, 300 + (rand()&31), weapon->flashDlightColor[0], weapon->flashDlightColor[1], weapon->flashDlightColor[2] );
 			}
 		}
 	}
-
-	if (cg_debugMuzzle.integer)
-	{
-		vec3_t start, end, fdir;
-		VectorCopy(flashorigin, start);
-		VectorCopy(flashdir, fdir);
-		VectorMA( start, 131072, fdir, end );
-		CG_AddDebugMuzzleLine( start, end );
-	}
-
-	// UQ1: Record position to be used later in code instead of a stupid hard coded array...
-	VectorCopy(flashorigin, cent->muzzlePoint);
-	VectorCopy(flashdir, cent->muzzleDir);
 }
 
 /*
@@ -2100,9 +2116,8 @@ void CG_PrevWeapon_f( void ) {
 extern int QUICKBAR_CURRENT[12];
 extern int EQUIPPED_CURRENT[16];
 
-int CG_SelectWeaponForID(int num)
+int CG_SelectWeaponQuickslot(int num)
 {// New, clean, generic weapon switching system... Fast and smooth... and easy to switch to inventory character slots later...
-#if 0
 	int newNum = -1;
 
 	if (cg.weaponSelectTime + WEAPON_SELECT_TIME > cg.time)
@@ -2110,92 +2125,7 @@ int CG_SelectWeaponForID(int num)
 		return -1;
 	}
 
-	switch (num)
-	{
-	case 1:
-	{// Saber/Melee selection...
-		if (cg.snap->ps.weapon != WP_SABER)
-		{
-			cg.saberShutupTime = 0;
-			newNum = WP_SABER;
-		}
-		else if (cg.snap->ps.saberHolstered < 2)
-		{// Switch sabers off on first hit, then switch to melee on second key press...
-			trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_SABER);
-			cg.saberShutupTime = cg.time + WEAPON_SELECT_TIME;
-			trap->SendConsoleCommand("sv_saberswitch\n");
-			return WP_SABER;
-		}
-		else
-		{
-			trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_SABER);
-			newNum = WP_MELEE;
-		}
-		break;
-	}
-	case 2:
-		if (!CG_WeaponSelectable(WP_MODULIZED_WEAPON))
-		{
-			return -1;
-		}
-
-		newNum = WP_MODULIZED_WEAPON;
-		break;
-	default:
-		// Invalid...
-		return -1;
-		break;
-	}
-
-	return newNum;
-#else
-	int newNum = -1;
-
-	if (cg.weaponSelectTime + WEAPON_SELECT_TIME > cg.time)
-	{
-		return -1;
-	}
-
-	/*
-	switch (num)
-	{
-	case 1:
-	{// Saber/Melee selection...
-		if (cg.snap->ps.weapon != WP_SABER)
-		{
-			cg.saberShutupTime = 0;
-			newNum = WP_SABER;
-		}
-		else if (cg.snap->ps.saberHolstered < 2)
-		{// Switch sabers off on first hit, then switch to melee on second key press...
-			trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_SABER);
-			cg.saberShutupTime = cg.time + WEAPON_SELECT_TIME;
-			trap->SendConsoleCommand("sv_saberswitch\n");
-			return WP_SABER;
-		}
-		else
-		{
-			trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_SABER);
-			newNum = WP_MELEE;
-		}
-		break;
-	}
-	case 2:
-		if (!CG_WeaponSelectable(WP_MODULIZED_WEAPON))
-		{
-			return -1;
-		}
-
-		newNum = WP_MODULIZED_WEAPON;
-		break;
-	default:
-		// Invalid...
-		return -1;
-		break;
-	}
-	*/
-
-	if (num < 1)
+	if (num < 1 || num > 12)
 	{
 		return -1;
 	}
@@ -2209,11 +2139,14 @@ int CG_SelectWeaponForID(int num)
 			return -1;
 		}
 
+		inventoryItem *originalItem = BG_GetInventoryItemByID(cg.snap->ps.inventoryItems[cg.snap->ps.inventoryEquipped[0]]);
 		inventoryItem *item = BG_GetInventoryItemByID(cg.snap->ps.inventoryItems[slot]);
+
+		//Com_Printf("Switch from %u (crystal %u) to %u (crystal %u).\n", originalItem->getItemID(), originalItem->getCrystal(), item->getItemID(), item->getCrystal());
 
 		if (item->getBaseItem()->giTag == WP_SABER)
 		{
-			if (cg.snap->ps.weapon != WP_SABER)
+			if (cg.snap->ps.weapon != WP_SABER || (originalItem->getBaseItem()->giTag == WP_SABER) && originalItem != item)
 			{
 				cg.saberShutupTime = 0;
 				newNum = WP_SABER;
@@ -2224,7 +2157,7 @@ int CG_SelectWeaponForID(int num)
 				trap->S_MuteSound(cg.snap->ps.clientNum, CHAN_SABER);
 				cg.saberShutupTime = cg.time + WEAPON_SELECT_TIME;
 				trap->SendConsoleCommand("sv_saberswitch\n");
-				trap->SendClientCommand(va("equipslot 0 %i", slot));
+				//trap->SendClientCommand(va("equipslot 0 %i", slot));
 				return WP_SABER;
 			}
 			else
@@ -2248,7 +2181,6 @@ int CG_SelectWeaponForID(int num)
 	}
 
 	return newNum;
-#endif
 }
 
 /*
@@ -2271,7 +2203,7 @@ void CG_Weapon_f( void ) {
 		return;
 	}
 
-	num = CG_SelectWeaponForID(atoi(CG_Argv(1)));
+	num = CG_SelectWeaponQuickslot(atoi(CG_Argv(1)));
 
 	if (!CG_WeaponSelectable(num))
 	{
@@ -2497,17 +2429,27 @@ BULLETS
 CG_CalcMuzzlePoint
 ======================
 */
+#if 1
+qboolean CG_CalcMuzzlePoint(int entityNum, vec3_t muzzle) {
+	centity_t *cent = &cg_entities[entityNum];
+
+	if (!cent->currentValid) {
+		return qfalse;
+	}
+
+	VectorCopy(cent->muzzlePoint, muzzle);
+
+	return qtrue;
+}
+#else
 qboolean CG_CalcMuzzlePoint( int entityNum, vec3_t muzzle ) {
-#if 0 // UQ: Since we already stored it when drawing it...
 	vec3_t		forward, right;
 	vec3_t		gunpoint;
 	int			anim;
-#endif
 	centity_t	*cent;
 
 	if ( entityNum == cg.snap->ps.clientNum )
 	{ //I'm not exactly sure why we'd be rendering someone else's crosshair, but hey.
-#if 0 // UQ: Since we already stored it when drawing it...
 		int weapontype = cg.snap->ps.weapon;
 		vec3_t weaponMuzzle;
 		centity_t *pEnt = &cg_entities[cg.predictedPlayerState.clientNum];
@@ -2577,10 +2519,6 @@ qboolean CG_CalcMuzzlePoint( int entityNum, vec3_t muzzle ) {
 		{
 			muzzle[2] += weaponMuzzle[2] * (pEnt->currentState.iModelScale/100.0f);
 		}
-#else
-		centity_t *pEnt = &cg_entities[cg.predictedPlayerState.clientNum];
-		VectorCopy(pEnt->muzzlePoint, muzzle);
-#endif
 
 		return qtrue;
 	}
@@ -2591,7 +2529,6 @@ qboolean CG_CalcMuzzlePoint( int entityNum, vec3_t muzzle ) {
 		return qfalse;
 	}
 
-#if 0 // UQ: Since we already stored it when drawing it...
 	VectorCopy( cent->currentState.pos.trBase, muzzle );
 
 	AngleVectors( cent->currentState.apos.trBase, forward, NULL, NULL );
@@ -2603,14 +2540,10 @@ qboolean CG_CalcMuzzlePoint( int entityNum, vec3_t muzzle ) {
 	}
 
 	VectorMA( muzzle, 14, forward, muzzle );
-#else
-	VectorCopy(cent->muzzlePoint, muzzle);
-#endif
 
 	return qtrue;
-
 }
-
+#endif
 
 
 /*

@@ -1,11 +1,25 @@
 #include "bg_inventoryItem.h"
 
+
+//
+// Inventory System Global Defines...
+//
+
+//#define __SEND_FULL_WEAPON_INFO_WITH_BOLT__				// This would send all the information about the player's inventory system item (and it's mods) to the clients... Should we need it...
+
+
+
+//
+// bg_itemlist - TODO: Replace/Extend with ini files...
+//
+
 extern int		bg_numItems;
 extern gitem_t	bg_itemlist[];
 
-#if defined(_GAME)
-extern void BG_CreateRandomNPCInventory(int entityNum); // Sorry, don't have access to gentity_t here...
-#endif //defined(_GAME)
+
+//
+// Inventory System Usage Functions for GAME, CGAME, and RENDERER...
+//
 
 // Basic lookups stuff... Returns whole item info...
 extern inventoryItem *BG_GetInventoryItemByID(uint16_t id);

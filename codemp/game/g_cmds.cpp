@@ -556,38 +556,107 @@ void Cmd_KillOther_f( gentity_t *ent )
 
 void Cmd_EquipSlot_f(gentity_t *ent)
 {
-	char	slotindex[MAX_TOKEN_CHARS];
+	char	equipslotindex[MAX_TOKEN_CHARS];
 	char	invslotindex[MAX_TOKEN_CHARS];
 
 	if (trap->Argc() < 3) {
-		//trap->SendServerCommand(ent - g_entities, "print \"Usage: equipslot <slotNum> <invSlotNum>\n\"");
 		return;
 	}
 
-	trap->Argv(1, slotindex, sizeof(slotindex));
+	trap->Argv(1, equipslotindex, sizeof(equipslotindex));
 	trap->Argv(2, invslotindex, sizeof(invslotindex));
 
-	uint16_t slot = atoi(slotindex);
-	uint16_t invslot = atoi(invslotindex);
+	uint16_t equipslot = atoi(equipslotindex);
+	uint16_t inventoryslot = atoi(invslotindex);
 
-	if (ent->client->ps.inventoryEquipped[slot] == invslot)
+	if (ent->client->ps.inventoryEquipped[equipslot] == inventoryslot)
 	{
 		return;
 	}
 
-	if (invslot < 0 || invslot > 63)
+	if (!(inventoryslot < 0 || inventoryslot > 63 || equipslot < 0 || equipslot > 15))
 	{
-		//trap->SendServerCommand(ent - g_entities, va("print \"Inventory slot %i is invalid.\n\"", invslot));
+		ent->client->ps.inventoryEquipped[equipslot] = inventoryslot;
+
+		if (equipslot == 0)
+		{// Need a weapon switch animation... TODO: This probably requires some more checks (saber in air, etc)...
+			inventoryItem *item = BG_GetInventoryItemByID(ent->client->ps.inventoryItems[inventoryslot]);
+
+			if (item->getBaseItem()->giTag == WP_SABER)
+				G_AddEvent(ent, EV_CHANGE_WEAPON, WP_SABER);
+			else
+				G_AddEvent(ent, EV_CHANGE_WEAPON, WP_MODULIZED_WEAPON);
+
+			ent->client->ps.weaponstate = WEAPON_DROPPING;
+			ent->client->ps.weaponTime += 200;
+			G_SetAnim(ent, &ent->client->pers.cmd, SETANIM_TORSO, TORSO_DROPWEAP1, SETANIM_FLAG_OVERRIDE, 0);
+		}
 	}
-	else if (slot < 0 || slot > 15)
+}
+
+void Cmd_TrashSlot_f(gentity_t *ent)
+{
+	char	invslotindex[MAX_TOKEN_CHARS];
+
+	if (trap->Argc() < 2) {
+		return;
+	}
+
+	trap->Argv(1, invslotindex, sizeof(invslotindex));
+
+	uint16_t invslot = atoi(invslotindex);
+
+	if (invslot >= 0 && invslot < 64)
 	{
-		//trap->SendServerCommand(ent - g_entities, va("print \"Equip slot %i is invalid.\n\"", invslot));
+		ent->client->ps.inventoryItems[invslot] = 0;
+		ent->client->ps.inventoryMod1[invslot] = 0;
+		ent->client->ps.inventoryMod2[invslot] = 0;
+		ent->client->ps.inventoryMod3[invslot] = 0;
 	}
-	else
+}
+
+void Cmd_MoveSlot_f(gentity_t *ent)
+{
+	char	beginslotindex[MAX_TOKEN_CHARS];
+	char	endslotindex[MAX_TOKEN_CHARS];
+
+	if (trap->Argc() < 3) {
+		return;
+	}
+
+	trap->Argv(1, beginslotindex, sizeof(beginslotindex));
+	trap->Argv(2, endslotindex, sizeof(endslotindex));
+
+	uint16_t beginslot = atoi(beginslotindex);
+	uint16_t endslot = atoi(endslotindex);
+
+	if (beginslot < 0 || beginslot > 63 || endslot < 0 || endslot > 63)
 	{
-		ent->client->ps.inventoryEquipped[slot] = invslot;
-		//trap->SendServerCommand(ent - g_entities, va("print \"Item in inventory slot %i is now equipped weapon.\n\"", invslot));
+		return;
 	}
+
+	if (beginslot == endslot)
+	{
+		return;
+	}
+
+	// Store any item/mod info that was in this new slot...
+	uint16_t oldInv = ent->client->ps.inventoryItems[endslot];
+	uint16_t oldMod1 = ent->client->ps.inventoryMod1[endslot];
+	uint16_t oldMod2 = ent->client->ps.inventoryMod2[endslot];
+	uint16_t oldMod3 = ent->client->ps.inventoryMod3[endslot];
+
+	// Replace this new slot with the new item...
+	ent->client->ps.inventoryItems[endslot] = ent->client->ps.inventoryItems[beginslot];
+	ent->client->ps.inventoryMod1[endslot] = ent->client->ps.inventoryMod1[beginslot];
+	ent->client->ps.inventoryMod2[endslot] = ent->client->ps.inventoryMod2[beginslot];
+	ent->client->ps.inventoryMod3[endslot] = ent->client->ps.inventoryMod3[beginslot];
+
+	// Replace the old slot with the old item...
+	ent->client->ps.inventoryItems[beginslot] = oldInv;
+	ent->client->ps.inventoryMod1[beginslot] = oldMod1;
+	ent->client->ps.inventoryMod2[beginslot] = oldMod2;
+	ent->client->ps.inventoryMod3[beginslot] = oldMod3;
 }
 
 gentity_t *G_GetDuelWinner(gclient_t *client)
@@ -3648,6 +3717,7 @@ command_t commands[] = {
 //	{ "kylesmash",			TryGrapple,					0 },
 	{ "levelshot",			Cmd_LevelShot_f,			/*CMD_CHEAT|CMD_ALIVE|*/CMD_NOINTERMISSION }, // UQ1: Why CMD_ALIVE and CMD_CHEAT???
 	{ "maplist",			Cmd_MapList_f,				CMD_NOINTERMISSION },
+	{ "moveslot",			Cmd_MoveSlot_f,			0 },
 	{ "noclip",				Cmd_Noclip_f,				CMD_CHEAT/*|CMD_ALIVE*/|CMD_NOINTERMISSION },
 	{ "notarget",			Cmd_Notarget_f,				CMD_CHEAT|CMD_ALIVE|CMD_NOINTERMISSION },
 	{ "npc",				Cmd_NPC_f,					CMD_CHEAT|CMD_ALIVE },
@@ -3662,6 +3732,7 @@ command_t commands[] = {
 	{ "teleport",			Cmd_Teleport_f,				CMD_CHEAT | CMD_NOINTERMISSION },
 	{ "tell",				Cmd_Tell_f,					0 },
 	{ "thedestroyer",		Cmd_TheDestroyer_f,			CMD_CHEAT|CMD_ALIVE|CMD_NOINTERMISSION },
+	{ "trashslot",			Cmd_TrashSlot_f,			0 },
 	{ "t_use",				Cmd_TargetUse_f,			CMD_CHEAT|CMD_ALIVE },
 	{ "vehicle",			Cmd_Vehicle_f,				CMD_NOINTERMISSION },
 	{ "voice_cmd",			Cmd_VoiceCommand_f,			CMD_NOINTERMISSION },

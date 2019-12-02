@@ -225,13 +225,9 @@ inventoryItem::inventoryItem(uint16_t itemID)
 {
 	m_itemID = itemID;
 	m_bgItemID = 0;
+
 	m_quality = QUALITY_GREY;
 	m_quantity = 0;
-
-#if defined(_CGAME) || defined(rd_warzone_x86_EXPORTS)
-	memset(&m_model, 0, sizeof(m_model));
-	memset(&m_icon, 0, sizeof(m_icon));
-#endif
 
 	m_crystal = 0;
 	m_basicStat1 = 0;
@@ -246,21 +242,9 @@ inventoryItem::inventoryItem(uint16_t itemID, uint16_t bgItemID, itemQuality_t q
 {
 	m_itemID = itemID;
 	m_bgItemID = bgItemID;
+
 	m_quality = quality;
 	m_quantity = amount;
-
-#if defined(_CGAME) || defined(rd_warzone_x86_EXPORTS)
-	memset(&m_model, 0, sizeof(m_model));
-	if (bg_itemlist[m_bgItemID].view_model && bg_itemlist[m_bgItemID].view_model[0])
-	{
-		strcpy(m_model, bg_itemlist[m_bgItemID].view_model);
-	}
-	memset(&m_icon, 0, sizeof(m_icon));
-	if (bg_itemlist[m_bgItemID].icon && bg_itemlist[m_bgItemID].icon[0])
-	{
-		strcpy(m_icon, bg_itemlist[m_bgItemID].icon);
-	}
-#endif
 
 	m_crystal = 0;
 	m_basicStat1 = 0;
@@ -425,24 +409,6 @@ const char *inventoryItem::getName(uint16_t modItemID1)
 char *inventoryItem::getDescription()
 {
 	return getBaseItem()->description;
-}
-
-char *inventoryItem::getModel()
-{
-#if defined(_CGAME) || defined(rd_warzone_x86_EXPORTS)
-	return m_model;
-#else
-	return "";
-#endif
-}
-
-char *inventoryItem::getIcon()
-{
-#if defined(_CGAME) || defined(rd_warzone_x86_EXPORTS)
-	return m_icon;
-#else
-	return "";
-#endif
 }
 
 itemQuality_t inventoryItem::getQuality()

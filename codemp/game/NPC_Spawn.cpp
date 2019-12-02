@@ -2060,7 +2060,7 @@ finish:
 	if (!newent->m_pVehicle)
 	{
 		// Add a random RNG weapon to the npc, a saber or a weapon based on type of npc...
-		BG_CreateRandomNPCInventory(newent->s.number);
+		BG_CreateRandomNPCInventory(newent);
 	}
 
 	return newent;
