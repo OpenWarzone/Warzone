@@ -5245,7 +5245,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					if (!(pStage->stateBits & GLS_ATEST_BITS))
 						GL_BindToTMU(tr.whiteImage, 0);
 					else if (tess.shader->isCursor && GUI_GetMouseCursor())
-						GL_BindImageIDToTMU(GUI_GetMouseCursor(), TB_COLORMAP); // override with nuklear's selected icon for drag/drop stuff...
+						GL_BindImageIDToTMU(GUI_GetMouseCursor(), TB_DIFFUSEMAP); // override with nuklear's selected icon for drag/drop stuff...
 					else if (pStage->bundle[TB_COLORMAP].image[0] != 0)
 						R_BindAnimatedImageToTMU(&pStage->bundle[TB_COLORMAP], TB_COLORMAP);
 				}
