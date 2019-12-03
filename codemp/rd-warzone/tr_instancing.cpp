@@ -88,8 +88,8 @@ void R_AddInstancedModelToList(mdvModel_t *model, vec3_t origin, vec3_t angles, 
 
 		//ForceCrash();
 
-		//GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
-		//GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+		//GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix, 1);
+		//GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
 		//Matrix16Multiply(glState.modelviewProjection, backEnd.ori.modelMatrix, mMatrixes[modelID][mInstances.instanceModelCounts[modelID]]);
 #endif
 
@@ -193,7 +193,7 @@ void R_AddInstancedModelsToScene(void)
 	//GL_SetModelviewMatrix(backEnd.viewParms.world.modelViewMatrix);
 	GL_SetModelviewMatrix(backEnd.viewParms.world.modelViewMatrix);
 
-	GLSL_SetUniformMatrix16(&tr.instanceShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+	GLSL_SetUniformMatrix16(&tr.instanceShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
 	GLSL_SetUniformVec3(&tr.instanceShader, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);
 	GLSL_SetUniformFloat(&tr.instanceShader, UNIFORM_TIME, backEnd.refdef.floatTime);
 
@@ -476,7 +476,7 @@ void R_AddInstancedLodModelsToScene(void)
 	//GL_SetModelviewMatrix(backEnd.viewParms.world.modelViewMatrix);
 	GL_SetModelviewMatrix(backEnd.viewParms.world.modelViewMatrix);
 
-	GLSL_SetUniformMatrix16(&tr.instanceVAOShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+	GLSL_SetUniformMatrix16(&tr.instanceVAOShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
 	GLSL_SetUniformVec3(&tr.instanceVAOShader, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);
 	GLSL_SetUniformFloat(&tr.instanceVAOShader, UNIFORM_TIME, backEnd.refdef.floatTime);
 

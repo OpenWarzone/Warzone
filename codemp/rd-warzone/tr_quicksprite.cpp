@@ -88,7 +88,7 @@ void CQuickSpriteSystem::Flush(void)
 	GL_Bind(mTexBundle->image[0]);
 	//R_BindAnimatedImageToTMU(mTexBundle, TB_DIFFUSEMAP);
 
-	GLSL_SetUniformMatrix16(&tr.textureColorShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+	GLSL_SetUniformMatrix16(&tr.textureColorShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
 	GLSL_SetUniformVec4(&tr.textureColorShader, UNIFORM_COLOR, colorWhite);
 
 	if (tr.textureColorShader.isBindless)

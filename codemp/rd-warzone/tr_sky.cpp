@@ -493,8 +493,8 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 		}
 
 
-		GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
-		GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
+		GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
+		GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix, 1);
 
 
 		if (backEnd.viewParms.flags & VPF_EMISSIVEMAP)
@@ -677,8 +677,8 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 		}
 		
 
-		GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
-		//GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix);
+		GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
+		//GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix, 1);
 
 
 		if (backEnd.viewParms.flags & VPF_EMISSIVEMAP)
@@ -1438,10 +1438,10 @@ void DrawSkyDome ( shader_t *skyShader )
 	Matrix16SimpleInverse(glState.modelviewProjection, invMvp);
 	Matrix16SimpleInverse(glState.modelview, normalMatrix); // Whats a normal matrix with rend2???? I have no idea!
 
-	GLSL_SetUniformMatrix16(&tr.skyDomeShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
-	GLSL_SetUniformMatrix16(&tr.skyDomeShader, UNIFORM_MODELVIEWMATRIX, glState.modelview);
-	GLSL_SetUniformMatrix16(&tr.skyDomeShader, UNIFORM_INVPROJECTIONMATRIX, invMvp);
-	GLSL_SetUniformMatrix16(&tr.skyDomeShader, UNIFORM_NORMALMATRIX, normalMatrix);
+	GLSL_SetUniformMatrix16(&tr.skyDomeShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
+	GLSL_SetUniformMatrix16(&tr.skyDomeShader, UNIFORM_MODELVIEWMATRIX, glState.modelview, 1);
+	GLSL_SetUniformMatrix16(&tr.skyDomeShader, UNIFORM_INVPROJECTIONMATRIX, invMvp, 1);
+	GLSL_SetUniformMatrix16(&tr.skyDomeShader, UNIFORM_NORMALMATRIX, normalMatrix, 1);
 
 	GLSL_SetUniformFloat(&tr.skyDomeShader, UNIFORM_TIME, backEnd.refdef.floatTime);
 	GLSL_SetUniformVec3(&tr.skyDomeShader, UNIFORM_VIEWORIGIN,  backEnd.refdef.vieworg);

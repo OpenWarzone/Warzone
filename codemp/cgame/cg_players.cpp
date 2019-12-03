@@ -5140,6 +5140,11 @@ static void CG_PlayerSplash( centity_t *cent ) {
 		return;
 	}
 
+	if (cent->currentState.eType == ET_NPC)
+	{// Skip this for NPCs for speed... For now...
+		return;
+	}
+
 	VectorCopy( cent->lerpOrigin, end );
 	end[2] -= 24;
 

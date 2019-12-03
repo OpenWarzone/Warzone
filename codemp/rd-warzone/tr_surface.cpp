@@ -311,7 +311,7 @@ void RB_InstantQuad(vec4_t quadVerts[4])
 
 	GLSL_BindProgram(&tr.textureColorShader);
 	
-	GLSL_SetUniformMatrix16(&tr.textureColorShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+	GLSL_SetUniformMatrix16(&tr.textureColorShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
 	GLSL_SetUniformVec4(&tr.textureColorShader, UNIFORM_COLOR, colorWhite);
 
 	if (tr.textureColorShader.isBindless)
@@ -988,7 +988,7 @@ static void RB_SurfaceBeam( void )
 	GLSL_VertexAttribsState(ATTR_POSITION);
 	GLSL_BindProgram(sp);
 		
-	GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+	GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
 					
 	GLSL_SetUniformVec4(sp, UNIFORM_COLOR, colorRed);
 
@@ -2820,7 +2820,7 @@ static void RB_SurfaceSprites(srfSprites_t *surf)
 	//GL_VertexAttribPointers(surf->numAttributes, surf->attributes);
 	R_BindAnimatedImageToTMU(&firstStage->bundle[0], TB_DIFFUSEMAP);
 	
-	GLSL_SetUniformMatrix16(program, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+	GLSL_SetUniformMatrix16(program, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
 	GLSL_SetUniformVec3(program, UNIFORM_VIEWORIGIN, backEnd.viewParms.ori.origin);
 	
 	vec4_t vec;

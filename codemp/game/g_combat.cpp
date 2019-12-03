@@ -6043,7 +6043,7 @@ qboolean G_RadiusDamage ( vec3_t origin, gentity_t *attacker, float damage, floa
 		if (!ent->takedamage)
 			continue;
 
-		trap->Print("Game hit entity %i.\n", e);
+		//trap->Print("Game hit entity %i.\n", e);
 
 		// find the distance from the edge of the bounding box
 		for ( i = 0 ; i < 3 ; i++ ) {

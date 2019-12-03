@@ -2123,7 +2123,7 @@ void RE_StretchRaw (int x, int y, int w, int h, int cols, int rows, const byte *
 
 	GLSL_BindProgram(&tr.textureColorShader);
 	
-	GLSL_SetUniformMatrix16(&tr.textureColorShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+	GLSL_SetUniformMatrix16(&tr.textureColorShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
 
 	if (tr.textureColorShader.isBindless)
 	{
@@ -2255,7 +2255,7 @@ const void *RB_StretchPic ( const void *data ) {
 	tess.xyz[ numVerts ][1] = cmd->y;
 	tess.xyz[ numVerts ][2] = 0;
 
-	tess.normal[numVerts] = R_TessXYZtoPackedNormals(tess.xyz[numVerts]);
+	tess.normal[numVerts] = 0;// R_TessXYZtoPackedNormals(tess.xyz[numVerts]);
 
 	tess.texCoords[ numVerts ][0][0] = cmd->s1;
 	tess.texCoords[ numVerts ][0][1] = cmd->t1;
@@ -2264,7 +2264,7 @@ const void *RB_StretchPic ( const void *data ) {
 	tess.xyz[ numVerts + 1 ][1] = cmd->y;
 	tess.xyz[ numVerts + 1 ][2] = 0;
 
-	tess.normal[numVerts + 1] = R_TessXYZtoPackedNormals(tess.xyz[numVerts + 1]);
+	tess.normal[numVerts + 1] = 0;// R_TessXYZtoPackedNormals(tess.xyz[numVerts + 1]);
 
 	tess.texCoords[ numVerts + 1 ][0][0] = cmd->s2;
 	tess.texCoords[ numVerts + 1 ][0][1] = cmd->t1;
@@ -2273,7 +2273,7 @@ const void *RB_StretchPic ( const void *data ) {
 	tess.xyz[ numVerts + 2 ][1] = cmd->y + cmd->h;
 	tess.xyz[ numVerts + 2 ][2] = 0;
 
-	tess.normal[numVerts + 2] = R_TessXYZtoPackedNormals(tess.xyz[numVerts + 2]);
+	tess.normal[numVerts + 2] = 0;// R_TessXYZtoPackedNormals(tess.xyz[numVerts + 2]);
 
 	tess.texCoords[ numVerts + 2 ][0][0] = cmd->s2;
 	tess.texCoords[ numVerts + 2 ][0][1] = cmd->t2;
@@ -2282,7 +2282,7 @@ const void *RB_StretchPic ( const void *data ) {
 	tess.xyz[ numVerts + 3 ][1] = cmd->y + cmd->h;
 	tess.xyz[ numVerts + 3 ][2] = 0;
 
-	tess.normal[numVerts + 3] = R_TessXYZtoPackedNormals(tess.xyz[numVerts + 3]);
+	tess.normal[numVerts + 3] = 0;// R_TessXYZtoPackedNormals(tess.xyz[numVerts + 3]);
 
 	tess.texCoords[ numVerts + 3 ][0][0] = cmd->s1;
 	tess.texCoords[ numVerts + 3 ][0][1] = cmd->t2;
@@ -3284,11 +3284,11 @@ const void *RB_PostProcess(const void *data)
 			GL_BindToTMU(tr.sunShadowDepthImage[4], TB_STEEPMAP2);
 		}
 
-		GLSL_SetUniformMatrix16(sp, UNIFORM_SHADOWMVP, backEnd.refdef.sunShadowMvp[0]);
-		GLSL_SetUniformMatrix16(sp, UNIFORM_SHADOWMVP2, backEnd.refdef.sunShadowMvp[1]);
-		GLSL_SetUniformMatrix16(sp, UNIFORM_SHADOWMVP3, backEnd.refdef.sunShadowMvp[2]);
-		GLSL_SetUniformMatrix16(sp, UNIFORM_SHADOWMVP4, backEnd.refdef.sunShadowMvp[3]);
-		GLSL_SetUniformMatrix16(sp, UNIFORM_SHADOWMVP5, backEnd.refdef.sunShadowMvp[4]);
+		GLSL_SetUniformMatrix16(sp, UNIFORM_SHADOWMVP, backEnd.refdef.sunShadowMvp[0], 1);
+		GLSL_SetUniformMatrix16(sp, UNIFORM_SHADOWMVP2, backEnd.refdef.sunShadowMvp[1], 1);
+		GLSL_SetUniformMatrix16(sp, UNIFORM_SHADOWMVP3, backEnd.refdef.sunShadowMvp[2], 1);
+		GLSL_SetUniformMatrix16(sp, UNIFORM_SHADOWMVP4, backEnd.refdef.sunShadowMvp[3], 1);
+		GLSL_SetUniformMatrix16(sp, UNIFORM_SHADOWMVP5, backEnd.refdef.sunShadowMvp[4], 1);
 
 		GLSL_SetUniformVec3(sp, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);
 

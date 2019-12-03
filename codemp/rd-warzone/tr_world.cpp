@@ -1367,7 +1367,7 @@ void R_FoliageQuadStamp(vec4_t quadVerts[4])
 
 	GLSL_BindProgram(&tr.textureColorShader);
 
-	GLSL_SetUniformMatrix16(&tr.textureColorShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+	GLSL_SetUniformMatrix16(&tr.textureColorShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
 	GLSL_SetUniformVec4(&tr.textureColorShader, UNIFORM_COLOR, colorWhite);
 
 	if (tr.textureColorShader.isBindless)

@@ -163,7 +163,7 @@ void OCEAN_Render(void)
 		GL_SetProjectionMatrix(parms.projectionMatrix);
 		GL_SetModelviewMatrix(backEnd.viewParms.world.modelViewMatrix);
 
-		GLSL_SetUniformMatrix16(&tr.waterForwardFastShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+		GLSL_SetUniformMatrix16(&tr.waterForwardFastShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
 
 		GLSL_SetUniformVec3(&tr.waterForwardFastShader, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);
 		GLSL_SetUniformFloat(&tr.waterForwardFastShader, UNIFORM_TIME, backEnd.refdef.floatTime);

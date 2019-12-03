@@ -1738,7 +1738,7 @@ public:
 
 		GLSL_BindProgram(shader);
 
-		GLSL_SetUniformMatrix16(shader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+		GLSL_SetUniformMatrix16(shader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
 		GLSL_SetUniformVec4(shader, UNIFORM_COLOR, colorWhite);
 
 		if (shader->isBindless)

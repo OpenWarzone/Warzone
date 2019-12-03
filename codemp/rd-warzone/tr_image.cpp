@@ -3351,7 +3351,7 @@ image_t *R_TextureESharpenGLSL ( const char *name, byte *pic, int width, int hei
 	screensize[0] = width;
 	screensize[1] = height;
 	GLSL_SetUniformVec2(&tr.esharpeningShader, UNIFORM_DIMENSIONS, screensize);
-	GLSL_SetUniformMatrix16(&tr.esharpeningShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+	GLSL_SetUniformMatrix16(&tr.esharpeningShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
 
 	box[0] = 0;
 	box[1] = 0;
@@ -3400,7 +3400,7 @@ image_t *R_TextureESharpen2GLSL ( const char *name, byte *pic, int width, int he
 	screensize[0] = width;
 	screensize[1] = height;
 	GLSL_SetUniformVec2(&tr.esharpening2Shader, UNIFORM_DIMENSIONS, screensize);
-	GLSL_SetUniformMatrix16(&tr.esharpening2Shader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+	GLSL_SetUniformMatrix16(&tr.esharpening2Shader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
 
 	box[0] = 0;
 	box[1] = 0;
@@ -3449,7 +3449,7 @@ image_t *R_TextureDarkExpandGLSL ( const char *name, byte *pic, int width, int h
 	screensize[0] = width;
 	screensize[1] = height;
 	GLSL_SetUniformVec2(&tr.darkexpandShader, UNIFORM_DIMENSIONS, screensize);
-	GLSL_SetUniformMatrix16(&tr.darkexpandShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+	GLSL_SetUniformMatrix16(&tr.darkexpandShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
 
 	box[0] = 0;
 	box[1] = 0;

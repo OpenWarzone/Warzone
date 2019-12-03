@@ -40,7 +40,7 @@ void R_PrintVAO(VAO_t vao, shaderProgram_t *sp, int size, matrix_t mvp, matrix_t
 	GLSL_BindProgram(sp);
 	qglBindVertexArray(vao.vaoID);
 	GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, mvp, 1);
-	GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, model);
+	GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, model, 1);
 	qglDrawArrays(GL_TRIANGLES, 0, size);
 	qglBindVertexArray(0);
 	GLSL_BindProgram(NULL);

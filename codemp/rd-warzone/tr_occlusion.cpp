@@ -281,7 +281,7 @@ void RB_MoveSky(void)
 		GL_BindToTMU(tr.genericDepthImage, TB_LIGHTMAP);
 	}
 
-	GLSL_SetUniformMatrix16(shader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+	GLSL_SetUniformMatrix16(shader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
 
 	GL_State(GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_DEPTHFUNC_LESS | GLS_DEPTHMASK_TRUE);
 	qglColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -356,7 +356,7 @@ void RB_OcclusionCulling(void)
 			GLSL_VertexAttribsState(ATTR_POSITION);
 			GLSL_BindProgram(&tr.occlusionShader);
 
-			GLSL_SetUniformMatrix16(&tr.occlusionShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+			GLSL_SetUniformMatrix16(&tr.occlusionShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
 			GLSL_SetUniformVec4(&tr.occlusionShader, UNIFORM_COLOR, colorWhite);
 
 			/*if (tr.occlusionShader.isBindless)
