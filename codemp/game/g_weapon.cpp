@@ -4853,8 +4853,8 @@ qboolean G_GetWeaponMuzzleBoltPoint(gentity_t *ent, vec3_t to, int hand)
 	
 	// Try to predict next frame position (as current frame results in the old JKA shots behind you issues)
 #if 1
-	VectorMA( ent->s.pos.trBase, 0.025, ent->s.pos.trDelta, lerpOrigin );
-	VectorMA( ent->s.apos.trBase, 0.025, ent->s.apos.trDelta, lerpAngles );
+	VectorMA( ent->s.pos.trBase, 0.05/*0.025*/, ent->s.pos.trDelta, lerpOrigin );
+	VectorMA( ent->s.apos.trBase, 0.05/*0.025*/, ent->s.apos.trDelta, lerpAngles );
 #else
 	VectorCopy(ent->s.pos.trBase, lerpOrigin);
 	VectorCopy(ent->s.apos.trBase, lerpAngles);
