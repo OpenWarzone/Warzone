@@ -86,7 +86,7 @@ vec4 positionMapAtCoord ( vec2 coord )
 	{
 		vec4 wMap = textureLod(u_WaterPositionMap, var_TexCoords, 0.0);
 
-		if (wMap.a > 0.0 && distance(u_ViewOrigin.xyz, wMap.xyz) < distance(u_ViewOrigin.xyz, u_PositionMap.xyz))
+		if (wMap.a > 0.0 && distance(u_ViewOrigin.xyz, wMap.xyz) < distance(u_ViewOrigin.xyz, pos.xyz))
 		{
 			pos = wMap.xyz;
 		}
