@@ -88,7 +88,7 @@ vec4 positionMapAtCoord ( vec2 coord )
 
 		if (wMap.a > 0.0 && distance(u_ViewOrigin.xyz, wMap.xyz) < distance(u_ViewOrigin.xyz, pos.xyz))
 		{
-			pos = wMap.xyz;
+			pos.xyz = wMap.xyz;
 		}
 	}
 
