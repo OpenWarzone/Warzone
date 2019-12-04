@@ -159,6 +159,7 @@ extern float			SHADOW_SOFT_WIDTH;
 extern float			SHADOW_SOFT_STEP;
 
 extern qboolean			FOG_POST_ENABLED;
+extern qboolean			FOG_LATE_FOG;
 extern qboolean			FOG_LINEAR_ENABLE;
 extern vec3_t			FOG_LINEAR_COLOR;
 extern float			FOG_LINEAR_ALPHA;

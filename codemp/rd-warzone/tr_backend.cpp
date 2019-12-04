@@ -3583,7 +3583,7 @@ const void *RB_PostProcess(const void *data)
 			}
 		}*/
 
-		if (!SCREEN_BLUR && FOG_POST_ENABLED && r_fogPost->integer && !LATE_LIGHTING_ENABLED && (FOG_LINEAR_ENABLE || FOG_WORLD_ENABLE || FOG_LAYER_ENABLE))
+		if (!SCREEN_BLUR && FOG_POST_ENABLED && r_fogPost->integer && !LATE_LIGHTING_ENABLED && !FOG_LATE_FOG && (FOG_LINEAR_ENABLE || FOG_WORLD_ENABLE || FOG_LAYER_ENABLE))
 		{
 			DEBUG_StartTimer("Fog Post", qtrue);
 			RB_FogPostShader(currentFbo, srcBox, currentOutFbo, dstBox);
@@ -3671,7 +3671,7 @@ const void *RB_PostProcess(const void *data)
 			DEBUG_EndTimer(qtrue);
 		}
 		
-		if (!SCREEN_BLUR && FOG_POST_ENABLED && r_fogPost->integer && LATE_LIGHTING_ENABLED && (FOG_LINEAR_ENABLE || FOG_WORLD_ENABLE || FOG_LAYER_ENABLE))
+		if (!SCREEN_BLUR && FOG_POST_ENABLED && r_fogPost->integer && LATE_LIGHTING_ENABLED && !FOG_LATE_FOG && (FOG_LINEAR_ENABLE || FOG_WORLD_ENABLE || FOG_LAYER_ENABLE))
 		{
 			DEBUG_StartTimer("Fog Post", qtrue);
 			RB_FogPostShader(currentFbo, srcBox, currentOutFbo, dstBox);
@@ -3683,6 +3683,14 @@ const void *RB_PostProcess(const void *data)
 		{
 			DEBUG_StartTimer("Deferred Lighting", qtrue);
 			RB_DeferredLighting(currentFbo, srcBox, currentOutFbo, dstBox);
+			RB_SwapFBOs(&currentFbo, &currentOutFbo);
+			DEBUG_EndTimer(qtrue);
+		}
+
+		if (!SCREEN_BLUR && FOG_POST_ENABLED && r_fogPost->integer && FOG_LATE_FOG && (FOG_LINEAR_ENABLE || FOG_WORLD_ENABLE || FOG_LAYER_ENABLE))
+		{
+			DEBUG_StartTimer("Fog Post", qtrue);
+			RB_FogPostShader(currentFbo, srcBox, currentOutFbo, dstBox);
 			RB_SwapFBOs(&currentFbo, &currentOutFbo);
 			DEBUG_EndTimer(qtrue);
 		}

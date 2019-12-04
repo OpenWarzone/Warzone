@@ -4029,6 +4029,11 @@ void CG_DrawEnemyStatus( void )
 			return;
 	}
 
+	if (crosshairEnt->currentState.number == cg.clientNum || crosshairEnt->currentState.number == cg.snap->ps.clientNum)
+	{
+		return;
+	}
+
 	if (!crosshairEnt->ghoul2)
 	{
 		return;
@@ -5195,14 +5200,44 @@ float CG_DrawRadar(float y)
 		float		anglePlayer;
 		float		angle;
 		float		distance, actualDist;
-		centity_t*	cent;
-
-		cent = &cg_entities[cg.radarEntities[i]];
+		centity_t*	cent = &cg_entities[cg.radarEntities[i]];
 
 		// Don't show friendly targets.
-		if (cent->currentState.teamowner == cgs.clientinfo[cg.clientNum].team)
+		if (cent->currentState.teamowner == cgs.clientinfo[cg.clientNum].team) continue;
+
+		if (cent->currentState.eType == ET_PLAYER || cent->currentState.eType == ET_NPC)
 		{
-			continue;
+			if (cent->currentState.eFlags & EF_DEAD) continue;
+			if (cent->playerState->pm_type == PM_DEAD) continue;
+			if (cent->currentState.eType == ET_FREED) continue;
+
+			if (cent->currentState.eType == ET_NPC)
+			{
+				if (!cent->npcClient || !cent->npcClient->ghoul2Model) continue;
+				if (!cent->npcClient->infoValid) continue;
+				if (!cent->ghoul2)  continue;
+			}
+
+			if (cent->currentState.eType == ET_PLAYER)
+			{
+				if (!cent->ghoul2) continue;
+				if (cent->playerState->persistant[PERS_TEAM] == FACTION_SPECTATOR) continue;
+			}
+
+			clientInfo_t *ci = NULL;
+
+			if (cent->currentState.number < MAX_CLIENTS)
+			{
+				ci = &cgs.clientinfo[cent->currentState.number];
+			}
+			else
+			{
+				ci = cent->npcClient;
+			}
+
+			if (!ci) continue;
+			if (!ci->infoValid) continue;
+			if (cent->currentState.eType == ET_PLAYER && ci->team == FACTION_SPECTATOR) continue;
 		}
 
 		// Get the distances first
@@ -8189,7 +8224,7 @@ void CG_DrawNPCNames( void )
 		if (!cent)
 			continue;
 
-		if (cent->currentState.number == cg.snap->ps.clientNum) 
+		if (cent->currentState.number == cg.snap->ps.clientNum || cent->currentState.number == cg.clientNum)
 			continue; // Never show yourself (or who you are following)! lol!
 
 		if (cent->currentState.eType != ET_NPC && cent->currentState.eType != ET_PLAYER)

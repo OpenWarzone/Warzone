@@ -404,7 +404,7 @@ void CG_UpdateCamera(void)
 
 	// Set new view height...
 	float distMod = Q_clamp(0.0, float(cg_thirdPersonRange.integer - cg_thirdPersonRangeMinimum.integer) / float(cg_thirdPersonRangeMaximum.integer - cg_thirdPersonRangeMinimum.integer), 1.0);
-	float modelScale = (cg.snap->ps.iModelScale / 100.0f);
+	float modelScale = (cg.snap && cg.snap->ps.iModelScale / 100.0f);
 	int hRange = (int)mix(BASE_MIN_HEIGHT1, BASE_MIN_HEIGHT2, modelScale);
 	hRange = (int)mix((float)hRange, (float)hRange + 48.0, distMod);
 

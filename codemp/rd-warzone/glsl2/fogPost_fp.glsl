@@ -82,22 +82,15 @@ vec4 positionMapAtCoord ( vec2 coord )
 {
 	vec4 pos = textureLod(u_PositionMap, coord, 0.0);
 
-	/*if (WATER_ENABLED > 0.0)
+	if (WATER_ENABLED > 0.0)
 	{
-		bool isSky = (pos.a - 1.0 >= MATERIAL_SKY) ? true : false;
+		vec4 wMap = textureLod(u_WaterPositionMap, var_TexCoords, 0.0);
 
-		float isWater = textureLod(u_WaterPositionMap, coord, 0.0).a;
-
-		if (isWater > 0.0 || (isWater > 0.0 && isSky))
+		if (wMap.a > 0.0 && distance(u_ViewOrigin.xyz, wMap.xyz) < distance(u_ViewOrigin.xyz, u_PositionMap.xyz))
 		{
-			vec3 wMap = textureLod(u_WaterPositionMap, coord, 0.0).xyz;
-		
-			if ((wMap.z > pos.z || isSky) && u_ViewOrigin.z > wMap.z)
-			{
-				pos.xyz = wMap.xyz;
-			}
+			pos = wMap.xyz;
 		}
-	}*/
+	}
 
 	return pos;
 }
@@ -327,7 +320,7 @@ void main ( void )
 				float depth = clamp(distance(u_ViewOrigin.xyz, pMap.xyz) / FOG_LINEAR_POSITIONMAP_MAX_RANGE, 0.0, 1.0);
 				depth = clamp(pow(depth, u_MapInfo.a), 0.0, 1.0);
 
-				vec3 dir = normalize(pMap.xyz);
+				vec3 dir = normalize(u_ViewOrigin.xyz - pMap.xyz);
 				float alpha = clamp(pow(1.0 - length(dir.z), FOG_LINEAR_Z_FADE) * FOG_LINEAR_Z_ALPHAMULT, 0.0, 1.0);
 
 				fogColor = mix(fogColor, clamp(u_Local12.rgb, 0.0, 1.0) * fogNightColorScale, u_Local12.a * depth * alpha);
