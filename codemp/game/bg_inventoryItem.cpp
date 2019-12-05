@@ -128,6 +128,7 @@ const char *weaponStat3Names[] = {
 	"Explosive ",
 	"Beam ",
 	"Expanded ",
+	"Repeating ",
 };
 
 const char *weaponStat3Tooltips[] = {
@@ -136,6 +137,7 @@ const char *weaponStat3Tooltips[] = {
 	"^PExplosive.\n",
 	"^PBeam.\n",
 	"^PWide Shot.\n",
+	"^PRepeating.\n",
 };
 
 const char *saberStat1Names[] = {

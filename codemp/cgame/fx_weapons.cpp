@@ -123,10 +123,18 @@ void FX_WeaponProjectileThink(centity_t *cent, const struct weaponInfo_s *weapon
 #endif //__SEND_FULL_WEAPON_INFO_WITH_BOLT__
 
 	//trap->Print("bolt id is %i.\n", bolt3D);
-	
+
 	if (bolt3D > 0)
 	{// New 3D bolt enabled...
-		FX_WeaponBolt3D(cent->lerpOrigin, forward, CG_Get3DWeaponBoltLength(weapon, qfalse), CG_Get3DWeaponBoltWidth(weapon, qfalse), bolt3D, qtrue);
+		switch (cent->currentState.primaryWeapon)
+		{
+		case WEAPON_STAT3_SHOT_REPEATING:
+			FX_WeaponBolt3D(cent->lerpOrigin, forward, 1.0f / 16.47f, 1.0f, bolt3D, qtrue);
+			break;
+		default:
+			FX_WeaponBolt3D(cent->lerpOrigin, forward, 1.0f, 1.0f, bolt3D, qtrue);
+			break;
+		}
 	}
 	else if (weapon->missileRenderfx > 0)
 	{// Old 2D system...
@@ -196,7 +204,15 @@ void FX_WeaponAltProjectileThink(centity_t *cent, const struct weaponInfo_s *wea
 
 	if (bolt3D > 0)
 	{// New 3D bolt enabled...
-		FX_WeaponBolt3D(cent->lerpOrigin, forward, CG_Get3DWeaponBoltLength(weapon, qtrue), CG_Get3DWeaponBoltWidth(weapon, qtrue), bolt3D, qtrue);
+		switch (cent->currentState.primaryWeapon)
+		{
+		case WEAPON_STAT3_SHOT_REPEATING:
+			FX_WeaponBolt3D(cent->lerpOrigin, forward, 1.25f / 16.47f, 1.25f, bolt3D, qtrue);
+			break;
+		default:
+			FX_WeaponBolt3D(cent->lerpOrigin, forward, 1.25f, 1.25f, bolt3D, qtrue);
+			break;
+		}
 	}
 	else if (weapon->altMissileRenderfx > 0)
 	{// Old 2D system...

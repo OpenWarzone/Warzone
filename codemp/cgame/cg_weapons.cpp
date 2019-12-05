@@ -496,63 +496,34 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 
 		matrix3_t axis;
 
-		if (cent->currentState.number == cg.snap->ps.clientNum)
+		if (cent->currentState.torsoAnim == TORSO_WEAPONREADY2 || cent->currentState.torsoAnim == BOTH_STAND6)
+		{//find bolt rotation unit vectors.. Don't point the gun forward when holding pistol upwards with these pistol animations...
+			BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_X, axis[0]);  //left/right	
+			BG_GiveMeVectorFromMatrix(&boltMatrix, NEGATIVE_Z, axis[1]);  //fwd/back
+			BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_Y, axis[2]);  //up/down?!
+			VectorCopy(axis[1], gun.axis[0]);
+			VectorScale(axis[0], -1, gun.axis[1]); //reversed since this is a right hand rule system.
+			VectorCopy(axis[2], gun.axis[2]);
+			extern void ApplyAxisRotation(vec3_t axis[3], int rotType, float value);
+			ApplyAxisRotation(gun.axis, PITCH, 90.0);
+			AxisToAngles(gun.axis, gun.angles);
+		}
+		else if (cent->currentState.number == cg.snap->ps.clientNum)
 		{
-			//trap->G2API_SetBoneAnim
-			/*extern vec3_t cg_crosshairPos;
-			
-			if (cg_testvalue2.integer)
-				trap->G2API_SetBoneAngles(cent->ghoul2, 0, "rhand", cent->lerpAngles, BONE_ANGLES_REPLACE, NEGATIVE_Y, NEGATIVE_X, POSITIVE_Z, NULL, 100, cg.time);
-			if (cg_testvalue3.integer)
-				trap->G2API_SetBoneAngles(cent->ghoul2, 0, "lhand", cent->lerpAngles, BONE_ANGLES_REPLACE, NEGATIVE_Y, NEGATIVE_X, POSITIVE_Z, NULL, 100, cg.time);
+			// Always point the gun forwards, regardless of animation...
+			AnglesToAxis(cent->lerpAngles, axis);
+			VectorCopy(axis[1], gun.axis[0]);
+			VectorScale(axis[0], -1, gun.axis[1]); //reversed since this is a right hand rule system.
+			VectorCopy(axis[2], gun.axis[2]);
+			AxisToAngles(gun.axis, gun.angles);
 
-			if (cg_testvalue0.integer && VectorLength(cg_crosshairPos) != 0.0)
+			if (cent->currentState.torsoAnim == TORSO_WEAPONREADY3)
 			{
-				// Towards crosshair instead maybe?
-				vec3_t dir, angles;
-
-				VectorSubtract(cg_crosshairPos, cent->lerpOrigin, dir);
-				VectorNormalize(dir);
-				vectoangles(dir, angles);
-				AnglesToAxis(angles, axis);
-
-				extern void ApplyAxisRotation(vec3_t axis[3], int rotType, float value);
-				ApplyAxisRotation(axis, YAW, cg_thirdPersonAngle.value * cg_testvalue1.value);
-
-				VectorCopy(axis[1], gun.axis[0]);
-				VectorScale(axis[0], -1, gun.axis[1]); //reversed since this is a right hand rule system.
-				VectorCopy(axis[2], gun.axis[2]);
-				AxisToAngles(gun.axis, gun.angles);
+				gun.origin[2] += 0.8 + (0.03 * cent->playerState->viewangles[PITCH]);
 			}
-			else*/
+			else if (cent->currentState.torsoAnim == TORSO_WEAPONREADY2)
 			{
-				// Always point the gun forwards, regardless of animation...
-				AnglesToAxis(cent->lerpAngles, axis);
-				VectorCopy(axis[1], gun.axis[0]);
-				VectorScale(axis[0], -1, gun.axis[1]); //reversed since this is a right hand rule system.
-				VectorCopy(axis[2], gun.axis[2]);
-				AxisToAngles(gun.axis, gun.angles);
-
-				if (cent->currentState.torsoAnim == TORSO_WEAPONREADY3)
-				{
-					gun.origin[2] += 0.8 + (0.03 * cent->playerState->viewangles[PITCH]);
-				}
-				else if (cent->currentState.torsoAnim == TORSO_WEAPONREADY2)
-				{
-					gun.origin[2] += 0.8 + (0.03 * cent->playerState->viewangles[PITCH]);
-				}
-				/*else if (cent->currentState.torsoAnim == DC15_FIRE)
-				{
-					gun.origin[2] += cg_testvalue1.value + (cg_testvalue2.value * cent->playerState->viewangles[cg_testvalue0.integer]);
-				}
-				else if (cent->currentState.torsoAnim == TORSO_CLONEPISTOLFIRE)
-				{
-					gun.origin[2] += cg_testvalue1.value + (cg_testvalue2.value * cent->playerState->viewangles[cg_testvalue0.integer]);
-				}
-				else
-				{
-					gun.origin[2] += cg_testvalue1.value + (cg_testvalue2.value * cent->playerState->viewangles[cg_testvalue0.integer]);
-				}*/
+				gun.origin[2] += 0.8 + (0.03 * cent->playerState->viewangles[PITCH]);
 			}
 		}
 		else

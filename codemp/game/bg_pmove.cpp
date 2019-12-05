@@ -6277,7 +6277,7 @@ static void PM_Footsteps( void ) {
 							{
 								if (BG_EquippedWeaponIsTwoHanded(pm->ps))
 								{// 2 handed anim...
-									PM_ContinueLegsAnim(PM_LegsSlopeBackTransition(BOTH_STAND3/*WeaponReadyLegsAnim[pm->ps->weapon]*/));
+									PM_ContinueLegsAnim(PM_LegsSlopeBackTransition(BOTH_STAND3));
 								}
 								else
 								{// Pistol anim...
@@ -8961,20 +8961,54 @@ static void PM_Weapon( void )
 	{
 		if (pm->ps->shotsRemaining & SHOTS_TOGGLEBIT)
 		{
-			if (weaponData[pm->ps->weapon].firingType == FT_SEMI)
-			{
-				return;
+			inventoryItem *currentGun = BG_EquippedWeapon(pm->ps);
+			inventoryItem *currentGunMod3 = BG_EquippedMod3(pm->ps);
+
+			int burstShots = 0;
+
+			if (currentGun && currentGun->getItemID() != 0)
+			{// Special case, for fire rate stat...
+				switch (currentGun->getBasicStat3())
+				{
+				default:
+				case WEAPON_STAT3_SHOT_DEFAULT:
+				case WEAPON_STAT3_SHOT_BOUNCE:
+				case WEAPON_STAT3_SHOT_EXPLOSIVE:
+				case WEAPON_STAT3_SHOT_BEAM:
+				case WEAPON_STAT3_SHOT_WIDE: // Semi???
+					break;
+				case WEAPON_STAT3_SHOT_REPEATING: // Burst...
+					burstShots += 3; /* STOISS: a complete guess... */
+					break;
+				}
 			}
-			else if (weaponData[pm->ps->weapon].firingType == FT_BURST)
-			{
-				pm->ps->shotsRemaining = weaponData[pm->ps->weapon].shotsPerBurst & ~SHOTS_TOGGLEBIT;
+
+			if (currentGunMod3 && currentGunMod3->getItemID() != 0)
+			{// Special case, for fire rate stat...
+				switch (currentGunMod3->getBasicStat3())
+				{
+				default:
+				case WEAPON_STAT3_SHOT_DEFAULT:
+				case WEAPON_STAT3_SHOT_BOUNCE:
+				case WEAPON_STAT3_SHOT_EXPLOSIVE:
+				case WEAPON_STAT3_SHOT_BEAM:
+				case WEAPON_STAT3_SHOT_WIDE: // Semi???
+					break;
+				case WEAPON_STAT3_SHOT_REPEATING: // Burst...
+					burstShots += 3; /* STOISS: a complete guess... */
+					break;
+				}
 			}
+
+			if (burstShots <= 0) return;
+
+			pm->ps->shotsRemaining = burstShots & ~SHOTS_TOGGLEBIT;
 		}
 	}
 
 	if (pm->ps->weapon == WP_EMPLACED_GUN)
 	{
-		addTime = weaponData[pm->ps->weapon].fireTime;
+		addTime = weaponData[WP_EMPLACED_GUN].fireTime;
 		pm->ps->weaponTime += addTime;
 		if ( (pm->cmd.buttons & BUTTON_ALT_ATTACK) )
 		{
@@ -9210,7 +9244,7 @@ static void PM_Weapon( void )
 	{
 		if (BG_EquippedWeaponIsTwoHanded(pm->ps))
 		{// 2 handed anim...
-			PM_StartTorsoAnim(/*WeaponAttackAnim[pm->ps->weapon]*/DC15_FIRE);
+			PM_StartTorsoAnim(DC15_FIRE);
 		}
 		else
 		{// Pistol anim...
@@ -9224,7 +9258,8 @@ static void PM_Weapon( void )
 
 	pm->ps->weaponstate = WEAPON_FIRING;
 
-	if ( pm->cmd.buttons & BUTTON_ALT_ATTACK ) 	{
+	if ( pm->cmd.buttons & BUTTON_ALT_ATTACK ) 	
+	{
 		//if ( pm->ps->weapon == WP_MODULIZED_WEAPON && pm->gametype != GT_SIEGE )
 		//if (0)
 		if (pm_entSelf->s.NPC_class == CLASS_VEHICLE || pm_entSelf->s.NPC_class == CLASS_ATST)
@@ -9243,10 +9278,121 @@ static void PM_Weapon( void )
 			{ //do not fire melee events at all when on vehicle
 				PM_AddEvent( EV_ALT_FIRE );
 			}
-			addTime = weaponData[pm->ps->weapon].altFireTime;
+
+			// Base stats...
+			float addTimeGun = 250;
+			float addTimeMod = 250;
+			qboolean isRepeater1 = qfalse;
+			qboolean isRepeater2 = qfalse;
+
+			inventoryItem *currentGun = BG_EquippedWeapon(pm->ps);
+			inventoryItem *currentGunMod1 = BG_EquippedMod1(pm->ps);
+			inventoryItem *currentGunMod3 = BG_EquippedMod3(pm->ps);
+
+			if (currentGun && currentGun->getItemID() != 0)
+			{// Special case, for fire rate stat...
+				switch (currentGun->getBasicStat3())
+				{
+				default:
+				case WEAPON_STAT3_SHOT_DEFAULT:
+					addTimeGun = 250;
+					break;
+				case WEAPON_STAT3_SHOT_BOUNCE:
+					addTimeGun = 300;
+					break;
+				case WEAPON_STAT3_SHOT_EXPLOSIVE:
+					addTimeGun = 450;
+					break;
+				case WEAPON_STAT3_SHOT_BEAM:
+					addTimeGun = 850;
+					break;
+				case WEAPON_STAT3_SHOT_WIDE: // Semi???
+					addTimeGun = 350;
+					pm->ps->shotsRemaining = SHOTS_TOGGLEBIT;
+					break;
+				case WEAPON_STAT3_SHOT_REPEATING: // Burst...
+					isRepeater1 = qtrue;
+
+					if ((pm->ps->shotsRemaining & ~SHOTS_TOGGLEBIT) == 1)
+					{
+						addTimeGun = 100 * (1.0 - currentGun->getBasicStat3Value()); // Apply the power of the stat/mod as well...
+						pm->ps->shotsRemaining = SHOTS_TOGGLEBIT;
+					}
+					else
+					{
+						addTimeGun = 25 * (1.0 - currentGun->getBasicStat3Value()); // Apply the power of the stat/mod as well...
+						pm->ps->shotsRemaining = (pm->ps->shotsRemaining - 1) & ~SHOTS_TOGGLEBIT;
+					}
+					break;
+				}
+			}
+
+			if (currentGunMod3 && currentGunMod3->getItemID() != 0)
+			{
+				switch (currentGunMod3->getBasicStat3())
+				{
+				default:
+				case WEAPON_STAT3_SHOT_DEFAULT:
+					addTimeGun = 250;
+					break;
+				case WEAPON_STAT3_SHOT_BOUNCE:
+					addTimeGun = 300;
+					break;
+				case WEAPON_STAT3_SHOT_EXPLOSIVE:
+					addTimeGun = 450;
+					break;
+				case WEAPON_STAT3_SHOT_BEAM:
+					addTimeGun = 850;
+					break;
+				case WEAPON_STAT3_SHOT_WIDE: // Semi???
+					addTimeGun = 350;
+					pm->ps->shotsRemaining = SHOTS_TOGGLEBIT;
+					break;
+				case WEAPON_STAT3_SHOT_REPEATING: // Burst...
+					isRepeater1 = qtrue;
+
+					if ((pm->ps->shotsRemaining & ~SHOTS_TOGGLEBIT) == 1)
+					{
+						addTimeGun = 100 * (1.0 - currentGunMod3->getBasicStat3Value()); // Apply the power of the stat/mod as well...
+						pm->ps->shotsRemaining = SHOTS_TOGGLEBIT;
+					}
+					else
+					{
+						addTimeGun = 25 * (1.0 - currentGunMod3->getBasicStat3Value()); // Apply the power of the stat/mod as well...
+						pm->ps->shotsRemaining = (pm->ps->shotsRemaining - 1) & ~SHOTS_TOGGLEBIT;
+					}
+					break;
+				}
+			}
+
+			if (isRepeater1 || isRepeater2)
+			{// Use the repeater's speed...
+				if (isRepeater1 && isRepeater2)
+					// Very special case, they have dual repeater stats, give a bonus...
+					addTime = min(addTimeGun, addTimeMod) * 0.85;
+				else if (isRepeater1)
+					addTime = addTimeGun;
+				else if (isRepeater2)
+					addTime = addTimeMod;
+			}
+			else
+			{// Actual shot time is half way between the 2 stats...
+				addTime = (addTimeGun + addTimeMod) / 2;
+			}
+
+			if (currentGun && currentGun->getItemID() != 0 && currentGun->getBasicStat1() == WEAPON_STAT1_FIRE_RATE_MODIFIER)
+			{// Apply the fire rate modifier stat...
+				addTime *= 1.0 - currentGun->getBasicStat1Value();
+			}
+
+			if (currentGunMod1 && currentGunMod1->getItemID() != 0 && currentGunMod1->getBasicStat1() == WEAPON_STAT1_FIRE_RATE_MODIFIER)
+			{// Apply the fire rate modifier stat...
+				addTime *= 1.0 - currentGunMod1->getBasicStat1Value();
+			}
 		}
 	}
-	else {
+	else 
+	{
 		if (pm->ps->weapon != WP_MELEE || !pm->ps->m_iVehicleNum)
 		{ //do not fire melee events at all when on vehicle
 			PM_AddEvent( EV_FIRE_WEAPON );
@@ -9261,31 +9407,122 @@ static void PM_Weapon( void )
 
 	if (pm->cmd.buttons & BUTTON_ATTACK) 
 	{
+		// Base stats...
+		float addTimeGun = 350;
+		float addTimeMod = 350;
 
-		switch (weaponData[pm->ps->weapon].firingType)
+		qboolean isRepeater1 = qfalse;
+		qboolean isRepeater2 = qfalse;
+
+		inventoryItem *currentGun = BG_EquippedWeapon(pm->ps);
+		inventoryItem *currentGunMod1 = BG_EquippedMod1(pm->ps);
+		inventoryItem *currentGunMod3 = BG_EquippedMod3(pm->ps);
+		
+		if (currentGun && currentGun->getItemID() != 0)
 		{
-		case FT_AUTOMATIC:
-			addTime = weaponData[pm->ps->weapon].fireTime;
-			break;
-
-		case FT_SEMI:
-			addTime = weaponData[pm->ps->weapon].fireTime;
-			pm->ps->shotsRemaining = SHOTS_TOGGLEBIT;
-			break;
-
-		case FT_BURST:
-			if ((pm->ps->shotsRemaining & ~SHOTS_TOGGLEBIT) == 1)
+			switch (currentGun->getBasicStat3())
 			{
-				addTime = weaponData[pm->ps->weapon].fireTime;
+			default:
+			case WEAPON_STAT3_SHOT_DEFAULT:
+				addTimeGun = 350;
+				break;
+			case WEAPON_STAT3_SHOT_BOUNCE:
+				addTimeGun = 400;
+				break;
+			case WEAPON_STAT3_SHOT_EXPLOSIVE:
+				addTimeGun = 650;
+				break;
+			case WEAPON_STAT3_SHOT_BEAM:
+				addTimeGun = 1250;
+				break;
+			case WEAPON_STAT3_SHOT_WIDE: // Semi???
+				addTimeGun = 450;
 				pm->ps->shotsRemaining = SHOTS_TOGGLEBIT;
+				break;
+			case WEAPON_STAT3_SHOT_REPEATING: // Burst...
+				isRepeater1 = qtrue;
+
+				if ((pm->ps->shotsRemaining & ~SHOTS_TOGGLEBIT) == 1)
+				{
+					addTimeGun = 150 * (1.0 - currentGun->getBasicStat3Value()); // Apply the power of the stat/mod as well...
+					pm->ps->shotsRemaining = SHOTS_TOGGLEBIT;
+				}
+				else
+				{
+					addTimeGun = 35 * (1.0 - currentGun->getBasicStat3Value()); // Apply the power of the stat/mod as well...
+					pm->ps->shotsRemaining = (pm->ps->shotsRemaining - 1) & ~SHOTS_TOGGLEBIT;
+				}
+				break;
 			}
-			else
-			{
-				addTime = weaponData[pm->ps->weapon].burstFireDelay;
-				pm->ps->shotsRemaining = (pm->ps->shotsRemaining - 1) & ~SHOTS_TOGGLEBIT;
-			}
-			break;
 		}
+
+		if (currentGunMod3 && currentGunMod3->getItemID() != 0)
+		{
+			switch (currentGunMod3->getBasicStat3())
+			{
+			default:
+			case WEAPON_STAT3_SHOT_DEFAULT:
+				addTimeMod = 350;
+				break;
+			case WEAPON_STAT3_SHOT_BOUNCE:
+				addTimeMod = 400;
+				break;
+			case WEAPON_STAT3_SHOT_EXPLOSIVE:
+				addTimeMod = 650;
+				break;
+			case WEAPON_STAT3_SHOT_BEAM:
+				addTimeMod = 1250;
+				break;
+			case WEAPON_STAT3_SHOT_WIDE: // Semi???
+				addTimeMod = 450;
+				pm->ps->shotsRemaining = SHOTS_TOGGLEBIT;
+				break;
+			case WEAPON_STAT3_SHOT_REPEATING: // Burst...
+				isRepeater2 = qtrue;
+
+				if ((pm->ps->shotsRemaining & ~SHOTS_TOGGLEBIT) == 1)
+				{
+					addTimeGun = 150 * (1.0 - currentGunMod3->getBasicStat3Value()); // Apply the power of the stat/mod as well...
+					pm->ps->shotsRemaining = SHOTS_TOGGLEBIT;
+				}
+				else
+				{
+					addTimeGun = 35 * (1.0 - currentGunMod3->getBasicStat3Value()); // Apply the power of the stat/mod as well...
+					pm->ps->shotsRemaining = (pm->ps->shotsRemaining - 1) & ~SHOTS_TOGGLEBIT;
+				}
+				break;
+			}
+		}
+
+		if (isRepeater1 || isRepeater2)
+		{// Use the repeater's speed...
+			if (isRepeater1 && isRepeater2)
+				// Very special case, they have dual repeater stats, give a bonus...
+				addTime = min(addTimeGun, addTimeMod) * 0.85;
+			else if (isRepeater1)
+				addTime = addTimeGun;
+			else if (isRepeater2)
+				addTime = addTimeMod;
+		}
+		else
+		{// Actual shot time is half way between the 2 stats...
+			addTime = (addTimeGun + addTimeMod) / 2;
+		}
+
+		if (currentGun && currentGun->getItemID() != 0 && currentGun->getBasicStat1() == WEAPON_STAT1_FIRE_RATE_MODIFIER)
+		{// Apply the fire rate modifier stat...
+			addTime *= 1.0 - currentGun->getBasicStat1Value();
+		}
+
+		if (currentGunMod1 && currentGunMod1->getItemID() != 0 && currentGunMod1->getBasicStat1() == WEAPON_STAT1_FIRE_RATE_MODIFIER)
+		{// Apply the fire rate modifier stat...
+			addTime *= 1.0 - currentGunMod1->getBasicStat1Value();
+		}
+	}
+
+	if (!(pm->cmd.buttons & BUTTON_ATTACK) && (pm->cmd.buttons & BUTTON_ALT_ATTACK))
+	{// Make sure we turn off repeating when button is no longer held down...
+		pm->ps->shotsRemaining = 0;
 	}
 
 	/*
@@ -9688,10 +9925,60 @@ void PM_AdjustAttackStates( pmove_t *pmove )
 	{
 		if (pm->ps->eFlags & EF_FIRING)
 		{
-			if (weaponData[pm->ps->weapon].firingType == FT_BURST)
+			inventoryItem *currentGun = BG_EquippedWeapon(pm->ps);
+			inventoryItem *currentGunMod3 = BG_EquippedMod3(pm->ps);
+
+			qboolean holdAttack = qfalse;
+
+			if (currentGun && currentGun->getItemID() != 0)
+			{// Special case, for fire rate stat...
+				switch (currentGun->getBasicStat3())
+				{
+				default:
+				case WEAPON_STAT3_SHOT_DEFAULT:
+				case WEAPON_STAT3_SHOT_BOUNCE:
+				case WEAPON_STAT3_SHOT_EXPLOSIVE:
+				case WEAPON_STAT3_SHOT_BEAM:
+				case WEAPON_STAT3_SHOT_WIDE: // Semi???
+					break;
+				case WEAPON_STAT3_SHOT_REPEATING: // Burst...
+					holdAttack = qtrue;
+					break;
+				}
+			}
+
+			if (currentGunMod3 && currentGunMod3->getItemID() != 0)
+			{// Special case, for fire rate stat...
+				switch (currentGunMod3->getBasicStat3())
+				{
+				default:
+				case WEAPON_STAT3_SHOT_DEFAULT:
+				case WEAPON_STAT3_SHOT_BOUNCE:
+				case WEAPON_STAT3_SHOT_EXPLOSIVE:
+				case WEAPON_STAT3_SHOT_BEAM:
+				case WEAPON_STAT3_SHOT_WIDE: // Semi???
+					break;
+				case WEAPON_STAT3_SHOT_REPEATING: // Burst...
+					holdAttack = qtrue;
+					break;
+				}
+			}
+
+			if (holdAttack)
 			{
 				pm->cmd.buttons |= BUTTON_ATTACK;
 			}
+		}
+		else if (!(pm->cmd.buttons & BUTTON_ATTACK) && (pm->cmd.buttons & BUTTON_ALT_ATTACK))
+		{// Make sure we turn off repeating when button is no longer held down...
+			pm->ps->shotsRemaining = 0;
+		}
+	}
+	else
+	{
+		if (!(pm->cmd.buttons & BUTTON_ATTACK) && (pm->cmd.buttons & BUTTON_ALT_ATTACK))
+		{// Make sure we turn off repeating when button is no longer held down...
+			pm->ps->shotsRemaining = 0;
 		}
 	}
 
@@ -9782,18 +10069,61 @@ void PM_AdjustAttackStates( pmove_t *pmove )
 	}
 
 	//Burst fire
-	if ( !(pm->ps->shotsRemaining & ~SHOTS_TOGGLEBIT) &&
-			(primFireDown && !(pm->ps->eFlags & EF_FIRING)) )
+	if ( !(pm->ps->shotsRemaining & ~SHOTS_TOGGLEBIT) && (primFireDown && !(pm->ps->eFlags & EF_FIRING)) )
 	{
 	    if ( pm->ps->weaponTime <= 0 )
 	    {
-       		if ( weaponData[pm->ps->weapon].firingType == FT_BURST )
-            {
-				pm->ps->shotsRemaining = weaponData[pm->ps->weapon].shotsPerBurst & ~SHOTS_TOGGLEBIT;
-            }
+			inventoryItem *currentGun = BG_EquippedWeapon(pm->ps);
+			inventoryItem *currentGunMod3 = BG_EquippedMod3(pm->ps);
+
+			int burstShots = 0;
+
+			if (currentGun && currentGun->getItemID() != 0)
+			{// Special case, for fire rate stat...
+				switch (currentGun->getBasicStat3())
+				{
+				default:
+				case WEAPON_STAT3_SHOT_DEFAULT:
+				case WEAPON_STAT3_SHOT_BOUNCE:
+				case WEAPON_STAT3_SHOT_EXPLOSIVE:
+				case WEAPON_STAT3_SHOT_BEAM:
+				case WEAPON_STAT3_SHOT_WIDE: // Semi???
+					break;
+				case WEAPON_STAT3_SHOT_REPEATING: // Burst...
+					burstShots += 3; /* STOISS: a complete guess... */
+					break;
+				}
+			}
+
+			if (currentGunMod3 && currentGunMod3->getItemID() != 0)
+			{// Special case, for fire rate stat...
+				switch (currentGunMod3->getBasicStat3())
+				{
+				default:
+				case WEAPON_STAT3_SHOT_DEFAULT:
+				case WEAPON_STAT3_SHOT_BOUNCE:
+				case WEAPON_STAT3_SHOT_EXPLOSIVE:
+				case WEAPON_STAT3_SHOT_BEAM:
+				case WEAPON_STAT3_SHOT_WIDE: // Semi???
+					break;
+				case WEAPON_STAT3_SHOT_REPEATING: // Burst...
+					burstShots += 3; /* STOISS: a complete guess... */
+					break;
+				}
+			}
+
+			if (burstShots > 0)
+			{
+				pm->ps->shotsRemaining = burstShots & ~SHOTS_TOGGLEBIT;
+			}
+			else
+			{
+				pm->ps->shotsRemaining = 0;
+			}
         }
         else
         {
+			pm->ps->shotsRemaining = 0;
 			pm->cmd.buttons &= ~BUTTON_ATTACK;
             primFireDown =  qfalse;
         }
@@ -10997,8 +11327,8 @@ void BG_G2PlayerAngles(void *ghoul2, int motionBolt, entityState_t *cent, int ti
 		{// Pistol anim...
 			wantedReadyAnim = TORSO_WEAPONREADY2;
 		}
-#elif defined(_CGAME)
-		if (g_entities[cent->number].client && !BG_EquippedWeaponIsTwoHanded(cg_entities[cent->number].client->ps))
+#elif defined(_GAME)
+		if (g_entities[cent->number].client && !BG_EquippedWeaponIsTwoHanded(&g_entities[cent->number].client->ps))
 		{// Pistol anim...
 			wantedReadyAnim = TORSO_WEAPONREADY2;
 		}

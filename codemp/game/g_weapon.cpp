@@ -1362,7 +1362,7 @@ static void WP_BowcasterMainFire(gentity_t *ent)
 
 
 //---------------------------------------------------------
-static void WP_ModulatedWeaponFire(gentity_t *ent, int damage, float velocity, float accuracy, int width, int bounces, int explosion, int beam)
+static void WP_ModulatedWeaponFire(gentity_t *ent, int damage, float velocity, float accuracy, int width, int bounces, int explosion, int beam, int repeating)
 //---------------------------------------------------------
 {
 	float		vel;
@@ -1411,7 +1411,66 @@ static void WP_ModulatedWeaponFire(gentity_t *ent, int damage, float velocity, f
 
 		AngleVectors(angs, dir, NULL, NULL);
 
-		if (beam <= 0)
+		if (repeating > 0)
+		{
+			// add some slop to the alt-fire direction
+			angs[PITCH] += crandom() * accuracy;
+			angs[YAW] += crandom() * accuracy;
+
+			AngleVectors(angs, dir, NULL, NULL);
+
+			gentity_t *missile = CreateMissile(muzzle, dir, vel, 10000, ent, qfalse);
+
+			missile->classname = "repeater_proj";
+			missile->s.weapon = ent->s.weapon;// WP_REPEATER;
+
+			missile->damage = damage;
+			missile->dflags = DAMAGE_DEATH_KNOCKBACK;
+			missile->methodOfDeath = MOD_REPEATER;
+			missile->clipmask = MASK_SHOT | CONTENTS_LIGHTSABER;
+
+			if (ent->client)
+			{// Send the crystal color for client...
+				uint16_t crystal = BG_EquippedWeaponCrystal(&ent->client->ps);
+				missile->s.temporaryWeapon = crystal;
+
+#ifdef __SEND_FULL_WEAPON_INFO_WITH_BOLT__
+				// Also send all the original weapon info...
+				missile->s.boneIndex1 = BG_EquippedWeapon(&ent->client->ps)->getItemID();
+				missile->s.boneIndex2 = BG_EquippedMod1(&ent->client->ps)->getItemID();
+				missile->s.boneIndex3 = BG_EquippedMod2(&ent->client->ps)->getItemID();
+				missile->s.boneIndex4 = BG_EquippedMod3(&ent->client->ps)->getItemID();
+#endif //__SEND_FULL_WEAPON_INFO_WITH_BOLT__
+			}
+			else
+			{
+				missile->s.temporaryWeapon = 0;
+#ifdef __SEND_FULL_WEAPON_INFO_WITH_BOLT__
+				missile->s.boneIndex1 = 0;
+				missile->s.boneIndex2 = 0;
+				missile->s.boneIndex3 = 0;
+				missile->s.boneIndex4 = 0;
+#endif //__SEND_FULL_WEAPON_INFO_WITH_BOLT__
+			}
+
+			// do we want it to bounce?
+			if (bounces > 0)
+			{
+				missile->flags |= FL_BOUNCE;
+				missile->bounceCount = bounces;
+			}
+			else
+			{
+				missile->bounceCount = 0;
+			}
+
+			if (explosion > 0)
+			{
+				missile->splashDamage = missile->damage = damage  * explosion;
+				missile->splashRadius = 64 * explosion;
+			}
+		}
+		else if (beam <= 0)
 		{
 			missile = CreateMissile(muzzle, dir, vel, 10000, ent, qtrue);
 
@@ -5874,8 +5933,7 @@ void FireWeapon(gentity_t *ent, qboolean altFire) {
 	else
 	{
 		// set aiming directions
-		if (ent->s.weapon == WP_EMPLACED_GUN &&
-			ent->client->ps.emplacedIndex)
+		if (ent->s.weapon == WP_EMPLACED_GUN && ent->client->ps.emplacedIndex)
 		{ //if using emplaced then base muzzle point off of gun position/angles
 			gentity_t *emp = &g_entities[ent->client->ps.emplacedIndex];
 
@@ -5906,8 +5964,7 @@ void FireWeapon(gentity_t *ent, qboolean altFire) {
 				AngleVectors(ent->client->ps.viewangles, forward, vright, up);
 			}
 		}
-		else if (ent->s.number < MAX_CLIENTS &&
-			ent->client->ps.m_iVehicleNum && ent->s.weapon == WP_MODULIZED_WEAPON)
+		else if (ent->s.number < MAX_CLIENTS && ent->client->ps.m_iVehicleNum && ent->s.weapon == WP_MODULIZED_WEAPON)
 		{ //riding a vehicle...with blaster selected
 			vec3_t vehTurnAngles;
 			gentity_t *vehEnt = &g_entities[ent->client->ps.m_iVehicleNum];
@@ -6004,65 +6061,168 @@ void FireWeapon(gentity_t *ent, qboolean altFire) {
 
 		case WP_MODULIZED_WEAPON:
 			{
-				uint16_t	stat3 = BG_EquippedWeapon(&ent->client->ps)->getBasicStat3();
-				uint16_t	mod3 = BG_EquippedMod3(&ent->client->ps)->getBasicStat3();
+				inventoryItem	*currentGun =		BG_EquippedWeapon(&ent->client->ps);
+				inventoryItem	*currentGunMod1 =	BG_EquippedMod1(&ent->client->ps);
+				inventoryItem	*currentGunMod2 =	BG_EquippedMod2(&ent->client->ps);
+				inventoryItem	*currentGunMod3 =	BG_EquippedMod3(&ent->client->ps);
 
+				uint16_t		stat1 =				currentGun->getBasicStat1();
+				float			stat1value =		currentGun->getBasicStat1Value();
+				uint16_t		mod1 =				currentGunMod1->getBasicStat1();
+				float			mod1value =			currentGunMod1->getBasicStat1Value();
+
+				uint16_t		stat2 =				currentGun->getBasicStat2();
+				float			stat2value =		currentGun->getBasicStat2Value();
+				uint16_t		mod2 =				currentGunMod2->getBasicStat2();
+				float			mod2value =			currentGunMod2->getBasicStat2Value();
+
+				uint16_t		stat3 =				currentGun->getBasicStat3();
+				float			stat3value =		currentGun->getBasicStat3Value();
+				uint16_t		mod3 =				currentGunMod3->getBasicStat3();
+				float			mod3value =			currentGunMod3->getBasicStat3Value();
+
+				float			damage =			weaponData[ent->s.weapon].dmg;
+				float			velocity =			weaponData[ent->s.weapon].boltSpeed;
+				float			accuracy =			weaponData[ent->client->ps.weapon].accuracy;
+
+				//
+				// Stat1/Mod1 - Fire bonuses stuff...
+				//
+				switch (stat1)
+				{
+				default:
+				case WEAPON_STAT1_DEFAULT:
+					break;
+				case WEAPON_STAT1_HEAVY_PISTOL:
+					break;
+				case WEAPON_STAT1_FIRE_ACCURACY_MODIFIER:
+					accuracy *= 1.0 - stat1value;
+					break;
+				case WEAPON_STAT1_FIRE_RATE_MODIFIER:
+					break;
+				case WEAPON_STAT1_VELOCITY_MODIFIER:
+					velocity *= 1.0 + stat1value;
+					break;
+				case WEAPON_STAT1_HEAT_ACCUMULATION_MODIFIER:
+					break;
+				}
+
+				switch (mod1)
+				{
+				default:
+				case WEAPON_STAT1_DEFAULT:
+					break;
+				case WEAPON_STAT1_HEAVY_PISTOL:
+					break;
+				case WEAPON_STAT1_FIRE_ACCURACY_MODIFIER:
+					accuracy *= 1.0 - mod1value;
+					break;
+				case WEAPON_STAT1_FIRE_RATE_MODIFIER:
+					break;
+				case WEAPON_STAT1_VELOCITY_MODIFIER:
+					velocity *= 1.0 + mod1value;
+					break;
+				case WEAPON_STAT1_HEAT_ACCUMULATION_MODIFIER:
+					break;
+				}
+
+				//
+				// Stat2/Mod2 - Fire bonuses stuff...
+				//
+				switch (stat2)
+				{
+				default:
+				case WEAPON_STAT2_DEFAULT:
+					break;
+				case WEAPON_STAT2_FIRE_DAMAGE_MODIFIER:
+					damage *= 1.0 + stat2value;
+					break;
+				case WEAPON_STAT2_CRITICAL_CHANCE_MODIFIER:
+					break;
+				case WEAPON_STAT2_CRITICAL_POWER_MODIFIER:
+					break;
+				}
+
+				switch (mod2)
+				{
+				default:
+				case WEAPON_STAT2_DEFAULT:
+					break;
+				case WEAPON_STAT2_FIRE_DAMAGE_MODIFIER:
+					damage *= 1.0 + mod2value;
+					break;
+				case WEAPON_STAT2_CRITICAL_CHANCE_MODIFIER:
+					break;
+				case WEAPON_STAT2_CRITICAL_POWER_MODIFIER:
+					break;
+				}
+
+				//
+				// Stat3/Mod3 - Special gun-changing type stat stuff...
+				//
 				int bounces = 0;
 				int width = 0;
 				int explosion = 0;
 				int beam = 0;
+				int repeating = 0;
 
-				if (stat3 == WEAPON_STAT3_SHOT_BOUNCE)
+				switch (stat3)
 				{
+				default:
+				case WEAPON_STAT3_SHOT_DEFAULT:
+					break;
+				case WEAPON_STAT3_SHOT_BOUNCE:
 					bounces += 3;
+					break;
+				case WEAPON_STAT3_SHOT_EXPLOSIVE:
+					explosion++;
+					break;
+				case WEAPON_STAT3_SHOT_BEAM:
+					beam++;
+					break;
+				case WEAPON_STAT3_SHOT_WIDE: // Semi???
+					width += 3;
+					break;
+				case WEAPON_STAT3_SHOT_REPEATING: // Burst...
+					repeating++;
+					break;
 				}
 
-				if (mod3 == WEAPON_STAT3_SHOT_BOUNCE)
+				switch (mod3)
 				{
+				default:
+				case WEAPON_STAT3_SHOT_DEFAULT:
+					break;
+				case WEAPON_STAT3_SHOT_BOUNCE:
 					bounces += 3;
+					break;
+				case WEAPON_STAT3_SHOT_EXPLOSIVE:
+					explosion++;
+					break;
+				case WEAPON_STAT3_SHOT_BEAM:
+					beam++;
+					break;
+				case WEAPON_STAT3_SHOT_WIDE: // Semi???
+					width += 3;
+					break;
+				case WEAPON_STAT3_SHOT_REPEATING: // Burst...
+					repeating++;
+					break;
 				}
 
+				// Make sure values are within reasonable ranges...
 				bounces = Q_clampi(0, bounces, 5);
-
-				if (stat3 == WEAPON_STAT3_SHOT_WIDE)
-				{
-					width += 3;
-				}
-
-				if (mod3 == WEAPON_STAT3_SHOT_WIDE)
-				{
-					width += 3;
-				}
-
 				width = Q_clampi(0, width, 5);
-
-				if (stat3 == WEAPON_STAT3_SHOT_EXPLOSIVE)
-				{
-					explosion++;
-				}
-
-				if (mod3 == WEAPON_STAT3_SHOT_EXPLOSIVE)
-				{
-					explosion++;
-				}
-
 				explosion = Q_clampi(0, explosion, 2);
 
-				if (stat3 == WEAPON_STAT3_SHOT_BEAM)
-				{
-					beam++;
-				}
+				// Damage modifiers...
+				damage /= float(repeating) + 1.0; // Vastly lower damage on repeaters...
+				damage /= (float(explosion) / 2.0) + 1.0; // Slightly lower damage on explosive shots...
+				damage /= (float(width) / 3.0) + 1.0; // Slightly lower damage on wide shots...
+				damage /= (float(bounces) / 3.0) + 1.0; // Slightly lower damage on bouncing shots...
+				damage *= float(beam * 0.75) + 1.0; // Improved damage on beam weapons...
 
-				if (mod3 == WEAPON_STAT3_SHOT_BEAM)
-				{
-					beam++;
-				}
-
-				int damage = weaponData[ent->s.weapon].dmg;
-				float velocity = weaponData[ent->s.weapon].boltSpeed;
-				float accuracy = weaponData[ent->client->ps.weapon].accuracy;
-
-				WP_ModulatedWeaponFire(ent, damage, velocity, accuracy, width, bounces, explosion, beam);
+				WP_ModulatedWeaponFire(ent, damage, velocity, accuracy, width, bounces, explosion, beam, repeating);
 			}
 			break;
 		case WP_FRAG_GRENADE:

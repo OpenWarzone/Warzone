@@ -1074,7 +1074,6 @@ void GenerateAllInventoryItems(void)
 	int bgItemID = 0;
 
 	{
-		// Never add stat slots not available at this quality level...
 		inventoryItem *item = new inventoryItem(allInventoryItemsCount, bgItemID, QUALITY_GREY, 1);
 
 		item->setItemID(allInventoryItemsCount);

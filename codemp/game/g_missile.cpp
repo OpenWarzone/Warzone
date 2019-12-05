@@ -313,6 +313,7 @@ gentity_t *CreateMissile( vec3_t org, vec3_t dir, float vel, int life,
 	missile->r.svFlags = SVF_USE_CURRENT_ORIGIN;
 	missile->parent = owner;
 	missile->r.ownerNum = owner->s.number;
+	missile->s.lookTarget = owner->s.number;
 
 	if (altFire)
 	{
