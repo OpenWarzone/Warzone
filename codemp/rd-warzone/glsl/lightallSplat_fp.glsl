@@ -83,7 +83,7 @@ uniform vec4						u_Settings2; // LIGHTDEF_USE_LIGHTMAP, LIGHTDEF_USE_GLOW_BUFFE
 uniform vec4						u_Settings3; // LIGHTDEF_USE_REGIONS, LIGHTDEF_IS_DETAIL, 0=DetailMapNormal 1=detailMapFromTC 2=detailMapFromWorld, USE_GLOW_BLEND_MODE
 uniform vec4						u_Settings4; // MAP_LIGHTMAP_MULTIPLIER, MAP_LIGHTMAP_ENHANCEMENT, SPLATMAP_SCALE_STEEP, PUDDLE_STRENGTH
 uniform vec4						u_Settings5; // MAP_COLOR_SWITCH_RG, MAP_COLOR_SWITCH_RB, MAP_COLOR_SWITCH_GB, SPLATMAP_SCALE
-uniform vec4						u_Settings6; // WATEREDGE_RANGE_MULTIPLIER, 0.0, 0.0, 0.0
+uniform vec4						u_Settings6; // 0.0, 0.0, 0.0, 0.0
 
 #define USE_TC						u_Settings0.r
 #define USE_DEFORM					u_Settings0.g
@@ -115,8 +115,6 @@ uniform vec4						u_Settings6; // WATEREDGE_RANGE_MULTIPLIER, 0.0, 0.0, 0.0
 #define MAP_COLOR_SWITCH_GB			u_Settings5.b
 #define SPLATMAP_SCALE				u_Settings5.a
 
-#define WATEREDGE_RANGE_MULTIPLIER	u_Settings6.r
-
 
 uniform vec4						u_Local1; // MAP_SIZE, sway, overlaySway, materialType
 uniform vec4						u_Local2; // hasWaterEdgeMap, haveNormalMap, WATER_WAVE_HEIGHT, SHADER_WATER_LEVEL
@@ -130,6 +128,7 @@ uniform vec4						u_Local16; // GRASS_ENABLED, GRASS_DISTANCE, GRASS_MAX_SLOPE, 
 uniform vec4						u_Local17; // FAKE_GRASS_SCALE, FAKE_GRASS_SCALE_UNDERWATER, FAKE_GRASS_COLORMULT, FAKE_GRASS_COLORMULT_UNDERWATER
 uniform vec4						u_Local18; // FAKE_GRASS_MINALPHA_UW, FAKE_GRASS_UW_SIZE, FAKE_GRASS_ENABLED, 0.0
 uniform vec4						u_Local19; // STANDARD_SPLATMAP_STEEPANGLE, STANDARD_SPLATMAP_STEEPPCURVE, STANDARD_SPLATMAP_STEEPMINIMUM, STANDARD_SPLATMAP_STEEPMAXIMUM
+uniform vec4						u_Local21; // WATEREDGE_RANGE_MULTIPLIER, 0.0, 0.0, 0.0
 
 uniform vec2						u_Dimensions;
 uniform vec2						u_textureScale;
@@ -190,6 +189,8 @@ uniform float						u_zFar;
 #define SPLATMAP_STEEPCURVE			u_Local19.g
 #define SPLATMAP_STEEPMINIMUM		u_Local19.b
 #define SPLATMAP_STEEPMAXIMUM		u_Local19.a
+
+#define WATEREDGE_RANGE_MULTIPLIER	u_Local21.r
 
 #if defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
 

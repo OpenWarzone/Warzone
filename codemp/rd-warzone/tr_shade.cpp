@@ -3620,7 +3620,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				}
 
 				VectorSet4(vec,
-					WATEREDGE_RANGE_MULTIPLIER,
+					0.0,
 					0.0,
 					0.0,
 					0.0);
@@ -5803,10 +5803,6 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				(GRASS3_ENABLED && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
 				(GRASS4_ENABLED && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL13, l13);
-
-			vec4_t l14;
-			VectorSet4(l14, WATEREDGE_RANGE_MULTIPLIER, 0.0, 0.0, 0.0);
-			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL14, l14);
 		}
 		else if (isGrass && backEnd.renderPass == RENDERPASS_GRASS)
 		{
@@ -5844,10 +5840,6 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				(GRASS3_ENABLED && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
 				(GRASS4_ENABLED && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL13, l13);
-
-			vec4_t l14;
-			VectorSet4(l14, WATEREDGE_RANGE_MULTIPLIER, 0.0, 0.0, 0.0);
-			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL14, l14);
 		}
 		else if (isGrass2 && backEnd.renderPass == RENDERPASS_GRASS2)
 		{
@@ -5884,10 +5876,6 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					(GRASS3_ENABLED && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
 					(GRASS4_ENABLED && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0);
 				GLSL_SetUniformVec4(sp, UNIFORM_LOCAL13, l13);
-
-				vec4_t l14;
-				VectorSet4(l14, WATEREDGE_RANGE_MULTIPLIER, 0.0, 0.0, 0.0);
-				GLSL_SetUniformVec4(sp, UNIFORM_LOCAL14, l14);
 			}
 		}
 		else if (isGrass3 && backEnd.renderPass == RENDERPASS_GRASS3)
@@ -5926,10 +5914,6 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				(GRASS2_ENABLED && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
 				(GRASS4_ENABLED && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL13, l13);
-
-			vec4_t l14;
-			VectorSet4(l14, WATEREDGE_RANGE_MULTIPLIER, 0.0, 0.0, 0.0);
-			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL14, l14);
 		}
 		else if (isGrass4 && backEnd.renderPass == RENDERPASS_GRASS4)
 		{
@@ -5967,10 +5951,6 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				(GRASS2_ENABLED && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
 				(GRASS3_ENABLED && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL13, l13);
-
-			vec4_t l14;
-			VectorSet4(l14, WATEREDGE_RANGE_MULTIPLIER, 0.0, 0.0, 0.0);
-			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL14, l14);
 		}
 		else if (isGroundFoliage && backEnd.renderPass == RENDERPASS_GROUNDFOLIAGE)
 		{
@@ -5985,10 +5965,6 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				VectorSet4(l12, 0.0, 0.0, 0.0, FOLIAGE_LOD_START_RANGE);
 				GLSL_SetUniformVec4(sp, UNIFORM_LOCAL12, l12);
 			}
-
-			vec4_t l14;
-			VectorSet4(l14, WATEREDGE_RANGE_MULTIPLIER, 0.0, 0.0, 0.0);
-			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL14, l14);
 		}
 		else if (isVines && backEnd.renderPass == RENDERPASS_VINES)
 		{
@@ -6099,6 +6075,12 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL16, zero);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL17, zero);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL18, zero);
+		}
+
+		{
+			vec4_t l21;
+			VectorSet4(l21, WATEREDGE_RANGE_MULTIPLIER, 0.0, 0.0, 0.0);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL21, l21);
 		}
 
 		if (sp == &tr.lightAllSplatShader[0] || sp == &tr.lightAllSplatShader[1] || sp == &tr.lightAllSplatShader[2] || sp == &tr.lightAllSplatShader[3])
