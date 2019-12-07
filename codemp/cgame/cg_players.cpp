@@ -10000,7 +10000,7 @@ void CG_Player( centity_t *cent ) {
 		VectorSet(ang, 0, cent->lerpAngles[YAW], 0);
 		AngleVectors(ang, forward, NULL, NULL);
 		VectorScale(forward, -1, forward);
-		VectorMA(legs.origin, 16.0/*cg_testvalue0.value*/ * cent->modelScale[2], forward, legs.origin);
+		VectorMA(legs.origin, 16.0 * cent->modelScale[2], forward, legs.origin);
 		cent->playerState->pitchAngle = 0;
 		cent->playerState->yawAngle = 0;
 		VectorCopy(cent->playerState->viewangles, origViewAngles);

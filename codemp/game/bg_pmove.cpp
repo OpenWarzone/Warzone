@@ -8974,8 +8974,8 @@ static void PM_Weapon( void )
 				case WEAPON_STAT3_SHOT_DEFAULT:
 				case WEAPON_STAT3_SHOT_BOUNCE:
 				case WEAPON_STAT3_SHOT_EXPLOSIVE:
-				case WEAPON_STAT3_SHOT_BEAM:
-				case WEAPON_STAT3_SHOT_WIDE: // Semi???
+				case WEAPON_STAT3_SHOT_BEAM: // Semi???
+				case WEAPON_STAT3_SHOT_WIDE:
 					break;
 				case WEAPON_STAT3_SHOT_REPEATING: // Burst...
 					burstShots += 3; /* STOISS: a complete guess... */
@@ -8991,8 +8991,8 @@ static void PM_Weapon( void )
 				case WEAPON_STAT3_SHOT_DEFAULT:
 				case WEAPON_STAT3_SHOT_BOUNCE:
 				case WEAPON_STAT3_SHOT_EXPLOSIVE:
-				case WEAPON_STAT3_SHOT_BEAM:
-				case WEAPON_STAT3_SHOT_WIDE: // Semi???
+				case WEAPON_STAT3_SHOT_BEAM: // Semi???
+				case WEAPON_STAT3_SHOT_WIDE:
 					break;
 				case WEAPON_STAT3_SHOT_REPEATING: // Burst...
 					burstShots += 3; /* STOISS: a complete guess... */
@@ -9282,8 +9282,12 @@ static void PM_Weapon( void )
 			// Base stats...
 			float addTimeGun = 250;
 			float addTimeMod = 250;
+			
 			qboolean isRepeater1 = qfalse;
 			qboolean isRepeater2 = qfalse;
+
+			unsigned char shotsRemainingSemi = 0;
+			unsigned char shotsRemainingRepeater = 0;
 
 			inventoryItem *currentGun = BG_EquippedWeapon(pm->ps);
 			inventoryItem *currentGunMod1 = BG_EquippedMod1(pm->ps);
@@ -9303,12 +9307,12 @@ static void PM_Weapon( void )
 				case WEAPON_STAT3_SHOT_EXPLOSIVE:
 					addTimeGun = 450;
 					break;
-				case WEAPON_STAT3_SHOT_BEAM:
+				case WEAPON_STAT3_SHOT_BEAM: // Semi???
 					addTimeGun = 850;
+					shotsRemainingSemi = SHOTS_TOGGLEBIT;
 					break;
-				case WEAPON_STAT3_SHOT_WIDE: // Semi???
+				case WEAPON_STAT3_SHOT_WIDE:
 					addTimeGun = 350;
-					pm->ps->shotsRemaining = SHOTS_TOGGLEBIT;
 					break;
 				case WEAPON_STAT3_SHOT_REPEATING: // Burst...
 					isRepeater1 = qtrue;
@@ -9316,12 +9320,12 @@ static void PM_Weapon( void )
 					if ((pm->ps->shotsRemaining & ~SHOTS_TOGGLEBIT) == 1)
 					{
 						addTimeGun = 100 * (1.0 - currentGun->getBasicStat3Value()); // Apply the power of the stat/mod as well...
-						pm->ps->shotsRemaining = SHOTS_TOGGLEBIT;
+						shotsRemainingRepeater = SHOTS_TOGGLEBIT;
 					}
 					else
 					{
 						addTimeGun = 25 * (1.0 - currentGun->getBasicStat3Value()); // Apply the power of the stat/mod as well...
-						pm->ps->shotsRemaining = (pm->ps->shotsRemaining - 1) & ~SHOTS_TOGGLEBIT;
+						shotsRemainingRepeater = (pm->ps->shotsRemaining - 1) & ~SHOTS_TOGGLEBIT;
 					}
 					break;
 				}
@@ -9333,33 +9337,33 @@ static void PM_Weapon( void )
 				{
 				default:
 				case WEAPON_STAT3_SHOT_DEFAULT:
-					addTimeGun = 250;
+					addTimeMod = 250;
 					break;
 				case WEAPON_STAT3_SHOT_BOUNCE:
-					addTimeGun = 300;
+					addTimeMod = 300;
 					break;
 				case WEAPON_STAT3_SHOT_EXPLOSIVE:
-					addTimeGun = 450;
+					addTimeMod = 450;
 					break;
-				case WEAPON_STAT3_SHOT_BEAM:
-					addTimeGun = 850;
+				case WEAPON_STAT3_SHOT_BEAM: // Semi???
+					addTimeMod = 850;
+					shotsRemainingSemi = SHOTS_TOGGLEBIT;
 					break;
-				case WEAPON_STAT3_SHOT_WIDE: // Semi???
-					addTimeGun = 350;
-					pm->ps->shotsRemaining = SHOTS_TOGGLEBIT;
+				case WEAPON_STAT3_SHOT_WIDE:
+					addTimeMod = 350;
 					break;
 				case WEAPON_STAT3_SHOT_REPEATING: // Burst...
-					isRepeater1 = qtrue;
+					isRepeater2 = qtrue;
 
 					if ((pm->ps->shotsRemaining & ~SHOTS_TOGGLEBIT) == 1)
 					{
-						addTimeGun = 100 * (1.0 - currentGunMod3->getBasicStat3Value()); // Apply the power of the stat/mod as well...
-						pm->ps->shotsRemaining = SHOTS_TOGGLEBIT;
+						addTimeMod = 100 * (1.0 - currentGunMod3->getBasicStat3Value()); // Apply the power of the stat/mod as well...
+						shotsRemainingRepeater = SHOTS_TOGGLEBIT;
 					}
 					else
 					{
-						addTimeGun = 25 * (1.0 - currentGunMod3->getBasicStat3Value()); // Apply the power of the stat/mod as well...
-						pm->ps->shotsRemaining = (pm->ps->shotsRemaining - 1) & ~SHOTS_TOGGLEBIT;
+						addTimeMod = 25 * (1.0 - currentGunMod3->getBasicStat3Value()); // Apply the power of the stat/mod as well...
+						shotsRemainingRepeater = (pm->ps->shotsRemaining - 1) & ~SHOTS_TOGGLEBIT;
 					}
 					break;
 				}
@@ -9374,10 +9378,13 @@ static void PM_Weapon( void )
 					addTime = addTimeGun;
 				else if (isRepeater2)
 					addTime = addTimeMod;
+
+				pm->ps->shotsRemaining = shotsRemainingRepeater;
 			}
 			else
 			{// Actual shot time is half way between the 2 stats...
 				addTime = (addTimeGun + addTimeMod) / 2;
+				pm->ps->shotsRemaining = shotsRemainingSemi;
 			}
 
 			if (currentGun && currentGun->getItemID() != 0 && currentGun->getBasicStat1() == WEAPON_STAT1_FIRE_RATE_MODIFIER)
@@ -9414,6 +9421,9 @@ static void PM_Weapon( void )
 		qboolean isRepeater1 = qfalse;
 		qboolean isRepeater2 = qfalse;
 
+		unsigned char shotsRemainingSemi = 0;
+		unsigned char shotsRemainingRepeater = 0;
+
 		inventoryItem *currentGun = BG_EquippedWeapon(pm->ps);
 		inventoryItem *currentGunMod1 = BG_EquippedMod1(pm->ps);
 		inventoryItem *currentGunMod3 = BG_EquippedMod3(pm->ps);
@@ -9432,12 +9442,12 @@ static void PM_Weapon( void )
 			case WEAPON_STAT3_SHOT_EXPLOSIVE:
 				addTimeGun = 650;
 				break;
-			case WEAPON_STAT3_SHOT_BEAM:
+			case WEAPON_STAT3_SHOT_BEAM: // Semi???
+				shotsRemainingSemi = SHOTS_TOGGLEBIT;
 				addTimeGun = 1250;
 				break;
-			case WEAPON_STAT3_SHOT_WIDE: // Semi???
+			case WEAPON_STAT3_SHOT_WIDE:
 				addTimeGun = 450;
-				pm->ps->shotsRemaining = SHOTS_TOGGLEBIT;
 				break;
 			case WEAPON_STAT3_SHOT_REPEATING: // Burst...
 				isRepeater1 = qtrue;
@@ -9445,12 +9455,12 @@ static void PM_Weapon( void )
 				if ((pm->ps->shotsRemaining & ~SHOTS_TOGGLEBIT) == 1)
 				{
 					addTimeGun = 150 * (1.0 - currentGun->getBasicStat3Value()); // Apply the power of the stat/mod as well...
-					pm->ps->shotsRemaining = SHOTS_TOGGLEBIT;
+					shotsRemainingRepeater = SHOTS_TOGGLEBIT;
 				}
 				else
 				{
 					addTimeGun = 35 * (1.0 - currentGun->getBasicStat3Value()); // Apply the power of the stat/mod as well...
-					pm->ps->shotsRemaining = (pm->ps->shotsRemaining - 1) & ~SHOTS_TOGGLEBIT;
+					shotsRemainingRepeater = (pm->ps->shotsRemaining - 1) & ~SHOTS_TOGGLEBIT;
 				}
 				break;
 			}
@@ -9470,25 +9480,25 @@ static void PM_Weapon( void )
 			case WEAPON_STAT3_SHOT_EXPLOSIVE:
 				addTimeMod = 650;
 				break;
-			case WEAPON_STAT3_SHOT_BEAM:
+			case WEAPON_STAT3_SHOT_BEAM: // Semi???
 				addTimeMod = 1250;
+				shotsRemainingSemi = SHOTS_TOGGLEBIT;
 				break;
-			case WEAPON_STAT3_SHOT_WIDE: // Semi???
+			case WEAPON_STAT3_SHOT_WIDE:
 				addTimeMod = 450;
-				pm->ps->shotsRemaining = SHOTS_TOGGLEBIT;
 				break;
 			case WEAPON_STAT3_SHOT_REPEATING: // Burst...
 				isRepeater2 = qtrue;
 
 				if ((pm->ps->shotsRemaining & ~SHOTS_TOGGLEBIT) == 1)
 				{
-					addTimeGun = 150 * (1.0 - currentGunMod3->getBasicStat3Value()); // Apply the power of the stat/mod as well...
-					pm->ps->shotsRemaining = SHOTS_TOGGLEBIT;
+					addTimeMod = 150 * (1.0 - currentGunMod3->getBasicStat3Value()); // Apply the power of the stat/mod as well...
+					shotsRemainingRepeater = SHOTS_TOGGLEBIT;
 				}
 				else
 				{
-					addTimeGun = 35 * (1.0 - currentGunMod3->getBasicStat3Value()); // Apply the power of the stat/mod as well...
-					pm->ps->shotsRemaining = (pm->ps->shotsRemaining - 1) & ~SHOTS_TOGGLEBIT;
+					addTimeMod = 35 * (1.0 - currentGunMod3->getBasicStat3Value()); // Apply the power of the stat/mod as well...
+					shotsRemainingRepeater = (pm->ps->shotsRemaining - 1) & ~SHOTS_TOGGLEBIT;
 				}
 				break;
 			}
@@ -9503,10 +9513,13 @@ static void PM_Weapon( void )
 				addTime = addTimeGun;
 			else if (isRepeater2)
 				addTime = addTimeMod;
+
+			pm->ps->shotsRemaining = shotsRemainingRepeater;
 		}
 		else
 		{// Actual shot time is half way between the 2 stats...
 			addTime = (addTimeGun + addTimeMod) / 2;
+			pm->ps->shotsRemaining = shotsRemainingSemi;
 		}
 
 		if (currentGun && currentGun->getItemID() != 0 && currentGun->getBasicStat1() == WEAPON_STAT1_FIRE_RATE_MODIFIER)
@@ -9520,10 +9533,10 @@ static void PM_Weapon( void )
 		}
 	}
 
-	if (!(pm->cmd.buttons & BUTTON_ATTACK) && (pm->cmd.buttons & BUTTON_ALT_ATTACK))
+	/*if (!(pm->cmd.buttons & BUTTON_ATTACK) && !(pm->cmd.buttons & BUTTON_ALT_ATTACK))
 	{// Make sure we turn off repeating when button is no longer held down...
 		pm->ps->shotsRemaining = 0;
-	}
+	}*/
 
 	/*
 	if ( pm->ps->powerups[PW_HASTE] ) {
@@ -9938,8 +9951,8 @@ void PM_AdjustAttackStates( pmove_t *pmove )
 				case WEAPON_STAT3_SHOT_DEFAULT:
 				case WEAPON_STAT3_SHOT_BOUNCE:
 				case WEAPON_STAT3_SHOT_EXPLOSIVE:
-				case WEAPON_STAT3_SHOT_BEAM:
-				case WEAPON_STAT3_SHOT_WIDE: // Semi???
+				case WEAPON_STAT3_SHOT_BEAM: // Semi???
+				case WEAPON_STAT3_SHOT_WIDE:
 					break;
 				case WEAPON_STAT3_SHOT_REPEATING: // Burst...
 					holdAttack = qtrue;
@@ -9955,8 +9968,8 @@ void PM_AdjustAttackStates( pmove_t *pmove )
 				case WEAPON_STAT3_SHOT_DEFAULT:
 				case WEAPON_STAT3_SHOT_BOUNCE:
 				case WEAPON_STAT3_SHOT_EXPLOSIVE:
-				case WEAPON_STAT3_SHOT_BEAM:
-				case WEAPON_STAT3_SHOT_WIDE: // Semi???
+				case WEAPON_STAT3_SHOT_BEAM: // Semi???
+				case WEAPON_STAT3_SHOT_WIDE:
 					break;
 				case WEAPON_STAT3_SHOT_REPEATING: // Burst...
 					holdAttack = qtrue;
@@ -9969,14 +9982,14 @@ void PM_AdjustAttackStates( pmove_t *pmove )
 				pm->cmd.buttons |= BUTTON_ATTACK;
 			}
 		}
-		else if (!(pm->cmd.buttons & BUTTON_ATTACK) && (pm->cmd.buttons & BUTTON_ALT_ATTACK))
+		else if (!(pm->cmd.buttons & BUTTON_ATTACK) && !(pm->cmd.buttons & BUTTON_ALT_ATTACK))
 		{// Make sure we turn off repeating when button is no longer held down...
 			pm->ps->shotsRemaining = 0;
 		}
 	}
 	else
 	{
-		if (!(pm->cmd.buttons & BUTTON_ATTACK) && (pm->cmd.buttons & BUTTON_ALT_ATTACK))
+		if (!(pm->cmd.buttons & BUTTON_ATTACK) && !(pm->cmd.buttons & BUTTON_ALT_ATTACK))
 		{// Make sure we turn off repeating when button is no longer held down...
 			pm->ps->shotsRemaining = 0;
 		}
@@ -10086,8 +10099,8 @@ void PM_AdjustAttackStates( pmove_t *pmove )
 				case WEAPON_STAT3_SHOT_DEFAULT:
 				case WEAPON_STAT3_SHOT_BOUNCE:
 				case WEAPON_STAT3_SHOT_EXPLOSIVE:
-				case WEAPON_STAT3_SHOT_BEAM:
-				case WEAPON_STAT3_SHOT_WIDE: // Semi???
+				case WEAPON_STAT3_SHOT_BEAM: // Semi???
+				case WEAPON_STAT3_SHOT_WIDE:
 					break;
 				case WEAPON_STAT3_SHOT_REPEATING: // Burst...
 					burstShots += 3; /* STOISS: a complete guess... */
@@ -10103,8 +10116,8 @@ void PM_AdjustAttackStates( pmove_t *pmove )
 				case WEAPON_STAT3_SHOT_DEFAULT:
 				case WEAPON_STAT3_SHOT_BOUNCE:
 				case WEAPON_STAT3_SHOT_EXPLOSIVE:
-				case WEAPON_STAT3_SHOT_BEAM:
-				case WEAPON_STAT3_SHOT_WIDE: // Semi???
+				case WEAPON_STAT3_SHOT_BEAM: // Semi???
+				case WEAPON_STAT3_SHOT_WIDE:
 					break;
 				case WEAPON_STAT3_SHOT_REPEATING: // Burst...
 					burstShots += 3; /* STOISS: a complete guess... */
@@ -10158,6 +10171,7 @@ void PM_AdjustAttackStates( pmove_t *pmove )
 		//pmove->ps->eFlags &= ~(EF_FIRING|EF_ALT_FIRING);
 		// Clear 'em out
 		pm->ps->eFlags &= ~(EF_FIRING/*|EF_ALT_FIRING*/);
+
 		if (pm->ps->shotsRemaining & SHOTS_TOGGLEBIT)
 		{
 			pm->ps->shotsRemaining = 0;

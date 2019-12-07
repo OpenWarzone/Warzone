@@ -1411,122 +1411,7 @@ static void WP_ModulatedWeaponFire(gentity_t *ent, int damage, float velocity, f
 
 		AngleVectors(angs, dir, NULL, NULL);
 
-		if (repeating > 0)
-		{
-			// add some slop to the alt-fire direction
-			angs[PITCH] += crandom() * accuracy;
-			angs[YAW] += crandom() * accuracy;
-
-			AngleVectors(angs, dir, NULL, NULL);
-
-			gentity_t *missile = CreateMissile(muzzle, dir, vel, 10000, ent, qfalse);
-
-			missile->classname = "repeater_proj";
-			missile->s.weapon = ent->s.weapon;// WP_REPEATER;
-
-			missile->damage = damage;
-			missile->dflags = DAMAGE_DEATH_KNOCKBACK;
-			missile->methodOfDeath = MOD_REPEATER;
-			missile->clipmask = MASK_SHOT | CONTENTS_LIGHTSABER;
-
-			if (ent->client)
-			{// Send the crystal color for client...
-				uint16_t crystal = BG_EquippedWeaponCrystal(&ent->client->ps);
-				missile->s.temporaryWeapon = crystal;
-
-#ifdef __SEND_FULL_WEAPON_INFO_WITH_BOLT__
-				// Also send all the original weapon info...
-				missile->s.boneIndex1 = BG_EquippedWeapon(&ent->client->ps)->getItemID();
-				missile->s.boneIndex2 = BG_EquippedMod1(&ent->client->ps)->getItemID();
-				missile->s.boneIndex3 = BG_EquippedMod2(&ent->client->ps)->getItemID();
-				missile->s.boneIndex4 = BG_EquippedMod3(&ent->client->ps)->getItemID();
-#endif //__SEND_FULL_WEAPON_INFO_WITH_BOLT__
-			}
-			else
-			{
-				missile->s.temporaryWeapon = 0;
-#ifdef __SEND_FULL_WEAPON_INFO_WITH_BOLT__
-				missile->s.boneIndex1 = 0;
-				missile->s.boneIndex2 = 0;
-				missile->s.boneIndex3 = 0;
-				missile->s.boneIndex4 = 0;
-#endif //__SEND_FULL_WEAPON_INFO_WITH_BOLT__
-			}
-
-			// do we want it to bounce?
-			if (bounces > 0)
-			{
-				missile->flags |= FL_BOUNCE;
-				missile->bounceCount = bounces;
-			}
-			else
-			{
-				missile->bounceCount = 0;
-			}
-
-			if (explosion > 0)
-			{
-				missile->splashDamage = missile->damage = damage  * explosion;
-				missile->splashRadius = 64 * explosion;
-			}
-		}
-		else if (beam <= 0)
-		{
-			missile = CreateMissile(muzzle, dir, vel, 10000, ent, qtrue);
-
-			missile->classname = "bowcaster_alt_proj";
-			missile->s.weapon = ent->s.weapon;
-
-			VectorSet(missile->r.maxs, BOWCASTER_SIZE, BOWCASTER_SIZE, BOWCASTER_SIZE);
-			VectorScale(missile->r.maxs, -1, missile->r.mins);
-
-			missile->damage = damage;
-			missile->dflags = DAMAGE_DEATH_KNOCKBACK;
-			missile->methodOfDeath = MOD_BOWCASTER;
-			missile->clipmask = MASK_SHOT | CONTENTS_LIGHTSABER;
-
-			if (ent->client)
-			{// Send the crystal color for client...
-				uint16_t crystal = BG_EquippedWeaponCrystal(&ent->client->ps);
-				missile->s.temporaryWeapon = crystal;
-
-#ifdef __SEND_FULL_WEAPON_INFO_WITH_BOLT__
-				// Also send all the original weapon info...
-				missile->s.boneIndex1 = BG_EquippedWeapon(&ent->client->ps)->getItemID();
-				missile->s.boneIndex2 = BG_EquippedMod1(&ent->client->ps)->getItemID();
-				missile->s.boneIndex3 = BG_EquippedMod2(&ent->client->ps)->getItemID();
-				missile->s.boneIndex4 = BG_EquippedMod3(&ent->client->ps)->getItemID();
-#endif //__SEND_FULL_WEAPON_INFO_WITH_BOLT__
-			}
-			else
-			{
-				missile->s.temporaryWeapon = 0;
-#ifdef __SEND_FULL_WEAPON_INFO_WITH_BOLT__
-				missile->s.boneIndex1 = 0;
-				missile->s.boneIndex2 = 0;
-				missile->s.boneIndex3 = 0;
-				missile->s.boneIndex4 = 0;
-#endif //__SEND_FULL_WEAPON_INFO_WITH_BOLT__
-			}
-
-			// do we want it to bounce?
-			if (bounces > 0)
-			{
-				missile->flags |= FL_BOUNCE;
-				missile->bounceCount = bounces;
-			}
-			else
-			{
-				missile->bounceCount = 0;
-			}
-
-			if (explosion > 0)
-			{
-				missile->splashDamage = missile->damage = damage  * explosion;
-				missile->splashRadius = 64 * explosion;
-			}
-		}
-		else
+		if (beam > 0)
 		{// Using disruptor code...
 			int			skip;
 			qboolean	render_impact = qtrue;
@@ -1630,6 +1515,7 @@ static void WP_ModulatedWeaponFire(gentity_t *ent, int damage, float velocity, f
 						VectorCopy(muzzle, tent->s.origin2);
 						tent->s.shouldtarget = fullCharge;
 						tent->s.eventParm = ent->s.number;
+						tent->eventTime = level.time + 200; // beams last 200ms
 
 						if (ent->client)
 						{// Send the crystal color for client...
@@ -1675,6 +1561,7 @@ static void WP_ModulatedWeaponFire(gentity_t *ent, int damage, float velocity, f
 				VectorCopy(muzzle, tent->s.origin2);
 				tent->s.shouldtarget = fullCharge;
 				tent->s.eventParm = ent->s.number;
+				tent->eventTime = level.time + 200; // beams last 200ms
 
 				if (ent->client)
 				{// Send the crystal color for client...
@@ -1831,6 +1718,121 @@ static void WP_ModulatedWeaponFire(gentity_t *ent, int damage, float velocity, f
 				VectorCopy(tr.endpos, muzzle);
 				VectorCopy(tr.endpos, start);
 				skip = tr.entityNum;
+			}
+		}
+		else if (repeating > 0)
+		{
+			// add some slop to the alt-fire direction
+			angs[PITCH] += crandom() * accuracy;
+			angs[YAW] += crandom() * accuracy;
+
+			AngleVectors(angs, dir, NULL, NULL);
+
+			gentity_t *missile = CreateMissile(muzzle, dir, vel, 10000, ent, qfalse);
+
+			missile->classname = "repeater_proj";
+			missile->s.weapon = ent->s.weapon;// WP_REPEATER;
+
+			missile->damage = damage;
+			missile->dflags = DAMAGE_DEATH_KNOCKBACK;
+			missile->methodOfDeath = MOD_REPEATER;
+			missile->clipmask = MASK_SHOT | CONTENTS_LIGHTSABER;
+
+			if (ent->client)
+			{// Send the crystal color for client...
+				uint16_t crystal = BG_EquippedWeaponCrystal(&ent->client->ps);
+				missile->s.temporaryWeapon = crystal;
+
+#ifdef __SEND_FULL_WEAPON_INFO_WITH_BOLT__
+				// Also send all the original weapon info...
+				missile->s.boneIndex1 = BG_EquippedWeapon(&ent->client->ps)->getItemID();
+				missile->s.boneIndex2 = BG_EquippedMod1(&ent->client->ps)->getItemID();
+				missile->s.boneIndex3 = BG_EquippedMod2(&ent->client->ps)->getItemID();
+				missile->s.boneIndex4 = BG_EquippedMod3(&ent->client->ps)->getItemID();
+#endif //__SEND_FULL_WEAPON_INFO_WITH_BOLT__
+			}
+			else
+			{
+				missile->s.temporaryWeapon = 0;
+#ifdef __SEND_FULL_WEAPON_INFO_WITH_BOLT__
+				missile->s.boneIndex1 = 0;
+				missile->s.boneIndex2 = 0;
+				missile->s.boneIndex3 = 0;
+				missile->s.boneIndex4 = 0;
+#endif //__SEND_FULL_WEAPON_INFO_WITH_BOLT__
+			}
+
+			// do we want it to bounce?
+			if (bounces > 0)
+			{
+				missile->flags |= FL_BOUNCE;
+				missile->bounceCount = bounces;
+			}
+			else
+			{
+				missile->bounceCount = 0;
+			}
+
+			if (explosion > 0)
+			{
+				missile->splashDamage = missile->damage = damage  * explosion;
+				missile->splashRadius = 64 * explosion;
+			}
+		}
+		else
+		{// Standard blaster bolts...
+			missile = CreateMissile(muzzle, dir, vel, 10000, ent, qtrue);
+
+			missile->classname = "bowcaster_alt_proj";
+			missile->s.weapon = ent->s.weapon;
+
+			VectorSet(missile->r.maxs, BOWCASTER_SIZE, BOWCASTER_SIZE, BOWCASTER_SIZE);
+			VectorScale(missile->r.maxs, -1, missile->r.mins);
+
+			missile->damage = damage;
+			missile->dflags = DAMAGE_DEATH_KNOCKBACK;
+			missile->methodOfDeath = MOD_BOWCASTER;
+			missile->clipmask = MASK_SHOT | CONTENTS_LIGHTSABER;
+
+			if (ent->client)
+			{// Send the crystal color for client...
+				uint16_t crystal = BG_EquippedWeaponCrystal(&ent->client->ps);
+				missile->s.temporaryWeapon = crystal;
+
+#ifdef __SEND_FULL_WEAPON_INFO_WITH_BOLT__
+				// Also send all the original weapon info...
+				missile->s.boneIndex1 = BG_EquippedWeapon(&ent->client->ps)->getItemID();
+				missile->s.boneIndex2 = BG_EquippedMod1(&ent->client->ps)->getItemID();
+				missile->s.boneIndex3 = BG_EquippedMod2(&ent->client->ps)->getItemID();
+				missile->s.boneIndex4 = BG_EquippedMod3(&ent->client->ps)->getItemID();
+#endif //__SEND_FULL_WEAPON_INFO_WITH_BOLT__
+			}
+			else
+			{
+				missile->s.temporaryWeapon = 0;
+#ifdef __SEND_FULL_WEAPON_INFO_WITH_BOLT__
+				missile->s.boneIndex1 = 0;
+				missile->s.boneIndex2 = 0;
+				missile->s.boneIndex3 = 0;
+				missile->s.boneIndex4 = 0;
+#endif //__SEND_FULL_WEAPON_INFO_WITH_BOLT__
+			}
+
+			// do we want it to bounce?
+			if (bounces > 0)
+			{
+				missile->flags |= FL_BOUNCE;
+				missile->bounceCount = bounces;
+			}
+			else
+			{
+				missile->bounceCount = 0;
+			}
+
+			if (explosion > 0)
+			{
+				missile->splashDamage = missile->damage = damage  * explosion;
+				missile->splashRadius = 64 * explosion;
 			}
 		}
 	}
@@ -4889,42 +4891,108 @@ set muzzle location relative to pivoting eye
 ===============
 */
 qboolean G_GetWeaponMuzzleBoltPoint(gentity_t *ent, vec3_t to, int hand)
-{// UQ1: Added - lookup origin of the *flash for a real muzzle point...
-	mdxaBone_t	boltMatrix;
-	vec3_t origin, angles;
-	vec3_t lerpOrigin, lerpAngles;
-
-	// UQ: model index 1 is right hand.
-	// Untested - left hand weapon (since we currently don't have them)
-	//          - modelindex 2 (1+hand) would be second hand? More then 2 hands possible on future model???
-	int modelIndex = Q_clampi(1, 1+hand, 2);
+{// UQ1: Added - lookup origin of the *flash for a real muzzle point... Can't do this since we no longer use ghoul2 weapon models...
+#if 0
+		mdxaBone_t	boltMatrix;
+		vec3_t origin, angles;
+		vec3_t lerpOrigin, lerpAngles;
 	
-	if (!ent 
-		|| !ent->ghoul2 
-		|| !trap->G2API_HaveWeGhoul2Models(ent->ghoul2) 
-		|| !trap->G2API_HasGhoul2ModelOnIndex(&(ent->ghoul2), modelIndex))
-	{
-		// Fallback to the old method for now... I don't think it is needed any more though...
-		// Look out for errors in console, if we don't see any for a while, then we can remove WP_MuzzlePoints[] for good!
-		//trap->Print("G_GetWeaponMuzzleBoltPoint: Failed to find *flash bone for entity %i. %s\n", ent->s.number, ent->NPC ? "is NPC." : "not NPC!");
-		return qfalse;
-	}
+		// UQ: model index 1 is right hand.
+		// Untested - left hand weapon (since we currently don't have them)
+		//          - modelindex 2 (1+hand) would be second hand? More then 2 hands possible on future model???
+		int modelIndex = Q_clampi(1, 1 + hand, 2);
+		
+		if (!ent
+			|| !ent->ghoul2
+			|| !trap->G2API_HaveWeGhoul2Models(ent->ghoul2)
+			|| !trap->G2API_HasGhoul2ModelOnIndex(&(ent->ghoul2), modelIndex))
+		{
+			// Fallback to the old method for now... I don't think it is needed any more though...
+			// Look out for errors in console, if we don't see any for a while, then we can remove WP_MuzzlePoints[] for good!
+			//trap->Print("G_GetWeaponMuzzleBoltPoint: Failed to find *flash bone for entity %i. %s\n", ent->s.number, ent->NPC ? "is NPC." : "not NPC!");
+			return qfalse;
+		}
 	
-	// Try to predict next frame position (as current frame results in the old JKA shots behind you issues)
-#if 1
-	VectorMA( ent->s.pos.trBase, 0.05/*0.025*/, ent->s.pos.trDelta, lerpOrigin );
-	VectorMA( ent->s.apos.trBase, 0.05/*0.025*/, ent->s.apos.trDelta, lerpAngles );
+		// Try to predict next frame position (as current frame results in the old JKA shots behind you issues)
+	#if 0
+		if (ent->client)
+		{
+			if (ent->s.number == 0)
+				trap->Print("velocity %f %f %f. psOrg %f %f %f.\n", ent->client->ps.velocity[0], ent->client->ps.velocity[1], ent->client->ps.velocity[2]
+					, ent->client->ps.origin[0], ent->client->ps.origin[1], ent->client->ps.origin[2]);
+	
+			VectorMA(ent->client->ps.origin, g_testvalue0.value/*0.05*//*0.025*/, ent->client->ps.velocity, lerpOrigin);
+			VectorCopy(ent->s.apos.trBase, lerpAngles);
+		}
+		else
+		{
+			VectorMA(ent->s.pos.trBase, g_testvalue0.value/*0.05*//*0.025*/, ent->s.pos.trDelta, lerpOrigin);
+			VectorCopy(ent->s.apos.trBase, lerpAngles);
+		}
+	#else
+		VectorCopy(ent->s.pos.trBase, lerpOrigin);
+		VectorCopy(ent->s.apos.trBase, lerpAngles);
+	#endif
+	
+		VectorSet(angles, 0, lerpAngles[YAW], 0);
+		VectorCopy(lerpOrigin, origin);
+		
+		trap->G2API_GetBoltMatrix_NoRecNoRot(ent->ghoul2, modelIndex, 0, &boltMatrix, angles, origin, level.time, NULL, ent->modelScale);
+		BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, to);
+	
+	#if 1
+		if (ent->client)
+		{
+			VectorMA(to, g_testvalue0.value/*0.05*//*0.025*/, ent->client->ps.velocity, to);
+		}
+		else
+		{
+			VectorMA(to, g_testvalue0.value/*0.05*//*0.025*/, ent->s.pos.trDelta, to);
+		}
+	#endif
 #else
-	VectorCopy(ent->s.pos.trBase, lerpOrigin);
-	VectorCopy(ent->s.apos.trBase, lerpAngles);
+	vec3_t muzzleOffPoint, f, r, u;
+
+	if (ent->client)
+	{
+		VectorCopy(ent->client->ps.origin, to);
+		AngleVectors(ent->client->ps.viewangles, f, r, u);
+	}
+	else
+	{
+		VectorCopy(ent->r.currentOrigin, to);
+		AngleVectors(ent->s.apos.trBase, f, r, u);
+	}
+
+	if (ent->client && ent->s.weapon == WP_MODULIZED_WEAPON)
+	{
+		if (BG_EquippedWeaponIsTwoHanded(&ent->client->ps))
+		{
+			if (ent->client->ps.scopeType > SCOPE_NONE)
+				VectorSet(muzzleOffPoint, -84.0, 0, 0);
+			else if (hand > 0)
+				VectorSet(muzzleOffPoint, -84.0, -6, 0);
+			else
+				VectorSet(muzzleOffPoint, -84.0, 6, 0);
+		}
+		else
+		{
+			VectorSet(muzzleOffPoint, -84.0, 0, 0);
+		}
+
+		VectorMA(to, muzzleOffPoint[0], f, to);
+		VectorMA(to, muzzleOffPoint[1], r, to);
+		to[2] -= g_testvalue0.value * (float(ent->s.iModelScale) / 100.0f);;
+		to[2] += (ent->client->ps.viewheight + muzzleOffPoint[2]) * (float(ent->s.iModelScale) / 100.0f);
+	}
+	else
+	{
+		to[2] += ent->client->ps.viewheight * (float(ent->s.iModelScale) / 100.0f);
+	}
+
+	// snap to integer coordinates for more efficient network bandwidth usage
+	SnapVector(to);
 #endif
-
-	VectorSet(angles, 0, lerpAngles[YAW], 0);
-	VectorCopy(lerpOrigin, origin);
-	
-	trap->G2API_GetBoltMatrix_NoRecNoRot(ent->ghoul2, modelIndex, 0, &boltMatrix, angles, origin, level.time, NULL, ent->modelScale);
-
-	BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, to);
 
 	return qtrue;
 }

@@ -26,7 +26,7 @@ vec3_t WP_SecondPistolMuzzle[WP_NUM_WEAPONS] =
 #define ROCKET_DAMAGE				60
 #define GRENADE_DAMAGE				70
 
-#define DEFAULT_SPEED				2300
+#define DEFAULT_SPEED				3400//2300
 #define PISTOL_SPEED				1600
 #define BLASTER_SPEED				DEFAULT_SPEED
 #define GRENADE_SPEED				900

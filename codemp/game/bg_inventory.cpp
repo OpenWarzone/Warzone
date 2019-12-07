@@ -1647,6 +1647,49 @@ void BG_CreateRandomNPCInventory(gentity_t *ent)
 	{
 		inventoryItem *newItem = NULL;
 
+		switch (team)
+		{
+		case FACTION_EMPIRE:
+			{
+				int choice = irand_big(0, 4);
+				switch (choice)
+				{
+				case 0:
+				default:
+					crystal = ITEM_CRYSTAL_RED;
+					break;
+				case 1:
+					crystal = ITEM_CRYSTAL_ORANGE;
+					break;
+				case 2:
+					crystal = ITEM_CRYSTAL_YELLOW;
+					break;
+				}
+			}
+			break;
+		case FACTION_REBEL:
+			{
+				int choice = irand_big(0, 4);
+				switch (choice)
+				{
+				case 0:
+				default:
+					crystal = ITEM_CRYSTAL_BLUE;
+					break;
+				case 1:
+					crystal = ITEM_CRYSTAL_GREEN;
+					break;
+				case 2:
+					crystal = ITEM_CRYSTAL_PURPLE;
+					break;
+				}
+			}
+			break;
+		default:
+			crystal = (itemPowerCrystal_t)irand_big(ITEM_CRYSTAL_RED, ITEM_CRYSTAL_PINK);
+			break;
+		}
+
 		while (!newItem)
 		{
 			newItem = BG_CreatePlayerInventoryItem(ps, 0, 38, irand_big(QUALITY_GREY, QUALITY_GOLD), crystal, irand_big(SABER_STAT1_DEFAULT, SABER_STAT1_MAX - 1), irand_big(SABER_STAT2_DEFAULT, SABER_STAT2_MAX - 1), irand_big(SABER_STAT3_DEFAULT, SABER_STAT3_MAX - 1));
@@ -1989,10 +2032,10 @@ void BG_CreatePlayerDefaultGunnerInventory(playerState_t *ps, team_t team)
 #if defined(_CGAME) || defined(_GAME)
 inventoryItem *BG_EquippedWeapon(playerState_t *ps)
 {
-	if (ps->weapon != WP_MODULIZED_WEAPON)
+	/*if (ps->weapon != WP_MODULIZED_WEAPON)
 	{
 		return BG_GetInventoryItemByID(0);
-	}
+	}*/
 
 	if (ps->inventoryEquipped[0] < 0)
 	{
@@ -2004,10 +2047,10 @@ inventoryItem *BG_EquippedWeapon(playerState_t *ps)
 
 inventoryItem *BG_EquippedMod1(playerState_t *ps)
 {
-	if (ps->weapon != WP_MODULIZED_WEAPON)
+	/*if (ps->weapon != WP_MODULIZED_WEAPON)
 	{
 		return BG_GetInventoryItemByID(0);
-	}
+	}*/
 
 	if (ps->inventoryEquipped[0] < 0)
 	{
@@ -2019,10 +2062,10 @@ inventoryItem *BG_EquippedMod1(playerState_t *ps)
 
 inventoryItem *BG_EquippedMod2(playerState_t *ps)
 {
-	if (ps->weapon != WP_MODULIZED_WEAPON)
+	/*if (ps->weapon != WP_MODULIZED_WEAPON)
 	{
 		return BG_GetInventoryItemByID(0);
-	}
+	}*/
 
 	if (ps->inventoryEquipped[0] < 0)
 	{
@@ -2034,10 +2077,10 @@ inventoryItem *BG_EquippedMod2(playerState_t *ps)
 
 inventoryItem *BG_EquippedMod3(playerState_t *ps)
 {
-	if (ps->weapon != WP_MODULIZED_WEAPON)
+	/*if (ps->weapon != WP_MODULIZED_WEAPON)
 	{
 		return BG_GetInventoryItemByID(0);
-	}
+	}*/
 
 	if (ps->inventoryEquipped[0] < 0)
 	{
@@ -2049,10 +2092,10 @@ inventoryItem *BG_EquippedMod3(playerState_t *ps)
 
 qboolean BG_EquippedWeaponIsTwoHanded(playerState_t *ps)
 {
-	if (ps->weapon != WP_MODULIZED_WEAPON)
+	/*if (ps->weapon != WP_MODULIZED_WEAPON)
 	{
 		return qfalse;
-	}
+	}*/
 
 	if (ps->inventoryEquipped[0] < 0)
 	{
@@ -2074,10 +2117,10 @@ qboolean BG_EquippedWeaponIsTwoHanded(playerState_t *ps)
 
 uint16_t BG_EquippedWeaponVisualType1(playerState_t *ps)
 {
-	if (ps->weapon != WP_MODULIZED_WEAPON)
+	/*if (ps->weapon != WP_MODULIZED_WEAPON)
 	{
 		return WEAPON_STAT1_DEFAULT;
-	}
+	}*/
 
 	if (ps->inventoryEquipped[0] < 0)
 	{
@@ -2099,10 +2142,10 @@ uint16_t BG_EquippedWeaponVisualType1(playerState_t *ps)
 
 uint16_t BG_EquippedWeaponVisualType2(playerState_t *ps)
 {
-	if (ps->weapon != WP_MODULIZED_WEAPON)
+	/*if (ps->weapon != WP_MODULIZED_WEAPON)
 	{
 		return WEAPON_STAT2_DEFAULT;
-	}
+	}*/
 
 	if (ps->inventoryEquipped[0] < 0)
 	{
@@ -2124,10 +2167,10 @@ uint16_t BG_EquippedWeaponVisualType2(playerState_t *ps)
 
 uint16_t BG_EquippedWeaponVisualType3(playerState_t *ps)
 {
-	if (ps->weapon != WP_MODULIZED_WEAPON)
+	/*if (ps->weapon != WP_MODULIZED_WEAPON)
 	{
 		return WEAPON_STAT3_SHOT_DEFAULT;
-	}
+	}*/
 
 	if (ps->inventoryEquipped[0] < 0)
 	{
@@ -2149,10 +2192,10 @@ uint16_t BG_EquippedWeaponVisualType3(playerState_t *ps)
 
 uint16_t BG_EquippedWeaponCrystal(playerState_t *ps)
 {
-	if (ps->weapon != WP_SABER && ps->weapon != WP_MODULIZED_WEAPON)
+	/*if (ps->weapon != WP_SABER && ps->weapon != WP_MODULIZED_WEAPON)
 	{
 		return ITEM_CRYSTAL_DEFAULT;
-	}
+	}*/
 
 	if (ps->inventoryEquipped[0] < 0)
 	{

@@ -497,7 +497,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 		matrix3_t axis;
 
 		if (cent->currentState.torsoAnim == TORSO_WEAPONREADY2 || cent->currentState.torsoAnim == BOTH_STAND6)
-		{//find bolt rotation unit vectors.. Don't point the gun forward when holding pistol upwards with these pistol animations...
+		{// Find bolt rotation unit vectors.. Don't point the gun forward when holding pistol upwards with these pistol animations...
 			BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_X, axis[0]);  //left/right	
 			BG_GiveMeVectorFromMatrix(&boltMatrix, NEGATIVE_Z, axis[1]);  //fwd/back
 			BG_GiveMeVectorFromMatrix(&boltMatrix, POSITIVE_Y, axis[2]);  //up/down?!
@@ -509,8 +509,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 			AxisToAngles(gun.axis, gun.angles);
 		}
 		else if (cent->currentState.number == cg.snap->ps.clientNum)
-		{
-			// Always point the gun forwards, regardless of animation...
+		{// Always point the gun forwards, regardless of animation...
 			AnglesToAxis(cent->lerpAngles, axis);
 			VectorCopy(axis[1], gun.axis[0]);
 			VectorScale(axis[0], -1, gun.axis[1]); //reversed since this is a right hand rule system.
@@ -518,10 +517,6 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 			AxisToAngles(gun.axis, gun.angles);
 
 			if (cent->currentState.torsoAnim == TORSO_WEAPONREADY3)
-			{
-				gun.origin[2] += 0.8 + (0.03 * cent->playerState->viewangles[PITCH]);
-			}
-			else if (cent->currentState.torsoAnim == TORSO_WEAPONREADY2)
 			{
 				gun.origin[2] += 0.8 + (0.03 * cent->playerState->viewangles[PITCH]);
 			}

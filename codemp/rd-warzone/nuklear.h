@@ -20512,6 +20512,123 @@ NK_API int nk_button_image_label_styled(struct nk_context *ctx,
 }
 
 
+#ifdef __WARZONE_UI__
+NK_LIB int
+nk_do_button_text_image_overlayed(nk_flags *state,
+	struct nk_command_buffer *out, struct nk_rect bounds,
+	struct nk_image img, const char* str, int len, nk_flags align,
+	enum nk_button_behavior behavior, const struct nk_style_button *style,
+	const struct nk_user_font *font, const struct nk_input *in, struct nk_image overlayimg)
+{
+	int ret;
+	struct nk_rect icon;
+	struct nk_rect content;
+
+	NK_ASSERT(style);
+	NK_ASSERT(state);
+	NK_ASSERT(font);
+	NK_ASSERT(out);
+	if (!out || !font || !style || !str)
+		return nk_false;
+
+	ret = nk_do_button(state, out, bounds, style, in, behavior, &content);
+	icon.y = bounds.y + style->padding.y;
+	icon.w = icon.h = bounds.h - 2 * style->padding.y;
+
+	// Nuklear alignments are messed up... rewritten...
+	if (align & NK_TEXT_ALIGN_LEFT)
+	{
+		icon.x = bounds.x + 2 * style->padding.x;
+		content.x = icon.x + icon.w + (2 * style->padding.x);
+		content.w = bounds.w;
+	}
+	else if (align & NK_TEXT_ALIGN_RIGHT) {
+		icon.x = (bounds.x + bounds.w) - (2 * style->padding.x + icon.w);
+		icon.x = NK_MAX(icon.x, 0);
+		content.x = bounds.x;
+		content.y = bounds.y;
+		content.w = bounds.w - icon.w;
+		content.h = bounds.h;
+	}
+	else
+	{
+		icon.x = bounds.x + 2 * style->padding.x;
+	}
+
+	icon.x += style->image_padding.x;
+	icon.y += style->image_padding.y;
+	icon.w -= 2 * style->image_padding.x;
+	icon.h -= 2 * style->image_padding.y;
+
+	if (style->draw_begin) style->draw_begin(out, style->userdata);
+	//nk_draw_button_text_image(out, &content, &content, &icon, *state, style, str, len, font, &img);
+
+	struct nk_text text;
+	const struct nk_style_item *background;
+	//background = nk_draw_button(out, &icon, *state, style);
+	background = nk_draw_button(out, &bounds, *state, style);
+
+	/* select correct colors */
+	if (background->type == NK_STYLE_ITEM_COLOR)
+		text.background = background->data.color;
+	else text.background = style->text_background;
+	if (*state & NK_WIDGET_STATE_HOVER)
+		text.text = style->text_hover;
+	else if (*state & NK_WIDGET_STATE_ACTIVED)
+		text.text = style->text_active;
+	else text.text = style->text_normal;
+
+	text.padding = nk_vec2(0, 0);
+	nk_widget_text(out, content, str, len, &text, align, font);
+	nk_draw_image(out, icon, &img, nk_white);
+	nk_draw_image(out, icon, &overlayimg, nk_white);
+	if (style->draw_end) style->draw_end(out, style->userdata);
+	return ret;
+}
+
+NK_API int
+nk_button_image_text_styled_overlayed(struct nk_context *ctx,
+	const struct nk_style_button *style, struct nk_image img, const char *text,
+	int len, nk_flags align, struct nk_image overlayimg)
+{
+	struct nk_window *win;
+	struct nk_panel *layout;
+	const struct nk_input *in;
+
+	struct nk_rect bounds;
+	enum nk_widget_layout_states state;
+
+	NK_ASSERT(ctx);
+	NK_ASSERT(ctx->current);
+	NK_ASSERT(ctx->current->layout);
+	if (!ctx || !ctx->current || !ctx->current->layout)
+		return 0;
+
+	win = ctx->current;
+	layout = win->layout;
+
+	state = nk_widget(&bounds, ctx);
+	if (!state) return 0;
+	in = (state == NK_WIDGET_ROM || layout->flags & NK_WINDOW_ROM) ? 0 : &ctx->input;
+	return nk_do_button_text_image_overlayed(&ctx->last_widget_state, &win->buffer,
+		bounds, img, text, len, align, ctx->button_behavior,
+		style, ctx->style.font, in, overlayimg);
+}
+
+NK_API int
+nk_button_image_text_overlayed(struct nk_context *ctx, struct nk_image img,
+	const char *text, int len, nk_flags align, struct nk_image overlayimg)
+{
+	return nk_button_image_text_styled_overlayed(ctx, &ctx->style.button, img, text, len, align, overlayimg);
+}
+
+NK_API int nk_button_image_label_overlayed(struct nk_context *ctx, struct nk_image img,
+	const char *label, nk_flags align, struct nk_image overlayimg)
+{
+	return nk_button_image_text_overlayed(ctx, img, label, nk_strlen(label), align, overlayimg);
+}
+#endif //__WARZONE_UI__
+
 
 
 

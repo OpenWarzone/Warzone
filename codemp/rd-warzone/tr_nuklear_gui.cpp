@@ -136,6 +136,7 @@ struct media {
 	struct nk_image forcePowerIcons[64];
 	struct nk_image inventoryIconsBlank;
 	struct nk_image menu[6];
+	struct nk_image quickbarOverlays[12];
 
 	struct nk_image iconMainMenu;
 
@@ -2557,7 +2558,7 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 		{
 			int quality = quickBarSelections[i].item->quality;
 			ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-			ret = nk_button_image_label(ctx, *quickBarSelections[i].item->icon, "", NK_TEXT_CENTERED);
+			ret = nk_button_image_label_overlayed(ctx, *quickBarSelections[i].item->icon, "", NK_TEXT_CENTERED, GUI_media.quickbarOverlays[i]);
 
 			if (ctx->last_widget_state & NK_WIDGET_STATE_HOVER && !backEnd.ui_MouseCursor)
 			{// Hoverred...
@@ -2567,7 +2568,7 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 		else if (quickBarSelections[i].item && quickBarSelections[i].item->type == INVENTORY_TYPE_FORCE)
 		{
 			ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-			ret = nk_button_image_label(ctx, *quickBarSelections[i].item->icon, "", NK_TEXT_CENTERED);
+			ret = nk_button_image_label_overlayed(ctx, *quickBarSelections[i].item->icon, "", NK_TEXT_CENTERED, GUI_media.quickbarOverlays[i]);
 
 			if (ctx->last_widget_state & NK_WIDGET_STATE_HOVER && !backEnd.ui_MouseCursor)
 			{// Hoverred...
@@ -2577,7 +2578,7 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 		else
 		{// Blank slot...
 			ctx->style.button.padding = nk_vec2(-1.0, -1.0);
-			ret = nk_button_image_label(ctx, media->inventoryIconsBlank, "", NK_TEXT_CENTERED);
+			ret = nk_button_image_label_overlayed(ctx, media->inventoryIconsBlank, "", NK_TEXT_CENTERED, GUI_media.quickbarOverlays[i]);
 		}
 
 		if (ret != 0 && backEnd.ui_MouseCursor && noSelectTime <= backEnd.refdef.time)
@@ -2758,6 +2759,8 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 		
 		if (playerInventory[i] > 0)
 		{
+			inventoryItems[i].invSlot = i; // make sure icon's invslot is always set...
+
 			struct nk_image icon = GUI_GetInventoryIconForInvSlot(i);
 			quality = QUALITY_GOLD - Q_clamp(QUALITY_GREY, i / QUALITY_GOLD, QUALITY_GOLD);
 			ctx->style.button.padding = nk_vec2(-1.0, -1.0);
@@ -2936,6 +2939,7 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 			&& !skipSelect
 			&& noSelectTime <= backEnd.refdef.time
 			&& menuNoChangeTime <= backEnd.refdef.time
+			&& playerInventory[i] > 0
 			&& inventoryItems[i].icon
 			&& inventoryItems[i].icon->handle.id != media->inventoryIconsBlank.handle.id)
 		{
@@ -2947,12 +2951,6 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 			}
 			else if (rightClick)
 			{
-				ri->Cvar_SetValue("inv_trashslot", i);
-				playerInventory[i] = 0;
-				playerInventoryMod1[i] = 0;
-				playerInventoryMod2[i] = 0;
-				playerInventoryMod3[i] = 0;
-
 				for (int qb = 0; qb < 12; qb++)
 				{
 					if (quickBarSelections[qb].item && quickBarSelections[qb].item != &nullItem && quickBarSelections[qb].item->type == INVENTORY_TYPE_INVENTORY && quickBarSelections[qb].item->invSlot == i)
@@ -2960,6 +2958,12 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 						GUI_InitQuickBarSlot(qb);
 					}
 				}
+
+				ri->Cvar_SetValue("inv_trashslot", i);
+				playerInventory[i] = 0;
+				playerInventoryMod1[i] = 0;
+				playerInventoryMod2[i] = 0;
+				playerInventoryMod3[i] = 0;
 
 				GUI_UpdateInventory();
 			}
@@ -4242,6 +4246,13 @@ void GUI_Init(void)
 
 	GUI_media.inventoryIconsBlank = icon_load("Warzone/gui/inventory/blank.png");
 
+	{
+		for (int i = 0; i < 12; i++)
+		{
+			GUI_media.quickbarOverlays[i] = icon_load(va("Warzone/gui/quickbar/overlay_%d.png", i + 1));
+		}
+	}
+
 	{// Load all the inventory icon possibilities...
 #define NUM_CURRENT_INV_ICON_OPTIONS 24
 		
@@ -4391,6 +4402,13 @@ void GUI_Shutdown(void)
 	qglDeleteTextures(1, (const GLuint*)&GUI_media.characterWeapon2);
 
 	qglDeleteTextures(1, (const GLuint*)&GUI_media.inventoryIconsBlank);
+
+	{
+		for (int i = 0; i < 124; ++i)
+		{
+			qglDeleteTextures(1, (const GLuint*)&GUI_media.quickbarOverlays[i]);
+		}
+	}
 
 	{// Geneate a fake inventory list for testing...
 		for (int i = 0; i < 64; ++i)
@@ -4615,6 +4633,7 @@ void NuklearUI_Main(void)
 			{// If the user clicked somewhere not handled by the ui with either a drag object selected, or a right click menu open, then remove/close them... TODO: Add "trash item" here...
 				if (nk_input_is_mouse_released(&GUI_ctx.input, NK_BUTTON_LEFT))
 				{
+					/*
 					if (backEnd.ui_MouseCursorTrashAvailable)
 					{// Trash the selected item...
 						uiItemInfo_t *cursor = (uiItemInfo_t *)backEnd.ui_MouseCursor;
@@ -4628,11 +4647,12 @@ void NuklearUI_Main(void)
 							playerInventoryMod3[cursor->invSlot] = 0;
 						}
 					}
+					*/
 
 					backEnd.ui_MouseCursor = NULL;
 					backEnd.ui_MouseCursorTrashAvailable = false;
 
-					GUI_UpdateInventory();
+					//GUI_UpdateInventory();
 				}
 			}
 		}

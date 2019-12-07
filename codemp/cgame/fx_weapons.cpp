@@ -122,8 +122,6 @@ void FX_WeaponProjectileThink(centity_t *cent, const struct weaponInfo_s *weapon
 	inventoryItem *mod3 = BG_GetInventoryItemByID(cent->currentState.boneIndex4);
 #endif //__SEND_FULL_WEAPON_INFO_WITH_BOLT__
 
-	//trap->Print("bolt id is %i.\n", bolt3D);
-
 	if (bolt3D > 0)
 	{// New 3D bolt enabled...
 		switch (cent->currentState.primaryWeapon)
@@ -140,8 +138,6 @@ void FX_WeaponProjectileThink(centity_t *cent, const struct weaponInfo_s *weapon
 	{// Old 2D system...
 		PlayEffectID(weapon->missileRenderfx, cent->lerpOrigin, forward, -1, -1, qfalse);
 	}
-
-	//AddLightToScene( cent->lerpOrigin, 200 + (rand()&31), 1.0f, 1.0f, 1.0f );
 }
 
 /*
@@ -201,7 +197,6 @@ void FX_WeaponAltProjectileThink(centity_t *cent, const struct weaponInfo_s *wea
 	inventoryItem *mod3 = BG_GetInventoryItemByID(cent->currentState.boneIndex4);
 #endif //__SEND_FULL_WEAPON_INFO_WITH_BOLT__
 
-
 	if (bolt3D > 0)
 	{// New 3D bolt enabled...
 		switch (cent->currentState.primaryWeapon)
@@ -218,8 +213,6 @@ void FX_WeaponAltProjectileThink(centity_t *cent, const struct weaponInfo_s *wea
 	{// Old 2D system...
 		PlayEffectID(weapon->altMissileRenderfx, cent->lerpOrigin, forward, -1, -1, qfalse);
 	}
-
-	//AddLightToScene( cent->lerpOrigin, 200 + (rand()&31), 1.0f, 1.0f, 1.0f );
 }
 
 void FX_ThermalProjectileThink(centity_t *cent, const struct weaponInfo_s *weapon)

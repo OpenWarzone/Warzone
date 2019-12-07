@@ -164,6 +164,10 @@ XCVAR_DEF( sv_fps,						"40",			NULL,				CVAR_ARCHIVE|CVAR_SERVERINFO,					qtrue
 XCVAR_DEF( sv_maxclients,				"8",			NULL,				CVAR_SERVERINFO|CVAR_LATCH|CVAR_ARCHIVE,		qfalse )
 XCVAR_DEF( timelimit,					"0",			NULL,				CVAR_SERVERINFO|CVAR_ARCHIVE|CVAR_NORESTART,	qtrue )
 XCVAR_DEF( g_debugValue,				"0.1",			NULL,				CVAR_ARCHIVE,									qfalse )
+XCVAR_DEF(g_testvalue0,					"0.0",			NULL,				CVAR_ARCHIVE,									qfalse)
+XCVAR_DEF(g_testvalue1,					"0.0",			NULL,				CVAR_ARCHIVE,									qfalse)
+XCVAR_DEF(g_testvalue2,					"0.0",			NULL,				CVAR_ARCHIVE,									qfalse)
+XCVAR_DEF(g_testvalue3,					"0.0",			NULL,				CVAR_ARCHIVE,									qfalse)
 XCVAR_DEF(sv_saberHideStance,			"0",			NULL,				CVAR_SERVERINFO|CVAR_ARCHIVE,					qfalse )
 
 #undef XCVAR_DEF
