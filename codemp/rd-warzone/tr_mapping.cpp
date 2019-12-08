@@ -2975,7 +2975,7 @@ void MAPPING_LoadMapInfo(void)
 
 		// Add the primary moon...
 		MOON_ENABLED[0] = (atoi(IniRead(mapname, "MOON", "MOON_ENABLED1", "1")) > 0) ? qtrue : qfalse;
-		MOON_ENABLED[1] = MOON_ENABLED[2] = MOON_ENABLED[3] = MOON_ENABLED[0];
+		MOON_ENABLED[1] = MOON_ENABLED[2] = MOON_ENABLED[3] = qfalse;
 
 		if (MOON_ENABLED[0])
 		{
@@ -2992,31 +2992,56 @@ void MAPPING_LoadMapInfo(void)
 		strcpy(moonImageName, IniRead(mapname, "MOON", "moonImage1", "gfx/moons/moon"));
 		//ri->Printf(PRINT_WARNING, "Moon 0: size %f. rotX %f. rotY %f. bright %f. texScale %f. %s.\n", MOON_SIZE[0], MOON_ROTATION_OFFSET_X[0], MOON_ROTATION_OFFSET_Y[0], MOON_BRIGHTNESS[0], MOON_TEXTURE_SCALE[0], moonImageName);
 
-		tr.moonImage[0] = R_FindImageFile(moonImageName, IMGTYPE_COLORALPHA, IMGFLAG_NONE);
-		if (!tr.moonImage[0]) tr.moonImage[0] = R_FindImageFile("gfx/moons/moon", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
 		if (!strcmp(moonImageName, "gfx/random"))
 		{// I changed the code, this is for old mapinfo's to be converted instead of (random) disco moon colors...
 			tr.moonImage[0] = R_FindImageFile("gfx/moons/moon", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		}
+		else
+		{
+			tr.moonImage[0] = R_FindImageFile(moonImageName, IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		}
+
+		if (!tr.moonImage[0]) tr.moonImage[0] = R_FindImageFile("gfx/moons/moon", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+
+		int MOON_TOTAL_COUNT = 1;
+
+		for (int i = 1; i < 4; i++)
+		{
+			// Init...
+			MOON_ROTATION_OFFSET_X[i] = 0;
+			MOON_ROTATION_OFFSET_Y[i] = 0;
+			MOON_SIZE[i] = 0;
+			MOON_BRIGHTNESS[i] = 0;
+			MOON_TEXTURE_SCALE[i] = 0;
+			tr.moonImage[i] = tr.moonImage[0];
+			MOON_ENABLED[i] = qfalse;
 		}
 
 		// Add any extra moons...
 		for (int i = 1; i < 4; i++)
 		{
-			MOON_ENABLED[MOON_COUNT] = (atoi(IniRead(mapname, "MOON", va("MOON_ENABLED%i", i+1), "0")) > 0) ? qtrue : qfalse;
+			// and load...
+			MOON_ENABLED[MOON_COUNT] = (atoi(IniRead(mapname, "MOON", va("MOON_ENABLED%i", MOON_COUNT), "0")) > 0) ? qtrue : qfalse;
 
 			if (MOON_ENABLED[MOON_COUNT])
 			{
-				MOON_ROTATION_OFFSET_X[MOON_COUNT] = atof(IniRead(mapname, "MOON", va("MOON_ROTATION_OFFSET_X%i", i + 1), va("%i", i)));
-				MOON_ROTATION_OFFSET_Y[MOON_COUNT] = atof(IniRead(mapname, "MOON", va("MOON_ROTATION_OFFSET_Y%i", i + 1), va("%i", i - 1)));
-				MOON_SIZE[MOON_COUNT] = atof(IniRead(mapname, "MOON", va("MOON_SIZE%i", i + 1), "1.0"));
-				MOON_BRIGHTNESS[MOON_COUNT] = atof(IniRead(mapname, "MOON", va("MOON_BRIGHTNESS%i", i + 1), "1.0"));
-				MOON_TEXTURE_SCALE[MOON_COUNT] = atof(IniRead(mapname, "MOON", va("MOON_TEXTURE_SCALE%i", i + 1), "1.0"));
+				tr.moonImage[MOON_COUNT] = R_FindImageFile(moonImageName, IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+
+				if (!tr.moonImage[MOON_COUNT] || tr.moonImage[MOON_COUNT] == tr.defaultImage)
+				{
+					continue;
+				}
+
+				MOON_ROTATION_OFFSET_X[MOON_COUNT] = atof(IniRead(mapname, "MOON", va("MOON_ROTATION_OFFSET_X%i", MOON_COUNT), va("%i", i)));
+				MOON_ROTATION_OFFSET_Y[MOON_COUNT] = atof(IniRead(mapname, "MOON", va("MOON_ROTATION_OFFSET_Y%i", MOON_COUNT), va("%i", i - 1)));
+				MOON_SIZE[MOON_COUNT] = atof(IniRead(mapname, "MOON", va("MOON_SIZE%i", MOON_COUNT), "1.0"));
+				MOON_BRIGHTNESS[MOON_COUNT] = atof(IniRead(mapname, "MOON", va("MOON_BRIGHTNESS%i", MOON_COUNT), "1.0"));
+				MOON_TEXTURE_SCALE[MOON_COUNT] = atof(IniRead(mapname, "MOON", va("MOON_TEXTURE_SCALE%i", MOON_COUNT), "1.0"));
 				
 				memset(moonImageName, 0, sizeof(moonImageName));
 				strcpy(moonImageName, IniRead(mapname, "MOON", va("moonImage%i", i + 1), "gfx/moons/moon"));
 				//ri->Printf(PRINT_WARNING, "Moon %i: size %f. rotX %f. rotY %f. bright %f. texScale %f. %s.\n", i, MOON_SIZE[MOON_COUNT], MOON_ROTATION_OFFSET_X[MOON_COUNT], MOON_ROTATION_OFFSET_Y[MOON_COUNT], MOON_BRIGHTNESS[MOON_COUNT], MOON_TEXTURE_SCALE[MOON_COUNT], moonImageName);
 
-				tr.moonImage[MOON_COUNT] = R_FindImageFile(moonImageName, IMGTYPE_COLORALPHA, IMGFLAG_NONE);
 				MOON_COUNT++;
 			}
 		}

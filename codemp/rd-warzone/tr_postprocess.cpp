@@ -1480,8 +1480,8 @@ qboolean RB_GenerateVolumeLightImage(void)
 	}
 	else
 	{
-		GLSL_SetUniformInt(shader, UNIFORM_DIFFUSEMAP, TB_COLORMAP);
-		GL_BindToTMU(tr.linearDepthImageZfar, TB_COLORMAP);
+		GLSL_SetUniformInt(shader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+		GL_BindToTMU(tr.linearDepthImageZfar, TB_DIFFUSEMAP);
 
 		GLSL_SetUniformInt(shader, UNIFORM_SHADOWMAP, TB_SPLATMAP1);
 		GL_BindToTMU(tr.sunShadowDepthImage[0], TB_SPLATMAP1);

@@ -1316,6 +1316,7 @@ void FBO_BlitFromTexture(struct image_s *src, vec4i_t inSrcBox, vec2_t inSrcTexS
 
 	GLSL_BindProgram(shaderProgram);
 
+#ifdef __TEXTURECOLOR_SHADER_BINDLESS__
 	if (shaderProgram->isBindless)
 	{
 		GLSL_SetBindlessTexture(shaderProgram, UNIFORM_DIFFUSEMAP, &src, 0);
@@ -1326,6 +1327,9 @@ void FBO_BlitFromTexture(struct image_s *src, vec4i_t inSrcBox, vec2_t inSrcTexS
 		GLSL_SetUniformInt(shaderProgram, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
 		GL_BindToTMU(src, TB_DIFFUSEMAP);
 	}
+#else //!__TEXTURECOLOR_SHADER_BINDLESS__
+	GL_BindToTMU(src, TB_DIFFUSEMAP);
+#endif //__TEXTURECOLOR_SHADER_BINDLESS__
 
 	GLSL_SetUniformMatrix16(shaderProgram, UNIFORM_MODELVIEWPROJECTIONMATRIX, projection, 1);
 	GLSL_SetUniformVec4(shaderProgram, UNIFORM_COLOR, color);

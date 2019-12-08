@@ -87,6 +87,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //#define __GEOMETRY_SHADER_ALLOW_INVOCATIONS__ // Enable geometry shader invocations support. Slower because you cant set the invocations max in realtime...
 //#define __EMISSIVE_CUBE_IBL__					// Experimental IBL using glowmap cubes...
 //#define __MESH_OPTIMIZATION__					// Optimize all model's when loading. Disabled for now because it slows load time a bit.
+#define __TEXTURECOLOR_SHADER_BINDLESS__		// Do the texturecolor shader bindless...
 
 #define __ZFAR_CULLING_ON_SURFACES__			// Experimental zfar culling separation of depth prepass and render surfaces...
 //#define __ZFAR_CULLING_ON_LEAFS__				// Do zfar culling on leaf bounds, not on per surface origins...
@@ -1218,11 +1219,10 @@ typedef struct {
 
 enum
 {
-	TB_COLORMAP			= 0,
 	TB_DIFFUSEMAP		= 0,
 	TB_LIGHTMAP			= 1,
 	TB_LEVELSMAP		= 1,
-	TB_COLORMAP2		= 1,
+	TB_DIFFUSEMAP2		= 1,
 	TB_NORMALMAP		= 2,
 	TB_DELUXEMAP		= 3,
 	TB_SHADOWMAP		= 3,

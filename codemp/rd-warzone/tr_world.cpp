@@ -1370,11 +1370,13 @@ void R_FoliageQuadStamp(vec4_t quadVerts[4])
 	GLSL_SetUniformMatrix16(&tr.textureColorShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
 	GLSL_SetUniformVec4(&tr.textureColorShader, UNIFORM_COLOR, colorWhite);
 
+#ifdef __TEXTURECOLOR_SHADER_BINDLESS__
 	if (tr.textureColorShader.isBindless)
 	{
 		GLSL_SetBindlessTexture(&tr.textureColorShader, UNIFORM_DIFFUSEMAP, &tr.whiteImage, 0);
 		GLSL_BindlessUpdate(&tr.textureColorShader);
 	}
+#endif //__TEXTURECOLOR_SHADER_BINDLESS__
 
 	RB_InstantQuad2(quadVerts, texCoords);
 }

@@ -898,7 +898,7 @@ void RB_BeginDrawingView (void) {
 #ifdef _DEBUG
 		qglClearColor( 0.8f, 0.7f, 0.4f, 1.0f );	// FIXME: get color of sky
 #else
-		qglClearColor( 0.0f, 0.0f, 0.0f, 1.0f );	// FIXME: get color of sky
+		qglClearColor(0.34117647058823529411764705882353f, 0.49411764705882352941176470588235f, 0.70980392156862745098039215686275f, 1.0f );	// FIXME: get color of sky
 #endif
 	}
 
@@ -2125,11 +2125,13 @@ void RE_StretchRaw (int x, int y, int w, int h, int cols, int rows, const byte *
 	
 	GLSL_SetUniformMatrix16(&tr.textureColorShader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
 
+#ifdef __TEXTURECOLOR_SHADER_BINDLESS__
 	if (tr.textureColorShader.isBindless)
 	{
 		GLSL_SetBindlessTexture(&tr.textureColorShader, UNIFORM_DIFFUSEMAP, &tr.whiteImage, 0);
 		GLSL_BindlessUpdate(&tr.textureColorShader);
 	}
+#endif //__TEXTURECOLOR_SHADER_BINDLESS__
 	
 	GLSL_SetUniformVec4(&tr.textureColorShader, UNIFORM_COLOR, colorWhite);
 
@@ -2627,12 +2629,14 @@ const void	*RB_DrawSurfs( const void *data ) {
 	{
 		RB_RenderDrawSurfList( cmd->drawSurfs, cmd->numDrawSurfs, qfalse );
 
+#if 0
 		if (r_drawSun->integer)
 		{
 			//RB_DrawSun(0.1, tr.sunShader);
 			if (RB_NightScale() > 0.0)
 				RB_DrawMoon(0.05, tr.sunFlareShader); // UQ1: Now in the skybox shader... Drawing it invisible because rend2 occlusion goes nuts at night without it... ???
 		}
+#endif
 
 		//if (r_drawSunRays->integer)
 		{

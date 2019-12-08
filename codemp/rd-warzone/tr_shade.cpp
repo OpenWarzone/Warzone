@@ -388,11 +388,13 @@ static void DrawTris (shaderCommands_t *input) {
 		GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
 		GLSL_SetUniformVec4(sp, UNIFORM_COLOR, /*colorWhite*/colorYellow);
 
+#ifdef __TEXTURECOLOR_SHADER_BINDLESS__
 		if (tr.textureColorShader.isBindless)
 		{
 			GLSL_SetBindlessTexture(&tr.textureColorShader, UNIFORM_DIFFUSEMAP, &tr.whiteImage, 0);
 			GLSL_BindlessUpdate(&tr.textureColorShader);
 		}
+#endif //__TEXTURECOLOR_SHADER_BINDLESS__
 
 		if (input->multiDrawPrimitives)
 		{
@@ -5114,8 +5116,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 						GLSL_SetBindlessTexture(sp, UNIFORM_DIFFUSEMAP, &tr.whiteImage, 0);
 					else if (tess.shader->isCursor && GUI_GetMouseCursorBindless())
 						GLSL_SetBindlessTextureHandle(sp, UNIFORM_DIFFUSEMAP, GUI_GetMouseCursorBindless(), 0); // override with nuklear's selected icon for drag/drop stuff...
-					else if (pStage->bundle[TB_COLORMAP].image[0] != 0)
-						GLSL_SetBindlessTexture(sp, UNIFORM_DIFFUSEMAP, &pStage->bundle[TB_COLORMAP].image[0], 0);
+					else if (pStage->bundle[TB_DIFFUSEMAP].image[0] != 0)
+						GLSL_SetBindlessTexture(sp, UNIFORM_DIFFUSEMAP, &pStage->bundle[TB_DIFFUSEMAP].image[0], 0);
 				}
 				else if (sp == &tr.forcefieldShader)
 				{
@@ -5132,8 +5134,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				{
 					if (!(pStage->stateBits & GLS_ATEST_BITS))
 						GLSL_SetBindlessTexture(sp, UNIFORM_DIFFUSEMAP, &tr.whiteImage, 0);
-					else if (pStage->bundle[TB_COLORMAP].image[0] != 0)
-						GLSL_SetBindlessTexture(sp, UNIFORM_DIFFUSEMAP, &pStage->bundle[TB_COLORMAP].image[0], 0);
+					else if (pStage->bundle[TB_DIFFUSEMAP].image[0] != 0)
+						GLSL_SetBindlessTexture(sp, UNIFORM_DIFFUSEMAP, &pStage->bundle[TB_DIFFUSEMAP].image[0], 0);
 				}
 				else if (tess.shader->materialType == MATERIAL_LAVA)
 				{// Don't need any textures... Procedural...
@@ -5246,8 +5248,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 						GL_BindToTMU(tr.whiteImage, 0);
 					else if (tess.shader->isCursor && GUI_GetMouseCursor())
 						GL_BindImageIDToTMU(GUI_GetMouseCursor(), TB_DIFFUSEMAP); // override with nuklear's selected icon for drag/drop stuff...
-					else if (pStage->bundle[TB_COLORMAP].image[0] != 0)
-						R_BindAnimatedImageToTMU(&pStage->bundle[TB_COLORMAP], TB_COLORMAP);
+					else if (pStage->bundle[TB_DIFFUSEMAP].image[0] != 0)
+						R_BindAnimatedImageToTMU(&pStage->bundle[TB_DIFFUSEMAP], TB_DIFFUSEMAP);
 				}
 				else if ((tr.viewParms.flags & VPF_SHADOWPASS))
 				{
@@ -5260,8 +5262,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				{
 					if (!(pStage->stateBits & GLS_ATEST_BITS))
 						GL_BindToTMU(tr.whiteImage, 0);
-					else if (pStage->bundle[TB_COLORMAP].image[0] != 0)
-						R_BindAnimatedImageToTMU(&pStage->bundle[TB_COLORMAP], TB_COLORMAP);
+					else if (pStage->bundle[TB_DIFFUSEMAP].image[0] != 0)
+						R_BindAnimatedImageToTMU(&pStage->bundle[TB_DIFFUSEMAP], TB_DIFFUSEMAP);
 				}
 				else if (sp == &tr.forcefieldShader)
 				{
@@ -5275,11 +5277,11 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				{// This stage wants sky up image for it's diffuse... TODO: sky cubemap...
 #ifdef __DAY_NIGHT__
 					if (!DAY_NIGHT_CYCLE_ENABLED || nightScale < 1.0)
-						GL_BindToTMU(tr.skyImageShader->sky.outerbox[4], TB_COLORMAP); // Sky up...
+						GL_BindToTMU(tr.skyImageShader->sky.outerbox[4], TB_DIFFUSEMAP); // Sky up...
 					else
-						GL_BindToTMU(tr.skyImageShader->sky.outerboxnight[4], TB_COLORMAP); // Night sky up...
+						GL_BindToTMU(tr.skyImageShader->sky.outerboxnight[4], TB_DIFFUSEMAP); // Night sky up...
 #else
-					GL_BindToTMU(tr.skyImageShader->sky.outerbox[4], TB_COLORMAP); // Sky up...
+					GL_BindToTMU(tr.skyImageShader->sky.outerbox[4], TB_DIFFUSEMAP); // Sky up...
 #endif
 				}
 				else if (sp == &tr.lightAllShader[0] || sp == &tr.lightAllSplatShader[0]

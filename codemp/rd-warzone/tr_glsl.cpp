@@ -2233,13 +2233,25 @@ void GLSL_SetBindlessTexture(shaderProgram_t *program, int uniformNum, image_t *
 
 		bindlessTexturesBlock_t *block = &program->bindlessBlock;
 
-		GLuint64 bindlessHandle = images[0]->bindlessHandle;
+		GLuint64 bindlessHandle = images[arrayID]->bindlessHandle;
 		
-		/*ri->Printf(PRINT_WARNING, "SetBindlessTexture: Program %s uniform %i is binding %s (handle %u).\n"
-			, (program && program->name && program->name[0] != 0) ? program->name : "unknown program"
-			, uniformNum
-			, (images[0] && images[0]->imgName && images[0]->imgName[0] != 0) ? images[0]->imgName : "unknown image"
-			, bindlessHandle);*/
+		/*
+		if (uniformNum == UNIFORM_MOONMAPS)
+		{
+			if (arrayID >= 4 || arrayID < 0)
+			{
+				ri->Printf(PRINT_WARNING, "GLSL_SetBindlessTexture: Fix ya code doofus, you set an invalid arrayID (%i) for uniform %i.\n", arrayID, uniformNum);
+			}
+			else
+			{
+				ri->Printf(PRINT_WARNING, "SetBindlessTexture: Program %s uniform %i is binding %s (handle %u).\n"
+					, (program && program->name.length() > 0) ? program->name.c_str() : "unknown program"
+					, uniformNum
+					, (images[arrayID] && images[arrayID]->imgName && images[arrayID]->imgName[0] != 0) ? images[arrayID]->imgName : "unknown image"
+					, bindlessHandle);
+			}
+		}
+		*/
 
 		qglMakeTextureHandleResident(bindlessHandle);
 
@@ -2360,6 +2372,7 @@ void GLSL_SetBindlessTexture(shaderProgram_t *program, int uniformNum, image_t *
 			block->u_VolumeMap = bindlessHandle;
 			break;
 		case UNIFORM_MOONMAPS:
+			//ri->Printf(PRINT_ALL, "u_MoonMaps[%i] set to %u (%s).\n", arrayID, bindlessHandle, images[arrayID]->imgName[0] ? images[arrayID]->imgName : "NULL");
 			block->u_MoonMaps[arrayID] = bindlessHandle;
 			break;
 		}
@@ -2987,10 +3000,17 @@ int GLSL_BeginLoadGPUShaders(void)
 
 	attribs = ATTR_POSITION | ATTR_TEXCOORD0;
 
+#ifdef __TEXTURECOLOR_SHADER_BINDLESS__
 	if (!GLSL_BeginLoadGPUShader(&tr.textureColorShader, "texturecolor", attribs, qtrue, qfalse, qfalse, qtrue, NULL, qtrue, NULL, fallbackShader_texturecolor_vp, fallbackShader_texturecolor_fp, NULL, NULL, NULL))
 	{
 		ri->Error(ERR_FATAL, "Could not load texturecolor shader!");
 	}
+#else //!__TEXTURECOLOR_SHADER_BINDLESS__
+	if (!GLSL_BeginLoadGPUShader(&tr.textureColorShader, "texturecolor", attribs, qtrue, qfalse, qfalse, qfalse, NULL, qtrue, NULL, fallbackShader_texturecolor_vp, fallbackShader_texturecolor_fp, NULL, NULL, NULL))
+	{
+		ri->Error(ERR_FATAL, "Could not load texturecolor shader!");
+	}
+#endif //__TEXTURECOLOR_SHADER_BINDLESS__
 
 	attribs = ATTR_POSITION | ATTR_TEXCOORD0;// | ATTR_COLOR | ATTR_NORMAL;
 	extradefines[0] = '\0';
@@ -3750,7 +3770,7 @@ int GLSL_BeginLoadGPUShaders(void)
 	GLSL_InitUniforms(&tr.testcubeShader);
 
 	GLSL_BindProgram(&tr.testcubeShader);
-	GLSL_SetUniformInt(&tr.testcubeShader, UNIFORM_TEXTUREMAP, TB_COLORMAP);
+	GLSL_SetUniformInt(&tr.testcubeShader, UNIFORM_TEXTUREMAP, TB_DIFFUSEMAP);
 
 	GLSL_FinishGPUShader(&tr.testcubeShader);
 
@@ -4484,7 +4504,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 	GLSL_BindProgram(&tr.textureColorShader);
 	GLSL_SetUniformInt(&tr.textureColorShader, UNIFORM_TEXTUREMAP, TB_DIFFUSEMAP);
-
+	
 	GLSL_FinishGPUShader(&tr.textureColorShader);
 
 	numEtcShaders++;
@@ -5123,7 +5143,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 	GLSL_InitUniforms(&tr.tonemapShader);
 
 	GLSL_BindProgram(&tr.tonemapShader);
-	GLSL_SetUniformInt(&tr.tonemapShader, UNIFORM_TEXTUREMAP, TB_COLORMAP);
+	GLSL_SetUniformInt(&tr.tonemapShader, UNIFORM_TEXTUREMAP, TB_DIFFUSEMAP);
 	GLSL_SetUniformInt(&tr.tonemapShader, UNIFORM_LEVELSMAP, TB_LEVELSMAP);
 
 #if defined(_DEBUG)
@@ -5180,7 +5200,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 		GLSL_InitUniforms(&tr.ssaoShader[i]);
 
 		GLSL_BindProgram(&tr.ssaoShader[i]);
-		GLSL_SetUniformInt(&tr.ssaoShader[i], UNIFORM_SCREENDEPTHMAP, TB_COLORMAP);
+		GLSL_SetUniformInt(&tr.ssaoShader[i], UNIFORM_SCREENDEPTHMAP, TB_DIFFUSEMAP);
 
 #if defined(_DEBUG)
 		GLSL_FinishGPUShader(&tr.ssaoShader[i]);
@@ -5199,7 +5219,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 	GLSL_InitUniforms(&tr.ssdoShader);
 
 	GLSL_BindProgram(&tr.ssdoShader);
-	GLSL_SetUniformInt(&tr.ssdoShader, UNIFORM_SCREENDEPTHMAP, TB_COLORMAP);
+	GLSL_SetUniformInt(&tr.ssdoShader, UNIFORM_SCREENDEPTHMAP, TB_DIFFUSEMAP);
 
 #if defined(_DEBUG)
 	GLSL_FinishGPUShader(&tr.ssdoShader);
@@ -5216,7 +5236,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 	GLSL_InitUniforms(&tr.ssdoBlurShader);
 
 	GLSL_BindProgram(&tr.ssdoBlurShader);
-	GLSL_SetUniformInt(&tr.ssdoBlurShader, UNIFORM_SCREENDEPTHMAP, TB_COLORMAP);
+	GLSL_SetUniformInt(&tr.ssdoBlurShader, UNIFORM_SCREENDEPTHMAP, TB_DIFFUSEMAP);
 
 #if defined(_DEBUG)
 	GLSL_FinishGPUShader(&tr.ssdoBlurShader);
@@ -5234,7 +5254,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 	GLSL_InitUniforms(&tr.sssShader);
 
 	GLSL_BindProgram(&tr.sssShader);
-	GLSL_SetUniformInt(&tr.sssShader, UNIFORM_SCREENDEPTHMAP, TB_COLORMAP);
+	GLSL_SetUniformInt(&tr.sssShader, UNIFORM_SCREENDEPTHMAP, TB_DIFFUSEMAP);
 
 #if defined(_DEBUG)
 	GLSL_FinishGPUShader(&tr.sssShader);
@@ -5252,7 +5272,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 	GLSL_InitUniforms(&tr.sssBlurShader);
 
 	GLSL_BindProgram(&tr.sssBlurShader);
-	GLSL_SetUniformInt(&tr.sssBlurShader, UNIFORM_SCREENDEPTHMAP, TB_COLORMAP);
+	GLSL_SetUniformInt(&tr.sssBlurShader, UNIFORM_SCREENDEPTHMAP, TB_DIFFUSEMAP);
 
 #if defined(_DEBUG)
 	GLSL_FinishGPUShader(&tr.sssBlurShader);
@@ -5292,7 +5312,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 		GLSL_InitUniforms(&tr.depthBlurShader[i]);
 
 		GLSL_BindProgram(&tr.depthBlurShader[i]);
-		GLSL_SetUniformInt(&tr.depthBlurShader[i], UNIFORM_SCREENIMAGEMAP, TB_COLORMAP);
+		GLSL_SetUniformInt(&tr.depthBlurShader[i], UNIFORM_SCREENIMAGEMAP, TB_DIFFUSEMAP);
 		GLSL_SetUniformInt(&tr.depthBlurShader[i], UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
 
 #if defined(_DEBUG)
@@ -5357,7 +5377,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 	GLSL_InitUniforms(&tr.testcubeShader);
 
 	GLSL_BindProgram(&tr.testcubeShader);
-	GLSL_SetUniformInt(&tr.testcubeShader, UNIFORM_TEXTUREMAP, TB_COLORMAP);
+	GLSL_SetUniformInt(&tr.testcubeShader, UNIFORM_TEXTUREMAP, TB_DIFFUSEMAP);
 
 	GLSL_FinishGPUShader(&tr.testcubeShader);
 
@@ -5378,7 +5398,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 	GLSL_InitUniforms(&tr.darkexpandShader);
 
 	GLSL_BindProgram(&tr.darkexpandShader);
-	GLSL_SetUniformInt(&tr.darkexpandShader, UNIFORM_TEXTUREMAP, TB_COLORMAP);
+	GLSL_SetUniformInt(&tr.darkexpandShader, UNIFORM_TEXTUREMAP, TB_DIFFUSEMAP);
 	GLSL_SetUniformInt(&tr.darkexpandShader, UNIFORM_LEVELSMAP,  TB_LEVELSMAP);
 
 	{
@@ -5441,7 +5461,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 		//GLSL_SetUniformInt(&tr.volumeLightShader[i], UNIFORM_GLOWMAP, TB_GLOWMAP);
 		//GLSL_SetUniformInt(&tr.volumeLightShader[i], UNIFORM_POSITIONMAP, TB_POSITIONMAP);
 
-		GLSL_SetUniformInt(&tr.volumeLightShader[i], UNIFORM_SCREENDEPTHMAP, TB_COLORMAP);
+		GLSL_SetUniformInt(&tr.volumeLightShader[i], UNIFORM_SCREENDEPTHMAP, TB_DIFFUSEMAP);
 		GLSL_SetUniformInt(&tr.volumeLightShader[i], UNIFORM_SHADOWMAP, TB_SPLATMAP1);
 		GLSL_SetUniformInt(&tr.volumeLightShader[i], UNIFORM_SHADOWMAP2, TB_SPLATMAP2);
 		GLSL_SetUniformInt(&tr.volumeLightShader[i], UNIFORM_SHADOWMAP3, TB_SPLATMAP3);
@@ -5584,7 +5604,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 	GLSL_BindProgram(&tr.cellShadeShader);
 
-	GLSL_SetUniformInt(&tr.cellShadeShader, UNIFORM_TEXTUREMAP, TB_COLORMAP);
+	GLSL_SetUniformInt(&tr.cellShadeShader, UNIFORM_TEXTUREMAP, TB_DIFFUSEMAP);
 	GLSL_SetUniformInt(&tr.cellShadeShader, UNIFORM_LEVELSMAP, TB_LEVELSMAP);
 	GLSL_SetUniformInt(&tr.cellShadeShader, UNIFORM_NORMALMAP, TB_NORMALMAP);
 
@@ -5628,7 +5648,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 	GLSL_BindProgram(&tr.paintShader);
 
-	GLSL_SetUniformInt(&tr.paintShader, UNIFORM_TEXTUREMAP, TB_COLORMAP);
+	GLSL_SetUniformInt(&tr.paintShader, UNIFORM_TEXTUREMAP, TB_DIFFUSEMAP);
 
 	{
 		vec2_t screensize;
@@ -5658,7 +5678,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 	GLSL_BindProgram(&tr.magicdetailShader);
 
-	GLSL_SetUniformInt(&tr.magicdetailShader, UNIFORM_TEXTUREMAP, TB_COLORMAP);
+	GLSL_SetUniformInt(&tr.magicdetailShader, UNIFORM_TEXTUREMAP, TB_DIFFUSEMAP);
 	GLSL_SetUniformInt(&tr.magicdetailShader, UNIFORM_LEVELSMAP, TB_LEVELSMAP);
 
 	{
@@ -5836,7 +5856,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 		GLSL_BindProgram(&tr.dofShader[num]);
 
-		GLSL_SetUniformInt(&tr.dofShader[num], UNIFORM_TEXTUREMAP, TB_COLORMAP);
+		GLSL_SetUniformInt(&tr.dofShader[num], UNIFORM_TEXTUREMAP, TB_DIFFUSEMAP);
 		GLSL_SetUniformInt(&tr.dofShader[num], UNIFORM_LEVELSMAP, TB_LEVELSMAP);
 
 #if defined(_DEBUG)
@@ -6419,7 +6439,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 	GLSL_BindProgram(&tr.esharpeningShader);
 
-	GLSL_SetUniformInt(&tr.esharpeningShader, UNIFORM_TEXTUREMAP, TB_COLORMAP);
+	GLSL_SetUniformInt(&tr.esharpeningShader, UNIFORM_TEXTUREMAP, TB_DIFFUSEMAP);
 	GLSL_SetUniformInt(&tr.esharpeningShader, UNIFORM_LEVELSMAP, TB_LEVELSMAP);
 
 	{
@@ -6462,7 +6482,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 	GLSL_BindProgram(&tr.esharpening2Shader);
 
-	GLSL_SetUniformInt(&tr.esharpening2Shader, UNIFORM_TEXTUREMAP, TB_COLORMAP);
+	GLSL_SetUniformInt(&tr.esharpening2Shader, UNIFORM_TEXTUREMAP, TB_DIFFUSEMAP);
 	GLSL_SetUniformInt(&tr.esharpening2Shader, UNIFORM_LEVELSMAP, TB_LEVELSMAP);
 
 	{
@@ -6505,7 +6525,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 	GLSL_BindProgram(&tr.fxaaShader);
 
-	GLSL_SetUniformInt(&tr.fxaaShader, UNIFORM_TEXTUREMAP, TB_COLORMAP);
+	GLSL_SetUniformInt(&tr.fxaaShader, UNIFORM_TEXTUREMAP, TB_DIFFUSEMAP);
 	GLSL_SetUniformInt(&tr.fxaaShader, UNIFORM_LEVELSMAP, TB_LEVELSMAP);
 
 	{
@@ -6576,7 +6596,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 	GLSL_BindProgram(&tr.generateNormalMapShader);
 
-	GLSL_SetUniformInt(&tr.generateNormalMapShader, UNIFORM_TEXTUREMAP, TB_COLORMAP);
+	GLSL_SetUniformInt(&tr.generateNormalMapShader, UNIFORM_TEXTUREMAP, TB_DIFFUSEMAP);
 	GLSL_SetUniformInt(&tr.generateNormalMapShader, UNIFORM_LEVELSMAP, TB_LEVELSMAP);
 
 	{
@@ -6617,7 +6637,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 	GLSL_BindProgram(&tr.underwaterShader);
 
-	GLSL_SetUniformInt(&tr.underwaterShader, UNIFORM_TEXTUREMAP, TB_COLORMAP);
+	GLSL_SetUniformInt(&tr.underwaterShader, UNIFORM_TEXTUREMAP, TB_DIFFUSEMAP);
 
 	{
 		vec4_t viewInfo;
@@ -6659,7 +6679,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 	GLSL_BindProgram(&tr.anaglyphShader);
 
-	GLSL_SetUniformInt(&tr.anaglyphShader, UNIFORM_TEXTUREMAP, TB_COLORMAP);
+	GLSL_SetUniformInt(&tr.anaglyphShader, UNIFORM_TEXTUREMAP, TB_DIFFUSEMAP);
 	GLSL_SetUniformInt(&tr.anaglyphShader, UNIFORM_LEVELSMAP, TB_LEVELSMAP);
 
 	{
@@ -6707,7 +6727,7 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 	GLSL_BindProgram(&tr.skyDomeShader);
 
-	GLSL_SetUniformInt(&tr.skyDomeShader, UNIFORM_TEXTUREMAP, TB_COLORMAP);
+	GLSL_SetUniformInt(&tr.skyDomeShader, UNIFORM_TEXTUREMAP, TB_DIFFUSEMAP);
 	GLSL_SetUniformInt(&tr.skyDomeShader, UNIFORM_LEVELSMAP, TB_LEVELSMAP);
 
 	{

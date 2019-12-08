@@ -22,6 +22,8 @@ vec4_t		boltLightColorMagenta = { 1, 0, 1, 1 };
 vec4_t		boltLightColorCyan = { 0, 1, 1, 1 };
 vec4_t		boltLightColorWhite = { 1, 1, 1, 1 };
 vec3_t		boltLightColorPurple = { 1.0, 0.0, 1.0 };
+vec3_t		boltLightColorBluePurple = { 0.7, 0.0, 1.0 };
+vec3_t		boltLightColorPink = { 1.0, 0.0, 0.7 };
 
 void CG_MakeShaderBoltGlow(qhandle_t boltShader, qhandle_t newBoltGlowShader, vec3_t lightColor)
 {// Make a list of all the glows matching the original bolts...
@@ -64,38 +66,11 @@ void CG_RegisterDefaultBlasterShaders(void)
 	cgs.media.orangeBlasterShot = trap->R_RegisterShader("laserbolt_orange");
 	CG_MakeShaderBoltGlow(cgs.media.orangeBlasterShot, trap->R_RegisterShader("laserbolt_orange_glow"), boltLightColorOrange);
 
-	//custom gfx files for other bolts 
+	cgs.media.BluePurpleBlasterShot = trap->R_RegisterShader("laserbolt_bluepurple");
+	CG_MakeShaderBoltGlow(cgs.media.BluePurpleBlasterShot, trap->R_RegisterShader("laserbolt_bluepurple_glow"), boltLightColorBluePurple);
 
-	cgs.media.BlasterBolt_Cap_BluePurple = trap->R_RegisterShader("BlasterBolt_Line_BluePurple");
-	CG_MakeShaderBoltGlow(cgs.media.BlasterBolt_Cap_BluePurple, trap->R_RegisterShader("BlasterBolt_Cap_BluePurple"), boltLightColorPurple);
-
-	//
-	// UQ1: Adding saber colors here... Stoiss: Add any extra colors here...
-	//
-
-	cgs.media.whiteSaber = trap->R_RegisterShader("laserbolt_white"); // the basic color of the actual bolt...
-	CG_MakeShaderBoltGlow(cgs.media.whiteSaber, trap->R_RegisterShader("laserbolt_white_glow"), boltLightColorWhite);
-
-	cgs.media.yellowSaber = trap->R_RegisterShader("laserbolt_yellow");
-	CG_MakeShaderBoltGlow(cgs.media.yellowSaber, trap->R_RegisterShader("laserbolt_yellow_glow"), boltLightColorYellow);
-
-	cgs.media.redSaber = trap->R_RegisterShader("laserbolt_red");
-	CG_MakeShaderBoltGlow(cgs.media.redSaber, trap->R_RegisterShader("laserbolt_red_glow"), boltLightColorRed);
-
-	cgs.media.blueSaber = trap->R_RegisterShader("laserbolt_blue");
-	CG_MakeShaderBoltGlow(cgs.media.blueSaber, trap->R_RegisterShader("laserbolt_blue_glow"), boltLightColorBlue);
-
-	cgs.media.greenSaber = trap->R_RegisterShader("laserbolt_green");
-	CG_MakeShaderBoltGlow(cgs.media.greenSaber, trap->R_RegisterShader("laserbolt_green_glow"), boltLightColorGreen);
-
-	cgs.media.purpleSaber = trap->R_RegisterShader("laserbolt_purple");
-	CG_MakeShaderBoltGlow(cgs.media.purpleSaber, trap->R_RegisterShader("laserbolt_purple_glow"), boltLightColorPurple);
-
-	cgs.media.orangeSaber = trap->R_RegisterShader("laserbolt_orange");
-	CG_MakeShaderBoltGlow(cgs.media.orangeSaber, trap->R_RegisterShader("laserbolt_orange_glow"), boltLightColorOrange);
-
-	cgs.media.bluePurpleSaber = trap->R_RegisterShader("BlasterBolt_Line_BluePurple");
-	CG_MakeShaderBoltGlow(cgs.media.bluePurpleSaber, trap->R_RegisterShader("BlasterBolt_Cap_BluePurple"), boltLightColorPurple);
+	cgs.media.PinkBlasterShot = trap->R_RegisterShader("laserbolt_pink");
+	CG_MakeShaderBoltGlow(cgs.media.PinkBlasterShot, trap->R_RegisterShader("laserbolt_pink_glow"), boltLightColorPink);
 }
 
 float *CG_Get3DWeaponBoltLightColor(qhandle_t boltShader)
@@ -248,22 +223,22 @@ qhandle_t CG_GetSaberBoltColor(saber_colors_t color)
 	switch (color)
 	{
 	case SABER_RED:
-		return cgs.media.redSaber;
+		return cgs.media.redBlasterShot;
 		break;
 	case SABER_ORANGE:
-		return cgs.media.orangeSaber;
+		return cgs.media.orangeBlasterShot;
 		break;
 	case SABER_YELLOW:
-		return cgs.media.yellowSaber;
+		return cgs.media.yellowBlasterShot;
 		break;
 	case SABER_GREEN:
-		return cgs.media.greenSaber;
+		return cgs.media.greenBlasterShot;
 		break;
 	case SABER_BLUE:
-		return cgs.media.blueSaber;
+		return cgs.media.blueBlasterShot;
 		break;
 	case SABER_PURPLE:
-		return cgs.media.purpleSaber;
+		return cgs.media.PurpleBlasterShot;
 		break;
 	case SABER_WHITE:
 	case SABER_BLACK:
@@ -271,11 +246,11 @@ qhandle_t CG_GetSaberBoltColor(saber_colors_t color)
 	case SABER_PIMP:
 	case SABER_SCRIPTED:
 	default:
-		return cgs.media.whiteSaber;
+		return cgs.media.whiteBlasterShot;
 		break;
 	}
 
-	return cgs.media.whiteSaber; // Fallback...
+	return cgs.media.whiteBlasterShot; // Fallback...
 }
 
 void FX_SaberBolt3D(vec3_t org, vec3_t fwd, float length, float radius, qhandle_t shader)
@@ -355,12 +330,13 @@ void CG_Do3DSaber(centity_t *cent, vec3_t origin, vec3_t dir, float length, floa
 		bolt3D = cgs.media.orangeBlasterShot;
 		break;
 	case ITEM_CRYSTAL_PINK:				// Bonus 1/2 Electric + 1/2 Cold Damage/Resistance
-		bolt3D = cgs.media.BlasterBolt_Cap_BluePurple; // TODO: Add actual pink...
+		bolt3D = cgs.media.PinkBlasterShot; // TODO: Add actual pink...
 		break;
 	case ITEM_CRYSTAL_DEFAULT:			// GREY shots/blade? No special damage/resistance type...
 	default:
 		// Nope...
-		bolt3D = CG_GetSaberBoltColor(color);// cgs.media.whiteBlasterShot;
+		//bolt3D = CG_GetSaberBoltColor(color);// cgs.media.whiteBlasterShot;
+		bolt3D = cgs.media.whiteBlasterShot;
 		break;
 	}
 
@@ -475,7 +451,7 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 					bolt3D = cgs.media.orangeBlasterShot;
 					break;
 				case ITEM_CRYSTAL_PINK:				// Bonus 1/2 Electric + 1/2 Cold Damage/Resistance
-					bolt3D = cgs.media.BlasterBolt_Cap_BluePurple; // TODO: Add actual pink...
+					bolt3D = cgs.media.BluePurpleBlasterShot; // TODO: Add actual pink...
 					break;
 				case ITEM_CRYSTAL_DEFAULT:			// GREY shots/blade? No special damage/resistance type...
 				default:
