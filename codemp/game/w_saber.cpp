@@ -1007,7 +1007,7 @@ static QINLINE void G_G2PlayerAngles( gentity_t *ent, matrix3_t legs, vec3_t leg
 				boltOrg[1] = boltMatrix.matrix[1][3];
 				boltOrg[2] = boltMatrix.matrix[2][3];
 
-				BG_IK_MoveArm(ent->ghoul2, lHandBolt, level.time, &ent->s, ent->client->ps.torsoAnim/*BOTH_DEAD1*/, boltOrg, &ent->client->ikStatus,
+				BG_IK_MoveLeftArm(ent->ghoul2, lHandBolt, level.time, &ent->s, ent->client->ps.torsoAnim/*BOTH_DEAD1*/, boltOrg, &ent->client->ikStatus,
 					ent->client->ps.origin, ent->client->ps.viewangles, ent->modelScale, 500, qfalse);
 			}
 		}
@@ -1026,7 +1026,7 @@ static QINLINE void G_G2PlayerAngles( gentity_t *ent, matrix3_t legs, vec3_t leg
 
 			if (lHandBolt)
 			{
-				BG_IK_MoveArm(ent->ghoul2, lHandBolt, level.time, &ent->s,
+				BG_IK_MoveLeftArm(ent->ghoul2, lHandBolt, level.time, &ent->s,
 					ent->client->ps.torsoAnim/*BOTH_DEAD1*/, vec3_origin, &ent->client->ikStatus, ent->client->ps.origin, ent->client->ps.viewangles, ent->modelScale, 500, qtrue);
 			}
 		}
@@ -4597,6 +4597,27 @@ qboolean BG_SuperBreakWinAnim( int anim );
 */
 //[/SaberSys]
 
+#ifdef __SINGLE_FRAME_SABER_TRACE__
+int WP_DoFrameSaberTrace(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t saberStart, vec3_t saberEnd, qboolean doInterpolate, int trMask, qboolean extrapolate)
+{// Only do a single saber trace each frame, so that we can reuse it's information...
+	if (self->saberTrace[rSaberNum][rBladeNum].frameNum != level.framenum)
+	{// Ok, this saber and blade has not been done this frame, so do it...
+		vec3_t mins, maxs;
+
+		// Seems to be the perfect value, any smaller then this and it misses about 99% of collisions...
+		float saberBoxSize = self->client->saber[rSaberNum].blade[rBladeNum].radius * 8.0;
+		VectorSet(mins, -saberBoxSize, -saberBoxSize, -saberBoxSize);
+		VectorSet(maxs, saberBoxSize, saberBoxSize, saberBoxSize);
+
+		// Record the saber's trace into self->saberTrace.XXXXX
+		self->saberTrace[rSaberNum][rBladeNum].realTraceResult = G_RealTrace(self, &self->saberTrace[rSaberNum][rBladeNum].trace, saberStart, mins, maxs, saberEnd, self->s.number, trMask, rSaberNum, rBladeNum);
+		self->saberTrace[rSaberNum][rBladeNum].frameNum = level.framenum;
+	}
+
+	return self->saberTrace[rSaberNum][rBladeNum].realTraceResult;
+}
+#endif //__SINGLE_FRAME_SABER_TRACE__
+
 //[SaberSys]
 //racc - OJP Enhanced completely rewritten CheckSaberDamage function.  This is the heart of the saber system beast.
 //[NewSaberSys]
@@ -4649,18 +4670,18 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 
 	selfSaberLevel = G_SaberAttackPower(self, SaberAttacking(self));
 
-	//Add the standard radius into the box size
-	saberBoxSize += (self->client->saber[rSaberNum].blade[rBladeNum].radius*0.5f);
-	VectorSet(saberTrMins, -saberBoxSize*boxScale, -saberBoxSize*boxScale, -saberBoxSize*boxScale);
-	VectorSet(saberTrMaxs, saberBoxSize*boxScale, saberBoxSize*boxScale, saberBoxSize*boxScale);
-	boxScale *= 0.3f;
-
-	//Setting things up so the game always does realistic box traces for the sabers.
+#ifndef __SINGLE_FRAME_SABER_TRACE__
+	// Seems to be the perfect value, any smaller then this and it misses about 99% of collisions...
+	saberBoxSize = self->client->saber[rSaberNum].blade[rBladeNum].radius * 8.0;
 	VectorSet(saberTrMins, -saberBoxSize, -saberBoxSize, -saberBoxSize);
 	VectorSet(saberTrMaxs, saberBoxSize, saberBoxSize, saberBoxSize);
 
 	realTraceResult = G_RealTrace(self, &tr, saberStart, saberTrMins, saberTrMaxs, saberEnd,
 		self->s.number, trMask, rSaberNum, rBladeNum);
+#else //__SINGLE_FRAME_SABER_TRACE__
+	realTraceResult = WP_DoFrameSaberTrace(self, rSaberNum, rBladeNum, saberStart, saberEnd, doInterpolate, trMask, extrapolate);
+	memcpy(&tr, &self->saberTrace[rSaberNum][rBladeNum].trace, sizeof(trace_t)); // TODO: Use the self->saberTrace[rSaberNum][rBladeNum].trace instead of tr in this code and skip the memcpy, but for testing it's this way...
+#endif //__SINGLE_FRAME_SABER_TRACE__
 
 
 	//G_Printf("%i\n", realTraceResult);
@@ -5023,6 +5044,17 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 		VectorCopy(tr.endpos, saberClashPos);
 		VectorCopy(tr.plane.normal, saberClashNorm);
 		saberClashEventParm = 1;
+		
+		vectoangles(saberClashNorm, self->client->ps.hyperSpaceAngles); // UQ1: Trying to use hyperSpaceAngles to transmit clash normals to client...
+
+		if (otherOwner && otherOwner->client)
+		{// The other way around for enemy's point of view... although, they probably override this in their checks later/before this client...
+			vec3_t scnInverted;
+			VectorCopy(saberClashNorm, scnInverted);
+			VectorScale(scnInverted, -1.0f, scnInverted);
+			vectoangles(scnInverted, self->client->ps.hyperSpaceAngles); // UQ1: Trying to use hyperSpaceAngles to transmit clash normals to client...
+		}
+
 		if (!idleDamage
 			|| BG_SaberInNonIdleDamageMove(&otherOwner->client->ps, otherOwner->localAnimIndex))
 		{//only do viewlocks if one player or the other is in an attack move

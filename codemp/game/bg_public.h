@@ -543,6 +543,19 @@ typedef struct pmove_s {
 
 	float		xyspeed;
 
+	qboolean	ikStatusRightArm = qfalse;
+	vec3_t		ikStatusRightCurrentPoint;
+	vec3_t		ikStatusRightCurrentAngles;
+	vec3_t		ikStatusRightBouncePoint;
+	vec3_t		ikStatusRightBounceAngles;
+	int			ikStatusRightStartTime;
+	qboolean	ikStatusLeftArm = qfalse;
+	vec3_t		ikStatusLeftCurrentPoint;
+	vec3_t		ikStatusLeftCurrentAngles;
+	vec3_t		ikStatusLeftBouncePoint;
+	vec3_t		ikStatusLeftBounceAngles;
+	int			ikStatusLeftStartTime;
+
 	// for fixed msec Pmove
 	int			pmove_fixed;
 	int			pmove_float;
@@ -1806,7 +1819,9 @@ qboolean BG_LegalizedForcePowers(char *powerOut, size_t powerOutSize, int maxRan
 // given a boltmatrix, return in vec a normalised vector for the axis requested in flags
 void BG_GiveMeVectorFromMatrix(mdxaBone_t *boltMatrix, int flags, vec3_t vec);
 
-void BG_IK_MoveArm(void *ghoul2, int lHandBolt, int time, entityState_t *ent, int basePose, vec3_t desiredPos, qboolean *ikInProgress,
+void BG_IK_MoveRightArm(void *ghoul2, int lHandBolt, int time, entityState_t *ent, int basePose, vec3_t desiredPos, qboolean *ikInProgress,
+	vec3_t origin, vec3_t angles, vec3_t scale, int blendTime, qboolean forceHalt);
+void BG_IK_MoveLeftArm(void *ghoul2, int lHandBolt, int time, entityState_t *ent, int basePose, vec3_t desiredPos, qboolean *ikInProgress,
 					 vec3_t origin, vec3_t angles, vec3_t scale, int blendTime, qboolean forceHalt);
 
 void BG_G2PlayerAngles(void *ghoul2, int motionBolt, entityState_t *cent, int time, vec3_t cent_lerpOrigin,

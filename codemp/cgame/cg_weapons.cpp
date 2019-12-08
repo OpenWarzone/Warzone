@@ -1736,6 +1736,7 @@ CG_DrawWeaponSelect
 ===================
 */
 void CG_DrawWeaponSelect( void ) {
+#if 0
 	int				i;
 	int				count;
 	int				smallIconSize,bigIconSize;
@@ -1956,6 +1957,7 @@ void CG_DrawWeaponSelect( void ) {
 	}
 
 	trap->R_SetColor( NULL );
+#endif
 }
 
 

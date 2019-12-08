@@ -229,6 +229,13 @@ extern void *g2SaberInstance;
 extern qboolean gEscaping;
 extern int gEscapeTime;
 
+#ifdef __SINGLE_FRAME_SABER_TRACE__
+typedef struct saberTrace_s {
+	int			frameNum;
+	trace_t		trace;
+	int			realTraceResult;
+} saberTrace_t;
+#endif //__SINGLE_FRAME_SABER_TRACE__
 
 struct gentity_s {
 	//rww - entstate must be first, to correspond with the bg shared entity structure
@@ -596,6 +603,10 @@ struct gentity_s {
 	qboolean		vehicleDie = qfalse;
 	int				vehicleUsedTime = 0;
 #endif //__PLAYER_VEHICLES__
+
+#ifdef __SINGLE_FRAME_SABER_TRACE__
+	saberTrace_t	saberTrace[MAX_SABERS][MAX_BLADES] = { { 0 } };
+#endif //__SINGLE_FRAME_SABER_TRACE__
 };
 
 #define DAMAGEREDIRECT_HEAD		1

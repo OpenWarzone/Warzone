@@ -10576,7 +10576,165 @@ qboolean BG_InRollES( entityState_t *ps, int anim )
 	return qfalse;
 }
 
-void BG_IK_MoveArm(void *ghoul2, int lHandBolt, int time, entityState_t *ent, int basePose, vec3_t desiredPos, qboolean *ikInProgress,
+void BG_IK_MoveRightArm(void *ghoul2, int rHandBolt, int time, entityState_t *ent, int basePose, vec3_t desiredPos, qboolean *ikInProgress,
+	vec3_t origin, vec3_t angles, vec3_t scale, int blendTime, qboolean forceHalt)
+{
+	mdxaBone_t rHandMatrix;
+	vec3_t rHand;
+	vec3_t torg;
+	float distToDest;
+
+	if (!ghoul2)
+	{
+		*ikInProgress = qfalse;
+		return;
+	}
+
+	assert(bgHumanoidAnimations[basePose].firstFrame > 0);
+
+	if (!*ikInProgress && !forceHalt)
+	{
+		int baseposeAnim = basePose;
+		sharedSetBoneIKStateParams_t ikP;
+
+		//restrict the shoulder joint
+		//VectorSet(ikP.pcjMins,-50.0f,-80.0f,-15.0f);
+		//VectorSet(ikP.pcjMaxs,15.0f,40.0f,15.0f);
+
+		//for now, leaving it unrestricted, but restricting elbow joint.
+		//This lets us break the arm however we want in order to fling people
+		//in throws, and doesn't look bad.
+		VectorSet(ikP.pcjMins, 0, 0, 0);
+		VectorSet(ikP.pcjMaxs, 0, 0, 0);
+
+		//give the info on our entity.
+		ikP.blendTime = blendTime;
+		VectorCopy(origin, ikP.origin);
+		VectorCopy(angles, ikP.angles);
+		ikP.angles[PITCH] = 0;
+		ikP.pcjOverrides = 0;
+		ikP.radius = 10.0f;
+		VectorCopy(scale, ikP.scale);
+
+		//base pose frames for the limb
+		ikP.startFrame = bgHumanoidAnimations[baseposeAnim].firstFrame + bgHumanoidAnimations[baseposeAnim].numFrames;
+		ikP.endFrame = bgHumanoidAnimations[baseposeAnim].firstFrame + bgHumanoidAnimations[baseposeAnim].numFrames;
+
+		ikP.forceAnimOnBone = qfalse; //let it use existing anim if it's the same as this one.
+
+									  //we want to call with a null bone name first. This will init all of the
+									  //ik system stuff on the g2 instance, because we need ragdoll effectors
+									  //in order for our pcj's to know how to angle properly.
+		if (!trap->G2API_SetBoneIKState(ghoul2, time, NULL, IKS_DYNAMIC, &ikP))
+		{
+			assert(!"Failed to init IK system for g2 instance!");
+		}
+
+		//Now, create our IK bone state.
+		if (trap->G2API_SetBoneIKState(ghoul2, time, "rhumerus", IKS_DYNAMIC, &ikP))
+		{
+			//restrict the elbow joint
+			VectorSet(ikP.pcjMins, -90.0f, -20.0f, -20.0f);
+			VectorSet(ikP.pcjMaxs, 30.0f, 20.0f, -20.0f);
+
+			if (trap->G2API_SetBoneIKState(ghoul2, time, "rradius", IKS_DYNAMIC, &ikP))
+			{ //everything went alright.
+				*ikInProgress = qtrue;
+			}
+		}
+	}
+
+	if (*ikInProgress && !forceHalt)
+	{ //actively update our ik state.
+		sharedIKMoveParams_t ikM;
+		sharedRagDollUpdateParams_t tuParms;
+		vec3_t tAngles;
+
+		//set the argument struct up
+		VectorCopy(desiredPos, ikM.desiredOrigin); //we want the bone to move here.. if possible
+
+		VectorCopy(angles, tAngles);
+		tAngles[PITCH] = tAngles[ROLL] = 0;
+
+		trap->G2API_GetBoltMatrix(ghoul2, 0, rHandBolt, &rHandMatrix, tAngles, origin, time, 0, scale);
+
+		//Get the point position from the matrix.
+		rHand[0] = rHandMatrix.matrix[0][3];
+		rHand[1] = rHandMatrix.matrix[1][3];
+		rHand[2] = rHandMatrix.matrix[2][3];
+
+		VectorSubtract(rHand, desiredPos, torg);
+		distToDest = VectorLength(torg);
+
+		//closer we are, more we want to keep updated.
+		//if we're far away we don't want to be too fast or we'll start twitching all over.
+		if (distToDest < 2)
+		{ //however if we're this close we want very precise movement
+			ikM.movementSpeed = 0.4f;
+		}
+		else if (distToDest < 16)
+		{
+			ikM.movementSpeed = 0.9f;//8.0f;
+		}
+		else if (distToDest < 32)
+		{
+			ikM.movementSpeed = 0.8f;//4.0f;
+		}
+		else if (distToDest < 64)
+		{
+			ikM.movementSpeed = 0.7f;//2.0f;
+		}
+		else
+		{
+			ikM.movementSpeed = 0.6f;
+		}
+		VectorCopy(origin, ikM.origin); //our position in the world.
+
+		ikM.boneName[0] = 0;
+		if (trap->G2API_IKMove(ghoul2, time, &ikM))
+		{
+			//now do the standard model animate stuff with ragdoll update params.
+			VectorCopy(angles, tuParms.angles);
+			tuParms.angles[PITCH] = 0;
+
+			VectorCopy(origin, tuParms.position);
+			VectorCopy(scale, tuParms.scale);
+
+			tuParms.me = ent->number;
+			VectorClear(tuParms.velocity);
+
+			trap->G2API_AnimateG2Models(ghoul2, time, &tuParms);
+		}
+		else
+		{
+			*ikInProgress = qfalse;
+		}
+	}
+	else if (*ikInProgress)
+	{ //kill it
+		float cFrame, animSpeed;
+		int sFrame, eFrame, flags;
+
+		trap->G2API_SetBoneIKState(ghoul2, time, "rhumerus", IKS_NONE, NULL);
+		trap->G2API_SetBoneIKState(ghoul2, time, "rradius", IKS_NONE, NULL);
+
+		//then reset the angles/anims on these PCJs
+		trap->G2API_SetBoneAngles(ghoul2, 0, "rhumerus", vec3_origin, BONE_ANGLES_POSTMULT, POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z, NULL, 0, time);
+		trap->G2API_SetBoneAngles(ghoul2, 0, "rradius", vec3_origin, BONE_ANGLES_POSTMULT, POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z, NULL, 0, time);
+
+		//Get the anim/frames that the pelvis is on exactly, and match the left arm back up with them again.
+		trap->G2API_GetBoneAnim(ghoul2, "pelvis", (const int)time, &cFrame, &sFrame, &eFrame, &flags, &animSpeed, 0, 0);
+		trap->G2API_SetBoneAnim(ghoul2, 0, "rhumerus", sFrame, eFrame, flags, animSpeed, time, sFrame, 300);
+		trap->G2API_SetBoneAnim(ghoul2, 0, "rradius", sFrame, eFrame, flags, animSpeed, time, sFrame, 300);
+
+		//And finally, get rid of all the ik state effector data by calling with null bone name (similar to how we init it).
+		trap->G2API_SetBoneIKState(ghoul2, time, NULL, IKS_NONE, NULL);
+
+		*ikInProgress = qfalse;
+	}
+}
+
+void BG_IK_MoveLeftArm(void *ghoul2, int lHandBolt, int time, entityState_t *ent, int basePose, vec3_t desiredPos, qboolean *ikInProgress,
 					 vec3_t origin, vec3_t angles, vec3_t scale, int blendTime, qboolean forceHalt)
 {
 	mdxaBone_t lHandMatrix;

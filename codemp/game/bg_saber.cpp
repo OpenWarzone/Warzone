@@ -3,8 +3,10 @@
 #include "bg_local.h"
 #include "w_saber.h"
 
-#if defined(_CGAME)
-#include "../cgame/cg_local.h"
+#if defined(_GAME)
+#include "g_local.h"
+#elif defined(_CGAME)
+#include "cgame/cg_local.h"
 #endif
 
 #define __NON_MULTISABERSWING__
@@ -356,6 +358,241 @@ int transitionMove[Q_NUM_QUADS][Q_NUM_QUADS] =
 	{ LS_T1_BL_BR, LS_T1_BL__R, LS_T1_BL_TR, LS_T1_BL_T_, LS_T1_BL_TL, LS_T1_BL__L, LS_NONE, LS_NONE },
 	{ LS_T1_BL_BR, LS_T1_BR__R, LS_T1_BR_TR, LS_T1_BR_T_, LS_T1_BR_TL, LS_T1_BR__L, LS_T1_BR_BL, LS_NONE },
 };
+
+//#define __SABER_EXPERIMENTAL_BOUNCE__
+
+#ifdef __SABER_EXPERIMENTAL_BOUNCE__
+extern qboolean PM_SaberInBounce(int move);
+extern qboolean PM_SaberInDeflect(int move);
+extern qboolean PM_SaberInTransition(int move);
+extern qboolean PM_SaberInParry(int move);
+extern qboolean PM_SaberInKnockaway(int move);
+extern qboolean PM_SaberInReflect(int move);
+
+float s_mix(float x, float y, float a)
+{
+	return x * (1.0 - a) + y * a;
+}
+
+qboolean PM_SaberBounceRagdollRightContinue(void)
+{
+#if defined(_GAME) || defined(_CGAME)
+	if (pm->ikStatusRightArm)
+	{
+		if (pm->baseEnt && pm->baseEnt->ghoul2)
+		{
+#if defined(_GAME)
+			int curtime = level.time;
+#elif defined(_CGAME)
+			int curtime = cg.time;
+#endif
+
+			if (curtime - pm->ikStatusRightStartTime > 500)
+			{// Force end...
+				pm->ikStatusRightArm = qfalse;
+
+				//kill it
+				float cFrame, animSpeed;
+				int sFrame, eFrame, flags;
+
+				trap->G2API_SetBoneIKState(pm->baseEnt->ghoul2, curtime, "rhumerus", IKS_NONE, NULL);
+				trap->G2API_SetBoneIKState(pm->baseEnt->ghoul2, curtime, "rradius", IKS_NONE, NULL);
+
+#define BONE_ANGLES_PREMULT			0x0001
+#define BONE_ANGLES_POSTMULT		0x0002
+#define BONE_ANGLES_REPLACE			0x0004
+
+				//then reset the angles/anims on these PCJs
+				trap->G2API_SetBoneAngles(pm->baseEnt->ghoul2, 0, "rhumerus", vec3_origin, BONE_ANGLES_POSTMULT, POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z, NULL, 0, curtime);
+				trap->G2API_SetBoneAngles(pm->baseEnt->ghoul2, 0, "rradius", vec3_origin, BONE_ANGLES_POSTMULT, POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z, NULL, 0, curtime);
+
+				//Get the anim/frames that the pelvis is on exactly, and match the left arm back up with them again.
+				trap->G2API_GetBoneAnim(pm->baseEnt->ghoul2, "pelvis", (const int)curtime, &cFrame, &sFrame, &eFrame, &flags, &animSpeed, 0, 0);
+				trap->G2API_SetBoneAnim(pm->baseEnt->ghoul2, 0, "rhumerus", sFrame, eFrame, flags, animSpeed, curtime, sFrame, 300);
+				trap->G2API_SetBoneAnim(pm->baseEnt->ghoul2, 0, "rradius", sFrame, eFrame, flags, animSpeed, curtime, sFrame, 300);
+
+				//And finally, get rid of all the ik state effector data by calling with null bone name (similar to how we init it).
+				trap->G2API_SetBoneIKState(pm->baseEnt->ghoul2, curtime, NULL, IKS_NONE, NULL);
+
+				return pm->ikStatusRightArm;
+			}
+
+			//int rHandBolt = trap->G2API_AddBolt(pm->baseEnt->ghoul2, 0, "*r_hand");
+			int rHandBolt = trap->G2API_AddBolt(pm->baseEnt->ghoul2, 0, "rhand");
+
+			if (rHandBolt)
+			{
+				mdxaBone_t boltMatrix;
+				vec3_t boltOrg, boltAng;
+				vec3_t tAngles;
+
+				VectorCopy(pm->ps->viewangles, tAngles);
+				tAngles[PITCH] = tAngles[ROLL] = 0;
+
+				trap->G2API_GetBoltMatrix(pm->baseEnt->ghoul2, 0, rHandBolt, &boltMatrix, tAngles, pm->ps->origin, curtime, 0, pm->modelScale);
+				BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, boltOrg);
+				BG_GiveMeVectorFromMatrix(&boltMatrix, NEGATIVE_Y, boltAng);
+
+
+				int time = (curtime - pm->ikStatusRightStartTime) - 250;
+
+				if (time <= 0)
+				{// Moving toward bounce target...
+					vec3_t fwd, wantedOrg;
+					// Move arm/hand away from the clash for 250ms...
+					AngleVectors(pm->ps->viewangles, fwd, NULL, NULL);
+					VectorNormalize(fwd);
+					VectorMA(boltOrg/*pm->ikStatusRightBouncePoint*/, -18.0, fwd, wantedOrg);
+					wantedOrg[2] = boltOrg[2];
+
+					float amt = 1.0 - Q_clamp(0.0, float(-time) / 250.0, 1.0);
+
+					vec3_t tAngles;
+					VectorCopy(pm->ps->viewangles, tAngles);
+					tAngles[PITCH] = tAngles[ROLL] = 0;
+
+					BG_IK_MoveRightArm(pm->baseEnt->ghoul2, rHandBolt, curtime, &pm->baseEnt->s, pm->ps->torsoAnim, wantedOrg, &pm->ikStatusRightArm, pm->ps->origin, tAngles, pm->modelScale, 250, qfalse);
+
+#if defined(_CGAME)
+					vec3_t bDiff;
+					bDiff[0] = wantedOrg[0] - pm->ikStatusRightBouncePoint[0];
+					bDiff[1] = wantedOrg[1] - pm->ikStatusRightBouncePoint[1];
+					bDiff[2] = wantedOrg[2] - pm->ikStatusRightBouncePoint[2];
+					Com_Printf("ent %i bounce. amt %f. bDiff %f %f %f. boltAng %f %f %f.\n", pm->baseEnt->s.number, amt, bDiff[0], bDiff[1], bDiff[2], boltAng[0], boltAng[1], boltAng[2]);
+#endif
+				}
+				else
+				{// Transition to the new move...
+					vec3_t fwd, wantedOrg, wantedAng;
+					// Move the arm/hand toward the new anim's start position... TODO; Actually calculate it lol...
+					AngleVectors(pm->ps->viewangles, fwd, NULL, NULL);
+					VectorMA(boltOrg/*pm->ps->origin*/, 18.0, fwd, wantedOrg);
+					wantedOrg[2] = boltOrg[2]; // about torso height, in front of the character...
+
+					float amt = Q_clamp(0.0, float(time) / 250.0, 1.0);
+
+					vec3_t tAngles;
+					VectorCopy(pm->ps->viewangles, tAngles);
+					tAngles[PITCH] = tAngles[ROLL] = 0;
+
+					BG_IK_MoveRightArm(pm->baseEnt->ghoul2, rHandBolt, curtime, &pm->baseEnt->s, pm->ps->torsoAnim, wantedOrg, &pm->ikStatusRightArm, pm->ps->origin, tAngles, pm->modelScale, 250, qfalse);
+
+#if defined(_CGAME)
+					vec3_t bDiff;
+					bDiff[0] = wantedOrg[0] - pm->ikStatusRightBouncePoint[0];
+					bDiff[1] = wantedOrg[1] - pm->ikStatusRightBouncePoint[1];
+					bDiff[2] = wantedOrg[2] - pm->ikStatusRightBouncePoint[2];
+					Com_Printf("ent %i recover. amt %f. bDiff %f %f %f. boltAng %f %f %f.\n", pm->baseEnt->s.number, amt, bDiff[0], bDiff[1], bDiff[2], boltAng[0], boltAng[1], boltAng[2]);
+#endif
+				}
+			}
+		}
+	}
+
+	return pm->ikStatusRightArm;
+#else
+	return qfalse;
+#endif
+}
+
+qboolean PM_SaberBounceRagdollRightBegin(int curMove, int nextMove)
+{
+#if defined(_GAME) || defined(_CGAME)
+	if (PM_SaberInBounce(curMove) || PM_SaberInDeflect(curMove) || PM_SaberInParry(curMove) || PM_SaberInKnockaway(curMove) || PM_SaberInReflect(curMove) || (pm->ps->saberBlocked > BLOCKED_NONE && pm->ps->saberBlocked < BLOCKED_LIGHTNING))
+	{
+		if (pm->baseEnt && pm->baseEnt->ghoul2)
+		{
+#if defined(_GAME)
+			int curtime = level.time;
+#elif defined(_CGAME)
+			int curtime = cg.time;
+#endif
+
+#if defined(_CGAME)
+			if (PM_SaberInBounce(curMove))
+			{
+				Com_Printf("ent %i begin bounce.\n", pm->baseEnt->s.number);
+			}
+			else if (PM_SaberInDeflect(curMove))
+			{
+				Com_Printf("ent %i begin deflect.\n", pm->baseEnt->s.number);
+			}
+			else if (PM_SaberInParry(curMove))
+			{
+				Com_Printf("ent %i begin parry.\n", pm->baseEnt->s.number);
+			}
+			else if (PM_SaberInKnockaway(curMove))
+			{
+				Com_Printf("ent %i begin knockaway.\n", pm->baseEnt->s.number);
+			}
+			else if (PM_SaberInReflect(curMove))
+			{
+				Com_Printf("ent %i begin reflect.\n", pm->baseEnt->s.number);
+			}
+			else if (pm->ps->saberBlocked > BLOCKED_NONE && pm->ps->saberBlocked < BLOCKED_LIGHTNING)
+			{
+				Com_Printf("ent %i begin saberBlocked %i.\n", pm->baseEnt->s.number, pm->ps->saberBlocked);
+			}
+#endif
+
+			//int rHandBolt = trap->G2API_AddBolt(pm->baseEnt->ghoul2, 0, "*r_hand");
+			int rHandBolt = trap->G2API_AddBolt(pm->baseEnt->ghoul2, 0, "rhand");
+
+			if (rHandBolt)
+			{
+				mdxaBone_t boltMatrix;
+				vec3_t boltOrg, boltAng;
+				vec3_t tAngles;
+
+				VectorCopy(pm->ps->viewangles, tAngles);
+				tAngles[PITCH] = tAngles[ROLL] = 0;
+				
+				trap->G2API_GetBoltMatrix(pm->baseEnt->ghoul2, 0, rHandBolt, &boltMatrix, tAngles, pm->ps->origin, curtime, 0, pm->modelScale);
+				BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, boltOrg);
+				BG_GiveMeVectorFromMatrix(&boltMatrix, NEGATIVE_Y, boltAng);
+
+				// Init the bounce ragdoll...
+				pm->ikStatusRightStartTime = curtime;
+
+				VectorCopy(boltOrg, pm->ikStatusRightBouncePoint);
+				VectorCopy(boltAng, pm->ikStatusRightBounceAngles);
+
+				//VectorCopy(pm->ps->hyperSpaceAngles, pm->ikStatusRightBounceAngles);
+				//VectorCopy(pm->ikStatusRightBounceAngles, boltAng);
+
+				/*
+				VectorSubtract(boltOrg, pm->ps->origin, boltAng);
+				VectorNormalize(boltAng);
+				vectoangles(boltAng, boltAng);
+				VectorCopy(boltAng, pm->ikStatusRightBounceAngles);
+				*/
+
+				VectorCopy(boltOrg, pm->ikStatusRightCurrentPoint);
+				VectorCopy(boltAng, pm->ikStatusRightCurrentAngles);
+
+#if defined(_CGAME)
+				Com_Printf("ent %i begin. boltOrg %f %f %f. boltAng %f %f %f.\n", pm->baseEnt->s.number, boltOrg[0], boltOrg[1], boltOrg[2], boltAng[0], boltAng[1], boltAng[2]);
+#endif
+
+				BG_IK_MoveRightArm(pm->baseEnt->ghoul2, rHandBolt, curtime, &pm->baseEnt->s, pm->ps->torsoAnim, boltOrg, &pm->ikStatusRightArm, pm->ps->origin, pm->ps->viewangles, pm->modelScale, 25, qfalse);
+			}
+#if defined(_CGAME)
+			else
+				Com_Printf("ent %i begin. no bolt\n", pm->baseEnt->s.number);
+#endif
+		}
+#if defined(_CGAME)
+		else
+			Com_Printf("ent %i begin. no baseEnt or ghoul2\n", pm->baseEnt->s.number);
+#endif
+	}
+
+	return pm->ikStatusRightArm;
+#else
+	return qfalse;
+#endif
+}
+#endif //__SABER_EXPERIMENTAL_BOUNCE__
 
 saberMoveName_t PM_AttackMoveForQuad(int quad)
 {
@@ -742,6 +979,7 @@ qboolean PM_SaberInBounce(int move)
 	}
 	return qfalse;
 }
+
 
 qboolean PM_SaberInTransition(int move);
 
@@ -3161,6 +3399,13 @@ void PM_WeaponLightsaber(void)
 
 	qboolean checkOnlyWeap = qfalse;
 
+#ifdef __SABER_EXPERIMENTAL_BOUNCE__
+	if (PM_SaberBounceRagdollRightContinue())
+	{
+		return;
+	}
+#endif //__SABER_EXPERIMENTAL_BOUNCE__
+
 	if (PM_InKnockDown(pm->ps) || BG_InRoll(pm->ps, pm->ps->legsAnim))
 	{//in knockdown
 	 // make weapon function
@@ -4628,6 +4873,13 @@ weapChecks:
 				{
 					PM_SetAnim(SETANIM_LEGS, anim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 				}
+
+#ifdef __SABER_EXPERIMENTAL_BOUNCE__
+				if (PM_SaberBounceRagdollRightBegin(curmove, newmove))
+				{
+
+				}
+#endif //__SABER_EXPERIMENTAL_BOUNCE__
 
 				//don't fire again until anim is done
 				pm->ps->weaponTime = pm->ps->torsoTimer;
