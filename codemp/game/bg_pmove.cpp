@@ -358,10 +358,17 @@ int PM_GetSaberStance()
 
 	int mblockforstance = pm->ps->fd.saberAnimLevel;
 
-	if (pm->ps->fd.saberAnimLevelBase == SS_WARZONE)
+	if (pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL)
 	{
-		pm->ps->fd.saberAnimLevel = SS_WARZONE;// pm->ps->fd.saberAnimLevelBase;
-		mblockforstance = SS_TAVION;// pm->ps->fd.saberAnimLevelBase;
+		pm->ps->fd.saberAnimLevel = SS_CROWD_CONTROL;
+		mblockforstance = SS_TAVION;
+
+		/*if ((pm->cmd.buttons & BUTTON_ALT_ATTACK) && pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL || pm->ps->fd.saberAnimLevel == SS_CROWD_CONTROL)
+		{
+			pm->ps->fd.saberAnimLevel = SS_STAFF;
+			pm->ps->fd.saberAnimLevelPrevious = pm->ps->fd.saberAnimLevel;
+			return saberMoveData[88].animToUse + (pm->ps->fd.saberAnimLevel - SS_FAST) * SABER_ANIM_GROUP_SIZE;
+		}*/
 	}
 
 	if (!pm->ps->saberEntityNum)
@@ -638,9 +645,9 @@ int PM_GetSaberStance()
 		return BOTH_SABERDUAL_STANCE;
 	}
 
-	if (pm->ps->fd.saberAnimLevelBase == SS_WARZONE)
+	if (pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL)
 	{
-		return TRIPLE3_YELLOWSTANCE;
+		return BOTH_SABERSTAFF_STANCE;// TRIPLE3_YELLOWSTANCE;
 	}
 
 	switch (pm->ps->fd.saberAnimLevel)
@@ -663,8 +670,8 @@ int PM_GetSaberStance()
 	case SS_DESANN:
 		anim = TRIPLE3_REDSTANCE;
 		break;
-	case SS_WARZONE:
-		anim = TRIPLE3_YELLOWSTANCE;
+	case SS_CROWD_CONTROL:
+		anim = BOTH_SABERSTAFF_STANCE;// TRIPLE3_YELLOWSTANCE;
 		break;
 	case SS_NONE:
 	case SS_MEDIUM:
@@ -13776,6 +13783,9 @@ void Pmove(pmove_t *pmove) {
 	}
 
 	pmove->ps->pmove_framecount = (pmove->ps->pmove_framecount + 1) & ((1 << PS_PMOVEFRAMECOUNTBITS) - 1);
+
+	// Set default blend time at the start of each bg think... BG code can override it...
+	pmove->ps->torsoBlendTime = 100;
 
 	// chop the move up if it is too long, to prevent framerate
 	// dependent behavior

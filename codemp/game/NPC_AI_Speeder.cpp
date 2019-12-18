@@ -14,7 +14,7 @@ extern float DotToSpot( vec3_t spot, vec3_t from, vec3_t fromAngles );
 	extern int PM_AnimLength( int index, animNumber_t anim );
 #endif
 
-extern void BG_SetAnim(playerState_t *ps, animation_t *animations, int setAnimParts,int anim,int setAnimFlags);
+extern void BG_SetAnim(playerState_t *ps, animation_t *animations, int setAnimParts, int anim, int setAnimFlags, int blendTime);
 extern int BG_GetTime(void);
 extern qboolean BG_SabersOff( playerState_t *ps );
 
@@ -374,7 +374,7 @@ void AnimateRiders( Vehicle_t *pVeh )
 			iFlags = SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD;
 
 			BG_SetAnim(pVeh->m_pPilot->playerState, bgAllAnims[pVeh->m_pPilot->localAnimIndex].anims,
-				SETANIM_BOTH, Anim, iFlags);
+				SETANIM_BOTH, Anim, iFlags, 100);
 		}
 
 		return;
@@ -590,7 +590,7 @@ void AnimateRiders( Vehicle_t *pVeh )
 		pVeh->m_pPilot->playerState->legsTimer = BG_AnimLength(pVeh->m_pPilot->localAnimIndex, Anim);
 	}
 	BG_SetAnim(pVeh->m_pPilot->playerState, bgAllAnims[pVeh->m_pPilot->localAnimIndex].anims,
-		SETANIM_BOTH, Anim, iFlags|SETANIM_FLAG_HOLD);
+		SETANIM_BOTH, Anim, iFlags|SETANIM_FLAG_HOLD, 100);
 }
 
 #ifndef _GAME

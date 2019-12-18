@@ -1863,9 +1863,15 @@ void BG_PlayerStateToEntityState( playerState_t *ps, entityState_t *s, qboolean 
 
 	s->legsAnim = ps->legsAnim;
 	s->torsoAnim = ps->torsoAnim;
+	s->torsoBlendTime = ps->torsoBlendTime;
 
 	s->legsFlip = ps->legsFlip;
 	s->torsoFlip = ps->torsoFlip;
+
+#ifdef __EXPERIMENTAL_REVERSE_ANIM__
+	s->torsoAnimReverse = ps->torsoAnimReverse;
+	s->legsAnimReverse = ps->legsAnimReverse;
+#endif //__EXPERIMENTAL_REVERSE_ANIM__
 
 	s->clientNum = ps->clientNum;		// ET_PLAYER looks here instead of at number
 										// so corpses can also reference the proper config
@@ -2154,9 +2160,15 @@ void BG_PlayerStateToEntityStateExtraPolate( playerState_t *ps, entityState_t *s
 
 	s->legsAnim = ps->legsAnim;
 	s->torsoAnim = ps->torsoAnim;
+	s->torsoBlendTime = ps->torsoBlendTime;
 
 	s->legsFlip = ps->legsFlip;
 	s->torsoFlip = ps->torsoFlip;
+
+#ifdef __EXPERIMENTAL_REVERSE_ANIM__
+	s->torsoAnimReverse = ps->torsoAnimReverse;
+	s->legsAnimReverse = ps->legsAnimReverse;
+#endif //__EXPERIMENTAL_REVERSE_ANIM__
 
 	s->clientNum = ps->clientNum;		// ET_PLAYER looks here instead of at number
 										// so corpses can also reference the proper config

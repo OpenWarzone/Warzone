@@ -99,14 +99,14 @@ void PM_AddEvent( int newEvent );
 qboolean	PM_SlideMove( qboolean gravity );
 void		PM_StepSlideMove( qboolean gravity );
 
-void PM_StartTorsoAnim( int anim );
+void PM_StartTorsoAnim( int anim, int blendTime = 500);
 void PM_ContinueLegsAnim( int anim );
 void PM_ForceLegsAnim( int anim );
 
 void PM_BeginWeaponChange( int weapon );
 void PM_FinishWeaponChange( void );
 
-void PM_SetAnim(int setAnimParts,int anim,int setAnimFlags);
+void PM_SetAnim(int setAnimParts, int anim, int setAnimFlags, int blendTime = 100);
 
 void PM_WeaponLightsaber(void);
 void PM_SetSaberMove(short newMove);

@@ -3027,7 +3027,7 @@ TORSO Animations
 Override animations for upper body
 ===================
 */
-void BG_StartTorsoAnim( playerState_t *ps, int anim )
+void BG_StartTorsoAnim( playerState_t *ps, int anim, int blendTime)
 {
 	if ( ps->pm_type >= PM_DEAD )
 	{
@@ -3047,12 +3047,14 @@ void BG_StartTorsoAnim( playerState_t *ps, int anim )
 		BG_FlipPart(ps, SETANIM_TORSO);
 	}
 #endif
+
 	ps->torsoAnim = anim;
+	ps->torsoBlendTime = blendTime;
 }
 
-void PM_StartTorsoAnim( int anim )
+void PM_StartTorsoAnim( int anim, int blendTime )
 {
-    BG_StartTorsoAnim(pm->ps, anim);
+    BG_StartTorsoAnim(pm->ps, anim, blendTime);
 }
 
 
@@ -3168,8 +3170,10 @@ void PM_SetTorsoAnimTimer(int time )
 qboolean PM_SaberReturnAnim(int anim);
 //[/SaberSys]
 
+extern float BG_GetSpeedMultiplierForStance(int saberAnimLevelBase);
+
 //[NewSaberSys]
-void BG_SaberStartTransAnim(int clientNum, int saberAnimLevel, int weapon, int anim, float *animSpeed, int broken)
+void BG_SaberStartTransAnim(int clientNum, playerState_t *ps, int saberAnimLevel, int saberAnimLevelBase, int weapon, int anim, float *animSpeed, int broken)
 {
 	//I don't like having to do this every time but it's the best I can think of for now.
 	float	saberanimscale = 0.80f;
@@ -3274,6 +3278,11 @@ void BG_SaberStartTransAnim(int clientNum, int saberAnimLevel, int weapon, int a
 	{
 		*animSpeed *= saberanimscale;
 	}
+
+	if (ps)
+	{
+		*animSpeed *= BG_GetSpeedMultiplierForStance(ps->fd.saberAnimLevelBase);
+	}
 }
 //[/NewSaberSys]
 
@@ -3286,7 +3295,7 @@ qboolean PM_RunningAnim( int anim );
 qboolean PM_WalkingAnim( int anim );
 
 void BG_SetAnimFinal(playerState_t *ps, animation_t *animations,
-					 int setAnimParts,int anim,int setAnimFlags)
+					 int setAnimParts,int anim, int setAnimFlags, int blendTime)
 {
 	float editAnimSpeed = 1;
 
@@ -3299,33 +3308,73 @@ void BG_SetAnimFinal(playerState_t *ps, animation_t *animations,
 	//assert(animations[anim].firstFrame > 0 || animations[anim].numFrames > 0);
 	if (!(animations[anim].firstFrame > 0 || animations[anim].numFrames > 0)) return; // UQ1: hmmm... avoid crashing and just ignore the anim...
 
-	BG_SaberStartTransAnim(ps->clientNum, ps->fd.saberAnimLevel, ps->weapon, anim, &editAnimSpeed, ps->brokenLimbs);
+	BG_SaberStartTransAnim(ps->clientNum, ps, ps->fd.saberAnimLevel, ps->fd.saberAnimLevelBase, ps->weapon, anim, &editAnimSpeed, ps->brokenLimbs);
 
+#ifdef __EXPERIMENTAL_REVERSE_ANIM__
+	if (!(setAnimFlags & SETANIM_FLAG_RESTART_REVERSE))
+	{
+		ps->legsAnimReverse = qfalse;
+		//Com_Printf("BG: Torso anim reverse reset.\n");
+	}
+#endif //__EXPERIMENTAL_REVERSE_ANIM__
 
 	// Set torso anim
 	if (setAnimParts & SETANIM_TORSO)
 	{
 		// Don't reset if it's already running the anim
-		//[AnimationSys]
-		//added SETANIM_FLAG_PACE flag
-		if ((ps->torsoAnim) == anim && !(setAnimFlags & SETANIM_FLAG_RESTART) && !(setAnimFlags & SETANIM_FLAG_PACE))
-			//if( !(setAnimFlags & SETANIM_FLAG_RESTART) && (ps->torsoAnim) == anim )
-			//[/AnimationSys]
-		{
-			goto setAnimLegs;
-		}
-		// or if a more important anim is running
-		//[AnimationSys]
-		if (((ps->torsoTimer > 0) || (ps->torsoTimer == -1)) &&
-			(((setAnimFlags & SETANIM_FLAG_PACE) && (ps->torsoAnim) == anim)
-			|| !(setAnimFlags & SETANIM_FLAG_OVERRIDE)))
-			//if( !(setAnimFlags & SETANIM_FLAG_OVERRIDE) && ((ps->torsoTimer > 0)||(ps->torsoTimer == -1)) )
-			//[/AnimationSys]
+		if (ps->torsoAnim == anim 
+#ifdef __EXPERIMENTAL_REVERSE_ANIM__
+			&& !(setAnimFlags & SETANIM_FLAG_RESTART_REVERSE)
+#endif //__EXPERIMENTAL_REVERSE_ANIM__
+			&& !(setAnimFlags & SETANIM_FLAG_RESTART) 
+			&& !(setAnimFlags & SETANIM_FLAG_PACE))
 		{
 			goto setAnimLegs;
 		}
 
-		BG_StartTorsoAnim(ps, anim);
+#ifdef __EXPERIMENTAL_REVERSE_ANIM__
+		if (setAnimFlags & SETANIM_FLAG_RESTART_REVERSE)
+		{
+			if (ps->torsoAnim == anim)
+			{// continue...
+#if defined(_CGAME)
+				int time = cg.time;
+#elif defined(_GAME)
+				int time = level.time;
+#else
+				int time = 100;
+#endif
+				if (ps->torsoTimer >= time)
+				{// Restart anim in reverse...
+					int dur = int(float(animations[anim].numFrames - 1) * fabs((float)(animations[anim].frameLerp)) * editAnimSpeed);
+					ps->torsoAnimReverse = (qboolean)!ps->torsoAnimReverse;
+					ps->torsoTimer = dur;
+					Com_Printf("BG: RR torso anim enabled. dir %s. dur %i.\n", ps->torsoAnimReverse ? "reversed" : "forward", dur);
+				}
+				else
+				{
+					goto setAnimLegs;
+				}
+			}
+			else
+			{// start anim...
+				int dur = int(float(animations[anim].numFrames - 1) * fabs((float)(animations[anim].frameLerp)) * editAnimSpeed);
+				ps->torsoAnimReverse = qfalse;
+				ps->torsoTimer = dur;
+				Com_Printf("BG: RR torso anim forward begin. dur %i.\n", dur);
+			}
+		}
+#endif //__EXPERIMENTAL_REVERSE_ANIM__
+
+		// or if a more important anim is running
+		if (((ps->torsoTimer > 0) || (ps->torsoTimer == -1)) &&
+			(((setAnimFlags & SETANIM_FLAG_PACE) && (ps->torsoAnim) == anim)
+			|| !(setAnimFlags & SETANIM_FLAG_OVERRIDE)))
+		{
+			goto setAnimLegs;
+		}
+
+		BG_StartTorsoAnim(ps, anim, blendTime);
 
 		if (setAnimFlags & SETANIM_FLAG_HOLD)
 		{
@@ -3363,25 +3412,43 @@ setAnimLegs:
 	if (setAnimParts & SETANIM_LEGS)
 	{
 		// Don't reset if it's already running the anim
-		//[AnimationSys]
-		//added SETANIM_FLAG_PACE flag
-		if ((ps->legsAnim) == anim && !(setAnimFlags & SETANIM_FLAG_RESTART) && !(setAnimFlags & SETANIM_FLAG_PACE))
-			//if( !(setAnimFlags & SETANIM_FLAG_RESTART) && (ps->legsAnim) == anim )
-			//[/AnimationSys]
+		if ((ps->legsAnim) == anim && !(setAnimFlags & SETANIM_FLAG_RESTART) && !(setAnimFlags & SETANIM_FLAG_PACE) 
+#ifdef __EXPERIMENTAL_REVERSE_ANIM__
+			&& !(setAnimFlags & SETANIM_FLAG_RESTART_REVERSE)
+#endif //__EXPERIMENTAL_REVERSE_ANIM__
+			)
 		{
 			goto setAnimDone;
 		}
 		// or if a more important anim is running
-		//[AnimationSys]
 		if (((ps->legsTimer > 0) || (ps->legsTimer == -1)) &&
 			(((setAnimFlags & SETANIM_FLAG_PACE) && (ps->legsAnim) == anim)
 			|| !(setAnimFlags & SETANIM_FLAG_OVERRIDE)))
-			//if( !(setAnimFlags & SETANIM_FLAG_OVERRIDE) && ((ps->legsTimer > 0)||(ps->legsTimer == -1)) )
-
 		{
 			goto setAnimDone;
 		}
-		//[/AnimationSys]
+
+#ifdef __EXPERIMENTAL_REVERSE_ANIM__
+		if (setAnimFlags & SETANIM_FLAG_RESTART_REVERSE)
+		{
+#if defined(_CGAME)
+			int time = cg.time;
+#elif defined(_GAME)
+			int time = level.time;
+#endif
+			if (ps->legsTimer >= time)
+			{// Restart anim in reverse...
+				int dur = int(float(animations[anim].numFrames - 1) / fabs((float)(animations[anim].frameLerp)) * editAnimSpeed);
+				ps->legsAnimReverse = (qboolean)!ps->legsAnimReverse;
+				ps->legsTimer = time + dur;
+				Com_Printf("BG: Legs anim reverse enabled. dur %i.\n", dur);
+			}
+			else
+			{
+				goto setAnimDone;
+			}
+		}
+#endif //__EXPERIMENTAL_REVERSE_ANIM__
 
 		BG_StartLegsAnim(ps, anim);
 
@@ -3428,9 +3495,9 @@ setAnimDone:
 	return;
 }
 
-void PM_SetAnimFinal(int setAnimParts,int anim,int setAnimFlags)
+void PM_SetAnimFinal(int setAnimParts, int anim, int setAnimFlags, int blendTime)
 {
-	BG_SetAnimFinal(pm->ps, pm->animations, setAnimParts, anim, setAnimFlags);
+	BG_SetAnimFinal(pm->ps, pm->animations, setAnimParts, anim, setAnimFlags, blendTime);
 }
 
 
@@ -3482,7 +3549,7 @@ int BG_PickAnim( int animIndex, int minAnim, int maxAnim )
 //of a pmove too so I have ported it to true BGishness.
 //Please do not reference pm in this function or any functions that it calls,
 //or I will cry. -rww
-void BG_SetAnim(playerState_t *ps, animation_t *animations, int setAnimParts,int anim,int setAnimFlags)
+void BG_SetAnim(playerState_t *ps, animation_t *animations, int setAnimParts, int anim, int setAnimFlags, int blendTime)
 {
 	if (!ps) return;
 
@@ -3537,12 +3604,12 @@ void BG_SetAnim(playerState_t *ps, animation_t *animations, int setAnimParts,int
 		}
 	}
 
-	BG_SetAnimFinal(ps, animations, setAnimParts, anim, setAnimFlags);
+	BG_SetAnimFinal(ps, animations, setAnimParts, anim, setAnimFlags, blendTime);
 }
 
-void PM_SetAnim(int setAnimParts,int anim,int setAnimFlags)
+void PM_SetAnim(int setAnimParts, int anim, int setAnimFlags, int blendTime)
 {
-	BG_SetAnim(pm->ps, pm->animations, setAnimParts, anim, setAnimFlags);
+	BG_SetAnim(pm->ps, pm->animations, setAnimParts, anim, setAnimFlags, blendTime);
 }
 //[AnimationSys]//[TrueView]
 //[BugFix2]
@@ -3560,7 +3627,7 @@ float BG_GetTorsoAnimPoint(playerState_t * ps, int AnimIndex)
 	float animPercentage = 0;
 
 	//Be sure to scale by the proper anim speed just as if we were going to play the animation
-	BG_SaberStartTransAnim(ps->clientNum, ps->fd.saberAnimLevel, ps->weapon, ps->torsoAnim, &animSpeedFactor, ps->brokenLimbs);
+	BG_SaberStartTransAnim(ps->clientNum, ps, ps->fd.saberAnimLevel, ps->fd.saberAnimLevelBase, ps->weapon, ps->torsoAnim, &animSpeedFactor, ps->brokenLimbs);
 
 	if (animSpeedFactor > 0)
 	{
@@ -3599,7 +3666,7 @@ float BG_GetLegsAnimPoint(playerState_t * ps, int AnimIndex)
 	float animPercentage = 0;
 
 	//Be sure to scale by the proper anim speed just as if we were going to play the animation
-	BG_SaberStartTransAnim(ps->clientNum, ps->fd.saberAnimLevel, ps->weapon, ps->legsAnim, &animSpeedFactor, ps->brokenLimbs);
+	BG_SaberStartTransAnim(ps->clientNum, ps, ps->fd.saberAnimLevel, ps->fd.saberAnimLevelBase, ps->weapon, ps->legsAnim, &animSpeedFactor, ps->brokenLimbs);
 
 	if (animSpeedFactor > 0)
 	{

@@ -1753,7 +1753,7 @@ void G_SetTauntAnim( gentity_t *ent, int taunt )
 					anim = BOTH_ENGAGETAUNT;
 					break;
 				case SS_DUAL:
-				case SS_WARZONE:
+				case SS_CROWD_CONTROL:
 					if ( ent->client->ps.saberHolstered == 1
 						&& ent->client->saber[1].model[0] )
 					{//turn on second saber
@@ -1870,8 +1870,8 @@ void G_SetTauntAnim( gentity_t *ent, int taunt )
 					case SS_STAFF:
 						anim = BOTH_SHOWOFF_STAFF;
 						break;
-					case SS_WARZONE:
-						anim = BOTH_SHOWOFF_DUAL;
+					case SS_CROWD_CONTROL:
+						anim = BOTH_SHOWOFF_STAFF;
 						break;
 					}
 				}
@@ -1900,7 +1900,7 @@ void G_SetTauntAnim( gentity_t *ent, int taunt )
 					break;
 				case SS_STRONG:
 				case SS_DESANN:
-				case SS_WARZONE:
+				case SS_CROWD_CONTROL:
 					if ( ent->client->ps.saberHolstered )
 					{//turn on first
 						G_Sound( ent, CHAN_WEAPON, ent->client->saber[0].soundOn );
@@ -2135,6 +2135,7 @@ void ClientThink_real( gentity_t *ent ) {
 		}
 	}
 
+#if 0
 	if (!(client->ps.pm_flags & PMF_FOLLOW))
 	{
 		if (level.gametype == GT_SIEGE &&
@@ -2178,23 +2179,6 @@ void ClientThink_real( gentity_t *ent ) {
 		}
 		else if (client->saber[0].model[0] && client->saber[1].model[0])
 		{ //with two sabs always use akimbo style
-			/*
-			if ( client->ps.saberHolstered == 1 )
-			{//one saber should be off, adjust saberAnimLevel accordinly
-				client->ps.fd.saberAnimLevelBase = SS_DUAL;
-				client->ps.fd.saberAnimLevel = SS_FAST;
-				client->ps.fd.saberDrawAnimLevel = client->ps.fd.saberAnimLevel;
-			}
-			else
-			{
-				if ( !WP_SaberStyleValidForSaber( &client->saber[0], &client->saber[1], client->ps.saberHolstered, client->ps.fd.saberAnimLevel ) )
-				{//only use dual style if the style we're trying to use isn't valid
-					client->ps.fd.saberAnimLevelBase = client->ps.fd.saberAnimLevel = SS_DUAL;
-				}
-				client->ps.fd.saberDrawAnimLevel = client->ps.fd.saberAnimLevel;
-			}
-			*/
-
 			client->ps.fd.saberAnimLevelBase = SS_DUAL;
 			client->ps.fd.saberDrawAnimLevel = client->ps.fd.saberAnimLevel;
 		}
@@ -2203,28 +2187,23 @@ void ClientThink_real( gentity_t *ent ) {
 			client->ps.fd.saberAnimLevelBase = SS_STAFF;
 			client->ps.fd.saberDrawAnimLevel = client->ps.fd.saberAnimLevel;
 		}
-		/*
+	}
+#endif
+
+	if (client->ps.fd.saberAnimLevelBase <= SS_NONE || client->ps.fd.saberAnimLevelBase >= SS_NUM_SABER_STYLES)
+	{// If we ever have an invalid stance selected, set to default...
+		if (ent->client->saber[0].model[0] && ent->client->saber[1].model[0])
+		{// dual sabers
+			client->ps.fd.saberAnimLevelBase = client->ps.fd.saberAnimLevel = SS_DUAL;
+		}
+		else if (ent->client->saber[0].numBlades > 1)
+		{// staff
+			client->ps.fd.saberAnimLevelBase = client->ps.fd.saberAnimLevel = SS_STAFF;
+		}
 		else
-		{
-			if (client->saber[0].stylesLearned == (1<<SS_STAFF) )
-			{ //then *always* use the staff style
-				client->ps.fd.saberAnimLevelBase = SS_STAFF;
-			}
-			if ( client->ps.fd.saberAnimLevelBase == SS_STAFF )
-			{//using staff style
-				if ( client->ps.saberHolstered == 1
-					&& client->saber[0].singleBladeStyle != SS_NONE)
-				{//one blade should be off, adjust saberAnimLevel accordinly
-					client->ps.fd.saberAnimLevel = client->saber[0].singleBladeStyle;
-					client->ps.fd.saberDrawAnimLevel = client->ps.fd.saberAnimLevel;
-				}
-				else
-				{
-					client->ps.fd.saberAnimLevel = SS_STAFF;
-					client->ps.fd.saberDrawAnimLevel = client->ps.fd.saberAnimLevel;
-				}
-			}
-		}*/
+		{// single saber
+			client->ps.fd.saberAnimLevelBase = client->ps.fd.saberAnimLevel = SS_FAST;
+		}
 	}
 
 	if ( client && (client->ps.eFlags2&EF2_HELD_BY_MONSTER) )
@@ -3248,7 +3227,7 @@ void ClientThink_real( gentity_t *ent ) {
 							break;
 						case SS_STRONG:
 						case SS_DESANN:
-						case SS_WARZONE:
+						case SS_CROWD_CONTROL:
 							lockHits = 3;
 							break;
 						}

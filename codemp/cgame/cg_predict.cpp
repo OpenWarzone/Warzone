@@ -1251,6 +1251,7 @@ void CG_PredictPlayerState( void ) {
 			}
 		}
 
+#if 0 // WTF????
 		//THIS is pretty much bad, but...
 		cg_pmove.ps->fd.saberAnimLevelBase = cg_pmove.ps->fd.saberAnimLevel;
 		if ( cg_pmove.ps->saberHolstered == 1 )
@@ -1264,6 +1265,7 @@ void CG_PredictPlayerState( void ) {
 				cg_pmove.ps->fd.saberAnimLevelBase = SS_DUAL;
 			}
 		}
+#endif
 
 		Pmove (&cg_pmove);
 

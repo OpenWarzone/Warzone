@@ -53,6 +53,8 @@
 #define __SKIP_POINTLESS_NPC_TRACES__				// Skip bg_ traces that are wastefull, pointless, fluff for NPCs...
 //#define __BLOCK_FP_DRAIN__						// saber swinging uses force power. here just for reference later
 #define __SINGLE_FRAME_SABER_TRACE__				// Do a single (real)trace per saber/blade per frame only, and store the values to be reused...
+#define __ALL_SABER_STYLES__						// Enable access to all saber styles from all saber types (for testing)...
+//#define __EXPERIMENTAL_REVERSE_ANIM__				// Testing repeating animation backwards...
 
 // Disable stupid warnings...
 #pragma warning( disable : 4996 )
@@ -1709,6 +1711,7 @@ typedef struct forcedata_s {
 
 	int			saberAnimLevelBase;//sigh...
 	int			saberAnimLevel;
+	int			saberAnimLevelPrevious;
 	int			saberDrawAnimLevel;
 
 	int			suicides;
@@ -1794,9 +1797,16 @@ typedef struct playerState_s {
 
 	int			legsTimer;		// don't change low priority animations until this runs out
 	int			legsAnim;
+#ifdef __EXPERIMENTAL_REVERSE_ANIM__
+	qboolean	legsAnimReverse;
+#endif //__EXPERIMENTAL_REVERSE_ANIM__
 
 	int			torsoTimer;		// don't change low priority animations until this runs out
 	int			torsoAnim;
+	int			torsoBlendTime;
+#ifdef __EXPERIMENTAL_REVERSE_ANIM__
+	qboolean	torsoAnimReverse;
+#endif //__EXPERIMENTAL_REVERSE_ANIM__
 
 	qboolean	legsFlip; //set to opposite when the same anim needs restarting, sent over in only 1 bit. Cleaner and makes porting easier than having that god forsaken ANIM_TOGGLEBIT.
 	qboolean	torsoFlip;
@@ -2377,6 +2387,12 @@ typedef struct entityState_s {
 	int		weapon;			// determines weapon and flash model, etc
 	int		legsAnim;
 	int		torsoAnim;
+	int		torsoBlendTime;
+
+#ifdef __EXPERIMENTAL_REVERSE_ANIM__
+	qboolean	torsoAnimReverse;
+	qboolean	legsAnimReverse;
+#endif //__EXPERIMENTAL_REVERSE_ANIM__
 
 	qboolean	legsFlip; //set to opposite when the same anim needs restarting, sent over in only 1 bit. Cleaner and makes porting easier than having that god forsaken ANIM_TOGGLEBIT.
 	qboolean	torsoFlip;

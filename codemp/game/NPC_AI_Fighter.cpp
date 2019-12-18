@@ -18,7 +18,7 @@ extern float DotToSpot( vec3_t spot, vec3_t from, vec3_t fromAngles );
 #endif
 
 extern qboolean BG_UnrestrainedPitchRoll( playerState_t *ps, Vehicle_t *pVeh );
-extern void BG_SetAnim(playerState_t *ps, animation_t *animations, int setAnimParts,int anim,int setAnimFlags);
+extern void BG_SetAnim(playerState_t *ps, animation_t *animations, int setAnimParts, int anim, int setAnimFlags, int blendTime);
 extern int BG_GetTime(void);
 
 //this stuff has got to be predicted, so..

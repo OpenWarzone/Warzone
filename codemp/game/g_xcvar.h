@@ -168,6 +168,10 @@ XCVAR_DEF(g_testvalue0,					"0.0",			NULL,				CVAR_ARCHIVE,									qfalse)
 XCVAR_DEF(g_testvalue1,					"0.0",			NULL,				CVAR_ARCHIVE,									qfalse)
 XCVAR_DEF(g_testvalue2,					"0.0",			NULL,				CVAR_ARCHIVE,									qfalse)
 XCVAR_DEF(g_testvalue3,					"0.0",			NULL,				CVAR_ARCHIVE,									qfalse)
+XCVAR_DEF(bg_testvalue0,				"0.0",			NULL,				CVAR_ARCHIVE,									qfalse)
+XCVAR_DEF(bg_testvalue1,				"0.0",			NULL,				CVAR_ARCHIVE,									qfalse)
+XCVAR_DEF(bg_testvalue2,				"0.0",			NULL,				CVAR_ARCHIVE,									qfalse)
+XCVAR_DEF(bg_testvalue3,				"0.0",			NULL,				CVAR_ARCHIVE,									qfalse)
 XCVAR_DEF(sv_saberHideStance,			"0",			NULL,				CVAR_SERVERINFO|CVAR_ARCHIVE,					qfalse )
 
 #undef XCVAR_DEF

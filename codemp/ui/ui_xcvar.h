@@ -120,5 +120,9 @@ XCVAR_DEF( ui_singlePlayerActive,			"0",					NULL,				CVAR_INTERNAL )
 XCVAR_DEF( ui_team_fraglimit,				"0",					NULL,				CVAR_ARCHIVE|CVAR_INTERNAL )
 XCVAR_DEF( ui_team_friendly,				"1",					NULL,				CVAR_ARCHIVE|CVAR_INTERNAL )
 XCVAR_DEF( ui_team_timelimit,				"20",					NULL,				CVAR_ARCHIVE|CVAR_INTERNAL )
+XCVAR_DEF(bg_testvalue0, "0", NULL, CVAR_ARCHIVE)
+XCVAR_DEF(bg_testvalue1, "0", NULL, CVAR_ARCHIVE)
+XCVAR_DEF(bg_testvalue2, "0", NULL, CVAR_ARCHIVE)
+XCVAR_DEF(bg_testvalue3, "0", NULL, CVAR_ARCHIVE)
 
 #undef XCVAR_DEF

@@ -4994,7 +4994,7 @@ void NPC_InitGame( void )
 }
 
 extern void BG_SetAnim(playerState_t *ps, animation_t *animations, int setAnimParts,int anim,int setAnimFlags, int blendTime);
-extern void BG_SetAnimFinal(playerState_t *ps, animation_t *animations, int setAnimParts,int anim,int setAnimFlags);
+extern void BG_SetAnimFinal(playerState_t *ps, animation_t *animations, int setAnimParts,int anim,int setAnimFlags, int blendTime);
 
 void NPC_Trace( trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int passEntityNum, int contentmask )
 {
@@ -5013,7 +5013,7 @@ void NPC_SetAnim(gentity_t *ent, int setAnimParts, int anim, int setAnimFlags)
 		trap->Print("WAMPA NPC %i set anim %s.\n", ent->s.number, animTable[anim].name);
 	}*/
 
-	G_SetAnim(ent, NULL, setAnimParts, anim, setAnimFlags, 0);
+	G_SetAnim(ent, NULL, setAnimParts, anim, setAnimFlags, 100);
 #endif //__NEW__
 
 #ifdef __NEW__
@@ -5083,7 +5083,7 @@ void NPC_SetAnim(gentity_t *ent, int setAnimParts, int anim, int setAnimFlags)
 	}*/
 	else
 	{
-		G_SetAnim(ent, NULL, setAnimParts, anim, setAnimFlags, 0);
+		G_SetAnim(ent, NULL, setAnimParts, anim, setAnimFlags, blendTime);
 	}
 #endif //__NEW__
 }

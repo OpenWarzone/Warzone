@@ -2006,9 +2006,9 @@ void Jedi_AdjustSaberAnimLevel( gentity_t *self, int newLevel )
 		}
 		else
 		{
-			self->client->ps.fd.saberAnimLevel = SS_WARZONE;
-			self->client->ps.fd.saberAnimLevelBase = SS_WARZONE;
-			self->client->ps.fd.saberDrawAnimLevel = SS_WARZONE;
+			self->client->ps.fd.saberAnimLevel = SS_CROWD_CONTROL;
+			self->client->ps.fd.saberAnimLevelBase = SS_CROWD_CONTROL;
+			self->client->ps.fd.saberDrawAnimLevel = SS_CROWD_CONTROL;
 			return;
 		}*/
 
@@ -2032,9 +2032,9 @@ void Jedi_AdjustSaberAnimLevel( gentity_t *self, int newLevel )
 				self->client->ps.fd.saberDrawAnimLevel = SS_DUAL;
 				break;
 			default:
-				self->client->ps.fd.saberAnimLevel = SS_WARZONE;
-				self->client->ps.fd.saberAnimLevelBase = SS_WARZONE;
-				self->client->ps.fd.saberDrawAnimLevel = SS_WARZONE;
+				self->client->ps.fd.saberAnimLevel = SS_CROWD_CONTROL;
+				self->client->ps.fd.saberAnimLevelBase = SS_CROWD_CONTROL;
+				self->client->ps.fd.saberDrawAnimLevel = SS_CROWD_CONTROL;
 				break;
 			}
 		}
@@ -2050,9 +2050,9 @@ void Jedi_AdjustSaberAnimLevel( gentity_t *self, int newLevel )
 				self->client->ps.fd.saberDrawAnimLevel = SS_STAFF;
 				break;
 			default:
-				self->client->ps.fd.saberAnimLevel = SS_WARZONE;
-				self->client->ps.fd.saberAnimLevelBase = SS_WARZONE;
-				self->client->ps.fd.saberDrawAnimLevel = SS_WARZONE;
+				self->client->ps.fd.saberAnimLevel = SS_CROWD_CONTROL;
+				self->client->ps.fd.saberAnimLevelBase = SS_CROWD_CONTROL;
+				self->client->ps.fd.saberDrawAnimLevel = SS_CROWD_CONTROL;
 				break;
 			}
 		}
@@ -2092,9 +2092,9 @@ void Jedi_AdjustSaberAnimLevel( gentity_t *self, int newLevel )
 				self->client->ps.fd.saberDrawAnimLevel = SS_TAVION;
 				break;
 			default:
-				self->client->ps.fd.saberAnimLevel = SS_WARZONE;
-				self->client->ps.fd.saberAnimLevelBase = SS_WARZONE;
-				self->client->ps.fd.saberDrawAnimLevel = SS_WARZONE;
+				self->client->ps.fd.saberAnimLevel = SS_CROWD_CONTROL;
+				self->client->ps.fd.saberAnimLevelBase = SS_CROWD_CONTROL;
+				self->client->ps.fd.saberDrawAnimLevel = SS_CROWD_CONTROL;
 				break;
 			}
 		}

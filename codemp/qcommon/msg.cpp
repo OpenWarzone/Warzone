@@ -799,6 +799,7 @@ netField_t	entityStateFields[] =
 { NETF(legsAnim), 16 },			// Maximum number of animation sequences is 2048.  Top bit is reserved for the togglebit
 // suspicious
 { NETF(torsoAnim), 16 },		// Maximum number of animation sequences is 2048.  Top bit is reserved for the togglebit
+{ NETF(torsoBlendTime), 16 },
 // large use beyond GENTITYNUM_BITS - should use generic1 insead
 { NETF(genericenemyindex), 32 }, //Do not change to GENTITYNUM_BITS, used as a time offset for seeker
 { NETF(eFlags), 32 },
@@ -869,6 +870,10 @@ netField_t	entityStateFields[] =
 { NETF(origin2[1]), 0 },
 { NETF(time2), 32 },
 { NETF(legsFlip), 1 },
+#ifdef __EXPERIMENTAL_REVERSE_ANIM__
+{ NETF(legsAnimReverse), 1 },
+{ NETF(torsoAnimReverse), 1 },
+#endif //__EXPERIMENTAL_REVERSE_ANIM__
 // fully used
 { NETF(bolt2), GENTITYNUM_BITS },
 { NETF(constantLight), 32 },
@@ -1262,6 +1267,7 @@ netField_t	playerStateFields[] =
 { PSF(legsAnim), 16 },			// Maximum number of animation sequences is 2048.  Top bit is reserved for the togglebit
 { PSF(delta_angles[0]), 16 },
 { PSF(torsoAnim), 16 },			// Maximum number of animation sequences is 2048.  Top bit is reserved for the togglebit
+{ PSF(torsoBlendTime), 16 },
 { PSF(groundEntityNum), GENTITYNUM_BITS },
 { PSF(eFlags), 32 },
 #ifdef __MMO__
@@ -1277,6 +1283,7 @@ netField_t	playerStateFields[] =
 { PSF(fd.saberAnimLevel), 4 },
 { PSF(rocketLockIndex), GENTITYNUM_BITS },
 { PSF(fd.saberDrawAnimLevel), 4 },
+{ PSF(fd.saberAnimLevelPrevious), 4 },
 { PSF(genericEnemyIndex), 32 }, //NOTE: This isn't just an index all the time, it's often used as a time value, and thus needs 32 bits
 { PSF(events[0]), 10 },			// There is a maximum of 256 events (8 bits transmission, 2 high bits for uniqueness)
 { PSF(events[1]), 10 },			// There is a maximum of 256 events (8 bits transmission, 2 high bits for uniqueness)
@@ -1343,6 +1350,10 @@ netField_t	playerStateFields[] =
 { PSF(weaponChargeTime), 32 }, //? really need 32 bits??
 //{ PSF(vehOrientation[2]), 0 },
 { PSF(legsFlip), 1 },
+#ifdef __EXPERIMENTAL_REVERSE_ANIM__
+{ PSF(legsAnimReverse), 1 },
+{ PSF(torsoAnimReverse), 1 },
+#endif //__EXPERIMENTAL_REVERSE_ANIM__
 { PSF(damageEvent), 8 },
 //{ PSF(moveDir[2]), 0 },
 { PSF(rocketTargetTime), 32 },
@@ -1458,6 +1469,7 @@ netField_t	pilotPlayerStateFields[] =
 //===THESE SHOULD NOT BE CHANGING OFTEN====================================================================
 { PSF(legsAnim), 16 },			// Maximum number of animation sequences is 2048.  Top bit is reserved for the togglebit
 { PSF(torsoAnim), 16 },			// Maximum number of animation sequences is 2048.  Top bit is reserved for the togglebit
+{ PSF(torsoBlendTime), 16 },
 { PSF(torsoTimer), 16 },
 { PSF(legsTimer), 16 },
 { PSF(jetpackFuel), 8 },
@@ -1483,6 +1495,10 @@ netField_t	pilotPlayerStateFields[] =
 { PSF(fd.forcePowerDebounce[FP_LEVITATION]), 32 },
 { PSF(torsoFlip), 1 },
 { PSF(legsFlip), 1 },
+#ifdef __EXPERIMENTAL_REVERSE_ANIM__
+{ PSF(legsAnimReverse), 1 },
+{ PSF(torsoAnimReverse), 1 },
+#endif //__EXPERIMENTAL_REVERSE_ANIM__
 { PSF(fd.forcePowersActive), 32 },
 { PSF(hasDetPackPlanted), 1 },
 { PSF(fd.forceRageRecoveryTime), 32 },
@@ -1507,6 +1523,7 @@ netField_t	pilotPlayerStateFields[] =
 { PSF(viewheight), -8 },
 { PSF(fd.saberAnimLevel), 4 },
 { PSF(fd.saberDrawAnimLevel), 4 },
+{ PSF(fd.saberAnimLevelPrevious), 4 },
 { PSF(genericEnemyIndex), 32 }, //NOTE: This isn't just an index all the time, it's often used as a time value, and thus needs 32 bits
 { PSF(customRGBA[0]), 8 }, //0-255
 { PSF(movementDir), 4 },
@@ -1689,6 +1706,7 @@ netField_t	playerStateFields[] =
 { PSF(legsAnim), 16 },			// Maximum number of animation sequences is 2048.  Top bit is reserved for the togglebit
 { PSF(delta_angles[0]), 16 },
 { PSF(torsoAnim), 16 },			// Maximum number of animation sequences is 2048.  Top bit is reserved for the togglebit
+{ PSF(torsoBlendTime), 16 },
 { PSF(groundEntityNum), GENTITYNUM_BITS },
 { PSF(eFlags), 32 },
 { PSF(fd.forcePower), 8 },
@@ -1699,6 +1717,7 @@ netField_t	playerStateFields[] =
 { PSF(fd.saberAnimLevel), 4 },
 { PSF(rocketLockIndex), GENTITYNUM_BITS },
 { PSF(fd.saberDrawAnimLevel), 4 },
+{ PSF(fd.saberAnimLevelPrevious), 4 },
 { PSF(genericEnemyIndex), 32 }, //NOTE: This isn't just an index all the time, it's often used as a time value, and thus needs 32 bits
 { PSF(events[0]), 10 },			// There is a maximum of 256 events (8 bits transmission, 2 high bits for uniqueness)
 { PSF(events[1]), 10 },			// There is a maximum of 256 events (8 bits transmission, 2 high bits for uniqueness)
@@ -1748,6 +1767,10 @@ netField_t	playerStateFields[] =
 { PSF(weaponChargeTime), 32 }, //? really need 32 bits??
 { PSF(vehOrientation[2]), 0 },
 { PSF(legsFlip), 1 },
+#ifdef __EXPERIMENTAL_REVERSE_ANIM__
+{ PSF(legsAnimReverse), 1 },
+{ PSF(torsoAnimReverse), 1 },
+#endif //__EXPERIMENTAL_REVERSE_ANIM__
 { PSF(damageEvent), 8 },
 { PSF(moveDir[2]), 0 },
 { PSF(rocketTargetTime), 32 },

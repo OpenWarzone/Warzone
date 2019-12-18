@@ -1106,7 +1106,7 @@ void CG_DrawSaberStyleBar(void)
 			aColor[1] = 0.f;
 			aColor[2] = 0.f;
 			break;
-		case SS_WARZONE:
+		case SS_CROWD_CONTROL:
 			aColor[0] = 0.f;
 			aColor[1] = 1.f;
 			aColor[2] = 1.f;
@@ -2002,7 +2002,7 @@ void CG_DrawHUD(centity_t	*cent)
 			{
 				Com_sprintf(ammoString, sizeof(ammoString), "Shii-Cho");
 			}
-			else if (cg.snap->ps.fd.saberDrawAnimLevel == SS_WARZONE)
+			else if (cg.snap->ps.fd.saberDrawAnimLevel == SS_CROWD_CONTROL)
 			{
 				Com_sprintf(ammoString, sizeof(ammoString), "Warzone Experimental");
 			}

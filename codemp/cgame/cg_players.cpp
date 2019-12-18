@@ -3370,6 +3370,21 @@ static void CG_SetLerpFrameAnimation( centity_t *cent, clientInfo_t *ci, lerpFra
 			flags = BONE_ANIM_OVERRIDE_LOOP;
 		}
 
+#ifdef __EXPERIMENTAL_REVERSE_ANIM__
+		if (cent->currentState.torsoAnimReverse)
+		{
+			//flags |= BONE_ANIM_OVERRIDE_LOOP_REVERSE;
+			animSpeed *= -1.0;
+			Com_Printf("Torso anim reversed.\n");
+		}
+		else if (cent->currentState.legsAnimReverse && !torsoOnly && !cent->noLumbar)
+		{
+			//flags |= BONE_ANIM_OVERRIDE_LOOP_REVERSE;
+			animSpeed *= -1.0;
+			Com_Printf("Legs/Both anim reversed.\n");
+		}
+#endif //__EXPERIMENTAL_REVERSE_ANIM__
+		
 		if (animSpeed < 0)
 		{
 			lastFrame = anim->firstFrame;
@@ -3385,7 +3400,7 @@ static void CG_SetLerpFrameAnimation( centity_t *cent, clientInfo_t *ci, lerpFra
 		{
 			flags |= BONE_ANIM_BLEND;
 		}
-
+		
 		if (BG_InDeathAnim(newAnimation))
 		{
 			flags &= ~BONE_ANIM_BLEND;
@@ -3409,11 +3424,17 @@ static void CG_SetLerpFrameAnimation( centity_t *cent, clientInfo_t *ci, lerpFra
 			}
 		}
 
+
+		if (cent->playerState && cent->playerState->torsoBlendTime >= 0 && cent->playerState->torsoBlendTime != 100)
+		{// Allow overriding blend time through BG code...
+			blendTime = cent->playerState->torsoBlendTime;
+		}
+
 		animSpeed *= animSpeedMult;
 
 		if (cent->currentState.weapon == WP_SABER)
 		{
-			BG_SaberStartTransAnim(cent->currentState.number, cent->currentState.fireflag, cent->currentState.weapon, newAnimation, &animSpeed, cent->currentState.brokenLimbs);
+			BG_SaberStartTransAnim(cent->currentState.number, cent->playerState, cent->currentState.fireflag, cent->playerState ? cent->playerState->fd.saberAnimLevelBase : cent->currentState.fireflag, cent->currentState.weapon, newAnimation, &animSpeed, cent->currentState.brokenLimbs);
 		}
 
 
@@ -4362,8 +4383,8 @@ void CG_G2ServerBoneAngles(centity_t *cent)
 				forward = (cent->currentState.boneOrient)&7; //3 bits from bit 0
 				right = (cent->currentState.boneOrient>>3)&7; //3 bits from bit 3
 				up = (cent->currentState.boneOrient>>6)&7; //3 bits from bit 6
-
-				trap->G2API_SetBoneAngles(cent->ghoul2, 0, boneName, boneAngles, flags, up, right, forward, cgs.gameModels, 100, cg.time);
+				
+				trap->G2API_SetBoneAngles(cent->ghoul2, 0, boneName, boneAngles, flags, up, right, forward, cgs.gameModels, (cent->playerState && cent->playerState->torsoBlendTime > 0) ? cent->playerState->torsoBlendTime : 100, cg.time);
 			}
 		}
 

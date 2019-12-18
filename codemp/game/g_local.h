@@ -1901,7 +1901,7 @@ void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team );
 
 qboolean FOLIAGE_TreeSolidBlocking(gentity_t *ent, vec3_t moveOrg);
 
-void BG_SetAnim(playerState_t *ps, animation_t *animations, int setAnimParts, int anim, int setAnimFlags);
+void BG_SetAnim(playerState_t *ps, animation_t *animations, int setAnimParts, int anim, int setAnimFlags, int blendTime = 100);
 void G_SoundOnEnt(gentity_t *ent, soundChannel_t channel, const char *soundPath);
 
 // bg_inventory*

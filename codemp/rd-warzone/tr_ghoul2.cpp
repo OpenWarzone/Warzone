@@ -1143,6 +1143,32 @@ void G2_TimingModel(boneInfo_t &bone,int currentTime,int numFramesInFile,int &cu
 
 	int		animSize = bone.endFrame - bone.startFrame;
 	float	endFrame = (float)bone.endFrame;
+
+	if (animSize < 0 && bone.flags & BONE_ANIM_OVERRIDE_LOOP_REVERSE)
+	{
+		newFrame_g = bone.startFrame - (time * animSpeed);
+		animSize = bone.startFrame - bone.endFrame;
+		endFrame = (float)bone.endFrame;
+
+		currentFrame = (int)newFrame_g;
+		assert(currentFrame >= 0 && currentFrame<numFramesInFile);
+
+		lerp = (newFrame_g - (int)newFrame_g);
+
+		// should we be creating a virtual frame?
+		if (newFrame_g <= bone.endFrame + 1)
+		{
+			newFrame = bone.endFrame;
+			assert(newFrame >= 0 && newFrame<numFramesInFile);
+		}
+		else
+		{
+			newFrame = currentFrame - 1;
+			assert(newFrame >= 0 && newFrame<numFramesInFile);
+		}
+		return;
+	}
+
 	// we are supposed to be animating right?
 	if (animSize)
 	{

@@ -505,6 +505,23 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 					fx.mKillTime = int(float(trailDur) / 40.0/*cg_saberTrailDecay.value*/);
 					fx.mSetFlags = FX_USE_ALPHA;
 
+#if 0
+					//if (BG_SaberInAttack(cent->playerState->legsAnim) || BG_SaberInAttack(cent->playerState->torsoAnim))
+					{
+						if (BG_SpinningSaberAnim(cent->playerState->legsAnim)
+							|| BG_FlippingAnim(cent->playerState->legsAnim)
+							|| BG_SaberInSpecialAttack(cent->playerState->legsAnim)
+							|| BG_FlippingAnim(cent->playerState->legsAnim)
+							|| BG_SpinningSaberAnim(cent->playerState->torsoAnim)
+							|| BG_FlippingAnim(cent->playerState->torsoAnim)
+							|| BG_SaberInSpecialAttack(cent->playerState->torsoAnim)
+							|| BG_FlippingAnim(cent->playerState->torsoAnim))
+						{
+							useAlpha = cg_testvalue0.value;
+						}
+					}
+#endif
+
 					// New muzzle
 					VectorCopy(rgb1, fx.mVerts[0].rgb);
 					fx.mVerts[0].alpha = 255.0f * useAlpha/*cg_saberTrailAlpha.value*/ * oldAlpha;

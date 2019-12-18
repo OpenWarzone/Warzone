@@ -2889,6 +2889,7 @@ void Cmd_SaberAttackCycle_f(gentity_t *ent)
 	}
 	*/
 
+#ifndef __ALL_SABER_STYLES__
 	if (ent->client->saber[0].model[0] && ent->client->saber[1].model[0])
 	{ //no cycling for akimbo
 		if (WP_SaberCanTurnOffSomeBlades(&ent->client->saber[1]))
@@ -3040,17 +3041,17 @@ void Cmd_SaberAttackCycle_f(gentity_t *ent)
 		SS_TAVION,
 		SS_DUAL,
 		SS_STAFF,
-		SS_WARZONE,
+		SS_CROWD_CONTROL,
 		SS_NUM_SABER_STYLES
 		*/
 
 		selectLevel++;
 		if (selectLevel > SS_TAVION/*ent->client->ps.fd.forcePowerLevel[FP_SABER_OFFENSE]*/)
 		{
-			if (selectLevel < SS_WARZONE)
-				selectLevel = SS_WARZONE;
+			if (selectLevel < SS_CROWD_CONTROL)
+				selectLevel = SS_CROWD_CONTROL;
 			else
-				selectLevel = FORCE_LEVEL_1;
+				selectLevel = SS_FAST;
 		}
 		if (d_saberStanceDebug.integer)
 		{
@@ -3081,6 +3082,79 @@ void Cmd_SaberAttackCycle_f(gentity_t *ent)
 		//make sure it's valid, change it if not
 		WP_UseFirstValidSaberStyle(&ent->client->saber[0], &ent->client->saber[1], ent->client->ps.saberHolstered, &selectLevel);
 	}
+#else //__ALL_SABER_STYLES__
+/*
+SS_NONE=0,
+SS_FAST,
+SS_MEDIUM,
+SS_STRONG,
+SS_DESANN,
+SS_TAVION,
+SS_DUAL,
+SS_STAFF,
+SS_CROWD_CONTROL,
+SS_NUM_SABER_STYLES
+*/
+
+	if (ent->client->saberCycleQueue)
+	{ //resume off of the queue if we haven't gotten a chance to update it yet
+		selectLevel = ent->client->saberCycleQueue;
+	}
+	else
+	{
+		selectLevel = ent->client->ps.fd.saberAnimLevel;
+	}
+
+	selectLevel++;
+
+	if (selectLevel >= SS_NUM_SABER_STYLES)
+	{// Return to SS_FAST
+		selectLevel = SS_FAST;
+
+		if (ent->client->saber[0].model[0] && ent->client->saber[1].model[0])
+		{// dual sabers
+			if (ent->client->ps.saberHolstered == 1)
+			{// have one saber holstered, unholster it
+				G_Sound(ent, CHAN_AUTO, ent->client->saber[1].soundOn);
+				ent->client->ps.saberHolstered = 0;
+			}
+			else if (ent->client->ps.saberHolstered == 0)
+			{// have none holstered, turn it off
+				G_Sound(ent, CHAN_AUTO, ent->client->saber[1].soundOff);
+				ent->client->ps.saberHolstered = 1;
+			}
+
+			if (d_saberStanceDebug.integer)
+			{
+				trap->SendServerCommand(ent - g_entities, va("print \"SABERSTANCEDEBUG: Attempted to toggle dual saber blade.\n\""));
+			}
+		}
+		else if (ent->client->saber[0].numBlades > 1)
+		{
+			if (ent->client->ps.saberHolstered == 1)
+			{// have one blade holstered, unholster it
+				G_Sound(ent, CHAN_AUTO, ent->client->saber[0].soundOn);
+				ent->client->ps.saberHolstered = 0;
+			}
+			else if (ent->client->ps.saberHolstered == 0)
+			{// have none holstered, turn it off
+				G_Sound(ent, CHAN_AUTO, ent->client->saber[0].soundOff);
+				ent->client->ps.saberHolstered = 1;
+			}
+
+			if (d_saberStanceDebug.integer)
+			{
+				trap->SendServerCommand(ent - g_entities, va("print \"SABERSTANCEDEBUG: Attempted to toggle dual saber blade.\n\""));
+			}
+		}
+	}
+
+	if (d_saberStanceDebug.integer)
+	{
+		extern stringID_table_t StanceTable[];
+		trap->SendServerCommand(ent - g_entities, va("print \"SABERSTANCEDEBUG: Attempted to cycle stance to stance %i (%s).\n\"", selectLevel, (selectLevel < SS_NUM_SABER_STYLES) ? StanceTable[selectLevel].name : "INVALID"));
+	}
+#endif //__ALL_SABER_STYLES__
 
 	if (ent->client->ps.weaponTime <= 0)
 	{ //not busy, set it now
