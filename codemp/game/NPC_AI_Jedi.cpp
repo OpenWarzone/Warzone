@@ -201,13 +201,13 @@ qboolean Jedi_AttackOrCounter( gentity_t *NPC )
 	//
 	// Current attacker always controls all the timers/counters...
 	//
-	if (NPC->npc_attack_time <= level.time - 1000)
+	if (NPC->npc_attack_time <= level.time - 2000)
 	{// Timer has run out, pick if we should initally attack or defend...
 		if (NPC->enemy->s.eType == ET_PLAYER)
 		{// When enemy is a player...
 			if (irand(0, 1) < 1)
 			{
-				NPC->npc_attack_time = level.time + 1000;
+				NPC->npc_attack_time = level.time + 2000;
 			}
 			else
 			{
@@ -222,7 +222,7 @@ qboolean Jedi_AttackOrCounter( gentity_t *NPC )
 			}
 			else
 			{// Enemy is not attacking, start by attacking...
-				NPC->npc_attack_time = level.time + 1000;
+				NPC->npc_attack_time = level.time + 2000;
 			}
 		}
 
@@ -7070,49 +7070,98 @@ static void Jedi_Attack( gentity_t *aiEnt)
 		if (aiEnt->enemy)
 		{
 			//always face enemy if have one
-			aiEnt->NPC->combatMove = qtrue;
+			//aiEnt->NPC->combatMove = qtrue;
+			NPC_FaceEnemy(aiEnt, qfalse);
 
-			if (Distance(aiEnt->client->ps.origin, aiEnt->enemy->r.currentOrigin) <= 96.0)
-			{
-				usercmd_t *cmd = &aiEnt->client->pers.cmd;
-				cmd->buttons |= BUTTON_ATTACK;
-				
-				if (aiEnt->NPC->saberAttackDirectionTime < level.time)
-				{// Pick a new direction for saber attack move selection....
-					aiEnt->NPC->saberAttackDirection = irand(0, 4);
-					aiEnt->NPC->saberAttackDirectionTime = level.time + 500;
+			if (Jedi_AttackOrCounter(aiEnt))
+			{// Attack...
+				if (NPC_IsDarkJedi(aiEnt))
+				{// Do taunt/anger...
+					int TorA = Q_irand(0, 3);
+
+					switch (TorA) {
+					case 3:
+						G_AddVoiceEvent(aiEnt, Q_irand(EV_JCHASE1, EV_JCHASE3), 5000 + irand(0, 15000));
+						break;
+					case 2:
+						G_AddVoiceEvent(aiEnt, Q_irand(EV_COMBAT1, EV_COMBAT3), 5000 + irand(0, 15000));
+						break;
+					case 1:
+						G_AddVoiceEvent(aiEnt, Q_irand(EV_ANGER1, EV_ANGER1), 5000 + irand(0, 15000));
+						break;
+					default:
+						G_AddVoiceEvent(aiEnt, Q_irand(EV_TAUNT1, EV_TAUNT5), 5000 + irand(0, 15000));
+						break;
+					}
+				}
+				else if (NPC_IsJedi(aiEnt))
+				{// Do taunt...
+					int TorA = Q_irand(0, 2);
+
+					switch (TorA) {
+					case 2:
+						G_AddVoiceEvent(aiEnt, Q_irand(EV_JCHASE1, EV_JCHASE3), 5000 + irand(0, 15000));
+						break;
+					case 1:
+						G_AddVoiceEvent(aiEnt, Q_irand(EV_COMBAT1, EV_COMBAT3), 5000 + irand(0, 15000));
+						break;
+					default:
+						G_AddVoiceEvent(aiEnt, Q_irand(EV_TAUNT1, EV_TAUNT5), 5000 + irand(0, 15000));
+					}
 				}
 
-				switch (aiEnt->NPC->saberAttackDirection)
+				if (Distance(aiEnt->client->ps.origin, aiEnt->enemy->r.currentOrigin) <= 96.0)
 				{
-				default:
-				case 0:
-					// Just walk move forwards...
-					cmd->forwardmove = 48.0;
-					break;
-				case 1:
-					// Forward and right...
-					cmd->forwardmove = 48.0;
-					cmd->rightmove = 48.0;
-					break;
-				case 2:
-					// Forward and left...
-					cmd->forwardmove = 48.0;
-					cmd->rightmove = -48.0;
-					break;
-				case 3:
-					// Right...
-					cmd->rightmove = 48.0;
-					break;
-				case 4:
-					// Left...
-					cmd->rightmove = -48.0;
-					break;
+					usercmd_t *cmd = &aiEnt->client->pers.cmd;
+					cmd->buttons |= BUTTON_ATTACK;
+
+					if (aiEnt->NPC->saberAttackDirectionTime < level.time)
+					{// Pick a new direction for saber attack move selection....
+						aiEnt->NPC->saberAttackDirection = irand(0, 4);
+						aiEnt->NPC->saberAttackDirectionTime = level.time + 500;
+					}
+
+					switch (aiEnt->NPC->saberAttackDirection)
+					{
+					default:
+					case 0:
+						// Just walk move forwards...
+						cmd->forwardmove = 48.0;
+						break;
+					case 1:
+						// Forward and right...
+						cmd->forwardmove = 48.0;
+						cmd->rightmove = 48.0;
+						break;
+					case 2:
+						// Forward and left...
+						cmd->forwardmove = 48.0;
+						cmd->rightmove = -48.0;
+						break;
+					case 3:
+						// Right...
+						cmd->rightmove = 48.0;
+						break;
+					case 4:
+						// Left...
+						cmd->rightmove = -48.0;
+						break;
+					}
+				}
+				else
+				{
+					aiEnt->NPC->saberAttackDirectionTime = 0;
+					Jedi_Advance(aiEnt);
 				}
 			}
 			else
-			{
+			{// Defend...
 				aiEnt->NPC->saberAttackDirectionTime = 0;
+
+				if (Distance(aiEnt->client->ps.origin, aiEnt->enemy->r.currentOrigin) <= 128.0)
+				{
+					Jedi_Retreat(aiEnt);
+				}
 			}
 		}
 		else

@@ -377,9 +377,9 @@ void G_UcmdMoveForDir( gentity_t *self, usercmd_t *cmd, vec3_t dir, vec3_t dest 
 	// UQ1: Use my method instead to check for falling, etc...
 	qboolean walk = qfalse;
 
-	if (self->client->pers.cmd.buttons&BUTTON_WALKING) walk = qtrue;
+	if (cmd->buttons & BUTTON_WALKING) walk = qtrue;
 
-	UQ1_UcmdMoveForDir( self, &self->client->pers.cmd, dir, walk, dest );
+	UQ1_UcmdMoveForDir( self, cmd, dir, walk, dest );
 }
 
 /*
