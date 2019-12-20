@@ -281,6 +281,10 @@ typedef struct
 
 	int			helpCallTime;
 	int			helpCallJediLevel;
+
+	// UQ1: New jedi saber combat system... For player-like moves, not JKA MP spam...
+	int			saberAttackDirection = 0;
+	int			saberAttackDirectionTime = 0;
 } gNPC_t;
 
 void G_SquadPathsInit(void);

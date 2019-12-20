@@ -3669,7 +3669,8 @@ void G_RunThink (gentity_t *ent, qboolean calledFromAIThread) {
 		//trap->Error( ERR_DROP, "NULL ent->think");
 		goto runicarus;
 	}
-	ent->think (ent);
+
+	ent->think(ent);
 
 runicarus:
 #ifndef __NO_ICARUS__
@@ -3680,7 +3681,7 @@ runicarus:
 #else //__NO_ICARUS__
 	if (ent->inuse)
 	{
-
+		
 	}
 #endif //__NO_ICARUS__
 }

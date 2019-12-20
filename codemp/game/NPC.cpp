@@ -4143,7 +4143,6 @@ void NPC_Think ( gentity_t *self )//, int msec )
 	}
 
 	self->nextthink = level.time + FRAMETIME;
-	//self->nextthink = level.time;
 
 #ifdef __AAS_AI_TESTING__
 	if (!botstates[self->s.number])
@@ -4275,80 +4274,49 @@ void NPC_Think ( gentity_t *self )//, int msec )
 		return;
 	}
 
-	if ( aiEnt->NPC->nextBStateThink <= level.time
-		&& !aiEnt->s.m_iVehicleNum )//NPCs sitting in Vehicles do NOTHING
+	if ( aiEnt->NPC->nextBStateThink <= level.time && !aiEnt->s.m_iVehicleNum )//NPCs sitting in Vehicles do NOTHING
 	{
 #if	AI_TIMERS
 		int	startTime = GetTime(0);
 #endif//	AI_TIMERS
 
+		qboolean is_jedi = NPC_IsJedi(self);
+		qboolean is_bot = (qboolean)(self->s.eType == ET_PLAYER);
+		
+		if (self->isPadawan || is_bot) is_jedi = qfalse;
+
 		// UQ1: Think more often!
 #ifndef __LOW_THINK_AI__
-		aiEnt->NPC->nextBStateThink = level.time + FRAMETIME/2;
+		if (is_jedi && self->enemy && self->s.weapon == WP_SABER && NPC_IsAlive(self, self->enemy) && Distance(self->r.currentOrigin, self->enemy->r.currentOrigin) <= 256)
+		{// When a jedi NPC has a valid enemy, let it think a lot more, for smooth saber moves...
+			aiEnt->NPC->nextBStateThink = level.time;
+			self->nextthink = level.time;
+
+			if (self->client->pers.cmd.buttons & BUTTON_ATTACK)
+			{// Keep things exactly as before, for saber chaining like players do...
+
+			}
+			else
+			{
+				aiEnt->client->pers.cmd.buttons = 0; // init buttons...
+			}
+		}
+		else
+		{
+			aiEnt->NPC->nextBStateThink = level.time + FRAMETIME / 2;
+			aiEnt->client->pers.cmd.buttons = 0; // init buttons...
+		}
 #else //__LOW_THINK_AI__
 		aiEnt->NPC->nextBStateThink = level.time + FRAMETIME;
-#endif //__LOW_THINK_AI__
-
-		memcpy( &aiEnt->client->pers.cmd, &aiEnt->NPC->last_ucmd, sizeof( usercmd_t ) );
 		aiEnt->client->pers.cmd.buttons = 0; // init buttons...
-
-		//
-		// Escaping water...
-		//
-#if 0
-		if (((self->waterlevel && self->watertype == CONTENTS_WATER) || self->water_escape_time > level.time) && NPC_EscapeWater(self))
-		{
-			// UQ1: Check any jetpack stuff...
-			NPC_CheckFlying(aiEnt);
-
-			if (aiEnt->client->ps.weaponstate == WEAPON_READY)
-			{
-				aiEnt->client->ps.weaponstate = WEAPON_IDLE;
-			}
-
-			NPC_CheckAttackHold(aiEnt);
-
-			// run the bot through the server like it was a real client
-			//=== Save the ucmd for the second no-think Pmove ============================
-			aiEnt->client->pers.cmd.serverTime = level.time - 50;
-
-			memcpy(&aiEnt->NPC->last_ucmd, &aiEnt->client->pers.cmd, sizeof(usercmd_t));
-
-			if (!aiEnt->NPC->attackHoldTime)
-			{
-				aiEnt->NPC->last_ucmd.buttons &= ~(BUTTON_ATTACK | BUTTON_ALT_ATTACK);//so we don't fire twice in one think
-			}
-
-			NPC_KeepCurrentFacing(aiEnt);
-
-			if (NPC_IsCivilianHumanoid(aiEnt) && !aiEnt->npc_cower_runaway && !self->NPC->conversationPartner)
-			{// Set better torso anims when not holding a weapon.
-				NPC_SetAnim(aiEnt, SETANIM_TORSO, BOTH_STAND9IDLE1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
-				aiEnt->client->ps.torsoTimer = 200;
-			}
-
-			ClientThink(aiEnt->s.number, &aiEnt->client->pers.cmd);
-
-			// end of thinking cleanup
-			aiEnt->NPC->touchedByPlayer = NULL;
-
-			NPC_CheckPlayerAim(aiEnt);
-			NPC_CheckAllClear(aiEnt);
-			return;
-		}
-#endif
+#endif //__LOW_THINK_AI__
 
 		//nextthink is set before this so something in here can override it
 		if (self->s.NPC_class != CLASS_VEHICLE && !self->m_pVehicle)
 		{ //ok, let's not do this at all for vehicles.
 			qboolean is_civilian = NPC_IsCivilian(self);
 			qboolean is_vendor = NPC_IsVendor(self);
-			qboolean is_jedi = NPC_IsJedi(self);
-			qboolean is_bot = (qboolean)(self->s.eType == ET_PLAYER);
 			qboolean use_pathing = qfalse;
-
-			//if (!is_jedi && self->isPadawan) is_jedi = qtrue;
-			if (self->isPadawan) is_jedi = qfalse;
 
 			if (is_civilian || is_vendor)
 			{
@@ -4365,12 +4333,6 @@ void NPC_Think ( gentity_t *self )//, int msec )
 			}
 
 			NPC_DoPadawanStuff(aiEnt); // check any padawan stuff we might need to do...
-
-			/*if (self->enemy 
-				&& (!NPC_ValidEnemy(self->enemy) || (!NPC_EntityIsBreakable(self, self->enemy) && Distance(self->r.currentOrigin, self->enemy->r.currentOrigin) > 3192.0)))
-			{// If NPC Bot's enemy is invalid (eg: a dead NPC) or too far away, clear it!
-				G_ClearEnemy(self);
-			}*/
 
 			if (is_civilian) 
 			{
@@ -4409,11 +4371,6 @@ void NPC_Think ( gentity_t *self )//, int msec )
 
 				self->next_enemy_check_time = level.time + irand(2000, 5000);
 			}
-
-			/*if ( self->enemy ) 
-			{
-				NPC_FaceEnemy( qtrue );
-			}*/
 
 			if (!self->isPadawan && !self->enemy && !self->NPC->conversationPartner)
 			{// Let's look for someone to chat to, shall we???
@@ -4598,149 +4555,11 @@ void NPC_Think ( gentity_t *self )//, int msec )
 					}
 				}
 #else //!__USE_NAV_PATHING__
-
-#ifdef __AAS_AI_TESTING__
-				else if (!self->isPadawan && use_pathing && !self->enemy)
-				{
-					if ((!aiEnt->NPC->goalEntity || Distance(aiEnt->NPC->goalEntity->r.currentOrigin, self->r.currentOrigin) < 64) 
-						&& self->npc_dumb_route_time < level.time) 
-					{
-						int i = 0;
-						qboolean found = qfalse;
-
-						for (i = 0; i < ENTITYNUM_MAX_NORMAL; i++)
-						{
-							gentity_t *ent = &g_entities[i];
-
-							if (!ent) continue;
-							if (!ent->inuse) continue;
-							if (ent->s.eType != ET_PLAYER && ent->s.eType != ET_NPC && ent->s.eType != ET_ITEM) continue;
-							if (ent->s.eType == ET_PLAYER && ent->client->sess.sessionTeam == FACTION_SPECTATOR) continue;
-							if (!NPC_ValidEnemy(self, ent)) continue;
-							
-							//if (irand(0, 3) < 1)
-							{
-								found = qtrue;
-								break;
-							}
-						}
-
-						if (found)
-						{
-							aiEnt->NPC->goalEntity = &g_entities[i];
-							//trap->Print("NPC %s found a goal.\n", self->NPC_type);
-						}
-
-						self->npc_dumb_route_time = level.time + 5000;
-					}
-
-					if (aiEnt->NPC->goalEntity)
-					{
-						bot_moveresult_t moveresult;
-						bot_state_t *bs = botstates[self->s.number];
-						bot_input_t *bi = &bs->bi;
-
-						memcpy(&bs->cur_ps, &aiEnt->client->ps, sizeof(playerState_t));
-						
-						if ((bs->goal.origin[0] == 0 && bs->goal.origin[1] == 0 && bs->goal.origin[2] == 0)
-							|| Distance(self->r.currentOrigin, bs->goal.origin) < 64)
-						{// New goal
-							VectorCopy(aiEnt->NPC->goalEntity->r.currentOrigin, bs->goal.origin);
-							//bs->goal.origin[2] += 64;
-							VectorCopy(aiEnt->NPC->goalEntity->r.mins, bs->goal.mins);
-							VectorCopy(aiEnt->NPC->goalEntity->r.maxs, bs->goal.maxs);
-							//VectorSet(bs->goal.mins, -8, -8, -8);
-							//VectorSet(bs->goal.maxs, 8, 8, 8);
-							bs->goal.areanum = trap->AAS_PointAreaNum(aiEnt->NPC->goalEntity->r.currentOrigin);
-							bs->goal.entitynum = aiEnt->NPC->goalEntity->s.number;
-							bs->goal.flags = 0;
-							bs->goal.iteminfo = 0;
-							bs->goal.number = 0;
-							self->longTermGoal = bs->goal.areanum;
-						}
-
-						trap->BotUpdateEntityItems();
-						//trap->BotCalculatePaths(0);
-						
-						//trap->EA_ResetInput(self->s.number);
-						//trap->EA_GetInput(bs->client, (float)level.time / 1000, bi);
-						BotUpdateInput(bs, level.time, 50);
-						//trap->Print("NPC %s following path.\n", self->NPC_type);
-						
-						self->wpCurrent = trap->AAS_PointAreaNum(self->s.origin);
-
-						if (self->wpCurrent >= 0)
-						{
-							trap->AAS_EnableRoutingArea(self->wpCurrent, qtrue);
-							trap->AAS_EnableRoutingArea(self->longTermGoal, qtrue);
-							
-							//self->longTermGoal = trap->AAS_PointAreaNum(aiEnt->NPC->goalEntity->r.currentOrigin);
-							self->pathsize = trap->AAS_PredictRoute(self->pathlist, self->wpCurrent, self->r.currentOrigin, bs->goal.areanum, 0, -1, -1, -1, -1, -1, -1);
-
-							//trap->BotMoveToGoal(&moveresult, bs->ms, &bs->goal, 0);
-							moveresult = BotAttackMove(bs, 0);
-
-							//VectorCopy(moveresult.movedir, self->movedir);
-
-							if (!moveresult.blocked && !moveresult.blockentity && !moveresult.failure)
-							{
-								vec3_t angles, forward, right, up, movePos;
-
-								VectorCopy(self->client->ps.viewangles, bi->viewangles);
-
-								//vectoangles(moveresult.movedir, angles);
-								//AngleVectors( moveresult.ideal_viewangles, forward, right, up );
-
-								//VectorMA(self->r.currentOrigin, 256, forward, movePos);
-
-								//NPC_FacePosition(self, moveresult.ideal_viewangles, qfalse);
-
-								//VectorNormalize(moveresult.movedir);
-
-								//self->movedir[0] = moveresult.movedir[1];
-								//self->movedir[1] = moveresult.movedir[0];
-								//self->movedir[2] = moveresult.movedir[2];
-
-								//trap->BotUserCommand(self->s.number, &aiEnt->client->pers.cmd);
-
-								//UQ1_UcmdMoveForDir( self, &aiEnt->client->pers.cmd, self->movedir, qfalse, movePos );
-								//trap->BotMoveInDirection(bs->ms, bi.dir, bi.speed, 0);
-
-								//AngleVectors(bi->viewangles, forward, right, up);
-								VectorMA(self->r.currentOrigin, 256, moveresult.movedir/*forward*/, movePos);
-								NPC_FacePosition(self, movePos, qfalse);
-
-								trap->EA_GetInput(self->s.number, 50, bi);
-
-
-								//moveresult.movedir[0] = -moveresult.movedir[0];
-								//moveresult.movedir[1] = -moveresult.movedir[1];
-								//VectorNormalize(forward);
-								VectorCopy(bi->dir, moveresult.movedir);
-								VectorCopy(moveresult.movedir, bs->moveDir);
-								VectorCopy(moveresult.movedir, self->movedir);
-								UQ1_UcmdMoveForDir_NoAvoidance(self, &aiEnt->client->pers.cmd, self->movedir/*forward bi->dir*/, qfalse, movePos);
-								//trap->BotUserCommand(self->s.number, &aiEnt->client->pers.cmd);
-
-								trap->Print("move to entity %i. pos %f %f %f. dir %f %f %f. movedir %f %f %f. ucmd %i %i %i.\n"
-									, aiEnt->NPC->goalEntity->s.number
-									, movePos[0], movePos[1], movePos[2]
-									, bi->dir[0], bi->dir[1], bi->dir[2]
-									, self->movedir[0], self->movedir[1], self->movedir[2]
-									, (int)aiEnt->client->pers.cmd.forwardmove, (int)aiEnt->client->pers.cmd.rightmove, (int)aiEnt->client->pers.cmd.upmove);
-							}
-						}
-					}
-
-					NPC_GenericFrameCode( self );
-				}
-#else
 				else if (!self->isPadawan && use_pathing && NPC_FollowRoutes(aiEnt))
 				{
 					//trap->Print("NPCBOT DEBUG: NPC is following routes.\n");
 					NPC_GenericFrameCode( self );
 				}
-#endif //__AAS_AI_TESTING__
 
 #endif //__USE_NAV_PATHING__
 				//
@@ -4782,33 +4601,6 @@ void NPC_Think ( gentity_t *self )//, int msec )
 				}
 
 				NPC_ExecuteBState( self );
-
-#if 0 // UQ1: Should be handled in behavior now...
-				if (self->enemy 
-					&& NPC_IsAlive(self, self->enemy)
-					&& NPC_IsJedi(self) 
-					&& Distance(self->r.currentOrigin, self->enemy->r.currentOrigin) > 64)
-				{
-					// UQ1: Always force move to any goal they might have...
-					aiEnt->NPC->goalEntity = self->enemy;
-					
-					if (UpdateGoal())
-						NPC_MoveToGoal( qtrue );
-				}
-				else if (self->enemy 
-					&& NPC_IsAlive(self, self->enemy)
-					&& Distance(self->r.currentOrigin, self->enemy->r.currentOrigin) > 64
-					&& NPC_CheckVisibility ( aiEnt->enemy, CHECK_360|CHECK_VISRANGE ) < VIS_FOV)
-				{
-					// UQ1: Enemy is not in our view, move toward it...
-					aiEnt->NPC->goalEntity = self->enemy;
-					
-					if (UpdateGoal())
-						if (!NPC_MoveToGoal( qfalse ))
-							NPC_MoveToGoal( qtrue );
-				}
-#endif //0
-
 				NPC_GenericFrameCode( self );
 			}
 		}
@@ -4822,6 +4614,8 @@ void NPC_Think ( gentity_t *self )//, int msec )
 			//		NPC_MoveToGoal( qtrue );
 		}
 
+		aiEnt->NPC->last_ucmd.serverTime = level.time;
+
 #if	AI_TIMERS
 		int addTime = GetTime( startTime );
 		if ( addTime > 50 )
@@ -4830,9 +4624,6 @@ void NPC_Think ( gentity_t *self )//, int msec )
 		}
 		AITime += addTime;
 #endif//	AI_TIMERS
-
-		//ClientThink(aiEnt->s.number, &aiEnt->client->pers.cmd);
-
 	}
 	else
 	{
@@ -4841,18 +4632,8 @@ void NPC_Think ( gentity_t *self )//, int msec )
 
 		//or use client->pers.lastCommand?
 		aiEnt->NPC->last_ucmd.serverTime = level.time - 50;
-		//if ( !aiEnt->next_roff_time || aiEnt->next_roff_time < level.time )
-		{//If we were following a roff, we don't do normal pmoves.
-			//FIXME: firing angles (no aim offset) or regular angles?
-			//if (self->enemy) NPC_UpdateAngles(qtrue, qtrue);
-			memcpy( &aiEnt->client->pers.cmd, &aiEnt->NPC->last_ucmd, sizeof( usercmd_t ) );
-			NPC_GenericFrameCode(self);
-			//ClientThink(aiEnt->s.number, &aiEnt->client->pers.cmd);
-		}
-		//else
-		//{
-		//	NPC_ApplyRoff(aiEnt);
-		//}
+
+		ClientThink(aiEnt->s.number, &aiEnt->client->pers.cmd);
 #else //__LOW_THINK_AI__
 		//VectorCopy( oldMoveDir, self->client->ps.moveDir );
 

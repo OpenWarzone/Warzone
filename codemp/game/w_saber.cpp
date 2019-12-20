@@ -4604,8 +4604,7 @@ int WP_DoFrameSaberTrace(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t s
 	{// Ok, this saber and blade has not been done this frame, so do it...
 		vec3_t mins, maxs;
 
-		// Seems to be the perfect value, any smaller then this and it misses about 99% of collisions...
-		float saberBoxSize = self->client->saber[rSaberNum].blade[rBladeNum].radius * 8.0;
+		float saberBoxSize = self->client->saber[rSaberNum].blade[rBladeNum].radius;
 		VectorSet(mins, -saberBoxSize, -saberBoxSize, -saberBoxSize);
 		VectorSet(maxs, saberBoxSize, saberBoxSize, saberBoxSize);
 

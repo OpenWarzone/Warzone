@@ -2695,11 +2695,12 @@ evasionType_t Jedi_CheckFlipEvasions( gentity_t *self, float rightdot, float zdi
 			checkDist = 128;
 			speed = 200;
 		}
+
+#ifdef __EVASION_JUMPING__
 		//trace in the dir that we want to go
 		VectorMA( self->r.currentOrigin, checkDist, right, traceto );
 		trap->Trace( &trace, self->r.currentOrigin, mins, maxs, traceto, self->s.number, CONTENTS_SOLID|CONTENTS_MONSTERCLIP|CONTENTS_BOTCLIP, qfalse, 0, 0 );
 		
-#ifdef __EVASION_JUMPING__
 		if ( trace.fraction >= 1.0f && allowCartWheels )
 		{//it's clear, let's do it
 			//FIXME: check for drops?
@@ -2872,6 +2873,7 @@ evasionType_t Jedi_CheckFlipEvasions( gentity_t *self, float rightdot, float zdi
 		}
 #endif //__EVASION_JUMPING__
 	}
+
 	return EVASION_NONE;
 }
 
@@ -7063,6 +7065,67 @@ Jedi_Attack
 
 static void Jedi_Attack( gentity_t *aiEnt)
 {
+	if (aiEnt->client->ps.weapon == WP_SABER)
+	{// UQ1: Testing new AI...
+		if (aiEnt->enemy)
+		{
+			//always face enemy if have one
+			aiEnt->NPC->combatMove = qtrue;
+
+			if (Distance(aiEnt->client->ps.origin, aiEnt->enemy->r.currentOrigin) <= 96.0)
+			{
+				usercmd_t *cmd = &aiEnt->client->pers.cmd;
+				cmd->buttons |= BUTTON_ATTACK;
+				
+				if (aiEnt->NPC->saberAttackDirectionTime < level.time)
+				{// Pick a new direction for saber attack move selection....
+					aiEnt->NPC->saberAttackDirection = irand(0, 4);
+					aiEnt->NPC->saberAttackDirectionTime = level.time + 500;
+				}
+
+				switch (aiEnt->NPC->saberAttackDirection)
+				{
+				default:
+				case 0:
+					// Just walk move forwards...
+					cmd->forwardmove = 48.0;
+					break;
+				case 1:
+					// Forward and right...
+					cmd->forwardmove = 48.0;
+					cmd->rightmove = 48.0;
+					break;
+				case 2:
+					// Forward and left...
+					cmd->forwardmove = 48.0;
+					cmd->rightmove = -48.0;
+					break;
+				case 3:
+					// Right...
+					cmd->rightmove = 48.0;
+					break;
+				case 4:
+					// Left...
+					cmd->rightmove = -48.0;
+					break;
+				}
+			}
+			else
+			{
+				aiEnt->NPC->saberAttackDirectionTime = 0;
+			}
+		}
+		else
+		{
+			aiEnt->NPC->saberAttackDirectionTime = 0;
+			Jedi_Patrol(aiEnt);//was calling Idle... why?
+			return;
+		}
+
+		return;
+	}
+
+
 	//Don't do anything if we're in a pain anim
 	if ( aiEnt->painDebounceTime > level.time )
 	{
@@ -8365,20 +8428,6 @@ void NPC_BSJedi_Default( gentity_t *aiEnt)
 
 	NPC_CallForHelp(aiEnt);
 
-#if 0
-	if( !aiEnt->enemy )
-	{//don't have an enemy, look for one
-		if ( !NPC_IsJedi(aiEnt) )
-		{
-			NPC_BSST_Patrol(aiEnt);
-		}
-		else
-		{
-			Jedi_Patrol(aiEnt);
-		}
-	}
-	else//if ( NPC->enemy )
-#endif
 	{//have an enemy
 		if ( Jedi_WaitingAmbush( aiEnt ) )
 		{//we were still waiting to drop down - must have had enemy set on me outside my AI
@@ -8403,7 +8452,6 @@ void NPC_BSJedi_Default( gentity_t *aiEnt)
 		{// Using sniper rifle... Use sniper AI...
 			//aiEnt->NPC->scriptFlags |= SCF_ALT_FIRE;
 			NPC_BSSniper_Default(aiEnt);
-			//NPC_CheckEvasion(aiEnt);
 			return;
 		}
 		/*else if ( aiEnt->client->ps.weapon == WP_THERMAL )
@@ -8581,27 +8629,5 @@ void NPC_BSJedi_Default( gentity_t *aiEnt)
 		}
 
 		if ( TIMER_Done( aiEnt, "duck" ) && aiEnt->client->pers.cmd.upmove < 0) aiEnt->client->pers.cmd.upmove = 0;
-
-#if 0 // UQ1: Don't need this...
-		//if we have multiple-jedi combat, probably need to keep checking (at certain debounce intervals) for a better (closer, more active) enemy and switch if needbe...
-		if ( ((!aiEnt->client->pers.cmd.buttons && !aiEnt->client->ps.fd.forcePowersActive) 
-			|| (aiEnt->enemy && aiEnt->enemy->health <= 0)) 
-			&& aiEnt->NPC->enemyCheckDebounceTime < level.time )
-		{//not doing anything (or walking toward a vanquished enemy - fixme: always taunt the player?), not using force powers and it's time to look again
-			//FIXME: build a list of all local enemies (since we have to find best anyway) for other AI factors- like when to use group attacks, determine when to change tactics, when surrounded, when blocked by another in the enemy group, etc.  Should we build this group list or let the enemies maintain their own list and we just access it?
-			gentity_t *sav_enemy = aiEnt->enemy;//FIXME: what about NPC->lastEnemy?
-			gentity_t *newEnemy;
-
-			aiEnt->enemy = NULL;
-			newEnemy = NPC_CheckEnemy(aiEnt, (qboolean)(aiEnt->NPC->confusionTime < level.time), qfalse, qfalse );
-			aiEnt->enemy = sav_enemy;
-			if ( newEnemy && newEnemy != sav_enemy )
-			{//picked up a new enemy!
-				aiEnt->lastEnemy = aiEnt->enemy;
-				G_SetEnemy( aiEnt, newEnemy );
-			}
-			aiEnt->NPC->enemyCheckDebounceTime = level.time + Q_irand( 1000, 3000 );
-		}
-#endif //0
 	}
 }
