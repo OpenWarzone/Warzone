@@ -3158,11 +3158,11 @@ SS_NUM_SABER_STYLES
 
 	if (ent->client->ps.weaponTime <= 0)
 	{ //not busy, set it now
-		ent->client->ps.fd.saberAnimLevelBase = ent->client->ps.fd.saberAnimLevel = selectLevel;
+		ent->client->ps.fd.saberDrawAnimLevel = ent->client->ps.fd.saberAnimLevelBase = ent->client->ps.fd.saberAnimLevel = selectLevel;
 	}
 	else
 	{ //can't set it now or we might cause unexpected chaining, so queue it
-		ent->client->ps.fd.saberAnimLevelBase = ent->client->saberCycleQueue = selectLevel;
+		ent->client->saberCycleQueue = selectLevel;
 	}
 }
 

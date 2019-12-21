@@ -8017,17 +8017,17 @@ void WP_SaberPositionUpdate( gentity_t *self, usercmd_t *ucmd )
 	}
 #endif
 
-	if (self && self->inuse && self->client)
+	/*if (self && self->inuse && self->client)
 	{
 		if (self->client->saberCycleQueue)
 		{
-			self->client->ps.fd.saberDrawAnimLevel = self->client->saberCycleQueue;
+			self->client->ps.fd.saberDrawAnimLevel = self->client->ps.fd.saberAnimLevelBase = self->client->ps.fd.saberAnimLevel = self->client->saberCycleQueue;
 		}
 		else
 		{
-			self->client->ps.fd.saberDrawAnimLevel = self->client->ps.fd.saberAnimLevel;
+			self->client->ps.fd.saberDrawAnimLevel = self->client->ps.fd.saberAnimLevelBase = self->client->ps.fd.saberAnimLevel;
 		}
-	}
+	}*/
 
 	if (self &&
 		self->inuse &&
@@ -8035,7 +8035,7 @@ void WP_SaberPositionUpdate( gentity_t *self, usercmd_t *ucmd )
 		self->client->saberCycleQueue &&
 		(self->client->ps.weaponTime <= 0 || self->health < 1))
 	{ //we cycled attack levels while we were busy, so update now that we aren't (even if that means we're dead)
-		self->client->ps.fd.saberAnimLevel = self->client->saberCycleQueue;
+		self->client->ps.fd.saberDrawAnimLevel = self->client->ps.fd.saberAnimLevel = self->client->ps.fd.saberAnimLevelBase = self->client->saberCycleQueue;
 		self->client->saberCycleQueue = 0;
 	}
 

@@ -28,7 +28,7 @@ float BG_GetSpeedMultiplierForStance(int saberAnimLevelBase)
 		break;
 	case SS_STAFF:
 	case SS_CROWD_CONTROL:
-		return 0.8;
+		return 0.75;// 0.8;
 		break;
 	default:
 		break;
@@ -39,6 +39,7 @@ float BG_GetSpeedMultiplierForStance(int saberAnimLevelBase)
 
 float BG_GetBlendMultiplierForStance(int saberAnimLevelBase)
 {
+	/*
 	switch (saberAnimLevelBase)
 	{
 	case SS_DUAL:
@@ -46,11 +47,12 @@ float BG_GetBlendMultiplierForStance(int saberAnimLevelBase)
 		break;
 	case SS_STAFF:
 	case SS_CROWD_CONTROL:
-		return 2.0;
+		return 1.2;// 2.0;
 		break;
 	default:
 		break;
 	}
+	*/
 
 	return 1.0;
 }
@@ -395,7 +397,189 @@ int transitionMove[Q_NUM_QUADS][Q_NUM_QUADS] =
 	{ LS_T1_BL_BR, LS_T1_BR__R, LS_T1_BR_TR, LS_T1_BR_T_, LS_T1_BR_TL, LS_T1_BR__L, LS_T1_BR_BL, LS_NONE },
 };
 
-//#define __SABER_EXPERIMENTAL_BOUNCE__
+#ifdef __SABER_EXPERIMENTAL_BOUNCE2__
+extern qboolean PM_SaberInBounce(int move);
+extern qboolean PM_SaberInDeflect(int move);
+extern qboolean PM_SaberInTransition(int move);
+extern qboolean PM_SaberInParry(int move);
+extern qboolean PM_SaberInKnockaway(int move);
+extern qboolean PM_SaberInReflect(int move);
+
+#define BOUNCE_TIME bg_testvalue2.integer//1000//200
+
+#define BLOCK_BOLTNAME (bg_testvalue0.integer ? "rradius" : "rhand")
+
+#define BONE_ANGLES_PREMULT			0x0001
+#define BONE_ANGLES_POSTMULT		0x0002
+#define BONE_ANGLES_REPLACE			0x0004
+
+float s_mix(float x, float y, float a)
+{
+	return x * (1.0 - a) + y * a;
+}
+
+qboolean PM_SaberBounceRagdollRightContinue(void)
+{
+#if defined(_GAME) || defined(_CGAME)
+	if (pm->baseEnt && pm->baseEnt->ghoul2)
+	{
+#if defined(_GAME)
+		int curtime = level.time;
+#elif defined(_CGAME)
+		int curtime = cg.time;
+#endif
+
+		if (pm->saberBounceRightTimer >= curtime)
+		{
+			int rHandBolt = trap->G2API_AddBolt(pm->baseEnt->ghoul2, 0, BLOCK_BOLTNAME);
+
+			if (rHandBolt)
+			{
+				vec3_t boltAng, wantedAngles;
+
+				VectorCopy(pm->saberBounceRightStartAngles, boltAng);
+
+				float amount = 1.0 - (float(pm->saberBounceRightTimer - curtime) / BOUNCE_TIME);
+
+				for (int i = 0; i < 3; i++)
+					boltAng[i] = s_mix(boltAng[i], pm->saberBounceRightDirection[i], Q_clamp(0.0, pow(amount * bg_testvalue1.value, bg_testvalue3.value), 1.0));
+				
+				pm->ps->freezeTorsoAnim = pm->ps->torsoAnim;
+
+				VectorNormalize(boltAng);
+
+#if defined(_CGAME)
+				char side[] = "CGAME";
+				Com_Printf("[%s] ent %i bounce. boltAngOrig %f %f %f. boltAngCurrent %f %f %f. percent %f.\n"
+					, side
+					, pm->baseEnt->s.number
+					, pm->saberBounceRightStartAngles[0], pm->saberBounceRightStartAngles[1], pm->saberBounceRightStartAngles[2]
+					, boltAng[0], boltAng[1], boltAng[2]
+					, amount);
+#elif defined(_GAME)
+				char side[] = "GAME";
+				Com_Printf("[%s] ent %i bounce. boltAngOrig %f %f %f. boltAngCurrent %f %f %f. percent %f.\n"
+					, side
+					, pm->baseEnt->s.number
+					, pm->saberBounceRightStartAngles[0], pm->saberBounceRightStartAngles[1], pm->saberBounceRightStartAngles[2]
+					, boltAng[0], boltAng[1], boltAng[2]
+					, amount);
+#endif
+
+				trap->G2API_SetBoneAngles(pm->baseEnt->ghoul2, 0, BLOCK_BOLTNAME, boltAng, BONE_ANGLES_REPLACE, NEGATIVE_Y, NEGATIVE_Z, NEGATIVE_X, NULL, 100, curtime);
+				trap->G2API_RemoveBone(pm->baseEnt->ghoul2, BLOCK_BOLTNAME, 0);
+
+				return qtrue;
+			}
+		}
+	}
+
+	pm->saberBounceRightTimer = 0;
+
+	return qfalse;
+#else
+	return qfalse;
+#endif
+}
+
+qboolean PM_SaberBounceRagdollRightBegin(int curMove, int nextMove)
+{
+#if defined(_GAME) || defined(_CGAME)
+	//if (PM_SaberInBounce(nextMove) || PM_SaberInDeflect(nextMove) || PM_SaberInParry(nextMove) || PM_SaberInKnockaway(nextMove) || PM_SaberInReflect(nextMove) || (pm->ps->saberBlocked > BLOCKED_NONE && pm->ps->saberBlocked < BLOCKED_LIGHTNING))
+	{
+		if (pm->baseEnt && pm->baseEnt->ghoul2)
+		{
+#if defined(_GAME)
+			int curtime = level.time;
+#elif defined(_CGAME)
+			int curtime = cg.time;
+#endif
+
+#if defined(_CGAME)
+			char side[] = "CGAME";
+			Com_Printf("[%s] ent %i begin saberBlocked %i.\n", side, pm->baseEnt->s.number, pm->ps->saberBlocked);
+#elif defined(_GAME)
+			char side[] = "GAME";
+			Com_Printf("[%s] ent %i begin saberBlocked %i.\n", side, pm->baseEnt->s.number, pm->ps->saberBlocked);
+#endif
+
+			int rHandBolt = trap->G2API_AddBolt(pm->baseEnt->ghoul2, 0, BLOCK_BOLTNAME);
+
+			if (rHandBolt)
+			{
+				mdxaBone_t boltMatrix;
+				vec3_t boltOrg, boltAng;
+				vec3_t tAngles;
+
+				VectorCopy(pm->ps->viewangles, tAngles);
+				tAngles[PITCH] = tAngles[ROLL] = 0;
+
+				trap->G2API_GetBoltMatrix(pm->baseEnt->ghoul2, 0, rHandBolt, &boltMatrix, tAngles, pm->ps->origin, curtime, 0, pm->modelScale);
+				//BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, boltOrg);
+				BG_GiveMeVectorFromMatrix(&boltMatrix, NEGATIVE_X, boltAng);
+
+				//AngleVectors(tAngles/*pm->ps->viewangles*/, pm->saberBounceRightDirection, NULL, NULL);
+				VectorCopy(boltAng, pm->saberBounceRightDirection);
+				pm->saberBounceRightDirection[ROLL] = 1.0;
+				VectorNormalize(pm->saberBounceRightDirection);
+				
+				//PerpendicularVector(pm->saberBounceRightDirection, pm->saberBounceRightDirection);
+				
+				//VectorScale(pm->saberBounceRightDirection, -1.0f, pm->saberBounceRightDirection);
+
+				VectorCopy(boltAng, pm->saberBounceRightStartAngles);
+
+				pm->saberBounceRightTimer = curtime + BOUNCE_TIME;
+
+				pm->ps->freezeTorsoAnim = -1;
+
+#if defined(_CGAME)
+				char side[] = "CGAME";
+				Com_Printf("[%s] ent %i begin. boltOrg %f %f %f. boltAngStart %f %f %f.\n", side, pm->baseEnt->s.number, boltOrg[0], boltOrg[1], boltOrg[2], boltAng[0], boltAng[1], boltAng[2]);
+#elif defined(_GAME)
+				char side[] = "GAME";
+				Com_Printf("[%s] ent %i begin. boltAngStart %f %f %f.\n", side, pm->baseEnt->s.number, boltAng[0], boltAng[1], boltAng[2]);
+#endif
+				trap->G2API_RemoveBone(pm->baseEnt->ghoul2, BLOCK_BOLTNAME, 0);
+				return qtrue;
+			}
+#if defined(_CGAME)
+			else
+			{
+				char side[] = "CGAME";
+				Com_Printf("[%s] ent %i begin. no bolt\n", side, pm->baseEnt->s.number);
+			}
+#elif defined(_GAME)
+			else
+			{
+				char side[] = "GAME";
+				Com_Printf("[%s] ent %i begin. no bolt\n", side, pm->baseEnt->s.number);
+			}
+#endif
+		}
+#if defined(_CGAME)
+		else
+		{
+			char side[] = "CGAME";
+			Com_Printf("[%s] ent %i begin. no baseEnt or ghoul2\n", side, pm->baseEnt->s.number);
+		}
+#elif defined(_GAME)
+		else
+		{
+			char side[] = "CGAME";
+			Com_Printf("[%s] ent %i begin. no baseEnt or ghoul2\n", side, pm->baseEnt->s.number);
+		}
+#endif
+	}
+
+	pm->saberBounceRightTimer = 0;
+
+	return qfalse;
+#else
+	return qfalse;
+#endif
+}
+#endif //__SABER_EXPERIMENTAL_BOUNCE2__
 
 #ifdef __SABER_EXPERIMENTAL_BOUNCE__
 extern qboolean PM_SaberInBounce(int move);
@@ -3435,10 +3619,31 @@ void PM_WeaponLightsaber(void)
 
 	qboolean checkOnlyWeap = qfalse;
 
-#ifdef __SABER_EXPERIMENTAL_BOUNCE__
+#if defined(__SABER_EXPERIMENTAL_BOUNCE__) || defined(__SABER_EXPERIMENTAL_BOUNCE2__)
 	if (PM_SaberBounceRagdollRightContinue())
 	{
+		//clear block
+		pm->ps->saberBlocked = 0;
+		pm->ps->freezeTorsoAnim = -1;
+		PM_StartTorsoAnim(pm->ps->torsoAnim, 500);
+
+		// Done with block, so stop these active weapon branches.
 		return;
+	}
+	else if (pm->ps->saberBlocked && PM_SaberBounceRagdollRightBegin(0, 0))
+	{
+		//clear block
+		pm->ps->saberBlocked = 0;
+		PM_SaberBounceRagdollRightContinue();
+		pm->ps->freezeTorsoAnim = -1;
+		PM_StartTorsoAnim(pm->ps->torsoAnim, 500);
+
+		// Done with block, so stop these active weapon branches.
+		return;
+	}
+	else
+	{
+		pm->ps->freezeTorsoAnim = 0;
 	}
 #endif //__SABER_EXPERIMENTAL_BOUNCE__
 
@@ -3911,6 +4116,41 @@ void PM_WeaponLightsaber(void)
 		pm->ps->weaponstate = WEAPON_READY;
 	}
 
+	/*
+#if defined(__SABER_EXPERIMENTAL_BOUNCE__) || defined(__SABER_EXPERIMENTAL_BOUNCE2__)
+	if (pm->saberBounceRightTimer >= pml.msec)
+	{
+		pm->ps->weaponTime = 0;
+
+		//clear block
+		pm->ps->saberBlocked = 0;
+
+		// Charging is like a lead-up before attacking again.  This is an appropriate use, or we can create a new weaponstate for blocking
+		pm->ps->weaponstate = WEAPON_READY;
+
+		// Done with block, so stop these active weapon branches.
+		return;
+	}
+	else if (pm->ps->saberBlocked && PM_SaberBounceRagdollRightBegin(curmove, newmove))
+	{
+		pm->ps->weaponTime = 0;
+
+		//clear block
+		pm->ps->saberBlocked = 0;
+
+		// Charging is like a lead-up before attacking again.  This is an appropriate use, or we can create a new weaponstate for blocking
+		pm->ps->weaponstate = WEAPON_READY;
+
+		pm->ps->freezeTorsoAnim = -1;
+
+		// Done with block, so stop these active weapon branches.
+		return;
+	}
+	else
+		pm->ps->freezeTorsoAnim = 0;
+
+#endif //__SABER_EXPERIMENTAL_BOUNCE__
+	*/
 	// Now we react to a block action by the player's lightsaber.
 	if (pm->ps->saberBlocked)
 	{
@@ -4909,13 +5149,6 @@ weapChecks:
 				{
 					PM_SetAnim(SETANIM_LEGS, anim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 				}
-
-#ifdef __SABER_EXPERIMENTAL_BOUNCE__
-				if (PM_SaberBounceRagdollRightBegin(curmove, newmove))
-				{
-
-				}
-#endif //__SABER_EXPERIMENTAL_BOUNCE__
 
 				//don't fire again until anim is done
 				pm->ps->weaponTime = pm->ps->torsoTimer;

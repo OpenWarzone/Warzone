@@ -3433,8 +3433,9 @@ static void CG_SetLerpFrameAnimation( centity_t *cent, clientInfo_t *ci, lerpFra
 		animSpeed *= animSpeedMult;
 
 		if (cent->currentState.weapon == WP_SABER)
-		{
-			BG_SaberStartTransAnim(cent->currentState.number, cent->playerState, cent->currentState.fireflag, cent->playerState ? cent->playerState->fd.saberAnimLevelBase : cent->currentState.fireflag, cent->currentState.weapon, newAnimation, &animSpeed, cent->currentState.brokenLimbs);
+		{// saberAnimLevelBase is not sent to client, so using saberDrawAnimLevel.
+			//Com_Printf("CG_SetLerpFrameAnimation: al %i. alb %i. ald %i.\n", cent->currentState.fireflag, cent->playerState->fd.saberAnimLevelBase, cent->playerState->fd.saberDrawAnimLevel);
+			BG_SaberStartTransAnim(cent->currentState.number, cent->playerState, cent->currentState.fireflag, cent->playerState->fd.saberDrawAnimLevel, cent->currentState.weapon, newAnimation, &animSpeed, cent->currentState.brokenLimbs);
 		}
 
 
@@ -3612,7 +3613,7 @@ static void CG_RunLerpFrame( centity_t *cent, clientInfo_t *ci, lerpFrame_t *lf,
 	}
 
 	// see if the animation sequence is switching
-	if (cent->currentState.forceFrame)
+	if (cent->currentState.forceFrame > 0)
 	{
 		if (lf->lastForcedFrame != cent->currentState.forceFrame)
 		{
@@ -3626,6 +3627,10 @@ static void CG_RunLerpFrame( centity_t *cent, clientInfo_t *ci, lerpFrame_t *lf,
 		lf->lastForcedFrame = cent->currentState.forceFrame;
 
 		lf->animationNumber = 0;
+	}
+	else if (cent->currentState.freezeTorsoAnim == -1)
+	{// UQ1: -1 means freeze the animation in current position until it is no longer -1...
+		trap->G2API_SetBoneAnim(cent->ghoul2, 0, "lower_lumbar", lf->frame, lf->frame, BONE_ANIM_OVERRIDE_FREEZE | BONE_ANIM_BLEND, 1.0f, cg.time, -1, 0);
 	}
 	// JKG: Freezing/stun
 	/*else if (JKG_DamageTypeFreezes((const damageType_t)cent->currentState.damageTypeFlags))

@@ -7070,8 +7070,7 @@ static void Jedi_Attack( gentity_t *aiEnt)
 		if (aiEnt->enemy)
 		{
 			//always face enemy if have one
-			//aiEnt->NPC->combatMove = qtrue;
-			NPC_FaceEnemy(aiEnt, qfalse);
+			aiEnt->NPC->combatMove = qtrue;
 
 			if (Jedi_AttackOrCounter(aiEnt))
 			{// Attack...
@@ -7147,11 +7146,14 @@ static void Jedi_Attack( gentity_t *aiEnt)
 						cmd->rightmove = -48.0;
 						break;
 					}
+
+					NPC_FaceEnemy(aiEnt, qfalse);
 				}
 				else
 				{
 					aiEnt->NPC->saberAttackDirectionTime = 0;
 					Jedi_Advance(aiEnt);
+					NPC_FaceEnemy(aiEnt, qfalse);
 				}
 			}
 			else
@@ -7161,14 +7163,14 @@ static void Jedi_Attack( gentity_t *aiEnt)
 				if (Distance(aiEnt->client->ps.origin, aiEnt->enemy->r.currentOrigin) <= 128.0)
 				{
 					Jedi_Retreat(aiEnt);
+					NPC_FaceEnemy(aiEnt, qfalse);
 				}
 			}
 		}
 		else
 		{
 			aiEnt->NPC->saberAttackDirectionTime = 0;
-			Jedi_Patrol(aiEnt);//was calling Idle... why?
-			return;
+			Jedi_Patrol(aiEnt);
 		}
 
 		return;
@@ -8617,6 +8619,7 @@ void NPC_BSJedi_Default( gentity_t *aiEnt)
 
 					if (!blockFound)
 					{// Try to heal...
+#if 0
 						if ( TIMER_Done( aiEnt, "heal" )
 							&& !Jedi_SaberBusy( aiEnt )
 							&& aiEnt->client->ps.fd.forcePowerLevel[FP_HEAL] > 0
@@ -8659,6 +8662,7 @@ void NPC_BSJedi_Default( gentity_t *aiEnt)
 							}
 						}
 						else
+#endif
 						{// Check for an evasion method...
 							NPC_CheckEvasion(aiEnt);
 

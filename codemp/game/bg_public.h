@@ -11,6 +11,17 @@
 #include "anims.h"
 #include "bg_vehicles.h"
 
+//
+//
+//
+
+//#define __SABER_EXPERIMENTAL_BOUNCE__
+//#define __SABER_EXPERIMENTAL_BOUNCE2__
+
+//
+//
+//
+
 #define GRENADE_MAX_CHARGE_TIME 5000
 
 //these two defs are shared now because we do clientside ent parsing
@@ -555,6 +566,12 @@ typedef struct pmove_s {
 	vec3_t		ikStatusLeftBouncePoint;
 	vec3_t		ikStatusLeftBounceAngles;
 	int			ikStatusLeftStartTime;
+
+#ifdef __SABER_EXPERIMENTAL_BOUNCE2__
+	int			saberBounceRightTimer = 0;
+	vec3_t		saberBounceRightDirection;
+	vec3_t		saberBounceRightStartAngles;
+#endif //__SABER_EXPERIMENTAL_BOUNCE2__
 
 	// for fixed msec Pmove
 	int			pmove_fixed;

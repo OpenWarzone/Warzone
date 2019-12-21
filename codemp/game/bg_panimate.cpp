@@ -3183,37 +3183,36 @@ void BG_SaberStartTransAnim(int clientNum, playerState_t *ps, int saberAnimLevel
 	float	blueanimscale = 2.0f;
 	float	mediumanimscale = 1.1f;
 	float	tavionanimscale = 1.1f;
+	float	stancescale = BG_GetSpeedMultiplierForStance(saberAnimLevelBase);
 
 	if (anim >= BOTH_A1_T__B_ && anim <= BOTH_ROLL_STAB)
 	{
 		if (weapon == WP_SABER)
 		{
 			saberInfo_t *saber = BG_MySaber(clientNum, 0);
-			if (saber
-				&& saber->animSpeedScale != 1.0f)
+
+			if (saber && saber->animSpeedScale != 1.0f)
 			{
 				*animSpeed *= saber->animSpeedScale;
 			}
+
 			saber = BG_MySaber(clientNum, 1);
-			if (saber
-				&& saber->animSpeedScale != 1.0f)
+
+			if (saber && saber->animSpeedScale != 1.0f)
 			{
 				*animSpeed *= saber->animSpeedScale;
 			}
 		}
 	}
 
-	if ((anim) >= BOTH_A1_T__B_ &&
-		(anim) <= BOTH_H7_S7_BR)
+	if (anim >= BOTH_A1_T__B_ && anim <= BOTH_H7_S7_BR)
 	{
 		if (saberAnimLevel == SS_STRONG)
 		{
-			//*animSpeed *= 1.5f;
 			*animSpeed *= redanimscale;
 		}
 		else if (saberAnimLevel == SS_DUAL)
 		{
-			//*animSpeed *= 1.25f;
 			*animSpeed *= dualanimscale;
 		}
 		else if (saberAnimLevel == SS_STAFF)
@@ -3224,16 +3223,12 @@ void BG_SaberStartTransAnim(int clientNum, playerState_t *ps, int saberAnimLevel
 
 	if (saberAnimLevel == SS_MEDIUM)
 	{
-		//*animSpeed *= 1.5f;
 		*animSpeed *= mediumanimscale;
 	}
 
-	if (((anim) >= BOTH_T1_BR__R &&
-		(anim) <= BOTH_T1_BL_TL) ||
-		((anim) >= BOTH_T2_BR__R &&
-		(anim) <= BOTH_T2_BL_TL) ||
-			((anim) >= BOTH_T3_BR__R &&
-		(anim) <= BOTH_T3_BL_TL))
+	if ((anim >= BOTH_T1_BR__R && anim <= BOTH_T1_BL_TL) 
+		|| (anim >= BOTH_T2_BR__R && anim <= BOTH_T2_BL_TL) 
+		|| (anim >= BOTH_T3_BR__R && anim <= BOTH_T3_BL_TL))
 	{
 		if (saberAnimLevel == SS_FAST)
 		{
@@ -3265,7 +3260,8 @@ void BG_SaberStartTransAnim(int clientNum, playerState_t *ps, int saberAnimLevel
 		}
 	}
 
-	if (weapon == WP_SABER && PM_InSaberAnim(anim)) {
+	if (weapon == WP_SABER && PM_InSaberAnim(anim)) 
+	{
 		if (saberAnimLevel == SS_FAST)
 		{
 			*animSpeed *= 0.75f;
@@ -3273,16 +3269,20 @@ void BG_SaberStartTransAnim(int clientNum, playerState_t *ps, int saberAnimLevel
 	}
 
 	//slow down the saber speeds
-	if (anim >= BOTH_A1_T__B_ && anim <= BOTH_ROLL_STAB && !BG_SaberInSpecialAttack(anim)
-		&& !PM_SaberReturnAnim(anim))
+	if (anim >= BOTH_A1_T__B_ && anim <= BOTH_ROLL_STAB && !BG_SaberInSpecialAttack(anim) && !PM_SaberReturnAnim(anim))
 	{
 		*animSpeed *= saberanimscale;
 	}
 
-	if (ps)
-	{
-		*animSpeed *= BG_GetSpeedMultiplierForStance(ps->fd.saberAnimLevelBase);
-	}
+	*animSpeed *= stancescale;
+
+	/*
+#if defined(_CGAME)
+	Com_Printf("CGAME: Stance scale %f. al %i. alb %i.\n", stancescale, saberAnimLevel, saberAnimLevelBase);
+#elif defined(_GAME)
+	Com_Printf("GAME: Stance scale %f. al %i. alb %i.\n", stancescale, saberAnimLevel, saberAnimLevelBase);
+#endif
+	*/
 }
 //[/NewSaberSys]
 
@@ -3294,8 +3294,7 @@ PM_SetAnimFinal
 qboolean PM_RunningAnim( int anim );
 qboolean PM_WalkingAnim( int anim );
 
-void BG_SetAnimFinal(playerState_t *ps, animation_t *animations,
-					 int setAnimParts,int anim, int setAnimFlags, int blendTime)
+void BG_SetAnimFinal(playerState_t *ps, animation_t *animations, int setAnimParts, int anim, int setAnimFlags, int blendTime)
 {
 	float editAnimSpeed = 1;
 
@@ -3308,7 +3307,11 @@ void BG_SetAnimFinal(playerState_t *ps, animation_t *animations,
 	//assert(animations[anim].firstFrame > 0 || animations[anim].numFrames > 0);
 	if (!(animations[anim].firstFrame > 0 || animations[anim].numFrames > 0)) return; // UQ1: hmmm... avoid crashing and just ignore the anim...
 
+#if defined(_CGAME)
+	BG_SaberStartTransAnim(ps->clientNum, ps, ps->fd.saberAnimLevel, ps->fd.saberDrawAnimLevel, ps->weapon, anim, &editAnimSpeed, ps->brokenLimbs); // saberAnimLevelBase is not sent to client...
+#else
 	BG_SaberStartTransAnim(ps->clientNum, ps, ps->fd.saberAnimLevel, ps->fd.saberAnimLevelBase, ps->weapon, anim, &editAnimSpeed, ps->brokenLimbs);
+#endif
 
 #ifdef __EXPERIMENTAL_REVERSE_ANIM__
 	if (!(setAnimFlags & SETANIM_FLAG_RESTART_REVERSE))
@@ -3476,8 +3479,7 @@ setAnimLegs:
 				ps->legsTimer = ((animations[anim].numFrames ) * fabs((float)(animations[anim].frameLerp)));
 			}
 
-			if (PM_RunningAnim(anim) ||
-				PM_WalkingAnim(anim)) //these guys are ok, they don't actually reference pm
+			if (PM_RunningAnim(anim) || PM_WalkingAnim(anim)) //these guys are ok, they don't actually reference pm
 			{
 				if (ps->fd.forcePowersActive & (1 << FP_RAGE))
 				{
