@@ -4137,6 +4137,13 @@ void NPC_Think ( gentity_t *self )//, int msec )
 	int i = 0;
 	gentity_t *aiEnt = self;
 
+#ifdef __USE_NAVLIB__
+	if (G_NavmeshIsLoaded())
+	{
+		// Can skip allocating NPC's pathlist's, since we won't be needing them...
+	}
+	else
+#endif //__USE_NAVLIB__
 	if (!self->pathlist)
 	{
 		self->pathlist = (int *)malloc(MAX_WPARRAY_SIZE*sizeof(int));
@@ -4280,17 +4287,25 @@ void NPC_Think ( gentity_t *self )//, int msec )
 		int	startTime = GetTime(0);
 #endif//	AI_TIMERS
 
-		qboolean is_jedi = NPC_IsJedi(self);
-		qboolean is_bot = (qboolean)(self->s.eType == ET_PLAYER);
+
+#define NPC_FAST_THINK_RANGE 2048.0
+
+		qboolean	is_jedi = NPC_IsJedi(self);
+		qboolean	is_bot = (qboolean)(self->s.eType == ET_PLAYER);
+		qboolean	haveEnemyPlayer = qfalse;
+		float		enemyDist = 99999.9f;
 		
-		if (self->isPadawan || is_bot) is_jedi = qfalse;
+		if (self->enemy && NPC_IsAlive(self, self->enemy) && self->enemy->s.eType == ET_PLAYER)
+		{
+			enemyDist = Distance(self->r.currentOrigin, self->enemy->r.currentOrigin);
+			haveEnemyPlayer = qtrue;
+		}
 
 		// UQ1: Think more often!
 #ifndef __LOW_THINK_AI__
-		if (is_jedi && self->enemy && self->s.weapon == WP_SABER && NPC_IsAlive(self, self->enemy) && Distance(self->r.currentOrigin, self->enemy->r.currentOrigin) <= 256)
+		if (is_jedi && haveEnemyPlayer && enemyDist <= 256)
 		{// When a jedi NPC has a valid enemy, let it think a lot more, for smooth saber moves...
-			aiEnt->NPC->nextBStateThink = level.time;
-			self->nextthink = level.time;
+			self->nextthink = aiEnt->NPC->nextBStateThink = level.time;
 
 			if (self->client->pers.cmd.buttons & BUTTON_ATTACK)
 			{// Keep things exactly as before, for saber chaining like players do...
@@ -4301,10 +4316,34 @@ void NPC_Think ( gentity_t *self )//, int msec )
 				aiEnt->client->pers.cmd.buttons = 0; // init buttons...
 			}
 		}
-		else
-		{
-			aiEnt->NPC->nextBStateThink = level.time + FRAMETIME / 2;
+		else if (haveEnemyPlayer && enemyDist <= NPC_FAST_THINK_RANGE)
+		{// Allow more thinks for NPC's with an enemy player...
+			//self->nextthink = level.time + (FRAMETIME / 10);
+			//aiEnt->NPC->nextBStateThink = level.time + (FRAMETIME / 2);
+
+			// Dynamic think timers based on distance from the enemy... Closer thinks faster... Should also spread all AI thinks out over time for less lag...
+			float rangeMultiplier = 1.0 - Q_clamp(0.0, enemyDist / NPC_FAST_THINK_RANGE, 1.0); // Give us a number between 0.0 and 1.0, 1.0 being the closest and 0.0 being the furthest...
+
+			// Basic (ClientThink - no AI changes) think every 10ms -> 50ms, by range...
+			float nextThinkDivider = Q_clamp(1.0, rangeMultiplier * 5.0, 5.0); // Should give us a number between 1.0 and 5.0. 5.0 being the closest and 1.0 being the furthest...
+			self->nextthink = level.time + (int)(((float)FRAMETIME / 2.0) / nextThinkDivider);
+
+			// Full think (AI updates) every 25ms -> 50ms, by range...
+			float nextbSThinkDivider = Q_clamp(1.0, rangeMultiplier + 1.0, 2.0); // Should give us a number between 1.0 and 2.0. 2.0 being the closest and 1.0 being the furthest...
+			aiEnt->NPC->nextBStateThink = level.time + (int)(((float)FRAMETIME / 2.0) / nextbSThinkDivider);
+
 			aiEnt->client->pers.cmd.buttons = 0; // init buttons...
+		}
+		else
+		{// Slow think, every 100ms...
+			self->nextthink = aiEnt->NPC->nextBStateThink = level.time + (FRAMETIME / 2);
+			//self->nextthink = aiEnt->NPC->nextBStateThink = level.time + FRAMETIME;
+			aiEnt->client->pers.cmd.buttons = 0; // init buttons...
+		}
+
+		if (self->nextthink > aiEnt->NPC->nextBStateThink)
+		{
+			self->nextthink = aiEnt->NPC->nextBStateThink;
 		}
 #else //__LOW_THINK_AI__
 		aiEnt->NPC->nextBStateThink = level.time + FRAMETIME;
@@ -4317,6 +4356,8 @@ void NPC_Think ( gentity_t *self )//, int msec )
 			qboolean is_civilian = NPC_IsCivilian(self);
 			qboolean is_vendor = NPC_IsVendor(self);
 			qboolean use_pathing = qfalse;
+
+			if (self->isPadawan || is_bot) is_jedi = qfalse;
 
 			if (is_civilian || is_vendor)
 			{
