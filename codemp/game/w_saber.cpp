@@ -3221,6 +3221,10 @@ qboolean PM_RunningAnim(int anim);
 extern qboolean BG_SuperBreakWinAnim(int anim);
 extern qboolean BG_SaberInNonIdleDamageMove(playerState_t *ps, int AnimIndex);
 
+
+#define __FIX_REALTRACE__ // This system was broken in soooo many ways!
+
+#ifndef __FIX_REALTRACE__
 //Number of objects that a RealTrace can passthru when the ghoul2 trace fails. 
 #define MAX_REAL_PASSTHRU 8
 
@@ -3330,7 +3334,35 @@ static QINLINE int Finish_RealTrace(trace_t *results, trace_t *closestTrace, vec
 	TraceCopy(closestTrace, results);
 	return REALTRACE_HIT;
 }
+#else //__FIX_REALTRACE__
+#define MAX_REAL_PASSTHRU 8
 
+#define REALTRACE_MISS				0 //didn't hit anything
+#define REALTRACE_HIT				1 //hit object normally
+#define REALTRACE_PLAYER			2 //hit a player
+static QINLINE int Finish_RealTrace(trace_t *results, trace_t *closestTrace, vec3_t start, vec3_t end)
+{//this function finishs up the realtrace
+	if (VectorCompare(closestTrace->endpos, end))
+	{//No hit. Make sure that tr is correct.
+		TraceClear(results, end);
+		return REALTRACE_MISS;
+	}
+
+	if (closestTrace->entityNum < ENTITYNUM_WORLD)
+	{
+		gentity_t *currentEnt = &g_entities[closestTrace->entityNum];
+
+		if (currentEnt && currentEnt->inuse && currentEnt->client)
+		{//this object doesn't have a ghoul2 or saber internal trace.  
+			TraceCopy(closestTrace, results);
+			return REALTRACE_PLAYER;
+		}
+	}
+
+	TraceCopy(closestTrace, results);
+	return REALTRACE_HIT;
+}
+#endif //__FIX_REALTRACE__
 
 //This function is setup to give much more realistic traces for saber attack traces.
 //It's not 100% perfect, but the situations where this won't work right are very rare and
@@ -3354,7 +3386,9 @@ int G_RealTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_t mins,
 	float closestFraction = 1.1f; 	//the fraction of the closest trace so far.  Initially set higher than one so that we have an actualy tr even if the tr is clear.
 	int misses = 0;
 	qboolean atkIsSaberer = (attacker && attacker->client && attacker->client->ps.weapon == WP_SABER) ? qtrue : qfalse;
+#ifndef __FIX_REALTRACE__
 	InitRealTraceContent();
+#endif //__FIX_REALTRACE__
 
 	if (atkIsSaberer)
 	{//attacker is using a saber to attack us, blank out their saber/blade data so we have a fresh start for this trace.
@@ -3366,6 +3400,15 @@ int G_RealTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_t mins,
 	TraceClear(&closestTrace, end);
 
 	VectorCopy(start, currentStart);
+
+#ifdef __FIX_REALTRACE__
+	// UQ1: Add traceDirection so we can move traces forward for the next check, not repeat traces in the same location, giving the same result over and over...
+	vec3_t traceDirection;
+	VectorSubtract(end, start, traceDirection);
+
+	// float FIX_REALTRACE_FORWARD = 1.0; // This too would be wasteful and give little benefit, and more issues retracing the same hits (filling realtrace slots with the same result over and over)...
+	float FIX_REALTRACE_FORWARD = (maxs[0] - mins[0]) + 1.0; // Radius of sabers + 1.0 to skip past it fully for next trace... Should skip all re-hits, without (or extremely rarely) loosing any real hits...
+#endif //__FIX_REALTRACE__
 
 	for (misses = 0; misses < MAX_REAL_PASSTHRU; misses++)
 	{
@@ -3382,12 +3425,38 @@ int G_RealTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_t mins,
 		//also save the storedEntityNum since the internal traces normally blank out the trace_t if they fail.
 		currentEntityNum = tr->entityNum;
 
+#ifdef __FIX_REALTRACE__
+		if (tr->fraction >= 1.0 || VectorCompare(currentEndPos, end))
+		{// Traced all the way to the end, obviously didn't hit anything, skip all the things...
+			TraceClear(&closestTrace, end);
+			return REALTRACE_MISS;
+		}
+
+		// UQ1: This made no sense, if it started solid and we keep tracing from the same location, we are just wasting time hitting the same solid over and over...
+		// this should either move 1.0 in the direction of the blade, or bug out... This can skip up to 16 wasted costly normal traces, and a crazy number of wasted uber-costly G2 traces..
+		if (tr->startsolid || tr->allsolid) // UQ1: Added allsolid check as well here..
+		{// I'm gonna bug out for now, as it seems the most appropriate, as moving forward and doing another trace would probably mean damage through walls...
+			if (!VectorCompare(start, currentStart))
+			{//didn't do trace with original start point.  Recalculate the real fraction before we do our comparision.
+				tr->fraction = CalcTraceFraction(start, end, tr->endpos);
+			}
+
+			if (tr->fraction < closestFraction)
+			{//this is the closest hit, make it so.
+				TraceCopy(tr, &closestTrace);
+				closestFraction = tr->fraction;
+			}
+			break;
+		}
+#else //!__FIX_REALTRACE__
 		if (tr->startsolid)
 		{//make sure that tr->endpos is at the start point as it should be for startsolid.
 			VectorCopy(currentStart, tr->endpos);
 		}
+#endif //__FIX_REALTRACE__
 
-		if (tr->entityNum == ENTITYNUM_NONE)
+		//if (tr->entityNum == ENTITYNUM_NONE)
+		if (tr->entityNum >= ENTITYNUM_WORLD) // UQ1: Do this for world hits too, to not go through walls and save traces...
 		{//We've run out of things to hit so we're done.
 			if (!VectorCompare(start, currentStart))
 			{//didn't do trace with original start point.  Recalculate the real fraction before we do our comparision.
@@ -3471,19 +3540,57 @@ int G_RealTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_t mins,
 			closestFraction = tr->fraction;
 		}
 
+#ifndef __FIX_REALTRACE__
 		//remove the last hit entity from the trace and try again.
 		if (!AddRealTraceContent(currentEntityNum))
 		{//crap!  The data structure is full.  We're done.
 			break;
 		}
+#endif //__FIX_REALTRACE__
 
 		//move our start trace point up to the point where we hit the bbox for the last ghoul2/saber object.
+#ifdef __FIX_REALTRACE__
+		VectorMA(currentEndPos, 1.0, traceDirection, currentStart);
+#else //!__FIX_REALTRACE__
 		VectorCopy(currentEndPos, currentStart);
+#endif //__FIX_REALTRACE__
 	}
 
 	return Finish_RealTrace(tr, &closestTrace, start, end);
 }
 //[/SaberSys]
+
+#ifdef __SINGLE_FRAME_SABER_TRACE__
+int WP_DoFrameSaberTrace(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t saberStart, vec3_t saberEnd, qboolean doInterpolate, int trMask, qboolean extrapolate)
+{// Only do a single saber trace each frame, so that we can reuse it's information...
+	if (self->saberTrace[rSaberNum][rBladeNum].frameNum != level.framenum)
+	{// Ok, this saber and blade has not been done this frame, so do it...
+		vec3_t mins, maxs;
+
+		// First do a precision trace... Best for saber vs saber and saber vs weapon bolt...
+		float saberBoxSize = 1.0;// self->client->saber[rSaberNum].blade[rBladeNum].radius * 4.0;
+		VectorSet(mins, -saberBoxSize, -saberBoxSize, -saberBoxSize);
+		VectorSet(maxs, saberBoxSize, saberBoxSize, saberBoxSize);
+
+		// Record the saber's trace into self->saberTrace.XXXXX
+		self->saberTrace[rSaberNum][rBladeNum].realTraceResult = G_RealTrace(self, &self->saberTrace[rSaberNum][rBladeNum].trace, saberStart, mins, maxs, saberEnd, self->s.number, trMask, rSaberNum, rBladeNum);
+		self->saberTrace[rSaberNum][rBladeNum].frameNum = level.framenum;
+
+		if (self->saberTrace[rSaberNum][rBladeNum].realTraceResult == REALTRACE_MISS)
+		{// Since we got nothing on the precision trace, do a box trace... Better for saber vs NPC...
+			saberBoxSize = g_testvalue0.value;// 64.0;
+			VectorSet(mins, -saberBoxSize, -saberBoxSize, -saberBoxSize);
+			VectorSet(maxs, saberBoxSize, saberBoxSize, saberBoxSize);
+
+			// Record the saber's trace into self->saberTrace.XXXXX
+			self->saberTrace[rSaberNum][rBladeNum].realTraceResult = G_RealTrace(self, &self->saberTrace[rSaberNum][rBladeNum].trace, saberStart, mins, maxs, saberEnd, self->s.number, trMask, rSaberNum, rBladeNum);
+			self->saberTrace[rSaberNum][rBladeNum].frameNum = level.framenum;
+		}
+	}
+
+	return self->saberTrace[rSaberNum][rBladeNum].realTraceResult;
+}
+#endif //__SINGLE_FRAME_SABER_TRACE__
 
 float WP_SaberBladeLength( saberInfo_t *saber )
 {//return largest length
@@ -4597,26 +4704,6 @@ qboolean BG_SuperBreakWinAnim( int anim );
 */
 //[/SaberSys]
 
-#ifdef __SINGLE_FRAME_SABER_TRACE__
-int WP_DoFrameSaberTrace(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t saberStart, vec3_t saberEnd, qboolean doInterpolate, int trMask, qboolean extrapolate)
-{// Only do a single saber trace each frame, so that we can reuse it's information...
-	if (self->saberTrace[rSaberNum][rBladeNum].frameNum != level.framenum)
-	{// Ok, this saber and blade has not been done this frame, so do it...
-		vec3_t mins, maxs;
-
-		float saberBoxSize = self->client->saber[rSaberNum].blade[rBladeNum].radius * 4.0;
-		VectorSet(mins, -saberBoxSize, -saberBoxSize, -saberBoxSize);
-		VectorSet(maxs, saberBoxSize, saberBoxSize, saberBoxSize);
-
-		// Record the saber's trace into self->saberTrace.XXXXX
-		self->saberTrace[rSaberNum][rBladeNum].realTraceResult = G_RealTrace(self, &self->saberTrace[rSaberNum][rBladeNum].trace, saberStart, mins, maxs, saberEnd, self->s.number, trMask, rSaberNum, rBladeNum);
-		self->saberTrace[rSaberNum][rBladeNum].frameNum = level.framenum;
-	}
-
-	return self->saberTrace[rSaberNum][rBladeNum].realTraceResult;
-}
-#endif //__SINGLE_FRAME_SABER_TRACE__
-
 //[SaberSys]
 //racc - OJP Enhanced completely rewritten CheckSaberDamage function.  This is the heart of the saber system beast.
 //[NewSaberSys]
@@ -4975,7 +5062,7 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 		//	otherOwner = NULL;
 		//}
 		//else 
-		if (realTraceResult == REALTRACE_SABERBLOCKHIT || realTraceResult == REALTRACE_PLAYER)
+		if (realTraceResult == REALTRACE_PLAYER)
 		{//this is actually a faked lightsaber hit to make the bounding box saber blocking work.
 		 //As such, we know that the player can block, set the approprate block position for this attack.
 			CheckManualBlocking(self, otherOwner);
@@ -9284,6 +9371,13 @@ void WP_SaberBlock( gentity_t *playerent, vec3_t hitloc, qboolean missileBlock )
 	float rightdot;
 	float zdiff;
 
+	if (playerent->client->ps.fd.saberAnimLevelBase == SS_CROWD_CONTROL
+		&& (playerent->client->pers.cmd.buttons & BUTTON_ALT_ATTACK)
+		&& !(playerent->client->pers.cmd.buttons & BUTTON_ATTACK))
+	{// In spinning saber deflection mode... Block all the things... No block animation needed...
+		return;
+	}
+
 	if (!playerent || !playerent->client || !NPC_IsAlive(playerent, playerent)) return;
 
 	VectorSubtract(hitloc, playerent->client->ps.origin, diff);
@@ -9362,16 +9456,34 @@ qboolean WP_SaberCanBlock_NPC(gentity_t *self, vec3_t point, int dflags, int mod
 //[NewSaberSys]
 qboolean WP_SaberCanBlock(gentity_t *atk, gentity_t *self, vec3_t point, vec3_t originpoint, int dflags, int mod, qboolean projectile, int attackStr)
 {
-	qboolean thrownSaber = qfalse;
-	float blockFactor = 0;
-	qboolean saberInAttack = WP_PlayerSaberAttack(self);
+	qboolean		thrownSaber = qfalse;
+	float			blockFactor = 0;
+	qboolean		saberInAttack = WP_PlayerSaberAttack(self);
+	qboolean		isCrowdControlDeflection = qfalse;
 
 	if (self->s.eType == ET_NPC) // really, you probably should make a new one of WP_SaberCanBlock_NPC that does your WP_SaberCanBlock stuff for them too...
+	{
 		return (qboolean)WP_SaberCanBlock_NPC(self, point, dflags, mod, projectile, attackStr);
+	}
 
 	if (!self || !self->client || !point)
+	{
 		return qfalse;
+	}
 
+	if (attackStr == 999)
+	{
+		attackStr = 0;
+		thrownSaber = qtrue;
+	}
+
+	if (self->client->ps.fd.saberAnimLevelBase == SS_CROWD_CONTROL
+		&& (projectile || thrownSaber)
+		&& (self->client->pers.cmd.buttons & BUTTON_ALT_ATTACK)
+		&& !(self->client->pers.cmd.buttons & BUTTON_ATTACK))
+	{// In spinning saber deflection mode... Block all the things...
+		isCrowdControlDeflection = qtrue;
+	}
 
 	if (self->client->ps.forceHandExtend == HANDEXTEND_KNOCKDOWN)
 		return qfalse;
@@ -9384,12 +9496,6 @@ qboolean WP_SaberCanBlock(gentity_t *atk, gentity_t *self, vec3_t point, vec3_t 
 	if (!self->client->ps.saberEntityNum)
 	{ //saber is knocked away
 		return qfalse;
-	}
-
-	if (attackStr == 999)
-	{
-		attackStr = 0;
-		thrownSaber = qtrue;
 	}
 
 	if (thrownSaber)
@@ -9410,33 +9516,40 @@ qboolean WP_SaberCanBlock(gentity_t *atk, gentity_t *self, vec3_t point, vec3_t 
 		//no blocking when useing melee
 	}
 
-	switch (self->client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE])
-	{ // These actually make more sense to be separate from SABER blocking arcs.
-	case FORCE_LEVEL_3:
-		blockFactor = 0.3f;
-		break;
-	case FORCE_LEVEL_2:
-		blockFactor = 0.3f;
-		break;
-	case FORCE_LEVEL_1:
-		blockFactor = 0.3f;
-		break;
-	default:  //for now we just don't get to autoblock with no def
-
-		if (!self->client->hasShield)
-			return qfalse;
+	if (isCrowdControlDeflection)
+	{// Block pretty much anything forward of the spinning saber...
+		blockFactor = 0.75f;
 	}
-
-	if (!(self->client->pers.cmd.buttons & BUTTON_ALT_ATTACK))
+	else
 	{
-		if (thrownSaber)
-		{
-			blockFactor -= 0.25f;
+		switch (self->client->ps.fd.forcePowerLevel[FP_SABER_DEFENSE])
+		{ // These actually make more sense to be separate from SABER blocking arcs.
+		case FORCE_LEVEL_3:
+			blockFactor = 0.3f;
+			break;
+		case FORCE_LEVEL_2:
+			blockFactor = 0.3f;
+			break;
+		case FORCE_LEVEL_1:
+			blockFactor = 0.3f;
+			break;
+		default:  //for now we just don't get to autoblock with no def
+
+			if (!self->client->hasShield)
+				return qfalse;
 		}
 
-		if (!projectile)
-		{ //blocking a saber, not a projectile.
-			blockFactor -= 0.25f;
+		if (!(self->client->pers.cmd.buttons & BUTTON_ALT_ATTACK))
+		{
+			if (thrownSaber)
+			{
+				blockFactor -= 0.25f;
+			}
+
+			if (!projectile)
+			{ //blocking a saber, not a projectile.
+				blockFactor -= 0.25f;
+			}
 		}
 	}
 
@@ -9490,9 +9603,17 @@ qboolean WP_SaberCanBlock(gentity_t *atk, gentity_t *self, vec3_t point, vec3_t 
 		return qfalse;
 	}
 
-	if (projectile && saberInAttack && InFront(originpoint, self->client->ps.origin, self->client->ps.viewangles, blockFactor)
-		&& (self->client->pers.cmd.buttons & BUTTON_ALT_ATTACK) && !(self->client->buttons & BUTTON_ATTACK))
+	if (projectile 
+		&& saberInAttack 
+		&& InFront(originpoint, self->client->ps.origin, self->client->ps.viewangles, blockFactor)
+		&& (self->client->pers.cmd.buttons & BUTTON_ALT_ATTACK) 
+		&& !(self->client->buttons & BUTTON_ATTACK))
 	{
+		if (isCrowdControlDeflection)
+		{// Don't need the other checks, or any deflection animation, saber should be in forward spin permanently while alt is held in these stances...
+			return qtrue;
+		}
+
 		self->client->ps.saberMove = LS_NONE;
 		self->client->ps.saberBlocked = BLOCKED_NONE;
 		return qtrue;
@@ -9538,6 +9659,11 @@ qboolean WP_SaberCanBlock(gentity_t *atk, gentity_t *self, vec3_t point, vec3_t 
 	if (self->client->ps.forceHandExtend != HANDEXTEND_NONE)
 	{
 		return qfalse;
+	}
+
+	if (isCrowdControlDeflection)
+	{// Don't need the other checks, or any deflection animation, saber should be in forward spin permanently while alt is held in these stances...
+		return qtrue;
 	}
 
 	if (projectile &&

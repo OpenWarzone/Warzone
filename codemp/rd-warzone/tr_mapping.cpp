@@ -3421,6 +3421,12 @@ void SetupWeatherForName(char *name)
 		RE_WorldEffectCommand_REAL("snow", qtrue);
 		//RE_WorldEffectCommand_REAL("fog", qtrue);
 	}
+	else if (!Q_stricmp(name, "christmas"))
+	{
+		ri->Printf(PRINT_ALL, "^1*** ^3JKA^5 atmospherics set to ^7christmas^5 for this map.\n");
+		RE_WorldEffectCommand_REAL("snow", qtrue);
+		//RE_WorldEffectCommand_REAL("fog", qtrue);
+	}
 	else if (!Q_stricmp(name, "heavysnow"))
 	{
 		ri->Printf(PRINT_ALL, "^1*** ^3JKA^5 atmospherics set to ^7heavysnow^5 for this map.\n");

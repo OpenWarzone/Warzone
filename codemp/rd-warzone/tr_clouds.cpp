@@ -160,7 +160,7 @@ void DynamicWeather_UpdateWeatherSystems(void)
 
 	//ri->Printf(PRINT_ALL, "DYNAMIC_WEATHER_CLOUDCOVER: %f. cc: %f.\n", DYNAMIC_WEATHER_CLOUDCOVER, cc);
 
-	if (StringContainsWord(CURRENT_WEATHER_OPTION, "snow"))
+	if (StringContainsWord(CURRENT_WEATHER_OPTION, "snow") || StringContainsWord(CURRENT_WEATHER_OPTION, "christmas"))
 	{
 		if (cc >= 0.275)
 		{// Snow storm...

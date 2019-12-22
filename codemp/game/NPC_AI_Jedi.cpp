@@ -7065,6 +7065,7 @@ Jedi_Attack
 
 static void Jedi_Attack( gentity_t *aiEnt)
 {
+#if 0 // moved below the other checks...
 	if (aiEnt->client->ps.weapon == WP_SABER)
 	{// UQ1: Testing new AI...
 		if (aiEnt->enemy)
@@ -7175,6 +7176,7 @@ static void Jedi_Attack( gentity_t *aiEnt)
 
 		return;
 	}
+#endif
 
 
 	//Don't do anything if we're in a pain anim
@@ -7429,6 +7431,119 @@ static void Jedi_Attack( gentity_t *aiEnt)
 		Jedi_Patrol(aiEnt);//was calling Idle... why?
 		return;
 	}
+
+#if 1
+	if (aiEnt->client->ps.weapon == WP_SABER)
+	{// UQ1: Testing new AI...
+		if (aiEnt->enemy)
+		{
+			//always face enemy if have one
+			aiEnt->NPC->combatMove = qtrue;
+
+			if (Jedi_AttackOrCounter(aiEnt))
+			{// Attack...
+				if (NPC_IsDarkJedi(aiEnt))
+				{// Do taunt/anger...
+					int TorA = Q_irand(0, 3);
+
+					switch (TorA) {
+					case 3:
+						G_AddVoiceEvent(aiEnt, Q_irand(EV_JCHASE1, EV_JCHASE3), 5000 + irand(0, 15000));
+						break;
+					case 2:
+						G_AddVoiceEvent(aiEnt, Q_irand(EV_COMBAT1, EV_COMBAT3), 5000 + irand(0, 15000));
+						break;
+					case 1:
+						G_AddVoiceEvent(aiEnt, Q_irand(EV_ANGER1, EV_ANGER1), 5000 + irand(0, 15000));
+						break;
+					default:
+						G_AddVoiceEvent(aiEnt, Q_irand(EV_TAUNT1, EV_TAUNT5), 5000 + irand(0, 15000));
+						break;
+					}
+				}
+				else if (NPC_IsJedi(aiEnt))
+				{// Do taunt...
+					int TorA = Q_irand(0, 2);
+
+					switch (TorA) {
+					case 2:
+						G_AddVoiceEvent(aiEnt, Q_irand(EV_JCHASE1, EV_JCHASE3), 5000 + irand(0, 15000));
+						break;
+					case 1:
+						G_AddVoiceEvent(aiEnt, Q_irand(EV_COMBAT1, EV_COMBAT3), 5000 + irand(0, 15000));
+						break;
+					default:
+						G_AddVoiceEvent(aiEnt, Q_irand(EV_TAUNT1, EV_TAUNT5), 5000 + irand(0, 15000));
+					}
+				}
+
+				if (Distance(aiEnt->client->ps.origin, aiEnt->enemy->r.currentOrigin) <= 96.0)
+				{
+					usercmd_t *cmd = &aiEnt->client->pers.cmd;
+					cmd->buttons |= BUTTON_ATTACK;
+
+					if (aiEnt->NPC->saberAttackDirectionTime < level.time)
+					{// Pick a new direction for saber attack move selection....
+						aiEnt->NPC->saberAttackDirection = irand(0, 4);
+						aiEnt->NPC->saberAttackDirectionTime = level.time + 500;
+					}
+
+					switch (aiEnt->NPC->saberAttackDirection)
+					{
+					default:
+					case 0:
+						// Just walk move forwards...
+						cmd->forwardmove = 48.0;
+						break;
+					case 1:
+						// Forward and right...
+						cmd->forwardmove = 48.0;
+						cmd->rightmove = 48.0;
+						break;
+					case 2:
+						// Forward and left...
+						cmd->forwardmove = 48.0;
+						cmd->rightmove = -48.0;
+						break;
+					case 3:
+						// Right...
+						cmd->rightmove = 48.0;
+						break;
+					case 4:
+						// Left...
+						cmd->rightmove = -48.0;
+						break;
+					}
+
+					NPC_FaceEnemy(aiEnt, qfalse);
+				}
+				else
+				{
+					aiEnt->NPC->saberAttackDirectionTime = 0;
+					Jedi_Advance(aiEnt);
+					NPC_FaceEnemy(aiEnt, qfalse);
+				}
+			}
+			else
+			{// Defend...
+				aiEnt->NPC->saberAttackDirectionTime = 0;
+
+				if (Distance(aiEnt->client->ps.origin, aiEnt->enemy->r.currentOrigin) <= 128.0)
+				{
+					Jedi_Retreat(aiEnt);
+					NPC_FaceEnemy(aiEnt, qfalse);
+				}
+			}
+		}
+		else
+		{
+			aiEnt->NPC->saberAttackDirectionTime = 0;
+			Jedi_Patrol(aiEnt);
+		}
+
+		return;
+	}
+#endif
 
 	//always face enemy if have one
 	aiEnt->NPC->combatMove = qtrue;
@@ -7849,55 +7964,35 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 	//
 	if (NPC_IsLightJedi(aiEnt))
 	{// Jedi...
-		if (!(aiEnt->client->ps.fd.forcePowersKnown & (1 << FP_TEAM_HEAL))) 
-		{
-			aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_TEAM_HEAL);
-			aiEnt->client->ps.fd.forcePowerLevel[FP_TEAM_HEAL] = 3;
-		}
-		if (!(aiEnt->client->ps.fd.forcePowersKnown & (1 << FP_HEAL))) 
-		{
-			aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_HEAL);
-			aiEnt->client->ps.fd.forcePowerLevel[FP_HEAL] = 3;
-		}
-		if (!(aiEnt->client->ps.fd.forcePowersKnown & (1 << FP_PROTECT))) 
-		{
-			aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_PROTECT);
-			aiEnt->client->ps.fd.forcePowerLevel[FP_PROTECT] = 3;
-		}
-		if (!(aiEnt->client->ps.fd.forcePowersKnown & (1 << FP_ABSORB))) 
-		{
-			aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_ABSORB);
-			aiEnt->client->ps.fd.forcePowerLevel[FP_ABSORB] = 3;
-		}
-		if (!(aiEnt->client->ps.fd.forcePowersKnown & (1 << FP_TELEPATHY))) 
-		{
-			aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_TELEPATHY);
-			aiEnt->client->ps.fd.forcePowerLevel[FP_TELEPATHY] = 3;
-		}
+		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_TEAM_HEAL);
+		aiEnt->client->ps.fd.forcePowerLevel[FP_TEAM_HEAL] = 3;
+
+		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_HEAL);
+		aiEnt->client->ps.fd.forcePowerLevel[FP_HEAL] = 3;
+
+		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_PROTECT);
+		aiEnt->client->ps.fd.forcePowerLevel[FP_PROTECT] = 3;
+
+		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_ABSORB);
+		aiEnt->client->ps.fd.forcePowerLevel[FP_ABSORB] = 3;
+
+		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_TELEPATHY);
+		aiEnt->client->ps.fd.forcePowerLevel[FP_TELEPATHY] = 3;
 	}
 	else if (NPC_IsDarkJedi(aiEnt))
 	{// Sith...
-		if (!(aiEnt->client->ps.fd.forcePowersKnown & (1 << FP_DRAIN))) 
-		{
-			aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_DRAIN);
-			aiEnt->client->ps.fd.forcePowerLevel[FP_DRAIN] = 3;
-		}
-		if (!(aiEnt->client->ps.fd.forcePowersKnown & (1 << FP_LIGHTNING))) 
-		{
-			aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_LIGHTNING);
-			aiEnt->client->ps.fd.forcePowerLevel[FP_LIGHTNING] = 3;
-		}
-		if (!(aiEnt->client->ps.fd.forcePowersKnown & (1 << FP_GRIP))) 
-		{
-			aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_GRIP);
-			aiEnt->client->ps.fd.forcePowerLevel[FP_GRIP] = 3;
-		}
+		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_DRAIN);
+		aiEnt->client->ps.fd.forcePowerLevel[FP_DRAIN] = 3;
+
+		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_LIGHTNING);
+		aiEnt->client->ps.fd.forcePowerLevel[FP_LIGHTNING] = 3;
+
+		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_GRIP);
+		aiEnt->client->ps.fd.forcePowerLevel[FP_GRIP] = 3;
+
 		/*
-		if (!(aiEnt->client->ps.fd.forcePowersKnown & (1 << FP_RAGE))) 
-		{
-			aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_RAGE);
-			aiEnt->client->ps.fd.forcePowerLevel[FP_RAGE] = 3;
-		}
+		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_RAGE);
+		aiEnt->client->ps.fd.forcePowerLevel[FP_RAGE] = 3;
 		*/
 	}
 	else
@@ -8093,7 +8188,7 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 			&& !(aiEnt->client->ps.fd.forcePowersActive&(1 << FP_SABERTHROW))
 			&& !(aiEnt->client->ps.saberEventFlags&SEF_INWATER) )//saber not in water
 		{//hold it out there
-			aiEnt->client->pers.cmd.buttons |= BUTTON_ALT_ATTACK;
+			aiEnt->client->pers.cmd.buttons |= BUTTON_SABERTHROW;
 			TIMER_Set( aiEnt, "saberthrow", irand(15000, 30000) );
 		}
 		else if (aiEnt->client->ps.saberEntityState != SES_RETURNING  //not returning yet
@@ -8101,14 +8196,14 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 			&& !(aiEnt->client->ps.fd.forcePowersActive&(1 << FP_SABERTHROW))
 			&& !(aiEnt->client->ps.saberEventFlags&SEF_INWATER) )//saber not in water
 		{//hold it out there
-			aiEnt->client->pers.cmd.buttons |= BUTTON_ALT_ATTACK;
+			aiEnt->client->pers.cmd.buttons |= BUTTON_SABERTHROW;
 		}
 		else if (aiEnt->client->ps.saberEntityState == SES_RETURNING  //not returning yet
 			&& aiEnt->client->ps.fd.forcePowerLevel[FP_SABERTHROW] > FORCE_LEVEL_1 //2nd or 3rd level lightsaber
 			&& !(aiEnt->client->ps.fd.forcePowersActive&(1 << FP_SABERTHROW))
 			&& !(aiEnt->client->ps.saberEventFlags&SEF_INWATER) )//saber not in water
 		{//hold it out there
-			aiEnt->client->pers.cmd.buttons |= BUTTON_ALT_ATTACK;
+			aiEnt->client->pers.cmd.buttons |= BUTTON_SABERTHROW;
 		}
 
 		return qtrue;

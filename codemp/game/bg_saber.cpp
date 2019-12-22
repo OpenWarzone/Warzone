@@ -5337,18 +5337,7 @@ int BG_GetCrowdControlStanceMove(short newMove)
 		newMove = 88;// 81;
 	}
 
-	if (pm->ps->fd.saberAnimLevel == SS_DUAL && newMove >= LS_V1_BR && newMove <= LS_REFLECT_LL)
-	{//there aren't 1-7, just 1, 6 and 7, so just set it
-		anim = BOTH_P6_S6_T_ + (anim - BOTH_P1_S1_T_);//shift it up to the proper set
-	}
-	else if (pm->ps->fd.saberAnimLevel == SS_STAFF && newMove >= LS_V1_BR && newMove <= LS_REFLECT_LL)
-	{//there aren't 1-7, just 1, 6 and 7, so just set it
-		anim = BOTH_P7_S7_T_ + (anim - BOTH_P1_S1_T_);//shift it up to the proper set
-	}
-	else
-	{//add the appropriate animLevel
-		anim = saberMoveData[newMove].animToUse + (pm->ps->fd.saberAnimLevel - SS_FAST) * SABER_ANIM_GROUP_SIZE;
-	}
+	anim = saberMoveData[newMove].animToUse + (pm->ps->fd.saberAnimLevel - SS_FAST) * SABER_ANIM_GROUP_SIZE;
 
 #ifdef __DEBUG_STANCES__
 	{
@@ -5366,6 +5355,9 @@ int BG_GetCrowdControlStanceMove(short newMove)
 
 	return anim;
 }
+
+int currentTestAnim = 0;
+qboolean currentTestAnimNext = qtrue;
 
 void PM_SetSaberMove(short newMove)
 {
@@ -5529,7 +5521,75 @@ void PM_SetSaberMove(short newMove)
 			setflags |= SETANIM_FLAG_OVERRIDE;
 		}
 	}
-	if (BG_InSaberStandAnim(anim) || anim == BOTH_STAND1)
+
+#if 1
+	if (isCCStance 
+		&& pm->ps->weapon == WP_SABER 
+		&& (pm->cmd.buttons & BUTTON_ALT_ATTACK) 
+		&& !(pm->cmd.buttons & BUTTON_ATTACK)
+		//&& ((newMove != LS_R_T2B && newMove != LS_R_TR2BL) || newMove == LS_T1__R_T_))
+		//&& newMove != LS_S_T2B
+		//&& newMove != LS_A_TR2BL
+		//&& newMove != LS_R_TR2BL
+		//&& newMove != LS_S_TR2BL)
+		&& (BG_InSaberStandAnim(anim) || anim == BOTH_STAND1))
+		//&& newMove == LS_READY)
+	{// In CC stances, do a forward saber spin while blocking... Mass block all the things...
+		pm->ps->fd.saberAnimLevel = SS_STAFF;
+		newMove = 88;// LS_S_T2B;// 88;
+
+		anim = saberMoveData[newMove].animToUse + (pm->ps->fd.saberAnimLevel - SS_FAST) * SABER_ANIM_GROUP_SIZE;
+		//parts = SETANIM_TORSO;
+
+		//setflags |= SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_RESTART;
+
+		pm->ps->fd.saberAnimLevelPrevious = pm->ps->fd.saberAnimLevel;
+	}
+#elif 0
+	if (isCCStance
+		&& pm->ps->weapon == WP_SABER
+		&& (pm->cmd.buttons & BUTTON_ALT_ATTACK)
+		&& (pm->cmd.buttons & BUTTON_ATTACK))
+	{
+//		if (pm->cmd.buttons & BUTTON_ATTACK)
+//		{// Go back 1 anim (2 because we do +1 next)
+//			currentTestAnim -= 2;
+//		}
+
+		currentTestAnimNext = qtrue;
+	}
+
+	if (isCCStance
+		&& pm->ps->weapon == WP_SABER
+		&& (pm->cmd.buttons & BUTTON_ALT_ATTACK)
+		//&& !(pm->cmd.buttons & BUTTON_ATTACK)
+		&& anim != currentTestAnim/*bg_testvalue0.integer*/)
+	{
+		if (currentTestAnimNext)
+		{
+			currentTestAnim++;
+			currentTestAnimNext = qfalse;
+		}
+
+		anim = currentTestAnim;// bg_testvalue0.integer;
+		parts = SETANIM_TORSO;
+		setflags |= SETANIM_FLAG_RESTART;
+
+		Com_Printf("Anim %i.\n", currentTestAnim);
+	}
+#else
+	if (isCCStance
+		&& pm->ps->weapon == WP_SABER
+		&& (pm->cmd.buttons & BUTTON_ALT_ATTACK)
+		&& !(pm->cmd.buttons & BUTTON_ATTACK)
+		&& anim != bg_testvalue0.integer)
+	{
+		anim = bg_testvalue0.integer;
+		parts = SETANIM_TORSO;
+		setflags |= SETANIM_FLAG_RESTART;
+	}
+#endif
+	else if (BG_InSaberStandAnim(anim) || anim == BOTH_STAND1)
 	{
 		anim = (pm->ps->legsAnim);
 

@@ -32,6 +32,7 @@ typedef enum {
 	WEATHER_IMPERIAL_BASE,
 	WEATHER_SITH_TOMB,
 	WEATHER_JEDI_TEMPLE,
+	WEATHER_CHRISTMAS,
 };
 
 // Max MAP height...
@@ -62,6 +63,7 @@ qhandle_t WEATHER_SNOW_EFX = NULL;
 qhandle_t WEATHER_HEAVY_SNOW_EFX = NULL;
 qhandle_t WEATHER_SNOW_STORM_EFX = NULL;
 qhandle_t WEATHER_VOLUMETRIC_FOG_EFX = NULL;
+qhandle_t WEATHER_CHRISTMAS_EFX = NULL;
 
 qhandle_t WEATHER_RAIN_SOUND = NULL;
 qhandle_t WEATHER_HEAVY_RAIN_SOUND = NULL;
@@ -84,6 +86,7 @@ qhandle_t WEATHER_JEDI_TEMPLE_SOUND = NULL;
 qhandle_t WEATHER_LIGHTNING_SOUNDS[12] = { NULL };
 qhandle_t WEATHER_CUSTOM_SOUND = NULL;
 qhandle_t WEATHER_CUSTOM_SOUND2 = NULL;
+qhandle_t WEATHER_CHRISTMAS_SOUND = NULL;
 
 qhandle_t	lightning1 = -1;
 qhandle_t	lightning2 = -1;
@@ -268,6 +271,10 @@ void CG_AddAtmosphericEffects()
 			WEATHER_SNOW_EFX = trap->FX_RegisterEffect("effects/atmospherics/atmospheric_snow.efx");
 			WEATHER_SNOW_SOUND = trap->S_RegisterSound("sound/atmospherics/snow.mp3");
 			break;
+		case WEATHER_CHRISTMAS:
+			WEATHER_CHRISTMAS_EFX = trap->FX_RegisterEffect("effects/atmospherics/atmospheric_snow.efx");
+			WEATHER_CHRISTMAS_SOUND = trap->S_RegisterSound("sound/atmospherics/christmas.mp3");
+			break;
 		case WEATHER_HEAVY_SNOW:
 			WEATHER_HEAVY_SNOW_EFX = trap->FX_RegisterEffect("effects/atmospherics/atmospheric_heavysnow.efx");
 			WEATHER_SNOW_SOUND = trap->S_RegisterSound("sound/atmospherics/snow.mp3");
@@ -371,6 +378,10 @@ void CG_AddAtmosphericEffects()
 		MAX_FRAME_PARTICLES = 24;
 		break;
 	case WEATHER_SNOW:
+		if (WEATHER_CUSTOM_SOUND) trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND, CHAN_AMBIENT);
+		MAX_FRAME_PARTICLES = 16;
+		break;
+	case WEATHER_CHRISTMAS:
 		if (WEATHER_CUSTOM_SOUND) trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CUSTOM_SOUND, CHAN_AMBIENT);
 		MAX_FRAME_PARTICLES = 16;
 		break;
@@ -580,13 +591,20 @@ void CG_AddAtmosphericEffects()
 				ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 4000;
 			}
 			break;
+		case WEATHER_CHRISTMAS:
+			if (!ATMOSPHERIC_SOUND_ONLY) trap->FX_PlayEffectID(WEATHER_CHRISTMAS_EFX, spot, down, 0, 0, qfalse);
+
+			if (ATMOSPHERIC_NEXT_SOUND_TIME <= cg.time)
+			{
+				trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_CHRISTMAS_SOUND, CHAN_AMBIENT);
+				ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 4000;
+			}
+			break;
 		case WEATHER_HEAVY_SNOW:
 			if (!ATMOSPHERIC_SOUND_ONLY) trap->FX_PlayEffectID(WEATHER_HEAVY_SNOW_EFX, spot, down, 0, 0, qfalse);
 
 			if (ATMOSPHERIC_NEXT_SOUND_TIME <= cg.time)
 			{
-				//trap->S_StartLocalSound(WEATHER_SNOW_SOUND, CHAN_AMBIENT);
-				//ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 595000;
 				trap->S_AddLoopingSound(-1, NULL, vec3_origin, WEATHER_SNOW_SOUND, CHAN_AMBIENT);
 				ATMOSPHERIC_NEXT_SOUND_TIME = cg.time + 4000;
 			}
@@ -711,6 +729,12 @@ qboolean CG_AtmosphericKludge()
 		trap->Print("^1*** ^3ATMOSPHERICS^5: atmospherics set to ^7snow^5 for this map.\n");
 		ATMOSPHERIC_WEATHER_TYPE = WEATHER_SNOW;
   	  	return( kludgeResult = qtrue );
+	}
+	else if (!Q_stricmp(atmosphericString, "christmas"))
+	{
+		trap->Print("^1*** ^3ATMOSPHERICS^5: atmospherics set to ^7christmas^5 for this map.\n");
+		ATMOSPHERIC_WEATHER_TYPE = WEATHER_CHRISTMAS;
+		return(kludgeResult = qtrue);
 	}
 	else if (!Q_stricmp(atmosphericString, "heavysnow"))
 	{
