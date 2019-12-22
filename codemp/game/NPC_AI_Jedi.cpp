@@ -7065,7 +7065,7 @@ Jedi_Attack
 
 static void Jedi_Attack( gentity_t *aiEnt)
 {
-#if 0 // moved below the other checks...
+#if 1 // moved below the other checks...
 	if (aiEnt->client->ps.weapon == WP_SABER)
 	{// UQ1: Testing new AI...
 		if (aiEnt->enemy)
@@ -7432,7 +7432,7 @@ static void Jedi_Attack( gentity_t *aiEnt)
 		return;
 	}
 
-#if 1
+#if 0 // Doing it above again...
 	if (aiEnt->client->ps.weapon == WP_SABER)
 	{// UQ1: Testing new AI...
 		if (aiEnt->enemy)
@@ -8000,23 +8000,15 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 		return qfalse;
 	}
 
-	if (!(aiEnt->client->ps.fd.forcePowersKnown & (1 << FP_PUSH))) 
-	{
-		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_PUSH);
-		aiEnt->client->ps.fd.forcePowerLevel[FP_PUSH] = 3;
-	}
+	aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_PUSH);
+	aiEnt->client->ps.fd.forcePowerLevel[FP_PUSH] = 3;
 
-	if (!(aiEnt->client->ps.fd.forcePowersKnown & (1 << FP_PULL))) 
-	{
-		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_PULL);
-		aiEnt->client->ps.fd.forcePowerLevel[FP_PULL] = 3;
-	}
+	aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_PULL);
+	aiEnt->client->ps.fd.forcePowerLevel[FP_PULL] = 3;
 
-	if (!(aiEnt->client->ps.fd.forcePowersKnown & (1 << FP_SABERTHROW))) 
-	{
-		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_SABERTHROW);
-		aiEnt->client->ps.fd.forcePowerLevel[FP_SABERTHROW] = 3;
-	}
+	aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_SABERTHROW);
+	aiEnt->client->ps.fd.forcePowerLevel[FP_SABERTHROW] = 3;
+
 
 	if (Jedi_SaberBusy( aiEnt ))
 	{
