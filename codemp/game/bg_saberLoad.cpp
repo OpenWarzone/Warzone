@@ -237,6 +237,7 @@ stringID_table_t saberMoveTable[] = {
 	ENUM2STRING(LS_PARRY_UL),
 	ENUM2STRING(LS_PARRY_LR),
 	ENUM2STRING(LS_PARRY_LL),
+	ENUM2STRING(LS_PARRY_BACK_UP),
 
 	// Projectile Reflections
 	ENUM2STRING(LS_REFLECT_UP),//
@@ -244,6 +245,7 @@ stringID_table_t saberMoveTable[] = {
 	ENUM2STRING(LS_REFLECT_UL),
 	ENUM2STRING(LS_REFLECT_LR),
 	ENUM2STRING(LS_REFLECT_LL),
+	ENUM2STRING(LS_PARRY_RBACK_UP),
 	//[/SaberSys]
 	{ "", -1 }
 };

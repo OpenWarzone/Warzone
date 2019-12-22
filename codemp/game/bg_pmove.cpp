@@ -342,11 +342,6 @@ int PM_GetSaberStance(void)
 */
 
 //[NewSaberSys]
-#ifdef _GAME 
-#define SET_BLOCK_DIRECTION(x) ((gentity_t *)pm_entSelf)->block_direction = x; 
-#else
-#define SET_BLOCK_DIRECTION(x)
-#endif
 int PM_GetSaberStance()
 {
 	int anim = BOTH_STAND2;
@@ -420,212 +415,175 @@ int PM_GetSaberStance()
 
 	if (!hideStance || (pm->cmd.buttons & BUTTON_ALT_ATTACK))
 	{//for now I'll assume that we're using an inverted control system.
-		SET_BLOCK_DIRECTION(BLOCKING_NONE)
-			if (forwardmove < 0)
-			{
-				if (rightmove < 0)
-				{//lower left block
-					SET_BLOCK_DIRECTION(BLOCKING_LEFT_DOWN)
-						if (mblockforstance == SS_DUAL)
-						{
-							return BOTH_P6_S6_BL;
-						}
-						else if (mblockforstance == SS_STAFF)
-						{
-							return BOTH_P7_S7_BL;
-						}
 
-						else if (mblockforstance == SS_TAVION)
-						{
-							return BOTH_P1_S1_BL;
-						}
-						else
-						{
-							return BOTH_P1_S1_BL;
-						}
+		if (forwardmove < 0)
+		{
+			if (rightmove < 0)
+			{//lower left block
+				if (mblockforstance == SS_DUAL)
+				{
+					return BOTH_P6_S6_BL;
 				}
-				else if (rightmove > 0)
-				{//upper right block
-					SET_BLOCK_DIRECTION(BLOCKING_RIGHT_DOWN)
-						if (mblockforstance == SS_DUAL)
-						{
-							return BOTH_P6_S6_BR;
-						}
-						else if (mblockforstance == SS_STAFF)
-						{
-							return BOTH_P7_S7_BR;
-						}
-						else if (mblockforstance == SS_TAVION)
-						{
-							return BOTH_P1_S1_BR;
-						}
-						else
-						{
-							return BOTH_P1_S1_BR;
-						}
+				else if (mblockforstance == SS_STAFF)
+				{
+					return BOTH_P7_S7_BL;
 				}
-				else
-				{//Top Block
-					SET_BLOCK_DIRECTION(BLOCKING_DOWN)
 
-						if (mblockforstance == SS_DUAL)
-						{
-							return BOTH_P6_S6_T_;
-						}
-						else if (mblockforstance == SS_STAFF)
-						{
-							return BOTH_P7_S7_T_;
-						}
-						else if (mblockforstance == SS_TAVION)
-						{
-							return BOTH_P1_S1_T_;
-						}
-						else
-						{
-							return BOTH_P1_S1_T_;
-						}
-				}
-			}
-			else if (forwardmove > 0)
-			{
-				if (rightmove < 0)
-				{//lower left block
-					SET_BLOCK_DIRECTION(BLOCKING_LEFT_TOP)
-
-						if (mblockforstance == SS_DUAL)
-						{
-							return BOTH_P6_S6_TL;
-						}
-						else if (mblockforstance == SS_STAFF)
-						{
-							return BOTH_P7_S7_TL;
-						}
-
-						else if (mblockforstance == SS_TAVION)
-						{
-							return BOTH_P1_S1_TL;
-						}
-						else
-						{
-							return BOTH_P1_S1_TL;
-						}
-				}
-				else if (rightmove > 0)
-				{//lower right block
-					SET_BLOCK_DIRECTION(BLOCKING_RIGHT_TOP)
-
-						if (mblockforstance == SS_DUAL)
-						{
-							return BOTH_P6_S6_TR;
-						}
-						else if (mblockforstance == SS_STAFF)
-						{
-							return BOTH_P7_S7_TR;
-						}
-						else if (mblockforstance == SS_TAVION)
-						{
-							return BOTH_P1_S1_TR;
-						}
-						else
-						{
-							return BOTH_P1_S1_TR;
-						}
+				else if (mblockforstance == SS_TAVION)
+				{
+					return BOTH_P1_S1_BL;
 				}
 				else
 				{
-					//Top Block
-					SET_BLOCK_DIRECTION(BLOCKING_TOP)
+					return BOTH_P1_S1_BL;
+				}
+			}
+			else if (rightmove > 0)
+			{//upper right block
+				if (mblockforstance == SS_DUAL)
+				{
+					return BOTH_P6_S6_BR;
+				}
+				else if (mblockforstance == SS_STAFF)
+				{
+					return BOTH_P7_S7_BR;
+				}
+				else if (mblockforstance == SS_TAVION)
+				{
+					return BOTH_P1_S1_BR;
+				}
+				else
+				{
+					return BOTH_P1_S1_BR;
+				}
+			}
+			else
+			{//Top Block
+				if (mblockforstance == SS_DUAL)
+				{
+					return BOTH_P6_S6_T_;
+				}
+				else if (mblockforstance == SS_STAFF)
+				{
+					return BOTH_P7_S7_T_;
+				}
+				else if (mblockforstance == SS_TAVION)
+				{
+					return BOTH_P1_S1_B_;
+				}
+				else
+				{
+					return BOTH_P1_S1_B_;
+				}
+			}
+		}
+		else if (forwardmove > 0)
+		{
+			if (rightmove < 0)
+			{//lower left block
+				if (mblockforstance == SS_DUAL)
+				{
+					return BOTH_P6_S6_TL;
+				}
+				else if (mblockforstance == SS_STAFF)
+				{
+					return BOTH_P7_S7_TL;
+				}
 
-						if (mblockforstance == SS_DUAL)
-						{
-							return BOTH_P6_S6_T_;
-						}
-						else if (mblockforstance == SS_STAFF)
-						{
-							return BOTH_P7_S7_T_;
-						}
-
-						else if (mblockforstance == SS_TAVION)
-						{
-							return BOTH_P1_S1_T_;
-						}
-						else
-						{
-							return BOTH_P1_S1_T_;
-						}
+				else if (mblockforstance == SS_TAVION)
+				{
+					return BOTH_P1_S1_TL;
+				}
+				else
+				{
+					return BOTH_P1_S1_TL;
+				}
+			}
+			else if (rightmove > 0)
+			{//lower right block
+				if (mblockforstance == SS_DUAL)
+				{
+					return BOTH_P6_S6_TR;
+				}
+				else if (mblockforstance == SS_STAFF)
+				{
+					return BOTH_P7_S7_TR;
+				}
+				else if (mblockforstance == SS_TAVION)
+				{
+					return BOTH_P1_S1_TR;
+				}
+				else
+				{
+					return BOTH_P1_S1_TR;
 				}
 			}
 			else
 			{
-				if (rightmove < 0)
-				{//left block doesn't exist so we just use the upper blocks for now.
-					SET_BLOCK_DIRECTION(BLOCKING_LEFT)
-
-						if (mblockforstance == SS_DUAL)
-						{
-							return BOTH_P6_S6_TL;
-						}
-						else if (mblockforstance == SS_STAFF)
-						{
-							return BOTH_P7_S7_TL;
-						}
-
-						else if (mblockforstance == SS_TAVION)
-						{
-							return BOTH_P1_S1_TL;
-						}
-						else
-						{
-							return /*BOTH_P1_S1_TL*/BOTH_P1_S1_L;
-						}
+				//Top Block
+				if (mblockforstance == SS_DUAL)
+				{
+					return BOTH_P6_S6_T_;
 				}
-				else if (rightmove > 0)
-				{//right block doesn't exist so we just use the upper blocks for now.
-					SET_BLOCK_DIRECTION(BLOCKING_RIGHT)
-
-						if (mblockforstance == SS_DUAL)
-						{
-							return BOTH_P6_S6_TR;
-						}
-						else if (mblockforstance == SS_STAFF)
-						{
-							return BOTH_P7_S7_TR;
-						}
-
-						else if (mblockforstance == SS_TAVION)
-						{
-							return BOTH_P1_S1_TR;
-						}
-
-						else
-						{
-							return /*BOTH_P1_S1_TR*/BOTH_P1_S1_R;
-						}
+				else if (mblockforstance == SS_STAFF)
+				{
+					return BOTH_P7_S7_T_;
 				}
-				else if (!hideStance && (pm->cmd.buttons & BUTTON_ALT_ATTACK))
-				{// Default when stance is not set to hidden by server or gametype. Block top (to make it look different to default stance)
-					//Top Block
-					SET_BLOCK_DIRECTION(BLOCKING_TOP)
 
-						if (mblockforstance == SS_DUAL)
-						{
-							return BOTH_P6_S6_T_;
-						}
-						else if (mblockforstance == SS_STAFF)
-						{
-							return BOTH_P7_S7_T_;
-						}
-
-						else if (mblockforstance == SS_TAVION)
-						{
-							return BOTH_P1_S1_T_;
-						}
-						else
-						{
-							return BOTH_P1_S1_T_;
-						}
+				else if (mblockforstance == SS_TAVION)
+				{
+					return BOTH_P1_S1_T_;
+				}
+				else
+				{
+					return BOTH_P1_S1_T_;
 				}
 			}
+		}
+		else
+		{
+			if (rightmove < 0)
+			{//left block doesn't exist so we just use the upper blocks for now.
+				if (mblockforstance == SS_DUAL)
+				{
+					return BOTH_P6_S6_TL;
+				}
+				else if (mblockforstance == SS_STAFF)
+				{
+					return BOTH_P7_S7_TL;
+				}
+
+				else if (mblockforstance == SS_TAVION)
+				{
+					return BOTH_P1_S1_TL;
+				}
+				else
+				{
+					return /*BOTH_P1_S1_TL*/BOTH_P1_S1_L;
+				}
+			}
+			else if (rightmove > 0)
+			{//right block doesn't exist so we just use the upper blocks for now.
+				if (mblockforstance == SS_DUAL)
+				{
+					return BOTH_P6_S6_TR;
+				}
+				else if (mblockforstance == SS_STAFF)
+				{
+					return BOTH_P7_S7_TR;
+				}
+
+				else if (mblockforstance == SS_TAVION)
+				{
+					return BOTH_P1_S1_TR;
+				}
+
+				else
+				{
+					return /*BOTH_P1_S1_TR*/BOTH_P1_S1_R;
+				}
+			}
+		}
 	}
 
 	if (saber1

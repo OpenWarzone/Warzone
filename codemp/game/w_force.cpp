@@ -5648,9 +5648,9 @@ void WP_ForcePowersUpdate( gentity_t *self, usercmd_t *ucmd )
 			}
 			else
 			{
-				if ( level.gametype == GT_POWERDUEL && self->client->sess.duelTeam == DUELTEAM_LONE )
+				if (level.gametype == GT_POWERDUEL && self->client->sess.duelTeam == DUELTEAM_LONE)
 				{
-					if ( duel_fraglimit.integer )
+					if (duel_fraglimit.integer)
 						self->client->ps.fd.forcePowerRegenDebounceTime += max(g_forceRegenTime.integer * (0.6 + (.3 * (float)self->client->sess.wins / (float)duel_fraglimit.integer)), 1);
 					else
 						self->client->ps.fd.forcePowerRegenDebounceTime += max(g_forceRegenTime.integer*0.7, 1);

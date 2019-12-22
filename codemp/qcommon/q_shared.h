@@ -492,6 +492,7 @@ typedef enum {
 	BLOCKED_LOWER_LEFT_PROJ,
 	BLOCKED_TOP_PROJ,
 	BLOCKED_LIGHTNING,
+	BLOCKED_BACK_TOP,
 } saberBlockedType_t;
 
 

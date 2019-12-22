@@ -3176,12 +3176,19 @@ extern float BG_GetSpeedMultiplierForStance(int saberAnimLevelBase);
 void BG_SaberStartTransAnim(int clientNum, playerState_t *ps, int saberAnimLevel, int saberAnimLevelBase, int weapon, int anim, float *animSpeed, int broken)
 {
 	//I don't like having to do this every time but it's the best I can think of for now.
-	float	saberanimscale = 0.80f;
+	/*float	saberanimscale = 0.80f;
 	float	redanimscale = 1.1f;
 	float	dualanimscale = 1.25f;
 	float	staffanimscale = 1.0f;
 	float	blueanimscale = 2.0f;
 	float	mediumanimscale = 1.1f;
+	float	tavionanimscale = 1.1f;*/
+	float	saberanimscale = 0.80f;
+	float	redanimscale = 0.85f;//1.35f;
+	float	dualanimscale = 1.0f;
+	float	staffanimscale = 1.0f;
+	float	blueanimscale = 1.05f;
+	float	mediumanimscale = 0.95f;
 	float	tavionanimscale = 1.1f;
 	float	stancescale = BG_GetSpeedMultiplierForStance(saberAnimLevelBase);
 
@@ -3713,18 +3720,6 @@ qboolean BG_BounceAnim(int anim)
 		return qtrue;
 	}
 
-	return qfalse;
-}
-
-
-qboolean BG_BlockAnim(int anim)
-{//check for saber block animation
-	if ((anim >= BOTH_P1_S1_T_ && anim <= BOTH_P1_S1_BR)
-		|| (anim >= BOTH_P6_S6_T_ && anim <= BOTH_P6_S6_BR)
-		|| (anim >= BOTH_P7_S7_T_ && anim <= BOTH_P7_S7_BR))
-	{
-		return qtrue;
-	}
 	return qfalse;
 }
 //[/SaberSys]

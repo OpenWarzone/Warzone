@@ -1595,6 +1595,8 @@ typedef enum {
 	LS_PARRY_LL,
 	LS_PARRY_SLR,
 	LS_PARRY_SLL,
+	LS_PARRY_BACK_UP,
+	LS_PARRY_RBACK_UP,
 
 	// Projectile Reflections
 	LS_REFLECT_UP,//
@@ -1620,6 +1622,8 @@ typedef enum {
 	Q_SL,
 	Q_SBL,
 	Q_SBR,
+	Q_BT,
+	Q_RBT,
 	Q_NUM_QUADS
 } saberQuadrant_t;
 
@@ -1890,7 +1894,6 @@ qboolean PM_DoKick(void); //pm function for performing kicks
 qboolean BG_SaberMeleePowerCheck(int forcepower);
 qboolean BG_InKnockDown(int anim);
 qboolean BG_InKnockDownOnly(int anim);
-qboolean BG_BlockAnim(int anim);
 qboolean BG_BounceAnim(int anim);
 qboolean BG_InSlopeAnim(int anim);
 //[/NewSaberSys]

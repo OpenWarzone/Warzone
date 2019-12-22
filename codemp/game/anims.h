@@ -744,6 +744,7 @@ typedef enum //# animNumber_e
 	BOTH_P1_S1_BR,	//# Block shot/saber bottom right
 	BOTH_P1_S1_R,	//# Block shot/saber Bottom Right new.
 	BOTH_P1_S1_L,	//# Block shot/saber Bottom Left new.
+	BOTH_P1_S1_B_,  //# Saber Back top Block
 	//Saber knockaway
 	BOTH_K1_S1_T_,	//# knockaway saber top
 	BOTH_K1_S1_TR,	//# knockaway saber top right

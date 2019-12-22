@@ -4713,6 +4713,7 @@ extern qboolean BG_SaberInTransitionDamageMove(playerState_t *ps);
 extern qboolean BG_SaberInFullDamageMove(playerState_t *ps, int AnimIndex);
 void DebounceSaberImpact(gentity_t *self, gentity_t *otherSaberer,
 	int rSaberNum, int rBladeNum, int sabimpactentitynum);
+void G_Stagger(gentity_t *hitEnt, gentity_t *atk, qboolean forcePowerNeeded);
 static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t saberStart, vec3_t saberEnd, qboolean doInterpolate, int trMask, qboolean extrapolate)
 {
 	static trace_t tr;
@@ -5261,22 +5262,32 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 		}
 	}
 
-	
-	if (otherOwner && otherOwner->inuse && otherOwner->client)
-	{//saber lock test		
-		if (dmg > SABER_NONATTACK_DAMAGE || BG_SaberInNonIdleDamageMove(&otherOwner->client->ps, otherOwner->localAnimIndex))
-		{
-			int lockFactor = g_saberLockFactor.integer;
-
-			if (Q_irand(1, 20) < lockFactor)
+	if (self->client->ps.saberInFlight /*&& !OJP_UsingDualSaberAsPrimary(&self->client->ps)*/)
+	{//saber in flight and it has hit something.  deactivate it.
+		saberCheckKnockdown_Smashed(&g_entities[self->client->ps.saberEntityNum], self, otherOwner, dmg);
+	}
+	else if (hitSaberBlade)
+	{
+		G_Stagger(self, self, qtrue);
+	}
+	else
+	{//Didn't go into a special animation, so do a saber lock/bounce/deflection/etc that's appropriate
+		if (otherOwner && otherOwner->inuse && otherOwner->client)
+		{//saber lock test		
+			if (dmg > SABER_NONATTACK_DAMAGE || BG_SaberInNonIdleDamageMove(&otherOwner->client->ps, otherOwner->localAnimIndex))
 			{
-				if (WP_SabersCheckLock(self, otherOwner))
+				int lockFactor = g_saberLockFactor.integer;
+
+				if (Q_irand(1, 20) < lockFactor)
 				{
-					self->client->ps.saberBlocked = BLOCKED_NONE;
-					otherOwner->client->ps.saberBlocked = BLOCKED_NONE;
-					//add saber impact debounce
-					DebounceSaberImpact(self, otherOwner, rSaberNum, rBladeNum, sabimpactentitynum);
-					return qtrue;
+					if (WP_SabersCheckLock(self, otherOwner))
+					{
+						self->client->ps.saberBlocked = BLOCKED_NONE;
+						otherOwner->client->ps.saberBlocked = BLOCKED_NONE;
+						//add saber impact debounce
+						DebounceSaberImpact(self, otherOwner, rSaberNum, rBladeNum, sabimpactentitynum);
+						return qtrue;
+					}
 				}
 			}
 		}
@@ -5302,11 +5313,14 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 			if (!idleDamage)
 			{
 				//RAFIXME - maybe make this a generic function check at some point?
-				if (self->client->ps.saberLockTime >= level.time  //in a saberlock
-																  //otherOwner wasn't in an attack and didn't block the blow.
-					|| (otherOwner && otherOwner->inuse && otherOwner->client
-						&& !BG_SaberInNonIdleDamageMove(&otherOwner->client->ps, otherOwner->localAnimIndex) //they aren't in an attack swing
-						&& otherOwner->client->ps.saberBlocked == BLOCKED_NONE)) //and they didn't block the attack.
+				if (!G_PowerLevelForSaberAnim(self, rSaberNum, qfalse)
+					&& !(G_PowerLevelForSaberAnim(otherOwner, 0, qfalse)
+					|| G_PowerLevelForSaberAnim(otherOwner, 1, qfalse)))
+				//if (self->client->ps.saberLockTime >= level.time  //in a saberlock
+				//	//otherOwner wasn't in an attack and didn't block the blow.
+				//	|| (otherOwner && otherOwner->inuse && otherOwner->client
+				//	&& !BG_SaberInNonIdleDamageMove(&otherOwner->client->ps, otherOwner->localAnimIndex) //they aren't in an attack swing
+				//	&& otherOwner->client->ps.saberBlocked == BLOCKED_NONE)) //and they didn't block the attack.
 				{//don't bounce!
 				 /*
 				 G_Printf("%i: %i: Saber passed thru opponent's saber! %s %s\n", level.time, self->s.number,
@@ -5334,14 +5348,21 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 	}
 	if (otherOwner && otherOwner->inuse && otherOwner->client)
 	{
-		if (BG_SaberInNonIdleDamageMove(&otherOwner->client->ps, otherOwner->localAnimIndex)  //otherOwner was doing a damaging move
-			&& otherOwner->client->ps.saberLockTime < level.time //otherOwner isn't in a saberlock (this can change mid-impact)
-			&& (self->client->ps.saberBlocked != BLOCKED_NONE //self reacted to this impact.
-				|| !idleDamage))  //or self was in an attack move (and probably mishaped from this impact)  
-		{
-			//G_Printf("%i: %i: Saber Bounced %s\n", level.time, otherOwner->s.number, 
-			//	GetStringForID( animTable, otherOwner->client->ps.torsoAnim ));
-			otherOwner->client->ps.saberBlocked = BLOCKED_ATK_BOUNCE;
+		if (hitSaberBlade)
+		{//Works but makes things complicated in combat, we maybe should use a diff anim setup here for some other types of anim that could happen in combat. Stoiss
+			G_Stagger(otherOwner, otherOwner, qtrue);
+		}
+		else
+		{//Didn't go into a special animation, so do a saber lock/bounce/deflection/etc that's approprate
+			if (BG_SaberInNonIdleDamageMove(&otherOwner->client->ps, otherOwner->localAnimIndex)  //otherOwner was doing a damaging move
+				&& otherOwner->client->ps.saberLockTime < level.time //otherOwner isn't in a saberlock (this can change mid-impact)
+				&& (self->client->ps.saberBlocked != BLOCKED_NONE //self reacted to this impact.
+					|| !idleDamage))  //or self was in an attack move (and probably mishaped from this impact)  
+			{
+				//G_Printf("%i: %i: Saber Bounced %s\n", level.time, otherOwner->s.number, 
+				//	GetStringForID( animTable, otherOwner->client->ps.torsoAnim ));
+				otherOwner->client->ps.saberBlocked = BLOCKED_ATK_BOUNCE;
+			}
 		}
 	}
 

@@ -48,7 +48,6 @@ void SabBeh_AttackVsAttack(gentity_t *self,	gentity_t *otherOwner)
 }
 
 extern void G_ForcePowerDrain(gentity_t *victim, gentity_t *attacker, int amount);
-extern int G_SaberFPDrain(gentity_t *defender, gentity_t *attacker, vec3_t hitLoc);
 extern void BG_AddForcePowerToPlayer(playerState_t * ps, int Forcepower);
 void SabBeh_AttackVsBlock( gentity_t *attacker, gentity_t *blocker, vec3_t hitLoc, qboolean hitSaberBlade)
 {//set the saber behavior for an attacking vs blocking/parrying blade impact
@@ -119,7 +118,7 @@ void G_SaberBounce(gentity_t* self, gentity_t* other, qboolean hitBody)
 }
 //[/NewSaberSys]
 
-void G_Stagger(gentity_t *hitEnt, gentity_t *atk, qboolean allowAnyMove)
+void G_Stagger(gentity_t *hitEnt, gentity_t *atk, qboolean forcePowerNeeded)
 {
 	if (PM_StaggerAnim(hitEnt->client->ps.torsoAnim) || PM_StaggerAnim(atk->client->ps.torsoAnim))
 	{
@@ -135,35 +134,29 @@ void G_Stagger(gentity_t *hitEnt, gentity_t *atk, qboolean allowAnyMove)
 		return;
 	}
 	
-	int animChoice = irand(0, 6); // this could possibly be based on animation done when the clash happend, but this should do for now.
-	int useAnim = -1;
-
-	switch (animChoice) {
-	default:
-	case 0:
-		useAnim = BOTH_BASHED1;
-		break;
-	case 1:
-		useAnim = BOTH_H1_S1_T_;
-		break;
-	case 2:
-		useAnim = BOTH_H1_S1_TR;
-		break;
-	case 3:
-		useAnim = BOTH_H1_S1_TL;
-		break;
-	case 4:
-		useAnim = BOTH_H1_S1_BL;
-		break;
-	case 5:
-		useAnim = BOTH_H1_S1_B_;
-		break;
-	case 6:
-		useAnim = BOTH_H1_S1_BR;
-		break;
+	if (atk->client->ps.fd.saberAnimLevel == SS_FAST && (forcePowerNeeded && atk->client->ps.fd.forcePower >= 25))//17
+	{//Check for FP below 33% for blue stance
+		//G_Sound(hitEnt, CHAN_WEAPON, G_SoundIndex("sound/weapons/stagger/saber_perfectblock1.mp3"));
+		return;
 	}
 
-	G_SetAnim(hitEnt, &(hitEnt->client->pers.cmd), SETANIM_TORSO, useAnim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
+	if (atk->client->ps.fd.saberAnimLevel == SS_MEDIUM && (forcePowerNeeded && atk->client->ps.fd.forcePower >= 20))//13
+	{//Check for FP below 50% for yellow stance
+		//G_Sound(hitEnt, CHAN_WEAPON, G_SoundIndex("sound/weapons/stagger/saber_perfectblock2.mp3"));
+		return;
+	}
+
+	if (atk->client->ps.fd.saberAnimLevel == SS_STRONG && (forcePowerNeeded && atk->client->ps.fd.forcePower >= 15/*25*/))
+	{//Check for FP below 50% for blue stance
+		//G_Sound(hitEnt, CHAN_WEAPON, G_SoundIndex("sound/weapons/stagger/saber_perfectblock3.mp3"));
+		return;
+	}
+
+	if ((atk->client->ps.fd.saberAnimLevel == SS_STAFF || atk->client->ps.fd.saberAnimLevel == SS_DUAL) && (!forcePowerNeeded || atk->client->ps.fd.forcePower <= 50))
+	{//Check for FP below 50% Staff or Duals
+		//G_Sound(hitEnt, CHAN_WEAPON, G_SoundIndex("sound/weapons/stagger/saber_perfectblock4.mp3"));
+		return;
+	}
 
 	if (PM_StaggerAnim(hitEnt->client->ps.torsoAnim))
 	{

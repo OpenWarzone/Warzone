@@ -366,15 +366,16 @@ saberMoveData_t	saberMoveData[LS_MOVE_MAX] = {//							NB:randomized
 	{ "Knock LL", BOTH_K1_S1_BL,		Q_R,	Q_BR,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_TR2BL, LS_T1_BR_TR, 150},	// LS_PARRY_LL
 
 	// Parry
-	{ "Parry Top",BOTH_P1_S1_T_,		Q_R,	Q_T,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_BL2TR, LS_A_T2B,   150},	// LS_PARRY_UP,
+	{ "Parry Top",BOTH_P1_S1_T_,		Q_R,	Q_T,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_BL2TR, LS_A_T2B,   150},	    // LS_PARRY_UP,
 	{ "Parry UR", BOTH_P1_S1_TR,		Q_R,	Q_TL,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_BL2TR, LS_A_TR2BL, 150,},	// LS_PARRY_UR,
 	{ "Parry UL", BOTH_P1_S1_TL,		Q_R,	Q_TR,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_BR2TL, LS_A_TL2BR, 150,},	// LS_PARRY_UL,
 	//JAC: the bottom right and bottom left animations were accidently switched.
 	{ "Parry LR", BOTH_P1_S1_BR,		Q_R,	Q_BR,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_TL2BR, LS_A_BR2TL, 150,},	// LS_PARRY_LR,
 	{ "Parry LL", BOTH_P1_S1_BL,		Q_R,	Q_BL,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_TR2BL, LS_A_BL2TR, 150,},	// LS_PARRY_LL
 
-	{ "Parry Side	LR", BOTH_P1_S1_R,	Q_SR,	Q_SBR,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_TR2BL, LS_A_BL2TR, 150},	// LS_PARRY_SLR
-	{ "Parry Side	LR", BOTH_P1_S1_L,	Q_SL,	Q_SBL,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_TR2BL, LS_A_BL2TR, 150},	// LS_PARRY_SLL
+	{ "Parry Side	LR", BOTH_P1_S1_R,	Q_SR,	Q_SBR,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_TR2BL, LS_A_BL2TR, 150},	    // LS_PARRY_SLR
+	{ "Parry Side	LR", BOTH_P1_S1_L,	Q_SL,	Q_SBL,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_TR2BL, LS_A_BL2TR, 150},	    // LS_PARRY_SLL
+	{ "Parry Back Top",	 BOTH_P1_S1_B_,	Q_R,	Q_BR,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_BL2TR, LS_A_T2B,	  150 },	// LS_PARRY_BACK_UP,
 
 	// Reflecting a missile
 	{"Reflect Top",	BOTH_P1_S1_T_,		Q_R,	Q_T,	AFLAG_ACTIVE,	50,		BLK_WIDE,	LS_R_BL2TR,		LS_A_T2B,		300},	// LS_PARRY_UP,
@@ -382,6 +383,7 @@ saberMoveData_t	saberMoveData[LS_MOVE_MAX] = {//							NB:randomized
 	{"Reflect UL",	BOTH_P1_S1_TR,		Q_R,	Q_TL,	AFLAG_ACTIVE,	50,		BLK_WIDE,	LS_R_BL2TR,		LS_A_TR2BL,		300},	// LS_PARRY_UL,
 	{"Reflect LR",	BOTH_P1_S1_BR,		Q_R,	Q_BL,	AFLAG_ACTIVE,	50,		BLK_WIDE,	LS_R_TR2BL,		LS_A_BL2TR,		300},	// LS_PARRY_LR
 	{"Reflect LL",	BOTH_P1_S1_BL,		Q_R,	Q_BR,	AFLAG_ACTIVE,	50,		BLK_WIDE,	LS_R_TL2BR,		LS_A_BR2TL,		300},	// LS_PARRY_LL,
+	{"Reflect Back Top",BOTH_P1_S1_B_,	Q_R,	Q_RBT,	AFLAG_ACTIVE,	50,		BLK_WIDE,	LS_R_BL2TR,		LS_A_T2B,		150 },	// LS_PARRY_RBACK_UP,
 };
 
 
@@ -902,6 +904,10 @@ int PM_SaberAnimTransitionAnim(int curmove, int newmove)
 			case LS_PARRY_UL:
 			case LS_PARRY_LR:
 			case LS_PARRY_LL:
+			case LS_PARRY_SLR:
+			case LS_PARRY_SLL:
+			case LS_PARRY_BACK_UP:
+			case LS_PARRY_RBACK_UP:
 			case LS_REFLECT_UP:
 			case LS_REFLECT_UR:
 			case LS_REFLECT_UL:
@@ -2289,6 +2295,30 @@ saberMoveName_t PM_SaberLungeAttackMove(qboolean noSpecials)
 
 		return LS_A_LUNGE;
 	}
+
+	else if (pm->ps->fd.saberAnimLevel == SS_STRONG)
+	{
+		VectorCopy(pm->ps->viewangles, fwdAngles);
+		fwdAngles[PITCH] = fwdAngles[ROLL] = 0;
+		//do the lunge
+		AngleVectors(fwdAngles, jumpFwd, NULL, NULL);
+		VectorScale(jumpFwd, 150, pm->ps->velocity);
+		PM_AddEvent(EV_JUMP);
+
+		return LS_A3_SPECIAL;
+	}
+
+	else if (pm->ps->fd.saberAnimLevel == SS_MEDIUM)
+	{
+		VectorCopy(pm->ps->viewangles, fwdAngles);
+		fwdAngles[PITCH] = fwdAngles[ROLL] = 0;
+		//do the lunge
+		AngleVectors(fwdAngles, jumpFwd, NULL, NULL);
+		VectorScale(jumpFwd, 150, pm->ps->velocity);
+		PM_AddEvent(EV_JUMP);
+
+		return LS_PULL_ATTACK_STAB;
+	}
 	else if (!noSpecials && pm->ps->fd.saberAnimLevel == SS_STAFF)
 	{
 		return LS_SPINATTACK;
@@ -2962,6 +2992,7 @@ saberMoveName_t PM_SaberAttackForMovement(saberMoveName_t curmove)
 				PM_GroundDistance() < 32 &&
 				!BG_InSpecialJump(pm->ps->legsAnim) &&
 				!BG_SaberInSpecialAttack(pm->ps->torsoAnim) &&
+				!(pm->cmd.buttons & BUTTON_ALT_ATTACK) &&
 				BG_EnoughForcePowerForMove(SABER_ALT_ATTACK_POWER_FB))
 			{ //FLIP AND DOWNWARD ATTACK
 			  //trace_t tr;
@@ -2983,6 +3014,7 @@ saberMoveName_t PM_SaberAttackForMovement(saberMoveName_t curmove)
 				PM_GroundDistance() < 32 &&
 				!BG_InSpecialJump(pm->ps->legsAnim) &&
 				!BG_SaberInSpecialAttack(pm->ps->torsoAnim) &&
+				!(pm->cmd.buttons & BUTTON_ALT_ATTACK) &&
 				BG_EnoughForcePowerForMove(SABER_ALT_ATTACK_POWER_FB))
 			{ //FLIP AND DOWNWARD ATTACK
 			  //trace_t tr;
@@ -3003,6 +3035,7 @@ saberMoveName_t PM_SaberAttackForMovement(saberMoveName_t curmove)
 				PM_GroundDistance() < 32 &&
 				!BG_InSpecialJump(pm->ps->legsAnim) &&
 				!BG_SaberInSpecialAttack(pm->ps->torsoAnim) &&
+				!(pm->cmd.buttons & BUTTON_ALT_ATTACK) &&
 				BG_EnoughForcePowerForMove(SABER_ALT_ATTACK_POWER_FB))
 			{ //FLIP AND DOWNWARD ATTACK
 			  //trace_t tr;
@@ -3017,32 +3050,36 @@ saberMoveName_t PM_SaberAttackForMovement(saberMoveName_t curmove)
 					}
 				}
 			}
-			else if (!noSpecials&&
-				pm->ps->fd.saberAnimLevel == SS_STRONG &&
-				pm->ps->velocity[2] > 100 &&
-				PM_GroundDistance() < 32 &&
-				!BG_InSpecialJump(pm->ps->legsAnim) &&
-				!BG_SaberInSpecialAttack(pm->ps->torsoAnim) &&
-				BG_EnoughForcePowerForMove(SABER_ALT_ATTACK_POWER_FB))
-			{ //DFA
-			  //trace_t tr;
 
-			  //if (PM_SomeoneInFront(&tr))
-				{
-					newmove = PM_SaberJumpAttackMove();
-					if (newmove != LS_A_T2B
-						&& newmove != LS_NONE)
-					{
-						BG_ForcePowerDrain(pm->ps, FP_GRIP, SABER_ALT_ATTACK_POWER_FB);
-					}
-				}
-			}
+			//disable for now as it will interrupts with the lunge attack, changes done from JKT. Stoiss
+			//else if (!noSpecials&&
+			//	pm->ps->fd.saberAnimLevel == SS_STRONG &&
+			//	pm->ps->velocity[2] > 100 &&
+			//	PM_GroundDistance() < 32 &&
+			//	!BG_InSpecialJump(pm->ps->legsAnim) &&
+			//	!BG_SaberInSpecialAttack(pm->ps->torsoAnim) &&
+			//	!(pm->cmd.buttons & BUTTON_ALT_ATTACK) &&
+			//	BG_EnoughForcePowerForMove(SABER_ALT_ATTACK_POWER_FB))
+			//{ //DFA
+			//  //trace_t tr;
+
+			//  //if (PM_SomeoneInFront(&tr))
+			//	{
+			//		newmove = PM_SaberJumpAttackMove();
+			//		if (newmove != LS_A_T2B
+			//			&& newmove != LS_NONE)
+			//		{
+			//			BG_ForcePowerDrain(pm->ps, FP_GRIP, SABER_ALT_ATTACK_POWER_FB);
+			//		}
+			//	}
+			//}
 
 			else if (!noSpecials&&
 				pm->ps->fd.saberAnimLevel == SS_TAVION &&
 				pm->ps->velocity[2] > 100 &&
 				PM_GroundDistance() < 32 &&
 				!BG_InSpecialJump(pm->ps->legsAnim) &&
+				!(pm->cmd.buttons & BUTTON_ALT_ATTACK) &&
 				!BG_SaberInSpecialAttack(pm->ps->torsoAnim))
 			{ //DFA
 			  //trace_t tr;
@@ -3079,12 +3116,13 @@ saberMoveName_t PM_SaberAttackForMovement(saberMoveName_t curmove)
 			//	}
 			//}
 
-			else if ((pm->ps->fd.saberAnimLevel == SS_FAST || pm->ps->fd.saberAnimLevel == SS_DUAL || pm->ps->fd.saberAnimLevel == SS_STAFF || pm->ps->fd.saberAnimLevel == SS_DESANN) &&
+			else if ((pm->ps->fd.saberAnimLevel == SS_FAST || pm->ps->fd.saberAnimLevel == SS_DUAL || pm->ps->fd.saberAnimLevel == SS_STAFF || pm->ps->fd.saberAnimLevel == SS_MEDIUM || pm->ps->fd.saberAnimLevel == SS_STRONG) &&
 				pm->ps->groundEntityNum != ENTITYNUM_NONE &&
 				(pm->ps->pm_flags & PMF_DUCKED) &&
 				pm->ps->weaponTime <= 0 &&
 				!BG_SaberInSpecialAttack(pm->ps->torsoAnim) &&
-				BG_EnoughForcePowerForMove(SABER_ALT_ATTACK_POWER_FB))
+				!(pm->cmd.buttons & BUTTON_ALT_ATTACK) &&
+				BG_EnoughForcePowerForMove(SABER_LUNGE_POWER_USE))
 			{ //LUNGE (weak)
 				newmove = PM_SaberLungeAttackMove(noSpecials);
 				if (newmove != LS_A_T2B
@@ -4330,6 +4368,11 @@ void PM_WeaponLightsaber(void)
 			if (pm->ps->saberMove != LS_PARRY_UP)
 			{
 				PM_SetSaberMove(LS_PARRY_UP);
+			}
+		case BLOCKED_BACK_TOP:
+			if (pm->ps->saberMove != LS_PARRY_BACK_UP)
+			{
+				PM_SetSaberMove(LS_PARRY_BACK_UP);
 			}
 			//[/SaberSys]
 			break;

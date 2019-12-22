@@ -131,6 +131,8 @@ qboolean PM_StaggerAnim(int anim);
 //for now, I've dramatically reduced the cost of the saber special moves to
 //racc - force cost of doing cartwheels.
 #define SABER_ALT_ATTACK_POWER		50//75?
-#define SABER_ALT_ATTACK_POWER_LR	10//30?
-#define SABER_ALT_ATTACK_POWER_FB	25//30/50?
+#define SABER_ALT_ATTACK_POWER_LR	20//30?
+#define SABER_ALT_ATTACK_POWER_FB	35//30/50?
+#define SABER_LUNGE_POWER_USE		45
+#define SABER_STAB_DOWN_FORCE_USE	15//30/50?
 //[/SaberSys]
