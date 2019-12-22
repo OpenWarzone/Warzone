@@ -3578,13 +3578,28 @@ int WP_DoFrameSaberTrace(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t s
 
 		if (self->saberTrace[rSaberNum][rBladeNum].realTraceResult == REALTRACE_MISS)
 		{// Since we got nothing on the precision trace, do a box trace... Better for saber vs NPC...
-			saberBoxSize = g_testvalue0.value;// 64.0;
+			saberBoxSize = 4.0;
 			VectorSet(mins, -saberBoxSize, -saberBoxSize, -saberBoxSize);
 			VectorSet(maxs, saberBoxSize, saberBoxSize, saberBoxSize);
 
 			// Record the saber's trace into self->saberTrace.XXXXX
-			self->saberTrace[rSaberNum][rBladeNum].realTraceResult = G_RealTrace(self, &self->saberTrace[rSaberNum][rBladeNum].trace, saberStart, mins, maxs, saberEnd, self->s.number, trMask, rSaberNum, rBladeNum);
+			self->saberTrace[rSaberNum][rBladeNum].realTraceResult = G_RealTrace(self, &self->saberTrace[rSaberNum][rBladeNum].trace, saberStart, mins, maxs, saberEnd, self->s.number, /*trMask*/CONTENTS_BODY|CONTENTS_LIGHTSABER, rSaberNum, rBladeNum);
 			self->saberTrace[rSaberNum][rBladeNum].frameNum = level.framenum;
+
+			if (self->saberTrace[rSaberNum][rBladeNum].realTraceResult == REALTRACE_HIT)
+			{
+				//Com_Printf("Hit! entitynum %i. entitytype %s.\n", self->saberTrace[rSaberNum][rBladeNum].trace.entityNum, (self->saberTrace[rSaberNum][rBladeNum].trace.entityNum < ENTITYNUM_WORLD) ? g_entities[self->saberTrace[rSaberNum][rBladeNum].trace.entityNum].classname : "WORLD");
+
+				if (self->saberTrace[rSaberNum][rBladeNum].trace.entityNum >= ENTITYNUM_WORLD)
+				{// Either an entity that is not "inuse" or not a client... Ignore it...
+					TraceClear(&self->saberTrace[rSaberNum][rBladeNum].trace, vec3_origin);
+					self->saberTrace[rSaberNum][rBladeNum].realTraceResult = REALTRACE_MISS;
+				}
+			}
+			else if (self->saberTrace[rSaberNum][rBladeNum].realTraceResult == REALTRACE_PLAYER)
+			{
+				//Com_Printf("Hit Player!\n");
+			}
 		}
 	}
 
