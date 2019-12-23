@@ -3,15 +3,7 @@
 #include "g_local.h"
 #include "bg_local.h"
 
-extern int G_PowerLevelForSaberAnim(gentity_t *ent, int saberNum, qboolean mySaberHit);
-extern qboolean BG_SuperBreakWinAnim(int anim);
-extern stringID_table_t StanceTable[];
-extern qboolean BG_SabersOff(playerState_t *ps);
-extern qboolean BG_StabDownAnim(int anim);
-extern qboolean G_ClientIdleInWorld(gentity_t *ent);
-extern qboolean BG_SaberInNonIdleDamageMove(playerState_t *ps, int AnimIndex);
 extern qboolean WP_SabersCheckLock(gentity_t *ent1, gentity_t *ent2);
-extern stringID_table_t animTable[MAX_ANIMATIONS + 1];
 //[SaberSys]
 #ifdef __MISSILES_AUTO_PARRY__
 extern void WP_SaberBlockNonRandom(gentity_t *self, vec3_t hitloc, qboolean missileBlock);
@@ -22,11 +14,7 @@ extern void WP_SaberBlock(gentity_t *playerent, vec3_t hitloc, qboolean missileB
 extern void G_SaberBounce(gentity_t* self, gentity_t* other, qboolean hitBody);
 extern int PM_SaberBounceForAttack(int move);
 qboolean SaberAttacking(gentity_t *self);
-extern qboolean saberKnockOutOfHand(gentity_t *saberent, gentity_t *saberOwner, vec3_t velocity);
-extern qboolean BG_InKnockDown(int anim);
-extern qboolean BG_SaberInTransitionAny(int move);
 qboolean PM_SaberInBrokenParry(int move);
-extern qboolean CheckManualBlocking(gentity_t *attacker, gentity_t *defender);
 
 void SabBeh_AttackVsAttack(gentity_t *self,	gentity_t *otherOwner)
 {//set the saber behavior for two attacking blades hitting each other

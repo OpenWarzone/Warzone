@@ -2645,9 +2645,9 @@ static qboolean PM_CheckEnemyPresence(int dir, float radius)
 	return qfalse;
 }
 
-#define SABER_ALT_ATTACK_POWER		50//75?
-#define SABER_ALT_ATTACK_POWER_LR	10//30?
-#define SABER_ALT_ATTACK_POWER_FB	25//30/50?
+//#define SABER_ALT_ATTACK_POWER		50//75?
+//#define SABER_ALT_ATTACK_POWER_LR	10//30?
+//#define SABER_ALT_ATTACK_POWER_FB	25//30/50?
 
 extern qboolean PM_SaberInReturn(int move); //bg_panimate.c
 

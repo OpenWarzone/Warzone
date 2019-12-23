@@ -4651,6 +4651,7 @@ void G_RunFrame( int levelTime ) {
 				JKG_DoPlayerDamageEffects(ent);
 				WP_ForcePowersUpdate(ent, &ent->client->pers.cmd );
 				WP_SaberPositionUpdate(ent, &ent->client->pers.cmd);
+				ent->client->lastSaberFrameData = level.time;
 				WP_SaberStartMissileBlockCheck(ent, &ent->client->pers.cmd);
 			}
 
@@ -4694,6 +4695,7 @@ void G_RunFrame( int levelTime ) {
 			JKG_DoPlayerDamageEffects(ent);
 			WP_ForcePowersUpdate(ent, &ent->client->pers.cmd );
 			WP_SaberPositionUpdate(ent, &ent->client->pers.cmd);
+			ent->client->lastSaberFrameData = level.time;
 			WP_SaberStartMissileBlockCheck(ent, &ent->client->pers.cmd);
 		}
 #endif //__NPC_DYNAMIC_THREADS__

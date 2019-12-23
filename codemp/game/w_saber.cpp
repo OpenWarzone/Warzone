@@ -4924,7 +4924,9 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 		}
 	}
 
-	else if (BG_SaberInTransitionDamageMove(&self->client->ps))
+	//else if (BG_SaberInTransitionDamageMove(&self->client->ps))
+	else if (self->client->ps.saberAttackWound < level.time &&
+		self->client->ps.saberIdleWound < level.time)
 	{//use idle damage for transition moves.  
 	 //Playtesting has indicated that using attack damage for transition moves results in unfair insta-hits.
 		if ((self->client->saber[0].saberFlags2&SFL2_NO_IDLE_EFFECT))
@@ -9037,6 +9039,58 @@ nextStep:
 
 				self->client->saber[rSaberNum].blade[rBladeNum].storageTime = level.time;
 
+				//updated the saber Interpolate system. the old was weird and didn't do anything when settings it's cvar, 
+				//this version doesn't do weird stuff when the saber hit the body of the player/npc.
+				if (self->client->lastSaberFrameData == self->client->saber[rSaberNum].blade[rBladeNum].trail.lastTime)
+				{//New Saber Interpolate system
+					vec3_t olddir, endpos, startpos;
+					float dist = (self->client->saber[rSaberNum].blade[rBladeNum].radius)*0.5f;
+					VectorSubtract(self->client->saber[rSaberNum].blade[rBladeNum].trail.tip, self->client->saber[rSaberNum].blade[rBladeNum].trail.base, olddir);
+					VectorNormalize(olddir);
+
+					//start off by firing a trace down the old saber position to see if it's still inside something.
+					CheckSaberDamage(self, rSaberNum, rBladeNum, self->client->saber[rSaberNum].blade[rBladeNum].trail.base,
+						self->client->saber[rSaberNum].blade[rBladeNum].trail.tip, qfalse, (MASK_PLAYERSOLID | CONTENTS_LIGHTSABER | MASK_SHOT), qtrue);
+					//fire a series of traces thru the space the saber moved thru where it moved during the last frame.
+					//This is done linearly so it's not going to 100% accurately reflect the normally curved movement
+					//of the saber.
+					while (dist < self->client->saber[rSaberNum].blade[rBladeNum].lengthMax * 1.0)
+					{
+						//set new blade position
+						VectorMA(boltOrigin, dist, self->client->saber[rSaberNum].blade[rBladeNum].muzzleDir, endpos);
+
+						//set old blade position
+						VectorMA(self->client->saber[rSaberNum].blade[rBladeNum].trail.base, dist, olddir, startpos);
+
+						CheckSaberDamage(self, rSaberNum, rBladeNum, startpos, endpos, qfalse, (MASK_PLAYERSOLID | CONTENTS_LIGHTSABER | MASK_SHOT), qtrue);
+
+						//slide down the blade a bit and try again.
+						dist += self->client->saber[rSaberNum].blade[rBladeNum].radius;
+					}
+					//[/SaberSys]
+				}
+				else
+				{
+					CheckSaberDamage(self, rSaberNum, rBladeNum, boltOrigin, end, qfalse, (MASK_PLAYERSOLID | CONTENTS_LIGHTSABER | MASK_SHOT), qfalse);
+				}
+
+				VectorCopy(boltOrigin, self->client->saber[rSaberNum].blade[rBladeNum].trail.base);
+				VectorCopy(end, self->client->saber[rSaberNum].blade[rBladeNum].trail.tip);
+				self->client->saber[rSaberNum].blade[rBladeNum].trail.lastTime = level.time;
+				//VectorCopy(boltOrigin, self->client->lastSaberBase);
+				//VectorCopy(end, self->client->lastSaberTip);
+				self->client->hasCurrentPosition = qtrue;
+
+				//do hit effects
+				//WP_SaberDoHit(self, rSaberNum, rBladeNum);
+				WP_SaberDoClash(self, rSaberNum, rBladeNum);
+
+				rBladeNum++;
+			}
+
+			rSaberNum++;
+		}
+		/*
 				//[SaberSys]
 				if (self->client->hasCurrentPosition && d_saberInterpolate.integer == 1)
 				//if (self->client->hasCurrentPosition && d_saberInterpolate.integer)
@@ -9265,7 +9319,7 @@ nextStep:
 			}
 
 			rSaberNum++;
-		}
+		}*/
 #ifdef __TIMED_STAGGER__
 		// i don't know about this one here, hang on
 		if (self->client->blockStaggerDefender)

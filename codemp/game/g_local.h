@@ -952,6 +952,7 @@ struct gclient_s {
 	int			lastSaberStorageTime; //server time that the above two values were updated (for making sure they aren't out of date)
 
 	qboolean	hasCurrentPosition;	//are lastSaberTip and lastSaberBase valid?
+	int			lastSaberFrameData;
 
 	int			dangerTime;		// level.time when last attack occured
 
