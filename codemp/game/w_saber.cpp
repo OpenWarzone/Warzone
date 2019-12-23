@@ -4729,6 +4729,7 @@ extern qboolean BG_SaberInFullDamageMove(playerState_t *ps, int AnimIndex);
 void DebounceSaberImpact(gentity_t *self, gentity_t *otherSaberer,
 	int rSaberNum, int rBladeNum, int sabimpactentitynum);
 void G_Stagger(gentity_t *hitEnt, gentity_t *atk, qboolean forcePowerNeeded);
+void WP_SaberBlock(gentity_t *playerent, vec3_t hitloc, qboolean missileBlock);
 static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t saberStart, vec3_t saberEnd, qboolean doInterpolate, int trMask, qboolean extrapolate)
 {
 	static trace_t tr;
@@ -5078,19 +5079,18 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 		//	otherOwner = NULL;
 		//}
 		//else 
-		if (realTraceResult == REALTRACE_PLAYER)
-		{//this is actually a faked lightsaber hit to make the bounding box saber blocking work.
-		 //As such, we know that the player can block, set the approprate block position for this attack.
-			CheckManualBlocking(self, otherOwner);
-			//[SaberSys]
+		if (realTraceResult != REALTRACE_HIT)
+		{// We did not directly clash with another saber, check for directional blocking stuff...
+			if (CheckManualBlocking(self, otherOwner))
+			{
+				//[SaberSys]
 #ifdef __MISSILES_AUTO_PARRY__
-			WP_SaberBlockNonRandom(otherOwner, tr.endpos, qfalse);
+				WP_SaberBlockNonRandom(otherOwner, tr.endpos, qfalse);
+#else
+				WP_SaberBlock(self, tr.endpos, otherOwner->client->ps.saberInFlight ? qtrue : qfalse);
 #endif //__MISSILES_AUTO_PARRY__		
-			//[/SaberSys]
-		}
-		else if (realTraceResult == REALTRACE_MISS)
-		{
-			CheckManualBlocking(otherOwner, self);
+				//[/SaberSys]
+			}
 		}
 		else if (realTraceResult == REALTRACE_HIT)
 		{//successfully hit another player's saber blade directly

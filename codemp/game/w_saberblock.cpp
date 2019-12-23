@@ -53,10 +53,10 @@ void SabBeh_AttackVsBlock( gentity_t *attacker, gentity_t *blocker, vec3_t hitLo
 {//set the saber behavior for an attacking vs blocking/parrying blade impact
 	qboolean startSaberLock = qfalse;
 
-	if (SaberAttacking(attacker))
+	/*if (SaberAttacking(attacker))
 	{
 		G_SaberBounce(blocker, attacker, qfalse);
-	}
+	}*/
 
 	if(!OnSameTeam(attacker, blocker) || g_friendlySaber.integer)
 	{//don't do parries or charge/regen DP unless we're in a situation where we can actually hurt the target.
@@ -100,21 +100,27 @@ void Update_Saberblocking(gentity_t *self, gentity_t *otherOwner, vec3_t hitLoc,
 //[NewSaberSys]
 void G_SaberBounce(gentity_t* self, gentity_t* other, qboolean hitBody)
 {
-	if (self && self->client && NPC_IsAlive(self, self) && other->client && NPC_IsAlive(self, other))
-	{
-		if (!BG_SaberInSpecialAttack(self->client->ps.torsoAnim))
+	//if (TIMER_Done(self, "bounceTime"))
+	{//whatever other states self can be in.  (returns, bounces, or something)
+		//TIMER_Set(self, "bounceTime", Q_irand(2000, 5000));
+
+		if (self && self->client && NPC_IsAlive(self, self) && other->client && NPC_IsAlive(self, other) && self->client->ps.saberBlocked == BLOCKED_NONE)
 		{
-			if (SaberAttacking(self))
-			{// Saber is in attack, use bounce for this attack.
-				self->client->ps.saberMove = PM_SaberBounceForAttack(self->client->ps.saberMove);
-				self->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
-			}
-			else
-			{// Saber is in defense, use defensive bounce.
-				self->client->ps.saberBlocked = BLOCKED_ATK_BOUNCE;
+			if (!BG_SaberInSpecialAttack(self->client->ps.torsoAnim))
+			{
+				if (SaberAttacking(self))
+				{// Saber is in attack, use bounce for this attack.
+					self->client->ps.saberMove = PM_SaberBounceForAttack(self->client->ps.saberMove);
+					self->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
+				}
+				else
+				{// Saber is in defense, use defensive bounce.
+					self->client->ps.saberBlocked = BLOCKED_ATK_BOUNCE;
+				}
 			}
 		}
 	}
+	
 }
 //[/NewSaberSys]
 
