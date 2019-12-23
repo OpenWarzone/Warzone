@@ -2194,6 +2194,7 @@ void CG_RegisterItemVisuals( int itemNum );
 
 qhandle_t CG_Get3DWeaponBoltColor(const struct weaponInfo_s *weaponInfo, qboolean altFire);
 float *CG_Get3DWeaponBoltLightColor(qhandle_t boltShader);
+float *CG_Get3DWeaponBoltCoreColor(qhandle_t boltShader);
 qhandle_t CG_Get3DWeaponBoltGlowColor(qhandle_t boltShader);
 float CG_Get3DWeaponBoltLength(const struct weaponInfo_s *weaponInfo, qboolean altFire);
 float CG_Get3DWeaponBoltWidth(const struct weaponInfo_s *weaponInfo, qboolean altFire);

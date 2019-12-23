@@ -8,9 +8,22 @@
 qboolean DEFAULT_BLASTER_SHADERS_INITIALIZED = qfalse;
 
 int numBoltGlowIndexes = 0;
-qhandle_t boltBoltIndexes[1024] = { 0 };
-vec3_t    boltLightColors[1024] = { 0 };
+qhandle_t	boltBoltIndexes[1024] = { 0 };
+vec3_t		boltCoreColors[1024] = { 0 };
+vec3_t		boltLightColors[1024] = { 0 };
 
+vec4_t		boltCoreColorBlack = { 0.0, 0.0, 0.0, 1.0 };
+vec4_t		boltCoreColorRed = { 0.980, 0.0421, 0.00980, 1.0 };
+vec4_t		boltCoreColorGreen = { 0.0518, 0.740, 0.258, 1.0 };
+vec4_t		boltCoreColorBlue = { 0.124, 0.606, 0.950, 1.0 };
+vec4_t		boltCoreColorYellow = { 0.822, 0.850, 0.00, 1.0 };
+vec4_t		boltCoreColorOrange = { 0.970, 0.571, 0.0485, 1.0 };
+vec4_t		boltCoreColorMagenta = { 1.0, 0.0, 1.0, 1.0 };
+vec4_t		boltCoreColorCyan = { 0.0, 1.0, 1.0, 1.0 };
+vec4_t		boltCoreColorWhite = { 1.0, 1.0, 1.0, 1.0 };
+vec4_t		boltCoreColorPurple = { 0.648, 0.0518, 0.740, 1.0 };
+vec4_t		boltCoreColorBluePurple = { 0.648, 0.0518, 1.0, 1.0 };
+vec4_t		boltCoreColorPink = { 0.980, 0.121, 0.480, 1.0 };
 
 vec4_t		boltLightColorBlack = { 0, 0, 0, 1 };
 vec4_t		boltLightColorRed = { 1, 0, 0, 1 };
@@ -21,13 +34,14 @@ vec4_t		boltLightColorOrange = { 1, 0.5, 0, 1 };
 vec4_t		boltLightColorMagenta = { 1, 0, 1, 1 };
 vec4_t		boltLightColorCyan = { 0, 1, 1, 1 };
 vec4_t		boltLightColorWhite = { 1, 1, 1, 1 };
-vec3_t		boltLightColorPurple = { 1.0, 0.0, 1.0 };
-vec3_t		boltLightColorBluePurple = { 0.7, 0.0, 1.0 };
-vec3_t		boltLightColorPink = { 1.0, 0.0, 0.7 };
+vec4_t		boltLightColorPurple = { 1.0, 0.0, 1.0, 1.0 };
+vec4_t		boltLightColorBluePurple = { 0.7, 0.0, 1.0, 1.0 };
+vec4_t		boltLightColorPink = { 1.0, 0.0, 0.7, 1.0 };
 
-void CG_MakeShaderBoltGlow(qhandle_t boltShader, qhandle_t newBoltGlowShader, vec3_t lightColor)
+void CG_MakeShaderBoltGlow(qhandle_t boltShader, qhandle_t newBoltGlowShader, vec3_t coreColor, vec3_t lightColor)
 {// Make a list of all the glows matching the original bolts...
 	boltBoltIndexes[numBoltGlowIndexes] = boltShader;
+	VectorCopy(coreColor, boltCoreColors[numBoltGlowIndexes]);
 	VectorCopy(lightColor, boltLightColors[numBoltGlowIndexes]);
 	numBoltGlowIndexes++;
 }
@@ -46,31 +60,31 @@ void CG_RegisterDefaultBlasterShaders(void)
 	//
 
 	cgs.media.whiteBlasterShot = trap->R_RegisterShader("laserbolt_white"); // the basic color of the actual bolt...
-	CG_MakeShaderBoltGlow(cgs.media.whiteBlasterShot, trap->R_RegisterShader("laserbolt_white_glow"), boltLightColorWhite); // a glow shader matching the bolt color and glow color...
+	CG_MakeShaderBoltGlow(cgs.media.whiteBlasterShot, trap->R_RegisterShader("laserbolt_white_glow"), boltCoreColorWhite, boltLightColorWhite); // a glow shader matching the bolt color and glow color...
 
 	cgs.media.yellowBlasterShot = trap->R_RegisterShader("laserbolt_yellow");
-	CG_MakeShaderBoltGlow(cgs.media.yellowBlasterShot, trap->R_RegisterShader("laserbolt_yellow_glow"), boltLightColorYellow);
+	CG_MakeShaderBoltGlow(cgs.media.yellowBlasterShot, trap->R_RegisterShader("laserbolt_yellow_glow"), boltCoreColorYellow, boltLightColorYellow);
 
 	cgs.media.redBlasterShot = trap->R_RegisterShader("laserbolt_red");
-	CG_MakeShaderBoltGlow(cgs.media.redBlasterShot, trap->R_RegisterShader("laserbolt_red_glow"), boltLightColorRed);
+	CG_MakeShaderBoltGlow(cgs.media.redBlasterShot, trap->R_RegisterShader("laserbolt_red_glow"), boltCoreColorRed, boltLightColorRed);
 
 	cgs.media.blueBlasterShot = trap->R_RegisterShader("laserbolt_blue");
-	CG_MakeShaderBoltGlow(cgs.media.blueBlasterShot, trap->R_RegisterShader("laserbolt_blue_glow"), boltLightColorBlue);
+	CG_MakeShaderBoltGlow(cgs.media.blueBlasterShot, trap->R_RegisterShader("laserbolt_blue_glow"), boltCoreColorBlue, boltLightColorBlue);
 
 	cgs.media.greenBlasterShot = trap->R_RegisterShader("laserbolt_green");
-	CG_MakeShaderBoltGlow(cgs.media.greenBlasterShot, trap->R_RegisterShader("laserbolt_green_glow"), boltLightColorGreen);
+	CG_MakeShaderBoltGlow(cgs.media.greenBlasterShot, trap->R_RegisterShader("laserbolt_green_glow"), boltCoreColorGreen, boltLightColorGreen);
 	
 	cgs.media.PurpleBlasterShot = trap->R_RegisterShader("laserbolt_purple");
-	CG_MakeShaderBoltGlow(cgs.media.PurpleBlasterShot, trap->R_RegisterShader("laserbolt_purple_glow"), boltLightColorPurple);
+	CG_MakeShaderBoltGlow(cgs.media.PurpleBlasterShot, trap->R_RegisterShader("laserbolt_purple_glow"), boltCoreColorPurple, boltLightColorPurple);
 
 	cgs.media.orangeBlasterShot = trap->R_RegisterShader("laserbolt_orange");
-	CG_MakeShaderBoltGlow(cgs.media.orangeBlasterShot, trap->R_RegisterShader("laserbolt_orange_glow"), boltLightColorOrange);
+	CG_MakeShaderBoltGlow(cgs.media.orangeBlasterShot, trap->R_RegisterShader("laserbolt_orange_glow"), boltCoreColorOrange, boltLightColorOrange);
 
 	cgs.media.BluePurpleBlasterShot = trap->R_RegisterShader("laserbolt_bluepurple");
-	CG_MakeShaderBoltGlow(cgs.media.BluePurpleBlasterShot, trap->R_RegisterShader("laserbolt_bluepurple_glow"), boltLightColorBluePurple);
+	CG_MakeShaderBoltGlow(cgs.media.BluePurpleBlasterShot, trap->R_RegisterShader("laserbolt_bluepurple_glow"), boltCoreColorBluePurple, boltLightColorBluePurple);
 
 	cgs.media.PinkBlasterShot = trap->R_RegisterShader("laserbolt_pink");
-	CG_MakeShaderBoltGlow(cgs.media.PinkBlasterShot, trap->R_RegisterShader("laserbolt_pink_glow"), boltLightColorPink);
+	CG_MakeShaderBoltGlow(cgs.media.PinkBlasterShot, trap->R_RegisterShader("laserbolt_pink_glow"), boltCoreColorPink, boltLightColorPink);
 }
 
 float *CG_Get3DWeaponBoltLightColor(qhandle_t boltShader)
@@ -80,6 +94,19 @@ float *CG_Get3DWeaponBoltLightColor(qhandle_t boltShader)
 		if (boltBoltIndexes[i] == boltShader)
 		{
 			return boltLightColors[i];
+		}
+	}
+
+	return colorBlack;
+}
+
+float *CG_Get3DWeaponBoltCoreColor(qhandle_t boltShader)
+{
+	for (int i = 0; i < numBoltGlowIndexes; i++)
+	{
+		if (boltBoltIndexes[i] == boltShader)
+		{
+			return boltCoreColors[i];
 		}
 	}
 
@@ -358,7 +385,6 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 	if (saberTrail)
 	{// Trails...
 		vec3_t	rgb1;
-		float	useAlpha = 0.01;
 
 		//saberTrail->duration = 0;
 		saberTrail->duration = saberMoveData[cent->currentState.saberMove].trailLength;
@@ -391,40 +417,6 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 			{
 				float diff = 0;
 
-#if 0
-				switch (scolor)
-				{
-				case SABER_RED:
-					VectorSet(rgb1, 255.0f, 0.0f, 0.0f);
-					break;
-				case SABER_ORANGE:
-					VectorSet(rgb1, 255.0f, 64.0f, 0.0f);
-					break;
-				case SABER_YELLOW:
-					VectorSet(rgb1, 255.0f, 255.0f, 0.0f);
-					break;
-				case SABER_GREEN:
-					VectorSet(rgb1, 0.0f, 255.0f, 0.0f);
-					break;
-				case SABER_BLUE:
-					VectorSet(rgb1, 0.0f, 64.0f, 255.0f);
-					useAlpha = 0.02;
-					break;
-				case SABER_PURPLE:
-					VectorSet(rgb1, 220.0f, 0.0f, 255.0f);
-					break;
-				case SABER_RGB:
-				case SABER_PIMP:
-				case SABER_SCRIPTED:
-				case SABER_BLACK:
-				case SABER_WHITE:
-					VectorSet(rgb1, 255.0f, 255.0f, 255.0f);
-					break;
-				default:
-					VectorSet(rgb1, 0.0f, 64.0f, 255.0f);
-					break;
-				}
-#else
 				qhandle_t bolt3D = 0;
 
 				switch (BG_EquippedWeaponCrystal(cent->playerState))
@@ -451,7 +443,7 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 					bolt3D = cgs.media.orangeBlasterShot;
 					break;
 				case ITEM_CRYSTAL_PINK:				// Bonus 1/2 Electric + 1/2 Cold Damage/Resistance
-					bolt3D = cgs.media.BluePurpleBlasterShot; // TODO: Add actual pink...
+					bolt3D = cgs.media.PinkBlasterShot; // TODO: Add actual pink...
 					break;
 				case ITEM_CRYSTAL_DEFAULT:			// GREY shots/blade? No special damage/resistance type...
 				default:
@@ -460,11 +452,12 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 					break;
 				}
 
-				VectorCopy(CG_Get3DWeaponBoltLightColor(bolt3D), rgb1);
+#if 1
+				//VectorCopy(CG_Get3DWeaponBoltLightColor(bolt3D), rgb1);
+				VectorCopy(CG_Get3DWeaponBoltCoreColor(bolt3D), rgb1);
 				rgb1[0] *= 255.0;
 				rgb1[1] *= 255.0;
 				rgb1[2] *= 255.0;
-#endif
 
 				// Here we will use the happy process of filling a struct in with arguments and passing it to a trap function
 				// so that we can take the struct and fill in an actual CTrail type using the data within it once we get it
@@ -485,7 +478,8 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 				//if ( diff <= SABER_TRAIL_TIME * 2 )
 				if ((inSaberMove && diff <= 10000) || (!inSaberMove && diff <= SABER_TRAIL_TIME * 2))
 				{ //don't draw it if the last time is way out of date
-					float oldAlpha = 1.0f - (diff / trailDur);
+					float	oldAlpha = 1.0f - (diff / trailDur);
+					float	useAlpha = 2.55f;
 
 					if ((!WP_SaberBladeUseSecondBladeStyle(&client->saber[saberNum], bladeNum) && client->saber[saberNum].trailStyle == 1)
 						|| (WP_SaberBladeUseSecondBladeStyle(&client->saber[saberNum], bladeNum) && client->saber[saberNum].trailStyle2 == 1))
@@ -496,35 +490,16 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 					}
 					else
 					{
-						//extern qhandle_t CG_GetSaberBoltColor(saber_colors_t color);
-						//fx.mShader = CG_GetSaberBoltColor((saber_colors_t)scolor);
-						//VectorCopy(CG_Get3DWeaponBoltLightColor(fx.mShader), rgb1);
 						fx.mShader = cgs.media.saberBlurShader;
 					}
 
 					fx.mKillTime = int(float(trailDur) / 40.0/*cg_saberTrailDecay.value*/);
 					fx.mSetFlags = FX_USE_ALPHA;
 
-#if 0
-					//if (BG_SaberInAttack(cent->playerState->legsAnim) || BG_SaberInAttack(cent->playerState->torsoAnim))
-					{
-						if (BG_SpinningSaberAnim(cent->playerState->legsAnim)
-							|| BG_FlippingAnim(cent->playerState->legsAnim)
-							|| BG_SaberInSpecialAttack(cent->playerState->legsAnim)
-							|| BG_FlippingAnim(cent->playerState->legsAnim)
-							|| BG_SpinningSaberAnim(cent->playerState->torsoAnim)
-							|| BG_FlippingAnim(cent->playerState->torsoAnim)
-							|| BG_SaberInSpecialAttack(cent->playerState->torsoAnim)
-							|| BG_FlippingAnim(cent->playerState->torsoAnim))
-						{
-							useAlpha = cg_testvalue0.value;
-						}
-					}
-#endif
 
 					// New muzzle
 					VectorCopy(rgb1, fx.mVerts[0].rgb);
-					fx.mVerts[0].alpha = 255.0f * useAlpha/*cg_saberTrailAlpha.value*/ * oldAlpha;
+					fx.mVerts[0].alpha = useAlpha * oldAlpha;
 
 					fx.mVerts[0].ST[0] = 0.0f;
 					fx.mVerts[0].ST[1] = 1.0f;
@@ -533,7 +508,7 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 
 					// new tip
 					VectorCopy(rgb1, fx.mVerts[1].rgb);
-					fx.mVerts[1].alpha = 255.0f * useAlpha/*cg_saberTrailAlpha.value*/ * oldAlpha;
+					fx.mVerts[1].alpha = useAlpha * oldAlpha;
 
 					fx.mVerts[1].ST[0] = 0.0f;
 					fx.mVerts[1].ST[1] = 0.0f;
@@ -560,6 +535,90 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 
 					trap->FX_AddPrimitive(&fx);
 				}
+#else
+				//VectorCopy(CG_Get3DWeaponBoltLightColor(bolt3D), rgb1);
+				//VectorCopy(CG_Get3DWeaponBoltCoreColor(bolt3D), rgb1);
+				rgb1[0] = 255.0;
+				rgb1[1] = 255.0;
+				rgb1[2] = 255.0;
+
+				// Here we will use the happy process of filling a struct in with arguments and passing it to a trap function
+				// so that we can take the struct and fill in an actual CTrail type using the data within it once we get it
+				// into the effects area
+
+				// Go from new muzzle to new end...then to old end...back down to old muzzle...finally
+				// connect back to the new muzzle...this is our trail quad
+				VectorCopy(org_, fx.mVerts[0].origin);
+				VectorMA(end, 3.0f, axis_[0], fx.mVerts[1].origin);
+
+				VectorCopy(saberTrail->tip, fx.mVerts[2].origin);
+				VectorCopy(saberTrail->base, fx.mVerts[3].origin);
+
+				diff = cg.time - saberTrail->lastTime;
+
+				// I'm not sure that clipping this is really the best idea
+				//This prevents the trail from showing at all in low framerate situations.
+				//if ( diff <= SABER_TRAIL_TIME * 2 )
+				if ((inSaberMove && diff <= 10000) || (!inSaberMove && diff <= SABER_TRAIL_TIME * 2))
+				{ //don't draw it if the last time is way out of date
+					float	oldAlpha = 1.0f - (diff / trailDur);
+					float	useAlpha = cg_saberTrailAlpha.value;// 0.01;
+
+					if ((!WP_SaberBladeUseSecondBladeStyle(&client->saber[saberNum], bladeNum) && client->saber[saberNum].trailStyle == 1)
+						|| (WP_SaberBladeUseSecondBladeStyle(&client->saber[saberNum], bladeNum) && client->saber[saberNum].trailStyle2 == 1))
+					{//motion trail
+						fx.mShader = cgs.media.swordTrailShader;
+						VectorSet(rgb1, 32.0f, 32.0f, 32.0f); // make the sith sword trail pretty faint
+															  //trailDur *= 2.0f; // stay around twice as long?
+					}
+					else
+					{
+						fx.mShader = bolt3D;// cgs.media.saberBlurShader;
+					}
+
+					fx.mKillTime = int(float(trailDur) / /*40.0*/cg_saberTrailDecay.value);
+					if (cg_testvalue0.integer) fx.mSetFlags = FX_USE_ALPHA;
+
+
+					// New muzzle
+					VectorCopy(rgb1, fx.mVerts[0].rgb);
+					fx.mVerts[0].alpha = useAlpha * oldAlpha;
+
+					fx.mVerts[0].ST[0] = 0.0f;
+					fx.mVerts[0].ST[1] = 1.0f;
+					fx.mVerts[0].destST[0] = 1.0f;
+					fx.mVerts[0].destST[1] = 1.0f;
+
+					// new tip
+					VectorCopy(rgb1, fx.mVerts[1].rgb);
+					fx.mVerts[1].alpha = useAlpha * oldAlpha;
+
+					fx.mVerts[1].ST[0] = 0.0f;
+					fx.mVerts[1].ST[1] = 0.0f;
+					fx.mVerts[1].destST[0] = 1.0f;
+					fx.mVerts[1].destST[1] = 0.0f;
+
+					// old tip
+					VectorCopy(rgb1, fx.mVerts[2].rgb);
+					fx.mVerts[2].alpha = useAlpha * oldAlpha;
+
+					fx.mVerts[2].ST[0] = cg_testvalue1.integer ? 1.0f : (1.0f - oldAlpha); // NOTE: this just happens to contain the value I want
+					fx.mVerts[2].ST[1] = 0.0f;
+					fx.mVerts[2].destST[0] = 1.0f + fx.mVerts[2].ST[0];
+					fx.mVerts[2].destST[1] = 0.0f;
+
+					// old muzzle
+					VectorCopy(rgb1, fx.mVerts[3].rgb);
+					fx.mVerts[3].alpha = useAlpha * oldAlpha;
+
+					fx.mVerts[3].ST[0] = cg_testvalue1.integer ? 1.0f : (1.0f - oldAlpha); // NOTE: this just happens to contain the value I want
+					fx.mVerts[3].ST[1] = 1.0f;
+					fx.mVerts[3].destST[0] = 1.0f + fx.mVerts[2].ST[0];
+					fx.mVerts[3].destST[1] = 1.0f;
+
+					trap->FX_AddPrimitive(&fx);
+				}
+#endif
 			}
 
 			// we must always do this, even if we aren't active..otherwise we won't know where to pick up from
