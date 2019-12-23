@@ -5081,6 +5081,9 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 		//else 
 		if (realTraceResult != REALTRACE_HIT)
 		{// We did not directly clash with another saber, check for directional blocking stuff...
+#define __WORKING_BLOCKING__
+
+#ifdef __WORKING_BLOCKING__
 			if (CheckManualBlocking(self, otherOwner))
 			{
 				//[SaberSys]
@@ -5091,6 +5094,16 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 #endif //__MISSILES_AUTO_PARRY__		
 				//[/SaberSys]
 			}
+#else //!__WORKING_BLOCKING__
+			float dist = Distance(self->r.currentOrigin, otherOwner->r.currentOrigin);
+			float distFactor = 1.0 - Q_clamp(0.0f, dist / 2048.0f, 1.0f);
+			int dfInt = (int)(distFactor * 60.0f) + irand(0, 20) + 20; // 20% base block. 20% chance based. 60% distance based.
+			
+			if (dfInt >= g_testvalue0.integer)
+			{
+				WP_SaberBlock(self, tr.endpos, otherOwner->client->ps.saberInFlight ? qtrue : qfalse);
+			}
+#endif //__WORKING_BLOCKING__
 		}
 		else if (realTraceResult == REALTRACE_HIT)
 		{//successfully hit another player's saber blade directly

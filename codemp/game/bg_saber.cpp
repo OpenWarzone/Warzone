@@ -4685,7 +4685,7 @@ weapChecks:
 	//[NewSaberSys]
 	//[MELEE]
 	//moved the kick code to here so the player can kick while their saber is off.
-	if ((pm->cmd.buttons & BUTTON_ALT_ATTACK) && !(pm->cmd.buttons & BUTTON_ATTACK) && PM_DoKick())
+	if ((pm->cmd.buttons & BUTTON_SPECIALBUTTON2) && !(pm->cmd.buttons & BUTTON_ATTACK) && PM_DoKick())
 	{
 		return;
 	}
