@@ -5459,7 +5459,10 @@ int BG_GetCrowdControlStanceMove(short newMove)
 #endif //__DEBUG_STANCES__
 		if (pm->cmd.forwardmove < 0 && pm->cmd.rightmove == 0)
 		{// Moving back only.
-			pm->ps->fd.saberAnimLevel = SS_STAFF;
+			//pm->ps->fd.saberAnimLevel = SS_STAFF;
+
+			pm->ps->fd.saberAnimLevel = SS_DUAL;
+			newMove = 104; //119
 		}
 		else if (pm->cmd.forwardmove < 0 && pm->cmd.rightmove < 0)
 		{// Moving to back left.
@@ -5475,14 +5478,8 @@ int BG_GetCrowdControlStanceMove(short newMove)
 		{// Moving forward only.
 			//pm->ps->fd.saberAnimLevel = SS_STAFF;
 			
-			//pm->ps->fd.saberAnimLevel = SS_STAFF;
-			//newMove = 88;// 81;
-
-			//pm->ps->fd.saberAnimLevel = SS_DUAL;
-			//newMove = 104; //119
-
-			pm->ps->fd.saberAnimLevel = SS_CROWD_CONTROL;
-			newMove = 105;
+			pm->ps->fd.saberAnimLevel = SS_STAFF;
+			newMove = 88;// 81;
 		}
 		else if (pm->cmd.forwardmove > 0 && pm->cmd.rightmove < 0)
 		{// Moving forward left.
