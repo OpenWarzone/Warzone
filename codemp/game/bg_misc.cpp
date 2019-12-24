@@ -1873,6 +1873,8 @@ void BG_PlayerStateToEntityState( playerState_t *ps, entityState_t *s, qboolean 
 	s->legsAnimReverse = ps->legsAnimReverse;
 #endif //__EXPERIMENTAL_REVERSE_ANIM__
 
+	s->nextTransitionAnim = ps->nextTransitionAnim;
+
 	s->clientNum = ps->clientNum;		// ET_PLAYER looks here instead of at number
 										// so corpses can also reference the proper config
 	s->eFlags = ps->eFlags;
@@ -2169,6 +2171,8 @@ void BG_PlayerStateToEntityStateExtraPolate( playerState_t *ps, entityState_t *s
 	s->torsoAnimReverse = ps->torsoAnimReverse;
 	s->legsAnimReverse = ps->legsAnimReverse;
 #endif //__EXPERIMENTAL_REVERSE_ANIM__
+
+	s->nextTransitionAnim = ps->nextTransitionAnim;
 
 	s->clientNum = ps->clientNum;		// ET_PLAYER looks here instead of at number
 										// so corpses can also reference the proper config

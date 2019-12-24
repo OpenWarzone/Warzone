@@ -1916,6 +1916,8 @@ typedef enum //# animNumber_e
 	TORSO_CLONEPISTOL,
 	TORSO_CLONEPISTOLFIRE,
 
+	BOTH_CC_DEFENCE_SPIN,
+
 	//[/NewANIM]
 
 	//# #eol
@@ -1925,5 +1927,13 @@ typedef enum //# animNumber_e
 	
 
 } animNumber_t;
+
+#define UNIQUE_STANCE01 1009 // really cool...
+#define UNIQUE_STANCE02 728 // really cool, front spin then hold behind me... may be the one!
+#define UNIQUE_STANCE03 727 // alternate to above...
+#define UNIQUE_STANCE04 700 // another alternate to above...
+#define UNIQUE_STANCE05 512 // transition then hold behind. cool again...
+#define UNIQUE_STANCE06 642 // hold behind me, left side...
+#define UNIQUE_STANCE07 564 // spin and hold behind me... cool.
 
 #define SABER_ANIM_GROUP_SIZE (BOTH_A2_T__B_ - BOTH_A1_T__B_)

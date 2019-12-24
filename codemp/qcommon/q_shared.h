@@ -1812,6 +1812,8 @@ typedef struct playerState_s {
 	qboolean	legsFlip; //set to opposite when the same anim needs restarting, sent over in only 1 bit. Cleaner and makes porting easier than having that god forsaken ANIM_TOGGLEBIT.
 	qboolean	torsoFlip;
 
+	int			nextTransitionAnim = 0;
+
 	int			movementDir;	// a number 0 to 7 that represents the reletive angle
 								// of movement to the view angle (axial and diagonals)
 								// when at rest, the value will remain unchanged
@@ -2397,6 +2399,8 @@ typedef struct entityState_s {
 
 	qboolean	legsFlip; //set to opposite when the same anim needs restarting, sent over in only 1 bit. Cleaner and makes porting easier than having that god forsaken ANIM_TOGGLEBIT.
 	qboolean	torsoFlip;
+
+	int			nextTransitionAnim = 0;
 
 	int		forceFrame;		//if non-zero, force the anim frame
 

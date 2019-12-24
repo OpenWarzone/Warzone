@@ -800,6 +800,7 @@ netField_t	entityStateFields[] =
 // suspicious
 { NETF(torsoAnim), 16 },		// Maximum number of animation sequences is 2048.  Top bit is reserved for the togglebit
 { NETF(torsoBlendTime), 16 },
+{ NETF(nextTransitionAnim), 4 },
 // large use beyond GENTITYNUM_BITS - should use generic1 insead
 { NETF(genericenemyindex), 32 }, //Do not change to GENTITYNUM_BITS, used as a time offset for seeker
 { NETF(eFlags), 32 },
@@ -1268,6 +1269,7 @@ netField_t	playerStateFields[] =
 { PSF(delta_angles[0]), 16 },
 { PSF(torsoAnim), 16 },			// Maximum number of animation sequences is 2048.  Top bit is reserved for the togglebit
 { PSF(torsoBlendTime), 16 },
+{ PSF(nextTransitionAnim), 4 },
 { PSF(groundEntityNum), GENTITYNUM_BITS },
 { PSF(eFlags), 32 },
 #ifdef __MMO__
@@ -1472,6 +1474,7 @@ netField_t	pilotPlayerStateFields[] =
 { PSF(torsoBlendTime), 16 },
 { PSF(torsoTimer), 16 },
 { PSF(legsTimer), 16 },
+{ PSF(nextTransitionAnim), 4 },
 { PSF(jetpackFuel), 8 },
 { PSF(cloakFuel), 8 },
 { PSF(damageCrit), 1 },
@@ -1707,6 +1710,7 @@ netField_t	playerStateFields[] =
 { PSF(delta_angles[0]), 16 },
 { PSF(torsoAnim), 16 },			// Maximum number of animation sequences is 2048.  Top bit is reserved for the togglebit
 { PSF(torsoBlendTime), 16 },
+{ PSF(nextTransitionAnim), 4 },
 { PSF(groundEntityNum), GENTITYNUM_BITS },
 { PSF(eFlags), 32 },
 { PSF(fd.forcePower), 8 },
