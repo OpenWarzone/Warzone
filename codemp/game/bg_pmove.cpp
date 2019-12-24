@@ -3882,6 +3882,10 @@ static void PM_WalkMove( void ) {
 		}
 	}
 	//[NewSaberSys]
+	else if (pm->ps->torsoAnim == BOTH_CC_DEFENCE_SPIN)
+	{// Crowd Control projectile blocking players/NPCs can move at full speed...
+
+	}
 	else if ((pm->ps->weapon == WP_SABER && (pm->cmd.buttons & BUTTON_ALT_ATTACK))
 		|| (pm->ps->fd.forcePowersActive&(1 << FP_LIGHTNING))
 		|| (pm->ps->fd.forcePowersActive&(1 << FP_GRIP))
@@ -6411,7 +6415,7 @@ static void PM_Footsteps( void ) {
 		}
 		//[NewSaberSys]
 		else if (!(pm->cmd.buttons & BUTTON_WALKING)
-			&& !(pm->ps->weapon == WP_SABER && (pm->cmd.buttons & BUTTON_ALT_ATTACK))
+			&& (!(pm->ps->weapon == WP_SABER && (pm->cmd.buttons & BUTTON_ALT_ATTACK)) || pm->ps->torsoAnim == BOTH_CC_DEFENCE_SPIN)
 			&& !(pm->ps->fd.forcePowersActive&(1 << FP_LIGHTNING))
 			&& !(pm->ps->fd.forcePowersActive&(1 << FP_GRIP))
 			&& !(pm->ps->fd.forcePowersActive&(1 << FP_DRAIN)))

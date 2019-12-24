@@ -3579,6 +3579,12 @@ int WP_DoFrameSaberTrace(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t s
 		if (self->saberTrace[rSaberNum][rBladeNum].realTraceResult == REALTRACE_MISS)
 		{// Since we got nothing on the precision trace, do a box trace... Better for saber vs NPC...
 			saberBoxSize = 4.0;
+			
+			if (self->client->ps.fd.saberAnimLevelBase == SS_CROWD_CONTROL || self->client->ps.fd.saberAnimLevelBase == SS_STAFF)
+			{
+				saberBoxSize = 32.0;
+			}
+
 			VectorSet(mins, -saberBoxSize, -saberBoxSize, -saberBoxSize);
 			VectorSet(maxs, saberBoxSize, saberBoxSize, saberBoxSize);
 
@@ -5802,9 +5808,15 @@ void WP_SaberStartMissileBlockCheck( gentity_t *self, usercmd_t *ucmd  )
 			gentity_t *owner = &g_entities[incoming->r.ownerNum];
 
 			//[SaberSys]
+			if (self->client
+				&& (self->s.eType == ET_NPC || (self->client->ps.fd.saberAnimLevelBase == SS_CROWD_CONTROL && self->client->ps.torsoAnim == BOTH_CC_DEFENCE_SPIN)))
+			{
 #ifdef __MISSILES_AUTO_PARRY__
-			WP_SaberBlockNonRandom(self, incoming->r.currentOrigin, qtrue);
+				WP_SaberBlockNonRandom(self, incoming->r.currentOrigin, qtrue);
+#else //!__MISSILES_AUTO_PARRY__
+				WP_SaberBlock(self, incoming->r.currentOrigin, qtrue);
 #endif //__MISSILES_AUTO_PARRY__
+			}
 			//[/SaberSys]
 			//[NewSaberSys]
 			Saberslash = qfalse;
@@ -9390,7 +9402,6 @@ void WP_SaberBlock(gentity_t *playerent, vec3_t hitloc, qboolean missileBlock); 
 
 void WP_SaberBlockNonRandom(gentity_t *self, vec3_t hitloc, qboolean missileBlock)
 {
-#if 0
 	vec3_t diff, fwdangles={0,0,0}, right;
 	vec3_t clEye;
 	float rightdot;
@@ -9460,9 +9471,6 @@ void WP_SaberBlockNonRandom(gentity_t *self, vec3_t hitloc, qboolean missileBloc
 	{
 		self->client->ps.saberBlocked = WP_MissileBlockForBlock( self->client->ps.saberBlocked );
 	}
-#else
-	WP_SaberBlock(self, hitloc, missileBlock);
-#endif
 }
 //[/SaberSys]
 
@@ -9470,18 +9478,25 @@ extern qboolean NPC_IsAlive(gentity_t *self, gentity_t *NPC);
 
 void WP_SaberBlock( gentity_t *playerent, vec3_t hitloc, qboolean missileBlock )
 {
-	vec3_t diff, fwdangles={0,0,0}, right;
-	float rightdot;
-	float zdiff;
+	if (!playerent || !playerent->client || !NPC_IsAlive(playerent, playerent))
+	{
+		return;
+	}
 
-	if (playerent->client->ps.fd.saberAnimLevelBase == SS_CROWD_CONTROL
-		&& (playerent->client->pers.cmd.buttons & BUTTON_ALT_ATTACK)
-		&& !(playerent->client->pers.cmd.buttons & BUTTON_ATTACK))
+	if (playerent->s.eType == ET_NPC)
+	{// NPCs do projectiles the old way...
+		WP_SaberBlockNonRandom(playerent, hitloc, qtrue);
+		return;
+	}
+
+	if (playerent->client->ps.torsoAnim == BOTH_CC_DEFENCE_SPIN)
 	{// In spinning saber deflection mode... Block all the things... No block animation needed...
 		return;
 	}
 
-	if (!playerent || !playerent->client || !NPC_IsAlive(playerent, playerent)) return;
+	vec3_t diff, fwdangles={0,0,0}, right;
+	float rightdot;
+	float zdiff;
 
 	VectorSubtract(hitloc, playerent->client->ps.origin, diff);
 	VectorNormalize(diff);
@@ -9580,10 +9595,7 @@ qboolean WP_SaberCanBlock(gentity_t *atk, gentity_t *self, vec3_t point, vec3_t 
 		thrownSaber = qtrue;
 	}
 
-	if (self->client->ps.fd.saberAnimLevelBase == SS_CROWD_CONTROL
-		&& (projectile || thrownSaber)
-		&& (self->client->pers.cmd.buttons & BUTTON_ALT_ATTACK)
-		&& !(self->client->pers.cmd.buttons & BUTTON_ATTACK))
+	if (self->client->ps.torsoAnim == BOTH_CC_DEFENCE_SPIN)
 	{// In spinning saber deflection mode... Block all the things...
 		isCrowdControlDeflection = qtrue;
 	}
@@ -9621,7 +9633,7 @@ qboolean WP_SaberCanBlock(gentity_t *atk, gentity_t *self, vec3_t point, vec3_t 
 
 	if (isCrowdControlDeflection)
 	{// Block pretty much anything forward of the spinning saber...
-		blockFactor = 0.75f;
+		blockFactor = 16.0;//0.75f;
 	}
 	else
 	{
@@ -9658,7 +9670,7 @@ qboolean WP_SaberCanBlock(gentity_t *atk, gentity_t *self, vec3_t point, vec3_t 
 
 	if (projectile)
 	{
-		if ((self->client->pers.cmd.buttons & BUTTON_ATTACK) && !(self->client->pers.cmd.buttons & BUTTON_ALT_ATTACK))
+		if (isCrowdControlDeflection || (self->client->pers.cmd.buttons & BUTTON_ATTACK) && !(self->client->pers.cmd.buttons & BUTTON_ALT_ATTACK))
 		{ //can't block a proj when we are doing a attack.
 			return qtrue;
 		}
@@ -9668,7 +9680,7 @@ qboolean WP_SaberCanBlock(gentity_t *atk, gentity_t *self, vec3_t point, vec3_t 
 
 		if (self->client->pers.cmd.buttons & BUTTON_ATTACK)
 		{ //don't block when the player is trying to slash
-			return qtrue;
+			return qfalse;
 		}
 	}
 
@@ -9682,14 +9694,11 @@ qboolean WP_SaberCanBlock(gentity_t *atk, gentity_t *self, vec3_t point, vec3_t 
 		return qfalse;
 	}
 
-	if (!projectile && !(self->client->pers.cmd.buttons & BUTTON_ALT_ATTACK))
+	if (!projectile && !thrownSaber && !(self->client->pers.cmd.buttons & BUTTON_ALT_ATTACK))
 	{
 		//Never block a saber without block button held or if we don't have enough BP 
 		//Oh - unless the saber is being thrown at us, in which case it's ok  
-		if (!thrownSaber)
-		{
-			return qfalse;
-		}
+		return qfalse;
 	}
 
 	if (self->client->ps.saberMove == LS_DRAW)
@@ -9706,20 +9715,18 @@ qboolean WP_SaberCanBlock(gentity_t *atk, gentity_t *self, vec3_t point, vec3_t 
 		return qfalse;
 	}
 
-	if (projectile 
-		&& saberInAttack 
-		&& InFront(originpoint, self->client->ps.origin, self->client->ps.viewangles, blockFactor)
-		&& (self->client->pers.cmd.buttons & BUTTON_ALT_ATTACK) 
-		&& !(self->client->buttons & BUTTON_ATTACK))
+	if (projectile && saberInAttack)
 	{
 		if (isCrowdControlDeflection)
-		{// Don't need the other checks, or any deflection animation, saber should be in forward spin permanently while alt is held in these stances...
+		{// Don't need the other checks, or any deflection animation, saber should be in forward spin permanently while block is held in these stances...
 			return qtrue;
 		}
-
-		self->client->ps.saberMove = LS_NONE;
-		self->client->ps.saberBlocked = BLOCKED_NONE;
-		return qtrue;
+		else if ((self->client->pers.cmd.buttons & BUTTON_ALT_ATTACK) && !(self->client->buttons & BUTTON_ATTACK))
+		{
+			self->client->ps.saberMove = LS_NONE;
+			self->client->ps.saberBlocked = BLOCKED_NONE;
+			return qtrue;
+		}
 	}
 
 	if (saberInAttack && !thrownSaber)
@@ -9957,11 +9964,16 @@ qboolean WP_SaberCanBlock_NPC(gentity_t *self, vec3_t point, int dflags, int mod
 	if (projectile)
 	{
 		//[SaberSys]
+		if (self->client
+			&& (self->s.eType == ET_NPC || (self->client->ps.fd.saberAnimLevelBase == SS_CROWD_CONTROL && self->client->ps.torsoAnim == BOTH_CC_DEFENCE_SPIN)))
+		{
 #ifdef __MISSILES_AUTO_PARRY__
-		WP_SaberBlockNonRandom(self, point, projectile);
+			WP_SaberBlockNonRandom(self, point, projectile);
+#else
+			WP_SaberBlock(self, point, projectile);
 #endif // __MISSILES_AUTO_PARRY__
+		}
 		//[SaberSys]
-
 	}
 	return qtrue;
 }

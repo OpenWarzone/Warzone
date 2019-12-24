@@ -3804,9 +3804,27 @@ qboolean NPC_ParseParms( const char *NPCName, gentity_t *NPC )
 		}
 	}
 
+	// Scale up all NPCs that are not vehicles or padawans...
+	float scaleBoost = 1.0;
+
 	if (StringContainsWord(NPC->client->modelname, "youngling"))
 	{// Override for youngling model that is not part of wz assets, but should be classed as a padawan when seen...
 		NPC->s.NPC_class = NPC->client->NPC_class = CLASS_PADAWAN;
+	}
+	else if (!md3Model)
+	{
+		if (NPC->client && NPC->client->NPC_class != CLASS_VEHICLE && NPC->client->NPC_class != CLASS_PADAWAN)
+		{
+			
+			if (NPC_IsJedi(NPC))
+			{
+				scaleBoost = 1.333;
+			}
+			else
+			{
+				scaleBoost = 1.125;
+			}
+		}
 	}
 
 	if (scale_models_loaded && NPC->modelScale[0] <= 1)
@@ -3820,9 +3838,9 @@ qboolean NPC_ParseParms( const char *NPCName, gentity_t *NPC )
 
 			if (!Q_stricmp(model_scale_list[loop].botName, NPC->client->modelname))
 			{// A match! Set the scale!
-				NPC->modelScale[0] = NPC->modelScale[1] = NPC->modelScale[2] = model_scale_list[loop].scale/100.0f;
-				NPC->client->ps.iModelScale = model_scale_list[loop].scale;
-				NPC->s.iModelScale = model_scale_list[loop].scale;
+				NPC->modelScale[0] = NPC->modelScale[1] = NPC->modelScale[2] = (model_scale_list[loop].scale*scaleBoost)/100.0f;
+				NPC->client->ps.iModelScale = model_scale_list[loop].scale * scaleBoost;
+				NPC->s.iModelScale = model_scale_list[loop].scale * scaleBoost;
 			}
 		}
 	}

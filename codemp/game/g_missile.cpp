@@ -25,10 +25,17 @@ G_ReflectMissile
 float RandFloat(float min, float max);
 void G_ReflectMissile( gentity_t *ent, gentity_t *missile, vec3_t forward )
 {
-	vec3_t	bounce_dir;
-	int		i;
-	float	speed;
-	int		isowner = 0;
+	vec3_t		bounce_dir;
+	int			i;
+	float		speed;
+	int			isowner = 0;
+	qboolean	isCrowdControlDeflection = qfalse;
+	float		enemyDistFactor = 1.0;
+
+	if (ent && ent->client && ent->client->ps.torsoAnim == BOTH_CC_DEFENCE_SPIN)
+	{// In spinning saber deflection mode... Block all the things...
+		isCrowdControlDeflection = qtrue;
+	}
 
 	if (missile->r.ownerNum == ent->s.number)
 	{ //the original owner is bouncing the missile, so don't try to bounce it back at him
@@ -54,6 +61,30 @@ void G_ReflectMissile( gentity_t *ent, gentity_t *missile, vec3_t forward )
 		VectorScale( bounce_dir, DotProduct( forward, missile_dir ), bounce_dir );
 		VectorNormalize( bounce_dir );
 	}
+	else if (isCrowdControlDeflection)
+	{// Crowd Contol deflections, more accurate while blocking...
+		vec3_t missile_dir;
+		gentity_t *owner = NULL;
+		
+		if (missile->r.ownerNum < ENTITYNUM_WORLD)
+		{
+			owner = &g_entities[missile->r.ownerNum];
+		}
+
+		if (!owner)
+		{// No known owner, use normal deflection...
+			VectorSubtract(ent->r.currentOrigin, missile->r.currentOrigin, missile_dir);
+			VectorCopy(missile->s.pos.trDelta, bounce_dir);
+			VectorScale(bounce_dir, DotProduct(forward, missile_dir), bounce_dir);
+			VectorNormalize(bounce_dir);
+			enemyDistFactor = 1.0;
+		}
+		else
+		{// Have an owner, deflect more accurately toward them...
+			VectorSubtract(missile->r.currentOrigin, owner->r.currentOrigin, bounce_dir);
+			enemyDistFactor = Q_clamp(0.0, Distance(ent->r.currentOrigin, owner->r.currentOrigin) / 3192.0, 1.0);
+		}
+	}
 	else
 	{
 		vec3_t missile_dir;
@@ -63,15 +94,31 @@ void G_ReflectMissile( gentity_t *ent, gentity_t *missile, vec3_t forward )
 		VectorScale( bounce_dir, DotProduct( forward, missile_dir ), bounce_dir );
 		VectorNormalize( bounce_dir );
 	}
-	for ( i = 0; i < 3; i++ )
+
+	if (isCrowdControlDeflection)
+	{// More accurate, and based on enemy's distance. The closer the enemy, the more accurate the bounce...
+		for (i = 0; i < 3; i++)
+		{
+			bounce_dir[i] += RandFloat(-0.025f, 0.025f) * enemyDistFactor;
+		}
+
+		// Reflected shots also get a damage boost based on closeness of the enemy...
+		missile->damage *= (enemyDistFactor + 1.0) * 16.0;
+	}
+	else
 	{
-		bounce_dir[i] += RandFloat( -0.2f, 0.2f );
+		for (i = 0; i < 3; i++)
+		{
+			bounce_dir[i] += RandFloat(-0.2f, 0.2f);
+		}
 	}
 
 	VectorNormalize( bounce_dir );
 	VectorScale( bounce_dir, speed, missile->s.pos.trDelta );
 	missile->s.pos.trTime = level.time;		// move a bit on the very first frame
+
 	VectorCopy( missile->r.currentOrigin, missile->s.pos.trBase );
+
 	if ( missile->s.weapon != WP_SABER && missile->s.weapon != G2_MODEL_PART )
 	{//you are mine, now!
 		missile->r.ownerNum = ent->s.number;
@@ -85,15 +132,46 @@ void G_ReflectMissile( gentity_t *ent, gentity_t *missile, vec3_t forward )
 
 void G_DeflectMissile( gentity_t *ent, gentity_t *missile, vec3_t forward )
 {
-	vec3_t	bounce_dir;
-	int		i;
-	float	speed;
-	vec3_t missile_dir;
+	vec3_t		bounce_dir;
+	int			i;
+	float		speed;
+	vec3_t		missile_dir;
+	qboolean	isCrowdControlDeflection = qfalse;
+	float		enemyDistFactor = 1.0;
+
+	if (ent && ent->client && ent->client->ps.torsoAnim == BOTH_CC_DEFENCE_SPIN)
+	{// In spinning saber deflection mode... Block all the things...
+		isCrowdControlDeflection = qtrue;
+	}
 
 	//save the original speed
 	speed = VectorNormalize( missile->s.pos.trDelta );
 
-	if (ent->client)
+	if (isCrowdControlDeflection)
+	{// Crowd Contol deflections, more accurate while blocking...
+		vec3_t missile_dir;
+		gentity_t *owner = NULL;
+
+		if (missile->r.ownerNum < ENTITYNUM_WORLD)
+		{
+			owner = &g_entities[missile->r.ownerNum];
+		}
+
+		if (!owner)
+		{// No known owner, use normal deflection...
+			VectorSubtract(ent->r.currentOrigin, missile->r.currentOrigin, missile_dir);
+			VectorCopy(missile->s.pos.trDelta, bounce_dir);
+			VectorScale(bounce_dir, DotProduct(forward, missile_dir), bounce_dir);
+			VectorNormalize(bounce_dir);
+			enemyDistFactor = 1.0;
+		}
+		else
+		{// Have an owner, deflect more accurately toward them...
+			VectorSubtract(missile->r.currentOrigin, owner->r.currentOrigin, bounce_dir);
+			enemyDistFactor = Q_clamp(0.0, Distance(ent->r.currentOrigin, owner->r.currentOrigin) / 3192.0, 1.0);
+		}
+	}
+	else if (ent->client)
 	{
 		//VectorSubtract( ent->r.currentOrigin, missile->r.currentOrigin, missile_dir );
 		AngleVectors(ent->client->ps.viewangles, missile_dir, 0, 0);
@@ -108,15 +186,29 @@ void G_DeflectMissile( gentity_t *ent, gentity_t *missile, vec3_t forward )
 		VectorNormalize(bounce_dir);
 	}
 
-	for ( i = 0; i < 3; i++ )
+	if (isCrowdControlDeflection)
+	{// More accurate, and based on enemy's distance. The closer the enemy, the more accurate the bounce...
+		for (i = 0; i < 3; i++)
+		{
+			bounce_dir[i] += RandFloat(-0.025f, 0.025f) * enemyDistFactor;
+		}
+
+		// Reflected shots also get a damage boost based on closeness of the enemy...
+		missile->damage *= (enemyDistFactor + 1.0) * 16.0;
+	}
+	else
 	{
-		bounce_dir[i] += RandFloat( -1.0f, 1.0f );
+		for (i = 0; i < 3; i++)
+		{
+			bounce_dir[i] += RandFloat(-1.0f, 1.0f);
+		}
 	}
 
 	VectorNormalize( bounce_dir );
 	VectorScale( bounce_dir, speed, missile->s.pos.trDelta );
 	missile->s.pos.trTime = level.time;		// move a bit on the very first frame
 	VectorCopy( missile->r.currentOrigin, missile->s.pos.trBase );
+
 	if ( missile->s.weapon != WP_SABER && missile->s.weapon != G2_MODEL_PART )
 	{//you are mine, now!
 		missile->r.ownerNum = ent->s.number;
@@ -135,9 +227,16 @@ G_BounceMissile
 ================
 */
 void G_BounceMissile( gentity_t *ent, trace_t *trace, qboolean HIT_TREE ) {
-	vec3_t	velocity;
-	float	dot;
-	int		hitTime;
+	vec3_t		velocity;
+	float		dot;
+	int			hitTime;
+	qboolean	isCrowdControlDeflection = qfalse;
+	float		enemyDistFactor = 1.0;
+
+	if (ent && ent->client && ent->client->ps.torsoAnim == BOTH_CC_DEFENCE_SPIN)
+	{// In spinning saber deflection mode... Block all the things...
+		isCrowdControlDeflection = qtrue;
+	}
 
 	// reflect the velocity on the trace plane
 	hitTime = level.previousTime + ( level.time - level.previousTime ) * trace->fraction;
