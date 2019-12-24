@@ -4982,7 +4982,7 @@ qboolean G_GetWeaponMuzzleBoltPoint(gentity_t *ent, vec3_t to, int hand)
 
 		VectorMA(to, muzzleOffPoint[0], f, to);
 		VectorMA(to, muzzleOffPoint[1], r, to);
-		to[2] -= g_testvalue0.value * (float(ent->s.iModelScale) / 100.0f);;
+		//to[2] -= g_testvalue0.value * (float(ent->s.iModelScale) / 100.0f);;
 		to[2] += (ent->client->ps.viewheight + muzzleOffPoint[2]) * (float(ent->s.iModelScale) / 100.0f);
 	}
 	else
