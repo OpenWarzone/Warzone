@@ -201,13 +201,13 @@ qboolean Jedi_AttackOrCounter( gentity_t *NPC )
 	//
 	// Current attacker always controls all the timers/counters...
 	//
-	if (NPC->npc_attack_time <= level.time - 2000)
+	if (NPC->npc_attack_time <= level.time - 500)
 	{// Timer has run out, pick if we should initally attack or defend...
 		if (NPC->enemy->s.eType == ET_PLAYER)
 		{// When enemy is a player...
-			if (irand(0, 1) < 1)
+			if (irand(0, 3) <= 2)
 			{
-				NPC->npc_attack_time = level.time + 2000;
+				NPC->npc_attack_time = level.time + 500;
 			}
 			else
 			{
@@ -222,7 +222,7 @@ qboolean Jedi_AttackOrCounter( gentity_t *NPC )
 			}
 			else
 			{// Enemy is not attacking, start by attacking...
-				NPC->npc_attack_time = level.time + 2000;
+				NPC->npc_attack_time = level.time + 500;
 			}
 		}
 
@@ -1889,69 +1889,6 @@ void Jedi_AdjustSaberAnimLevel( gentity_t *self, int newLevel )
 	{
 		return;
 	}
-#ifdef __FUCK_THIS__
-	//FIXME: each NPC shold have a unique pattern of behavior for the order in which they
-	if ( self->client->NPC_class == CLASS_TAVION )
-	{//special attacks
-		self->client->ps.fd.saberAnimLevel = FORCE_LEVEL_5;
-		return;
-	}
-	else if ( self->client->NPC_class == CLASS_DESANN )
-	{//special attacks
-		self->client->ps.fd.saberAnimLevel = FORCE_LEVEL_4;
-		return;
-	}
-	if ( self->client->playerTeam == NPCTEAM_ENEMY )
-	{
-		if ( self->NPC->rank == RANK_CIVILIAN || self->NPC->rank == RANK_LT_JG )
-		{//grunt and fencer always uses quick attacks
-			self->client->ps.fd.saberAnimLevel = FORCE_LEVEL_1;
-			return;
-		}
-		if ( self->NPC->rank == RANK_CREWMAN
-			|| self->NPC->rank == RANK_ENSIGN )
-		{//acrobat & force-users always use medium attacks
-			self->client->ps.fd.saberAnimLevel = FORCE_LEVEL_2;
-			return;
-		}
-		/*
-		if ( self->NPC->rank == RANK_LT )
-		{//boss always uses strong attacks
-			self->client->ps.fd.saberAnimLevel = FORCE_LEVEL_3;
-			return;
-		}
-		*/
-	}
-	//use the different attacks, how often they switch and under what circumstances
-	if ( newLevel > self->client->ps.fd.forcePowerLevel[FP_SABER_OFFENSE] )
-	{//cap it
-		self->client->ps.fd.saberAnimLevel = self->client->ps.fd.forcePowerLevel[FP_SABER_OFFENSE];
-	}
-	else if ( newLevel < FORCE_LEVEL_1 )
-	{
-		self->client->ps.fd.saberAnimLevel = FORCE_LEVEL_1;
-	}
-	else
-	{//go ahead and set it
-		self->client->ps.fd.saberAnimLevel = newLevel;
-	}
-
-	if ( d_JediAI.integer )
-	{
-		switch ( self->client->ps.fd.saberAnimLevel )
-		{
-		case FORCE_LEVEL_1:
-			Com_Printf( S_COLOR_GREEN"%s Saber Attack Set: fast\n", self->NPC_type );
-			break;
-		case FORCE_LEVEL_2:
-			Com_Printf( S_COLOR_YELLOW"%s Saber Attack Set: medium\n", self->NPC_type );
-			break;
-		case FORCE_LEVEL_3:
-			Com_Printf( S_COLOR_RED"%s Saber Attack Set: strong\n", self->NPC_type );
-			break;
-		}
-	}
-#endif //__FUCK_THIS__
 
 	if (self->client->NPC_class == CLASS_TAVION)
 	{//special attacks
@@ -1971,47 +1908,6 @@ void Jedi_AdjustSaberAnimLevel( gentity_t *self, int newLevel )
 	}
 	else
 	{
-		//Cmd_SaberAttackCycle_f(self);
-
-		/*
-		RANK_CIVILIAN,
-		RANK_CREWMAN,
-		RANK_ENSIGN,
-		RANK_LT_JG,
-		RANK_LT,
-		RANK_LT_COMM,
-		RANK_COMMANDER,
-		RANK_CAPTAIN
-		*/
-		/*if (self->NPC->rank == RANK_CIVILIAN || self->NPC->rank == RANK_LT_JG)
-		{//grunt and fencer always uses quick attacks
-			self->client->ps.fd.saberAnimLevel = SS_FAST;
-			self->client->ps.fd.saberAnimLevelBase = SS_FAST;
-			self->client->ps.fd.saberDrawAnimLevel = SS_FAST;
-			return;
-		}
-		if (self->NPC->rank == RANK_CREWMAN || self->NPC->rank == RANK_ENSIGN)
-		{//acrobat & force-users always use medium attacks
-			self->client->ps.fd.saberAnimLevel = SS_MEDIUM;
-			self->client->ps.fd.saberAnimLevelBase = SS_MEDIUM;
-			self->client->ps.fd.saberDrawAnimLevel = SS_MEDIUM;
-			return;
-		}
-		if ( self->NPC->rank == RANK_LT )
-		{//boss always uses strong attacks
-			self->client->ps.fd.saberAnimLevel = SS_STRONG;
-			self->client->ps.fd.saberAnimLevelBase = SS_STRONG;
-			self->client->ps.fd.saberDrawAnimLevel = SS_STRONG;
-			return;
-		}
-		else
-		{
-			self->client->ps.fd.saberAnimLevel = SS_CROWD_CONTROL;
-			self->client->ps.fd.saberAnimLevelBase = SS_CROWD_CONTROL;
-			self->client->ps.fd.saberDrawAnimLevel = SS_CROWD_CONTROL;
-			return;
-		}*/
-
 		if (self->client->npcFavoredStance >= SS_FAST)
 		{// Already selected a favored stance...
 			self->client->ps.fd.saberAnimLevel = self->client->npcFavoredStance;
@@ -2022,39 +1918,15 @@ void Jedi_AdjustSaberAnimLevel( gentity_t *self, int newLevel )
 
 		if (self->client->saber[0].model[0] && self->client->saber[1].model[0])
 		{// Dual sabers...
-			int styleChoice = irand(0, 1);
-
-			switch (styleChoice)
-			{
-			case 0:
-				self->client->ps.fd.saberAnimLevel = SS_DUAL;
-				self->client->ps.fd.saberAnimLevelBase = SS_DUAL;
-				self->client->ps.fd.saberDrawAnimLevel = SS_DUAL;
-				break;
-			default:
-				self->client->ps.fd.saberAnimLevel = SS_CROWD_CONTROL;
-				self->client->ps.fd.saberAnimLevelBase = SS_CROWD_CONTROL;
-				self->client->ps.fd.saberDrawAnimLevel = SS_CROWD_CONTROL;
-				break;
-			}
+			self->client->ps.fd.saberAnimLevel = SS_DUAL;
+			self->client->ps.fd.saberAnimLevelBase = SS_DUAL;
+			self->client->ps.fd.saberDrawAnimLevel = SS_DUAL;
 		}
 		else if (self->client->saber[0].numBlades > 1)
 		{// Dual blade...
-			int styleChoice = irand(0, 1);
-
-			switch (styleChoice)
-			{
-			case 0:
-				self->client->ps.fd.saberAnimLevel = SS_STAFF;
-				self->client->ps.fd.saberAnimLevelBase = SS_STAFF;
-				self->client->ps.fd.saberDrawAnimLevel = SS_STAFF;
-				break;
-			default:
-				self->client->ps.fd.saberAnimLevel = SS_CROWD_CONTROL;
-				self->client->ps.fd.saberAnimLevelBase = SS_CROWD_CONTROL;
-				self->client->ps.fd.saberDrawAnimLevel = SS_CROWD_CONTROL;
-				break;
-			}
+			self->client->ps.fd.saberAnimLevel = SS_CROWD_CONTROL;
+			self->client->ps.fd.saberAnimLevelBase = SS_CROWD_CONTROL;
+			self->client->ps.fd.saberDrawAnimLevel = SS_CROWD_CONTROL;
 		}
 		else
 		{// Single saber...
@@ -2070,6 +1942,7 @@ void Jedi_AdjustSaberAnimLevel( gentity_t *self, int newLevel )
 				break;
 			case 2:
 			case 3:
+			default:
 				self->client->ps.fd.saberAnimLevel = SS_MEDIUM;
 				self->client->ps.fd.saberAnimLevelBase = SS_MEDIUM;
 				self->client->ps.fd.saberDrawAnimLevel = SS_MEDIUM;
@@ -2090,11 +1963,6 @@ void Jedi_AdjustSaberAnimLevel( gentity_t *self, int newLevel )
 				self->client->ps.fd.saberAnimLevel = SS_TAVION;
 				self->client->ps.fd.saberAnimLevelBase = SS_TAVION;
 				self->client->ps.fd.saberDrawAnimLevel = SS_TAVION;
-				break;
-			default:
-				self->client->ps.fd.saberAnimLevel = SS_CROWD_CONTROL;
-				self->client->ps.fd.saberAnimLevelBase = SS_CROWD_CONTROL;
-				self->client->ps.fd.saberDrawAnimLevel = SS_CROWD_CONTROL;
 				break;
 			}
 		}

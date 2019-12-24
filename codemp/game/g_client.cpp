@@ -3675,6 +3675,8 @@ void ClientSpawn(gentity_t *ent) {
 				ent->client->ps.fd.saberAnimLevelBase = ent->client->saberCycleQueue = ent->client->ps.fd.saberAnimLevel;
 			}
 		}
+
+		G_CheckSaberStanceValidity(ent);
 	}
 
 	if (client->ps.fd.forceDoInit)
@@ -3916,9 +3918,11 @@ void ClientSpawn(gentity_t *ent) {
 	{// Dualblade.
 		if ( !WP_SaberStyleValidForSaber( &client->saber[0], &client->saber[1], client->ps.saberHolstered, client->ps.fd.saberAnimLevel ) )
 		{//only use dual style if the style we're trying to use isn't valid
-			client->ps.fd.saberAnimLevelBase = client->ps.fd.saberAnimLevel = SS_STAFF;
+			client->ps.fd.saberAnimLevelBase = client->ps.fd.saberAnimLevel = SS_CROWD_CONTROL;//SS_STAFF;
 		}
-		client->ps.fd.saberAnimLevelBase = client->ps.fd.saberAnimLevel = SS_STAFF;
+		client->ps.fd.saberAnimLevelBase = client->ps.fd.saberAnimLevel = SS_CROWD_CONTROL;// SS_STAFF;
+
+		G_CheckSaberStanceValidity(ent);
 	}
 
 	if (ent->client->saber[0].model[0] &&
@@ -3926,6 +3930,8 @@ void ClientSpawn(gentity_t *ent) {
 	{ //dual saber
 		client->ps.saberHolstered = 0;
 		client->ps.fd.saberAnimLevelBase = client->ps.fd.saberAnimLevel = client->ps.fd.saberDrawAnimLevel = SS_DUAL;
+
+		G_CheckSaberStanceValidity(ent);
 	}
 
 	//give default weapons

@@ -2184,12 +2184,15 @@ void ClientThink_real( gentity_t *ent ) {
 		}
 		else if ( ent->client->saber[0].numBlades > 1 )
 		{// Dualblade.
-			client->ps.fd.saberAnimLevelBase = SS_STAFF;
+			client->ps.fd.saberAnimLevelBase = SS_CROWD_CONTROL;// SS_STAFF;
 			client->ps.fd.saberDrawAnimLevel = client->ps.fd.saberAnimLevel;
 		}
 	}
 #endif
 
+	G_CheckSaberStanceValidity(ent);
+
+	/*
 	if (client->ps.fd.saberAnimLevelBase <= SS_NONE || client->ps.fd.saberAnimLevelBase >= SS_NUM_SABER_STYLES)
 	{// If we ever have an invalid stance selected, set to default...
 		if (ent->client->saber[0].model[0] && ent->client->saber[1].model[0])
@@ -2198,13 +2201,14 @@ void ClientThink_real( gentity_t *ent ) {
 		}
 		else if (ent->client->saber[0].numBlades > 1)
 		{// staff
-			client->ps.fd.saberAnimLevelBase = client->ps.fd.saberAnimLevel = SS_STAFF;
+			client->ps.fd.saberAnimLevelBase = client->ps.fd.saberAnimLevel = SS_CROWD_CONTROL;// SS_STAFF;
 		}
 		else
 		{// single saber
 			client->ps.fd.saberAnimLevelBase = client->ps.fd.saberAnimLevel = SS_FAST;
 		}
 	}
+	*/
 
 	if ( client && (client->ps.eFlags2&EF2_HELD_BY_MONSTER) )
 	{

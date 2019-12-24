@@ -1901,6 +1901,8 @@ qboolean FOLIAGE_TreeSolidBlocking(gentity_t *ent, vec3_t moveOrg);
 void BG_SetAnim(playerState_t *ps, animation_t *animations, int setAnimParts, int anim, int setAnimFlags, int blendTime = 100);
 void G_SoundOnEnt(gentity_t *ent, soundChannel_t channel, const char *soundPath);
 
+void G_CheckSaberStanceValidity(gentity_t *ent);
+
 // bg_inventory*
 inventoryItem *BG_CreatePlayerInventoryItem(playerState_t *ps, int psSlot, uint16_t bgItemID, uint16_t quality, uint16_t crystal, uint16_t stat1, uint16_t stat2, uint16_t stat3);
 void BG_CreatePlayerDefaultJediInventory(playerState_t *ps, team_t team);
