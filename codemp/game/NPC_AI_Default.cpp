@@ -94,6 +94,32 @@ qboolean NPC_IsHumanoid ( gentity_t *self )
 	return qfalse;
 }
 
+qboolean NPC_IsBoss(gentity_t *self)
+{
+	switch (self->client->NPC_class)
+	{
+	case CLASS_SABER_DROID:
+	case CLASS_DESANN:
+	case CLASS_ASSASSIN_DROID:
+	case CLASS_HAZARD_TROOPER:
+	//case CLASS_KYLE:
+	//case CLASS_LUKE:				// UQ1: TODO - maybe should be allowed to switch to pistol/blaster???			
+	//case CLASS_MORGANKATARN:
+	//case CLASS_REBORN:
+	//case CLASS_SABER_DROID:
+	//case CLASS_SHADOWTROOPER:
+	//case CLASS_TAVION:
+		// Is Jedi...
+		return qtrue;
+		break;
+	default:
+		// NOT Jedi...
+		break;
+	}
+
+	return qfalse;
+}
+
 qboolean NPC_IsJedi ( gentity_t *self )
 {
 	switch (self->client->NPC_class)

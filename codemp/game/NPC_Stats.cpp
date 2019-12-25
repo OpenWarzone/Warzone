@@ -3816,7 +3816,7 @@ qboolean NPC_ParseParms( const char *NPCName, gentity_t *NPC )
 		if (NPC->client && NPC->client->NPC_class != CLASS_VEHICLE && NPC->client->NPC_class != CLASS_PADAWAN)
 		{
 			
-			if (NPC_IsJedi(NPC))
+			if (NPC_IsBoss(NPC))
 			{
 				scaleBoost = 1.333;
 			}
