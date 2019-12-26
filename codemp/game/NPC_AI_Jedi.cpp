@@ -249,7 +249,7 @@ qboolean Jedi_AttackOrCounter( gentity_t *NPC )
 	if (NPC->npc_attack_time > level.time)
 	{// Attack mode...
 		NPC->client->pers.cmd.buttons &= ~BUTTON_ALT_ATTACK;
-		NPC->enemy->client->pers.cmd.buttons |= BUTTON_ALT_ATTACK;
+		if (NPC->enemy->s.eType != ET_PLAYER) NPC->enemy->client->pers.cmd.buttons |= BUTTON_ALT_ATTACK;
 		return qtrue;
 	}
 	else
@@ -412,9 +412,10 @@ void Boba_Precache( void )
 {
 	G_SoundIndex( "sound/boba/jeton.wav" );
 	G_SoundIndex( "sound/boba/jethover.wav" );
-	G_SoundIndex( "sound/effects/combustfire.mp3" );
+	//G_SoundIndex( "sound/effects/combustfire.mp3" ); // UQ1: moved to cgame...
+	//G_SoundIndex( "sound/effects/flamejet_lp.wav" ); // UQ1: moved to cgame...
 	G_EffectIndex( "boba/jet" );
-	G_EffectIndex( "boba/fthrw" );
+	//G_EffectIndex( "boba/fthrw" ); // UQ1: moved to cgame...
 }
 
 extern void G_CreateG2AttachedWeaponModel( gentity_t *ent, const char *weaponModel, int boltNum, int weaponNum );
@@ -594,185 +595,227 @@ qboolean Boba_StopKnockdown( gentity_t *self, gentity_t *pusher, vec3_t pushDir,
 	return qtrue;
 }
 
-void Boba_FlyStart( gentity_t *self )
-{//switch to seeker AI for a while
-#if 0
-	if ( TIMER_Done( self, "jetRecharge" ) )
+#define __WRIST_FLAMER_SWEEP__
+
+#define WRIST_FLAMER_TIME			4000
+#define WRISE_FLAMER_FORCE_COST		50
+
+void Boba_SetFlamerAngles( gentity_t *self )
+{
+#ifndef __WRIST_FLAMER_SWEEP__
+	if (!TIMER_Done(self, "flameTime"))
 	{
-		self->client->ps.gravity = 0;
-		if ( self->NPC )
-		{
-			self->NPC->aiFlags |= NPCAI_CUSTOM_GRAVITY;
+		qboolean setAngles = qfalse;
+
+		if (self->enemy && NPC_IsAlive(self, self->enemy))
+		{// Keep him facing his enemy while he fires his flamer at them...
+			setAngles = qtrue;
+		}
+		else
+		{// Quickly find another victim... If there is one...
+			NPC_CheckEnemy(self, qtrue, qfalse, qtrue);
+
+			if (self->enemy && NPC_IsAlive(self, self->enemy))
+			{// Keep him facing his enemy while he fires his flamer at them...
+				setAngles = qtrue;
+			}
 		}
 
-		self->client->ps.eFlags2 |= EF2_FLYING;//moveType = MT_FLYSWIM;
-		self->client->jetPackTime = level.time + Q_irand( 3000, 10000 );
-
-		//take-off sound
-		G_SoundOnEnt( self, CHAN_ITEM, "sound/boba/jeton.wav" );
-
-		//jet loop sound
-		self->s.loopSound = G_SoundIndex( "sound/boba/jethover.wav" );
-
-		if ( self->NPC )
+		if (setAngles)
 		{
-			self->count = Q3_INFINITE; // SEEKER shot ammo count
+			float enemyDist = Distance(self->client->ps.origin, self->enemy->r.currentOrigin);
+
+			//if (enemyDist <= 128.0)
+			{// If they leave range, then just hold angles from last frame until the flame ends...
+				vec3_t position, fwd, ang;
+
+				VectorSubtract(self->enemy->r.currentOrigin, self->r.currentOrigin, fwd);
+				VectorNormalize(fwd);
+
+				vectoangles(fwd, ang);
+
+				float coverageSpeed = 0.005;
+				float coverageScale = 64.0;
+				float cosTime = cos((level.time + 1000) * coverageSpeed);
+				ang[YAW] += cosTime * coverageScale;
+
+				//Com_Printf("cosTime %f.\n", cosTime);
+
+				AngleVectors(ang, fwd, NULL, NULL);
+				VectorNormalize(fwd);
+
+				VectorMA(self->r.currentOrigin, enemyDist, fwd, position);
+				position[2] += 32.0; // Aim at roughly todso->head height...
+
+				NPC_FacePosition(self, position, qtrue);
+			}
 		}
 	}
-#endif
-}
-
-void Boba_FlyStop( gentity_t *self )
-{
-#if 0
-	self->client->ps.gravity = g_gravity.value;
-
-	if ( self->NPC )
-	{
-		self->NPC->aiFlags &= ~NPCAI_CUSTOM_GRAVITY;
-	}
-
-	self->client->ps.eFlags2 &= ~EF2_FLYING;
-	self->client->jetPackTime = 0;
-
-	//stop jet loop sound
-	self->s.loopSound = 0;
-
-	if ( self->NPC )
-	{
-		self->count = 0; // SEEKER shot ammo count
-		TIMER_Set( self, "jetRecharge", Q_irand( 1000, 5000 ) );
-		TIMER_Set( self, "jumpChaseDebounce", Q_irand( 500, 2000 ) );
-	}
-
-	self->client->ps.eFlags &= ~EF_JETPACK_ACTIVE;
-	self->client->ps.eFlags &= ~EF_JETPACK_FLAMING;
-	self->client->ps.eFlags &= ~EF_JETPACK_HOVER;
-	self->s.eFlags &= ~EF_JETPACK_ACTIVE;
-	self->s.eFlags &= ~EF_JETPACK_FLAMING;
-	self->s.eFlags &= ~EF_JETPACK_HOVER;
-	self->client->ps.pm_type = PM_NORMAL;
-#endif
-}
-
-qboolean Boba_Flying( gentity_t *self )
-{
-#if 0
-	return ((qboolean)(self->client->ps.eFlags2&EF2_FLYING));//moveType==MT_FLYSWIM));
-#else
-	return qfalse;
-#endif
+#endif //!__WRIST_FLAMER_SWEEP__
 }
 
 void Boba_FireFlameThrower( gentity_t *self )
 {
 	int		damage	= Q_irand( 20, 30 );
-	trace_t		tr;
-	gentity_t	*traceEnt = NULL;
-	mdxaBone_t	boltMatrix;
-	vec3_t		start, end, dir, traceMins = {-4, -4, -4}, traceMaxs = {4, 4, 4};
 
-	trap->G2API_GetBoltMatrix( self->ghoul2, 0, self->client->renderInfo.handLBolt,
-			&boltMatrix, self->r.currentAngles, self->r.currentOrigin, level.time,
-			NULL, self->modelScale );
-
-	BG_GiveMeVectorFromMatrix( &boltMatrix, ORIGIN, start );
-	BG_GiveMeVectorFromMatrix( &boltMatrix, NEGATIVE_Y, dir );
-	//G_PlayEffect( "boba/fthrw", start, dir );
-	VectorMA( start, 128, dir, end );
-
-	trap->Trace( &tr, start, traceMins, traceMaxs, end, self->s.number, MASK_SHOT, qfalse, 0, 0 );
-
-	traceEnt = &g_entities[tr.entityNum];
-	if ( tr.entityNum < ENTITYNUM_WORLD && traceEnt->takedamage && traceEnt != self)
-	{
-		G_Damage( traceEnt, self, self, dir, tr.endpos, damage, DAMAGE_NO_ARMOR|DAMAGE_NO_KNOCKBACK|/*DAMAGE_NO_HIT_LOC|*/DAMAGE_IGNORE_TEAM, MOD_LAVA );
-		//rwwFIXMEFIXME: add DAMAGE_NO_HIT_LOC?
+	if (NPC_IsBountyHunter(self))
+	{// Always hold the animation while firing flamer...
+		NPC_SetAnim(self, SETANIM_TORSO, BOTH_FORCELIGHTNING_HOLD, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 	}
+
+	self->beStillTime = level.time + WRIST_FLAMER_TIME;
+
+	Boba_SetFlamerAngles(self);
+
+	// UQ1: Made this into an event... because it was really dumb and broken the way it was...
+	G_AddEvent(self, EV_WRIST_FLAMETHROWER_FIRE, 0);
+
+	// UQ1: make this AOE effect...
+	int				touch[16];
+	vec3_t			mins, maxs;
+	static vec3_t	range = { 256, 256, 256 };
+
+	VectorSubtract(self->client->ps.origin, range, mins);
+	VectorAdd(self->client->ps.origin, range, maxs);
+
+#ifdef __WRIST_FLAMER_SWEEP__
+	int	flampTimeLeft = TIMER_Get(self, "flameTime") - level.time;
+	float flamePercentDone = ((float)flampTimeLeft / (float)WRIST_FLAMER_TIME);
+
+	if (flamePercentDone >= 0.75)
+	{
+		flamePercentDone -= 0.75;
+		flamePercentDone *= 4.0;
+	}
+	else if (flamePercentDone >= 0.5)
+	{
+		flamePercentDone -= 0.5;
+		flamePercentDone *= 4.0;
+		flamePercentDone = 1.0 - flamePercentDone;
+	}
+	else if (flamePercentDone >= 0.25)
+	{
+		flamePercentDone -= 0.25;
+		flamePercentDone *= 4.0;
+	}
+	else
+	{
+		flamePercentDone *= 4.0;
+		flamePercentDone = 1.0 - flamePercentDone;
+	}
+
+	vec3_t angles;
+
+	VectorCopy(self->client->ps.viewangles, angles);
+	angles[YAW] += (flamePercentDone * 2.0 - 1.0) * 64.0;
+#endif //__WRIST_FLAMER_SWEEP__
+
+	int num = trap->EntitiesInBox(mins, maxs, touch, 16);
+
+	for (int i = 0; i < num; i++)
+	{
+		if (touch[i] < ENTITYNUM_WORLD)
+		{
+			gentity_t *ent = &g_entities[touch[i]];
+
+			if (!ent || !ent->client || !ent->takedamage || ent == self)
+			{
+				continue;
+			}
+
+			if (OnSameTeam(self, ent))
+			{
+				continue;
+			}
+
+#ifdef __WRIST_FLAMER_SWEEP__
+			if (!InFOV3(ent->r.currentOrigin, self->client->ps.origin, angles, 75, 75))
+			{
+				continue;
+			}
+#else //!__WRIST_FLAMER_SWEEP__
+			if (!InFOV3(ent->r.currentOrigin, self->client->ps.origin, self->client->ps.viewangles, 75, 75))
+			{
+				continue;
+			}
+#endif //__WRIST_FLAMER_SWEEP__
+
+			// Hit...
+			vec3_t dir;
+			VectorSubtract(ent->r.currentOrigin, self->client->ps.origin, dir);
+			VectorNormalize(dir);
+			G_Damage(ent, self, self, dir, ent->r.currentOrigin, damage, DAMAGE_NO_ARMOR | DAMAGE_NO_KNOCKBACK |/*DAMAGE_NO_HIT_LOC|*/DAMAGE_IGNORE_TEAM, MOD_LAVA);
+		}
+	}
+
+	self->NPC->enemyLastSeenTime = level.time;
+	self->client->pers.cmd.buttons &= ~(BUTTON_ATTACK | BUTTON_ALT_ATTACK);
 }
 
-void Boba_StartFlameThrower( gentity_t *self )
+qboolean Boba_StartFlameThrower( gentity_t *self )
 {
-	int	flameTime = 4000;//Q_irand( 1000, 3000 );
-	mdxaBone_t	boltMatrix;
-	vec3_t		org, dir;
+	if (self->client->ps.fd.forcePower > WRISE_FLAMER_FORCE_COST)
+	{// We need to have enough force power to use our flamer...
+		int	flameTime = WRIST_FLAMER_TIME;
 
-	self->client->ps.torsoTimer = flameTime;//+1000;
-	if ( self->NPC )
-	{
-		TIMER_Set( self, "nextAttackDelay", flameTime );
-		TIMER_Set( self, "walking", 0 );
+		self->client->ps.torsoTimer = flameTime;
+		self->client->ps.fd.forcePower -= WRISE_FLAMER_FORCE_COST;
+
+		if (self->NPC)
+		{
+			TIMER_Set(self, "nextAttackDelay", flameTime);
+			TIMER_Set(self, "nextFlameTime", flameTime + (irand(15, 25) * 1000));
+			TIMER_Set(self, "walking", 0);
+		}
+
+		TIMER_Set(self, "flameTime", flameTime);
+
+		Boba_FireFlameThrower(self);
+
+		return qtrue;
 	}
-	TIMER_Set( self, "flameTime", flameTime );
-	/*
-	gentity_t *fire = G_Spawn();
-	if ( fire != NULL )
+	else
 	{
-		mdxaBone_t	boltMatrix;
-		vec3_t		org, dir, ang;
-		trap->G2API_GetBoltMatrix( NPC->ghoul2, NPC->playerModel, NPC->handRBolt,
-				&boltMatrix, NPC->r.currentAngles, NPC->r.currentOrigin, (cg.time?cg.time:level.time),
-				NULL, NPC->s.modelScale );
-
-		trap->G2API_GiveMeVectorFromMatrix( boltMatrix, ORIGIN, org );
-		trap->G2API_GiveMeVectorFromMatrix( boltMatrix, NEGATIVE_Y, dir );
-		vectoangles( dir, ang );
-
-		VectorCopy( org, fire->s.origin );
-		VectorCopy( ang, fire->s.angles );
-
-		fire->targetname = "bobafire";
-		SP_fx_explosion_trail( fire );
-		fire->damage = 1;
-		fire->radius = 10;
-		fire->speed = 200;
-		fire->fxID = G_EffectIndex( "boba/fthrw" );//"env/exp_fire_trail" );//"env/small_fire"
-		fx_explosion_trail_link( fire );
-		fx_explosion_trail_use( fire, NPC, NPC );
-
+		return qfalse;
 	}
-	*/
-	G_SoundOnEnt( self, CHAN_WEAPON, "sound/effects/combustfire.mp3" );
-
-	trap->G2API_GetBoltMatrix(self->ghoul2, 0, self->client->renderInfo.handRBolt, &boltMatrix, self->r.currentAngles,
-		self->r.currentOrigin, level.time, NULL, self->modelScale);
-
-	BG_GiveMeVectorFromMatrix( &boltMatrix, ORIGIN, org );
-	BG_GiveMeVectorFromMatrix( &boltMatrix, NEGATIVE_Y, dir );
-
-	G_PlayEffectID( G_EffectIndex("boba/fthrw"), org, dir);
 }
 
-void Boba_DoFlameThrower( gentity_t *self )
+qboolean Boba_DoFlameThrower( gentity_t *self )
 {
-	NPC_SetAnim( self, SETANIM_TORSO, BOTH_FORCELIGHTNING_HOLD, SETANIM_FLAG_OVERRIDE|SETANIM_FLAG_HOLD );
-	if ( TIMER_Done( self, "nextAttackDelay" ) && TIMER_Done( self, "flameTime" ) )
-	{
-		Boba_StartFlameThrower( self );
+	if (!TIMER_Done(self, "flameTime"))
+	{// Continue firing the flamer...
+		Boba_FireFlameThrower(self);
+		return qtrue;
 	}
-	Boba_FireFlameThrower( self );
+	else if (TIMER_Done(self, "nextFlameTime") && Boba_StartFlameThrower(self))
+	{// Ready to use flamer again...
+		return qtrue;
+	}
+
+	// Not ready to use flamer yet...
+	return qfalse;
 }
 
-void Boba_FireDecide( gentity_t *aiEnt)
+void Boba_FireDecide( gentity_t *aiEnt )
 {
 	qboolean	enemyLOS = qfalse, enemyCS = qfalse, enemyInFOV = qfalse;
-	//qboolean	move = qtrue;
 	qboolean	shoot = qfalse, hitAlly = qfalse;
 	vec3_t		impactPos, enemyDir, shootDir;
 	float		enemyDist, dot;
 	qboolean	ENEMY_IS_BREAKABLE = qfalse;
 
-	if ((NPC_IsBountyHunter(aiEnt) || aiEnt->hasJetpack)
-		&& aiEnt->client->ps.groundEntityNum == ENTITYNUM_NONE
-		&& aiEnt->client->ps.fd.forceJumpZStart
-		&& !BG_FlippingAnim( aiEnt->client->ps.legsAnim )
-		&& !Q_irand( 0, 4 ) )
-	{//take off
-		Boba_FlyStart( aiEnt );
-	}
-
 	if ( !aiEnt->enemy )
 	{
+		return;
+	}
+
+	if (!TIMER_Done(aiEnt, "nextAttackDelay"))
+	{
+		return;
+	}
+
+	if (!TIMER_Done(aiEnt, "flameTime") && NPC_IsBountyHunter(aiEnt) && Boba_DoFlameThrower(aiEnt))
+	{// flamethrower
 		return;
 	}
 
@@ -785,9 +828,8 @@ void Boba_FireDecide( gentity_t *aiEnt)
 
 	if ( !ENEMY_IS_BREAKABLE
 		&& Distance(aiEnt->enemy->r.currentOrigin, aiEnt->r.currentOrigin) <= 64 
-		&& aiEnt->client->ps.weapon != WP_SABER//!NPC_IsJedi(aiEnt) 
-		&& aiEnt->client->NPC_class != CLASS_BOBAFETT // BOBA kicks like a jedi now...
-		/*&& !(aiEnt->client->NPC_class == CLASS_BOBAFETT && (!TIMER_Done( aiEnt, "nextAttackDelay" ) || !TIMER_Done( aiEnt, "flameTime" )))*/)
+		&& aiEnt->client->ps.weapon != WP_SABER
+		&& !NPC_IsBountyHunter(aiEnt)) // BOBA kicks like a jedi now...
 	{// Close range - switch to melee... TODO: Make jedi/sith kick...
 		if (aiEnt->next_rifle_butt_time > level.time)
 		{// Wait for anim to play out...
@@ -804,9 +846,8 @@ void Boba_FireDecide( gentity_t *aiEnt)
 	}
 	else if ( ENEMY_IS_BREAKABLE
 		&& Distance(aiEnt->enemy->breakableOrigin, aiEnt->r.currentOrigin) <= 64 
-		&& aiEnt->client->ps.weapon != WP_SABER//!NPC_IsJedi(aiEnt) 
-		&& aiEnt->client->NPC_class != CLASS_BOBAFETT // BOBA kicks like a jedi now...
-		/*&& !(aiEnt->client->NPC_class == CLASS_BOBAFETT && (!TIMER_Done( aiEnt, "nextAttackDelay" ) || !TIMER_Done( aiEnt, "flameTime" )))*/)
+		&& aiEnt->client->ps.weapon != WP_SABER
+		&& !NPC_IsBountyHunter(aiEnt)) // BOBA kicks like a jedi now...
 	{// Close range - switch to melee... TODO: Make jedi/sith kick...
 		if (aiEnt->next_rifle_butt_time > level.time)
 		{// Wait for anim to play out...
@@ -821,61 +862,29 @@ void Boba_FireDecide( gentity_t *aiEnt)
 			return;
 		}
 	}
-	else if (aiEnt->client->ps.weapon == WP_MODULIZED_WEAPON)
-	{
-		if ( aiEnt->health < aiEnt->client->pers.maxHealth*0.5f || ENEMY_IS_BREAKABLE )
+	else
+	{// UQ1: How about I add a default for them??? :)
+		if ( aiEnt->health < aiEnt->client->pers.maxHealth*0.5f && (NPC_IsJedi(aiEnt) || NPC_IsBountyHunter(aiEnt) || aiEnt->s.eType == ET_PLAYER) )
 		{
 			aiEnt->NPC->scriptFlags |= SCF_ALT_FIRE;
+			aiEnt->NPC->aiFlags |= NPCAI_BURST_WEAPON;
+
+			aiEnt->NPC->burstMin = 3;
+			aiEnt->NPC->burstMean = 3;
+			aiEnt->NPC->burstMax = 3;
+			
+			aiEnt->NPC->burstSpacing = irand(500, 750);//attack debounce
+		}
+		else
+		{
+			aiEnt->NPC->scriptFlags &= ~SCF_ALT_FIRE;
+			aiEnt->NPC->aiFlags &= ~NPCAI_BURST_WEAPON;
 
 			aiEnt->NPC->burstMin = 1;
-			aiEnt->NPC->burstMean = 3;
-			aiEnt->NPC->burstMax = 5;
-			aiEnt->NPC->burstSpacing = Q_irand( 300, 750 );//attack debounce
-		}
-		else
-		{
-			aiEnt->NPC->scriptFlags &= ~SCF_ALT_FIRE;
-		}
-	}
-	else if (aiEnt->client->ps.weapon == WP_MODULIZED_WEAPON)
-	{
-		if ( aiEnt->health < aiEnt->client->pers.maxHealth*0.5f || NPC_IsJedi(aiEnt) || aiEnt->s.eType == ET_PLAYER || ENEMY_IS_BREAKABLE )
-		{
-			aiEnt->NPC->scriptFlags |= SCF_ALT_FIRE;
+			aiEnt->NPC->burstMean = 1;
+			aiEnt->NPC->burstMax = 1;
 
-			aiEnt->NPC->burstMin = 3;
-			aiEnt->NPC->burstMean = 12;
-			aiEnt->NPC->burstMax = 20;
-			aiEnt->NPC->burstSpacing = Q_irand( 300, 750 );//attack debounce
-		}
-		else
-		{
-			aiEnt->NPC->scriptFlags &= ~SCF_ALT_FIRE;
-		}
-	}
-	else if (aiEnt->client->ps.weapon != WP_SABER && ENEMY_IS_BREAKABLE)
-	{// Breakables...
-		aiEnt->NPC->scriptFlags |= SCF_ALT_FIRE;
-
-		aiEnt->NPC->burstMin = 3;
-		aiEnt->NPC->burstMean = 12;
-		aiEnt->NPC->burstMax = 20;
-		aiEnt->NPC->burstSpacing = Q_irand( 300, 750 );//attack debounce
-	}
-	else if (aiEnt->client->ps.weapon != WP_SABER)
-	{// UQ1: How about I add a default for them??? :)
-		if ( aiEnt->health < aiEnt->client->pers.maxHealth*0.5f || NPC_IsJedi(aiEnt) || aiEnt->s.eType == ET_PLAYER || ENEMY_IS_BREAKABLE )
-		{
-			aiEnt->NPC->scriptFlags |= SCF_ALT_FIRE;
-
-			aiEnt->NPC->burstMin = 3;
-			aiEnt->NPC->burstMean = 12;
-			aiEnt->NPC->burstMax = 20;
-			aiEnt->NPC->burstSpacing = Q_irand( 300, 750 );//attack debounce
-		}
-		else
-		{
-			aiEnt->NPC->scriptFlags &= ~SCF_ALT_FIRE;
+			aiEnt->NPC->burstSpacing = irand(500, 750);//attack debounce
 		}
 	}
 	
@@ -904,30 +913,18 @@ void Boba_FireDecide( gentity_t *aiEnt)
 
 	if ( !ENEMY_IS_BREAKABLE
 		&& NPC_IsBountyHunter(aiEnt)
-		&& (enemyDist < (128*128) && enemyInFOV) || !TIMER_Done( aiEnt, "flameTime" ) )
+		&& (enemyDist < 256*256 && enemyInFOV)
+		&& Boba_DoFlameThrower(aiEnt))
 	{//flamethrower
-		Boba_DoFlameThrower( aiEnt );
 		enemyCS = qfalse;
 		shoot = qfalse;
-		aiEnt->NPC->enemyLastSeenTime = level.time;
-		aiEnt->client->pers.cmd.buttons &= ~(BUTTON_ATTACK|BUTTON_ALT_ATTACK);
+		return;
 	}
 	else if (WeaponIsSniperCharge(aiEnt->client->ps.weapon) && Distance(aiEnt->r.currentOrigin, aiEnt->enemy->r.currentOrigin) >= 512.0)
 	{//sniping... should be assumed
-		if ( !(aiEnt->NPC->scriptFlags&SCF_ALT_FIRE) )
+		if ( !(aiEnt->NPC->scriptFlags & SCF_ALT_FIRE) )
 		{//use primary fire
 			aiEnt->NPC->scriptFlags |= SCF_ALT_FIRE;
-			//reset fire-timing variables
-			NPC_ChangeWeapon(aiEnt, aiEnt->client->ps.weapon );
-			NPC_UpdateAngles(aiEnt, qtrue, qtrue );
-			return;
-		}
-	}
-	else if (WeaponIsSniperCharge(aiEnt->client->ps.weapon) && Distance(aiEnt->r.currentOrigin, aiEnt->enemy->r.currentOrigin) >= 512.0)
-	{//sniper rifle, but too close...
-		if ( aiEnt->NPC->scriptFlags&SCF_ALT_FIRE )
-		{//use primary fire
-			aiEnt->NPC->scriptFlags &= ~SCF_ALT_FIRE;
 			//reset fire-timing variables
 			NPC_ChangeWeapon(aiEnt, aiEnt->client->ps.weapon );
 			NPC_UpdateAngles(aiEnt, qtrue, qtrue );
@@ -1006,7 +1003,6 @@ void Boba_FireDecide( gentity_t *aiEnt)
 		if ( !enemyCS )
 		{//if have a clear shot, always try
 			//See if we should continue to fire on their last position
-			//!TIMER_Done( NPC, "stick" ) ||
 			if ( !hitAlly //we're not going to hit an ally
 				&& enemyInFOV //enemy is in our FOV //FIXME: or we don't have a clear LOS?
 				&& aiEnt->NPC->enemyLastSeenTime > 0 )//we've seen the enemy
@@ -1091,22 +1087,7 @@ void Boba_FireDecide( gentity_t *aiEnt)
 			}
 		}
 
-		//FIXME: don't shoot right away!
-		/*if ( aiEnt->client->ps.weaponTime > 0 )
-		{
-			if ( aiEnt->s.weapon == WP_ROCKET_LAUNCHER )
-			{
-				if ( !enemyLOS || !enemyCS )
-				{//cancel it
-					aiEnt->client->ps.weaponTime = 0;
-				}
-				else
-				{//delay our next attempt
-					TIMER_Set( aiEnt, "nextAttackDelay", Q_irand( 500, 1000 ) );
-				}
-			}
-		}
-		else*/ if ( shoot )
+		if ( shoot )
 		{//try to shoot if it's time
 			if ( TIMER_Done( aiEnt, "nextAttackDelay" ) )
 			{
@@ -1114,16 +1095,6 @@ void Boba_FireDecide( gentity_t *aiEnt)
 				{
 					WeaponThink(aiEnt, qtrue );
 				}
-				/*
-				if ( aiEnt->s.weapon == WP_ROCKET_LAUNCHER
-					&& (aiEnt->client->pers.cmd.buttons&BUTTON_ATTACK)
-					&& !Q_irand( 0, 3 ) )
-				{//every now and then, shoot a homing rocket
-					aiEnt->client->pers.cmd.buttons &= ~BUTTON_ATTACK;
-					aiEnt->client->pers.cmd.buttons |= BUTTON_ALT_ATTACK;
-					aiEnt->client->ps.weaponTime = Q_irand( 500, 1500 );
-				}
-				*/
 			}
 		}
 	}
@@ -2493,8 +2464,7 @@ evasionType_t Jedi_CheckFlipEvasions( gentity_t *self, float rightdot, float zdi
 		&& !PM_InKnockDown( &self->client->ps )
 		&& !BG_SaberInSpecialAttack( self->client->ps.torsoAnim ) )
 	{
-		vec3_t fwd, right, traceto, mins, maxs, fwdAngles;
-		trace_t	trace;
+		vec3_t fwd, right, mins, maxs, fwdAngles;
 		int parts, anim;
 		float	speed, checkDist;
 		qboolean allowCartWheels = qtrue;
@@ -2563,183 +2533,6 @@ evasionType_t Jedi_CheckFlipEvasions( gentity_t *self, float rightdot, float zdi
 			checkDist = 128;
 			speed = 200;
 		}
-
-#ifdef __EVASION_JUMPING__
-		//trace in the dir that we want to go
-		VectorMA( self->r.currentOrigin, checkDist, right, traceto );
-		trap->Trace( &trace, self->r.currentOrigin, mins, maxs, traceto, self->s.number, CONTENTS_SOLID|CONTENTS_MONSTERCLIP|CONTENTS_BOTCLIP, qfalse, 0, 0 );
-		
-		if ( trace.fraction >= 1.0f && allowCartWheels )
-		{//it's clear, let's do it
-			//FIXME: check for drops?
-			vec3_t jumpRt;
-
-			NPC_SetAnim( self, parts, anim, SETANIM_FLAG_OVERRIDE|SETANIM_FLAG_HOLD );
-			self->client->ps.weaponTime = self->client->ps.legsTimer;//don't attack again until this anim is done
-			VectorCopy( self->client->ps.viewangles, fwdAngles );
-			fwdAngles[PITCH] = fwdAngles[ROLL] = 0;
-			//do the flip
-			AngleVectors( fwdAngles, NULL, jumpRt, NULL );
-			VectorScale( jumpRt, speed, self->client->ps.velocity );
-			self->client->ps.fd.forceJumpCharge = 0;//so we don't play the force flip anim
-			self->client->ps.velocity[2] = 200;
-			self->client->ps.fd.forceJumpZStart = self->r.currentOrigin[2];//so we don't take damage if we land at same height
-			//self->client->ps.pm_flags |= PMF_JUMPING;
-			if ( !NPC_IsJedi(self) )
-			{
-				G_AddEvent( self, EV_JUMP, 0 );
-			}
-			else
-			{
-				G_SoundOnEnt( self, CHAN_BODY, "sound/weapons/force/jump.wav" );
-			}
-			//ucmd.upmove = 0;
-			return EVASION_CARTWHEEL;
-		}
-		else if ( !(trace.contents&CONTENTS_BOTCLIP) )
-		{//hit a wall, not a do-not-enter brush
-			//FIXME: before we check any of these jump-type evasions, we should check for headroom, right?
-			//Okay, see if we can flip *off* the wall and go the other way
-			vec3_t	idealNormal;
-			gentity_t *traceEnt;
-
-			VectorSubtract( self->r.currentOrigin, traceto, idealNormal );
-			VectorNormalize( idealNormal );
-			traceEnt = &g_entities[trace.entityNum];
-			if ( (trace.entityNum<ENTITYNUM_WORLD&&traceEnt&&traceEnt->s.solid!=SOLID_BMODEL) || DotProduct( trace.plane.normal, idealNormal ) > 0.7f )
-			{//it's a ent of some sort or it's a wall roughly facing us
-				float bestCheckDist = 0;
-				//hmm, see if we're moving forward
-				if ( DotProduct( self->client->ps.velocity, fwd ) < 200 )
-				{//not running forward very fast
-					//check to see if it's okay to move the other way
-					if ( (trace.fraction*checkDist) <= 32 )
-					{//wall on that side is close enough to wall-flip off of or wall-run on
-						bestCheckDist = checkDist;
-						checkDist *= -1.0f;
-						VectorMA( self->r.currentOrigin, checkDist, right, traceto );
-						//trace in the dir that we want to go
-						trap->Trace( &trace, self->r.currentOrigin, mins, maxs, traceto, self->s.number, CONTENTS_SOLID|CONTENTS_MONSTERCLIP|CONTENTS_BOTCLIP, qfalse, 0, 0 );
-						if ( trace.fraction >= 1.0f )
-						{//it's clear, let's do it
-							if ( allowWallFlips )
-							{//okay to do wall-flips with this saber
-								//FIXME: check for drops?
-								//turn the cartwheel into a wallflip in the other dir
-								if ( rightdot > 0 )
-								{
-									anim = BOTH_WALL_FLIP_LEFT;
-									self->client->ps.velocity[0] = self->client->ps.velocity[1] = 0;
-									VectorMA( self->client->ps.velocity, 150, right, self->client->ps.velocity );
-								}
-								else
-								{
-									anim = BOTH_WALL_FLIP_RIGHT;
-									self->client->ps.velocity[0] = self->client->ps.velocity[1] = 0;
-									VectorMA( self->client->ps.velocity, -150, right, self->client->ps.velocity );
-								}
-								self->client->ps.velocity[2] = forceJumpStrength[FORCE_LEVEL_2]/2.25f;
-								//animate me
-								parts = SETANIM_LEGS;
-								if ( !self->client->ps.weaponTime )
-								{
-									parts = SETANIM_BOTH;
-								}
-								NPC_SetAnim( self, parts, anim, SETANIM_FLAG_OVERRIDE|SETANIM_FLAG_HOLD );
-								self->client->ps.fd.forceJumpZStart = self->r.currentOrigin[2];//so we don't take damage if we land at same height
-								//self->client->ps.pm_flags |= (PMF_JUMPING|PMF_SLOW_MO_FALL);
-								if ( !NPC_IsJedi(self) )
-								{
-									G_AddEvent( self, EV_JUMP, 0 );
-								}
-								else
-								{
-									G_SoundOnEnt( self, CHAN_BODY, "sound/weapons/force/jump.wav" );
-								}
-								return EVASION_OTHER;
-								}
-						}
-						else
-						{//boxed in on both sides
-							if ( DotProduct( self->client->ps.velocity, fwd ) < 0 )
-							{//moving backwards
-								return EVASION_NONE;
-							}
-							if ( (trace.fraction*checkDist) <= 32 && (trace.fraction*checkDist) < bestCheckDist )
-							{
-								bestCheckDist = checkDist;
-							}
-						}
-					}
-					else
-					{//too far from that wall to flip or run off it, check other side
-						checkDist *= -1.0f;
-						VectorMA( self->r.currentOrigin, checkDist, right, traceto );
-						//trace in the dir that we want to go
-						trap->Trace( &trace, self->r.currentOrigin, mins, maxs, traceto, self->s.number, CONTENTS_SOLID|CONTENTS_MONSTERCLIP|CONTENTS_BOTCLIP, qfalse, 0, 0 );
-						if ( (trace.fraction*checkDist) <= 32 )
-						{//wall on this side is close enough
-							bestCheckDist = checkDist;
-						}
-						else
-						{//neither side has a wall within 32
-							return EVASION_NONE;
-						}
-					}
-				}
-				//Try wall run?
-				if ( bestCheckDist )
-				{//one of the walls was close enough to wall-run on
-					qboolean allowWallRuns = qtrue;
-					if ( self->client->ps.weapon == WP_SABER )
-					{
-						if ( self->client->saber[0].model[0]
-							&& (self->client->saber[0].saberFlags&SFL_NO_WALL_RUNS) )
-						{
-							allowWallRuns = qfalse;
-						}
-						else if ( self->client->saber[1].model[0]
-							&& (self->client->saber[1].saberFlags&SFL_NO_WALL_RUNS) )
-						{
-							allowWallRuns = qfalse;
-						}
-					}
-					if ( allowWallRuns )
-					{//okay to do wallruns with this saber
-						//FIXME: check for long enough wall and a drop at the end?
-						if ( bestCheckDist > 0 )
-						{//it was to the right
-							anim = BOTH_WALL_RUN_RIGHT;
-						}
-						else
-						{//it was to the left
-							anim = BOTH_WALL_RUN_LEFT;
-						}
-						self->client->ps.velocity[2] = forceJumpStrength[FORCE_LEVEL_2]/2.25f;
-						//animate me
-						parts = SETANIM_LEGS;
-						if ( !self->client->ps.weaponTime )
-						{
-							parts = SETANIM_BOTH;
-						}
-						NPC_SetAnim( self, parts, anim, SETANIM_FLAG_OVERRIDE|SETANIM_FLAG_HOLD );
-						self->client->ps.fd.forceJumpZStart = self->r.currentOrigin[2];//so we don't take damage if we land at same height
-						//self->client->ps.pm_flags |= (PMF_JUMPING|PMF_SLOW_MO_FALL);
-						if ( !NPC_IsJedi(self) )
-						{
-							G_AddEvent( self, EV_JUMP, 0 );
-						}
-						else
-						{
-							G_SoundOnEnt( self, CHAN_BODY, "sound/weapons/force/jump.wav" );
-						}
-						return EVASION_OTHER;
-					}
-				}
-				//else check for wall in front, do backflip off wall
-			}
-		}
-#endif //__EVASION_JUMPING__
 	}
 
 	return EVASION_NONE;
@@ -8407,6 +8200,11 @@ void NPC_BSJedi_Default( gentity_t *aiEnt)
 	if ( Jedi_InSpecialMove(aiEnt) )
 	{
 		//JEDI_Debug(aiEnt, "special move.");
+		return;
+	}
+
+	if (NPC_IsBountyHunter(aiEnt) && !TIMER_Done(aiEnt, "flameTime") && Boba_DoFlameThrower(aiEnt))
+	{// flamethrower
 		return;
 	}
 

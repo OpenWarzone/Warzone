@@ -1437,7 +1437,17 @@ void NPC_Begin (gentity_t *ent)
 	}
 
 	// UQ1: Init original weapon info...
-	ent->NPC->originalWeapon = ent->client->ps.weapon;
+	if (NPC_IsBountyHunter(ent))
+	{
+		if (ent->client->ps.primaryWeapon <= WP_FIRST_USEABLE)
+		{
+			ent->client->ps.primaryWeapon = WP_MODULIZED_WEAPON;
+		}
+
+		ent->NPC->originalWeapon = ent->client->ps.weapon = ent->s.weapon = ent->client->ps.primaryWeapon;
+	}
+	else
+		ent->NPC->originalWeapon = ent->client->ps.weapon;
 
 	if (ent->s.eType == ET_NPC && !(ent->s.eFlags & EF_FAKE_NPC_BOT))
 	{// UQ1: Find their name type to send to an id to the client for names...

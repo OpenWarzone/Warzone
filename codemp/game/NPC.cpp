@@ -31,7 +31,6 @@ extern void NPC_BSCinematic(gentity_t *aiEnt);
 extern int GetTime ( int lastTime );
 extern void NPC_BSGM_Default(gentity_t *aiEnt);
 extern void NPC_CheckCharmed(gentity_t *aiEnt);
-extern qboolean Boba_Flying( gentity_t *self );
 extern int DOM_GetNearestWP(vec3_t org, int badwp);
 extern int DOM_GetNearWP(vec3_t org, int badwp);
 extern void Jedi_Move( gentity_t *aiEnt, gentity_t *goal, qboolean retreat );
@@ -1680,9 +1679,10 @@ NPC_RunBehavior
 extern void NPC_BSSD_Default(gentity_t *aiEnt);
 extern void NPC_BSEmplaced( gentity_t *aiEnt);
 extern qboolean NPC_CheckSurrender(gentity_t *aiEnt);
-extern void Boba_FlyStop( gentity_t *self );
 extern void NPC_BSWampa_Default(gentity_t *aiEnt);
 extern qboolean Jedi_CultistDestroyer( gentity_t *self );
+extern qboolean Boba_DoFlameThrower(gentity_t *self);
+
 void NPC_RunBehavior( gentity_t *aiEnt, int team, int bState )
 {
 	if (aiEnt->s.NPC_class == CLASS_VEHICLE &&
@@ -1761,9 +1761,9 @@ void NPC_RunBehavior( gentity_t *aiEnt, int team, int bState )
 	}
 	else if ( aiEnt->client->NPC_class == CLASS_BOBAFETT || aiEnt->hasJetpack )
 	{//bounty hunter
-		if ( Boba_Flying( aiEnt ) )
-		{
-			NPC_BehaviorSet_Seeker(aiEnt, bState);
+		if (!TIMER_Done(aiEnt, "flameTime") && Boba_DoFlameThrower(aiEnt))
+		{// In the middle of using flamer... Don't try to do anything else...
+			return;
 		}
 		else
 		{
@@ -4128,6 +4128,9 @@ qboolean NPC_EscapeWater ( gentity_t *aiEnt )
 	*/
 }
 
+extern void Boba_SetFlamerAngles(gentity_t *self);
+extern qboolean Boba_DoFlameThrower(gentity_t *self);
+
 #if	AI_TIMERS
 extern int AITime;
 #endif//	AI_TIMERS
@@ -4281,7 +4284,23 @@ void NPC_Think ( gentity_t *self )//, int msec )
 		return;
 	}
 
-	if ( aiEnt->NPC->nextBStateThink <= level.time && !aiEnt->s.m_iVehicleNum )//NPCs sitting in Vehicles do NOTHING
+	/*if (!TIMER_Done(self, "flameTime"))
+	{// When using flamer, smoothly do flame thrower coverage of area... Doing this to hold angles and position while doing the sweep...
+		VectorCopy(oldMoveDir, self->client->ps.moveDir);
+
+		//or use client->pers.lastCommand?
+		aiEnt->NPC->last_ucmd.serverTime = level.time - 50;
+
+		Boba_SetFlamerAngles(aiEnt);
+		Boba_DoFlameThrower(aiEnt);
+
+		aiEnt->client->pers.cmd.forwardmove = 0;
+		aiEnt->client->pers.cmd.rightmove = 0;
+		aiEnt->client->pers.cmd.upmove = 0;
+
+		ClientThink(aiEnt->s.number, &aiEnt->client->pers.cmd);
+	}
+	else*/ if ( aiEnt->NPC->nextBStateThink <= level.time && !aiEnt->s.m_iVehicleNum )//NPCs sitting in Vehicles do NOTHING
 	{
 #if	AI_TIMERS
 		int	startTime = GetTime(0);
@@ -4635,9 +4654,12 @@ void NPC_Think ( gentity_t *self )//, int msec )
 			{
 				//trap->Print("NPCBOT DEBUG: NPC is attacking.\n");
 
-				// If we have combat pathing, use it while we do the other stuff...
-				if (NPC_IsCombatPathing(aiEnt))
-				{
+				if (!TIMER_Done(self, "flameTime"))
+				{// When using flamer, don't follow paths...
+					Boba_SetFlamerAngles(aiEnt);
+				}
+				else if (NPC_IsCombatPathing(aiEnt))
+				{// If we have combat pathing, use it while we do the other stuff...
 					NPC_FollowRoutes(aiEnt);
 				}
 
@@ -4673,6 +4695,11 @@ void NPC_Think ( gentity_t *self )//, int msec )
 
 		//or use client->pers.lastCommand?
 		aiEnt->NPC->last_ucmd.serverTime = level.time - 50;
+
+		if (!TIMER_Done(self, "flameTime"))
+		{// When using flamer, smoothly do flame thrower coverage of area...
+			Boba_SetFlamerAngles(aiEnt);
+		}
 
 		ClientThink(aiEnt->s.number, &aiEnt->client->pers.cmd);
 #else //__LOW_THINK_AI__

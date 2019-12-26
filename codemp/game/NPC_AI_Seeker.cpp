@@ -2,7 +2,7 @@
 #include "g_nav.h"
 
 extern void Boba_FireDecide(gentity_t *aiEnt);
-extern void Boba_FireFlameThrower(gentity_t *self);
+extern qboolean Boba_DoFlameThrower(gentity_t *self);
 
 void Seeker_Strafe(gentity_t *aiEnt);
 
@@ -375,7 +375,7 @@ void Seeker_Attack(gentity_t *aiEnt)
 
 	if (aiEnt->client->NPC_class == CLASS_GLIDER)
 	{// UQ1: Meh, this will do for now...
-		Boba_FireFlameThrower(aiEnt);
+		Boba_DoFlameThrower(aiEnt);
 	}
 	else
 	{

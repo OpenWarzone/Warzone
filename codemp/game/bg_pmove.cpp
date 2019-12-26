@@ -11600,7 +11600,7 @@ void BG_G2PlayerAngles(void *ghoul2, int motionBolt, entityState_t *cent, int ti
 	}
 	else
 	{
-		BG_SwingAngles( dest, 15, 30, 0.1f, tPitchAngle, tPitching, frametime );
+		*tPitchAngle = BG_SwingAngles( dest, 15, 30, 0.1f, tPitchAngle, tPitching, frametime );
 		//*tPitchAngle = dest;
 	}
 	torsoAngles[PITCH] = *tPitchAngle;
@@ -11862,6 +11862,15 @@ void BG_G2PlayerAngles(void *ghoul2, int motionBolt, entityState_t *cent, int ti
 			return; //don't have to bother with the rest then
 		}
 	}
+
+#ifdef _CGAME
+	/*vec3_t lerpTorso;
+	VectorCopy(cg_entities[cent->number].lerpTorsoAngles, lerpTorso);
+	if (VectorLength(lerpTorso) > 0.0)
+	{
+		VectorCopy(lerpTorso, ulAngles);
+	}*/
+#endif //_CGAME
 
 	BG_G2ClientSpineAngles(ghoul2, motionBolt, cent_lerpOrigin, cent_lerpAngles, cent, time,
 		viewAngles, ciLegs, ciTorso, angles, thoracicAngles, ulAngles, llAngles, modelScale,

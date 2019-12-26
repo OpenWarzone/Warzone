@@ -464,6 +464,7 @@ typedef struct centity_s {
 	// exact interpolated position of entity on this frame
 	vec3_t			lerpOrigin;
 	vec3_t			lerpAngles;
+	vec3_t			lerpTorsoAngles;
 	
 	// UQ1: BEGIN - Trace cache stuff...
 	vec3_t			groundCheckOrigin;
@@ -582,6 +583,8 @@ typedef struct centity_s {
 
 	int altChargeTime;
 	int ChargeTime;
+
+	int				flamerSoundTime = 0;
 
 	/* Event ship fighters */
 	int				numFighters = 0;

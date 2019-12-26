@@ -2852,6 +2852,141 @@ void CG_CheckPlayerG2Weapons(playerState_t *ps, centity_t *cent)
 	}
 }
 
+extern void BG_SetAnim(playerState_t *ps, animation_t *animations, int setAnimParts, int anim, int setAnimFlags, int blendTime);
+
+#define __WRIST_FLAMER_SWEEP__
+
+#define WRIST_FLAMER_TIME 4000
+
+void CG_UpdateEntityAnglesForWristFlmatethrower(centity_t *cent)
+{
+#ifdef __WRIST_FLAMER_SWEEP__
+	if (cent->flamerSoundTime >= cg.time)
+	{
+		vec3_t		angles;
+
+		VectorCopy(cent->lerpAngles, angles);
+
+		int	flampTimeLeft = cent->flamerSoundTime - cg.time;
+		float flamePercentDone = ((float)flampTimeLeft / (float)WRIST_FLAMER_TIME);
+
+		if (flamePercentDone >= 0.75)
+		{
+			flamePercentDone -= 0.75;
+			flamePercentDone *= 4.0;
+		}
+		else if (flamePercentDone >= 0.5)
+		{
+			flamePercentDone -= 0.5;
+			flamePercentDone *= 4.0;
+			flamePercentDone = 1.0 - flamePercentDone;
+		}
+		else if (flamePercentDone >= 0.25)
+		{
+			flamePercentDone -= 0.25;
+			flamePercentDone *= 4.0;
+		}
+		else
+		{
+			flamePercentDone *= 4.0;
+			flamePercentDone = 1.0 - flamePercentDone;
+		}
+
+		angles[YAW] += (flamePercentDone * 2.0 - 1.0) * 64.0;
+
+		if (angles[YAW] > 360)
+		{
+			angles[YAW] -= 361;
+		}
+
+		cent->lerpAngles[YAW] = angles[YAW];
+
+		// Forcing animation here because some code somewhere overrides the animation set in game...
+		BG_SetAnim(cent->playerState, NULL, SETANIM_BOTH, BOTH_FORCELIGHTNING_HOLD, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 100);
+
+		//Com_Printf("flamer time %f. angles %f.\n", flamePercentDone, angles[YAW]);
+	}
+#endif //__WRIST_FLAMER_SWEEP__
+}
+
+void CG_WristFlamethrowerFire(int entityNum)
+{
+	centity_t	*cent = &cg_entities[entityNum];
+
+	if (!cent) return;
+
+	mdxaBone_t	boltMatrix;
+	vec3_t		start, dir;
+	vec3_t		origin, angles;
+
+	VectorCopy(cent->lerpOrigin, origin);
+	VectorCopy(cent->lerpAngles, angles);
+
+	if (cent->flamerSoundTime <= cg.time)
+	{// Only play the sound at the start of the flame burst...
+		trap->S_StartSound(start, entityNum, CHAN_WEAPON, trap->S_RegisterSound("sound/effects/flamejet_lp.wav"));
+		cent->flamerSoundTime = cg.time + WRIST_FLAMER_TIME;
+	}
+
+#ifdef __WRIST_FLAMER_SWEEP__
+	int	flampTimeLeft = cent->flamerSoundTime - cg.time;
+	float flamePercentDone = ((float)flampTimeLeft / (float)WRIST_FLAMER_TIME);
+
+	if (flamePercentDone >= 0.75)
+	{
+		flamePercentDone -= 0.75;
+		flamePercentDone *= 4.0;
+	}
+	else if (flamePercentDone >= 0.5)
+	{
+		flamePercentDone -= 0.5;
+		flamePercentDone *= 4.0;
+		flamePercentDone = 1.0 - flamePercentDone;
+	}
+	else if (flamePercentDone >= 0.25)
+	{
+		flamePercentDone -= 0.25;
+		flamePercentDone *= 4.0;
+	}
+	else
+	{
+		flamePercentDone *= 4.0;
+		flamePercentDone = 1.0 - flamePercentDone;
+	}
+
+	angles[YAW] += (flamePercentDone * 2.0 - 1.0) * 64.0;
+	VectorCopy(angles, cent->lerpAngles);
+
+	//Com_Printf("flamer time %f. angles %f.\n", flamePercentDone, angles[YAW]);
+#endif //__WRIST_FLAMER_SWEEP__
+
+	int handLBolt = trap->G2API_AddBolt(cent->ghoul2, 0, "lhand");
+
+	if (handLBolt)
+	{
+		trap->G2API_GetBoltMatrix(cent->ghoul2, 0, handLBolt, &boltMatrix, angles, origin, cg.time, NULL, cent->modelScale);
+
+		BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, start);
+		//BG_GiveMeVectorFromMatrix( &boltMatrix, NEGATIVE_Y, dir );
+		AngleVectors(angles, dir, NULL, NULL);
+	}
+	else if (BG_CrouchAnim(cent->currentState.legsAnim))
+	{
+		VectorSet(start, origin[0], origin[1], origin[2] + (24.0 * cent->modelScale[2]));
+		AngleVectors(angles, dir, NULL, NULL);
+	}
+	else
+	{
+		VectorSet(start, origin[0], origin[1], origin[2] + (48.0/*32.0*/ * cent->modelScale[2]));
+		AngleVectors(angles, dir, NULL, NULL);
+	}
+
+	// Forcing animation here because some code somewhere overrides the animation set in game...
+	BG_SetAnim(cent->playerState, NULL, SETANIM_BOTH, BOTH_FORCELIGHTNING_HOLD, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 100);
+
+	//PlayEffectID(trap->FX_RegisterEffect("boba/fthrw"), start, dir, 0, 0, qfalse);
+	PlayEffectID(trap->FX_RegisterEffect("chemicals/flamethrowerNew"), start, dir, 0, 0, qfalse);
+}
 
 /*
 Ghoul2 Insert End

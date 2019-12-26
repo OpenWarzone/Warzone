@@ -4642,6 +4642,7 @@ qboolean CG_G2PlayerHeadAnims( centity_t *cent )
 	return qfalse;
 }
 
+extern void CG_UpdateEntityAnglesForWristFlmatethrower(centity_t *cent);
 
 static void CG_G2PlayerAngles( centity_t *cent, matrix3_t legs, vec3_t legsAngles)
 {
@@ -4694,12 +4695,19 @@ static void CG_G2PlayerAngles( centity_t *cent, matrix3_t legs, vec3_t legsAngle
 		{
 			VectorCopy(cent->lerpAngles, lookAngles);
 		}
+
 		lookAngles[PITCH] = 0;
 
 		if (cent->currentState.otherEntityNum2)
 		{
 			emplaced = &cg_entities[cent->currentState.otherEntityNum2].currentState;
 		}
+
+		// UQ1: Added lerpTorsoAngles so we can override torso angles for wrist flamethrower and stuff...
+		//cent->lerpTorsoAngles[0] = cent->lerpTorsoAngles[1] = cent->lerpTorsoAngles[2] = 0; // fuck it, doesn't work. this code is a fucking mess...
+
+		// Update lerpTorsoAngles if doing a wrist flamethrower sweep...
+		CG_UpdateEntityAnglesForWristFlmatethrower(cent);
 
 		BG_G2PlayerAngles(cent->ghoul2, ci->bolt_motion, &cent->currentState, cg.time,
 			cent->lerpOrigin, cent->lerpAngles, legs, legsAngles, &cent->pe.torso.yawing, &cent->pe.torso.pitching,
