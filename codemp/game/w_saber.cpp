@@ -4387,7 +4387,7 @@ void WP_SaberClearDamage( void )
 }
 
 //[SaberSys]
-void WP_SaberSpecificDoHit(gentity_t *self, int saberNum, int bladeNum, gentity_t *victim, vec3_t impactpoint, int dmg)
+void WP_SaberSpecificDoHit(gentity_t *self, int saberNum, int bladeNum, gentity_t *victim, vec3_t impactpoint, int dmg, int realTraceResult)
 {
 	gentity_t *te = NULL;
 	qboolean isDroid = qfalse;
@@ -4395,7 +4395,7 @@ void WP_SaberSpecificDoHit(gentity_t *self, int saberNum, int bladeNum, gentity_
 	if (victim->client)
 	{
 		class_t npc_class = victim->client->NPC_class;
-
+		
 		if (npc_class == CLASS_SEEKER || npc_class == CLASS_PROBE || npc_class == CLASS_MOUSE || npc_class == CLASS_REMOTE ||
 			npc_class == CLASS_GONK || npc_class == CLASS_R2D2 || npc_class == CLASS_R5D2 ||
 			npc_class == CLASS_PROTOCOL || npc_class == CLASS_MARK1 || npc_class == CLASS_MARK2 ||
@@ -4422,8 +4422,7 @@ void WP_SaberSpecificDoHit(gentity_t *self, int saberNum, int bladeNum, gentity_
 			te->s.angles[1] = 1;
 		}
 
-		if (!isDroid && (victim->client || victim->s.eType == ET_NPC ||
-			victim->s.eType == ET_BODY))
+		if (!isDroid && (victim->s.eType == ET_NPC || victim->s.eType == ET_BODY || victim->s.eType == ET_PLAYER || realTraceResult == REALTRACE_PLAYER))
 		{
 			if (dmg < 5)
 			{
@@ -5269,8 +5268,10 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 				G_Damage(victim, self, self, dir, tr.endpos, dmg, dflags, MOD_SABER);
 			}
 
-
-			WP_SaberSpecificDoHit(self, rSaberNum, rBladeNum, victim, tr.endpos, dmg);
+			if (realTraceResult != REALTRACE_MISS)
+			{
+				WP_SaberSpecificDoHit(self, rSaberNum, rBladeNum, victim, tr.endpos, dmg, realTraceResult);
+			}
 
 			// MJN - define fix :/
 			if (g_saberDebugPrint.integer > 2 && dmg > 1)
@@ -5821,12 +5822,14 @@ void WP_SaberStartMissileBlockCheck( gentity_t *self, usercmd_t *ucmd  )
 			//[NewSaberSys]
 			Saberslash = qfalse;
 			//[/NewSaberSys]
+#if 0
 			if ( owner && owner->client && (!self->enemy || self->enemy->s.weapon != WP_SABER) )//keep enemy jedi over shooters
 			{
 				self->enemy = owner;
 				//NPC_SetLookTarget( self, owner->s.number, level.time+1000 );
 				//player looktargetting done differently
 			}
+#endif
 		}
 	}
 }

@@ -180,6 +180,9 @@ void Jedi_CopyAttackCounterInfo(gentity_t *NPC)
 	}
 }
 
+// This switches between staying back (and using manual block) or attacking.
+#define ATTACK_COUNTER_TIME 1000//500
+
 qboolean Jedi_AttackOrCounter( gentity_t *NPC )
 {
 	if (!NPC || !NPC_IsAlive(NPC, NPC)) 
@@ -201,13 +204,13 @@ qboolean Jedi_AttackOrCounter( gentity_t *NPC )
 	//
 	// Current attacker always controls all the timers/counters...
 	//
-	if (NPC->npc_attack_time <= level.time - 500)
+	if (NPC->npc_attack_time <= level.time - ATTACK_COUNTER_TIME)
 	{// Timer has run out, pick if we should initally attack or defend...
 		if (NPC->enemy->s.eType == ET_PLAYER)
 		{// When enemy is a player...
 			if (irand(0, 3) <= 2)
 			{
-				NPC->npc_attack_time = level.time + 500;
+				NPC->npc_attack_time = level.time + ATTACK_COUNTER_TIME;
 			}
 			else
 			{
@@ -222,7 +225,7 @@ qboolean Jedi_AttackOrCounter( gentity_t *NPC )
 			}
 			else
 			{// Enemy is not attacking, start by attacking...
-				NPC->npc_attack_time = level.time + 500;
+				NPC->npc_attack_time = level.time + ATTACK_COUNTER_TIME;
 			}
 		}
 
@@ -2144,6 +2147,8 @@ static void Jedi_CombatDistance( gentity_t *aiEnt, int enemy_dist )
 		}
 	}
 #endif //0
+	extern qboolean Jedi_EvasionRoll(gentity_t *aiEnt);
+	extern qboolean Jedi_EvasionDodgeNew(gentity_t *self);
 
 	if ( NPC_IsBountyHunter(aiEnt) || aiEnt->hasJetpack )
 	{
@@ -2245,15 +2250,39 @@ static void Jedi_CombatDistance( gentity_t *aiEnt, int enemy_dist )
 			Jedi_Retreat(aiEnt);
 		}
 	}
-	else if ( (aiEnt->s.weapon == WP_SABER || aiEnt->s.weapon == WP_MELEE)
-		&& enemy_dist > SABER_ATTACK_RANGE )
-	{//we're too damn far!
-		Jedi_Advance(aiEnt);
+	else if ((aiEnt->s.weapon == WP_SABER || aiEnt->s.weapon == WP_MELEE)
+		&& aiEnt->client->ps.forceHandExtend == HANDEXTEND_DODGE
+		&& aiEnt->client->ps.forceHandExtendTime >= level.time)
+	{// Don't move while dodging...
+
+	}
+	else if ((aiEnt->s.weapon == WP_SABER || aiEnt->s.weapon == WP_MELEE)
+		&& enemy_dist < (float)SABER_ATTACK_RANGE * aiEnt->modelScale[2])
+	{//we're too damn close!
+		//if (Jedi_EvasionDodgeNew(aiEnt))
+		{
+			if (!Jedi_EvasionRoll(aiEnt))
+			{// Hmm, can't evade for whatever reason, just move back...
+				Jedi_Retreat(aiEnt);
+			}
+		}
+	}
+	else if ((aiEnt->s.weapon == WP_SABER || aiEnt->s.weapon == WP_MELEE)
+		&& enemy_dist < ((float)SABER_ATTACK_RANGE * 3.0f) * aiEnt->modelScale[2]
+		&& irand(0, 10) == 0)
+	{//and occasionally dodge for the hell of it...
+		//if (Jedi_EvasionDodgeNew(aiEnt))
+		{
+			if (!Jedi_EvasionRoll(aiEnt))
+			{// Hmm, can't evade for whatever reason, just move back...
+				Jedi_Retreat(aiEnt);
+			}
+		}
 	}
 	else if ( (aiEnt->s.weapon == WP_SABER || aiEnt->s.weapon == WP_MELEE)
-		&& enemy_dist < SABER_ATTACK_RANGE/3 )
-	{//we're too damn close!
-		Jedi_Retreat(aiEnt);
+		&& enemy_dist > SABER_ATTACK_RANGE * aiEnt->modelScale[2])
+	{//we're too damn far!
+		Jedi_Advance(aiEnt);
 	}
 	else if ( (aiEnt->s.weapon != WP_SABER && aiEnt->s.weapon != WP_MELEE)
 		&& enemy_dist <= 256.0 )
@@ -2262,8 +2291,6 @@ static void Jedi_CombatDistance( gentity_t *aiEnt, int enemy_dist )
 
 		if (aiEnt->enemy && aiEnt->enemy->s.weapon == WP_SABER && enemy_dist <= SABER_ATTACK_RANGE)
 		{
-			extern qboolean Jedi_EvasionRoll(gentity_t *aiEnt);
-			
 			if (!Jedi_EvasionRoll(aiEnt))
 			{// Hmm, can't evade for whatever reason, maybe run... sometimes...
 				if (!TIMER_Done(aiEnt, "runFromJedi"))
@@ -3603,6 +3630,87 @@ static qboolean Jedi_SaberBlock( gentity_t *aiEnt, int saberNum, int bladeNum ) 
 		TIMER_Set( aiEnt, "parryTime", dodgeTime );
 	}
 	return qtrue;
+}
+
+qboolean Jedi_EvasionDodgeNew(gentity_t *self)
+{
+	int	dodgeAnim = -1;
+
+	if (!self || !self->client || self->health <= 0)
+	{
+		return qfalse;
+	}
+
+	if (self->client->ps.groundEntityNum == ENTITYNUM_NONE)
+	{//can't dodge in mid-air
+		return qfalse;
+	}
+
+	if (self->client->ps.weaponTime > 0 || self->client->ps.forceHandExtend != HANDEXTEND_NONE)
+	{//in some effect that stops me from moving on my own
+		return qfalse;
+	}
+
+	extern int G_GetHitLocation(gentity_t *target, vec3_t ppoint);
+	int hitLoc = G_GetHitLocation(self->enemy, self->enemy->r.currentOrigin);
+
+	switch (hitLoc)
+	{
+	case HL_NONE:
+		return qfalse;
+		break;
+
+	case HL_FOOT_RT:
+	case HL_FOOT_LT:
+	case HL_LEG_RT:
+	case HL_LEG_LT:
+		return qfalse;
+
+	case HL_BACK_RT:
+		dodgeAnim = BOTH_DODGE_FL;
+		break;
+	case HL_CHEST_RT:
+		dodgeAnim = BOTH_DODGE_FR;
+		break;
+	case HL_BACK_LT:
+		dodgeAnim = BOTH_DODGE_FR;
+		break;
+	case HL_CHEST_LT:
+		dodgeAnim = BOTH_DODGE_FR;
+		break;
+	case HL_BACK:
+	case HL_CHEST:
+	case HL_WAIST:
+		dodgeAnim = BOTH_DODGE_FL;
+		break;
+	case HL_ARM_RT:
+	case HL_HAND_RT:
+		dodgeAnim = BOTH_DODGE_L;
+		break;
+	case HL_ARM_LT:
+	case HL_HAND_LT:
+		dodgeAnim = BOTH_DODGE_R;
+		break;
+	case HL_HEAD:
+		dodgeAnim = BOTH_DODGE_FL;
+		break;
+	default:
+		return qfalse;
+	}
+
+	if (dodgeAnim != -1)
+	{
+		//Our own happy way of forcing an anim:
+		self->client->ps.forceHandExtend = HANDEXTEND_DODGE;
+		self->client->ps.forceDodgeAnim = dodgeAnim;
+		self->client->ps.forceHandExtendTime = level.time + 300;
+
+		self->client->ps.powerups[PW_SPEEDBURST] = level.time + 100;
+
+		G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/force/speed.wav"));
+		return qtrue;
+	}
+	return qfalse;
 }
 
 qboolean Jedi_EvasionRoll(gentity_t *aiEnt)
@@ -7655,19 +7763,19 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_ABSORB);
 		aiEnt->client->ps.fd.forcePowerLevel[FP_ABSORB] = 3;
 
-		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_TELEPATHY);
-		aiEnt->client->ps.fd.forcePowerLevel[FP_TELEPATHY] = 3;
+		//aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_TELEPATHY);
+		//aiEnt->client->ps.fd.forcePowerLevel[FP_TELEPATHY] = 3;
 	}
 	else if (NPC_IsDarkJedi(aiEnt))
 	{// Sith...
-		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_DRAIN);
-		aiEnt->client->ps.fd.forcePowerLevel[FP_DRAIN] = 3;
+		//aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_DRAIN);
+		//aiEnt->client->ps.fd.forcePowerLevel[FP_DRAIN] = 3;
 
-		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_LIGHTNING);
-		aiEnt->client->ps.fd.forcePowerLevel[FP_LIGHTNING] = 3;
+		//aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_LIGHTNING);
+		//aiEnt->client->ps.fd.forcePowerLevel[FP_LIGHTNING] = 3;
 
-		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_GRIP);
-		aiEnt->client->ps.fd.forcePowerLevel[FP_GRIP] = 3;
+		//aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_GRIP);
+		//aiEnt->client->ps.fd.forcePowerLevel[FP_GRIP] = 3;
 
 		/*
 		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_RAGE);
@@ -7685,8 +7793,8 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 	aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_PULL);
 	aiEnt->client->ps.fd.forcePowerLevel[FP_PULL] = 3;
 
-	aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_SABERTHROW);
-	aiEnt->client->ps.fd.forcePowerLevel[FP_SABERTHROW] = 3;
+	//aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_SABERTHROW);
+	//aiEnt->client->ps.fd.forcePowerLevel[FP_SABERTHROW] = 3;
 
 
 	if (Jedi_SaberBusy( aiEnt ))
@@ -7731,7 +7839,7 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 		TIMER_Set( aiEnt, "heal", irand(5000, 15000) );
 		return qtrue;
 	}
-	else if ( TIMER_Done( aiEnt, "drain" )
+	/*else if ( TIMER_Done( aiEnt, "drain" )
 		&& aiEnt->client->ps.fd.forcePowerLevel[FP_DRAIN] > 0
 		&& NPC_Jedi_EnemyInForceRange(aiEnt)
 		&& NPC_NeedsHeal( aiEnt )
@@ -7764,7 +7872,7 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 		ForceLightning( aiEnt );
 		TIMER_Set( aiEnt, "lightning", irand(12000, 25000) );
 		return qtrue;
-	}
+	}*/
 	else if ( TIMER_Done( aiEnt, "protect" )
 		&& (aiEnt->client->ps.fd.forcePowersKnown&(1<<FP_PROTECT)) != 0
 		&& (aiEnt->client->ps.fd.forcePowersActive&(1<<FP_PROTECT)) == 0
@@ -7785,7 +7893,7 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 		TIMER_Set( aiEnt, "absorb", irand(15000, 30000) );
 		return qtrue;
 	}
-	else if ( TIMER_Done( aiEnt, "telepathy" )
+	/*else if ( TIMER_Done( aiEnt, "telepathy" )
 		&& (aiEnt->client->ps.fd.forcePowersKnown&(1<<FP_TELEPATHY)) != 0
 		&& (aiEnt->client->ps.fd.forcePowersActive&(1<<FP_TELEPATHY)) == 0
 		&& NPC_Jedi_EnemyInForceRange(aiEnt)
@@ -7797,7 +7905,6 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 		TIMER_Set( aiEnt, "telepathy", irand(15000, 30000) );
 		return qtrue;
 	}
-	/*
 	else if ( TIMER_Done( aiEnt, "rage" )
 		&& (aiEnt->client->ps.fd.forcePowersKnown&(1<<FP_RAGE)) != 0
 		&& (aiEnt->client->ps.fd.forcePowersActive&(1<<FP_RAGE)) == 0
@@ -7845,7 +7952,7 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 		TIMER_Set( aiEnt, "pull", irand(15000, 30000) );
 		return qtrue;
 	}
-	else if (aiEnt->client->ps.weapon == WP_SABER //using saber
+	/*else if (aiEnt->client->ps.weapon == WP_SABER //using saber
 		&& TIMER_Done( aiEnt, "saberthrow" )
 		&& (aiEnt->client->ps.fd.forcePowersKnown&(1<<FP_SABERTHROW)) != 0
 		&& !NPC_Jedi_EnemyInForceRange(aiEnt)
@@ -7878,7 +7985,7 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 		}
 
 		return qtrue;
-	}
+	}*/
 
 	return qfalse;
 }
@@ -7914,8 +8021,8 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 
 	if (NPC->s.weapon == WP_SABER)
 	{
-		OPTIMAL_MIN_RANGE = 20;
-		OPTIMAL_MAX_RANGE = 40;
+		OPTIMAL_MIN_RANGE = 32 * NPC->modelScale[2];// g_testvalue1.value; //24
+		OPTIMAL_MAX_RANGE = 256 * NPC->modelScale[2];// g_testvalue2.value;//56;// 40;
 	}
 
 	OPTIMAL_RANGE = OPTIMAL_MIN_RANGE + ((OPTIMAL_MAX_RANGE - OPTIMAL_MIN_RANGE) / 2.0);
@@ -7966,7 +8073,15 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 	{// If clear then move back a bit...
 		NPC_FacePosition(aiEnt, NPC->enemy->r.currentOrigin, qfalse );
 
-		Jedi_Retreat(aiEnt);
+		if ((NPC_IsJedi(aiEnt) || aiEnt->client->ps.weapon == WP_SABER) && !Jedi_EvasionRoll(aiEnt))
+		{// Hmm, can't evade for whatever reason, just move back...
+			Jedi_Retreat(aiEnt);
+		}
+		else
+		{
+			Jedi_Retreat(aiEnt);
+		}
+
 		//JEDI_Debug(va("optimal position (too close - combatmove). Dist %f. Opt %f. Allow %f. Min %f. Max %f.", dist, OPTIMAL_RANGE, OPTIMAL_RANGE_ALLOWANCE, OPTIMAL_MIN_RANGE, OPTIMAL_MAX_RANGE));
 		return qtrue;
 	}
