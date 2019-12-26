@@ -862,7 +862,7 @@ void Boba_FireDecide( gentity_t *aiEnt )
 			return;
 		}
 	}
-	else
+	else if (aiEnt->client->ps.weapon == WP_MODULIZED_WEAPON)
 	{// UQ1: How about I add a default for them??? :)
 		if ( aiEnt->health < aiEnt->client->pers.maxHealth*0.5f && (NPC_IsJedi(aiEnt) || NPC_IsBountyHunter(aiEnt) || aiEnt->s.eType == ET_PLAYER) )
 		{
@@ -1159,6 +1159,7 @@ void Jedi_CheckCloak( gentity_t *aiEnt)
 		}
 	}
 }
+
 /*
 ==========================================================================================
 AGGRESSION
@@ -1171,7 +1172,7 @@ static void Jedi_Aggression( gentity_t *self, int change )
 	self->NPC->stats.aggression += change;
 
 	//FIXME: base this on initial NPC stats
-	if ( self->client->playerTeam == NPCTEAM_PLAYER )
+	if (self->client->sess.sessionTeam == FACTION_REBEL)
 	{//good guys are less aggressive
 		upper_threshold = 7;
 		lower_threshold = 1;
@@ -1289,8 +1290,10 @@ static qboolean Jedi_BattleTaunt( gentity_t *aiEnt)
 		&& jediSpeechDebounceTime[aiEnt->client->playerTeam] < level.time )
 	{
 		int event = -1;
-		if ( aiEnt->client->playerTeam == NPCTEAM_PLAYER
-			&& aiEnt->enemy && aiEnt->enemy->client && (aiEnt->enemy->client->NPC_class == CLASS_JEDI || aiEnt->enemy->client->NPC_class == CLASS_PADAWAN || aiEnt->enemy->client->NPC_class == CLASS_HK51) )
+		if ( aiEnt->client->sess.sessionTeam == FACTION_REBEL
+			&& aiEnt->enemy 
+			&& aiEnt->enemy->client 
+			&& (aiEnt->enemy->client->NPC_class == CLASS_JEDI || aiEnt->enemy->client->NPC_class == CLASS_PADAWAN || aiEnt->enemy->client->NPC_class == CLASS_HK51) )
 		{//a jedi fighting a jedi - training
 			if ( (aiEnt->client->NPC_class == CLASS_JEDI || aiEnt->client->NPC_class == CLASS_PADAWAN || aiEnt->client->NPC_class == CLASS_HK51) && aiEnt->NPC->rank == RANK_COMMANDER )
 			{//only trainer taunts
@@ -2195,10 +2198,12 @@ static void Jedi_CombatDistance( gentity_t *aiEnt, int enemy_dist )
 		else if ( enemy_dist <= 64 )
 		{//he's getting too close
 			aiEnt->client->pers.cmd.buttons |= BUTTON_ATTACK;
+
 			if ( !aiEnt->client->ps.saberInFlight )
 			{
 				WP_ActivateSaber(aiEnt);
 			}
+
 			TIMER_Set( aiEnt, "taunting", -level.time );
 		}
 		//else if ( NPC->client->ps.torsoAnim == BOTH_GESTURE1 && NPC->client->ps.torsoTimer < 2000 )
@@ -2255,12 +2260,25 @@ static void Jedi_CombatDistance( gentity_t *aiEnt, int enemy_dist )
 	{//we're too damn close!
 		//Jedi_Retreat(aiEnt);
 
-		if (irand(0, 8) == 0 && aiEnt->enemy && aiEnt->enemy->s.weapon == WP_SABER)
+		if (aiEnt->enemy && aiEnt->enemy->s.weapon == WP_SABER && enemy_dist <= SABER_ATTACK_RANGE)
 		{
 			extern qboolean Jedi_EvasionRoll(gentity_t *aiEnt);
+			
 			if (!Jedi_EvasionRoll(aiEnt))
-			{
-				Jedi_Retreat(aiEnt);
+			{// Hmm, can't evade for whatever reason, maybe run... sometimes...
+				if (!TIMER_Done(aiEnt, "runFromJedi"))
+				{// Running away like a little scaredycat...
+					Jedi_Retreat(aiEnt);
+				}
+				else if (TIMER_Done(aiEnt, "runFromJediDebounce"))
+				{// Should we try to run?
+					if (irand(0, 4) == 0)
+					{
+						Jedi_Retreat(aiEnt);
+						TIMER_Set(aiEnt, "runFromJedi", 2000);
+						TIMER_Set(aiEnt, "runFromJediDebounce", 7000 + irand(0, 5000));
+					}
+				}
 			}
 		}
 		else if (aiEnt->enemy->s.weapon != WP_SABER)
