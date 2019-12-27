@@ -2148,7 +2148,7 @@ static void Jedi_CombatDistance( gentity_t *aiEnt, int enemy_dist )
 	}
 #endif //0
 	extern qboolean Jedi_EvasionRoll(gentity_t *aiEnt);
-	extern qboolean Jedi_EvasionDodgeNew(gentity_t *self);
+	extern qboolean Jedi_SpeedEvasion(gentity_t *self);
 
 	if ( NPC_IsBountyHunter(aiEnt) || aiEnt->hasJetpack )
 	{
@@ -2251,7 +2251,13 @@ static void Jedi_CombatDistance( gentity_t *aiEnt, int enemy_dist )
 		}
 	}
 	else if ((aiEnt->s.weapon == WP_SABER || aiEnt->s.weapon == WP_MELEE)
-		&& aiEnt->client->ps.forceHandExtend == HANDEXTEND_DODGE
+		&& aiEnt->client->ps.forceHandExtend == HANDEXTEND_SPEED_DODGE
+		&& aiEnt->client->ps.forceHandExtendTime >= level.time)
+	{// Don't move while dodging...
+
+	}
+	else if ((aiEnt->s.weapon == WP_SABER || aiEnt->s.weapon == WP_MELEE)
+		&& aiEnt->client->ps.forceHandExtend == HANDEXTEND_SPEED_ATTACK
 		&& aiEnt->client->ps.forceHandExtendTime >= level.time)
 	{// Don't move while dodging...
 
@@ -2259,14 +2265,10 @@ static void Jedi_CombatDistance( gentity_t *aiEnt, int enemy_dist )
 	else if ((aiEnt->s.weapon == WP_SABER || aiEnt->s.weapon == WP_MELEE)
 		&& enemy_dist < (float)SABER_ATTACK_RANGE * aiEnt->modelScale[2])
 	{//we're too damn close!
-		//if (Jedi_EvasionDodgeNew(aiEnt))
+		if (Jedi_SpeedEvasion(aiEnt))
 		{
 			if (!Jedi_EvasionRoll(aiEnt))
 			{// Hmm, can't evade for whatever reason, just move back...
-				Jedi_Retreat(aiEnt);
-			}
-			else if (Jedi_EvasionDodgeNew(aiEnt))
-			{//dodge damn it.
 				Jedi_Retreat(aiEnt);
 			}
 		}
@@ -2275,7 +2277,7 @@ static void Jedi_CombatDistance( gentity_t *aiEnt, int enemy_dist )
 		&& enemy_dist < ((float)SABER_ATTACK_RANGE * 3.0f) * aiEnt->modelScale[2]
 		&& irand(0, 10) == 0)
 	{//and occasionally dodge for the hell of it...
-		//if (Jedi_EvasionDodgeNew(aiEnt))
+		if (Jedi_SpeedEvasion(aiEnt))
 		{
 			if (!Jedi_EvasionRoll(aiEnt))
 			{// Hmm, can't evade for whatever reason, just move back...
@@ -3636,7 +3638,7 @@ static qboolean Jedi_SaberBlock( gentity_t *aiEnt, int saberNum, int bladeNum ) 
 	return qtrue;
 }
 
-qboolean Jedi_EvasionDodgeNew(gentity_t *self)
+qboolean Jedi_SpeedEvasion(gentity_t *self)
 {
 	int	dodgeAnim = -1;
 
@@ -3655,57 +3657,61 @@ qboolean Jedi_EvasionDodgeNew(gentity_t *self)
 		return qfalse;
 	}
 
-	extern int G_GetHitLocation(gentity_t *target, vec3_t ppoint);
-	int hitLoc = G_GetHitLocation(self->enemy, self->enemy->r.currentOrigin);
+	vec3_t edir, fwd, rt;
+	AngleVectors(self->r.currentAngles, fwd, rt, NULL);
+	VectorSubtract(self->enemy->r.currentOrigin, self->r.currentOrigin, edir);
+	VectorNormalize(edir);
 
-	switch (hitLoc)
+	float front = DotProduct(edir, fwd);
+	float right = DotProduct(edir, rt);
+
+	float DODGE_VELOCITY = 512.0;
+
+	int direction = irand(0, 3);
+
+	if (direction == 0)
 	{
-	case HL_NONE:
-		return qfalse;
-		break;
-
-	case HL_FOOT_RT:
-	case HL_FOOT_LT:
-	case HL_LEG_RT:
-	case HL_LEG_LT:
-		return qfalse;
-
-	case HL_BACK_RT:
+		dodgeAnim = BOTH_DODGE_FR;
+		self->client->ps.velocity[0] = DODGE_VELOCITY * -fwd[0];
+		self->client->ps.velocity[1] = DODGE_VELOCITY * -fwd[1];
+		self->client->ps.velocity[2] = DODGE_VELOCITY * -fwd[2];
+		self->client->ps.velocity[0] += DODGE_VELOCITY * -rt[0];
+		self->client->ps.velocity[1] += DODGE_VELOCITY * -rt[1];
+		self->client->ps.velocity[2] += DODGE_VELOCITY * -rt[2];
+		//Com_Printf("dodge FR.\n");
+	}
+	else if (direction == 1)
+	{
 		dodgeAnim = BOTH_DODGE_FL;
-		break;
-	case HL_CHEST_RT:
-		dodgeAnim = BOTH_DODGE_FR;
-		break;
-	case HL_BACK_LT:
-		dodgeAnim = BOTH_DODGE_FR;
-		break;
-	case HL_CHEST_LT:
-		dodgeAnim = BOTH_DODGE_FR;
-		break;
-	case HL_BACK:
-	case HL_CHEST:
-	case HL_WAIST:
-		dodgeAnim = BOTH_DODGE_FL;
-		break;
-	case HL_ARM_RT:
-	case HL_HAND_RT:
-		dodgeAnim = BOTH_DODGE_L;
-		break;
-	case HL_ARM_LT:
-	case HL_HAND_LT:
+		self->client->ps.velocity[0] = DODGE_VELOCITY * -fwd[0];
+		self->client->ps.velocity[1] = DODGE_VELOCITY * -fwd[1];
+		self->client->ps.velocity[2] = DODGE_VELOCITY * -fwd[2];
+		self->client->ps.velocity[0] += DODGE_VELOCITY * rt[0];
+		self->client->ps.velocity[1] += DODGE_VELOCITY * rt[1];
+		self->client->ps.velocity[2] += DODGE_VELOCITY * rt[2];
+		//Com_Printf("dodge FL.\n");
+	}
+	else if (direction == 2)
+	{
 		dodgeAnim = BOTH_DODGE_R;
-		break;
-	case HL_HEAD:
-		dodgeAnim = BOTH_DODGE_FL;
-		break;
-	default:
-		return qfalse;
+		self->client->ps.velocity[0] += DODGE_VELOCITY * -rt[0];
+		self->client->ps.velocity[1] += DODGE_VELOCITY * -rt[1];
+		self->client->ps.velocity[2] += DODGE_VELOCITY * -rt[2];
+		//Com_Printf("dodge R.\n");
+	}
+	else
+	{
+		dodgeAnim = BOTH_DODGE_L;
+		self->client->ps.velocity[0] += DODGE_VELOCITY * rt[0];
+		self->client->ps.velocity[1] += DODGE_VELOCITY * rt[1];
+		self->client->ps.velocity[2] += DODGE_VELOCITY * rt[2];
+		//Com_Printf("dodge L.\n");
 	}
 
 	if (dodgeAnim != -1)
 	{
 		//Our own happy way of forcing an anim:
-		self->client->ps.forceHandExtend = HANDEXTEND_DODGE;
+		self->client->ps.forceHandExtend = HANDEXTEND_SPEED_DODGE;
 		self->client->ps.forceDodgeAnim = dodgeAnim;
 		self->client->ps.forceHandExtendTime = level.time + 300;
 
@@ -3715,6 +3721,167 @@ qboolean Jedi_EvasionDodgeNew(gentity_t *self)
 		return qtrue;
 	}
 	return qfalse;
+}
+
+
+
+//#define __DEBUG_SPEED_ATTACK__
+
+qboolean Jedi_SpeedAttackCanKnockdown(gentity_t *ent)
+{
+	if (!ent->inuse || !ent->client)
+	{ //no good
+		return qfalse;
+	}
+
+	if (ent->s.eType == ET_NPC && ent->s.NPC_class == CLASS_VEHICLE)
+	{ //no, silly
+		return qfalse;
+	}
+
+	if (ent->health > 0
+		&& ent->client->ps.forceHandExtend != HANDEXTEND_KNOCKDOWN
+		&& BG_KnockDownable(&ent->client->ps))
+	{
+		return qtrue;
+	}
+
+	return qfalse;
+}
+
+void Jedi_SpeedAttackKnockdown(gentity_t *ent, gentity_t *attacker, vec3_t tossDir, float tossStr)
+{
+	if (!Jedi_SpeedAttackCanKnockdown(ent))
+	{ //no good
+		return;
+	}
+
+	VectorMA(ent->client->ps.velocity, tossStr, tossDir, ent->client->ps.velocity);
+	ent->client->ps.velocity[2] = 200;
+	ent->client->ps.forceHandExtend = HANDEXTEND_KNOCKDOWN;
+	ent->client->ps.forceHandExtendTime = level.time + 700;
+	ent->client->ps.forceDodgeAnim = 0; //this toggles between 1 and 0, when it's 1 we should play the get up anim
+	//ent->client->ps.quickerGetup = qtrue;
+
+	G_Damage(ent, attacker, attacker, tossDir, ent->r.currentOrigin, irand(15, 25), DAMAGE_NO_ARMOR, MOD_MELEE);
+}
+
+qboolean Jedi_SpeedAttackContinue(gentity_t *self)
+{
+	if (!TIMER_Done(self, "speedAttack"))
+	{
+		vec3_t edir;
+		VectorSubtract(self->enemy->r.currentOrigin, self->r.currentOrigin, edir);
+		VectorNormalize(edir);
+
+		if (Distance(self->r.currentOrigin, self->enemy->r.currentOrigin) <= 48)
+		{// At them, push them over, or attack now...
+			self->client->ps.velocity[0] = 0;
+			self->client->ps.velocity[1] = 0;
+			self->client->ps.velocity[2] = 0;
+
+			if (Jedi_SpeedAttackCanKnockdown(self->enemy))
+			{// Push them down...
+				Jedi_SpeedAttackKnockdown(self->enemy, self, edir, 256.0);
+#ifdef __DEBUG_SPEED_ATTACK__
+				Com_Printf("Speed attack - Knockdown.\n");
+#endif //__DEBUG_SPEED_ATTACK__
+			}
+			else
+			{// Attack swing as we speed at them...
+				self->client->pers.cmd.buttons |= BUTTON_ATTACK;
+#ifdef __DEBUG_SPEED_ATTACK__
+				Com_Printf("Speed attack - Saber.\n");
+#endif //__DEBUG_SPEED_ATTACK__
+			}
+
+			TIMER_Remove(self, "speedAttack");
+
+			return qfalse;
+		}
+		else
+		{// Keep moving at them...
+			float ATTACK_VELOCITY = 2048.0;//256.0;
+
+			int dodgeAnim = BOTH_DODGE_FR;
+			self->client->ps.velocity[0] = ATTACK_VELOCITY * edir[0];
+			self->client->ps.velocity[1] = ATTACK_VELOCITY * edir[1];
+			self->client->ps.velocity[2] = ATTACK_VELOCITY * edir[2];
+
+			//Our own happy way of forcing an anim:
+			self->client->ps.forceHandExtend = HANDEXTEND_SPEED_ATTACK;
+			self->client->ps.forceDodgeAnim = dodgeAnim;
+			self->client->ps.forceHandExtendTime = level.time + 300;
+
+			self->client->ps.powerups[PW_SPEEDBURST] = level.time + 100;
+		}
+
+		return qtrue;
+	}
+
+	TIMER_Remove(self, "speedAttack");
+	return qfalse;
+}
+
+qboolean Jedi_SpeedAttack(gentity_t *self)
+{
+	int	dodgeAnim = -1;
+
+	if (!self || !self->client || self->health <= 0 || !self->enemy || !NPC_IsAlive(self, self->enemy))
+	{
+		return qfalse;
+	}
+
+	if (Jedi_SpeedAttackContinue(self))
+	{
+#ifdef __DEBUG_SPEED_ATTACK__
+		Com_Printf("Speed attack - Continue.\n");
+#endif //__DEBUG_SPEED_ATTACK__
+		return qtrue;
+	}
+
+	if (self->client->ps.groundEntityNum == ENTITYNUM_NONE)
+	{//can't dodge in mid-air
+		return qfalse;
+	}
+
+	if (self->client->ps.weaponTime > 0 || self->client->ps.forceHandExtend != HANDEXTEND_NONE)
+	{//in some effect that stops me from moving on my own
+		return qfalse;
+	}
+
+	if (!TIMER_Done(self, "speedAttackNext"))
+	{
+		return qfalse;
+	}
+
+#ifdef __DEBUG_SPEED_ATTACK__
+	Com_Printf("Speed attack - Begin.\n");
+#endif //__DEBUG_SPEED_ATTACK__
+
+	TIMER_Set(self, "speedAttack", 2000);
+	TIMER_Set(self, "speedAttackNext", 2000 + irand(7500, 25000));
+
+	vec3_t edir;
+	VectorSubtract(self->enemy->r.currentOrigin, self->r.currentOrigin, edir);
+	VectorNormalize(edir);
+
+	float ATTACK_VELOCITY = 2048.0;//256.0;
+
+	dodgeAnim = BOTH_DODGE_FR;
+	self->client->ps.velocity[0] = ATTACK_VELOCITY * edir[0];
+	self->client->ps.velocity[1] = ATTACK_VELOCITY * edir[1];
+	self->client->ps.velocity[2] = ATTACK_VELOCITY * edir[2];
+
+	//Our own happy way of forcing an anim:
+	self->client->ps.forceHandExtend = HANDEXTEND_SPEED_ATTACK;
+	self->client->ps.forceDodgeAnim = dodgeAnim;
+	self->client->ps.forceHandExtendTime = level.time + 300;
+
+	self->client->ps.powerups[PW_SPEEDBURST] = level.time + 100;
+
+	G_Sound(self, CHAN_BODY, G_SoundIndex("sound/weapons/force/speed.wav"));
+	return qtrue;
 }
 
 qboolean Jedi_EvasionRoll(gentity_t *aiEnt)
@@ -8007,6 +8174,11 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 	qboolean	enemyJumping = qfalse;
 	float		enemy_dist, diff;
 
+	if (Jedi_SpeedAttackContinue(aiEnt))
+	{// Continue any speed attacks we started...
+		return qtrue;
+	}
+
 	if (aiEnt->enemy && NPC_IsAlive(aiEnt, aiEnt->enemy))
 	{
 		haveEnemy = qtrue;
@@ -8053,7 +8225,13 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 	{// If clear then move stright there...
 		NPC_FacePosition(aiEnt, NPC->enemy->r.currentOrigin, qfalse );
 
-		if ((dist > 256 || (dist > 64 && !Jedi_ClearPathToSpot(aiEnt, aiEnt->enemy->r.currentOrigin, aiEnt->enemy->s.number))) && NPC_FollowEnemyRoute(aiEnt))
+		qboolean pathClear = Jedi_ClearPathToSpot(aiEnt, aiEnt->enemy->r.currentOrigin, aiEnt->enemy->s.number);
+
+		if (dist < 512.0 && (NPC_IsJedi(aiEnt) || aiEnt->client->ps.weapon == WP_SABER) && pathClear && Jedi_SpeedAttack(aiEnt))
+		{// See if we can use a fast force speed attack on them, and slash or push them over...
+
+		}
+		else if ((dist > 256 || (dist > 64 && !pathClear)) && NPC_FollowEnemyRoute(aiEnt))
 		{
 			//JEDI_Debug(va("optimal position (too far - routing). Dist %f. Opt %f. Allow %f. Min %f. Max %f.", dist, OPTIMAL_RANGE, OPTIMAL_RANGE_ALLOWANCE, OPTIMAL_MIN_RANGE, OPTIMAL_MAX_RANGE));
 			return qtrue;
@@ -8061,6 +8239,7 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 		else
 		{
 			Jedi_Advance(aiEnt);
+
 			//JEDI_Debug(va("optimal position (too far - combatmove). Dist %f. Opt %f. Allow %f. Min %f. Max %f.", dist, OPTIMAL_RANGE, OPTIMAL_RANGE_ALLOWANCE, OPTIMAL_MIN_RANGE, OPTIMAL_MAX_RANGE));
 			
 			if (dist > 64)
@@ -8069,17 +8248,23 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 			return qfalse;
 		}
 	}
-	else if (NPC_IsJedi(aiEnt) || aiEnt->client->ps.weapon == WP_SABER)
+	/*else if (NPC_IsJedi(aiEnt) || aiEnt->client->ps.weapon == WP_SABER)
 	{// Jedi can skip the min optimal check, they handle their own attack/counters...
 		return qfalse;
-	}
+	}*/
 	else if (dist < OPTIMAL_MIN_RANGE)
 	{// If clear then move back a bit...
 		NPC_FacePosition(aiEnt, NPC->enemy->r.currentOrigin, qfalse );
 
-		if ((NPC_IsJedi(aiEnt) || aiEnt->client->ps.weapon == WP_SABER) && !Jedi_EvasionRoll(aiEnt))
+		if (NPC_IsJedi(aiEnt) || aiEnt->client->ps.weapon == WP_SABER)
 		{// Hmm, can't evade for whatever reason, just move back...
-			Jedi_Retreat(aiEnt);
+			if (Jedi_SpeedEvasion(aiEnt))
+			{
+				if (!Jedi_EvasionRoll(aiEnt))
+				{// Hmm, can't evade for whatever reason, just move back...
+					Jedi_Retreat(aiEnt);
+				}
+			}
 		}
 		else
 		{
@@ -8487,7 +8672,20 @@ void NPC_BSJedi_Default( gentity_t *aiEnt)
 
 						if (aiEnt->npc_counter_avoid_time > level.time)
 						{// Only move back when not too far away...
-							Jedi_Retreat(aiEnt);
+							if (NPC_IsJedi(aiEnt) || aiEnt->client->ps.weapon == WP_SABER)
+							{// Hmm, can't evade for whatever reason, just move back...
+								if (Jedi_SpeedEvasion(aiEnt))
+								{
+									if (!Jedi_EvasionRoll(aiEnt))
+									{// Hmm, can't evade for whatever reason, just move back...
+										Jedi_Retreat(aiEnt);
+									}
+								}
+							}
+							else
+							{
+								Jedi_Retreat(aiEnt);
+							}
 						}
 					}
 

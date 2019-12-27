@@ -7476,7 +7476,7 @@ void UpdateClientRenderinfo(gentity_t *self, vec3_t renderOrigin, vec3_t renderA
 extern void G_GetBoltPosition(gentity_t *self, int boltIndex, vec3_t pos, int modelIndex); //NPC_utils.c
 
 extern qboolean BG_InKnockDown(int anim);
-static qboolean G_KickDownable(gentity_t *ent)
+qboolean G_KickDownable(gentity_t *ent)
 {
 	if (!d_saberKickTweak.integer)
 	{
@@ -7504,7 +7504,7 @@ static qboolean G_KickDownable(gentity_t *ent)
 	return qtrue;
 }
 
-static void G_TossTheMofo(gentity_t *ent, vec3_t tossDir, float tossStr)
+void G_TossTheMofo(gentity_t *ent, vec3_t tossDir, float tossStr)
 {
 	if (!ent->inuse || !ent->client)
 	{ //no good
@@ -7517,10 +7517,13 @@ static void G_TossTheMofo(gentity_t *ent, vec3_t tossDir, float tossStr)
 	}
 
 	VectorMA(ent->client->ps.velocity, tossStr, tossDir, ent->client->ps.velocity);
+
 	ent->client->ps.velocity[2] = 200;
-	if (ent->health > 0 && ent->client->ps.forceHandExtend != HANDEXTEND_KNOCKDOWN &&
-		BG_KnockDownable(&ent->client->ps) &&
-		G_KickDownable(ent))
+
+	if (ent->health > 0 
+		&& ent->client->ps.forceHandExtend != HANDEXTEND_KNOCKDOWN 
+		&& BG_KnockDownable(&ent->client->ps) 
+		&& G_KickDownable(ent))
 	{ //if they are alive, knock them down I suppose
 		ent->client->ps.forceHandExtend = HANDEXTEND_KNOCKDOWN;
 		ent->client->ps.forceHandExtendTime = level.time + 700;

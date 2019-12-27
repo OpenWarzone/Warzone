@@ -8290,6 +8290,8 @@ static void PM_Weapon( void )
 			desiredAnim = BOTH_CHOKE3; //left-handed choke
 			break;
 		case HANDEXTEND_DODGE:
+		case HANDEXTEND_SPEED_DODGE:
+		case HANDEXTEND_SPEED_ATTACK:
 			desiredAnim = pm->ps->forceDodgeAnim;
 			break;
 		case HANDEXTEND_KNOCKDOWN:
@@ -8485,8 +8487,11 @@ static void PM_Weapon( void )
 			PM_SetAnim(SETANIM_BOTH, desiredAnim, SETANIM_FLAG_OVERRIDE|SETANIM_FLAG_HOLD);
 			pm->ps->legsTimer = pm->ps->torsoTimer = 1;
 		}
-		else if (pm->ps->forceHandExtend == HANDEXTEND_DODGE || pm->ps->forceHandExtend == HANDEXTEND_KNOCKDOWN ||
-			(pm->ps->forceHandExtend == HANDEXTEND_CHOKE && pm->ps->groundEntityNum == ENTITYNUM_NONE) )
+		else if (pm->ps->forceHandExtend == HANDEXTEND_DODGE 
+			|| pm->ps->forceHandExtend == HANDEXTEND_KNOCKDOWN 
+			|| pm->ps->forceHandExtend == HANDEXTEND_SPEED_DODGE
+			|| pm->ps->forceHandExtend == HANDEXTEND_SPEED_ATTACK 
+			|| (pm->ps->forceHandExtend == HANDEXTEND_CHOKE && pm->ps->groundEntityNum == ENTITYNUM_NONE) )
 		{ //special case, play dodge anim on whole body, choke anim too if off ground
 			if (seperateOnTorso)
 			{

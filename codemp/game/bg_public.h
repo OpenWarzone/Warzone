@@ -197,6 +197,9 @@ typedef enum {
 	HANDEXTEND_DRAGGING,
 
 	HANDEXTEND_JEDITAUNT,
+
+	HANDEXTEND_SPEED_DODGE,
+	HANDEXTEND_SPEED_ATTACK,
 } forceHandAnims_t;
 
 typedef enum
