@@ -848,7 +848,7 @@ saberMoveName_t PM_AttackMoveForQuad(int quad)
 
 //[SaberSys]
 //qboolean PM_SaberKataDone(int curmove, int newmove);
-//int PM_ReturnforQuad(int quad);
+int PM_ReturnforQuad(int quad);
 //[/SaberSys]
 
 int PM_SaberAnimTransitionAnim(int curmove, int newmove)
@@ -931,8 +931,8 @@ int PM_SaberAnimTransitionAnim(int curmove, int newmove)
 			case LS_H1_TL:
 			case LS_H1_BR:
 			case LS_H1_BL:
-				//retmove = PM_ReturnforQuad(saberMoveData[curmove].endQuad);
-				retmove = transitionMove[saberMoveData[curmove].endQuad][saberMoveData[newmove].startQuad];
+				retmove = PM_ReturnforQuad(saberMoveData[curmove].endQuad);
+				//retmove = transitionMove[saberMoveData[curmove].endQuad][saberMoveData[newmove].startQuad];
 				break;
 				//[/SaberSys]
 			}
@@ -4953,7 +4953,8 @@ weapChecks:
 			}
 			else if (PM_SaberInTransition(curmove))
 			{//in a transition, must play sequential attack
-				newmove = saberMoveData[curmove].chain_attack;
+				newmove = PM_ReturnforQuad(saberMoveData[curmove].endQuad);
+				//newmove = saberMoveData[curmove].chain_attack;
 			}
 			else if (PM_SaberInBounce(curmove))
 			{//in a bounce

@@ -2265,6 +2265,10 @@ static void Jedi_CombatDistance( gentity_t *aiEnt, int enemy_dist )
 			{// Hmm, can't evade for whatever reason, just move back...
 				Jedi_Retreat(aiEnt);
 			}
+			else if (Jedi_EvasionDodgeNew(aiEnt))
+			{//dodge damn it.
+				Jedi_Retreat(aiEnt);
+			}
 		}
 	}
 	else if ((aiEnt->s.weapon == WP_SABER || aiEnt->s.weapon == WP_MELEE)
