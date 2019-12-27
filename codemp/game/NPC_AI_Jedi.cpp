@@ -7947,7 +7947,7 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 	//
 	if (NPC_IsLightJedi(aiEnt))
 	{// Jedi...
-		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_TEAM_HEAL);
+		/*aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_TEAM_HEAL);
 		aiEnt->client->ps.fd.forcePowerLevel[FP_TEAM_HEAL] = 3;
 
 		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_HEAL);
@@ -7957,7 +7957,7 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 		aiEnt->client->ps.fd.forcePowerLevel[FP_PROTECT] = 3;
 
 		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_ABSORB);
-		aiEnt->client->ps.fd.forcePowerLevel[FP_ABSORB] = 3;
+		aiEnt->client->ps.fd.forcePowerLevel[FP_ABSORB] = 3;*/
 
 		//aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_TELEPATHY);
 		//aiEnt->client->ps.fd.forcePowerLevel[FP_TELEPATHY] = 3;
@@ -8068,7 +8068,7 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 		ForceLightning( aiEnt );
 		TIMER_Set( aiEnt, "lightning", irand(12000, 25000) );
 		return qtrue;
-	}*/
+	}
 	else if ( TIMER_Done( aiEnt, "protect" )
 		&& (aiEnt->client->ps.fd.forcePowersKnown&(1<<FP_PROTECT)) != 0
 		&& (aiEnt->client->ps.fd.forcePowersActive&(1<<FP_PROTECT)) == 0
@@ -8088,7 +8088,7 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 		ForceAbsorb( aiEnt );
 		TIMER_Set( aiEnt, "absorb", irand(15000, 30000) );
 		return qtrue;
-	}
+	}*/
 	/*else if ( TIMER_Done( aiEnt, "telepathy" )
 		&& (aiEnt->client->ps.fd.forcePowersKnown&(1<<FP_TELEPATHY)) != 0
 		&& (aiEnt->client->ps.fd.forcePowersActive&(1<<FP_TELEPATHY)) == 0
