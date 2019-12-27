@@ -3768,7 +3768,7 @@ void Jedi_SpeedAttackKnockdown(gentity_t *ent, gentity_t *attacker, vec3_t tossD
 
 qboolean Jedi_SpeedAttackContinue(gentity_t *self)
 {
-	if (!TIMER_Done(self, "speedAttack"))
+	if (self && self->enemy && self->health > 0 && NPC_IsAlive(self, self->enemy) && !TIMER_Done(self, "speedAttack"))
 	{
 		vec3_t edir;
 		VectorSubtract(self->enemy->r.currentOrigin, self->r.currentOrigin, edir);
@@ -3797,7 +3797,7 @@ qboolean Jedi_SpeedAttackContinue(gentity_t *self)
 
 			TIMER_Remove(self, "speedAttack");
 
-			return qfalse;
+			return qtrue;
 		}
 		else
 		{// Keep moving at them...
