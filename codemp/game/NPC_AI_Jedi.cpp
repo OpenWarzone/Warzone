@@ -3640,9 +3640,6 @@ static qboolean Jedi_SaberBlock( gentity_t *aiEnt, int saberNum, int bladeNum ) 
 
 qboolean Jedi_SpeedEvasion(gentity_t *self)
 {
-#if 1
-	return qfalse;
-#else
 	int	dodgeAnim = -1;
 
 	if (!self || !self->client || self->health <= 0)
@@ -3724,7 +3721,6 @@ qboolean Jedi_SpeedEvasion(gentity_t *self)
 		return qtrue;
 	}
 	return qfalse;
-#endif
 }
 
 
@@ -8231,7 +8227,7 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 
 		qboolean pathClear = Jedi_ClearPathToSpot(aiEnt, aiEnt->enemy->r.currentOrigin, aiEnt->enemy->s.number);
 
-		if (dist < 512.0 && (NPC_IsJedi(aiEnt) || aiEnt->client->ps.weapon == WP_SABER) && pathClear && Jedi_SpeedAttack(aiEnt))
+		if (dist < 384.0 && (NPC_IsJedi(aiEnt) || aiEnt->client->ps.weapon == WP_SABER) && pathClear && Jedi_SpeedAttack(aiEnt))
 		{// See if we can use a fast force speed attack on them, and slash or push them over...
 
 		}
