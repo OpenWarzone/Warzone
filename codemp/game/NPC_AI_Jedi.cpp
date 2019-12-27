@@ -3823,6 +3823,26 @@ qboolean Jedi_SpeedAttackContinue(gentity_t *self)
 	return qfalse;
 }
 
+qboolean Jedi_SpeedAttackEnemyVisible(gentity_t *self, gentity_t *enemy)
+{
+	trace_t tr;
+
+	vec3_t org1, org2;
+	VectorCopy(self->r.currentOrigin, org1);
+	org1[2] += 24.0;
+	VectorCopy(enemy->r.currentOrigin, org2);
+	org2[2] += 24.0;
+
+	trap->Trace(&tr, org1, NULL, NULL, org2, self->s.number, MASK_SOLID, qfalse, 0, 0);
+
+	if (tr.fraction == 1 || tr.entityNum == enemy->s.number)
+	{
+		return qtrue;
+	}
+
+	return qfalse;
+}
+
 qboolean Jedi_SpeedAttack(gentity_t *self)
 {
 	int	dodgeAnim = -1;
@@ -3851,6 +3871,11 @@ qboolean Jedi_SpeedAttack(gentity_t *self)
 	}
 
 	if (!TIMER_Done(self, "speedAttackNext"))
+	{
+		return qfalse;
+	}
+
+	if (!Jedi_SpeedAttackEnemyVisible(self, self->enemy))
 	{
 		return qfalse;
 	}
@@ -8225,13 +8250,13 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 	{// If clear then move stright there...
 		NPC_FacePosition(aiEnt, NPC->enemy->r.currentOrigin, qfalse );
 
-		qboolean pathClear = Jedi_ClearPathToSpot(aiEnt, aiEnt->enemy->r.currentOrigin, aiEnt->enemy->s.number);
+		//qboolean pathClear = Jedi_ClearPathToSpot(aiEnt, aiEnt->enemy->r.currentOrigin, aiEnt->enemy->s.number);
 
-		if (dist < 384.0 && (NPC_IsJedi(aiEnt) || aiEnt->client->ps.weapon == WP_SABER) && pathClear && Jedi_SpeedAttack(aiEnt))
+		if (dist < 512.0 && (NPC_IsJedi(aiEnt) || aiEnt->client->ps.weapon == WP_SABER) && Jedi_SpeedAttack(aiEnt))
 		{// See if we can use a fast force speed attack on them, and slash or push them over...
 
 		}
-		else if ((dist > 256 || (dist > 64 && !pathClear)) && NPC_FollowEnemyRoute(aiEnt))
+		else if ((dist > 256 || (dist > 64 && !Jedi_ClearPathToSpot(aiEnt, aiEnt->enemy->r.currentOrigin, aiEnt->enemy->s.number))) && NPC_FollowEnemyRoute(aiEnt))
 		{
 			//JEDI_Debug(va("optimal position (too far - routing). Dist %f. Opt %f. Allow %f. Min %f. Max %f.", dist, OPTIMAL_RANGE, OPTIMAL_RANGE_ALLOWANCE, OPTIMAL_MIN_RANGE, OPTIMAL_MAX_RANGE));
 			return qtrue;
