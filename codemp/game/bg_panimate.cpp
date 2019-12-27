@@ -1479,6 +1479,17 @@ qboolean PM_SaberInReturn(int move)
 	return qfalse;
 }
 
+qboolean PM_SaberInAnyBlockMove(int move)
+{
+	if (move >= LS_B1_BR && move <= LS_REFLECT_LL)
+	{
+		return qtrue;
+	}
+
+	return qfalse;
+}
+
+
 qboolean BG_SaberInReturn(int move)
 {
 	return PM_SaberInReturn(move);
@@ -1492,7 +1503,6 @@ qboolean PM_InSaberAnim(int anim)
 	}
 	return qfalse;
 }
-
 
 qboolean PM_StaggerAnim(int anim)
 {

@@ -4190,7 +4190,12 @@ void PM_WeaponLightsaber(void)
 #endif //__SABER_EXPERIMENTAL_BOUNCE__
 	*/
 	// Now we react to a block action by the player's lightsaber.
-	if (pm->ps->saberBlocked)
+	extern qboolean PM_SaberInAnyBlockMove(int move);
+	if (PM_SaberInAnyBlockMove(pm->ps->saberMove))
+	{// Continue the current anim until completion...
+
+	}
+	else if (pm->ps->saberBlocked)
 	{
 		if (pm->ps->saberBlocked >= BLOCKED_UPPER_RIGHT
 			&& pm->ps->saberBlocked < BLOCKED_UPPER_RIGHT_PROJ)

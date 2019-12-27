@@ -358,6 +358,8 @@ int BS_CrowdControlBlockAnimation(playerState_t *ps)
 	return BOTH_CC_DEFENCE_SPIN;
 }
 
+#define __DEBUG_TEST_ANIMS__
+
 //[NewSaberSys]
 int PM_GetSaberStance()
 {
@@ -429,6 +431,13 @@ int PM_GetSaberStance()
 	{
 		return BS_CrowdControlBlockAnimation(pm->ps);
 	}
+
+#ifdef __DEBUG_TEST_ANIMS__
+	if (bg_testanimation.integer != 0)
+	{
+		return bg_testanimation.integer;
+	}
+#endif //__DEBUG_TEST_ANIMS__
 
 	if (!hideStance || (pm->cmd.buttons & BUTTON_ALT_ATTACK))
 	{//for now I'll assume that we're using an inverted control system.
