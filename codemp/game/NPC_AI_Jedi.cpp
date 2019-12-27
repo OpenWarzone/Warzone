@@ -3640,6 +3640,9 @@ static qboolean Jedi_SaberBlock( gentity_t *aiEnt, int saberNum, int bladeNum ) 
 
 qboolean Jedi_SpeedEvasion(gentity_t *self)
 {
+#if 1
+	return qfalse;
+#else
 	int	dodgeAnim = -1;
 
 	if (!self || !self->client || self->health <= 0)
@@ -3721,6 +3724,7 @@ qboolean Jedi_SpeedEvasion(gentity_t *self)
 		return qtrue;
 	}
 	return qfalse;
+#endif
 }
 
 
