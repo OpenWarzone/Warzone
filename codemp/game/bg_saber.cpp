@@ -5627,8 +5627,41 @@ int BG_GetCrowdControlStanceMove(short newMove)
 	return anim;
 }
 
+int PM_AnimationForBounceMove(short newMove)
+{
+	switch (newMove)
+	{
+	case LS_R_TL2BR:
+		return 551;
+		break;
+	case LS_R_L2R:
+		return 551;
+		break;
+	case LS_R_BL2TR:
+		return 551;
+		break;
+	case LS_R_BR2TL:
+		return 747;
+		break;
+	case LS_R_R2L:
+		return 605;
+		break;
+	case LS_R_TR2BL:
+		return 747;
+		break;
+	case LS_R_T2B:
+		return 568;
+	default:
+		return 609;
+		break;
+	}
+}
+
 int currentTestAnim = 0;
 qboolean currentTestAnimNext = qtrue;
+
+extern qboolean PM_SaberInAnyBlockMove(int move);
+
 
 void PM_SetSaberMove(short newMove)
 {
@@ -5709,6 +5742,11 @@ void PM_SetSaberMove(short newMove)
 		}
 
 		pm->ps->nextTransitionAnim = 0;
+	}
+	else if (newMove >= LS_R_TL2BR && newMove < LS_R_T2B)
+	{
+		anim = PM_AnimationForBounceMove(newMove);
+		Com_Printf("Using bounce anim %i.\n", anim);
 	}
 	else if (pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL
 		&& newMove != LS_READY
