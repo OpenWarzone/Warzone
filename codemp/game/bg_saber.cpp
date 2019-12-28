@@ -4198,6 +4198,7 @@ void PM_WeaponLightsaber(void)
 	
 	if (pm->ps->saberBlocked)
 	{
+#if 0
 		if (pm->ps->saberBlocked >= BLOCKED_UPPER_RIGHT
 			&& pm->ps->saberBlocked < BLOCKED_UPPER_RIGHT_PROJ)
 		{//hold the parry for a bit
@@ -4401,6 +4402,82 @@ void PM_WeaponLightsaber(void)
 				pm->ps->torsoTimer = pm->ps->weaponTime;
 			}
 		}
+#else
+		// Force all blocks through the bounce code, let's just extend those animations...
+		if (PM_SaberInBounce(pm->ps->saberMove) || PM_SaberInReturn(pm->ps->saberMove))
+		{//an actual bounce?  Other bounces before this are actually transitions?
+			pm->ps->saberBlocked = BLOCKED_NONE;
+		}
+		else
+		{
+			int bounceMove;
+
+			switch (saberMoveData[pm->ps->saberMove].startQuad)
+			{
+				case Q_BR:
+					bounceMove = LS_R_BR2TL;
+					break;
+				case Q_R:
+					bounceMove = LS_R_R2L;
+					break;
+				case Q_TR:
+					bounceMove = LS_R_TR2BL;
+					break;
+				case Q_T:
+					bounceMove = LS_R_T2B;
+					break;
+				case Q_TL:
+					bounceMove = LS_R_TL2BR;
+					break;
+				case Q_L:
+					bounceMove = LS_R_L2R;
+					break;
+				case Q_BL:
+					bounceMove = LS_R_BL2TR;
+					break;
+				case Q_B:
+					bounceMove = LS_R_BR2TL;
+					break;
+				case Q_SR:
+					bounceMove = LS_R_R2L;
+					break;
+				case Q_SL:
+					bounceMove = LS_R_L2R;
+					break;
+				case Q_SBL:
+					bounceMove = LS_R_BL2TR;
+					break;
+				case Q_SBR:
+					bounceMove = LS_R_BR2TL;
+					break;
+				case Q_BT:
+					bounceMove = LS_R_T2B;
+					break;
+				case Q_RBT:
+					bounceMove = LS_R_T2B;
+					break;
+				default:
+					bounceMove = LS_R_L2R;
+					break;
+			}
+			
+
+			if (pm->ps->saberMove != bounceMove)
+			{
+				PM_SetSaberMove(bounceMove);
+				pm->ps->weaponTime = pm->ps->torsoTimer;
+			}
+
+			if (pm->ps->weaponTime > 0)
+			{
+				pm->ps->saberBlocked = BLOCKED_ATK_BOUNCE;
+			}
+			else
+			{
+				pm->ps->saberBlocked = BLOCKED_NONE;
+			}
+		}
+#endif
 
 		//what the? I don't know why I was doing this.
 		/*
