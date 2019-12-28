@@ -5628,31 +5628,62 @@ int BG_GetCrowdControlStanceMove(short newMove)
 }
 
 int PM_AnimationForBounceMove(short newMove)
-{
+{//674
+#if 0 // For debugging. use to force usage of a single animation to test spins and crap...
+	if (bg_testvalue0.integer)
+	{
+		switch (bg_testvalue0.integer)
+		{
+		case 1:
+			return BOTH_SABERBLOCK_TL;
+			break;
+		case 2:
+			return BOTH_SABERBLOCK_L;
+			break;
+		case 3:
+			return BOTH_SABERBLOCK_BL;
+			break;
+		case 4:
+			return BOTH_SABERBLOCK_BR;
+			break;
+		case 5:
+			return BOTH_SABERBLOCK_R;
+			break;
+		case 6:
+			return BOTH_SABERBLOCK_TR;
+			break;
+		default:
+			return BOTH_SABERBLOCK_T;
+			break;
+		}
+	}
+#endif
+
 	switch (newMove)
 	{
 	case LS_R_TL2BR:
-		return 551;
+		return BOTH_SABERBLOCK_TL;// 757;
 		break;
 	case LS_R_L2R:
-		return 551;
+		return BOTH_SABERBLOCK_L;// 765;
 		break;
 	case LS_R_BL2TR:
-		return 551;
+		return BOTH_SABERBLOCK_BL;// 551;
 		break;
 	case LS_R_BR2TL:
-		return 747;
+		return BOTH_SABERBLOCK_BR;// 728;// 714; // hmm
 		break;
 	case LS_R_R2L:
-		return 605;
+		return BOTH_SABERBLOCK_R;// 827;
 		break;
 	case LS_R_TR2BL:
-		return 747;
+		return BOTH_SABERBLOCK_TR;// 792;
 		break;
 	case LS_R_T2B:
-		return 568;
+		return BOTH_SABERBLOCK_T;// 609;// 568;
+		break;
 	default:
-		return 609;
+		return BOTH_SABERBLOCK_T;// 609;
 		break;
 	}
 }

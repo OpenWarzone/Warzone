@@ -578,6 +578,11 @@ qboolean BG_SpinningSaberAnim(int anim)
 	case BOTH_FJSS_TL_BR:
 	case BOTH_JUMPFLIPSLASHDOWN1:
 	case BOTH_JUMPFLIPSTABDOWN:
+	// UQ1: Added...
+	case BOTH_SABERBLOCK_R:
+	case BOTH_SABERBLOCK_TL:
+	case BOTH_SABERBLOCK_BL:
+	case BOTH_SABERBLOCK_TR:
 		return qtrue;
 		break;
 	}
