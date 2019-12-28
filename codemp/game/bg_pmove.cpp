@@ -360,6 +360,8 @@ int BS_CrowdControlBlockAnimation(playerState_t *ps)
 
 #define __DEBUG_TEST_ANIMS__
 
+int currentTestAnimationNumver = 0;
+
 //[NewSaberSys]
 int PM_GetSaberStance()
 {
@@ -435,7 +437,18 @@ int PM_GetSaberStance()
 #ifdef __DEBUG_TEST_ANIMS__
 	if (bg_testanimation.integer != 0)
 	{
-		return bg_testanimation.integer;
+		if (bg_testanimation.integer < MAX_ANIMATIONS)
+		{
+#ifdef _CGAME
+			if (bg_testanimation.integer != currentTestAnimationNumver)
+			{
+				extern stringID_table_t animTable[MAX_ANIMATIONS + 1];
+				currentTestAnimationNumver = bg_testanimation.integer;
+				Com_Printf("Using test animation %i (%s).\n", currentTestAnimationNumver, animTable[currentTestAnimationNumver].name);
+			}
+#endif //_CGAME
+			return bg_testanimation.integer;
+		}
 	}
 #endif //__DEBUG_TEST_ANIMS__
 
