@@ -4193,9 +4193,10 @@ void PM_WeaponLightsaber(void)
 	extern qboolean PM_SaberInAnyBlockMove(int move);
 	if (PM_SaberInAnyBlockMove(pm->ps->saberMove))
 	{// Continue the current anim until completion...
-
+		pm->ps->saberBlocked = BLOCKED_NONE;
 	}
-	else if (pm->ps->saberBlocked)
+	
+	if (pm->ps->saberBlocked)
 	{
 		if (pm->ps->saberBlocked >= BLOCKED_UPPER_RIGHT
 			&& pm->ps->saberBlocked < BLOCKED_UPPER_RIGHT_PROJ)
