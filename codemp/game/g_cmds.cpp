@@ -2895,10 +2895,20 @@ qboolean G_SaberStanceIsValid(gentity_t *ent, int stance)
 			return qfalse;
 		}
 	}
+#ifdef __ALL_SABER_STYLES__
 	else if (stance > SS_TAVION)
 	{// Single blade/saber currently, return to SS_FAST.
 		return qfalse;
 	}
+#else //!__ALL_SABER_STYLES__
+	else
+	{
+		if (stance > SS_MEDIUM)
+		{
+			return qfalse;
+		}
+	}
+#endif //__ALL_SABER_STYLES__
 
 	return qtrue;
 }
@@ -2934,6 +2944,7 @@ void G_CheckSaberStanceValidity(gentity_t *ent)
 			dualBlade = 1;
 	}
 
+#ifdef __ALL_SABER_STYLES__
 	if (dualSaber > 0)
 	{
 		Cmd_SaberAttackCycle_f(ent);
@@ -2953,6 +2964,9 @@ void G_CheckSaberStanceValidity(gentity_t *ent)
 			ent->client->saberCycleQueue = SS_FAST;
 		}
 	}
+#else //!__ALL_SABER_STYLES__
+	Cmd_SaberAttackCycle_f(ent);
+#endif //__ALL_SABER_STYLES__
 }
 
 extern qboolean WP_SaberCanTurnOffSomeBlades( saberInfo_t *saber );
@@ -2986,7 +3000,7 @@ void Cmd_SaberAttackCycle_f(gentity_t *ent)
 		selectLevel = ent->client->ps.fd.saberAnimLevel;
 	}
 
-#ifndef __ALL_SABER_STYLES__
+#ifndef __DEBUG_SABER_STYLES__
 	selectLevel++;
 
 	if (!G_SaberStanceIsValid(ent, selectLevel))
@@ -3020,7 +3034,11 @@ void Cmd_SaberAttackCycle_f(gentity_t *ent)
 		}
 		else
 		{
+#ifdef __ALL_SABER_STYLES__
 			selectLevel = SS_FAST;
+#else //!__ALL_SABER_STYLES__
+			selectLevel = SS_MEDIUM;
+#endif //__ALL_SABER_STYLES__
 		}
 	}
 
@@ -3029,7 +3047,7 @@ void Cmd_SaberAttackCycle_f(gentity_t *ent)
 		extern stringID_table_t StanceTable[];
 		trap->SendServerCommand(ent - g_entities, va("print \"SABERSTANCEDEBUG: Attempted to cycle stance to stance %i (%s).\n\"", selectLevel, (selectLevel < SS_NUM_SABER_STYLES) ? StanceTable[selectLevel].name : "INVALID"));
 	}
-#else //__ALL_SABER_STYLES__
+#else //__DEBUG_SABER_STYLES__
 	selectLevel++;
 
 	if (selectLevel >= SS_NUM_SABER_STYLES)
@@ -3079,7 +3097,7 @@ void Cmd_SaberAttackCycle_f(gentity_t *ent)
 		extern stringID_table_t StanceTable[];
 		trap->SendServerCommand(ent - g_entities, va("print \"SABERSTANCEDEBUG: Attempted to cycle stance to stance %i (%s).\n\"", selectLevel, (selectLevel < SS_NUM_SABER_STYLES) ? StanceTable[selectLevel].name : "INVALID"));
 	}
-#endif //__ALL_SABER_STYLES__
+#endif //__DEBUG_SABER_STYLES__
 
 	if (ent->client->ps.weaponTime <= 0)
 	{ //not busy, set it now

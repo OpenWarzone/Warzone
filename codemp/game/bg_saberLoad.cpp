@@ -428,7 +428,7 @@ qboolean WP_UseFirstValidSaberStyle( saberInfo_t *saber1, saberInfo_t *saber2, i
 	//initially, all styles are valid
 	validStyles = (1<<SS_NUM_SABER_STYLES)-2; // mask off 1<<SS_NONE
 
-#ifndef __ALL_SABER_STYLES__
+#ifndef __DEBUG_SABER_STYLES__
 	// check for invalid styles
 	if ( saber1Active && saber1 && saber1->model[0] && saber1->stylesForbidden ) {
 		if ( (saber1->stylesForbidden & (1<<*saberAnimLevel)) ) {
@@ -447,7 +447,7 @@ qboolean WP_UseFirstValidSaberStyle( saberInfo_t *saber1, saberInfo_t *saber2, i
 			}
 		}
 	}
-#endif //__ALL_SABER_STYLES__
+#endif //__DEBUG_SABER_STYLES__
 
 	if ( !validStyles ) {
 		if ( dualSabers )
@@ -469,7 +469,7 @@ qboolean WP_UseFirstValidSaberStyle( saberInfo_t *saber1, saberInfo_t *saber2, i
 }
 
 qboolean WP_SaberStyleValidForSaber( saberInfo_t *saber1, saberInfo_t *saber2, int saberHolstered, int saberAnimLevel ) {
-#ifndef __ALL_SABER_STYLES__
+#ifndef __DEBUG_SABER_STYLES__
 	qboolean saber1Active, saber2Active;
 	qboolean dualSabers = qfalse;
 
@@ -522,13 +522,13 @@ qboolean WP_SaberStyleValidForSaber( saberInfo_t *saber1, saberInfo_t *saber2, i
 			}
 		}
 	}
-#endif //__ALL_SABER_STYLES__
+#endif //__DEBUG_SABER_STYLES__
 
 	return qtrue;
 }
 
 qboolean WP_SaberCanTurnOffSomeBlades( saberInfo_t *saber ) {
-#ifndef __ALL_SABER_STYLES__
+#ifndef __DEBUG_SABER_STYLES__
 	if ( saber->bladeStyle2Start > 0 && saber->numBlades > saber->bladeStyle2Start ) {
 		// check if all blades are always on
 		if ( (saber->saberFlags2 & SFL2_NO_MANUAL_DEACTIVATE) && (saber->saberFlags2 & SFL2_NO_MANUAL_DEACTIVATE2) )
@@ -539,7 +539,7 @@ qboolean WP_SaberCanTurnOffSomeBlades( saberInfo_t *saber ) {
 		if ( (saber->saberFlags2 & SFL2_NO_MANUAL_DEACTIVATE) )
 			return qfalse;
 	}
-#endif //__ALL_SABER_STYLES__
+#endif //__DEBUG_SABER_STYLES__
 
 	//you can turn some off
 	return qtrue;
