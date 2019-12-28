@@ -32,7 +32,7 @@ void G_ReflectMissile( gentity_t *ent, gentity_t *missile, vec3_t forward )
 	qboolean	isCrowdControlDeflection = qfalse;
 	float		enemyDistFactor = 1.0;
 
-	if (ent && ent->client && ent->client->ps.torsoAnim == BOTH_CC_DEFENCE_SPIN)
+	if (ent && ent->client && (ent->client->ps.torsoAnim == BOTH_CC_DEFENCE_SPIN || ent->client->ps.torsoAnim == BOTH_SINGLE_DEFENCE_SPIN))
 	{// In spinning saber deflection mode... Block all the things...
 		isCrowdControlDeflection = qtrue;
 	}
@@ -139,7 +139,7 @@ void G_DeflectMissile( gentity_t *ent, gentity_t *missile, vec3_t forward )
 	qboolean	isCrowdControlDeflection = qfalse;
 	float		enemyDistFactor = 1.0;
 
-	if (ent && ent->client && ent->client->ps.torsoAnim == BOTH_CC_DEFENCE_SPIN)
+	if (ent && ent->client && (ent->client->ps.torsoAnim == BOTH_CC_DEFENCE_SPIN || ent->client->ps.torsoAnim == BOTH_SINGLE_DEFENCE_SPIN))
 	{// In spinning saber deflection mode... Block all the things...
 		isCrowdControlDeflection = qtrue;
 	}
@@ -233,7 +233,7 @@ void G_BounceMissile( gentity_t *ent, trace_t *trace, qboolean HIT_TREE ) {
 	qboolean	isCrowdControlDeflection = qfalse;
 	float		enemyDistFactor = 1.0;
 
-	if (ent && ent->client && ent->client->ps.torsoAnim == BOTH_CC_DEFENCE_SPIN)
+	if (ent && ent->client && (ent->client->ps.torsoAnim == BOTH_CC_DEFENCE_SPIN || ent->client->ps.torsoAnim == BOTH_SINGLE_DEFENCE_SPIN))
 	{// In spinning saber deflection mode... Block all the things...
 		isCrowdControlDeflection = qtrue;
 	}

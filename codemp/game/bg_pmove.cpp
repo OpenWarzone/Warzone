@@ -341,23 +341,6 @@ int PM_GetSaberStance(void)
 }
 */
 
-int BS_CrowdControlBlockAnimation(playerState_t *ps)
-{
-	/*
-	if (bg_testvalue3.integer != 0)
-	{
-		bgHumanoidAnimations[BOTH_CC_DEFENCE_SPIN].numFrames = bg_testvalue3.integer;
-	}
-
-	if (bg_testvalue2.integer != 0)
-	{
-		bgHumanoidAnimations[BOTH_CC_DEFENCE_SPIN].loopFrames = bg_testvalue2.integer;
-	}
-	*/
-
-	return BOTH_CC_DEFENCE_SPIN;
-}
-
 #define __DEBUG_TEST_ANIMS__
 
 int currentTestAnimationNumver = 0;
@@ -431,7 +414,12 @@ int PM_GetSaberStance()
 		&& (pm->cmd.buttons & BUTTON_ALT_ATTACK)
 		&& !(pm->cmd.buttons & BUTTON_ATTACK))
 	{
-		return BS_CrowdControlBlockAnimation(pm->ps);
+		return BOTH_CC_DEFENCE_SPIN;
+	}
+	else if ((pm->cmd.buttons & BUTTON_ALT_ATTACK)
+		&& !(pm->cmd.buttons & BUTTON_ATTACK))
+	{
+		return BOTH_SINGLE_DEFENCE_SPIN;
 	}
 
 #ifdef __DEBUG_TEST_ANIMS__
@@ -3904,7 +3892,7 @@ static void PM_WalkMove( void ) {
 		}
 	}
 	//[NewSaberSys]
-	else if (pm->ps->torsoAnim == BOTH_CC_DEFENCE_SPIN)
+	else if (pm->ps->torsoAnim == BOTH_CC_DEFENCE_SPIN || pm->ps->torsoAnim == BOTH_SINGLE_DEFENCE_SPIN)
 	{// Crowd Control projectile blocking players/NPCs can move at full speed...
 
 	}
@@ -6437,7 +6425,7 @@ static void PM_Footsteps( void ) {
 		}
 		//[NewSaberSys]
 		else if (!(pm->cmd.buttons & BUTTON_WALKING)
-			&& (!(pm->ps->weapon == WP_SABER && (pm->cmd.buttons & BUTTON_ALT_ATTACK)) || pm->ps->torsoAnim == BOTH_CC_DEFENCE_SPIN)
+			&& (!(pm->ps->weapon == WP_SABER && (pm->cmd.buttons & BUTTON_ALT_ATTACK)) || pm->ps->torsoAnim == BOTH_CC_DEFENCE_SPIN || pm->ps->torsoAnim == BOTH_SINGLE_DEFENCE_SPIN)
 			&& !(pm->ps->fd.forcePowersActive&(1 << FP_LIGHTNING))
 			&& !(pm->ps->fd.forcePowersActive&(1 << FP_GRIP))
 			&& !(pm->ps->fd.forcePowersActive&(1 << FP_DRAIN)))

@@ -5709,7 +5709,7 @@ void WP_SaberStartMissileBlockCheck( gentity_t *self, usercmd_t *ucmd  )
 
 			//[SaberSys]
 			if (self->client
-				&& (self->s.eType == ET_NPC || (self->client->ps.fd.saberAnimLevelBase == SS_CROWD_CONTROL && self->client->ps.torsoAnim == BOTH_CC_DEFENCE_SPIN)))
+				&& (self->s.eType == ET_NPC || (self->client->ps.torsoAnim == BOTH_CC_DEFENCE_SPIN || self->client->ps.torsoAnim == BOTH_SINGLE_DEFENCE_SPIN)))
 			{
 #ifdef __MISSILES_AUTO_PARRY__
 				WP_SaberBlockNonRandom(self, incoming->r.currentOrigin, qtrue);
@@ -9388,7 +9388,7 @@ void WP_SaberBlock( gentity_t *playerent, vec3_t hitloc, qboolean missileBlock )
 		return;
 	}
 
-	if (playerent->client->ps.torsoAnim == BOTH_CC_DEFENCE_SPIN)
+	if (playerent->client->ps.torsoAnim == BOTH_CC_DEFENCE_SPIN || playerent->client->ps.torsoAnim == BOTH_SINGLE_DEFENCE_SPIN)
 	{// In spinning saber deflection mode... Block all the things... No block animation needed...
 		return;
 	}
@@ -9501,7 +9501,7 @@ qboolean WP_SaberCanBlock(gentity_t *atk, gentity_t *self, vec3_t point, vec3_t 
 		thrownSaber = qtrue;
 	}
 
-	if (self->client->ps.torsoAnim == BOTH_CC_DEFENCE_SPIN)
+	if (self->client->ps.torsoAnim == BOTH_CC_DEFENCE_SPIN || self->client->ps.torsoAnim == BOTH_SINGLE_DEFENCE_SPIN)
 	{// In spinning saber deflection mode... Block all the things...
 		isCrowdControlDeflection = qtrue;
 	}
@@ -9878,7 +9878,7 @@ qboolean WP_SaberCanBlock_NPC(gentity_t *self, vec3_t point, int dflags, int mod
 	{
 		//[SaberSys]
 		if (self->client
-			&& (self->s.eType == ET_NPC || (self->client->ps.fd.saberAnimLevelBase == SS_CROWD_CONTROL && self->client->ps.torsoAnim == BOTH_CC_DEFENCE_SPIN)))
+			&& (self->s.eType == ET_NPC || (self->client->ps.torsoAnim == BOTH_CC_DEFENCE_SPIN || self->client->ps.torsoAnim == BOTH_SINGLE_DEFENCE_SPIN)))
 		{
 #ifdef __MISSILES_AUTO_PARRY__
 			WP_SaberBlockNonRandom(self, point, projectile);
