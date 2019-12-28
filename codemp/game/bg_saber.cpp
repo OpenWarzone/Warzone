@@ -4414,6 +4414,7 @@ void PM_WeaponLightsaber(void)
 
 			switch (saberMoveData[pm->ps->saberMove].startQuad)
 			{
+/*
 				case Q_BR:
 					bounceMove = LS_R_BR2TL;
 					break;
@@ -4459,6 +4460,50 @@ void PM_WeaponLightsaber(void)
 				default:
 					bounceMove = LS_R_L2R;
 					break;
+*/
+			case Q_B:
+				bounceMove = LS_R_BR2TL;
+				break;
+			case Q_BR:
+				bounceMove = LS_R_BR2TL;
+				break;
+			case Q_R:
+				bounceMove = LS_R_R2L;
+				break;
+			case Q_TR:
+				bounceMove = LS_R_TR2BL;
+				break;
+			case Q_T:
+				bounceMove = LS_R_T2B;
+				break;
+			case Q_TL:
+				bounceMove = LS_R_TL2BR;
+				break;
+			case Q_L:
+				bounceMove = LS_R_L2R;
+				break;
+			case Q_BL:
+				bounceMove = LS_R_BL2TR;
+				break;
+			//
+			case Q_SR:
+				bounceMove = LS_R_R2L;
+				break;
+			case Q_SL:
+				bounceMove = LS_R_L2R;
+				break;
+			case Q_SBL:
+				bounceMove = LS_R_BL2TR;
+				break;
+			case Q_SBR:
+				bounceMove = LS_R_BR2TL;
+				break;
+			case Q_BT:
+				bounceMove = LS_R_T2B;
+				break;
+			case Q_RBT:
+				bounceMove = LS_R_T2B;
+				break;
 			}
 			
 
@@ -4470,7 +4515,7 @@ void PM_WeaponLightsaber(void)
 
 			if (pm->ps->weaponTime > 0)
 			{
-				pm->ps->saberBlocked = BLOCKED_ATK_BOUNCE;
+				//pm->ps->saberBlocked = BLOCKED_ATK_BOUNCE;
 			}
 			else
 			{
@@ -5662,28 +5707,36 @@ int PM_AnimationForBounceMove(short newMove)
 	switch (newMove)
 	{
 	case LS_R_TL2BR:
-		return BOTH_SABERBLOCK_TL;// 757;
+		Com_Printf("Bounce LS_R_TL2BR.\n");
+		return BOTH_SABERBLOCK_TL;
 		break;
 	case LS_R_L2R:
-		return BOTH_SABERBLOCK_L;// 765;
+		Com_Printf("Bounce LS_R_L2R.\n");
+		return BOTH_SABERBLOCK_L;
 		break;
 	case LS_R_BL2TR:
-		return BOTH_SABERBLOCK_BL;// 551;
+		Com_Printf("Bounce LS_R_BL2TR.\n");
+		return BOTH_SABERBLOCK_BL;
 		break;
 	case LS_R_BR2TL:
-		return BOTH_SABERBLOCK_BR;// 728;// 714; // hmm
+		Com_Printf("Bounce LS_R_BR2TL.\n");
+		return BOTH_SABERBLOCK_BR;
 		break;
 	case LS_R_R2L:
-		return BOTH_SABERBLOCK_R;// 827;
+		Com_Printf("Bounce LS_R_R2L.\n");
+		return BOTH_SABERBLOCK_R;
 		break;
 	case LS_R_TR2BL:
-		return BOTH_SABERBLOCK_TR;// 792;
+		Com_Printf("Bounce LS_R_TR2BL.\n");
+		return BOTH_SABERBLOCK_TR;
 		break;
 	case LS_R_T2B:
-		return BOTH_SABERBLOCK_T;// 609;// 568;
+		Com_Printf("Bounce LS_R_T2B.\n");
+		return BOTH_SABERBLOCK_T;
 		break;
 	default:
-		return BOTH_SABERBLOCK_T;// 609;
+		Com_Printf("Bounce DEFAULT.\n");
+		return BOTH_SABERBLOCK_T;
 		break;
 	}
 }

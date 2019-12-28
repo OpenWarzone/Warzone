@@ -3,7 +3,6 @@
 #include "g_local.h"
 #include "bg_local.h"
 
-extern qboolean WP_SabersCheckLock(gentity_t *ent1, gentity_t *ent2);
 //[SaberSys]
 #ifdef __MISSILES_AUTO_PARRY__
 extern void WP_SaberBlockNonRandom(gentity_t *self, vec3_t hitloc, qboolean missileBlock);
@@ -11,11 +10,14 @@ extern void WP_SaberBlockNonRandom(gentity_t *self, vec3_t hitloc, qboolean miss
 extern void WP_SaberBlock(gentity_t *playerent, vec3_t hitloc, qboolean missileBlock);
 #endif //__MISSILES_AUTO_PARRY__
 //[/SaberSys]
-extern void G_SaberBounce(gentity_t* self, gentity_t* other, qboolean hitBody);
-extern int PM_SaberBounceForAttack(int move);
-qboolean SaberAttacking(gentity_t *self);
-qboolean PM_SaberInBrokenParry(int move);
 
+extern int PM_SaberBounceForAttack(int move);
+extern qboolean WP_SabersCheckLock(gentity_t *ent1, gentity_t *ent2);
+extern qboolean PM_SaberInBrokenParry(int move);
+extern qboolean SaberAttacking(gentity_t *self);
+extern qboolean NPC_IsAlive(gentity_t *self, gentity_t *NPC);
+
+#if 0
 void SabBeh_AttackVsAttack(gentity_t *self,	gentity_t *otherOwner)
 {//set the saber behavior for two attacking blades hitting each other
 
@@ -37,6 +39,7 @@ void SabBeh_AttackVsAttack(gentity_t *self,	gentity_t *otherOwner)
 
 extern void G_ForcePowerDrain(gentity_t *victim, gentity_t *attacker, int amount);
 extern void BG_AddForcePowerToPlayer(playerState_t * ps, int Forcepower);
+
 void SabBeh_AttackVsBlock( gentity_t *attacker, gentity_t *blocker, vec3_t hitLoc, qboolean hitSaberBlade)
 {//set the saber behavior for an attacking vs blocking/parrying blade impact
 	qboolean startSaberLock = qfalse;
@@ -69,8 +72,31 @@ void SabBeh_AttackVsBlock( gentity_t *attacker, gentity_t *blocker, vec3_t hitLo
 	//costs FP as well.
 	BG_AddForcePowerToPlayer(&blocker->client->ps, 1);
 }
+#endif
+
+//[NewSaberSys]
+void G_SaberBounce(gentity_t* self, gentity_t* other, qboolean hitBody)
+{
+	if (self && self->client && NPC_IsAlive(self, self) && other->client && NPC_IsAlive(self, other) && self->client->ps.saberBlocked == BLOCKED_NONE)
+	{
+		if (!BG_SaberInSpecialAttack(self->client->ps.torsoAnim))
+		{
+			if (SaberAttacking(self))
+			{// Saber is in attack, use bounce for this attack.
+				//self->client->ps.saberMove = PM_SaberBounceForAttack(self->client->ps.saberMove); // bg_saber now should set this...
+				self->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
+			}
+			else
+			{// Saber is in defense, use defensive bounce.
+				self->client->ps.saberBlocked = BLOCKED_ATK_BOUNCE;
+			}
+		}
+	}
+}
+//[/NewSaberSys]
 
 extern qboolean NPC_IsAlive(gentity_t *self, gentity_t *NPC); // Also valid for non-npcs.
+
 void Update_Saberblocking(gentity_t *self, gentity_t *otherOwner, vec3_t hitLoc, qboolean *didHit, qboolean otherHitSaberBlade)
 {	
 	if (!self || !self->client || !NPC_IsAlive(self, self))
@@ -84,33 +110,6 @@ void Update_Saberblocking(gentity_t *self, gentity_t *otherOwner, vec3_t hitLoc,
 		G_SaberBounce(self, otherOwner, qfalse);
 	}
 }
-
-//[NewSaberSys]
-void G_SaberBounce(gentity_t* self, gentity_t* other, qboolean hitBody)
-{
-	//if (TIMER_Done(self, "bounceTime"))
-	{//whatever other states self can be in.  (returns, bounces, or something)
-		//TIMER_Set(self, "bounceTime", Q_irand(2000, 5000));
-
-		if (self && self->client && NPC_IsAlive(self, self) && other->client && NPC_IsAlive(self, other) && self->client->ps.saberBlocked == BLOCKED_NONE)
-		{
-			if (!BG_SaberInSpecialAttack(self->client->ps.torsoAnim))
-			{
-				if (SaberAttacking(self))
-				{// Saber is in attack, use bounce for this attack.
-					self->client->ps.saberMove = PM_SaberBounceForAttack(self->client->ps.saberMove);
-					self->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
-				}
-				else
-				{// Saber is in defense, use defensive bounce.
-					self->client->ps.saberBlocked = BLOCKED_ATK_BOUNCE;
-				}
-			}
-		}
-	}
-	
-}
-//[/NewSaberSys]
 
 void G_Stagger(gentity_t *hitEnt, gentity_t *atk, qboolean forcePowerNeeded)
 {

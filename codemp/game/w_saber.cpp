@@ -2094,6 +2094,7 @@ static QINLINE int G_GetParryForBlock(int block)
 int PM_SaberBounceForAttack( int move );
 int PM_SaberDeflectionForQuad( int quad );
 
+#if 0
 extern stringID_table_t animTable[MAX_ANIMATIONS+1];
 static QINLINE qboolean WP_GetSaberDeflectionAngle( gentity_t *attacker, gentity_t *defender, float saberHitFraction )
 {
@@ -2391,6 +2392,7 @@ int G_KnockawayForParry( int move )
 		break;
 	}
 }
+#endif
 
 #define SABER_NONATTACK_DAMAGE 1
 
@@ -2889,17 +2891,6 @@ static QINLINE qboolean G_SaberFaceCollisionCheck(int fNum, saberFace_t *fList, 
 void TraceCopy(trace_t *a, trace_t *b)
 {
 	memcpy(b, a, sizeof(trace_t));
-	/*
-	b->allsolid = a->allsolid;
-	b->contents = a->contents;
-	VectorCopy(a->endpos, b->endpos);
-	b->entityNum = a->entityNum;
-	b->fraction = a->fraction;
-	//This is the only thing that's ever really used from the plane data.
-	VectorCopy(a->plane.normal, b->plane.normal);
-	b->startsolid = a->startsolid;
-	b->surfaceFlags = a->surfaceFlags;
-	*/
 }
 
 
@@ -2986,7 +2977,7 @@ static QINLINE qboolean G_SaberCollide(gentity_t *atk, gentity_t *def, vec3_t at
 #endif
 
 						//[SaberSys]
-						if (G_SaberFaceCollisionCheck(fNum, fList, atkStart, atkEnd, atkMins, atkMaxs, tr->endpos))
+						if (G_SaberFaceCollisionCheck(fNum, fList, atkStart, atkEnd, atkMins, atkMaxs, tip/*tr->endpos*/))
 							//if (G_SaberFaceCollisionCheck(fNum, fList, atkStart, atkEnd, atkMins, atkMaxs, impactPoint))
 						{ //collided
 						  //determine the plane of impact for the viewlocking stuff.
@@ -3020,6 +3011,7 @@ static QINLINE qboolean G_SaberCollide(gentity_t *atk, gentity_t *def, vec3_t at
 }
 
 //[SaberSys]
+#if 0
 qboolean IsMoving(gentity_t*ent)
 {
 	if (!ent || !ent->client)
@@ -3031,7 +3023,9 @@ qboolean IsMoving(gentity_t*ent)
 
 	return qtrue;
 }
+#endif
 
+#ifdef __BLOCK_FP_DRAIN__
 void G_ForcePowerDrain(gentity_t *victim, gentity_t *attacker, int amount)
 {//drains DP from victim.  Also awards experience points to the attacker.
 	if (!g_friendlyFire.integer && OnSameTeam(victim, attacker))
@@ -3061,7 +3055,7 @@ void G_ForcePowerDrain(gentity_t *victim, gentity_t *attacker, int amount)
 		victim->client->ps.fd.forcePower = 0;
 	}
 }
-
+#endif
 
 //[/NewSaberSys2]
 
@@ -3317,9 +3311,9 @@ void RestoreRealTraceContent(void)
 
 
 #define REALTRACE_MISS				0 //didn't hit anything
-#define REALTRACE_HIT				1 //hit object normally
+#define REALTRACE_HIT_SABER				1 //hit object normally
 #define REALTRACE_SABERBLOCKHIT		2 //hit a player who used a bounding box dodge saber block
-#define REALTRACE_PLAYER			3 //hit a player
+#define REALTRACE_HIT_PLAYER			3 //hit a player
 static QINLINE int Finish_RealTrace(trace_t *results, trace_t *closestTrace, vec3_t start, vec3_t end)
 {//this function reverts the real trace content removals and finishs up the realtrace
  //restore all the entities we blanked out.
@@ -3332,35 +3326,58 @@ static QINLINE int Finish_RealTrace(trace_t *results, trace_t *closestTrace, vec
 	}
 
 	TraceCopy(closestTrace, results);
-	return REALTRACE_HIT;
+	return REALTRACE_HIT_SABER;
 }
 #else //__FIX_REALTRACE__
 #define MAX_REAL_PASSTHRU 8
 
 #define REALTRACE_MISS				0 //didn't hit anything
-#define REALTRACE_HIT				1 //hit object normally
-#define REALTRACE_PLAYER			2 //hit a player
-static QINLINE int Finish_RealTrace(trace_t *results, trace_t *closestTrace, vec3_t start, vec3_t end)
+#define REALTRACE_HIT_SABER			1 //hit saber
+#define REALTRACE_HIT_PLAYER		2 //hit a player
+#define REALTRACE_HIT_MISSILE		3 //hit a missile
+#define REALTRACE_HIT_WORLD			4 //hit world
+static QINLINE int Finish_RealTrace(trace_t *results, trace_t *closestTrace, vec3_t start, vec3_t end, qboolean hitSaber)
 {//this function finishs up the realtrace
-	if (VectorCompare(closestTrace->endpos, end))
-	{//No hit. Make sure that tr is correct.
+	if (closestTrace->entityNum == ENTITYNUM_NONE || VectorCompare(closestTrace->endpos, end))
+	{// No hit. Make sure that tr is correct.
 		TraceClear(results, end);
 		return REALTRACE_MISS;
 	}
 
-	if (closestTrace->entityNum < ENTITYNUM_WORLD)
-	{
-		gentity_t *currentEnt = &g_entities[closestTrace->entityNum];
-
-		if (currentEnt && currentEnt->inuse && currentEnt->client)
-		{//this object doesn't have a ghoul2 or saber internal trace.  
-			TraceCopy(closestTrace, results);
-			return REALTRACE_PLAYER;
-		}
+	if (closestTrace->entityNum == ENTITYNUM_WORLD)
+	{// Hit the world...
+		TraceCopy(closestTrace, results);
+		Com_Printf("REALTRACE: Hit world.\n");
+		return REALTRACE_HIT_WORLD;
 	}
 
-	TraceCopy(closestTrace, results);
-	return REALTRACE_HIT;
+	// Hit some entity...
+	gentity_t *currentEnt = &g_entities[closestTrace->entityNum];
+
+	if (hitSaber)
+	{// Saber collision...
+		TraceCopy(closestTrace, results);
+		Com_Printf("REALTRACE: Hit saber.\n");
+		return REALTRACE_HIT_SABER;
+	}
+	else if (currentEnt && currentEnt->inuse && currentEnt->client)
+	{// Hit a client...
+		TraceCopy(closestTrace, results);
+		Com_Printf("REALTRACE: Hit player.\n");
+		return REALTRACE_HIT_PLAYER;
+	}
+	else if (currentEnt && currentEnt->inuse && currentEnt->s.eType == ET_MISSILE)
+	{
+		TraceCopy(closestTrace, results);
+		Com_Printf("REALTRACE: Hit missile.\n");
+		return REALTRACE_HIT_MISSILE;
+	}
+	else
+	{// Hit another entity. Hit some other entity. Treat this as a missile collision.
+		TraceCopy(closestTrace, results);
+		Com_Printf("REALTRACE: Hit missile.\n");
+		return REALTRACE_HIT_MISSILE;
+	}
 }
 #endif //__FIX_REALTRACE__
 
@@ -3370,10 +3387,10 @@ static QINLINE int Finish_RealTrace(trace_t *results, trace_t *closestTrace, vec
 //
 //gentity_t attacker is an optional input variable to give information about the attacker.  This is used to give the attacker 
 //		information about which saber blade they hit (if any) and to see if the victim should use a bounding box saber block.
-//		Not providing an attacker will make the function just return REALTRACE_MISS or REALTRACE_HIT.
+//		Not providing an attacker will make the function just return REALTRACE_MISS or REALTRACE_HIT_SABER.
 
 //return:	REALTRACE_MISS = didn't hit anything	
-//			REALTRACE_HIT = hit object normally
+//			REALTRACE_HIT_SABER = hit object normally
 //			REALTRACE_SABERBLOCKHIT = hit a player who used a bounding box dodge saber block
 int G_RealTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_t mins,
 	vec3_t maxs, vec3_t end, int passEntityNum,
@@ -3408,6 +3425,7 @@ int G_RealTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_t mins,
 
 	// float FIX_REALTRACE_FORWARD = 1.0; // This too would be wasteful and give little benefit, and more issues retracing the same hits (filling realtrace slots with the same result over and over)...
 	float FIX_REALTRACE_FORWARD = (maxs[0] - mins[0]) + 1.0; // Radius of sabers + 1.0 to skip past it fully for next trace... Should skip all re-hits, without (or extremely rarely) loosing any real hits...
+	qboolean hitSaber = qfalse;
 #endif //__FIX_REALTRACE__
 
 	for (misses = 0; misses < MAX_REAL_PASSTHRU; misses++)
@@ -3468,7 +3486,7 @@ int G_RealTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_t mins,
 				TraceCopy(tr, &closestTrace);
 				closestFraction = tr->fraction;
 			}
-			return Finish_RealTrace(tr, &closestTrace, start, end);
+			return Finish_RealTrace(tr, &closestTrace, start, end, qfalse);
 		}
 
 		//set up a pointer to the entity we hit.
@@ -3476,16 +3494,39 @@ int G_RealTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_t mins,
 
 		if (currentEnt->inuse && currentEnt->client)
 		{//initial trace hit a humanoid
+			hitSaber = G_SaberCollide((atkIsSaberer ? attacker : NULL), currentEnt, currentStart, end, mins, maxs, tr);
+
+			//Com_Printf("Testing lightsaber hit2 for entity %i (%s). Hit: %s.\n", tr->entityNum, currentEnt->classname, hitSaber ? "TRUE" : "FALSE");
+
+			if (hitSaber)
+			{// Always use saber vs saber collisions as the result...
+				TraceCopy(tr, &closestTrace);
+				closestFraction = tr->fraction;
+				break;
+			}
+
 			//ok, no bbox block this time.  So, try a ghoul2 trace then.
 			G_G2TraceCollide(tr, currentStart, end, mins, maxs);
 		}
-		else if ((currentEnt->r.contents & CONTENTS_LIGHTSABER) &&
-			currentEnt->r.contents != -1 &&
-			currentEnt->inuse)
-		{//hit a lightsaber, do the approprate collision detection checks.
-			gentity_t* saberOwner = &g_entities[currentEnt->r.ownerNum];
+		else if ((currentEnt->r.contents & CONTENTS_LIGHTSABER) && currentEnt->inuse)
+		{// hit a lightsaber, do the approprate collision detection checks.
+			//gentity_t* saberOwner = &g_entities[currentEnt->r.ownerNum];
 
-			G_SaberCollide((atkIsSaberer ? attacker : NULL), saberOwner, currentStart, end, mins, maxs, tr);
+			//hitSaber = G_SaberCollide((atkIsSaberer ? attacker : NULL), saberOwner, currentStart, end, mins, maxs, tr);
+
+			//Com_Printf("Testing lightsaber hit for entity %i (%s). Hit: %s.\n", currentEnt->r.ownerNum, currentEnt->classname, "TRUE");
+
+			//if (hitSaber)
+			//{// Always use saber vs saber collisions as the result...
+			//	break;
+			//}
+
+			// Fuck the G2 trace. It doesn't work reliably anyway...
+			TraceCopy(tr, &closestTrace);
+			closestFraction = tr->fraction;
+
+			hitSaber = qtrue;
+			break;
 		}
 		else if (tr->entityNum < ENTITYNUM_WORLD)
 		{
@@ -3506,7 +3547,7 @@ int G_RealTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_t mins,
 					TraceCopy(tr, &closestTrace);
 					closestFraction = tr->fraction;
 				}
-				return Finish_RealTrace(tr, &closestTrace, start, end);
+				return Finish_RealTrace(tr, &closestTrace, start, end, qfalse);
 			}
 		}
 		else
@@ -3521,7 +3562,7 @@ int G_RealTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_t mins,
 				TraceCopy(tr, &closestTrace);
 				closestFraction = tr->fraction;
 			}
-			return Finish_RealTrace(tr, &closestTrace, start, end);
+			return Finish_RealTrace(tr, &closestTrace, start, end, qfalse);
 		}
 
 		//ok, we're just completed an internal ghoul2 or saber internal trace on an entity.  
@@ -3556,11 +3597,10 @@ int G_RealTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_t mins,
 #endif //__FIX_REALTRACE__
 	}
 
-	return Finish_RealTrace(tr, &closestTrace, start, end);
+	return Finish_RealTrace(tr, &closestTrace, start, end, hitSaber);
 }
 //[/SaberSys]
 
-#ifdef __SINGLE_FRAME_SABER_TRACE__
 int WP_DoFrameSaberTrace(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t saberStart, vec3_t saberEnd, qboolean doInterpolate, int trMask, qboolean extrapolate)
 {// Only do a single saber trace each frame, so that we can reuse it's information...
 	if (self->saberTrace[rSaberNum][rBladeNum].frameNum != level.framenum)
@@ -3592,7 +3632,7 @@ int WP_DoFrameSaberTrace(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t s
 			self->saberTrace[rSaberNum][rBladeNum].realTraceResult = G_RealTrace(self, &self->saberTrace[rSaberNum][rBladeNum].trace, saberStart, mins, maxs, saberEnd, self->s.number, /*trMask*/CONTENTS_BODY|CONTENTS_LIGHTSABER, rSaberNum, rBladeNum);
 			self->saberTrace[rSaberNum][rBladeNum].frameNum = level.framenum;
 
-			if (self->saberTrace[rSaberNum][rBladeNum].realTraceResult == REALTRACE_HIT)
+			if (self->saberTrace[rSaberNum][rBladeNum].realTraceResult == REALTRACE_HIT_SABER)
 			{
 				//Com_Printf("Hit! entitynum %i. entitytype %s.\n", self->saberTrace[rSaberNum][rBladeNum].trace.entityNum, (self->saberTrace[rSaberNum][rBladeNum].trace.entityNum < ENTITYNUM_WORLD) ? g_entities[self->saberTrace[rSaberNum][rBladeNum].trace.entityNum].classname : "WORLD");
 
@@ -3602,7 +3642,7 @@ int WP_DoFrameSaberTrace(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t s
 					self->saberTrace[rSaberNum][rBladeNum].realTraceResult = REALTRACE_MISS;
 				}
 			}
-			else if (self->saberTrace[rSaberNum][rBladeNum].realTraceResult == REALTRACE_PLAYER)
+			else if (self->saberTrace[rSaberNum][rBladeNum].realTraceResult == REALTRACE_HIT_PLAYER)
 			{
 				//Com_Printf("Hit Player!\n");
 			}
@@ -3611,8 +3651,8 @@ int WP_DoFrameSaberTrace(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t s
 
 	return self->saberTrace[rSaberNum][rBladeNum].realTraceResult;
 }
-#endif //__SINGLE_FRAME_SABER_TRACE__
 
+#if 0
 float WP_SaberBladeLength( saberInfo_t *saber )
 {//return largest length
 	int	i;
@@ -3648,6 +3688,7 @@ float WP_SaberLength( gentity_t *ent )
 		return bestLen;
 	}
 }
+
 int WPDEBUG_SaberColor( saber_colors_t saberColor )
 {
 	switch( (int)(saberColor) )
@@ -3675,6 +3716,9 @@ int WPDEBUG_SaberColor( saber_colors_t saberColor )
 			break;
 	}
 }
+#endif
+
+#if 0
 /*
 WP_SabersIntersect
 
@@ -3820,6 +3864,7 @@ qboolean WP_SabersIntersect( gentity_t *ent1, int ent1SaberNum, int ent1BladeNum
 	}
 	return qfalse;
 }
+#endif
 
 static QINLINE int G_PowerLevelForSaberAnim(gentity_t *ent, int saberNum, qboolean mySaberHit)
 {
@@ -4422,7 +4467,7 @@ void WP_SaberSpecificDoHit(gentity_t *self, int saberNum, int bladeNum, gentity_
 			te->s.angles[1] = 1;
 		}
 
-		if (!isDroid && (victim->s.eType == ET_NPC || victim->s.eType == ET_BODY || victim->s.eType == ET_PLAYER || realTraceResult == REALTRACE_PLAYER))
+		if (!isDroid && (victim->s.eType == ET_NPC || victim->s.eType == ET_BODY || victim->s.eType == ET_PLAYER || realTraceResult == REALTRACE_HIT_PLAYER))
 		{
 			if (dmg < 5)
 			{
@@ -4705,6 +4750,153 @@ void WP_SaberBounceSound( gentity_t *ent, int saberNum, int bladeNum )
 	}
 }
 
+extern qboolean BG_SaberInFullDamageMove(playerState_t *ps, int AnimIndex);
+
+int WP_GetSaberDamageValue(gentity_t *self, int rSaberNum, int *trMask, qboolean *idleDamage)
+{
+	int			dmg = 0;
+	qboolean	saberInSpecial = BG_SaberInSpecial(self->client->ps.saberMove);
+	qboolean	inBackAttack = G_SaberInBackAttack(self->client->ps.saberMove);
+
+	//added damage setting for thrown sabers
+	if (self->client->ps.saberInFlight && rSaberNum == 0)
+	{
+		dmg = DAMAGE_THROWN;
+	}
+	else if (BG_SaberInFullDamageMove(&self->client->ps, self->localAnimIndex))
+	{//full damage moves
+		dmg = SABER_HITDAMAGE;
+		if (self->client->ps.fd.saberAnimLevel == SS_STAFF ||
+			self->client->ps.fd.saberAnimLevel == SS_DUAL)
+		{
+			if (saberInSpecial)
+			{
+				//it will get auto-ramped based on the point in the attack, later on
+				if (self->client->ps.saberMove == LS_SPINATTACK ||
+					self->client->ps.saberMove == LS_SPINATTACK_DUAL)
+				{ //these attacks are long and have the potential to hit a lot so they will do less damage.
+					dmg = 10;
+				}
+				else
+				{
+					if (BG_KickingAnim(self->client->ps.legsAnim) ||
+						BG_KickingAnim(self->client->ps.torsoAnim))
+					{ //saber shouldn't do more than min dmg during kicks
+						dmg = 2;
+					}
+					else if (BG_SaberInKata(self->client->ps.saberMove))
+					{ //special kata move
+						if (self->client->ps.fd.saberAnimLevel == SS_DUAL)
+						{ //this is the nasty saber twirl, do big damage cause it makes you vulnerable
+							dmg = 90;
+						}
+						else
+						{ //staff kata
+							dmg = G_GetAttackDamage(self, 60, 70, 0.5f);
+						}
+					}
+					else
+					{
+						//dmg = 90;
+						//ramp from 2 to 90 by default for other specials
+						dmg = G_GetAttackDamage(self, 2, 90, 0.5f);
+					}
+				}
+			}
+			else
+			{ //otherwise we'll ramp up to 70 I guess, for both dual and staff
+				dmg = 65;
+			}
+		}
+		else if (self->client->ps.fd.saberAnimLevel == SS_STRONG)
+		{
+			//new damage-ramping system
+			if (!saberInSpecial && !inBackAttack)
+			{
+				dmg = G_GetAttackDamage(self, SABER_HITDAMAGE, 120, 0.5f);
+			}
+			else if (saberInSpecial &&
+				(self->client->ps.saberMove == LS_A_JUMP_T__B_))
+			{
+				dmg = G_GetAttackDamage(self, SABER_HITDAMAGE, 180, 0.65f);
+			}
+			else if (inBackAttack)
+			{
+				dmg = G_GetAttackDamage(self, 2, 30, 0.5f); //can hit multiple times (and almost always does), so..
+			}
+			else
+			{
+				dmg = 100;
+			}
+		}
+		else if (self->client->ps.fd.saberAnimLevel == SS_MEDIUM)
+		{
+			if (saberInSpecial &&
+				(self->client->ps.saberMove == LS_A_FLIP_STAB || self->client->ps.saberMove == LS_A_FLIP_SLASH))
+			{ //a well-timed hit with this can do a full 70
+				dmg = G_GetAttackDamage(self, 2, 70, 0.5f);
+			}
+			else if (inBackAttack)
+			{
+				dmg = G_GetAttackDamage(self, 2, 25, 0.5f);
+			}
+			else
+			{
+				dmg = 60;
+			}
+		}
+		else if (self->client->ps.fd.saberAnimLevel == SS_FAST)
+		{
+			if (saberInSpecial &&
+				(self->client->ps.saberMove == LS_A_LUNGE))
+			{
+				dmg = G_GetAttackDamage(self, 2, SABER_HITDAMAGE - 5, 0.3f);
+			}
+			else if (inBackAttack)
+			{
+				dmg = G_GetAttackDamage(self, 2, 30, 0.5f);
+			}
+			else
+			{
+				dmg = SABER_HITDAMAGE;
+			}
+		}
+		else if (self->client->ps.fd.saberAnimLevel == SS_TAVION)
+		{ // I don't think this function is actually used , but I CBF to check atm.	
+			dmg = SABER_HITDAMAGE;
+			dmg /= 1.4;		//100 dmg appx
+		}
+		else if (self->client->ps.fd.saberAnimLevel == SS_DESANN)
+		{ // I don't think this function is actually used, but I CBF to check atm.
+			dmg = 100;
+		}
+	}
+	else if (self->client->ps.saberAttackWound < level.time && self->client->ps.saberIdleWound < level.time)
+	{// use idle damage for transition moves.  
+		// Playtesting has indicated that using attack damage for transition moves results in unfair insta-hits.
+		if ((self->client->saber[0].saberFlags2&SFL2_NO_IDLE_EFFECT))
+		{//no idle damage or effects
+			return qtrue;//true cause even though we didn't get a hit, we don't want to do those extra traces because the debounce time says not to.
+		}
+
+		*trMask &= ~CONTENTS_LIGHTSABER;
+
+		if (self->client->pers.cmd.buttons & BUTTON_ALT_ATTACK)
+		{
+			dmg = SABER_NONATTACK_DAMAGE;
+		}
+
+		*idleDamage = qtrue;
+	}
+	else
+	{//idle saber damage
+		dmg = SABER_NONATTACK_DAMAGE;
+		*idleDamage = qtrue;
+	}
+
+	return dmg;
+}
+
 //[SaberSys]
 //Not used anymore.
 //static qboolean saberHitWall = qfalse;
@@ -4726,246 +4918,70 @@ qboolean BG_SuperBreakWinAnim( int anim );
 
 //[SaberSys]
 //racc - OJP Enhanced completely rewritten CheckSaberDamage function.  This is the heart of the saber system beast.
-//[NewSaberSys]
 qboolean WP_PlayerSaberAttack(gentity_t *self);
-//[/NewSaberSys]
 extern qboolean BG_SaberInTransitionDamageMove(playerState_t *ps);
-extern qboolean BG_SaberInFullDamageMove(playerState_t *ps, int AnimIndex);
-void DebounceSaberImpact(gentity_t *self, gentity_t *otherSaberer,
-	int rSaberNum, int rBladeNum, int sabimpactentitynum);
+void DebounceSaberImpact(gentity_t *self, gentity_t *otherSaberer, int rSaberNum, int rBladeNum, int sabimpactentitynum);
 void G_Stagger(gentity_t *hitEnt, gentity_t *atk, qboolean forcePowerNeeded);
 void WP_SaberBlock(gentity_t *playerent, vec3_t hitloc, qboolean missileBlock);
+
 static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t saberStart, vec3_t saberEnd, qboolean doInterpolate, int trMask, qboolean extrapolate)
 {
-	static trace_t tr;
-	static vec3_t dir;
-	static vec3_t saberTrMins, saberTrMaxs;
-	static vec3_t lastValidStart;
-	static vec3_t lastValidEnd;
-	static int selfSaberLevel;
-	static int otherSaberLevel;
-	int dmg = 0;
-	float saberBoxSize = 0;
-	qboolean idleDamage = qfalse;
-	qboolean didHit = qfalse;
-	qboolean hitSaberBlade = qfalse;  //this indicates weither an saber blade was hit vs just using the auto-block system.
-	float boxScale = 10;
-
-	//passthru flag.  Saber passthru only occurs if you successful chopped the target
-	//to death, in half, etc.
-	qboolean	passthru = qfalse;
-
-	//holds the return code from our realTrace.  This is used to help 
-	//determine if you actually it the saber blade for hitSaberBlade
-	int realTraceResult;
-
-	//sabimpactdebounce
-	int sabimpactdebounce;
-	int sabimpactentitynum;
-
-	qboolean	saberHitWall = qfalse;
-
-	gentity_t *otherOwner = NULL;
-	qboolean unblockable = qfalse;
-	qboolean SaberStagger = qfalse;
-	int attackStr = 0;
+	static trace_t		tr;
+	static vec3_t		dir;
+	static int			selfSaberLevel = 0;
+	int					dmg = 0;
+	float				saberBoxSize = 0;
+	qboolean			idleDamage = qfalse;
+	qboolean			didHit = qfalse;
+	qboolean			hitSaberBlade = qfalse;					// this indicates weither an saber blade was hit vs just using the auto-block system.
+	qboolean			passthru = qfalse;						// passthru flag.  Saber passthru only occurs if you successful chopped the target to death, in half, etc.
+	int					realTraceResult = REALTRACE_MISS;		// holds the return code from our realTrace.  This is used to help determine if you actually it the saber blade for hitSaberBlade
+	int					sabimpactdebounce = 0;
+	int					sabimpactentitynum = 0;
+	qboolean			saberHitWall = qfalse;
+	gentity_t			*otherOwner = NULL;
 
 	if (BG_SabersOff(&self->client->ps) || (!self->client->ps.saberEntityNum && self->client->ps.fd.saberAnimLevelBase != SS_DUAL))
-	{
-		//register as a hit so we don't do a lot of interplotation. 
+	{// register as a hit so we don't do a lot of interplotation. 
+		self->client->ps.saberBlocked = BLOCKED_NONE;
 		return qtrue;
+	}
+	
+	if (self->client->ps.saberMove <= LS_PUTAWAY && !g_saberIdleDamage.integer && !(self->client->pers.cmd.buttons & BUTTON_ALT_ATTACK))
+	{// don't need to do any tracing or damage...
+		self->client->ps.saberBlocked = BLOCKED_NONE;
+		return qfalse;
 	}
 
 	selfSaberLevel = G_SaberAttackPower(self, SaberAttacking(self));
 
-#ifndef __SINGLE_FRAME_SABER_TRACE__
-	// Seems to be the perfect value, any smaller then this and it misses about 99% of collisions...
-	saberBoxSize = self->client->saber[rSaberNum].blade[rBladeNum].radius * 8.0;
-	VectorSet(saberTrMins, -saberBoxSize, -saberBoxSize, -saberBoxSize);
-	VectorSet(saberTrMaxs, saberBoxSize, saberBoxSize, saberBoxSize);
-
-	realTraceResult = G_RealTrace(self, &tr, saberStart, saberTrMins, saberTrMaxs, saberEnd,
-		self->s.number, trMask, rSaberNum, rBladeNum);
-#else //__SINGLE_FRAME_SABER_TRACE__
 	realTraceResult = WP_DoFrameSaberTrace(self, rSaberNum, rBladeNum, saberStart, saberEnd, doInterpolate, trMask, extrapolate);
 	memcpy(&tr, &self->saberTrace[rSaberNum][rBladeNum].trace, sizeof(trace_t)); // TODO: Use the self->saberTrace[rSaberNum][rBladeNum].trace instead of tr in this code and skip the memcpy, but for testing it's this way...
-#endif //__SINGLE_FRAME_SABER_TRACE__
 
 
-	//G_Printf("%i\n", realTraceResult);
-
-	if (tr.fraction == 1 && !tr.startsolid)
+	if (/*tr.fraction == 1 && !tr.startsolid*/realTraceResult == REALTRACE_MISS || realTraceResult == REALTRACE_HIT_WORLD)
 	{
+		self->client->ps.saberBlocked = BLOCKED_NONE;
 		return qfalse;
 	}
-	/*
-	//racc - I've modified the super duper interpolation so that it checks for possible collisions at the starting area
-	//before tracing thru to the current position.  As such, you'll only get startsolid on that initial trace and if that's
-	//the case, we want to count that as a true impact anyway.  Therefore, this bit of code is no longer needed.
-	else if ( tr.startsolid && !extrapolate && d_saberInterpolate.integer == 2)
-	{//ok, we started inside an object and we're using the super duper interpolation system
-	return 2;
-	}
-	*/
-	qboolean saberInSpecial = BG_SaberInSpecial(self->client->ps.saberMove);
-	qboolean inBackAttack = G_SaberInBackAttack(self->client->ps.saberMove);
 
-	//added damage setting for thrown sabers
-	if (self->client->ps.saberInFlight && rSaberNum == 0)
-	{
-		dmg = DAMAGE_THROWN;
-	}
-	else if (BG_SaberInFullDamageMove(&self->client->ps, self->localAnimIndex))
-	{//full damage moves
-		//if (self->client->pers.cmd.buttons & BUTTON_SPECIALBUTTON2 || !(self->client->pers.cmd.buttons & BUTTON_SPECIALBUTTON2))
-		// This line makes absolutely no sense... It's always true.
-		{
-			dmg = SABER_HITDAMAGE;
-			if (self->client->ps.fd.saberAnimLevel == SS_STAFF ||
-				self->client->ps.fd.saberAnimLevel == SS_DUAL)
-			{
-				if (saberInSpecial)
-				{
-					//it will get auto-ramped based on the point in the attack, later on
-					if (self->client->ps.saberMove == LS_SPINATTACK ||
-						self->client->ps.saberMove == LS_SPINATTACK_DUAL)
-					{ //these attacks are long and have the potential to hit a lot so they will do less damage.
-						dmg = 10;
-					}
-					else
-					{
-						if (BG_KickingAnim(self->client->ps.legsAnim) ||
-							BG_KickingAnim(self->client->ps.torsoAnim))
-						{ //saber shouldn't do more than min dmg during kicks
-							dmg = 2;
-						}
-						else if (BG_SaberInKata(self->client->ps.saberMove))
-						{ //special kata move
-							if (self->client->ps.fd.saberAnimLevel == SS_DUAL)
-							{ //this is the nasty saber twirl, do big damage cause it makes you vulnerable
-								dmg = 90;
-							}
-							else
-							{ //staff kata
-								dmg = G_GetAttackDamage(self, 60, 70, 0.5f);
-							}
-						}
-						else
-						{
-							//dmg = 90;
-							//ramp from 2 to 90 by default for other specials
-							dmg = G_GetAttackDamage(self, 2, 90, 0.5f);
-						}
-					}
-				}
-				else
-				{ //otherwise we'll ramp up to 70 I guess, for both dual and staff
-					dmg = 65;
-				}
-			}
-			else if (self->client->ps.fd.saberAnimLevel == SS_STRONG)
-			{
-				//new damage-ramping system
-				if (!saberInSpecial && !inBackAttack)
-				{
-					dmg = G_GetAttackDamage(self, SABER_HITDAMAGE, 120, 0.5f);
-				}
-				else if (saberInSpecial &&
-					(self->client->ps.saberMove == LS_A_JUMP_T__B_))
-				{
-					dmg = G_GetAttackDamage(self, SABER_HITDAMAGE, 180, 0.65f);
-				}
-				else if (inBackAttack)
-				{
-					dmg = G_GetAttackDamage(self, 2, 30, 0.5f); //can hit multiple times (and almost always does), so..
-				}
-				else
-				{
-					dmg = 100;
-				}
-			}
-			else if (self->client->ps.fd.saberAnimLevel == SS_MEDIUM)
-			{
-				if (saberInSpecial &&
-					(self->client->ps.saberMove == LS_A_FLIP_STAB || self->client->ps.saberMove == LS_A_FLIP_SLASH))
-				{ //a well-timed hit with this can do a full 70
-					dmg = G_GetAttackDamage(self, 2, 70, 0.5f);
-				}
-				else if (inBackAttack)
-				{
-					dmg = G_GetAttackDamage(self, 2, 25, 0.5f);
-				}
-				else
-				{
-					dmg = 60;
-				}
-			}
-			else if (self->client->ps.fd.saberAnimLevel == SS_FAST)
-			{
-				if (saberInSpecial &&
-					(self->client->ps.saberMove == LS_A_LUNGE))
-				{
-					dmg = G_GetAttackDamage(self, 2, SABER_HITDAMAGE - 5, 0.3f);
-				}
-				else if (inBackAttack)
-				{
-					dmg = G_GetAttackDamage(self, 2, 30, 0.5f);
-				}
-				else
-				{
-					dmg = SABER_HITDAMAGE;
-				}
-			}
-			else if (self->client->ps.fd.saberAnimLevel == SS_TAVION)
-			{ // I don't think this function is actually used , but I CBF to check atm.	
-				dmg = SABER_HITDAMAGE;
-				dmg /= 1.4;		//100 dmg appx
-			}
-			else if (self->client->ps.fd.saberAnimLevel == SS_DESANN)
-			{ // I don't think this function is actually used, but I CBF to check atm.
-				dmg = 100;
-			}
-			attackStr = self->client->ps.fd.saberAnimLevel;
-		}
-	}
 
-	//else if (BG_SaberInTransitionDamageMove(&self->client->ps))
-	else if (self->client->ps.saberAttackWound < level.time &&
-		self->client->ps.saberIdleWound < level.time)
-	{//use idle damage for transition moves.  
-	 //Playtesting has indicated that using attack damage for transition moves results in unfair insta-hits.
-		if ((self->client->saber[0].saberFlags2&SFL2_NO_IDLE_EFFECT))
-		{//no idle damage or effects
-			return qtrue;//true cause even though we didn't get a hit, we don't want to do those extra traces because the debounce time says not to.
-		}
-		trMask &= ~CONTENTS_LIGHTSABER;
-		if (self->client->pers.cmd.buttons & BUTTON_ALT_ATTACK)
-		{
-			dmg = SABER_NONATTACK_DAMAGE;
-		}
-		idleDamage = qtrue;
-	}
-	else
-	{//idle saber damage
-		dmg = SABER_NONATTACK_DAMAGE;
-		idleDamage = qtrue;
-	}
+	// Grab the dmg, trMask modifiers, and idleDamage toggles...
+	dmg = WP_GetSaberDamageValue(self, rSaberNum, &trMask, &idleDamage);
+
 
 	if (BG_StabDownAnim(self->client->ps.torsoAnim)
 		&& g_entities[tr.entityNum].client
 		&& !BG_InKnockDownOnGround(&g_entities[tr.entityNum].client->ps))
 	{//stabdowns only damage people who are actually on the ground...
-		unblockable = qtrue;
 		self->client->ps.saberBlocked = 0;
 		return qfalse;
 	}
 
 	if (BG_SaberInSpecial(self->client->ps.saberMove))
 	{
-		unblockable = qtrue;
 		self->client->ps.saberBlocked = 0;
 	}
-
 
 	if (!dmg)
 	{
@@ -4974,6 +4990,7 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 		{
 			return qtrue;
 		}
+
 		return qfalse;
 	}
 
@@ -5009,113 +5026,71 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 		dmg *= 2;
 	}
 
-	if (g_gametype.integer == GT_POWERDUEL &&
-		self->client->sess.duelTeam == DUELTEAM_LONE)
-	{ //always x2 when we're powerdueling alone... er, so, we apparently no longer want this?  So they say.
-		if (duel_fraglimit.integer)
-		{
-			//dmg *= 1.5 - (.4 * (float)self->client->sess.wins / (float)g_duel_fraglimit.integer);
-
-		}
-		//dmg *= 2;
-	}
-
 	VectorSubtract(saberEnd, saberStart, dir);
 	VectorNormalize(dir);
 
-	if (tr.entityNum == ENTITYNUM_WORLD ||
-		g_entities[tr.entityNum].s.eType == ET_TERRAIN)
+	if (tr.entityNum == ENTITYNUM_WORLD || g_entities[tr.entityNum].s.eType == ET_TERRAIN)
 	{ //register this as a wall hit for jedi AI
 		self->client->ps.saberEventFlags |= SEF_HITWALL;
 		saberHitWall = qtrue;
 	}
 
-	if (g_entities[tr.entityNum].takedamage &&
-		(g_entities[tr.entityNum].health > 0 || !(g_entities[tr.entityNum].s.eFlags & EF_DISINTEGRATION)) &&
-		tr.entityNum != self->s.number &&
-		g_entities[tr.entityNum].inuse)
-	{//hit something that had health and takes damage
-
-		otherOwner = &g_entities[tr.entityNum];
-		if (g_entities[tr.entityNum].client &&
-			g_entities[tr.entityNum].client->ps.duelInProgress &&
-			g_entities[tr.entityNum].client->ps.duelIndex != self->s.number)
-		{
-			return qfalse;
-		}
-
-		if (g_entities[tr.entityNum].client &&
-			self->client->ps.duelInProgress &&
-			self->client->ps.duelIndex != g_entities[tr.entityNum].s.number)
-		{
-			return qfalse;
-		}
-
-		{//hit something that can actually take damage
-			didHit = qtrue;
-			otherOwner = NULL;
-		}
-
+	if (saberHitWall || (realTraceResult != REALTRACE_HIT_SABER && realTraceResult != REALTRACE_HIT_MISSILE))
+	{// Don't bounce off the world or players, pass through them...
+		passthru = qtrue;
+		self->client->ps.saberBlocked = BLOCKED_NONE;
 	}
-	else if (((g_entities[tr.entityNum].r.contents & CONTENTS_LIGHTSABER) &&
-		g_entities[tr.entityNum].r.contents != -1 &&
-		g_entities[tr.entityNum].inuse))
-	{ //hit a saber blade
-		otherOwner = &g_entities[g_entities[tr.entityNum].r.ownerNum];
-		//G_Printf("Hit saber!\n");
-		if (!otherOwner->inuse || !otherOwner->client)
-		{//Bad defender saber owner state
-			return qfalse;
-		}
 
-		if (otherOwner->client->ps.duelInProgress &&
-			otherOwner->client->ps.duelIndex != self->s.number)
-		{
-			return qfalse;
-		}
-
-		if (self->client->ps.duelInProgress &&
-			self->client->ps.duelIndex != otherOwner->s.number)
-		{
-			return qfalse;
-		}
-
-		//if (otherOwner->client->ps.saberInFlight && !OJP_UsingDualSaberAsPrimary(&otherOwner->client->ps))
-		//{//Hit a thrown saber, deactive it.
-		//	saberCheckKnockdown_Smashed(&g_entities[tr.entityNum], otherOwner, self, dmg);
-		//	otherOwner = NULL;
-		//}
-		//else 
-		if (realTraceResult != REALTRACE_HIT)
-		{// We did not directly clash with another saber, check for directional blocking stuff...
-#define __WORKING_BLOCKING__
-
-#ifdef __WORKING_BLOCKING__
-			if (CheckManualBlocking(self, otherOwner))
-			{
-				//[SaberSys]
+	if (realTraceResult == REALTRACE_HIT_SABER)
+	{// successfully hit another player's saber blade directly
+		hitSaberBlade = qtrue;
+/*
 #ifdef __MISSILES_AUTO_PARRY__
-				WP_SaberBlockNonRandom(otherOwner, tr.endpos, qfalse);
+		WP_SaberBlockNonRandom(self, tr.endpos, qfalse);
 #else
-				WP_SaberBlock(self, tr.endpos, otherOwner->client->ps.saberInFlight ? qtrue : qfalse);
+		WP_SaberBlock(self, tr.endpos, qfalse);
 #endif //__MISSILES_AUTO_PARRY__		
-				//[/SaberSys]
-			}
-#else //!__WORKING_BLOCKING__
-			float dist = Distance(self->r.currentOrigin, otherOwner->r.currentOrigin);
-			float distFactor = 1.0 - Q_clamp(0.0f, dist / 2048.0f, 1.0f);
-			int dfInt = (int)(distFactor * 60.0f) + irand(0, 20) + 20; // 20% base block. 20% chance based. 60% distance based.
-			
-			if (dfInt >= g_testvalue0.integer)
-			{
-				WP_SaberBlock(self, tr.endpos, otherOwner->client->ps.saberInFlight ? qtrue : qfalse);
-			}
-#endif //__WORKING_BLOCKING__
+*/
+	}
+	else if (realTraceResult == REALTRACE_HIT_PLAYER)
+	{// hit something that had health and takes damage
+		otherOwner = &g_entities[tr.entityNum];
+
+		if (otherOwner->client
+			&& otherOwner->client->ps.duelInProgress
+			&& otherOwner->client->ps.duelIndex != self->s.number)
+		{
+			return qfalse;
 		}
-		else if (realTraceResult == REALTRACE_HIT)
-		{//successfully hit another player's saber blade directly
-			hitSaberBlade = qtrue;
+
+		if (otherOwner->client
+			&& self->client->ps.duelInProgress 
+			&& self->client->ps.duelIndex != otherOwner->s.number)
+		{
+			return qfalse;
 		}
+
+		//hit something that can actually take damage
+		didHit = qtrue;
+		otherOwner = NULL;
+	}
+	else if (realTraceResult == REALTRACE_HIT_MISSILE)
+	{// We hit a blaster bolt or similar... Reflect it...
+#ifdef __MISSILES_AUTO_PARRY__
+		WP_SaberBlockNonRandom(self, tr.endpos, qtrue);
+#else
+		WP_SaberBlock(self, tr.endpos, qtrue);
+#endif //__MISSILES_AUTO_PARRY__		
+	}
+	else if (realTraceResult == REALTRACE_HIT_WORLD)
+	{// Hit the world, we only want efx...
+		didHit = qtrue;
+		otherOwner = NULL;
+	}
+	else if (realTraceResult == REALTRACE_MISS)
+	{// Hit nothing...
+		didHit = qfalse;
+		otherOwner = NULL;
 	}
 
 	//saber impact debouncer stuff
@@ -5189,30 +5164,26 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 		}
 	}
 
-	//update saber blocking
-	Update_Saberblocking(self, otherOwner, tr.endpos, &didHit, hitSaberBlade);
-
 	if (didHit && (!OnSameTeam(self, &g_entities[tr.entityNum]) || g_friendlySaber.integer))
-	{//deal damage
-	 //damage the thing we hit
+	{// damage the thing we hit
 		int dflags = 0;
 		gentity_t *victim = &g_entities[tr.entityNum];
 
-		//[NewSaberSys]
+		if (victim->health <= 0)
+		{//The attack killed your opponent, don't bounce the saber back to prevent nasty passthru.
+			passthru = qtrue;
+		}
+
 		if (dmg <= SABER_NONATTACK_DAMAGE)
 		{
 			self->client->ps.saberIdleWound = level.time + 350;
 
-			//add saber impact debounce
+			// add saber impact debounce
 			DebounceSaberImpact(self, otherOwner, rSaberNum, rBladeNum, sabimpactentitynum);
 			return qtrue;
 		}
-		//[/NewSaberSys]
 		else
-		{//hit!
-		 //G_Printf("%i: %i:  Caused damage with saber.\n", level.time, self->s.number); 
-
-		 //determine if this saber blade does dismemberment or not.
+		{// hit! determine if this saber blade does dismemberment or not.
 			if (!WP_SaberBladeUseSecondBladeStyle(&self->client->saber[rSaberNum], rBladeNum)
 				&& !(self->client->saber[rSaberNum].saberFlags2&SFL2_NO_DISMEMBERMENT))
 			{
@@ -5259,29 +5230,25 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 			}
 
 			//We need the final damage total to know if we need to bounce the saber back or not.
-
-			if (!(PM_SaberInParry(self->client->ps.saberMove) ||
-				self->client->ps.saberMove == LS_READY ||
-				self->client->ps.saberMove == 70 ||
-				self->client->ps.saberBlocked == BLOCKED_ATK_BOUNCE))
+			if (realTraceResult == REALTRACE_HIT_PLAYER && !(self->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_T))
 			{
 				G_Damage(victim, self, self, dir, tr.endpos, dmg, dflags, MOD_SABER);
 			}
 
-			if (realTraceResult != REALTRACE_MISS)
-			{
+			if (realTraceResult == REALTRACE_HIT_PLAYER || realTraceResult == REALTRACE_HIT_SABER)
+			{// We hit something, do efx...
 				WP_SaberSpecificDoHit(self, rSaberNum, rBladeNum, victim, tr.endpos, dmg, realTraceResult);
+
+				if (!passthru && realTraceResult == REALTRACE_HIT_SABER && otherOwner && otherOwner->client)
+				{//update saber blocking
+					Update_Saberblocking(self, otherOwner, tr.endpos, &didHit, hitSaberBlade);
+				}
 			}
 
 			// MJN - define fix :/
 			if (g_saberDebugPrint.integer > 2 && dmg > 1)
 			{
 				Com_Printf("Client %i hit Entity %i for %i points of Damage.\n", self->s.number, victim->s.number, dmg);
-			}
-
-			if (victim->health <= 0)
-			{//The attack killed your opponent, don't bounce the saber back to prevent nasty passthru.
-				passthru = qtrue;
 			}
 
 			if (victim->client)
@@ -5299,17 +5266,23 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 		}
 	}
 
-	if (self->client->ps.saberInFlight /*&& !OJP_UsingDualSaberAsPrimary(&self->client->ps)*/)
+	if (self->client->ps.saberInFlight)
 	{//saber in flight and it has hit something.  deactivate it.
 		saberCheckKnockdown_Smashed(&g_entities[self->client->ps.saberEntityNum], self, otherOwner, dmg);
 	}
-	else if (hitSaberBlade)
+	else if (!passthru && hitSaberBlade)
 	{
-		G_Stagger(self, self, qtrue);
+		//G_Stagger(self, self, qtrue); // yeah, don't stagger on blade hits, instead bounce...
+		self->client->ps.saberBlocked = BLOCKED_ATK_BOUNCE;
+		DebounceSaberImpact(self, otherOwner, rSaberNum, rBladeNum, sabimpactentitynum);
 	}
 	else
 	{//Didn't go into a special animation, so do a saber lock/bounce/deflection/etc that's appropriate
-		if (otherOwner && otherOwner->inuse && otherOwner->client)
+		if (passthru || saberHitWall || (realTraceResult != REALTRACE_HIT_SABER && realTraceResult != REALTRACE_HIT_MISSILE))
+		{// Don't bounce off the world or players, pass through them...
+			self->client->ps.saberBlocked = BLOCKED_NONE;
+		}
+		else if (!passthru && otherOwner && otherOwner->inuse && otherOwner->client)
 		{//saber lock test		
 			if (dmg > SABER_NONATTACK_DAMAGE || BG_SaberInNonIdleDamageMove(&otherOwner->client->ps, otherOwner->localAnimIndex))
 			{
@@ -5330,83 +5303,9 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 		}
 	}
 
-	//ok, that didn't happen.  Just bounce the sucker then.
-	if (!passthru)
-	{
-		if (saberHitWall)
-		{
-			//G_Printf("%i: %i: Saber hit wall\n", level.time, self->s.number);
-			if ((self->client->saber[rSaberNum].saberFlags & SFL_BOUNCE_ON_WALLS)
-				&& (BG_SaberInAttackPure(self->client->ps.saberMove) //only in a normal attack anim
-					|| self->client->ps.saberMove == LS_A_JUMP_T__B_)) //or in the strong jump-fwd-attack "death from above" move
-			{
-				//do bounce sound & force feedback
-				WP_SaberBounceSound(self, rSaberNum, rBladeNum);
-				self->client->ps.saberBlocked = BLOCKED_ATK_BOUNCE;
-			}
-		}
-		else
-		{
-			if (!idleDamage)
-			{
-				//RAFIXME - maybe make this a generic function check at some point?
-				if (!G_PowerLevelForSaberAnim(self, rSaberNum, qfalse)
-					&& !(G_PowerLevelForSaberAnim(otherOwner, 0, qfalse)
-					|| G_PowerLevelForSaberAnim(otherOwner, 1, qfalse)))
-				//if (self->client->ps.saberLockTime >= level.time  //in a saberlock
-				//	//otherOwner wasn't in an attack and didn't block the blow.
-				//	|| (otherOwner && otherOwner->inuse && otherOwner->client
-				//	&& !BG_SaberInNonIdleDamageMove(&otherOwner->client->ps, otherOwner->localAnimIndex) //they aren't in an attack swing
-				//	&& otherOwner->client->ps.saberBlocked == BLOCKED_NONE)) //and they didn't block the attack.
-				{//don't bounce!
-				 /*
-				 G_Printf("%i: %i: Saber passed thru opponent's saber! %s %s\n", level.time, self->s.number,
-				 GetStringForID(animTable, self->client->ps.torsoAnim),
-				 GetStringForID(animTable, otherOwner->client->ps.torsoAnim) );
-				 */
-				}
-				else
-				{
-					self->client->ps.saberBlocked = BLOCKED_ATK_BOUNCE;
-					//G_Printf("%i: %i: Saber Bounced %s\n", level.time, self->s.number, 
-					//	GetStringForID( animTable, self->client->ps.torsoAnim ));
-				}
-			}
-			else
-			{
-				//G_Printf("%i: %i: Idle Damage Move doesn't do bounce %s\n", level.time, self->s.number, 
-				//		GetStringForID(animTable, self->client->ps.torsoAnim) );
-			}
-		}
-	}
-	else
-	{
-		//G_Printf("%i: %i: Attacker Passthru!\n", level.time, self->s.number);
-	}
-	if (otherOwner && otherOwner->inuse && otherOwner->client)
-	{
-		if (hitSaberBlade)
-		{//Works but makes things complicated in combat, we maybe should use a diff anim setup here for some other types of anim that could happen in combat. Stoiss
-			G_Stagger(otherOwner, otherOwner, qtrue);
-		}
-		else
-		{//Didn't go into a special animation, so do a saber lock/bounce/deflection/etc that's approprate
-			if (BG_SaberInNonIdleDamageMove(&otherOwner->client->ps, otherOwner->localAnimIndex)  //otherOwner was doing a damaging move
-				&& otherOwner->client->ps.saberLockTime < level.time //otherOwner isn't in a saberlock (this can change mid-impact)
-				&& (self->client->ps.saberBlocked != BLOCKED_NONE //self reacted to this impact.
-					|| !idleDamage))  //or self was in an attack move (and probably mishaped from this impact)  
-			{
-				//G_Printf("%i: %i: Saber Bounced %s\n", level.time, otherOwner->s.number, 
-				//	GetStringForID( animTable, otherOwner->client->ps.torsoAnim ));
-				otherOwner->client->ps.saberBlocked = BLOCKED_ATK_BOUNCE;
-			}
-		}
-	}
-
-	//add saber impact debounce
-	DebounceSaberImpact(self, otherOwner, rSaberNum, rBladeNum, sabimpactentitynum);
 	return qtrue;
-				}
+}
+
 //[/SaberSys]
 #include <mutex>
 #define MAX_SABER_SWING_INC 0.33f
@@ -8151,13 +8050,7 @@ void WP_SaberPositionUpdate( gentity_t *self, usercmd_t *ucmd )
 	vec3_t boltAngles, boltOrigin;
 	vec3_t end;
 	matrix3_t legAxis;
-	//[SaberSys]
-	//vec3_t addVel;
-	//[/SaberSys]
 	vec3_t rawAngles;
-	//[SaberSys]
-	//float fVSpeed = 0;
-	//[/SaberSys]
 	int returnAfterUpdate = 0;
 	float animSpeedScale = 1.0f;
 	int saberNum;
@@ -9585,6 +9478,13 @@ qboolean WP_SaberCanBlock(gentity_t *atk, gentity_t *self, vec3_t point, vec3_t 
 	qboolean		saberInAttack = WP_PlayerSaberAttack(self);
 	qboolean		isCrowdControlDeflection = qfalse;
 
+	if (self->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL
+		&& self->client->ps.torsoAnim <= BOTH_SABERBLOCK_T
+		&& !projectile)
+	{// Projectiles may be ok, but can't block sabers...
+		return qfalse;
+	}
+
 	if (self->s.eType == ET_NPC) // really, you probably should make a new one of WP_SaberCanBlock_NPC that does your WP_SaberCanBlock stuff for them too...
 	{
 		return (qboolean)WP_SaberCanBlock_NPC(self, point, dflags, mod, projectile, attackStr);
@@ -9821,6 +9721,13 @@ qboolean WP_SaberCanBlock_NPC(gentity_t *self, vec3_t point, int dflags, int mod
 	qboolean saberInAttack = qfalse;
 
 	if (!self || !self->client || !point)
+	{
+		return qfalse;
+	}
+
+	if (self->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL
+		&& self->client->ps.torsoAnim <= BOTH_SABERBLOCK_T
+		&& !projectile)
 	{
 		return qfalse;
 	}
