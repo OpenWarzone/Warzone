@@ -4898,28 +4898,8 @@ int WP_GetSaberDamageValue(gentity_t *self, int rSaberNum, int *trMask, qboolean
 }
 
 //[SaberSys]
-//Not used anymore.
-//static qboolean saberHitWall = qfalse;
-//static qboolean saberHitSaber = qfalse;
-//static float saberHitFraction = 1.0f;
-//[/SaberSys]
-
-//rww - MP version of the saber damage function. This is where all the things like blocking, triggering a parry,
-//triggering a broken parry, doing actual damage, etc. are done for the saber. It doesn't resemble the SP
-//version very much, but functionality is (hopefully) about the same.
-//This is a large function. I feel sort of bad inlining it. But it does get called tons of times per frame.
-//[SaberSys] moved this prototype up for ojp_SaberCanBlock
-/*
-
-qboolean BG_SuperBreakWinAnim( int anim );
-
-*/
-//[/SaberSys]
-
-//[SaberSys]
-//racc - OJP Enhanced completely rewritten CheckSaberDamage function.  This is the heart of the saber system beast.
+//Stoiss:Uniq1 - completely rewritten CheckSaberDamage function.  This is the heart of the saber system.
 qboolean WP_PlayerSaberAttack(gentity_t *self);
-extern qboolean BG_SaberInTransitionDamageMove(playerState_t *ps);
 void DebounceSaberImpact(gentity_t *self, gentity_t *otherSaberer, int rSaberNum, int rBladeNum, int sabimpactentitynum);
 void G_Stagger(gentity_t *hitEnt, gentity_t *atk, qboolean forcePowerNeeded);
 void WP_SaberBlock(gentity_t *playerent, vec3_t hitloc, qboolean missileBlock);
