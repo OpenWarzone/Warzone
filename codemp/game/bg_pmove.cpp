@@ -632,36 +632,7 @@ int PM_GetSaberStance()
 
 	if (pm->ps->fd.saberDrawAnimLevel == SS_CROWD_CONTROL)
 	{
-#if 0
-		//return 1200; // spin behind head. don't need repeat.
-		//return 1133; // figety. don't need repeat.
-		//return 948; // should repeat...
-		//return 941; // no repeat...
-		//return 929; // prob doesnt need repeat...
-		//return 921; // simple, should repeat probably...
-		//return 872; // don't repeat, spin and hold in front. pretty cool..
-		//return 809; // pretty cool, not quite as good when legs change after delay...
-		//return 794; // behind body. good but maybe not so good for blocking...
-		//return 757; // cool, but ends with saber between legs, maybe for single blade stance?
-		//return 739; // really cool, but behind player so not for blocking...
-		//return 734; // pretty cool, but behind player so not for blocking...
-		//return 722; // good block for staff...
-		//return 721; // good secondary block for staff...
-		//return 720; // nice basic saber in front of face stance..
-
-		return 1009; // really cool...
-
-		return 728; // really cool, front spin then hold behind me... may be the one!
-		return 727; // alternate to above...
-		return 700; // another alternate to above...
-		return 512; // transition then hold behind. cool again...
-		return 642; // hold behind me, left side...
-		return 564; // spin and hold behind me... cool.
-#elif 0
-		return bg_testvalue3.integer;
-#elif 1
-		return UNIQUE_STANCE02;
-#endif
+		return BOTH_CC_STANCE;
 	}
 
 	switch (pm->ps->fd.saberAnimLevel)
@@ -685,12 +656,12 @@ int PM_GetSaberStance()
 		anim = TRIPLE3_REDSTANCE;
 		break;
 	case SS_CROWD_CONTROL:
-		anim = UNIQUE_STANCE02;
+		anim = BOTH_CC_STANCE;
 		break;
 	case SS_NONE:
 	case SS_MEDIUM:
 	default:
-		anim = BOTH_STAND2;
+		anim = BOTH_SINGLE_STANCE;// BOTH_STAND2;
 		break;
 	}
 	return anim;

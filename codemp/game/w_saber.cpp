@@ -3618,7 +3618,7 @@ int WP_DoFrameSaberTrace(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t s
 
 		if (self->saberTrace[rSaberNum][rBladeNum].realTraceResult == REALTRACE_MISS)
 		{// Since we got nothing on the precision trace, do a box trace... Better for saber vs NPC...
-			saberBoxSize = 4.0;
+			saberBoxSize = 32.0;// 16.0;// 4.0;
 			
 			if (self->client->ps.fd.saberAnimLevelBase == SS_CROWD_CONTROL || self->client->ps.fd.saberAnimLevelBase == SS_STAFF)
 			{

@@ -376,6 +376,8 @@ void CG_Do3DSaber(centity_t *cent, vec3_t origin, vec3_t dir, float length, floa
 
 extern qboolean BG_SuperBreakWinAnim(int anim);
 extern qboolean WP_SaberBladeUseSecondBladeStyle(saberInfo_t *saber, int bladeNum);
+extern qboolean BG_SaberInProjectileBlockSpin(int anim);
+extern qboolean PM_SaberInAnyBlockMove(int move);
 
 void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t end, vec3_t *axis_, saber_colors_t scolor, saberTrail_t *saberTrail, int saberNum, int bladeNum)
 {
@@ -411,9 +413,14 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 
 		if (cg.time > saberTrail->lastTime + 2 && cg.time < saberTrail->lastTime + 2000) // 2ms
 		{
-			qboolean inSaberMove = (BG_SaberInAttack(cent->currentState.saberMove) || BG_SuperBreakWinAnim(cent->currentState.torsoAnim)) ? qtrue : qfalse;
+			qboolean inSaberMove = (BG_SaberInAttack(cent->currentState.saberMove) || BG_SuperBreakWinAnim(cent->currentState.torsoAnim) || BG_SaberInProjectileBlockSpin(cent->currentState.torsoAnim) || PM_SaberInAnyBlockMove(cent->currentState.saberMove)) ? qtrue : qfalse;
 
-			if ((BG_SuperBreakWinAnim(cent->currentState.torsoAnim) || saberMoveData[cent->currentState.saberMove].trailLength > 0 || ((cent->currentState.powerups & (1 << PW_SPEED) && cg_speedTrail.integer)) || (cent->currentState.saberInFlight && saberNum == 0))) // if we have a stale segment, don't draw until we have a fresh one
+			if (BG_SuperBreakWinAnim(cent->currentState.torsoAnim) 
+				|| BG_SaberInProjectileBlockSpin(cent->currentState.torsoAnim)
+				|| PM_SaberInAnyBlockMove(cent->currentState.saberMove)
+				|| saberMoveData[cent->currentState.saberMove].trailLength > 0 
+				|| (cent->currentState.powerups & (1 << PW_SPEED) && cg_speedTrail.integer) 
+				|| (cent->currentState.saberInFlight && saberNum == 0)) // if we have a stale segment, don't draw until we have a fresh one
 			{
 				float diff = 0;
 

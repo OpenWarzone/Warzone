@@ -47,6 +47,8 @@ qboolean BG_SaberStanceAnim(int anim)
 	case TRIPLE3_REDSTANCE:
 	case TRIPLE3_DUALSSTANCE:
 	case TRIPLE3_STAFFSTANCE:
+	case BOTH_SINGLE_STANCE:
+	case BOTH_CC_STANCE:
 	case UNIQUE_STANCE01:
 	case UNIQUE_STANCE02:
 	case UNIQUE_STANCE03:
@@ -173,6 +175,8 @@ qboolean BG_InSaberStandAnim(int anim)
 	case TRIPLE3_REDSTANCE:
 	case TRIPLE3_DUALSSTANCE:
 	case TRIPLE3_STAFFSTANCE:
+	case BOTH_SINGLE_STANCE:
+	case BOTH_CC_STANCE:
 	case UNIQUE_STANCE01:
 	case UNIQUE_STANCE02:
 	case UNIQUE_STANCE03:
@@ -887,6 +891,19 @@ int BG_InGrappleMove(int anim)
 	return 0;
 }
 //[/NewSaberSys]
+
+qboolean BG_SaberInProjectileBlockSpin(int anim)
+{
+	switch (anim)
+	{
+	case BOTH_CC_DEFENCE_SPIN:
+	case BOTH_SINGLE_DEFENCE_SPIN:
+		return qtrue;
+		break;
+	}
+
+	return qfalse;
+}
 
 int BG_BrokenParryForAttack(int move)
 {
