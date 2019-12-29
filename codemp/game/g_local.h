@@ -603,6 +603,9 @@ struct gentity_s {
 #ifdef __SINGLE_FRAME_SABER_TRACE__
 	saberTrace_t	saberTrace[MAX_SABERS][MAX_BLADES] = { { 0 } };
 #endif //__SINGLE_FRAME_SABER_TRACE__
+
+	int				defenseSpinStartTime = 0;
+	int				defenseSpinLastValidTime = 0;
 };
 
 #define DAMAGEREDIRECT_HEAD		1

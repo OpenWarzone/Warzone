@@ -609,7 +609,7 @@ void ShootThink( gentity_t *aiEnt)
 		return;
 	}
 
-	if (aiEnt->enemy && !NPC_ValidEnemy(aiEnt, aiEnt->enemy))
+	if (aiEnt->enemy && !ValidEnemy(aiEnt, aiEnt->enemy))
 	{
 		aiEnt->enemy = NULL;
 		return;
@@ -795,7 +795,7 @@ qboolean CanShoot ( gentity_t *ent, gentity_t *shooter )
 	gentity_t	*traceEnt;
 	qboolean	IS_BREAKABLE = NPC_EntityIsBreakable(shooter, ent);
 
-	if (ent && !NPC_ValidEnemy(shooter, ent))
+	if (ent && !ValidEnemy(shooter, ent))
 	{
 		return qfalse;
 	}
@@ -978,73 +978,6 @@ float NPC_MaxDistSquaredForWeapon (gentity_t *aiEnt)
 	}
 }
 
-/*
--------------------------
-ValidEnemy
--------------------------
-*/
-
-qboolean ValidEnemy(gentity_t *aiEnt, gentity_t *ent)
-{
-	if ( ent == NULL )
-		return qfalse;
-
-	if ( ent == aiEnt )
-		return qfalse;
-
-	if ( ent->flags & FL_NOTARGET )
-		return qfalse;
-
-	//if FACTION_FREE, maybe everyone is an enemy?
-	//if ( !NPC->client->enemyTeam )
-	//	return qfalse;
-
-	if( NPC_IsAlive(aiEnt, ent) )
-	{
-		if( !ent->client )
-		{
-			return qtrue;
-		}
-		else if ( ent->client->sess.sessionTeam == FACTION_SPECTATOR )
-		{//don't go after spectators
-			return qfalse;
-		}
-		else if ( ent->client->tempSpectate >= level.time )
-		{//don't go after spectators
-			return qfalse;
-		}
-		else if ( ent->s.eType == ET_NPC && (ent->s.NPC_class == CLASS_VEHICLE || ent->client->NPC_class == CLASS_VEHICLE || ent->m_pVehicle) )
-		{// Don't go after empty vehicles :)
-			return qfalse;
-		}
-		else if (ent == aiEnt->padawan)
-		{
-			return qfalse;
-		}
-		else if (ent == aiEnt->parent)
-		{
-			return qfalse;
-		}
-		else if (aiEnt == ent->padawan)
-		{
-			return qfalse;
-		}
-		else if (aiEnt == ent->parent)
-		{
-			return qfalse;
-		}
-		else
-		{
-			if (!OnSameTeam(ent, aiEnt))
-			{
-				return qtrue;
-			}
-		}
-	}
-
-	return qfalse;
-}
-
 qboolean NPC_EnemyTooFar(gentity_t *aiEnt, gentity_t *enemy, float dist, qboolean toShoot)
 {
 	vec3_t	vec;
@@ -1124,7 +1057,7 @@ gentity_t *NPC_PickEnemy( gentity_t *aiEnt, gentity_t *closestTo, int enemyTeam,
 		{
 			if( newenemy->health > 0 )
 			{
-				if( NPC_ValidEnemy(aiEnt, newenemy) )//enemyTeam == TEAM_PLAYER || newenemy->client->playerTeam == enemyTeam || ( enemyTeam == TEAM_PLAYER ) )
+				if( ValidEnemy(aiEnt, newenemy) )//enemyTeam == TEAM_PLAYER || newenemy->client->playerTeam == enemyTeam || ( enemyTeam == TEAM_PLAYER ) )
 				{//FIXME:  check for range and FOV or vis?
 					if( newenemy != aiEnt->lastEnemy )
 					{//Make sure we're not just going back and forth here
@@ -1256,7 +1189,7 @@ gentity_t *NPC_PickEnemy( gentity_t *aiEnt, gentity_t *closestTo, int enemyTeam,
 		{
 			if ( newenemy->health > 0 )
 			{
-				if ( (newenemy->client && NPC_ValidEnemy(aiEnt, newenemy))
+				if ( (newenemy->client && ValidEnemy(aiEnt, newenemy))
 					|| (!newenemy->client && newenemy->alliedTeam == enemyTeam) )
 				{//FIXME:  check for range and FOV or vis?
 					if ( aiEnt->client->playerTeam == NPCTEAM_PLAYER && enemyTeam == NPCTEAM_PLAYER )

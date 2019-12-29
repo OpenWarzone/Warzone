@@ -993,7 +993,7 @@ void NPC_CheckAttackHold(gentity_t *aiEnt)
 	}
 	else*/
 	{//everyone else...?  FIXME: need to tie this into AI somehow?
-		if (aiEnt->enemy && !NPC_ValidEnemy(aiEnt, aiEnt->enemy))
+		if (aiEnt->enemy && !ValidEnemy(aiEnt, aiEnt->enemy))
 			return;
 
 		VectorSubtract(aiEnt->enemy->r.currentOrigin, aiEnt->r.currentOrigin, vec);
@@ -3745,7 +3745,7 @@ qboolean UQ1_UcmdMoveForDir_NoAvoidance ( gentity_t *self, usercmd_t *cmd, vec3_
 	//NPCs cheat and store this directly because converting movement into a ucmd loses precision
 	VectorCopy( dir, self->client->ps.moveDir );
 
-	/*if (!self->enemy || !NPC_ValidEnemy(aiEnt, self->enemy))
+	/*if (!self->enemy || !ValidEnemy(aiEnt, self->enemy))
 	{// Always face the move position...
 		vectoangles(dir, faceAngles);
 		AngleVectors( faceAngles, faceDir, NULL, NULL );
@@ -4456,7 +4456,7 @@ void NPC_Think ( gentity_t *self )//, int msec )
 
 				//trap->Print("Master %s replying to padawan comment.\n", self->client->pers.netname);
 
-				if (!self->enemy || !NPC_ValidEnemy(aiEnt, self->enemy))
+				if (!self->enemy || !ValidEnemy(aiEnt, self->enemy))
 				{// Also look and animate if we have no enemy...
 					vec3_t origin, angles;
 
@@ -4472,7 +4472,7 @@ void NPC_Think ( gentity_t *self )//, int msec )
 				}
 			}
 
-			if (self->beStillTime > level.time && (!self->enemy || !NPC_ValidEnemy(aiEnt, self->enemy)))
+			if (self->beStillTime > level.time && (!self->enemy || !ValidEnemy(aiEnt, self->enemy)))
 			{// Just idle...
 				if (self->padawan && NPC_IsAlive(self, self->padawan))
 				{// Look at our padawan...

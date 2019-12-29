@@ -787,7 +787,7 @@ qboolean NPC_CheckPlayerTeamStealth(gentity_t *aiEnt)
 			continue;
 		}
 
-		if ( enemy && enemy->client && NPC_ValidEnemy( aiEnt, enemy ) && enemy->client->playerTeam == aiEnt->client->enemyTeam )
+		if ( enemy && enemy->client && ValidEnemy( aiEnt, enemy ) && enemy->client->playerTeam == aiEnt->client->enemyTeam )
 		{
 			if ( NPC_CheckEnemyStealth( aiEnt, enemy ) )	//Change this pointer to assess other entities
 			{

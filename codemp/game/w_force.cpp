@@ -1220,7 +1220,7 @@ void ForceTeamHeal( gentity_t *self )
 
 		if (ent->s.eType == ET_NPC)
 		{
-			if (!NPC_ValidEnemy2(self, ent)) NPC_FRIEND = qtrue;
+			if (!ValidEnemy(self, ent)) NPC_FRIEND = qtrue;
 		}
 
 		if (ent 

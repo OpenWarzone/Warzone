@@ -592,6 +592,9 @@ typedef struct centity_s {
 	int				numEnemyFighters = 0;
 	mapFighters_t	enemyFighters[8];
 
+	int				defenseSpinStartTime = 0;
+	int				defenseSpinLastValidTime = 0;
+
 } centity_t;
 
 

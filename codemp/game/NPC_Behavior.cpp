@@ -1144,7 +1144,7 @@ void NPC_PickRandomTempGoal ( gentity_t *aiEnt)
 			if (!ent || !ent->inuse)
 				continue;
 
-			if ((ent->s.eType == ET_PLAYER || ent->s.eType == ET_NPC) && !NPC_ValidEnemy(aiEnt, ent))
+			if ((ent->s.eType == ET_PLAYER || ent->s.eType == ET_NPC) && !ValidEnemy(aiEnt, ent))
 				continue;
 
 			switch (ent->s.eType)

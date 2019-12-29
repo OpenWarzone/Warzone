@@ -835,13 +835,80 @@ qboolean NPC_ClearLOS2(gentity_t *ent, const vec3_t end )
 
 /*
 -------------------------
-NPC_ValidEnemy
+ValidEnemy
 -------------------------
 */
 extern qboolean NPC_IsAlive (gentity_t *self, gentity_t *NPC);
 extern qboolean NPC_IsAnimalEnemyFaction ( gentity_t *self );
 
-qboolean NPC_ValidEnemy2( gentity_t *self, gentity_t *ent )
+/*
+qboolean ValidEnemy(gentity_t *aiEnt, gentity_t *ent)
+{
+	if (ent == NULL)
+		return qfalse;
+
+	if (ent == aiEnt)
+		return qfalse;
+
+	if (ent->flags & FL_NOTARGET)
+	{
+		return qfalse;
+	}
+
+	//if FACTION_FREE, maybe everyone is an enemy?
+	//if ( !NPC->client->enemyTeam )
+	//	return qfalse;
+
+	if (NPC_IsAlive(aiEnt, ent))
+	{
+		if (!ent->client)
+		{
+			return qtrue;
+		}
+		else if (ent->client->sess.sessionTeam == FACTION_SPECTATOR)
+		{//don't go after spectators
+			return qfalse;
+		}
+		else if (ent->client->tempSpectate >= level.time)
+		{//don't go after spectators
+			return qfalse;
+		}
+		else if (ent->s.eType == ET_NPC && (ent->s.NPC_class == CLASS_VEHICLE || ent->client->NPC_class == CLASS_VEHICLE || ent->m_pVehicle))
+		{// Don't go after empty vehicles :)
+			return qfalse;
+		}
+		else if (ent == aiEnt->padawan)
+		{
+			return qfalse;
+		}
+		else if (ent == aiEnt->parent)
+		{
+			return qfalse;
+		}
+		else if (aiEnt == ent->padawan)
+		{
+			return qfalse;
+		}
+		else if (aiEnt == ent->parent)
+		{
+			return qfalse;
+		}
+		else
+		{
+			if (!OnSameTeam(ent, aiEnt))
+			{
+				return qtrue;
+			}
+		}
+	}
+
+	return qfalse;
+}
+*/
+
+#define __DEBUG_VALIDENEMY__
+
+qboolean ValidEnemy( gentity_t *self, gentity_t *ent )
 {
 	if ( !self )
 	{//Must be a valid pointer
@@ -858,13 +925,19 @@ qboolean NPC_ValidEnemy2( gentity_t *self, gentity_t *ent )
 		return qfalse;
 	}
 
-	if ( ent->inuse == qfalse )
+	if ( !ent->inuse )
 	{//Must not be deleted
 		return qfalse;
 	}
 
-	if ( !NPC_IsAlive(self, ent) && ent->health <= 0 )
+	if ( !NPC_IsAlive(self, ent) )
 	{//Must be alive
+#ifdef __DEBUG_VALIDENEMY__
+		if (ent->s.eType == ET_PLAYER)
+		{
+			Com_Printf("NPC_IsAlive\n");
+		}
+#endif //__DEBUG_VALIDENEMY__
 		return qfalse;
 	}
 
@@ -890,16 +963,35 @@ qboolean NPC_ValidEnemy2( gentity_t *self, gentity_t *ent )
 
 	if (OnSameTeam(ent, self))
 	{
+#ifdef __DEBUG_VALIDENEMY__
+		if (ent->s.eType == ET_PLAYER)
+		{
+			Com_Printf("OnSameTeam\n");
+		}
+#endif //__DEBUG_VALIDENEMY__
 		return qfalse;
 	}
 
 	if ( ent->flags & FL_NOTARGET )
 	{//In case they're in notarget mode
+#ifdef __DEBUG_VALIDENEMY__
+		if (ent->s.eType == ET_PLAYER)
+		{
+			Com_Printf("FL_NOTARGET\n");
+		}
+#endif //__DEBUG_VALIDENEMY__
+
 		return qfalse;
 	}
 
 	if (npc_pathing.integer == 0 && VectorLength(ent->spawn_pos) != 0 && Distance(ent->spawn_pos, self->r.currentOrigin) > 6000.0)
 	{
+#ifdef __DEBUG_VALIDENEMY__
+		if (ent->s.eType == ET_PLAYER)
+		{
+			Com_Printf("> 6000.\n");
+		}
+#endif //__DEBUG_VALIDENEMY__
 		return qfalse;
 	}
 
@@ -912,26 +1004,57 @@ qboolean NPC_ValidEnemy2( gentity_t *self, gentity_t *ent )
 	{// Special client checks...
 		if ( ent->client->sess.sessionTeam == FACTION_SPECTATOR )
 		{//don't go after spectators
+#ifdef __DEBUG_VALIDENEMY__
+			if (ent->s.eType == ET_PLAYER)
+			{
+				Com_Printf("FACTION_SPECTATOR\n");
+			}
+#endif //__DEBUG_VALIDENEMY__
 			return qfalse;
 		}
 
 		if ( ent->client->tempSpectate >= level.time )
 		{//don't go after spectators
+#ifdef __DEBUG_VALIDENEMY__
+			if (ent->s.eType == ET_PLAYER)
+			{
+				Com_Printf("tempSpectate\n");
+			}
+#endif //__DEBUG_VALIDENEMY__
+
 			return qfalse;
 		}
 
 		if (ent->client->ps.pm_type == PM_SPECTATOR) 
 		{
+#ifdef __DEBUG_VALIDENEMY__
+			if (ent->s.eType == ET_PLAYER)
+			{
+				Com_Printf("PM_SPECTATOR\n");
+			}
+#endif //__DEBUG_VALIDENEMY__
 			return qfalse;
 		}
 
 		if (NPC_IsCivilian(self) || NPC_IsCivilian(ent))
 		{// These guys have no enemies...
+#ifdef __DEBUG_VALIDENEMY__
+			if (ent->s.eType == ET_PLAYER)
+			{
+				Com_Printf("NPC_IsCivilian\n");
+			}
+#endif //__DEBUG_VALIDENEMY__
 			return qfalse;
 		}
 
 		if (NPC_IsVendor(self) || NPC_IsVendor(ent))
 		{// These guys have no enemies...
+#ifdef __DEBUG_VALIDENEMY__
+			if (ent->s.eType == ET_PLAYER)
+			{
+				Com_Printf("NPC_IsVendor\n");
+			}
+#endif //__DEBUG_VALIDENEMY__
 			return qfalse;
 		}
 	}
@@ -940,6 +1063,12 @@ qboolean NPC_ValidEnemy2( gentity_t *self, gentity_t *ent )
 	{
 		if (ent == self->parent || ent == self->padawan)
 		{// A padawan and his jedi are never enemies...
+#ifdef __DEBUG_VALIDENEMY__
+			if (ent->s.eType == ET_PLAYER)
+			{
+				Com_Printf("self->padawan\n");
+			}
+#endif //__DEBUG_VALIDENEMY__
 			return qfalse;
 		}
 
@@ -948,21 +1077,55 @@ qboolean NPC_ValidEnemy2( gentity_t *self, gentity_t *ent )
 			if (Distance(self->r.currentOrigin, ent->r.currentOrigin) > 1024
 				|| Distance(self->parent->r.currentOrigin, ent->r.currentOrigin) > 1024)
 			{// Too far from me or my master...
+#ifdef __DEBUG_VALIDENEMY__
+				if (ent->s.eType == ET_PLAYER)
+				{
+					Com_Printf("self->parent\n");
+				}
+#endif //__DEBUG_VALIDENEMY__
 				return qfalse;
 			}
 		}
 	}
 
-	if ( ent->s.weapon == WP_SABER 
-		&& ent->enemy 
-		&& ent->enemy != self 
-		&& ent->enemy != self->parent // padawans will assist their jedi... 
-		&& ent->enemy != self->padawan // jedi will assist their padawans... 
-		&& ent->enemy->s.weapon == WP_SABER
-		&& ent->enemy->enemy == ent)
-	{// If their current weapon is saber (and is not me), and their enemy's current weapon is as well (and they are dueling), then let them duel...
-		return qfalse;
+#if 1
+	if (ent->enemy 
+		&& NPC_IsAlive(ent, ent->enemy) 
+		&& ent->s.weapon == WP_SABER 
+		&& ent->enemy->s.weapon == WP_SABER)
+	{// Check for saber dueling...
+		if (ent->enemy == self)
+		{// they are attacking me...
+
+		}
+		else if (ent->enemy == self->parent && NPC_IsAlive(ent, self->parent))
+		{// padawans will assist their jedi... 
+
+		}
+		else if (ent->enemy == self->padawan && NPC_IsAlive(ent, self->padawan))
+		{// jedi will assist their padawans... 
+
+		}
+		else if (ent->enemy->enemy == ent->enemy && ent->enemy == ent)
+		{// Because things seem to default to the player entity, and not NULL after respawns... This should bypass this craziness...
+
+		}
+		else if (ent->enemy->enemy == ent && NPC_IsAlive(ent, ent->enemy->enemy))
+		{
+#ifdef __DEBUG_VALIDENEMY__
+			if (ent->s.eType == ET_PLAYER)
+			{
+				Com_Printf("DUELING. ent %i (%s). ent->enemy %i (%s). ent->enemy->enemy %i (%s).\n"
+					, ent->s.number, ent->classname
+					, ent->enemy->s.number, ent->enemy->classname
+					, ent->enemy->enemy->s.number, ent->enemy->enemy->classname);
+			}
+#endif //__DEBUG_VALIDENEMY__
+
+			return qfalse;
+		}
 	}
+#endif
 
 	if ( self->client && ent->client )
 	{// Special client checks...
@@ -985,6 +1148,12 @@ qboolean NPC_ValidEnemy2( gentity_t *self, gentity_t *ent )
 			{//still potentially valid
 				if ( ent->alliedTeam == self->client->playerTeam )
 				{
+#ifdef __DEBUG_VALIDENEMY__
+					if (ent->s.eType == ET_PLAYER)
+					{
+						Com_Printf("alliedTeam\n");
+					}
+#endif //__DEBUG_VALIDENEMY__
 					return qfalse;
 				}
 				else
@@ -997,6 +1166,12 @@ qboolean NPC_ValidEnemy2( gentity_t *self, gentity_t *ent )
 		//Can't be on the same team
 		if ( ent->client->playerTeam == self->client->playerTeam )
 		{
+#ifdef __DEBUG_VALIDENEMY__
+			if (ent->s.eType == ET_PLAYER)
+			{
+				Com_Printf("playerTeam\n");
+			}
+#endif //__DEBUG_VALIDENEMY__
 			return qfalse;
 		}
 
@@ -1012,12 +1187,13 @@ qboolean NPC_ValidEnemy2( gentity_t *self, gentity_t *ent )
 			return qtrue;
 	}
 	
+#ifdef __DEBUG_VALIDENEMY__
+	if (ent->s.eType == ET_PLAYER)
+	{
+		Com_Printf("playerTeam\n");
+	}
+#endif //__DEBUG_VALIDENEMY__
 	return qfalse;
-}
-
-qboolean NPC_ValidEnemy( gentity_t *aiEnt, gentity_t *ent )
-{
-	return NPC_ValidEnemy2(aiEnt, ent);
 }
 
 /*
@@ -1086,7 +1262,7 @@ NPC_GetCheckDelta
 
 static int NPC_GetCheckDelta( void )
 {
-	if ( NPC_ValidEnemy( NPC->enemy ) == qfalse )
+	if ( ValidEnemy( NPC->enemy ) == qfalse )
 	{
 		int distance = DistanceSquared( NPC->r.currentOrigin, g_entities[0].currentOrigin );
 
@@ -1138,7 +1314,7 @@ int NPC_FindNearestEnemy( gentity_t *ent )
 			continue;
 
 		//Must be valid
-		if ( NPC_ValidEnemy( ent, radEnt ) == qfalse )
+		if ( ValidEnemy( ent, radEnt ) == qfalse )
 			continue;
 
 		if (EntIsGlass(radEnt))
@@ -1252,20 +1428,20 @@ qboolean NPC_FindEnemy( gentity_t *aiEnt, qboolean checkAlerts )
 
 	if (aiEnt->enemy)
 	{// In case we get mixed up somewhere... the whole playerTeam thing, *sigh*
-		if (!NPC_ValidEnemy2(aiEnt, aiEnt->enemy))
+		if (!ValidEnemy(aiEnt, aiEnt->enemy))
 		{
 			aiEnt->enemy = NULL;
 		}
 	}
 
 	//If we've gotten here alright, then our target it still valid
-	if ( aiEnt->enemy && NPC_ValidEnemy(aiEnt, aiEnt->enemy ) )
+	if ( aiEnt->enemy && ValidEnemy(aiEnt, aiEnt->enemy ) )
 		return qtrue;
 
 	newenemy = NPC_PickEnemyExt(aiEnt, checkAlerts );
 
 	//if we found one, take it as the enemy
-	if( NPC_ValidEnemy(aiEnt, newenemy ) )
+	if( ValidEnemy(aiEnt, newenemy ) )
 	{
 		G_SetEnemy( aiEnt, newenemy );
 		return qtrue;
@@ -1287,7 +1463,7 @@ qboolean NPC_CheckEnemyExt( gentity_t *aiEnt, qboolean checkAlerts )
 		return qfalse;
 	}
 
-	if (aiEnt->enemy && NPC_IsAlive(aiEnt, aiEnt->enemy) && NPC_ValidEnemy(aiEnt, aiEnt->enemy))
+	if (aiEnt->enemy && NPC_IsAlive(aiEnt, aiEnt->enemy) && ValidEnemy(aiEnt, aiEnt->enemy))
 	{
 		return qtrue;
 	}

@@ -264,8 +264,7 @@ extern qboolean NPC_SetCombatPoint(gentity_t *aiEnt, int combatPointID );
 
 #define	MAX_COMBAT_POINT_CHECK	32
 
-extern qboolean NPC_ValidEnemy(gentity_t *aiEnt, gentity_t *ent );
-extern qboolean NPC_ValidEnemy2( gentity_t *self, gentity_t *ent );
+extern qboolean ValidEnemy(gentity_t *aiEnt, gentity_t *ent );
 extern qboolean NPC_CheckEnemyExt(gentity_t *aiEnt, qboolean checkAlerts ); //checkAlerts = qfalse
 extern qboolean NPC_CheckCanAttackExt(gentity_t *aiEnt);
 

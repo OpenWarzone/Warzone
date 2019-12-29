@@ -345,6 +345,100 @@ int PM_GetSaberStance(void)
 
 int currentTestAnimationNumver = 0;
 
+qboolean PM_BlockableBlasterBoltsInRange( void )
+{
+#if defined (_CGAME) || defined (_GAME)
+	qboolean		boltInRange = qfalse;
+
+#if defined (_CGAME)
+	centity_t		*pmEntity = &cg_entities[pm->baseEnt->s.number];
+	int				curTime = cg.time;
+#elif defined (_GAME)
+	gentity_t		*pmEntity = &g_entities[pm->baseEnt->s.number];
+	int				curTime = level.time;
+#endif
+
+	if (pmEntity->defenseSpinLastValidTime >= curTime - 500)
+	{// Continue the spin for at least 1/2 second after no bolts seen around the player...
+		return qtrue;
+	}
+	else
+	{// Check if there are blaster bolts to block...
+		qboolean	lenientCheck = qfalse;
+
+		if (pmEntity->defenseSpinLastValidTime >= curTime - 1000)
+		{// Do more lenient checking of distance and FOV, since we are already spinning...
+			lenientCheck = qtrue;
+		}
+
+		for (int i = 0; i < MAX_GENTITIES; i++)
+		{
+#if defined (_CGAME)
+			extern qboolean CG_InFOV(vec3_t spot, vec3_t from, vec3_t fromAngles, int hFOV, int vFOV);
+
+			centity_t *cent = &cg_entities[i];
+
+			if (cent->currentState.eType == ET_MISSILE)
+			{
+				float dist = Distance(pm->ps->origin, cent->lerpOrigin);
+
+				if (dist <= 512 || (lenientCheck && dist <= 768))
+				{
+					if (CG_InFOV(cent->lerpOrigin, pm->ps->origin, cent->lerpAngles, 90, 90) || (lenientCheck && CG_InFOV(cent->lerpOrigin, pm->ps->origin, cent->lerpAngles, 120, 120)))
+					{
+						boltInRange = qtrue;
+						break;
+					}
+				}
+			}
+#elif defined (_GAME)
+			extern qboolean InFOV3(vec3_t spot, vec3_t from, vec3_t fromAngles, int hFOV, int vFOV);
+
+			gentity_t *ent = &g_entities[i];
+
+			if (!ent || !ent->inuse)
+			{
+				continue;
+			}
+
+			if (ent->s.eType == ET_MISSILE)
+			{
+				float dist = Distance(pm->ps->origin, ent->r.currentOrigin);
+
+				if (dist <= 512 || (lenientCheck && dist <= 768))
+				{
+					if (InFOV3(ent->r.currentOrigin, pm->ps->origin, ent->r.currentAngles, 90, 90) || (lenientCheck && InFOV3(ent->r.currentOrigin, pm->ps->origin, ent->r.currentAngles, 120, 120)))
+					{
+						boltInRange = qtrue;
+						break;
+					}
+				}
+			}
+#endif
+		}
+	}
+
+	if (boltInRange)
+	{
+		if (pmEntity->defenseSpinStartTime == 0)
+		{// This one only marks the start of a new spin... To be used for accuracy and timing based blocking...
+			pmEntity->defenseSpinStartTime = curTime;
+		}
+
+		pmEntity->defenseSpinLastValidTime = curTime;
+	}
+	else
+	{// Init both the timers...
+		pmEntity->defenseSpinStartTime = 0;
+		pmEntity->defenseSpinLastValidTime = 0;
+	}
+
+	return boltInRange;
+#else //!defined (_CGAME) && !defined (_GAME)
+	return qfalse;
+#endif//!defined (_CGAME) && !defined (_GAME)
+}
+
 //[NewSaberSys]
 int PM_GetSaberStance()
 {
@@ -394,30 +488,29 @@ int PM_GetSaberStance()
 	}
 #endif
 
-	if (hideStance)
-	{
-		if (!(pm->cmd.buttons & BUTTON_ALT_ATTACK)
-			&& !(pm->ps->weaponstate == WEAPON_DROPPING
-				|| pm->ps->weaponstate == WEAPON_RAISING))
-		{
-			return BOTH_STAND1;
-		}
-	}
-
-	if (BG_SabersOff(pm->ps) && !(pm->ps->weaponstate == WEAPON_DROPPING
-		|| pm->ps->weaponstate == WEAPON_RAISING))
+	if (hideStance
+		&& !(pm->cmd.buttons & BUTTON_ALT_ATTACK)
+		&& !(pm->ps->weaponstate == WEAPON_DROPPING || pm->ps->weaponstate == WEAPON_RAISING))
 	{
 		return BOTH_STAND1;
 	}
 
+	if (BG_SabersOff(pm->ps) && !(pm->ps->weaponstate == WEAPON_DROPPING || pm->ps->weaponstate == WEAPON_RAISING))
+	{
+		return BOTH_STAND1;
+	}
+
+	// Projectile block/defence spins... It all starts/continues here...
 	if (pm->ps->fd.saberDrawAnimLevel == SS_CROWD_CONTROL 
 		&& (pm->cmd.buttons & BUTTON_ALT_ATTACK)
-		&& !(pm->cmd.buttons & BUTTON_ATTACK))
+		&& !(pm->cmd.buttons & BUTTON_ATTACK)
+		&& (pm->ps->torsoAnim == BOTH_CC_DEFENCE_SPIN || PM_BlockableBlasterBoltsInRange()))
 	{
 		return BOTH_CC_DEFENCE_SPIN;
 	}
 	else if ((pm->cmd.buttons & BUTTON_ALT_ATTACK)
-		&& !(pm->cmd.buttons & BUTTON_ATTACK))
+		&& !(pm->cmd.buttons & BUTTON_ATTACK)
+		&& (pm->ps->torsoAnim == BOTH_SINGLE_DEFENCE_SPIN || PM_BlockableBlasterBoltsInRange()))
 	{
 		return BOTH_SINGLE_DEFENCE_SPIN;
 	}
@@ -440,12 +533,15 @@ int PM_GetSaberStance()
 	}
 #endif //__DEBUG_TEST_ANIMS__
 
-	if (!hideStance || (pm->cmd.buttons & BUTTON_ALT_ATTACK))
+	if (hideStance || ((pm->cmd.buttons & BUTTON_ALT_ATTACK) && !(pm->cmd.buttons & BUTTON_ATTACK)))
 	{//for now I'll assume that we're using an inverted control system.
-
 		if (forwardmove < 0)
 		{
-			if (rightmove < 0)
+			if (pm->ps->fd.saberDrawAnimLevel == SS_CROWD_CONTROL)
+			{// Always hold saber in front of face, so that the blade doesn't clip into player's legs when moving side to side...
+				return 838;
+			}
+			else if (rightmove < 0)
 			{//lower left block
 				if (mblockforstance == SS_DUAL)
 				{
@@ -548,6 +644,10 @@ int PM_GetSaberStance()
 			else
 			{
 				//Top Block
+				if (pm->ps->fd.saberDrawAnimLevel == SS_CROWD_CONTROL)
+				{
+					return 838;
+				}
 				if (mblockforstance == SS_DUAL)
 				{
 					return BOTH_P6_S6_T_;
@@ -604,7 +704,6 @@ int PM_GetSaberStance()
 				{
 					return BOTH_P1_S1_TR;
 				}
-
 				else
 				{
 					return /*BOTH_P1_S1_TR*/BOTH_P1_S1_R;
@@ -632,6 +731,11 @@ int PM_GetSaberStance()
 
 	if (pm->ps->fd.saberDrawAnimLevel == SS_CROWD_CONTROL)
 	{
+		if ((pm->cmd.buttons & BUTTON_ALT_ATTACK) && !(pm->cmd.buttons & BUTTON_ATTACK))
+		{
+			return 838;
+		}
+
 		return BOTH_CC_STANCE;
 	}
 

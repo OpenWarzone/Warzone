@@ -3608,6 +3608,14 @@ void ClientSpawn(gentity_t *ent) {
 	index = ent - g_entities;
 	client = ent->client;
 
+	if (ent->padawan)
+	{
+		ent->padawan->parent = NULL;
+	}
+
+	ent->parent = NULL;
+	ent->padawan = NULL;
+
 	//first we want the userinfo so we can see if we should update this client's saber -rww
 	trap->GetUserinfo( index, userinfo, sizeof( userinfo ) );
 
@@ -4366,13 +4374,6 @@ void ClientSpawn(gentity_t *ent) {
 	trap->ICARUS_FreeEnt( (sharedEntity_t *)ent );
 	trap->ICARUS_InitEnt( (sharedEntity_t *)ent );
 #endif //__NO_ICARUS__
-
-	if (ent->padawan)
-	{
-		ent->padawan->parent = NULL;
-	}
-
-	ent->padawan = NULL;
 
 	extern vmCvar_t npc_followers;
 

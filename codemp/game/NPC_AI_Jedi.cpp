@@ -1670,7 +1670,7 @@ void Jedi_Retreat(gentity_t *aiEnt)
 	//Com_Printf( "Retreating\n" );
 
 #ifdef __USE_NAVLIB__
-	if (!aiEnt->enemy || !NPC_ValidEnemy(aiEnt, aiEnt->enemy))
+	if (!aiEnt->enemy || !ValidEnemy(aiEnt, aiEnt->enemy))
 	{// No enemy, so use original JKA movement...
 		aiEnt->NPC->forceWalkTime = level.time + 100;
 		Jedi_Move(aiEnt, aiEnt->enemy, qtrue);
@@ -1768,7 +1768,7 @@ void Jedi_Advance( gentity_t *aiEnt)
 	//Com_Printf( "Advancing\n" );
 
 #ifdef __USE_NAVLIB__
-	if (!aiEnt->enemy || !NPC_ValidEnemy(aiEnt, aiEnt->enemy))
+	if (!aiEnt->enemy || !ValidEnemy(aiEnt, aiEnt->enemy))
 	{// No enemy, so use original JKA movement...
 		aiEnt->NPC->forceWalkTime = 0;
 		Jedi_Move(aiEnt, aiEnt->enemy, qfalse);
@@ -2196,7 +2196,7 @@ static void Jedi_CombatDistance( gentity_t *aiEnt, int enemy_dist )
 	}
 	else if ( !TIMER_Done( aiEnt, "taunting" ) )
 	{
-		if (aiEnt->enemy && !NPC_ValidEnemy(aiEnt, aiEnt->enemy))
+		if (aiEnt->enemy && !ValidEnemy(aiEnt, aiEnt->enemy))
 		{
 
 		}
@@ -4487,7 +4487,7 @@ gentity_t *Jedi_FindEnemyInCone( gentity_t *self, gentity_t *fallback, float min
 		{//dead
 			continue;
 		}
-		if ( !NPC_ValidEnemy(self, check) )
+		if ( !ValidEnemy(self, check) )
 		{// civilian
 			continue;
 		}
@@ -6566,7 +6566,7 @@ qboolean Jedi_CheckAmbushPlayer( gentity_t *aiEnt)
 			continue;
 		}
 
-		if ( !NPC_ValidEnemy(aiEnt, player ) )
+		if ( !ValidEnemy(aiEnt, player ) )
 		{
 			continue;
 		}
@@ -6686,7 +6686,7 @@ static void Jedi_Patrol( gentity_t *aiEnt)
 		{
 			gentity_t *enemy = &g_entities[i];
 			float	enemy_dist;
-			if ( enemy && enemy->client && NPC_ValidEnemy(aiEnt, enemy ) && enemy->client->playerTeam == aiEnt->client->enemyTeam )
+			if ( enemy && enemy->client && ValidEnemy(aiEnt, enemy ) && enemy->client->playerTeam == aiEnt->client->enemyTeam )
 			{
 				if ( trap->InPVS( aiEnt->r.currentOrigin, enemy->r.currentOrigin ) )
 				{//we could potentially see him
@@ -7224,7 +7224,7 @@ static void Jedi_Attack( gentity_t *aiEnt)
 		//	{
 		//		ucmd.buttons |= BUTTON_ATTACK;
 		//	}
-			if (aiEnt->enemy && !NPC_ValidEnemy(aiEnt, aiEnt->enemy))
+			if (aiEnt->enemy && !ValidEnemy(aiEnt, aiEnt->enemy))
 			{
 				
 			}
@@ -7386,7 +7386,7 @@ static void Jedi_Attack( gentity_t *aiEnt)
 	{
 		if ( aiEnt->enemy->count <= 0 )
 		{//it's out of ammo
-			if ( aiEnt->enemy->activator && NPC_ValidEnemy(aiEnt, aiEnt->enemy->activator ) )
+			if ( aiEnt->enemy->activator && ValidEnemy(aiEnt, aiEnt->enemy->activator ) )
 			{
 				gentity_t *turretOwner = aiEnt->enemy->activator;
 				G_ClearEnemy( aiEnt );
@@ -8452,10 +8452,10 @@ void NPC_CreateAttackGroup(int faction, vec3_t position, gentity_t *aiEnt, genti
 		if (npc_pathing.integer == 0 && VectorLength(ent->spawn_pos) != 0 && Distance(ent->spawn_pos, position) > 6000.0)
 			continue;
 
-		if (ent->enemy && NPC_ValidEnemy(ent, ent->enemy))
+		if (ent->enemy && ValidEnemy(ent, ent->enemy))
 			continue; // Already has an enemy...
 
-		if (!NPC_ValidEnemy(ent, aiEnt->enemy))
+		if (!ValidEnemy(ent, aiEnt->enemy))
 			continue;
 
 		// Looks like a valid teammate... Call them over...
@@ -8496,7 +8496,7 @@ void NPC_CallForHelp(gentity_t *aiEnt)
 	if (aiEnt->isPadawan)
 		return;
 
-	if (NPC_ValidEnemy(aiEnt, aiEnt->enemy))
+	if (ValidEnemy(aiEnt, aiEnt->enemy))
 	{
 		if (NPC_IsJedi(aiEnt))
 		{// Jedi/Sith call for help based on health...

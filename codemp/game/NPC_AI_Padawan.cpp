@@ -10,7 +10,7 @@ extern float MAX_LINK_DISTANCE;
 extern int DOM_GetNearestWP(vec3_t org, int badwp);
 extern int NPC_GetNextNode(gentity_t *NPC);
 extern qboolean UQ1_UcmdMoveForDir ( gentity_t *self, usercmd_t *cmd, vec3_t dir, qboolean walk, vec3_t dest );
-extern qboolean NPC_ValidEnemy2( gentity_t *self, gentity_t *ent );
+extern qboolean ValidEnemy( gentity_t *self, gentity_t *ent );
 extern qboolean NPC_FindEnemy(gentity_t *aiEnt, qboolean checkAlerts );
 extern qboolean NPC_DoLiftPathing(gentity_t *NPC);
 extern void NPC_NewWaypointJump (gentity_t *aiEnt);
@@ -604,7 +604,7 @@ qboolean NPC_PadawanMove(gentity_t *aiEnt)
 		return qfalse;
 	}
 
-	if (NPC->enemy && NPC_IsAlive(NPC, NPC->enemy) && NPC_ValidEnemy2(NPC, NPC->enemy))
+	if (NPC->enemy && ValidEnemy(NPC, NPC->enemy))
 	{// Keep fighting who we are fighting...
 		return qtrue;
 	}
@@ -729,7 +729,7 @@ qboolean NPC_PadawanMove(gentity_t *aiEnt)
 		return qfalse;
 	}
 
-	if (NPC->enemy && NPC_IsAlive(NPC, NPC->enemy) && NPC_ValidEnemy2(NPC, NPC->enemy))
+	if (NPC->enemy && ValidEnemy(NPC, NPC->enemy))
 	{// Keep fighting who we are fighting...
 		return qtrue;
 	}
@@ -1311,7 +1311,7 @@ void NPC_DoPadawanStuff (gentity_t *aiEnt)
 
 	if (me->enemy)
 	{// In case we get mixed up somewhere... the whole playerTeam thing, *sigh*
-		if (!NPC_ValidEnemy2(me, me->enemy))
+		if (!ValidEnemy(me, me->enemy))
 		{
 			me->enemy = NULL;
 		}
@@ -1410,7 +1410,7 @@ void NPC_DoPadawanStuff (gentity_t *aiEnt)
 		return; // Already have a master to follow...
 	}
 
-	if (me->enemy && NPC_IsAlive(me, me->enemy) && NPC_ValidEnemy2(me, me->enemy))
+	if (me->enemy && ValidEnemy(me, me->enemy))
 	{// Keep fighting who we are fighting...
 		return;
 	}
@@ -1436,8 +1436,7 @@ void NPC_DoPadawanStuff (gentity_t *aiEnt)
 		if ( parent2
 			&& parent2 != me
 			&& parent2->client
-			&& NPC_IsAlive(me, parent2)
-			&& !NPC_ValidEnemy(me, parent2)
+			&& !ValidEnemy(me, parent2)
 			&& (!parent2->padawan || !NPC_IsAlive(me, parent2->padawan)) )
 		{// This is a jedi on our team...
 			qboolean parentDark = (qboolean)(parent2->client->sess.sessionTeam == FACTION_EMPIRE);

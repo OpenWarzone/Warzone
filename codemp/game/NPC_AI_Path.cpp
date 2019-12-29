@@ -34,12 +34,12 @@ float MAX_LINK_DISTANCE = 1024.0;//512.0;
 qboolean NPC_IsCombatPathing(gentity_t *aiEnt)
 {
 #ifdef __USE_NAVLIB__
-	if (aiEnt->client && aiEnt->client->navigation.goal.haveGoal && aiEnt->enemy && aiEnt->enemy->client && NPC_ValidEnemy(aiEnt, aiEnt->enemy))
+	if (aiEnt->client && aiEnt->client->navigation.goal.haveGoal && aiEnt->enemy && aiEnt->enemy->client && ValidEnemy(aiEnt, aiEnt->enemy))
 	{
 		return qtrue;
 	}
 #else //!__USE_NAVLIB__
-	if (aiEnt->client && aiEnt->longTermGoal > 0 && aiEnt->longTermGoal < gWPNum && aiEnt->enemy && aiEnt->enemy->client && NPC_ValidEnemy(aiEnt, aiEnt->enemy))
+	if (aiEnt->client && aiEnt->longTermGoal > 0 && aiEnt->longTermGoal < gWPNum && aiEnt->enemy && aiEnt->enemy->client && ValidEnemy(aiEnt, aiEnt->enemy))
 	{
 		return qtrue;
 	}
@@ -576,7 +576,7 @@ int NPC_FindTeamGoal( gentity_t *NPC )
 		if (ent == NPC) continue;
 		if (ent->s.eType != ET_NPC && ent->s.eType != ET_PLAYER) continue;
 		if (!ent->client) continue;
-		if (!NPC_ValidEnemy(NPC, ent)) continue;
+		if (!ValidEnemy(NPC, ent)) continue;
 
 		if (ent->s.eType == ET_PLAYER)
 		{
@@ -1203,12 +1203,12 @@ qboolean NPC_HaveValidEnemy(gentity_t *aiEnt)
 	{
 		if (NPC_IsAlive(NPC, NPC->enemy))
 		{
-			if (NPC->enemy == NPC->enemy->padawan)
+			if (NPC->enemy == NPC->padawan)
 			{
 				NPC->enemy = NULL;
 				return qfalse;
 			}
-			else if (NPC->enemy == NPC->enemy->parent)
+			else if (NPC->enemy == NPC->parent)
 			{
 				NPC->enemy = NULL;
 				return qfalse;
