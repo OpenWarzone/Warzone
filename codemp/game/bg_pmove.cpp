@@ -504,13 +504,13 @@ int PM_GetSaberStance()
 	if (pm->ps->fd.saberDrawAnimLevel == SS_CROWD_CONTROL 
 		&& (pm->cmd.buttons & BUTTON_ALT_ATTACK)
 		&& !(pm->cmd.buttons & BUTTON_ATTACK)
-		&& (pm->ps->torsoAnim == BOTH_CC_DEFENCE_SPIN || PM_BlockableBlasterBoltsInRange()))
+		&& (bg_testspinanimation.integer || pm->ps->torsoAnim == BOTH_CC_DEFENCE_SPIN || PM_BlockableBlasterBoltsInRange()))
 	{
 		return BOTH_CC_DEFENCE_SPIN;
 	}
 	else if ((pm->cmd.buttons & BUTTON_ALT_ATTACK)
 		&& !(pm->cmd.buttons & BUTTON_ATTACK)
-		&& (pm->ps->torsoAnim == BOTH_SINGLE_DEFENCE_SPIN || PM_BlockableBlasterBoltsInRange()))
+		&& (bg_testspinanimation.integer || pm->ps->torsoAnim == BOTH_SINGLE_DEFENCE_SPIN || PM_BlockableBlasterBoltsInRange()))
 	{
 		return BOTH_SINGLE_DEFENCE_SPIN;
 	}

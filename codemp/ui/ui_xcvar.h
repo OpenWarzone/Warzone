@@ -125,5 +125,6 @@ XCVAR_DEF(bg_testvalue1, "0", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(bg_testvalue2, "0", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(bg_testvalue3, "0", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(bg_testanimation, "0", NULL, CVAR_ARCHIVE)
+XCVAR_DEF(bg_testspinanimation, "0", NULL, CVAR_ARCHIVE)
 
 #undef XCVAR_DEF
