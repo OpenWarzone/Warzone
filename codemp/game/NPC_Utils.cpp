@@ -906,7 +906,7 @@ qboolean ValidEnemy(gentity_t *aiEnt, gentity_t *ent)
 }
 */
 
-#define __DEBUG_VALIDENEMY__
+//#define __DEBUG_VALIDENEMY__
 
 qboolean ValidEnemy( gentity_t *self, gentity_t *ent )
 {
