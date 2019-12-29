@@ -19,6 +19,12 @@ extern const char *saberStat2Tooltips[];
 extern const char *saberStat3Tooltips[];
 extern const char *itemStatTooltips[];
 
+typedef enum {
+	MODELTYPE_DEFAULT,
+	MODELTYPE_STAFF,
+	MODELTYPE_MAX,
+};
+
 //
 // Quality levels of items...
 //
@@ -143,6 +149,7 @@ private:
 	uint16_t			m_bgItemID;				// Link to the original base item in bg_itemlist.
 
 	// Quality and Quantity information...
+	uint16_t			m_modelType;			// Model type identifier.
 	itemQuality_t		m_quality;				// Quality level of this item, as defined by itemQuality_t
 	uint16_t			m_quantity;				// Quantity of this stack of items.
 
@@ -164,16 +171,15 @@ public:
 	// Construction/Destruction...
 	//
 	inventoryItem(uint16_t itemID);
-	inventoryItem(uint16_t, uint16_t, itemQuality_t, uint16_t); // paramterized constructor
+	inventoryItem(uint16_t, uint16_t, itemQuality_t, uint16_t, uint16_t); // paramterized constructor
 	~inventoryItem(); // destructor
-
-	qboolean			m_transmitted;
 
 	//
 	// Item Setup Functions...
 	//
 	void setItemID(uint16_t itemID);
 	void setBaseItem(uint16_t);
+	void setModelType(uint16_t type);
 	void setQuality(itemQuality_t);
 	void setQuantity(uint16_t);
 
@@ -189,6 +195,7 @@ public:
 	uint16_t getItemID();
 	gitem_t	*getBaseItem();
 	uint16_t getBaseItemID();
+	uint16_t getModelType();
 	itemQuality_t getQuality();
 	const char *getName(uint16_t modItemID1);
 	char *getDescription();

@@ -228,6 +228,7 @@ inventoryItem::inventoryItem(uint16_t itemID)
 	m_itemID = itemID;
 	m_bgItemID = 0;
 
+	m_modelType = MODELTYPE_DEFAULT;
 	m_quality = QUALITY_GREY;
 	m_quantity = 0;
 
@@ -240,11 +241,12 @@ inventoryItem::inventoryItem(uint16_t itemID)
 	m_basicStat3value = 0.0;
 }
 
-inventoryItem::inventoryItem(uint16_t itemID, uint16_t bgItemID, itemQuality_t quality, uint16_t amount = 1)
+inventoryItem::inventoryItem(uint16_t itemID, uint16_t bgItemID, itemQuality_t quality, uint16_t type = 0, uint16_t amount = 1)
 {
 	m_itemID = itemID;
 	m_bgItemID = bgItemID;
 
+	m_modelType = type;
 	m_quality = quality;
 	m_quantity = amount;
 
@@ -273,6 +275,11 @@ void inventoryItem::setItemID(uint16_t itemID)
 void inventoryItem::setBaseItem(uint16_t bgItemID)
 {
 	m_bgItemID = bgItemID;
+}
+
+void inventoryItem::setModelType(uint16_t type)
+{
+	m_modelType = type;
 }
 
 void inventoryItem::setQuality(itemQuality_t quality)
@@ -336,6 +343,11 @@ gitem_t *inventoryItem::getBaseItem()
 uint16_t inventoryItem::getBaseItemID()
 {
 	return m_bgItemID;
+}
+
+uint16_t inventoryItem::getModelType()
+{
+	return m_modelType;
 }
 
 const char *inventoryItem::getName(uint16_t modItemID1)
@@ -511,6 +523,7 @@ float inventoryItem::getCrystalPower(void)
 float inventoryItem::getCost(uint16_t modItemID1, uint16_t modItemID2, uint16_t modItemID3)
 {// Apply multipliers based on how many extra stats this item has...
 	float crystalCostMultiplier = getCrystal() ? 1.5 * (1.0 + getCrystalPower()) : 1.0;
+	float dualbladeCostMultiplier = (getBaseItem()->giTag == WP_SABER && getModelType() == MODELTYPE_STAFF) ? 1.5 * (1.0 + getCrystalPower()) : 1.0;
 	float statCostMultiplier1 = getBasicStat1() ? 1.25 * (1.0 + getBasicStat1Value()) : 1.0;
 	float statCostMultiplier2 = getBasicStat1() ? 1.25 * (1.0 + getBasicStat2Value()) : 1.0;
 	float statCostMultiplier3 = getBasicStat1() ? 1.25 * (1.0 + getBasicStat3Value()) : 1.0;
@@ -668,7 +681,12 @@ const char *inventoryItem::getTooltip(uint16_t modItemID1, uint16_t modItemID2, 
 		if (getBaseItem()->giTag == WP_SABER)
 		{
 			tooltipText = va("^B%s^b\n", getName(modItemID1));
-			tooltipText.append("^POne handed weapon, Lightsaber\n");
+			
+			if (getIsTwoHanded())
+				tooltipText.append("^PTwo handed weapon, Lightsaber\n");
+			else
+				tooltipText.append("^POne handed weapon, Lightsaber\n");
+
 			tooltipText.append(" \n");
 			tooltipText.append(va("^5%s\n", getDescription()));
 			tooltipText.append(" \n");

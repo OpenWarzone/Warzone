@@ -1479,11 +1479,24 @@ qboolean G_SetSaber(gentity_t *ent, int saberNum, char *saberName, qboolean sieg
 	else
 		Q_strncpyz( ent->client->pers.saber2, ent->client->saber[1].name, sizeof( ent->client->pers.saber2 ) );
 
+#if 0
 	if ( !WP_SaberStyleValidForSaber( &ent->client->saber[0], &ent->client->saber[1], ent->client->ps.saberHolstered, ent->client->ps.fd.saberAnimLevel ) )
 	{
 		WP_UseFirstValidSaberStyle( &ent->client->saber[0], &ent->client->saber[1], ent->client->ps.saberHolstered, &ent->client->ps.fd.saberAnimLevel );
-		ent->client->ps.fd.saberAnimLevelBase = ent->client->saberCycleQueue = ent->client->ps.fd.saberAnimLevel;
+		//ent->client->ps.fd.saberAnimLevelBase = ent->client->saberCycleQueue = ent->client->ps.fd.saberAnimLevel;
+
+		if (ent->client->ps.weaponTime <= 0)
+		{ //not busy, set it now
+			ent->client->ps.fd.saberDrawAnimLevel = ent->client->ps.fd.saberAnimLevelBase = ent->client->ps.fd.saberAnimLevel;
+		}
+		else
+		{ //can't set it now or we might cause unexpected chaining, so queue it
+			ent->client->saberCycleQueue = ent->client->ps.fd.saberAnimLevel;
+		}
 	}
+#endif
+
+	//Cmd_SaberAttackCycle_f(ent);
 
 	return qtrue;
 }
@@ -2848,6 +2861,7 @@ void Cmd_ToggleSaber_f(gentity_t *ent)
 	}
 }
 
+extern void G_CheckSaber(gentity_t *ent);
 extern vmCvar_t		d_saberStanceDebug;
 
 qboolean G_SaberStanceIsValid(gentity_t *ent, int stance)
@@ -2861,6 +2875,8 @@ qboolean G_SaberStanceIsValid(gentity_t *ent, int stance)
 	{
 		return qtrue;
 	}
+
+	G_CheckSaber(ent);
 
 	int dualSaber = 0;
 	int dualBlade = 0;
@@ -2924,6 +2940,8 @@ void G_CheckSaberStanceValidity(gentity_t *ent)
 	{
 		return;
 	}
+
+	G_CheckSaber(ent);
 
 	int dualSaber = 0;
 	int dualBlade = 0;
@@ -2990,6 +3008,8 @@ void Cmd_SaberAttackCycle_f(gentity_t *ent)
 	{
 		return;
 	}
+
+	G_CheckSaber(ent);
 
 	if (ent->client->saberCycleQueue)
 	{ //resume off of the queue if we haven't gotten a chance to update it yet

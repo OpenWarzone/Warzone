@@ -2159,6 +2159,87 @@ void StripModelName( const char *in, char *out, int destsize )
 		Q_strncpyz(out, in, destsize);
 }
 
+extern qboolean WP_SaberParseParms(const char *saberName, saberInfo_t *saber);
+
+void G_CheckSaber(gentity_t *ent)
+{
+	if (!ent || !ent->client)
+	{
+		return;
+	}
+
+	if (ent->s.number >= MAX_CLIENTS && ent->s.eType != ET_NPC)
+	{
+		return;
+	}
+
+	qboolean changed = qfalse;
+	inventoryItem *saber = BG_EquippedWeapon(&ent->client->ps);
+
+	if (saber->getBaseItem()->giTag == WP_SABER)
+	{
+		if (saber->getIsTwoHanded())
+		{
+			if (Q_stricmp(ent->client->saber[0].model, "dual_1"))
+			{
+				if (ent->s.eType == ET_NPC)
+				{
+					WP_SaberParseParms("dual_1", &ent->client->saber[0]);
+					ent->s.npcSaber1 = G_ModelIndex(va("@%s", "dual_1"));
+					ent->s.npcSaber2 = G_ModelIndex(va("@%s", "none"));
+				}
+				else
+				{
+					G_SetSaber(ent, 0, "dual_1", qtrue);
+					G_SetSaber(ent, 1, "none", qtrue);
+					changed = qtrue;
+				}
+			}
+		}
+		else
+		{
+			if (Q_stricmp(ent->client->saber[0].model, "single_5"))
+			{
+				if (ent->s.eType == ET_NPC)
+				{
+					WP_SaberParseParms("single_5", &ent->client->saber[0]);
+					ent->s.npcSaber1 = G_ModelIndex(va("@%s", "single_5"));
+					ent->s.npcSaber2 = G_ModelIndex(va("@%s", "none"));
+				}
+				else
+				{
+					G_SetSaber(ent, 0, "single_5", qtrue);
+					G_SetSaber(ent, 1, "none", qtrue);
+					changed = qtrue;
+				}
+			}
+		}
+	}
+	else
+	{
+		if (Q_stricmp(ent->client->saber[0].model, "single_5"))
+		{
+			if (ent->s.eType == ET_NPC)
+			{
+				WP_SaberParseParms("single_5", &ent->client->saber[0]);
+				ent->s.npcSaber1 = G_ModelIndex(va("@%s", "single_5"));
+				ent->s.npcSaber2 = G_ModelIndex(va("@%s", "none"));
+			}
+			else
+			{
+				G_SetSaber(ent, 0, "single_5", qtrue);
+				G_SetSaber(ent, 1, "none", qtrue);
+				changed = qtrue;
+			}
+		}
+	}
+
+	if (changed)
+	{
+		ClientUserinfoChanged(ent->s.number);
+	}
+}
+
 qboolean ClientUserinfoChanged( int clientNum ) {
 	gentity_t *ent = g_entities + clientNum;
 	gclient_t *client = ent->client;
@@ -2506,8 +2587,10 @@ qboolean ClientUserinfoChanged( int clientNum ) {
 			// Set the sabers if the class dictates
 			siegeClass_t *scl = &bgSiegeClasses[client->siegeClass];
 
+#if 0
 			G_SetSaber( ent, 0, scl->saber1[0] ? scl->saber1 : DEFAULT_SABER, qtrue );
 			G_SetSaber( ent, 1, scl->saber2[0] ? scl->saber2 : "none", qtrue );
+#endif
 
 			//make sure the saber models are updated
 			G_SaberModelSetup( ent );
@@ -2534,12 +2617,42 @@ qboolean ClientUserinfoChanged( int clientNum ) {
 	else
 		Q_strncpyz( className, "none", sizeof( className ) );
 
+#if 0
 	// only set the saber name on the first connect.
 	//	it will be read from userinfo on ClientSpawn and stored in client->pers.saber1/2
 	if ( !VALIDSTRING( client->pers.saber1 ) || !VALIDSTRING( client->pers.saber2 ) ) {
 		G_SetSaber( ent, 0, Info_ValueForKey( userinfo, "saber1" ), qfalse );
 		G_SetSaber( ent, 1, Info_ValueForKey( userinfo, "saber2" ), qfalse );
 	}
+#else
+	inventoryItem *saber = BG_EquippedWeapon(&ent->client->ps);
+
+	if (saber->getBaseItem()->giTag == WP_SABER)
+	{
+		if (saber->getIsTwoHanded())
+		{
+			if (Q_stricmp(ent->client->saber[0].model, "dual_1"))
+			{
+				G_SetSaber(ent, 0, "dual_1", qtrue);
+				G_SetSaber(ent, 1, "none", qtrue);
+
+				Info_SetValueForKey(userinfo, "saber1", "dual_1");
+				Info_SetValueForKey(userinfo, "saber2", "none");
+			}
+		}
+		else
+		{
+			if (Q_stricmp(ent->client->saber[0].model, "single_5"))
+			{
+				G_SetSaber(ent, 0, "single_5", qtrue);
+				G_SetSaber(ent, 1, "none", qtrue);
+
+				Info_SetValueForKey(userinfo, "saber1", "single_5");
+				Info_SetValueForKey(userinfo, "saber2", "none");
+			}
+		}
+	}
+#endif
 
 #if 0
 	// set max health
