@@ -335,14 +335,14 @@ void Jedi_PlayBlockedPushSound( gentity_t *self )
 {
 	if ( self->s.number >= 0 && self->s.number < MAX_CLIENTS )
 	{
-		if (!NPC_IsJedi(self) && !NPC_IsBountyHunter(self))//NPC_IsStormtrooper(self))
+		if (self->NPC && !NPC_IsJedi(self) && !NPC_IsBountyHunter(self))//NPC_IsStormtrooper(self))
 			ST_Speech( self, SPEECH_OUTFLANK, 0.7f );
 		else
 			G_AddVoiceEvent( self, EV_PUSHFAIL, 3000 );
 	}
 	else if ( self->health > 0 && self->NPC && self->NPC->blockedSpeechDebounceTime < level.time )
 	{
-		if (!NPC_IsJedi(self) && !NPC_IsBountyHunter(self))//NPC_IsStormtrooper(self))
+		if (self->NPC && !NPC_IsJedi(self) && !NPC_IsBountyHunter(self))//NPC_IsStormtrooper(self))
 			ST_Speech( self, SPEECH_OUTFLANK, 0.7f );
 		else
 			G_AddVoiceEvent( self, EV_PUSHFAIL, 3000 );
@@ -355,14 +355,14 @@ void Jedi_PlayDeflectSound( gentity_t *self )
 {
 	if ( self->s.number >= 0 && self->s.number < MAX_CLIENTS )
 	{
-		if (!NPC_IsJedi(self) && !NPC_IsBountyHunter(self))//NPC_IsStormtrooper(self))
+		if (self->NPC && !NPC_IsJedi(self) && !NPC_IsBountyHunter(self))//NPC_IsStormtrooper(self))
 			ST_Speech( self, SPEECH_CHASE, 0.7f );
 		else
 			G_AddVoiceEvent( self, Q_irand( EV_DEFLECT1, EV_DEFLECT3 ), 3000 );
 	}
 	else if ( self->health > 0 && self->NPC && self->NPC->blockedSpeechDebounceTime < level.time )
 	{
-		if (!NPC_IsJedi(self) && !NPC_IsBountyHunter(self))//NPC_IsStormtrooper(self))
+		if (self->NPC && !NPC_IsJedi(self) && !NPC_IsBountyHunter(self))//NPC_IsStormtrooper(self))
 			ST_Speech( self, SPEECH_CHASE, 0.7f );
 		else
 			G_AddVoiceEvent( self, Q_irand( EV_DEFLECT1, EV_DEFLECT3 ), 3000 );
@@ -381,14 +381,14 @@ void NPC_Jedi_PlayConfusionSound( gentity_t *self )
 		}
 		else if ( Q_irand( 0, 1 ) )
 		{
-			if (!NPC_IsJedi(self) && !NPC_IsBountyHunter(self))//NPC_IsStormtrooper(self))
+			if (self->NPC && !NPC_IsJedi(self) && !NPC_IsBountyHunter(self))//NPC_IsStormtrooper(self))
 				ST_Speech( self, SPEECH_ESCAPING, 0 );
 			else
 				G_AddVoiceEvent( self, Q_irand( EV_TAUNT1, EV_TAUNT3 ), 2000 );
 		}
 		else
 		{
-			if (!NPC_IsJedi(self) && !NPC_IsBountyHunter(self))//NPC_IsStormtrooper(self))
+			if (self->NPC && !NPC_IsJedi(self) && !NPC_IsBountyHunter(self))//NPC_IsStormtrooper(self))
 				ST_Speech( self, SPEECH_CONFUSED, 0 );
 			else
 				G_AddVoiceEvent( self, Q_irand( EV_GLOAT1, EV_GLOAT3 ), 2000 );

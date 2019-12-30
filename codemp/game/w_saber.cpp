@@ -4940,6 +4940,31 @@ void DebounceSaberImpact(gentity_t *self, gentity_t *otherSaberer, int rSaberNum
 void G_Stagger(gentity_t *hitEnt, gentity_t *atk, qboolean forcePowerNeeded);
 void WP_SaberBlock(gentity_t *playerent, vec3_t hitloc, qboolean missileBlock);
 
+extern void Jedi_PlayBlockedPushSound(gentity_t *self);
+extern void Jedi_PlayDeflectSound(gentity_t *self);
+extern void NPC_Jedi_PlayConfusionSound(gentity_t *self);
+
+void G_DoClashTaunting(gentity_t *self, gentity_t *attacker)
+{
+	if (self == attacker)
+	{
+		if (irand(0, 3) == 0)
+		{
+			NPC_Jedi_PlayConfusionSound(self);
+		}
+	}
+	else
+	{
+		if (irand(0, 3) == 0)
+		{
+			if (irand(0,1) == 1)
+				Jedi_PlayDeflectSound(self);
+			else
+				Jedi_PlayBlockedPushSound(self);
+		}
+	}
+}
+
 static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t saberStart, vec3_t saberEnd, qboolean doInterpolate, int trMask, qboolean extrapolate)
 {
 	static trace_t		tr;
@@ -5237,6 +5262,11 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 						Com_Printf("Non-damage self bounce.\n");
 #endif //__DEBUG_REALTRACE__
 						self->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
+
+						if (BG_SaberInAttack(self->client->ps.saberMove))
+						{
+							G_DoClashTaunting(self, otherOwner);
+						}
 					}
 
 					if (otherOwner && otherOwner->client && !BG_SaberInSpecialAttack(otherOwner->client->ps.torsoAnim))
@@ -5246,6 +5276,11 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 						Com_Printf("Non-damage victim bounce.\n");
 #endif //__DEBUG_REALTRACE__
 						otherOwner->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
+
+						if (BG_SaberInAttack(otherOwner->client->ps.saberMove))
+						{
+							G_DoClashTaunting(otherOwner, self);
+						}
 					}
 				}
 			}
@@ -5308,7 +5343,10 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 				&& !(victim->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL && victim->client->ps.torsoAnim <= BOTH_SABERBLOCK_T)
 				&& !(victim->client->ps.torsoAnim >= BOTH_SABERBLOCK_FL1 && victim->client->ps.torsoAnim <= BOTH_SABERBLOCK_BR2))
 			{
-				G_Damage(victim, self, self, dir, tr.endpos, dmg, dflags, MOD_SABER);
+				if (victim->s.weapon == WP_SABER && self->s.weapon == WP_SABER)
+					G_Damage(victim, self, self, dir, tr.endpos, dmg * 0.015, dflags, MOD_SABER);
+				else
+					G_Damage(victim, self, self, dir, tr.endpos, dmg, dflags, MOD_SABER);
 			}
 
 			if (realTraceResult == REALTRACE_HIT_PLAYER || realTraceResult == REALTRACE_HIT_SABER)
@@ -5332,6 +5370,11 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 						Com_Printf("Damage self bounce.\n");
 #endif //__DEBUG_REALTRACE__
 						self->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
+
+						if (BG_SaberInAttack(self->client->ps.saberMove))
+						{
+							G_DoClashTaunting(self, otherOwner);
+						}
 					}
 
 					if (otherOwner && otherOwner->client && !BG_SaberInSpecialAttack(otherOwner->client->ps.torsoAnim))
@@ -5341,6 +5384,11 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 						Com_Printf("Damage victim bounce.\n");
 #endif //__DEBUG_REALTRACE__
 						otherOwner->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
+
+						if (BG_SaberInAttack(otherOwner->client->ps.saberMove))
+						{
+							G_DoClashTaunting(otherOwner, self);
+						}
 					}
 				}
 			}

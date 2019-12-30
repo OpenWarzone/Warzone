@@ -2651,7 +2651,6 @@ static qboolean PM_CheckEnemyPresence(int dir, float radius)
 
 extern qboolean PM_SaberInReturn(int move); //bg_panimate.c
 
-extern qboolean PM_SaberInReturn(int move); //bg_panimate.c
 saberMoveName_t PM_CheckPullAttack(void)
 {//Serenity  add pull attack swing,
 	if (!(pm->cmd.buttons & BUTTON_ATTACK))
@@ -4406,7 +4405,10 @@ void PM_WeaponLightsaber(void)
 		}
 #else
 		// Force all blocks through the bounce code, let's just extend those animations...
-		if (PM_SaberInBounce(pm->ps->saberMove) || PM_SaberInReturn(pm->ps->saberMove))
+		if (PM_SaberInBounce(pm->ps->saberMove) 
+			|| PM_SaberInReturn(pm->ps->saberMove)
+			|| (pm->ps->torsoAnim >= BOTH_SABERBLOCK_TL && pm->ps->torsoAnim <= BOTH_SABERBLOCK_T)
+			|| (pm->ps->torsoAnim >= BOTH_SABERBLOCK_FL1 && pm->ps->torsoAnim <= BOTH_SABERBLOCK_BR2))
 		{//an actual bounce?  Other bounces before this are actually transitions?
 			pm->ps->saberBlocked = BLOCKED_NONE;
 		}
@@ -4414,7 +4416,7 @@ void PM_WeaponLightsaber(void)
 		{
 			int bounceMove;
 
-			switch (pm->ps->torsoTimer < 200/*bg_testvalue0.integer*/ ? saberMoveData[pm->ps->saberMove].startQuad : saberMoveData[pm->ps->saberMove].endQuad)
+			switch (saberMoveData[pm->ps->saberMove].startQuad/*pm->ps->torsoTimer < 200 ? saberMoveData[pm->ps->saberMove].startQuad : saberMoveData[pm->ps->saberMove].endQuad*/)
 			{
 			case Q_B:
 				bounceMove = LS_R_BR2TL;
