@@ -5811,22 +5811,28 @@ int PM_AnimationForBounceMove(short newMove)
 		}
 	}
 #else
+/*
+BOTH_SABERBLOCK_FL1 20578 13 -1 15
+BOTH_SABERBLOCK_FL2 20362 13 -1 15
+BOTH_SABERBLOCK_FL3	19919 6 -1 15
+BOTH_SABERBLOCK_FR1 20578 13 -1 15
+BOTH_SABERBLOCK_FR2	20408 7 -1 15
+BOTH_SABERBLOCK_F1 20578 13 -1 15
+BOTH_SABERBLOCK_F2 20408 7 -1 15
+BOTH_SABERBLOCK_F3 20362 13 -1 15
+BOTH_SABERBLOCK_F4 19919 6 -1 15
+BOTH_SABERBLOCK_B1	20578 13 -1 15
+BOTH_SABERBLOCK_B2	20408 7 -1 15
+BOTH_SABERBLOCK_B3	20415 9 -1 15
+BOTH_SABERBLOCK_B4	20362 13 -1 15
+BOTH_SABERBLOCK_B5	19919 6 -1 15
+BOTH_SABERBLOCK_BL1	20415 9 -1 15
+BOTH_SABERBLOCK_BL2	20362 13 -1 15
+BOTH_SABERBLOCK_BL3	19919 6 -1 15
+BOTH_SABERBLOCK_BR1	20578 13 -1 15
+BOTH_SABERBLOCK_BR2	20408 7 -1 15
+*/
 	if (pm->cmd.forwardmove < 0)
-	{
-		if (pm->cmd.rightmove < 0)
-		{
-			return BOTH_SABERBLOCK_FL1 + irand(0, 2);
-		}
-		else if (pm->cmd.rightmove > 0)
-		{
-			return BOTH_SABERBLOCK_FR1 + irand(0, 1);
-		}
-		else
-		{
-			return BOTH_SABERBLOCK_F1 + irand(0, 3);
-		}
-	}
-	else
 	{
 		if (pm->cmd.rightmove < 0)
 		{
@@ -5839,6 +5845,21 @@ int PM_AnimationForBounceMove(short newMove)
 		else
 		{
 			return BOTH_SABERBLOCK_B1 + irand(0, 4);
+		}
+	}
+	else
+	{
+		if (pm->cmd.rightmove < 0)
+		{
+			return BOTH_SABERBLOCK_FL1 + irand(0, 2);
+		}
+		else if (pm->cmd.rightmove > 0)
+		{
+			return BOTH_SABERBLOCK_FR1 + irand(0, 1);
+		}
+		else
+		{
+			return BOTH_SABERBLOCK_F1 + irand(0, 3);
 		}
 	}
 #endif
