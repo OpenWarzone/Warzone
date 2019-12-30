@@ -601,6 +601,7 @@ struct gentity_s {
 #endif //__PLAYER_VEHICLES__
 
 #ifdef __SINGLE_FRAME_SABER_TRACE__
+	int				nextSaberTrace = 0;
 	saberTrace_t	saberTrace[MAX_SABERS][MAX_BLADES] = { { 0 } };
 #endif //__SINGLE_FRAME_SABER_TRACE__
 

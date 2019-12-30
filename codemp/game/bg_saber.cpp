@@ -4190,11 +4190,13 @@ void PM_WeaponLightsaber(void)
 #endif //__SABER_EXPERIMENTAL_BOUNCE__
 	*/
 	// Now we react to a block action by the player's lightsaber.
+#if 0
 	extern qboolean PM_SaberInAnyBlockMove(int move);
 	if (PM_SaberInAnyBlockMove(pm->ps->saberMove))
 	{// Continue the current anim until completion...
 		pm->ps->saberBlocked = BLOCKED_NONE;
 	}
+#endif
 	
 	if (pm->ps->saberBlocked)
 	{
@@ -4412,55 +4414,8 @@ void PM_WeaponLightsaber(void)
 		{
 			int bounceMove;
 
-			switch (saberMoveData[pm->ps->saberMove].startQuad)
+			switch (pm->ps->torsoTimer < 200/*bg_testvalue0.integer*/ ? saberMoveData[pm->ps->saberMove].startQuad : saberMoveData[pm->ps->saberMove].endQuad)
 			{
-/*
-				case Q_BR:
-					bounceMove = LS_R_BR2TL;
-					break;
-				case Q_R:
-					bounceMove = LS_R_R2L;
-					break;
-				case Q_TR:
-					bounceMove = LS_R_TR2BL;
-					break;
-				case Q_T:
-					bounceMove = LS_R_T2B;
-					break;
-				case Q_TL:
-					bounceMove = LS_R_TL2BR;
-					break;
-				case Q_L:
-					bounceMove = LS_R_L2R;
-					break;
-				case Q_BL:
-					bounceMove = LS_R_BL2TR;
-					break;
-				case Q_B:
-					bounceMove = LS_R_BR2TL;
-					break;
-				case Q_SR:
-					bounceMove = LS_R_R2L;
-					break;
-				case Q_SL:
-					bounceMove = LS_R_L2R;
-					break;
-				case Q_SBL:
-					bounceMove = LS_R_BL2TR;
-					break;
-				case Q_SBR:
-					bounceMove = LS_R_BR2TL;
-					break;
-				case Q_BT:
-					bounceMove = LS_R_T2B;
-					break;
-				case Q_RBT:
-					bounceMove = LS_R_T2B;
-					break;
-				default:
-					bounceMove = LS_R_L2R;
-					break;
-*/
 			case Q_B:
 				bounceMove = LS_R_BR2TL;
 				break;
@@ -4505,7 +4460,6 @@ void PM_WeaponLightsaber(void)
 				bounceMove = LS_R_T2B;
 				break;
 			}
-			
 
 			if (pm->ps->saberMove != bounceMove)
 			{
@@ -5646,7 +5600,11 @@ int BG_GetCrowdControlStanceMove(short newMove)
 
 #ifdef __DEBUG_STANCE_TRANSITIONS__
 		{
-			Com_Printf("WZ STANCE: start transition %i.\n", pm->ps->nextTransitionAnim);
+			extern stringID_table_t saberMoveTable[];
+			extern stringID_table_t StanceTable[];
+			extern stringID_table_t animTable[MAX_ANIMATIONS + 1];
+			anim = saberMoveData[newMove].animToUse + (pm->ps->fd.saberAnimLevel - SS_FAST) * SABER_ANIM_GROUP_SIZE;
+			Com_Printf("WZ STANCE: start transition %i. animation %i (%s).\n", pm->ps->nextTransitionAnim, anim, animTable[anim].name);
 		}
 #endif //__DEBUG_STANCE_TRANSITIONS__
 
@@ -5702,8 +5660,7 @@ int PM_AnimationForBounceMove(short newMove)
 			break;
 		}
 	}
-#endif
-
+#elif 0
 	switch (newMove)
 	{
 	case LS_R_TL2BR:
@@ -5739,6 +5696,150 @@ int PM_AnimationForBounceMove(short newMove)
 		return BOTH_SABERBLOCK_T;
 		break;
 	}
+#elif 0
+	if (pm->cmd.forwardmove < 0)
+	{
+		if (pm->cmd.rightmove < 0)
+		{
+			int choice = irand(0, 2);
+			switch (choice)
+			{
+			case 0:
+			default:
+				return BOTH_T7__R__L;
+				break;
+			case 1:
+				return BOTH_T7_TL_TR;
+				break;
+			case 2:
+				return BOTH_T6_BR_TR;
+				break;
+			}
+		}
+		else if (pm->cmd.rightmove > 0)
+		{
+			int choice = irand(0, 1);
+			switch (choice)
+			{
+			case 0:
+			default:
+				return BOTH_T7__R__L;
+				break;
+			case 1:
+				return BOTH_T7_TR_TL;
+				break;
+			}
+		}
+		else
+		{
+			int choice = irand(0, 3);
+			switch (choice)
+			{
+			case 0:
+			default:
+				return BOTH_T7__R__L;
+				break;
+			case 1:
+				return BOTH_T7_TR_TL;
+				break;
+			case 2:
+				return BOTH_T7_TL_TR;
+				break;
+			case 3:
+				return BOTH_T6_BR_TR;
+				break;
+			}
+		}
+	}
+	else
+	{
+		if (pm->cmd.rightmove < 0)
+		{
+			int choice = irand(0, 2);
+			switch (choice)
+			{
+			case 0:
+			default:
+				return BOTH_T7_TR__L;
+				break;
+			case 1:
+				return BOTH_T7_TL_TR;
+				break;
+			case 2:
+				return BOTH_T6_BR_TR;
+				break;
+			}
+		}
+		else if (pm->cmd.rightmove > 0)
+		{
+			int choice = irand(0, 1);
+			switch (choice)
+			{
+			case 0:
+			default:
+				return BOTH_T7__R__L;
+				break;
+			case 1:
+				return BOTH_T7_TR_TL;
+				break;
+			}
+		}
+		else
+		{
+			int choice = irand(0, 4);
+			switch (choice)
+			{
+			case 0:
+			default:
+				return BOTH_T7__R__L;
+				break;
+			case 1:
+				return BOTH_T7_TR_TL;
+				break;
+			case 2:
+				return BOTH_T7_TR__L;
+				break;
+			case 3:
+				return BOTH_T7_TL_TR;
+				break;
+			case 4:
+				return BOTH_T6_BR_TR;
+				break;
+			}
+		}
+	}
+#else
+	if (pm->cmd.forwardmove < 0)
+	{
+		if (pm->cmd.rightmove < 0)
+		{
+			return BOTH_SABERBLOCK_FL1 + irand(0, 2);
+		}
+		else if (pm->cmd.rightmove > 0)
+		{
+			return BOTH_SABERBLOCK_FR1 + irand(0, 1);
+		}
+		else
+		{
+			return BOTH_SABERBLOCK_F1 + irand(0, 3);
+		}
+	}
+	else
+	{
+		if (pm->cmd.rightmove < 0)
+		{
+			return BOTH_SABERBLOCK_BL1 + irand(0, 2);
+		}
+		else if (pm->cmd.rightmove > 0)
+		{
+			return BOTH_SABERBLOCK_BR1 + irand(0, 1);
+		}
+		else
+		{
+			return BOTH_SABERBLOCK_B1 + irand(0, 4);
+		}
+	}
+#endif
 }
 
 int currentTestAnim = 0;
@@ -5830,7 +5931,11 @@ void PM_SetSaberMove(short newMove)
 	else if (newMove >= LS_R_TL2BR && newMove < LS_R_T2B)
 	{
 		anim = PM_AnimationForBounceMove(newMove);
-		Com_Printf("Using bounce anim %i.\n", anim);
+		if (bg_debugbounce.integer)
+		{
+			extern stringID_table_t animTable[MAX_ANIMATIONS + 1];
+			Com_Printf("Using bounce anim %i (%s).\n", anim, animTable[anim].name);
+		}
 	}
 	else if (pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL
 		&& newMove != LS_READY

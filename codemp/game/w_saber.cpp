@@ -3329,6 +3329,9 @@ static QINLINE int Finish_RealTrace(trace_t *results, trace_t *closestTrace, vec
 	return REALTRACE_HIT_SABER;
 }
 #else //__FIX_REALTRACE__
+
+//#define __DEBUG_REALTRACE__
+
 #define MAX_REAL_PASSTHRU 8
 
 #define REALTRACE_MISS				0 //didn't hit anything
@@ -3336,7 +3339,7 @@ static QINLINE int Finish_RealTrace(trace_t *results, trace_t *closestTrace, vec
 #define REALTRACE_HIT_PLAYER		2 //hit a player
 #define REALTRACE_HIT_MISSILE		3 //hit a missile
 #define REALTRACE_HIT_WORLD			4 //hit world
-static QINLINE int Finish_RealTrace(trace_t *results, trace_t *closestTrace, vec3_t start, vec3_t end, qboolean hitSaber)
+static QINLINE int Finish_RealTrace(gentity_t *attacker, trace_t *results, trace_t *closestTrace, vec3_t start, vec3_t end, qboolean hitSaber)
 {//this function finishs up the realtrace
 	if (closestTrace->entityNum == ENTITYNUM_NONE || VectorCompare(closestTrace->endpos, end))
 	{// No hit. Make sure that tr is correct.
@@ -3347,7 +3350,9 @@ static QINLINE int Finish_RealTrace(trace_t *results, trace_t *closestTrace, vec
 	if (closestTrace->entityNum == ENTITYNUM_WORLD)
 	{// Hit the world...
 		TraceCopy(closestTrace, results);
+#ifdef __DEBUG_REALTRACE__
 		Com_Printf("REALTRACE: Hit world.\n");
+#endif //__DEBUG_REALTRACE__
 		return REALTRACE_HIT_WORLD;
 	}
 
@@ -3357,25 +3362,53 @@ static QINLINE int Finish_RealTrace(trace_t *results, trace_t *closestTrace, vec
 	if (hitSaber)
 	{// Saber collision...
 		TraceCopy(closestTrace, results);
+#ifdef __DEBUG_REALTRACE__
 		Com_Printf("REALTRACE: Hit saber.\n");
+#endif //__DEBUG_REALTRACE__
 		return REALTRACE_HIT_SABER;
 	}
 	else if (currentEnt && currentEnt->inuse && currentEnt->client)
 	{// Hit a client...
 		TraceCopy(closestTrace, results);
+#ifdef __DEBUG_REALTRACE__
 		Com_Printf("REALTRACE: Hit player.\n");
+#endif //__DEBUG_REALTRACE__
 		return REALTRACE_HIT_PLAYER;
 	}
 	else if (currentEnt && currentEnt->inuse && currentEnt->s.eType == ET_MISSILE)
 	{
 		TraceCopy(closestTrace, results);
+#ifdef __DEBUG_REALTRACE__
 		Com_Printf("REALTRACE: Hit missile.\n");
+#endif //__DEBUG_REALTRACE__
 		return REALTRACE_HIT_MISSILE;
 	}
 	else
 	{// Hit another entity. Hit some other entity. Treat this as a missile collision.
 		TraceCopy(closestTrace, results);
-		Com_Printf("REALTRACE: Hit missile.\n");
+		
+		if (!strcmp(currentEnt->classname, "lightsaber"))
+		{
+			if (attacker->client->ps.saberEntityNum == results->entityNum)
+			{// Hit my own saber, ignore it...
+				TraceClear(results, end);
+#ifdef __DEBUG_REALTRACE__
+				Com_Printf("REALTRACE: Hit my own saber entity. Returning MISS\n");
+#endif //__DEBUG_REALTRACE__
+				return REALTRACE_MISS;
+			}
+			else
+			{
+#ifdef __DEBUG_REALTRACE__
+				Com_Printf("REALTRACE: Hit saber entity.\n");
+#endif //__DEBUG_REALTRACE__
+				return REALTRACE_HIT_SABER;
+			}
+		}
+
+#ifdef __DEBUG_REALTRACE__
+		Com_Printf("REALTRACE: Hit unknown. ent %i (%s). Assuming missile.\n", currentEnt->s.number, currentEnt->classname);
+#endif //__DEBUG_REALTRACE__
 		return REALTRACE_HIT_MISSILE;
 	}
 }
@@ -3486,7 +3519,7 @@ int G_RealTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_t mins,
 				TraceCopy(tr, &closestTrace);
 				closestFraction = tr->fraction;
 			}
-			return Finish_RealTrace(tr, &closestTrace, start, end, qfalse);
+			return Finish_RealTrace(attacker, tr, &closestTrace, start, end, qfalse);
 		}
 
 		//set up a pointer to the entity we hit.
@@ -3494,7 +3527,10 @@ int G_RealTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_t mins,
 
 		if (currentEnt->inuse && currentEnt->client)
 		{//initial trace hit a humanoid
-			hitSaber = G_SaberCollide((atkIsSaberer ? attacker : NULL), currentEnt, currentStart, end, mins, maxs, tr);
+			vec3_t sbMins, sbMaxs;
+			sbMins[0] = sbMins[1] = sbMins[2] = mins[0] < -16.0 ? mins[0] : -16.0;
+			sbMaxs[0] = sbMaxs[1] = sbMaxs[2] = maxs[0] < 16.0 ? maxs[0] : 16.0;
+			hitSaber = G_SaberCollide((atkIsSaberer ? attacker : NULL), currentEnt, currentStart, end, sbMins/*mins*/, sbMaxs/*maxs*/, tr);
 
 			//Com_Printf("Testing lightsaber hit2 for entity %i (%s). Hit: %s.\n", tr->entityNum, currentEnt->classname, hitSaber ? "TRUE" : "FALSE");
 
@@ -3506,7 +3542,7 @@ int G_RealTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_t mins,
 			}
 
 			//ok, no bbox block this time.  So, try a ghoul2 trace then.
-			G_G2TraceCollide(tr, currentStart, end, mins, maxs);
+			G_G2TraceCollide(tr, currentStart, end, sbMins/*mins*/, sbMaxs/*maxs*/);
 		}
 		else if ((currentEnt->r.contents & CONTENTS_LIGHTSABER) && currentEnt->inuse)
 		{// hit a lightsaber, do the approprate collision detection checks.
@@ -3547,7 +3583,7 @@ int G_RealTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_t mins,
 					TraceCopy(tr, &closestTrace);
 					closestFraction = tr->fraction;
 				}
-				return Finish_RealTrace(tr, &closestTrace, start, end, qfalse);
+				return Finish_RealTrace(attacker, tr, &closestTrace, start, end, qfalse);
 			}
 		}
 		else
@@ -3562,7 +3598,7 @@ int G_RealTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_t mins,
 				TraceCopy(tr, &closestTrace);
 				closestFraction = tr->fraction;
 			}
-			return Finish_RealTrace(tr, &closestTrace, start, end, qfalse);
+			return Finish_RealTrace(attacker, tr, &closestTrace, start, end, qfalse);
 		}
 
 		//ok, we're just completed an internal ghoul2 or saber internal trace on an entity.  
@@ -3597,7 +3633,7 @@ int G_RealTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_t mins,
 #endif //__FIX_REALTRACE__
 	}
 
-	return Finish_RealTrace(tr, &closestTrace, start, end, hitSaber);
+	return Finish_RealTrace(attacker, tr, &closestTrace, start, end, hitSaber);
 }
 //[/SaberSys]
 
@@ -3608,7 +3644,7 @@ int WP_DoFrameSaberTrace(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t s
 		vec3_t mins, maxs;
 
 		// First do a precision trace... Best for saber vs saber and saber vs weapon bolt...
-		float saberBoxSize = 1.0;// self->client->saber[rSaberNum].blade[rBladeNum].radius * 4.0;
+		float saberBoxSize = 4.0;// 1.0;// self->client->saber[rSaberNum].blade[rBladeNum].radius * 4.0;
 		VectorSet(mins, -saberBoxSize, -saberBoxSize, -saberBoxSize);
 		VectorSet(maxs, saberBoxSize, saberBoxSize, saberBoxSize);
 
@@ -3629,7 +3665,7 @@ int WP_DoFrameSaberTrace(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t s
 			VectorSet(maxs, saberBoxSize, saberBoxSize, saberBoxSize);
 
 			// Record the saber's trace into self->saberTrace.XXXXX
-			self->saberTrace[rSaberNum][rBladeNum].realTraceResult = G_RealTrace(self, &self->saberTrace[rSaberNum][rBladeNum].trace, saberStart, mins, maxs, saberEnd, self->s.number, /*trMask*/CONTENTS_BODY|CONTENTS_LIGHTSABER, rSaberNum, rBladeNum);
+			self->saberTrace[rSaberNum][rBladeNum].realTraceResult = G_RealTrace(self, &self->saberTrace[rSaberNum][rBladeNum].trace, saberStart, mins, maxs, saberEnd, self->s.number, /*trMask*/CONTENTS_BODY/*|CONTENTS_LIGHTSABER*/, rSaberNum, rBladeNum);
 			self->saberTrace[rSaberNum][rBladeNum].frameNum = level.framenum;
 
 			if (self->saberTrace[rSaberNum][rBladeNum].realTraceResult == REALTRACE_HIT_SABER)
@@ -4927,8 +4963,26 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 		return qtrue;
 	}
 	
-	if (self->client->ps.saberMove <= LS_PUTAWAY && !g_saberIdleDamage.integer && !(self->client->pers.cmd.buttons & BUTTON_ALT_ATTACK))
+	/*if (self->client->ps.saberMove <= LS_PUTAWAY && !g_saberIdleDamage.integer && !(self->client->pers.cmd.buttons & BUTTON_ALT_ATTACK))
 	{// don't need to do any tracing or damage...
+		self->client->ps.saberBlocked = BLOCKED_NONE;
+		return qfalse;
+	}*/
+
+	/*if (self->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_T)
+	{// Already doing a block move, don't waste time tracing...
+		self->client->ps.saberBlocked = BLOCKED_NONE;
+		return qfalse;
+	}
+
+	if (self->client->ps.torsoAnim >= BOTH_SABERBLOCK_FL1 && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_BR2)
+	{// Already doing a block move, don't waste time tracing...
+		self->client->ps.saberBlocked = BLOCKED_NONE;
+		return qfalse;
+	}*/
+
+	if (self->nextSaberTrace > level.time)
+	{// UQ1: Using this to not spam blocks as much, and to save on CPU usage. We can assume after a clash that there is no contact for a moment.
 		self->client->ps.saberBlocked = BLOCKED_NONE;
 		return qfalse;
 	}
@@ -4939,31 +4993,30 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 	memcpy(&tr, &self->saberTrace[rSaberNum][rBladeNum].trace, sizeof(trace_t)); // TODO: Use the self->saberTrace[rSaberNum][rBladeNum].trace instead of tr in this code and skip the memcpy, but for testing it's this way...
 
 
-	if (/*tr.fraction == 1 && !tr.startsolid*/realTraceResult == REALTRACE_MISS || realTraceResult == REALTRACE_HIT_WORLD)
+	if (realTraceResult == REALTRACE_MISS || realTraceResult == REALTRACE_HIT_WORLD)
 	{
 		self->client->ps.saberBlocked = BLOCKED_NONE;
-		return qfalse;
+		//return qfalse;
+		return qtrue;
 	}
-
 
 	// Grab the dmg, trMask modifiers, and idleDamage toggles...
 	dmg = WP_GetSaberDamageValue(self, rSaberNum, &trMask, &idleDamage);
-
 
 	if (BG_StabDownAnim(self->client->ps.torsoAnim)
 		&& g_entities[tr.entityNum].client
 		&& !BG_InKnockDownOnGround(&g_entities[tr.entityNum].client->ps))
 	{//stabdowns only damage people who are actually on the ground...
-		self->client->ps.saberBlocked = 0;
+		self->client->ps.saberBlocked = BLOCKED_NONE;
 		return qfalse;
 	}
 
 	if (BG_SaberInSpecial(self->client->ps.saberMove))
 	{
-		self->client->ps.saberBlocked = 0;
+		self->client->ps.saberBlocked = BLOCKED_NONE;
 	}
 
-	if (!dmg)
+	/*if (!dmg && realTraceResult != REALTRACE_HIT_SABER)
 	{
 		if (tr.entityNum < MAX_CLIENTS ||
 			(g_entities[tr.entityNum].inuse && (g_entities[tr.entityNum].r.contents & CONTENTS_LIGHTSABER)))
@@ -4972,7 +5025,7 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 		}
 
 		return qfalse;
-	}
+	}*/
 
 	if (dmg > SABER_NONATTACK_DAMAGE)
 	{
@@ -5024,13 +5077,21 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 	if (realTraceResult == REALTRACE_HIT_SABER)
 	{// successfully hit another player's saber blade directly
 		hitSaberBlade = qtrue;
-/*
-#ifdef __MISSILES_AUTO_PARRY__
-		WP_SaberBlockNonRandom(self, tr.endpos, qfalse);
-#else
-		WP_SaberBlock(self, tr.endpos, qfalse);
-#endif //__MISSILES_AUTO_PARRY__		
-*/
+		didHit = qtrue;
+		
+		otherOwner = &g_entities[tr.entityNum];
+
+		if (!otherOwner->client)
+		{
+			if (!strcmp(otherOwner->classname, "lightsaber"))
+			{
+				otherOwner = &g_entities[otherOwner->r.ownerNum];
+			}
+			else
+			{
+				otherOwner = NULL;
+			}
+		}
 	}
 	else if (realTraceResult == REALTRACE_HIT_PLAYER)
 	{// hit something that had health and takes damage
@@ -5147,16 +5208,47 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 	if (didHit && (!OnSameTeam(self, &g_entities[tr.entityNum]) || g_friendlySaber.integer))
 	{// damage the thing we hit
 		int dflags = 0;
-		gentity_t *victim = &g_entities[tr.entityNum];
+		gentity_t *victim = (otherOwner && otherOwner->client) ? otherOwner : &g_entities[tr.entityNum];
 
 		if (victim->health <= 0)
 		{//The attack killed your opponent, don't bounce the saber back to prevent nasty passthru.
 			passthru = qtrue;
 		}
 
+#define CLASH_MINIMUM_TIME 300
+
 		if (dmg <= SABER_NONATTACK_DAMAGE)
 		{
 			self->client->ps.saberIdleWound = level.time + 350;
+
+			if (realTraceResult == REALTRACE_HIT_PLAYER || realTraceResult == REALTRACE_HIT_SABER)
+			{// We still hit something, do efx...
+				WP_SaberSpecificDoHit(self, rSaberNum, rBladeNum, victim, tr.endpos, dmg, realTraceResult);
+
+				if (!passthru /*&& !(self->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_T)
+					&& !(self->client->ps.torsoAnim >= BOTH_SABERBLOCK_FL1 && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_BR2)
+					&& !(victim->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL && victim->client->ps.torsoAnim <= BOTH_SABERBLOCK_T)
+					&& !(victim->client->ps.torsoAnim >= BOTH_SABERBLOCK_FL1 && victim->client->ps.torsoAnim <= BOTH_SABERBLOCK_BR2)*/)
+				{
+					if (!BG_SaberInSpecialAttack(self->client->ps.torsoAnim))
+					{
+						self->nextSaberTrace = level.time + CLASH_MINIMUM_TIME;
+#ifdef __DEBUG_REALTRACE__
+						Com_Printf("Non-damage self bounce.\n");
+#endif //__DEBUG_REALTRACE__
+						self->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
+					}
+
+					if (otherOwner && otherOwner->client && !BG_SaberInSpecialAttack(otherOwner->client->ps.torsoAnim))
+					{
+						self->nextSaberTrace = level.time + CLASH_MINIMUM_TIME;
+#ifdef __DEBUG_REALTRACE__
+						Com_Printf("Non-damage victim bounce.\n");
+#endif //__DEBUG_REALTRACE__
+						otherOwner->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
+					}
+				}
+			}
 
 			// add saber impact debounce
 			DebounceSaberImpact(self, otherOwner, rSaberNum, rBladeNum, sabimpactentitynum);
@@ -5210,7 +5302,11 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 			}
 
 			//We need the final damage total to know if we need to bounce the saber back or not.
-			if (realTraceResult == REALTRACE_HIT_PLAYER && !(self->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_T))
+			if (realTraceResult == REALTRACE_HIT_PLAYER 
+				&& !(self->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_T)
+				&& !(self->client->ps.torsoAnim >= BOTH_SABERBLOCK_FL1 && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_BR2)
+				&& !(victim->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL && victim->client->ps.torsoAnim <= BOTH_SABERBLOCK_T)
+				&& !(victim->client->ps.torsoAnim >= BOTH_SABERBLOCK_FL1 && victim->client->ps.torsoAnim <= BOTH_SABERBLOCK_BR2))
 			{
 				G_Damage(victim, self, self, dir, tr.endpos, dmg, dflags, MOD_SABER);
 			}
@@ -5219,9 +5315,33 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 			{// We hit something, do efx...
 				WP_SaberSpecificDoHit(self, rSaberNum, rBladeNum, victim, tr.endpos, dmg, realTraceResult);
 
-				if (!passthru && realTraceResult == REALTRACE_HIT_SABER && otherOwner && otherOwner->client)
+				/*if (!passthru && realTraceResult == REALTRACE_HIT_SABER && otherOwner && otherOwner->client)
 				{//update saber blocking
 					Update_Saberblocking(self, otherOwner, tr.endpos, &didHit, hitSaberBlade);
+				}*/
+
+				if (!passthru /*&& !(self->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_T)
+					&& !(self->client->ps.torsoAnim >= BOTH_SABERBLOCK_FL1 && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_BR2)
+					&& !(victim->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL && victim->client->ps.torsoAnim <= BOTH_SABERBLOCK_T)
+					&& !(victim->client->ps.torsoAnim >= BOTH_SABERBLOCK_FL1 && victim->client->ps.torsoAnim <= BOTH_SABERBLOCK_BR2)*/)
+				{
+					if (!BG_SaberInSpecialAttack(self->client->ps.torsoAnim))
+					{
+						self->nextSaberTrace = level.time + CLASH_MINIMUM_TIME;
+#ifdef __DEBUG_REALTRACE__
+						Com_Printf("Damage self bounce.\n");
+#endif //__DEBUG_REALTRACE__
+						self->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
+					}
+
+					if (otherOwner && otherOwner->client && !BG_SaberInSpecialAttack(otherOwner->client->ps.torsoAnim))
+					{
+						self->nextSaberTrace = level.time + CLASH_MINIMUM_TIME;
+#ifdef __DEBUG_REALTRACE__
+						Com_Printf("Damage victim bounce.\n");
+#endif //__DEBUG_REALTRACE__
+						otherOwner->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
+					}
 				}
 			}
 
@@ -9458,8 +9578,7 @@ qboolean WP_SaberCanBlock(gentity_t *atk, gentity_t *self, vec3_t point, vec3_t 
 	qboolean		saberInAttack = WP_PlayerSaberAttack(self);
 	qboolean		isCrowdControlDeflection = qfalse;
 
-	if (self->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL
-		&& self->client->ps.torsoAnim <= BOTH_SABERBLOCK_T
+	if (((self->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_T) || (self->client->ps.torsoAnim >= BOTH_SABERBLOCK_FL1 && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_BR2))
 		&& !projectile)
 	{// Projectiles may be ok, but can't block sabers...
 		return qfalse;
@@ -9705,10 +9824,9 @@ qboolean WP_SaberCanBlock_NPC(gentity_t *self, vec3_t point, int dflags, int mod
 		return qfalse;
 	}
 
-	if (self->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL
-		&& self->client->ps.torsoAnim <= BOTH_SABERBLOCK_T
+	if (((self->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_T) || (self->client->ps.torsoAnim >= BOTH_SABERBLOCK_FL1 && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_BR2))
 		&& !projectile)
-	{
+	{// Projectiles may be ok, but can't block sabers...
 		return qfalse;
 	}
 
