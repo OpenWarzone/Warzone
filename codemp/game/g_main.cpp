@@ -825,6 +825,7 @@ qboolean		EVENTS_ENABLED = qfalse;
 float			EVENT_BUFFER = 32768.0;
 float			EVENT_TRACE_SIZE = 1024.0;
 
+qboolean		WATER_ENABLED = qfalse;
 float			MAP_WATER_LEVEL = -999999.9;
 
 qboolean MAPPING_LoadMapInfo(void)
@@ -837,7 +838,16 @@ qboolean MAPPING_LoadMapInfo(void)
 	EVENT_BUFFER = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "EVENTS", "EVENT_BUFFER", "32768.0"));
 	EVENT_TRACE_SIZE = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "EVENTS", "EVENT_TRACE_SIZE", "1024.0"));
 
-	MAP_WATER_LEVEL = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "WATER", "MAP_WATER_LEVEL", "-999999.9"));
+	WATER_ENABLED = (atoi(IniRead(va("maps/%s.mapInfo", mapname.string), "WATER", "WATER_ENABLED", "0")) > 0) ? qtrue : qfalse;
+
+	if (WATER_ENABLED)
+	{
+		MAP_WATER_LEVEL = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "WATER", "MAP_WATER_LEVEL", "-999999.9"));
+	}
+	else
+	{
+		MAP_WATER_LEVEL = -999999.9;
+	}
 
 	return qtrue;
 }
@@ -1123,6 +1133,8 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 		G_SoundIndex( "sound/player/gurp2.wav" );
 	}
 
+	MAPPING_LoadMapInfo();
+
 	if ( trap->Cvar_VariableIntegerValue( "bot_enable" ) ) {
 		BotAISetup( restart );
 		BotAILoadMap( restart );
@@ -1138,8 +1150,6 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 	Com_Printf ("^5------- ^7Tree Initialization^5 -------\n");
 	FOLIAGE_LoadTrees();
 	Com_Printf ("^5-----------------------------------\n");
-
-	MAPPING_LoadMapInfo();
 
 	if ( level.gametype == GT_DUEL || level.gametype == GT_POWERDUEL )
 	{

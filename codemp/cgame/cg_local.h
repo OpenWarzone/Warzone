@@ -595,6 +595,9 @@ typedef struct centity_s {
 	int				defenseSpinStartTime = 0;
 	int				defenseSpinLastValidTime = 0;
 
+	int				saberDefenseStartTime = 0;
+	int				saberDefenseLastValidTime = 0;
+
 } centity_t;
 
 

@@ -1932,6 +1932,27 @@ int BotAISetup( int restart ) {
 
 #ifdef __USE_NAVLIB__
 	G_NavlibNavInit();
+
+	if (G_NavmeshIsLoaded())
+	{
+		extern qboolean			WATER_ENABLED;
+		extern float			MAP_WATER_LEVEL;
+
+		if (WATER_ENABLED)
+		{// Block water usage by disabling everything below mapInfo's water height...
+			vec3_t origin, mins, maxs;
+			origin[0] = origin[1] = 0.0;
+			origin[2] = MAP_WATER_LEVEL;
+
+			mins[0] = mins[1] = mins[2] = -999999.9;
+
+			maxs[0] = maxs[1] = 999999.9;
+			maxs[2] = 0.0;
+
+			Com_Printf("Blocking water at height %f. mins %f %f %f. maxs %f %f %f.\n", MAP_WATER_LEVEL, mins[0], mins[1], mins[2], maxs[0], maxs[1], maxs[2]);
+			G_NavlibDisableArea(origin, mins, maxs);
+		}
+	}
 #endif //__USE_NAVLIB__
 
 	//if the game is restarted for a tournament

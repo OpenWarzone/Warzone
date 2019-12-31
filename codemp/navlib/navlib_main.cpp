@@ -69,14 +69,24 @@ bool Navlib::G_NavmeshIsLoaded( void )
 	return navMeshLoaded;
 }
 
+extern float navmeshScaleInv;
+
 void Navlib::G_NavlibDisableArea( vec3_t origin, vec3_t mins, vec3_t maxs )
 {
-	Navlib::NavlibDisableArea( origin, mins, maxs );
+	vec3_t org, min, max;
+	VectorScale(origin, navmeshScaleInv, org);
+	VectorScale(mins, navmeshScaleInv, min);
+	VectorScale(maxs, navmeshScaleInv, max);
+	Navlib::NavlibDisableArea( org, min, max );
 }
 
 void Navlib::G_NavlibEnableArea( vec3_t origin, vec3_t mins, vec3_t maxs )
 {
-	Navlib::NavlibEnableArea( origin, mins, maxs );
+	vec3_t org, min, max;
+	VectorScale(origin, navmeshScaleInv, org);
+	VectorScale(mins, navmeshScaleInv, min);
+	VectorScale(maxs, navmeshScaleInv, max);
+	Navlib::NavlibEnableArea(org, min, max);
 }
 
 void Navlib::NavlibSetNavmesh( gentity_t  *self, class_t newClass )

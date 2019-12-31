@@ -343,8 +343,6 @@ int PM_GetSaberStance(void)
 
 #define __DEBUG_TEST_ANIMS__
 
-int currentTestAnimationNumver = 0;
-
 qboolean PM_BlockableBlasterBoltsInRange( void )
 {
 #if defined (_CGAME) || defined (_GAME)
@@ -358,7 +356,7 @@ qboolean PM_BlockableBlasterBoltsInRange( void )
 	int				curTime = level.time;
 #endif
 
-	if (pmEntity->defenseSpinLastValidTime >= curTime - 500)
+	if (pmEntity->defenseSpinLastValidTime >= curTime - 250)
 	{// Continue the spin for at least 1/2 second after no bolts seen around the player...
 		return qtrue;
 	}
@@ -438,6 +436,102 @@ qboolean PM_BlockableBlasterBoltsInRange( void )
 	return qfalse;
 #endif//!defined (_CGAME) && !defined (_GAME)
 }
+
+qboolean PM_BlockableSaberInRange(void)
+{
+#if defined (_CGAME) || defined (_GAME)
+	qboolean		boltInRange = qfalse;
+
+#if defined (_CGAME)
+	centity_t		*pmEntity = &cg_entities[pm->baseEnt->s.number];
+	int				curTime = cg.time;
+#elif defined (_GAME)
+	gentity_t		*pmEntity = &g_entities[pm->baseEnt->s.number];
+	int				curTime = level.time;
+#endif
+
+	if (pmEntity->saberDefenseLastValidTime >= curTime - 250)
+	{// Continue the spin for at least 1/2 second after no jedi seen around the player...
+		return qtrue;
+	}
+	else
+	{// Check if there are blaster bolts to block...
+		qboolean	lenientCheck = qfalse;
+
+		if (pmEntity->saberDefenseLastValidTime >= curTime - 1000)
+		{// Do more lenient checking of distance and FOV, since we are already blocking...
+			lenientCheck = qtrue;
+		}
+
+		for (int i = 0; i < MAX_GENTITIES; i++)
+		{
+#if defined (_CGAME)
+			extern qboolean CG_InFOV(vec3_t spot, vec3_t from, vec3_t fromAngles, int hFOV, int vFOV);
+
+			centity_t *cent = &cg_entities[i];
+
+			if ((cent->currentState.eType == ET_PLAYER || cent->currentState.eType == ET_NPC) && cent->currentState.number != pm->baseEnt->s.number)
+			{
+				float dist = Distance(pm->ps->origin, cent->lerpOrigin);
+
+				if (dist <= 768 || (lenientCheck && dist <= 1024))
+				{
+					if (CG_InFOV(cent->lerpOrigin, pm->ps->origin, cent->lerpAngles, 90, 90) || (lenientCheck && CG_InFOV(cent->lerpOrigin, pm->ps->origin, cent->lerpAngles, 120, 120)))
+					{
+						boltInRange = qtrue;
+						break;
+					}
+				}
+			}
+#elif defined (_GAME)
+			extern qboolean InFOV3(vec3_t spot, vec3_t from, vec3_t fromAngles, int hFOV, int vFOV);
+
+			gentity_t *ent = &g_entities[i];
+
+			if (!ent || !ent->inuse)
+			{
+				continue;
+			}
+
+			if ((ent->s.eType == ET_PLAYER || ent->s.eType == ET_NPC) && ent->s.number != pm->baseEnt->s.number)
+			{
+				float dist = Distance(pm->ps->origin, ent->r.currentOrigin);
+
+				if (dist <= 768 || (lenientCheck && dist <= 1024))
+				{
+					if (InFOV3(ent->r.currentOrigin, pm->ps->origin, ent->r.currentAngles, 90, 90) || (lenientCheck && InFOV3(ent->r.currentOrigin, pm->ps->origin, ent->r.currentAngles, 120, 120)))
+					{
+						boltInRange = qtrue;
+						break;
+					}
+				}
+			}
+#endif
+		}
+	}
+
+	if (boltInRange)
+	{
+		if (pmEntity->saberDefenseStartTime == 0)
+		{// This one only marks the start of a new spin... To be used for accuracy and timing based blocking...
+			pmEntity->saberDefenseStartTime = curTime;
+		}
+
+		pmEntity->saberDefenseLastValidTime = curTime;
+	}
+	else
+	{// Init both the timers...
+		pmEntity->saberDefenseStartTime = 0;
+		pmEntity->saberDefenseLastValidTime = 0;
+	}
+
+	return boltInRange;
+#else //!defined (_CGAME) && !defined (_GAME)
+	return qfalse;
+#endif//!defined (_CGAME) && !defined (_GAME)
+}
+
+int currentTestAnimationNumver = 0;
 
 //[NewSaberSys]
 int PM_GetSaberStance()
@@ -533,7 +627,9 @@ int PM_GetSaberStance()
 	}
 #endif //__DEBUG_TEST_ANIMS__
 
-	if (hideStance || ((pm->cmd.buttons & BUTTON_ALT_ATTACK) && !(pm->cmd.buttons & BUTTON_ATTACK)))
+	qboolean blockableSaber = PM_BlockableSaberInRange();
+
+	if (blockableSaber && (hideStance || ((pm->cmd.buttons & BUTTON_ALT_ATTACK) && !(pm->cmd.buttons & BUTTON_ATTACK))))
 	{//for now I'll assume that we're using an inverted control system.
 		if (forwardmove < 0)
 		{
@@ -731,7 +827,7 @@ int PM_GetSaberStance()
 
 	if (pm->ps->fd.saberDrawAnimLevel == SS_CROWD_CONTROL)
 	{
-		if ((pm->cmd.buttons & BUTTON_ALT_ATTACK) && !(pm->cmd.buttons & BUTTON_ATTACK))
+		if ((pm->cmd.buttons & BUTTON_ALT_ATTACK) && !(pm->cmd.buttons & BUTTON_ATTACK) && blockableSaber)
 		{
 			return 838;
 		}
