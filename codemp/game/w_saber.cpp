@@ -1540,7 +1540,7 @@ qboolean WP_SabersCheckLock( gentity_t *ent1, gentity_t *ent2 )
 		return qfalse;
 	}
 
-	if (ent1->s.eType != ET_NPC && ent2->s.eType != ET_NPC)
+	/*if (ent1->s.eType != ET_NPC && ent2->s.eType != ET_NPC)
 	{ //can always get into locks with NPCs
 		if (!ent1->client->ps.duelInProgress ||
 			!ent2->client->ps.duelInProgress ||
@@ -1552,7 +1552,7 @@ qboolean WP_SabersCheckLock( gentity_t *ent1, gentity_t *ent2 )
 				return qfalse;
 			}
 		}
-	}
+	}*/
 
 	if ( fabs( ent1->r.currentOrigin[2]-ent2->r.currentOrigin[2] ) > 16 )
 	{
@@ -1627,7 +1627,7 @@ qboolean WP_SabersCheckLock( gentity_t *ent1, gentity_t *ent2 )
 	}
 
 	//T to B lock
-	if ( ent1->client->ps.torsoAnim == BOTH_A1_T__B_ ||
+	/*if ( ent1->client->ps.torsoAnim == BOTH_A1_T__B_ ||
 		ent1->client->ps.torsoAnim == BOTH_A2_T__B_ ||
 		ent1->client->ps.torsoAnim == BOTH_A3_T__B_ ||
 		ent1->client->ps.torsoAnim == BOTH_A4_T__B_ ||
@@ -1915,10 +1915,13 @@ qboolean WP_SabersCheckLock( gentity_t *ent1, gentity_t *ent2 )
 		}
 		return qfalse;
 	}
-	if ( !Q_irand( 0, 10 ) )
-	{
-		return WP_SabersCheckLock2( ent1, ent2, LOCK_RANDOM );
-	}
+	*/
+
+	//if ( !Q_irand( 0, 10 ) )
+	//{
+		return WP_SabersCheckLock2( ent1, ent2, /*LOCK_RANDOM*/LOCK_TOP );
+	//}
+
 	return qfalse;
 }
 
@@ -4946,20 +4949,47 @@ void G_DoClashTaunting(gentity_t *self, gentity_t *attacker)
 {
 	if (self == attacker)
 	{
-		if (irand(0, 3) == 0)
-		{
-			NPC_Jedi_PlayConfusionSound(self);
+		if (self->client->sess.sessionTeam == FACTION_EMPIRE)
+		{// Do taunt/anger...
+			int TorA = Q_irand(0, 4);
+
+			switch (TorA) {
+			case 4:
+				G_AddVoiceEvent(self, Q_irand(EV_GLOAT1, EV_GLOAT3), 5000 + irand(0, 15000));
+				break;
+			case 3:
+				G_AddVoiceEvent(self, Q_irand(EV_JCHASE1, EV_JCHASE3), 5000 + irand(0, 15000));
+				break;
+			case 2:
+				G_AddVoiceEvent(self, Q_irand(EV_COMBAT1, EV_COMBAT3), 5000 + irand(0, 15000));
+				break;
+			case 1:
+				G_AddVoiceEvent(self, Q_irand(EV_ANGER1, EV_ANGER1), 5000 + irand(0, 15000));
+				break;
+			default:
+				G_AddVoiceEvent(self, Q_irand(EV_TAUNT1, EV_TAUNT5), 5000 + irand(0, 15000));
+				break;
+			}
+		}
+		else
+		{// Do taunt...
+			int TorA = Q_irand(0, 2);
+
+			switch (TorA) {
+			case 2:
+				G_AddVoiceEvent(self, Q_irand(EV_JCHASE1, EV_JCHASE3), 5000 + irand(0, 15000));
+				break;
+			case 1:
+				G_AddVoiceEvent(self, Q_irand(EV_COMBAT1, EV_COMBAT3), 5000 + irand(0, 15000));
+				break;
+			default:
+				G_AddVoiceEvent(self, Q_irand(EV_TAUNT1, EV_TAUNT5), 5000 + irand(0, 15000));
+			}
 		}
 	}
 	else
 	{
-		if (irand(0, 3) == 0)
-		{
-			if (irand(0,1) == 1)
-				Jedi_PlayDeflectSound(self);
-			else
-				Jedi_PlayBlockedPushSound(self);
-		}
+		G_AddVoiceEvent(self, Q_irand(EV_PUSHED1, EV_PUSHED3), 2000);
 	}
 }
 
@@ -4967,8 +4997,8 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 {
 	static trace_t		tr;
 	static vec3_t		dir;
-	static int			selfSaberLevel = 0;
-	int					dmg = 0;
+	//static int			selfSaberLevel = 0;
+	float				dmg = 0.0f;
 	float				saberBoxSize = 0;
 	qboolean			idleDamage = qfalse;
 	qboolean			didHit = qfalse;
@@ -5010,7 +5040,13 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 		return qfalse;
 	}
 
-	selfSaberLevel = G_SaberAttackPower(self, SaberAttacking(self));
+	if (self->client->ps.saberLockTime > level.time && self->client->ps.saberEntityNum)
+	{
+		self->client->ps.saberBlocked = BLOCKED_NONE;
+		return qtrue;
+	}
+
+	//selfSaberLevel = G_SaberAttackPower(self, SaberAttacking(self));
 
 	realTraceResult = WP_DoFrameSaberTrace(self, rSaberNum, rBladeNum, saberStart, saberEnd, doInterpolate, trMask, extrapolate);
 	memcpy(&tr, &self->saberTrace[rSaberNum][rBladeNum].trace, sizeof(trace_t)); // TODO: Use the self->saberTrace[rSaberNum][rBladeNum].trace instead of tr in this code and skip the memcpy, but for testing it's this way...
@@ -5024,7 +5060,39 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 	}
 
 	// Grab the dmg, trMask modifiers, and idleDamage toggles...
-	dmg = WP_GetSaberDamageValue(self, rSaberNum, &trMask, &idleDamage);
+	//dmg = WP_GetSaberDamageValue(self, rSaberNum, &trMask, &idleDamage); // WP_GetSaberDamageValue is futile. it will be assimilated...
+
+	extern qboolean PM_SaberInAnyBlockMove(int move);
+
+	if (self->client)
+	{
+		if (PM_SaberInAnyBlockMove(self->client->ps.saberMove)
+			|| (self->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_T)
+			|| (self->client->ps.torsoAnim >= BOTH_SABERBLOCK_FL1 && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_BR2))
+		{
+			dmg = 0.0;
+		}
+		else if (BG_SaberInSpecial(self->client->ps.saberMove) || BG_SaberInKata(self->client->ps.saberMove))
+		{
+			dmg = 20.0;
+		}
+		else if (BG_SaberInFullDamageMove(&self->client->ps, self->localAnimIndex))
+		{
+			dmg = 10.0;
+		}
+		else if (self->client->ps.saberInFlight && rSaberNum == 0)
+		{
+			dmg = 5.0;
+		}
+		else
+		{
+			dmg = SABER_NONATTACK_DAMAGE;
+		}
+	}
+	else
+	{
+		dmg = 25.0;
+	}
 
 	if (BG_StabDownAnim(self->client->ps.torsoAnim)
 		&& g_entities[tr.entityNum].client
@@ -5052,8 +5120,6 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 
 	if (dmg > SABER_NONATTACK_DAMAGE)
 	{
-		dmg *= 1;
-
 		//see if this specific saber has a damagescale
 		if (!WP_SaberBladeUseSecondBladeStyle(&self->client->saber[rSaberNum], rBladeNum)
 			&& self->client->saber[rSaberNum].damageScale != 1.0f)
@@ -5246,7 +5312,7 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 		{
 			self->client->ps.saberIdleWound = level.time + 350;
 
-			if (/*realTraceResult == REALTRACE_HIT_PLAYER ||*/ realTraceResult == REALTRACE_HIT_SABER)
+			if (realTraceResult == REALTRACE_HIT_SABER)
 			{// We still hit something, do efx...
 				WP_SaberSpecificDoHit(self, rSaberNum, rBladeNum, victim, tr.endpos, dmg, realTraceResult);
 
@@ -5260,7 +5326,8 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 #endif //__DEBUG_REALTRACE__
 						self->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
 
-						if (BG_SaberInAttack(self->client->ps.saberMove))
+						//if (BG_SaberInAttack(self->client->ps.saberMove))
+						if (self->client->pers.cmd.buttons & BUTTON_ATTACK)
 						{
 							G_DoClashTaunting(self, otherOwner);
 						}
@@ -5274,7 +5341,8 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 #endif //__DEBUG_REALTRACE__
 						otherOwner->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
 
-						if (BG_SaberInAttack(otherOwner->client->ps.saberMove))
+						//if (BG_SaberInAttack(otherOwner->client->ps.saberMove))
+						if (otherOwner->client->pers.cmd.buttons & BUTTON_ATTACK)
 						{
 							G_DoClashTaunting(otherOwner, self);
 						}
@@ -5284,6 +5352,25 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 
 			// add saber impact debounce
 			DebounceSaberImpact(self, otherOwner, rSaberNum, rBladeNum, sabimpactentitynum);
+
+			if (!passthru && hitSaberBlade)
+			{// Allow saber locking here as well...
+				if (otherOwner && otherOwner->inuse && otherOwner->client)
+				{// saber lock test		
+					int lockFactor = g_saberLockFactor.integer;
+
+					if (Q_irand(1, 20) < lockFactor)
+					{
+						if (WP_SabersCheckLock(self, otherOwner))
+						{
+							self->client->ps.saberBlocked = BLOCKED_NONE;
+							otherOwner->client->ps.saberBlocked = BLOCKED_NONE;
+							return qtrue;
+						}
+					}
+				}
+			}
+
 			return qtrue;
 		}
 		else
@@ -5333,17 +5420,55 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 				dmg = (int)damage;
 			}
 
+#define SABER_DAMAGE_TIME 1000
+
 			//We need the final damage total to know if we need to bounce the saber back or not.
 			if (realTraceResult == REALTRACE_HIT_PLAYER 
+				&& victim->nextSaberDamage <= level.time
 				&& !(self->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_T)
 				&& !(self->client->ps.torsoAnim >= BOTH_SABERBLOCK_FL1 && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_BR2)
 				&& !(victim->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL && victim->client->ps.torsoAnim <= BOTH_SABERBLOCK_T)
 				&& !(victim->client->ps.torsoAnim >= BOTH_SABERBLOCK_FL1 && victim->client->ps.torsoAnim <= BOTH_SABERBLOCK_BR2))
-			{
-				if (victim->s.weapon == WP_SABER && self->s.weapon == WP_SABER)
-					G_Damage(victim, self, self, dir, tr.endpos, dmg * 0.015, dflags, MOD_SABER);
+			{// Scale damage by enemy type...
+				extern qboolean NPC_IsJedi(gentity_t *self);
+				extern qboolean NPC_IsBoss(gentity_t *self);
+				extern qboolean NPC_IsBountyHunter(gentity_t *self);
+				extern qboolean NPC_IsCommando(gentity_t *self);
+				extern qboolean NPC_IsAdvancedGunner(gentity_t *self);
+				extern qboolean NPC_IsGunner(gentity_t *self);
+				extern qboolean NPC_IsFollowerGunner(gentity_t *self);
+				extern qboolean NPC_IsAnimalEnemyFaction(gentity_t *self);
+
+				if (victim && victim->client && (victim->client->ps.weapon == WP_SABER || NPC_IsJedi(victim) || NPC_IsBoss(victim)))
+				{
+					//Com_Printf("Saber damage %i to jedi.\n", int(dmg));
+					G_Damage(victim, self, self, dir, tr.endpos, int(dmg), dflags, MOD_SABER);
+					victim->nextSaberDamage = level.time + SABER_DAMAGE_TIME;
+				}
+				else if (victim && victim->client && NPC_IsFollowerGunner(victim))
+				{
+					//Com_Printf("Saber damage %i to follower.\n", int(dmg * 1.5));
+					G_Damage(victim, self, self, dir, tr.endpos, int(dmg * 1.5), dflags, MOD_SABER);
+					victim->nextSaberDamage = level.time + SABER_DAMAGE_TIME;
+				}
+				else if (victim && victim->client && (NPC_IsBountyHunter(victim) || NPC_IsCommando(victim) || NPC_IsAdvancedGunner(victim)))
+				{
+					//Com_Printf("Saber damage %i to advanced gunner.\n", int(dmg * 1.75));
+					G_Damage(victim, self, self, dir, tr.endpos, int(dmg * 3.5), dflags, MOD_SABER);
+					victim->nextSaberDamage = level.time + SABER_DAMAGE_TIME;
+				}
+				else if (victim && victim->client && (NPC_IsGunner(victim) || NPC_IsAnimalEnemyFaction(victim)))
+				{
+					//Com_Printf("Saber damage %i to gunner/animal.\n", int(dmg * 2.5));
+					G_Damage(victim, self, self, dir, tr.endpos, int(dmg * 5.0), dflags, MOD_SABER);
+					victim->nextSaberDamage = level.time + SABER_DAMAGE_TIME;
+				}
 				else
-					G_Damage(victim, self, self, dir, tr.endpos, dmg, dflags, MOD_SABER);
+				{
+					//Com_Printf("Saber damage 200 to non-jedi.\n");
+					G_Damage(victim, self, self, dir, tr.endpos, 200 /* attacking fodder always deals deadly damage */, dflags, MOD_SABER);
+					victim->nextSaberDamage = level.time + SABER_DAMAGE_TIME;
+				}
 			}
 
 			if (realTraceResult == REALTRACE_HIT_PLAYER || realTraceResult == REALTRACE_HIT_SABER)
@@ -5409,24 +5534,19 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 	}
 	else if (!passthru && hitSaberBlade)
 	{
-		//G_Stagger(self, self, qtrue); // yeah, don't stagger on blade hits, instead bounce...
-
-		if (!passthru && otherOwner && otherOwner->inuse && otherOwner->client)
+		if (otherOwner && otherOwner->inuse && otherOwner->client)
 		{// saber lock test		
-			if (dmg > SABER_NONATTACK_DAMAGE || BG_SaberInNonIdleDamageMove(&otherOwner->client->ps, otherOwner->localAnimIndex))
-			{
-				int lockFactor = g_saberLockFactor.integer;
+			int lockFactor = g_saberLockFactor.integer;
 
-				if (Q_irand(1, 20) < lockFactor)
+			if (Q_irand(1, 20) < lockFactor)
+			{
+				if (WP_SabersCheckLock(self, otherOwner))
 				{
-					if (WP_SabersCheckLock(self, otherOwner))
-					{
-						self->client->ps.saberBlocked = BLOCKED_NONE;
-						otherOwner->client->ps.saberBlocked = BLOCKED_NONE;
-						//add saber impact debounce
-						DebounceSaberImpact(self, otherOwner, rSaberNum, rBladeNum, sabimpactentitynum);
-						return qtrue;
-					}
+					self->client->ps.saberBlocked = BLOCKED_NONE;
+					otherOwner->client->ps.saberBlocked = BLOCKED_NONE;
+					//add saber impact debounce
+					DebounceSaberImpact(self, otherOwner, rSaberNum, rBladeNum, sabimpactentitynum);
+					return qtrue;
 				}
 			}
 		}

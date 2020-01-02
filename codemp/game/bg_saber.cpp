@@ -5358,6 +5358,11 @@ weapChecks:
 				else
 				{//get attack move from movement command
 					newmove = PM_SaberAttackForMovement(curmove);
+
+					if (PM_SaberKataDone(curmove, newmove))
+					{
+						newmove = saberMoveData[curmove].chain_idle;
+					}
 				}
 
 				if (newmove != LS_NONE)
@@ -5561,13 +5566,13 @@ ccTransitions_t ccTansitions[] =
 {//	virtual stanceID		sabermoveID			allowedDirections
 	0,						0,					CC_ALLOW_NONE,		// filler (for attack beginning)
 	7,						89,					CC_ALLOW_FORWARD | CC_ALLOW_BACK | CC_ALLOW_RIGHT,
-	7,						94,					CC_ALLOW_FORWARD | CC_ALLOW_BACK | CC_ALLOW_RIGHT,
-	7,						95,					CC_ALLOW_BACK | CC_ALLOW_LEFT,
+//	7,						94,					CC_ALLOW_FORWARD | CC_ALLOW_BACK | CC_ALLOW_RIGHT,
+//	7,						95,					CC_ALLOW_BACK | CC_ALLOW_LEFT,
 	7,						105,				CC_ALLOW_FORWARD | CC_ALLOW_BACK | CC_ALLOW_LEFT,
-	8,						170,				CC_ALLOW_FORWARD | CC_ALLOW_BACK | CC_ALLOW_LEFT,
+//	8,						170,				CC_ALLOW_FORWARD | CC_ALLOW_BACK | CC_ALLOW_LEFT,
 };
 
-#define NUM_CC_TRANS_ANIMATIONS 6
+#define NUM_CC_TRANS_ANIMATIONS 3//6
 
 qboolean BG_IsInCrowdControlTransitionAnim(playerState_t *ps)
 {
@@ -5651,7 +5656,7 @@ void BG_IncrementCrowdControlTransition(playerState_t *ps)
 
 	if (ps->nextTransitionAnim <= 0 || ps->nextTransitionAnim >= NUM_CC_TRANS_ANIMATIONS)
 	{// Make sure it is always valid...
-		pm->ps->nextTransitionAnim = 1;
+		pm->ps->nextTransitionAnim = 0;
 	}
 }
 
@@ -5683,28 +5688,21 @@ int BG_GetCrowdControlStanceMove(short newMove)
 #endif //__DEBUG_STANCES__
 		if (pm->cmd.forwardmove < 0 && pm->cmd.rightmove == 0)
 		{// Moving back only.
-			//pm->ps->fd.saberAnimLevel = SS_STAFF;
-
 			pm->ps->fd.saberAnimLevel = SS_DUAL;
 			newMove = 104; //119
 		}
 		else if (pm->cmd.forwardmove < 0 && pm->cmd.rightmove < 0)
 		{// Moving to back left.
-			//pm->ps->fd.saberAnimLevel = SS_STAFF;
 			pm->ps->fd.saberAnimLevel = SS_CROWD_CONTROL;
 			newMove = 105; // 97 // 105
 		}
 		else if (pm->cmd.forwardmove < 0 && pm->cmd.rightmove > 0)
 		{// Moving to back right.
-			//pm->ps->fd.saberAnimLevel = SS_STAFF;
 			pm->ps->fd.saberAnimLevel = SS_CROWD_CONTROL;
 			newMove = 83;
 		}
 		else if (pm->cmd.forwardmove > 0 && pm->cmd.rightmove == 0)
 		{// Moving forward only.
-			//pm->ps->fd.saberAnimLevel = SS_STAFF;
-			
-			//pm->ps->fd.saberAnimLevel = SS_STAFF;
 			pm->ps->fd.saberAnimLevel = SS_CROWD_CONTROL;
 			newMove = 88;// 81;
 		}
@@ -5715,23 +5713,19 @@ int BG_GetCrowdControlStanceMove(short newMove)
 		}
 		else if (pm->cmd.forwardmove > 0 && pm->cmd.rightmove > 0)
 		{// Moving forward right.
-			//pm->ps->fd.saberAnimLevel = SS_STAFF;
 			pm->ps->fd.saberAnimLevel = SS_CROWD_CONTROL;
 			newMove = 111;
 		}
 		else if (pm->cmd.rightmove < 0)
 		{// Moving to left example.
-			//pm->ps->fd.saberAnimLevel = SS_TAVION;
 			pm->ps->fd.saberAnimLevel = SS_SINGLE;
 		}
 		else if (pm->cmd.rightmove > 0)
 		{// Moving to right example.
-			//pm->ps->fd.saberAnimLevel = SS_TAVION;
 			pm->ps->fd.saberAnimLevel = SS_SINGLE;
 		}
 		else
 		{// Standing still.
-			//pm->ps->fd.saberAnimLevel = SS_STAFF;
 			pm->ps->fd.saberAnimLevel = SS_CROWD_CONTROL;
 			newMove = 88;// 81;
 		}
@@ -6364,6 +6358,10 @@ void PM_SetSaberMove(short newMove)
 
 		pm->ps->nextTransitionAnim = 0;
 	}
+	/*else if (BG_InSaberLock(pm->ps->torsoAnim))
+	{
+		anim += (pm->ps->fd.saberAnimLevel - SS_FAST) * SABER_ANIM_GROUP_SIZE;
+	}*/
 	else if (newMove >= LS_R_TL2BR && newMove < LS_R_T2B)
 	{
 		anim = PM_AnimationForBounceMove(newMove);

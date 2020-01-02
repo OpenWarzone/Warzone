@@ -4590,20 +4590,20 @@ int G_CheckCritDamage ( gentity_t *targ, gentity_t *attacker )
 
 void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_t dir, vec3_t point, int damage, int dflags, int mod ) {
 	gclient_t	*client;
-	int			take, asave, max, subamt = 0, knockback;
+	int			take, asave, subamt = 0, knockback;
 	float		famt = 0, hamt = 0, shieldAbsorbed = 0;
 	int			damage_type = 0;
 
 	if (!targ)
 		return;
 
-	if (mod == MOD_SABER)
+	/*if (mod == MOD_SABER)
 	{// Quick hack to increase saber damage to match player/npc healths...
 		if (targ->s.weapon == WP_SABER)
 			damage = (int)((float)damage * 4.0);
 		else
 			damage = (int)((float)damage * 64.0);
-	}
+	}*/
 
 	if (targ
 		&& targ->client
@@ -4695,11 +4695,14 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 	//
 	damage_type = G_CheckCritDamage( targ, attacker );
 
-	if (mod == MOD_CRUSH || mod == MOD_FALLING) damage_type = DAMAGE_STANDARD;
-
-	if (targ && targ->client && damage > 0 && damage_type == DAMAGE_CRITICAL)
+	if (mod == MOD_CRUSH || mod == MOD_FALLING)
+	{
+		damage_type = DAMAGE_STANDARD;
+	}
+	else if (targ && targ->client && damage > 0 && damage_type == DAMAGE_CRITICAL)
 	{// If this was a crit, inform the client(s) and add the extra damage...
-		damage *= flrand(2.0, 3.0);
+		float rnd = (float)irand(0, 100) / 100.0f;
+		damage = int((float)damage * (2.0 + rnd));
 		targ->client->ps.damageCrit = qtrue;
 	}
 	else if (targ && targ->client && damage > 0 && damage_type == DAMAGE_MISS)
@@ -4872,14 +4875,14 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 	}
 	// reduce damage by the attacker's handicap value
 	// unless they are rocket jumping
-	if ( attacker->client
+	/*if ( attacker->client
 		&& attacker != targ
 		&& attacker->s.eType == ET_PLAYER
 		&& level.gametype != GT_SIEGE )
 	{
 		max = attacker->client->ps.stats[STAT_MAX_HEALTH];
 		damage = damage * max / 100;
-	}
+	}*/
 
 	if ( !(dflags&DAMAGE_NO_HIT_LOC) )
 	{//see if we should modify it by damage location
@@ -5025,7 +5028,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 	}
 
 
-	if ( (g_jediVmerc.integer || level.gametype == GT_SIEGE)
+	/*if ( (g_jediVmerc.integer || level.gametype == GT_SIEGE)
 		&& client )
 	{//less explosive damage for jedi, more saber damage for non-jedi
 		if ( client->ps.trueJedi
@@ -5069,7 +5072,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 	{ //this class is flagged to take less damage from physical attacks.
 		//For now I'm just decreasing against any client-based attack, this can be changed later I guess.
 		damage *= 0.5;
-	}
+	}*/
 
 	// check for completely getting out of the damage
 	if ( !(dflags & DAMAGE_NO_PROTECTION) ) {

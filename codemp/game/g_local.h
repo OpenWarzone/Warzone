@@ -605,6 +605,8 @@ struct gentity_s {
 	saberTrace_t	saberTrace[MAX_SABERS][MAX_BLADES] = { { 0 } };
 #endif //__SINGLE_FRAME_SABER_TRACE__
 
+	int				nextSaberDamage = 0;
+
 	int				defenseSpinStartTime = 0;
 	int				defenseSpinLastValidTime = 0;
 

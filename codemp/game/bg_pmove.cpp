@@ -841,6 +841,16 @@ int PM_GetSaberStance()
 		return BOTH_CC_STANCE;
 	}
 
+	if (pm->ps->fd.saberDrawAnimLevel == SS_SINGLE)
+	{
+		if ((pm->cmd.buttons & BUTTON_ALT_ATTACK) && !(pm->cmd.buttons & BUTTON_ATTACK) && blockableSaber)
+		{
+			return BOTH_P1_S1_T_;
+		}
+
+		return BOTH_SINGLE_STANCE;
+	}
+
 	switch (pm->ps->fd.saberAnimLevel)
 	{
 	case SS_DUAL:
