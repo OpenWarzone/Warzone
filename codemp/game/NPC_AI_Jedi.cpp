@@ -3671,6 +3671,11 @@ qboolean Jedi_SpeedEvasion(gentity_t *self)
 		return qfalse;
 	}
 
+	if (self->client->ps.saberLockTime > level.time && self->client->ps.saberEntityNum)
+	{
+		return qfalse;
+	}
+
 	if (self->client->ps.groundEntityNum == ENTITYNUM_NONE)
 	{//can't dodge in mid-air
 		return qfalse;
@@ -3751,7 +3756,7 @@ qboolean Jedi_SpeedEvasion(gentity_t *self)
 
 //#define __DEBUG_SPEED_ATTACK__
 
-qboolean Jedi_SpeedAttackCanKnockdown(gentity_t *ent)
+qboolean Jedi_DashAttackCanKnockdown(gentity_t *ent)
 {
 	if (!ent->inuse || !ent->client)
 	{ //no good
@@ -3773,9 +3778,9 @@ qboolean Jedi_SpeedAttackCanKnockdown(gentity_t *ent)
 	return qfalse;
 }
 
-void Jedi_SpeedAttackKnockdown(gentity_t *ent, gentity_t *attacker, vec3_t tossDir, float tossStr)
+void Jedi_DashAttackKnockdown(gentity_t *ent, gentity_t *attacker, vec3_t tossDir, float tossStr)
 {
-	if (!Jedi_SpeedAttackCanKnockdown(ent))
+	if (!Jedi_DashAttackCanKnockdown(ent))
 	{ //no good
 		return;
 	}
@@ -3790,7 +3795,7 @@ void Jedi_SpeedAttackKnockdown(gentity_t *ent, gentity_t *attacker, vec3_t tossD
 	G_Damage(ent, attacker, attacker, tossDir, ent->r.currentOrigin, irand(15, 25), DAMAGE_NO_ARMOR, MOD_MELEE);
 }
 
-qboolean Jedi_SpeedAttackContinue(gentity_t *self)
+qboolean Jedi_DashAttackContinue(gentity_t *self)
 {
 	if (self && self->enemy && self->health > 0 && NPC_IsAlive(self, self->enemy) && !TIMER_Done(self, "speedAttack"))
 	{
@@ -3804,9 +3809,9 @@ qboolean Jedi_SpeedAttackContinue(gentity_t *self)
 			self->client->ps.velocity[1] = 0;
 			self->client->ps.velocity[2] = 0;
 
-			if (Jedi_SpeedAttackCanKnockdown(self->enemy))
+			if (Jedi_DashAttackCanKnockdown(self->enemy))
 			{// Push them down...
-				Jedi_SpeedAttackKnockdown(self->enemy, self, edir, 256.0);
+				Jedi_DashAttackKnockdown(self->enemy, self, edir, 256.0);
 #ifdef __DEBUG_SPEED_ATTACK__
 				Com_Printf("Speed attack - Knockdown.\n");
 #endif //__DEBUG_SPEED_ATTACK__
@@ -3817,6 +3822,14 @@ qboolean Jedi_SpeedAttackContinue(gentity_t *self)
 #ifdef __DEBUG_SPEED_ATTACK__
 				Com_Printf("Speed attack - Saber.\n");
 #endif //__DEBUG_SPEED_ATTACK__
+				/*if (self->client->saber[0].numBlades > 1)
+				{
+					self->client->ps.saberMove = LS_STAFF_SOULCAL;
+				}
+				else
+				{
+					self->client->ps.saberMove = LS_A2_SPECIAL;
+				}*/
 			}
 
 			TIMER_Remove(self, "speedAttack");
@@ -3847,7 +3860,7 @@ qboolean Jedi_SpeedAttackContinue(gentity_t *self)
 	return qfalse;
 }
 
-qboolean Jedi_SpeedAttackEnemyVisible(gentity_t *self, gentity_t *enemy)
+qboolean Jedi_DashAttackEnemyVisible(gentity_t *self, gentity_t *enemy)
 {
 	trace_t tr;
 
@@ -3867,7 +3880,7 @@ qboolean Jedi_SpeedAttackEnemyVisible(gentity_t *self, gentity_t *enemy)
 	return qfalse;
 }
 
-qboolean Jedi_SpeedAttack(gentity_t *self)
+qboolean Jedi_DashAttack(gentity_t *self)
 {
 	int	dodgeAnim = -1;
 
@@ -3876,7 +3889,22 @@ qboolean Jedi_SpeedAttack(gentity_t *self)
 		return qfalse;
 	}
 
-	if (Jedi_SpeedAttackContinue(self))
+	if (self->client->ps.saberLockTime > level.time && self->client->ps.saberEntityNum)
+	{
+		return qfalse;
+	}
+
+	if (self->client->ps.groundEntityNum == ENTITYNUM_NONE)
+	{//can't dodge in mid-air
+		return qfalse;
+	}
+
+	if (self->client->ps.weaponTime > 0 || self->client->ps.forceHandExtend != HANDEXTEND_NONE)
+	{//in some effect that stops me from moving on my own
+		return qfalse;
+	}
+
+	if (Jedi_DashAttackContinue(self))
 	{
 #ifdef __DEBUG_SPEED_ATTACK__
 		Com_Printf("Speed attack - Continue.\n");
@@ -3899,7 +3927,7 @@ qboolean Jedi_SpeedAttack(gentity_t *self)
 		return qfalse;
 	}
 
-	if (!Jedi_SpeedAttackEnemyVisible(self, self->enemy))
+	if (!Jedi_DashAttackEnemyVisible(self, self->enemy))
 	{
 		return qfalse;
 	}
@@ -8223,7 +8251,7 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 	qboolean	enemyJumping = qfalse;
 	float		enemy_dist, diff;
 
-	if (Jedi_SpeedAttackContinue(aiEnt))
+	if (Jedi_DashAttackContinue(aiEnt))
 	{// Continue any speed attacks we started...
 		return qtrue;
 	}
@@ -8276,7 +8304,7 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 
 		//qboolean pathClear = Jedi_ClearPathToSpot(aiEnt, aiEnt->enemy->r.currentOrigin, aiEnt->enemy->s.number);
 
-		if (dist < 512.0 && (NPC_IsJedi(aiEnt) || aiEnt->client->ps.weapon == WP_SABER) && Jedi_SpeedAttack(aiEnt))
+		if (dist < 512.0 && (NPC_IsJedi(aiEnt) || aiEnt->client->ps.weapon == WP_SABER) && Jedi_DashAttack(aiEnt))
 		{// See if we can use a fast force speed attack on them, and slash or push them over...
 
 		}
