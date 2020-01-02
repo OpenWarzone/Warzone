@@ -341,7 +341,7 @@ int PM_GetSaberStance(void)
 }
 */
 
-#define __DEBUG_TEST_ANIMS__
+//#define __DEBUG_TEST_ANIMS__
 
 qboolean PM_BlockableBlasterBoltsInRange( void )
 {
@@ -551,6 +551,12 @@ int PM_GetSaberStance()
 		mblockforstance = SS_TAVION;
 	}
 
+	if (pm->ps->fd.saberAnimLevelBase == SS_SINGLE)
+	{
+		pm->ps->fd.saberAnimLevel = SS_SINGLE;
+		mblockforstance = SS_TAVION;
+	}
+
 	if (!pm->ps->saberEntityNum)
 	{ //lost it
 		return BOTH_STAND1;
@@ -627,7 +633,7 @@ int PM_GetSaberStance()
 	}
 #endif //__DEBUG_TEST_ANIMS__
 
-	qboolean blockableSaber = PM_BlockableSaberInRange();
+	qboolean blockableSaber = qtrue;// PM_BlockableSaberInRange();
 
 	if (blockableSaber && (hideStance || ((pm->cmd.buttons & BUTTON_ALT_ATTACK) && !(pm->cmd.buttons & BUTTON_ATTACK))))
 	{//for now I'll assume that we're using an inverted control system.
@@ -860,6 +866,7 @@ int PM_GetSaberStance()
 		break;
 	case SS_NONE:
 	case SS_MEDIUM:
+	case SS_SINGLE:
 	default:
 		anim = BOTH_SINGLE_STANCE;// BOTH_STAND2;
 		break;
@@ -6853,6 +6860,7 @@ static void PM_Footsteps( void ) {
 							}
 							break;
 						case SS_DUAL:
+						case SS_SINGLE:
 							if (!(pm->cmd.buttons & BUTTON_ALT_ATTACK))
 							{
 								desiredAnim = BOTH_WALK1;

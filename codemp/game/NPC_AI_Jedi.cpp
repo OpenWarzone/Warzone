@@ -1867,6 +1867,7 @@ void Jedi_AdjustSaberAnimLevel( gentity_t *self, int newLevel )
 		return;
 	}
 
+#if 0
 	if (self->client->NPC_class == CLASS_TAVION)
 	{//special attacks
 		self->client->ps.fd.saberAnimLevel = SS_TAVION;
@@ -1948,6 +1949,29 @@ void Jedi_AdjustSaberAnimLevel( gentity_t *self, int newLevel )
 		self->client->npcFavoredStance = self->client->ps.fd.saberAnimLevel;
 		//trap->Print("NPC %s selected stance %i.\n", self->client->pers.netname, self->client->npcFavoredStance);
 	}
+#else
+	if (self->client->saber[0].model[0] && self->client->saber[1].model[0])
+	{// Dual sabers...
+		self->client->ps.fd.saberAnimLevel = SS_DUAL;
+		self->client->ps.fd.saberAnimLevelBase = SS_DUAL;
+		self->client->ps.fd.saberDrawAnimLevel = SS_DUAL;
+	}
+	else if (self->client->saber[0].numBlades > 1)
+	{// Dual blade...
+		self->client->ps.fd.saberAnimLevel = SS_CROWD_CONTROL;
+		self->client->ps.fd.saberAnimLevelBase = SS_CROWD_CONTROL;
+		self->client->ps.fd.saberDrawAnimLevel = SS_CROWD_CONTROL;
+	}
+	else
+	{// Single saber...
+		self->client->ps.fd.saberAnimLevel = SS_SINGLE;
+		self->client->ps.fd.saberAnimLevelBase = SS_SINGLE;
+		self->client->ps.fd.saberDrawAnimLevel = SS_SINGLE;
+	}
+
+	// Remember our favored stance...
+	self->client->npcFavoredStance = self->client->ps.fd.saberAnimLevel;
+#endif
 }
 
 extern void ForceTelepathy(gentity_t *self);

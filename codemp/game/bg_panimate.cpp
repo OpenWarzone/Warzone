@@ -49,13 +49,6 @@ qboolean BG_SaberStanceAnim(int anim)
 	case TRIPLE3_STAFFSTANCE:
 	case BOTH_SINGLE_STANCE:
 	case BOTH_CC_STANCE:
-	case UNIQUE_STANCE01:
-	case UNIQUE_STANCE02:
-	case UNIQUE_STANCE03:
-	case UNIQUE_STANCE04:
-	case UNIQUE_STANCE05:
-	case UNIQUE_STANCE06:
-	case UNIQUE_STANCE07:
 		return qtrue;
 		break;
 	}
@@ -177,13 +170,6 @@ qboolean BG_InSaberStandAnim(int anim)
 	case TRIPLE3_STAFFSTANCE:
 	case BOTH_SINGLE_STANCE:
 	case BOTH_CC_STANCE:
-	case UNIQUE_STANCE01:
-	case UNIQUE_STANCE02:
-	case UNIQUE_STANCE03:
-	case UNIQUE_STANCE04:
-	case UNIQUE_STANCE05:
-	case UNIQUE_STANCE06:
-	case UNIQUE_STANCE07:
 		return qtrue;
 	default:
 		return qfalse;

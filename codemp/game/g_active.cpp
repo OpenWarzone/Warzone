@@ -1748,6 +1748,7 @@ void G_SetTauntAnim( gentity_t *ent, int taunt )
 					anim = BOTH_GESTURE1;
 					break;
 				case SS_MEDIUM:
+				case SS_SINGLE:
 				case SS_STRONG:
 				case SS_DESANN:
 					anim = BOTH_ENGAGETAUNT;
@@ -1858,6 +1859,7 @@ void G_SetTauntAnim( gentity_t *ent, int taunt )
 						anim = BOTH_SHOWOFF_FAST;
 						break;
 					case SS_MEDIUM:
+					case SS_SINGLE:
 						anim = BOTH_SHOWOFF_MEDIUM;
 						break;
 					case SS_STRONG:
@@ -1896,6 +1898,7 @@ void G_SetTauntAnim( gentity_t *ent, int taunt )
 					anim = BOTH_VICTORY_FAST;
 					break;
 				case SS_MEDIUM:
+				case SS_SINGLE:
 					anim = BOTH_VICTORY_MEDIUM;
 					break;
 				case SS_STRONG:
@@ -3224,6 +3227,7 @@ void ClientThink_real( gentity_t *ent ) {
 							lockHits = 1;
 							break;
 						case SS_MEDIUM:
+						case SS_SINGLE:
 						case SS_TAVION:
 						case SS_DUAL:
 						case SS_STAFF:

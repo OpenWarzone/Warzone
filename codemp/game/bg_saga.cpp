@@ -54,6 +54,7 @@ stringID_table_t bgSiegeClassFlagNames[] =
 };
 
 //saber stances
+#if 0
 stringID_table_t StanceTable[] =
 {
 	ENUM2STRING(SS_NONE),
@@ -65,8 +66,25 @@ stringID_table_t StanceTable[] =
 	ENUM2STRING(SS_DUAL),
 	ENUM2STRING(SS_STAFF),
 	ENUM2STRING(SS_CROWD_CONTROL),
+	ENUM2STRING(SS_SINGLE),
+	{ "", 0 }
+};
+#else
+stringID_table_t StanceTable[] =
+{
+	ENUM2STRING(SS_NONE),
+	ENUM2STRING(SS_FAST),
+	ENUM2STRING(SS_MEDIUM),
+	ENUM2STRING(SS_STRONG),
+	ENUM2STRING(SS_DESANN),
+	ENUM2STRING(SS_SINGLE),
+	ENUM2STRING(SS_DUAL),
+	ENUM2STRING(SS_CROWD_CONTROL),
+	ENUM2STRING(SS_STAFF),
+	ENUM2STRING(SS_TAVION),
 	{"", 0}
 };
+#endif
 
 //Weapon and force power tables are also used in NPC parsing code and some other places.
 stringID_table_t WPTable[] =

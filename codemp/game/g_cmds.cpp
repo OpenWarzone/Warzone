@@ -2861,6 +2861,10 @@ void Cmd_ToggleSaber_f(gentity_t *ent)
 	}
 }
 
+
+#define BASE_SINGLE_STANCE SS_SINGLE//g_testvalue0.integer ///*SS_MEDIUM*/SS_DUAL
+
+
 extern void G_CheckSaber(gentity_t *ent);
 extern vmCvar_t		d_saberStanceDebug;
 
@@ -2906,7 +2910,7 @@ qboolean G_SaberStanceIsValid(gentity_t *ent, int stance)
 	}
 	else if (dualBlade > 0)
 	{
-		if (stance > SS_CROWD_CONTROL)
+		if (stance != SS_CROWD_CONTROL)
 		{
 			return qfalse;
 		}
@@ -2919,7 +2923,7 @@ qboolean G_SaberStanceIsValid(gentity_t *ent, int stance)
 #else //!__ALL_SABER_STYLES__
 	else
 	{
-		if (stance > SS_MEDIUM)
+		if (stance != BASE_SINGLE_STANCE)
 		{
 			return qfalse;
 		}
@@ -3057,7 +3061,7 @@ void Cmd_SaberAttackCycle_f(gentity_t *ent)
 #ifdef __ALL_SABER_STYLES__
 			selectLevel = SS_FAST;
 #else //!__ALL_SABER_STYLES__
-			selectLevel = SS_MEDIUM;
+			selectLevel = BASE_SINGLE_STANCE;
 #endif //__ALL_SABER_STYLES__
 		}
 	}
