@@ -667,13 +667,35 @@ qboolean G2_Set_Bone_Anim_Index(
 			{
 				if (animSpeed<0.0f)
 				{
+#if 0
 					blist[index].blendFrame = floor(currentFrame);
 					blist[index].blendLerpFrame = floor(currentFrame);
+#else
+					// UQ1: Fix - Lerp toward half way to the end of the current anim from the current position...
+					int cf = floor(currentFrame);
+					int slf = floor(currentFrame-1);
+					int frames = slf - endFrame;
+					int lf = floor(currentFrame - (frames / 2));
+
+					blist[index].blendFrame = floor(currentFrame);
+					blist[index].blendLerpFrame = floor(lf);
+#endif
 				}
 				else
 				{
+#if 0
 					blist[index].blendFrame = currentFrame;
-					blist[index].blendLerpFrame = currentFrame+1;
+					blist[index].blendLerpFrame = currentFrame + 1;
+#else
+					// UQ1: Fix - Lerp toward half way to the end of the current anim from the current position...
+					int cf = floor(currentFrame);
+					int slf = floor(currentFrame + 1);
+					int frames = endFrame - slf;
+					int lf = floor(currentFrame + (frames / 2));
+
+					blist[index].blendFrame = currentFrame;
+					blist[index].blendLerpFrame = lf;
+#endif
 
 					// cope with if the lerp frame is actually off the end of the anim
 					if (blist[index].blendFrame >= endFrame )

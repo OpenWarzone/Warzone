@@ -2239,7 +2239,7 @@ qboolean PM_SomeoneInFront(trace_t *tr)
 
 	pm->trace(tr, pm->ps->origin, trmins, trmaxs, back, pm->ps->clientNum, MASK_PLAYERSOLID);
 
-	if (tr->fraction != 1.0 && tr->entityNum >= 0 && tr->entityNum < ENTITYNUM_NONE)
+	if (tr->fraction != 1.0 && tr->entityNum >= 0 && tr->entityNum < ENTITYNUM_WORLD)
 	{
 		bgEntity_t *bgEnt = PM_BGEntForNum(tr->entityNum);
 
@@ -2357,9 +2357,14 @@ qboolean PM_JMCanBackstab(void)
 
 	pm->trace(&tr, pm->ps->origin, trmins, trmaxs, back, pm->ps->clientNum, MASK_PLAYERSOLID);
 
-	if (tr.fraction != 1.0 && tr.entityNum >= 0 && (tr.entityNum < MAX_CLIENTS))
+	if (tr.fraction != 1.0 && tr.entityNum >= 0 && tr.entityNum < ENTITYNUM_WORLD)
 	{ //We don't have real entity access here so we can't do an indepth check. But if it's a client and it's behind us, I guess that's reason enough to stab backward
-		return qtrue;
+		bgEntity_t *bgEnt = PM_BGEntForNum(tr.entityNum);
+
+		if (bgEnt && (bgEnt->s.eType == ET_PLAYER || bgEnt->s.eType == ET_NPC))
+		{
+			return qtrue;
+		}
 	}
 
 	return qfalse;
@@ -2388,9 +2393,14 @@ qboolean PM_CanLunge(void)
 
 	pm->trace(&tr, pm->ps->origin, trmins, trmaxs, back, pm->ps->clientNum, MASK_PLAYERSOLID);
 
-	if (tr.fraction != 1.0 && tr.entityNum >= 0 && (tr.entityNum < MAX_CLIENTS))
+	if (tr.fraction != 1.0 && tr.entityNum >= 0 && tr.entityNum < ENTITYNUM_WORLD)
 	{ //We don't have real entity access here so we can't do an indepth check. But if it's a client and it's behind us, I guess that's reason enough to stab backward
-		return qtrue;
+		bgEntity_t *bgEnt = PM_BGEntForNum(tr.entityNum);
+
+		if (bgEnt && (bgEnt->s.eType == ET_PLAYER || bgEnt->s.eType == ET_NPC))
+		{
+			return qtrue;
+		}
 	}
 
 	return qfalse;
@@ -2418,9 +2428,14 @@ qboolean PM_JMCanLunge(void)
 
 	pm->trace(&tr, pm->ps->origin, trmins, trmaxs, back, pm->ps->clientNum, MASK_PLAYERSOLID);
 
-	if (tr.fraction != 1.0 && tr.entityNum >= 0 && tr.entityNum < MAX_CLIENTS)
+	if (tr.fraction != 1.0 && tr.entityNum >= 0 && tr.entityNum < ENTITYNUM_WORLD)
 	{ //We don't have real entity access here so we can't do an indepth check. But if it's a client and it's behind us, I guess that's reason enough to stab backward
-		return qtrue;
+		bgEntity_t *bgEnt = PM_BGEntForNum(tr.entityNum);
+
+		if (bgEnt && (bgEnt->s.eType == ET_PLAYER || bgEnt->s.eType == ET_NPC))
+		{
+			return qtrue;
+		}
 	}
 
 	return qfalse;
@@ -4459,7 +4474,8 @@ void PM_WeaponLightsaber(void)
 		if (PM_SaberInBounce(pm->ps->saberMove) 
 			|| PM_SaberInReturn(pm->ps->saberMove)
 			|| (pm->ps->torsoAnim >= BOTH_SABERBLOCK_TL && pm->ps->torsoAnim <= BOTH_SABERBLOCK_T)
-			|| (pm->ps->torsoAnim >= BOTH_SABERBLOCK_FL1 && pm->ps->torsoAnim <= BOTH_SABERBLOCK_BR2))
+			|| (pm->ps->torsoAnim >= BOTH_SABERBLOCK_FL1 && pm->ps->torsoAnim <= BOTH_SABERBLOCK_BR5)
+			|| (pm->ps->torsoAnim >= BOTH_CC_SABERBLOCK_FL1 && pm->ps->torsoAnim <= BOTH_CC_SABERBLOCK_BR5))
 		{//an actual bounce?  Other bounces before this are actually transitions?
 			pm->ps->saberBlocked = BLOCKED_NONE;
 		}
@@ -5897,39 +5913,76 @@ int BG_GetSingleStanceMove(short newMove)
 
 int PM_AnimationForBounceMove(short newMove)
 {
-	if (pm->ps->torsoAnim >= BOTH_SABERBLOCK_FL1 && pm->ps->torsoAnim <= BOTH_SABERBLOCK_BR2)
+	/*if ((pm->ps->torsoAnim >= BOTH_SABERBLOCK_FL1 && pm->ps->torsoAnim <= BOTH_SABERBLOCK_BR5)
+		|| (pm->ps->torsoAnim >= BOTH_CC_SABERBLOCK_FL1 && pm->ps->torsoAnim <= BOTH_CC_SABERBLOCK_BR5))
 	{
 		return pm->ps->torsoAnim;
-	}
+	}*/
 
-	if (pm->cmd.forwardmove < 0)
+	if (pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL)
 	{
-		if (pm->cmd.rightmove < 0)
+		if (pm->cmd.forwardmove < 0)
 		{
-			return BOTH_SABERBLOCK_BL1 + irand(0, 2);
-		}
-		else if (pm->cmd.rightmove > 0)
-		{
-			return BOTH_SABERBLOCK_BR1 + irand(0, 1);
+			if (pm->cmd.rightmove < 0)
+			{
+				return BOTH_CC_SABERBLOCK_BL1 + irand(0, 4);
+			}
+			else if (pm->cmd.rightmove > 0)
+			{
+				return BOTH_CC_SABERBLOCK_BR1 + irand(0, 4);
+			}
+			else
+			{
+				return BOTH_CC_SABERBLOCK_B1 + irand(0, 4);
+			}
 		}
 		else
 		{
-			return BOTH_SABERBLOCK_B1 + irand(0, 4);
+			if (pm->cmd.rightmove < 0)
+			{
+				return BOTH_CC_SABERBLOCK_FL1 + irand(0, 4);
+			}
+			else if (pm->cmd.rightmove > 0)
+			{
+				return BOTH_CC_SABERBLOCK_FR1 + irand(0, 4);
+			}
+			else
+			{
+				return BOTH_CC_SABERBLOCK_F1 + irand(0, 4);
+			}
 		}
 	}
 	else
 	{
-		if (pm->cmd.rightmove < 0)
+		if (pm->cmd.forwardmove < 0)
 		{
-			return BOTH_SABERBLOCK_FL1 + irand(0, 2);
-		}
-		else if (pm->cmd.rightmove > 0)
-		{
-			return BOTH_SABERBLOCK_FR1 + irand(0, 1);
+			if (pm->cmd.rightmove < 0)
+			{
+				return BOTH_SABERBLOCK_BL1 + irand(0, 4);
+			}
+			else if (pm->cmd.rightmove > 0)
+			{
+				return BOTH_SABERBLOCK_BR1 + irand(0, 4);
+			}
+			else
+			{
+				return BOTH_SABERBLOCK_B1 + irand(0, 4);
+			}
 		}
 		else
 		{
-			return BOTH_SABERBLOCK_F1 + irand(0, 3);
+			if (pm->cmd.rightmove < 0)
+			{
+				return BOTH_SABERBLOCK_FL1 + irand(0, 4);
+			}
+			else if (pm->cmd.rightmove > 0)
+			{
+				return BOTH_SABERBLOCK_FR1 + irand(0, 4);
+			}
+			else
+			{
+				return BOTH_SABERBLOCK_F1 + irand(0, 4);
+			}
 		}
 	}
 }
@@ -6279,6 +6332,13 @@ void PM_SetSaberMove(short newMove)
 	qboolean isCCStance = qtrue;
 	qboolean isSingleStance = qtrue;
 
+	/*
+	if (bg_testvalue0.integer)
+		trap->G2API_AbsurdSmoothing(pm->ghoul2, qtrue);
+	else
+		trap->G2API_AbsurdSmoothing(pm->ghoul2, qfalse);
+	*/
+
 #define SABER_BLEND_BASE_TIME 100
 	pm->ps->torsoBlendTime = SABER_BLEND_BASE_TIME;
 	
@@ -6435,6 +6495,8 @@ void PM_SetSaberMove(short newMove)
 	{
 		pm->ps->torsoBlendTime *= BG_GetBlendMultiplierForStance(pm->ps->fd.saberAnimLevelBase);
 	}
+
+	pm->ps->torsoBlendTime = bg_torsoBlend.integer;
 
 	// If the move does the same animation as the last one, we need to force a restart...
 	if (saberMoveData[pm->ps->saberMove].animToUse == anim && newMove > LS_PUTAWAY)

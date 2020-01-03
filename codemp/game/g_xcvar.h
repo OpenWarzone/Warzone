@@ -175,6 +175,7 @@ XCVAR_DEF(bg_testvalue3,				"0.0",			NULL,				CVAR_ARCHIVE,									qfalse)
 XCVAR_DEF(bg_testanimation,				"0",			NULL,				CVAR_ARCHIVE,									qfalse)
 XCVAR_DEF(bg_testspinanimation,			"0",			NULL,				CVAR_ARCHIVE,									qfalse)
 XCVAR_DEF(bg_debugbounce,				"0",			NULL,				CVAR_ARCHIVE,									qfalse)
+XCVAR_DEF(bg_torsoBlend,				"250",			NULL,				CVAR_ARCHIVE,									qfalse)
 XCVAR_DEF(sv_saberHideStance,			"0",			NULL,				CVAR_SERVERINFO|CVAR_ARCHIVE,					qfalse )
 
 #undef XCVAR_DEF

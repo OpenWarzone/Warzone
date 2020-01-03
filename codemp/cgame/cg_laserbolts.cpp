@@ -428,7 +428,8 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 				|| BG_SaberInProjectileBlockSpin(cent->currentState.torsoAnim)
 				|| PM_SaberInAnyBlockMove(cent->currentState.saberMove)
 				|| (cent->currentState.torsoAnim >= BOTH_SABERBLOCK_TL && cent->currentState.torsoAnim <= BOTH_SABERBLOCK_T)
-				|| (cent->currentState.torsoAnim >= BOTH_SABERBLOCK_FL1 && cent->currentState.torsoAnim <= BOTH_SABERBLOCK_BR2)) ? qtrue : qfalse;
+				|| (cent->currentState.torsoAnim >= BOTH_SABERBLOCK_FL1 && cent->currentState.torsoAnim <= BOTH_SABERBLOCK_BR5)
+				|| (cent->currentState.torsoAnim >= BOTH_CC_SABERBLOCK_FL1 && cent->currentState.torsoAnim <= BOTH_CC_SABERBLOCK_BR5)) ? qtrue : qfalse;
 
 			if (BG_SuperBreakWinAnim(cent->currentState.torsoAnim)
 				|| BG_SaberInProjectileBlockSpin(cent->currentState.torsoAnim)
@@ -565,21 +566,9 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 
 		if (cg.time > saberTrail->lastTime + 2 && cg.time < saberTrail->lastTime + 2000) // 2ms
 		{
-			/*qboolean inSaberMove = (BG_SaberInAttack(cent->currentState.saberMove)
-				|| BG_SuperBreakWinAnim(cent->currentState.torsoAnim)
-				|| BG_SaberInProjectileBlockSpin(cent->currentState.torsoAnim)
-				|| PM_SaberInAnyBlockMove(cent->currentState.saberMove)
-				|| (cent->currentState.torsoAnim >= BOTH_SABERBLOCK_TL && cent->currentState.torsoAnim <= BOTH_SABERBLOCK_T)
-				|| (cent->currentState.torsoAnim >= BOTH_SABERBLOCK_FL1 && cent->currentState.torsoAnim <= BOTH_SABERBLOCK_BR2)) ? qtrue : qfalse;*/
-
 			qboolean inSaberMove = BG_SaberInIdle(cent->currentState.saberMove) ? qfalse : qtrue;
 
-			if (/*BG_SuperBreakWinAnim(cent->currentState.torsoAnim)
-				|| BG_SaberInProjectileBlockSpin(cent->currentState.torsoAnim)
-				|| PM_SaberInAnyBlockMove(cent->currentState.saberMove)
-				|| saberMoveData[cent->currentState.saberMove].trailLength > 0
-				|| (cent->currentState.powerups & (1 << PW_SPEED) && cg_speedTrail.integer)
-				|| (cent->currentState.saberInFlight && saberNum == 0)*/inSaberMove) // if we have a stale segment, don't draw until we have a fresh one
+			if (inSaberMove) // if we have a stale segment, don't draw until we have a fresh one
 			{
 				float diff = 0;
 

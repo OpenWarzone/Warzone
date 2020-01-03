@@ -3809,7 +3809,30 @@ qboolean Jedi_DashAttackContinue(gentity_t *self)
 			self->client->ps.velocity[1] = 0;
 			self->client->ps.velocity[2] = 0;
 
-			if (Jedi_DashAttackCanKnockdown(self->enemy))
+			if (self->enemy 
+				&& self->enemy->client && NPC_IsAlive(self, self->enemy) 
+				&& (self->enemy->client->pers.cmd.buttons & BUTTON_ALT_ATTACK)
+				&& !(self->enemy->client->pers.cmd.buttons & BUTTON_ATTACK))
+			{// If the enemy is actively blocking, knock yourself down instead, NPC...
+				if (Jedi_DashAttackCanKnockdown(self))
+				{// Push them down...
+					Jedi_DashAttackKnockdown(self, self->enemy, edir, 256.0);
+#ifdef __DEBUG_SPEED_ATTACK__
+					Com_Printf("Speed attack - Knockdown self (blocked).\n");
+#endif //__DEBUG_SPEED_ATTACK__
+				}
+				else
+				{// Can't knock them down, they continue their attack against the enemy...
+					self->client->pers.cmd.buttons |= BUTTON_ATTACK;
+#ifdef __DEBUG_SPEED_ATTACK__
+					Com_Printf("Speed attack - Saber.\n");
+#endif //__DEBUG_SPEED_ATTACK__
+				}
+
+				TIMER_Remove(self, "speedAttack");
+				return qtrue;
+			}
+			else if (Jedi_DashAttackCanKnockdown(self->enemy))
 			{// Push them down...
 				Jedi_DashAttackKnockdown(self->enemy, self, edir, 256.0);
 #ifdef __DEBUG_SPEED_ATTACK__
@@ -3822,14 +3845,6 @@ qboolean Jedi_DashAttackContinue(gentity_t *self)
 #ifdef __DEBUG_SPEED_ATTACK__
 				Com_Printf("Speed attack - Saber.\n");
 #endif //__DEBUG_SPEED_ATTACK__
-				/*if (self->client->saber[0].numBlades > 1)
-				{
-					self->client->ps.saberMove = LS_STAFF_SOULCAL;
-				}
-				else
-				{
-					self->client->ps.saberMove = LS_A2_SPECIAL;
-				}*/
 			}
 
 			TIMER_Remove(self, "speedAttack");
@@ -7862,14 +7877,14 @@ void Grenader_SelectBestWeapon( gentity_t *aiEnt)
 
 void Jedi_SelectBestWeapon( gentity_t *aiEnt)
 {
-	if ( aiEnt->enemy
+	/*if ( aiEnt->enemy
 		&& aiEnt->client->ps.weapon != WP_MODULIZED_WEAPON
 		&& Distance( aiEnt->r.currentOrigin, aiEnt->enemy->r.currentOrigin ) > 768 )
 	{
 		Boba_ChangeWeapon(aiEnt, WP_MODULIZED_WEAPON);
 		return;
 	}
-	else if ( aiEnt->client->ps.weapon != WP_SABER )
+	else*/ if ( aiEnt->client->ps.weapon != WP_SABER )
 	{
 		Boba_ChangeWeapon(aiEnt, WP_SABER );
 		return;
@@ -8666,7 +8681,7 @@ void NPC_BSJedi_Default( gentity_t *aiEnt)
 
 		if (aiEnt->enemy && NPC_IsAlive(aiEnt, aiEnt->enemy))
 		{
-			if (aiEnt->s.weapon != WP_SABER || aiEnt->enemy->s.weapon != WP_SABER)
+			if (aiEnt->client->ps.weapon != WP_SABER || (aiEnt->enemy && aiEnt->client->ps.weapon != WP_SABER))
 			{// Normal non-jedi NPC or enemy... Use normal system...
 				if (NPC_MoveIntoOptimalAttackPosition(aiEnt))
 				{// Just move into optimal range...
@@ -8674,6 +8689,21 @@ void NPC_BSJedi_Default( gentity_t *aiEnt)
 				}
 
 				Jedi_Attack(aiEnt);
+
+				/*if (TIMER_Done(aiEnt, "speedAttack") && aiEnt->client->ps.weapon == WP_SABER && Distance(aiEnt->r.currentOrigin, aiEnt->enemy->r.currentOrigin) >= 128.0)
+				{// Do a defence spin, or block as we move in...
+					aiEnt->client->pers.cmd.buttons |= BUTTON_ALT_ATTACK;
+					aiEnt->client->pers.cmd.buttons &= ~BUTTON_ATTACK;
+
+					if (aiEnt->client->ps.fd.saberDrawAnimLevel == SS_CROWD_CONTROL)
+					{
+						G_SetAnim(aiEnt, &aiEnt->client->pers.cmd, SETANIM_TORSO, BOTH_CC_DEFENCE_SPIN, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_RESTART, 100);
+					}
+					else if (aiEnt->client->ps.fd.saberDrawAnimLevel == SS_SINGLE)
+					{
+						G_SetAnim(aiEnt, &aiEnt->client->pers.cmd, SETANIM_TORSO, BOTH_SINGLE_DEFENCE_SPIN, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_RESTART, 100);
+					}
+				}*/
 			}
 			else
 			{// Jedi/Sith. Use attack/counter system...

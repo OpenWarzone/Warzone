@@ -3425,9 +3425,10 @@ static void CG_SetLerpFrameAnimation( centity_t *cent, clientInfo_t *ci, lerpFra
 		}
 
 
-		if (cent->playerState && cent->playerState->torsoBlendTime >= 0 && cent->playerState->torsoBlendTime != 100)
+		//if (cent->playerState && cent->playerState->torsoBlendTime >= 0 && cent->playerState->torsoBlendTime != 100)
 		{// Allow overriding blend time through BG code...
 			blendTime = cent->playerState->torsoBlendTime;
+			flags |= BONE_ANIM_BLEND;
 		}
 
 		animSpeed *= animSpeedMult;

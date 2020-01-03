@@ -4993,6 +4993,9 @@ void G_DoClashTaunting(gentity_t *self, gentity_t *attacker)
 	}
 }
 
+#define CLASH_MINIMUM_TIME 500//750
+#define SABER_DAMAGE_TIME 100//100//1000
+
 static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t saberStart, vec3_t saberEnd, qboolean doInterpolate, int trMask, qboolean extrapolate)
 {
 	static trace_t		tr;
@@ -5015,24 +5018,6 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 		self->client->ps.saberBlocked = BLOCKED_NONE;
 		return qtrue;
 	}
-	
-	/*if (self->client->ps.saberMove <= LS_PUTAWAY && !g_saberIdleDamage.integer && !(self->client->pers.cmd.buttons & BUTTON_ALT_ATTACK))
-	{// don't need to do any tracing or damage...
-		self->client->ps.saberBlocked = BLOCKED_NONE;
-		return qfalse;
-	}*/
-
-	/*if (self->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_T)
-	{// Already doing a block move, don't waste time tracing...
-		self->client->ps.saberBlocked = BLOCKED_NONE;
-		return qfalse;
-	}
-
-	if (self->client->ps.torsoAnim >= BOTH_SABERBLOCK_FL1 && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_BR2)
-	{// Already doing a block move, don't waste time tracing...
-		self->client->ps.saberBlocked = BLOCKED_NONE;
-		return qfalse;
-	}*/
 
 	if (self->nextSaberTrace > level.time)
 	{// UQ1: Using this to not spam blocks as much, and to save on CPU usage. We can assume after a clash that there is no contact for a moment.
@@ -5068,21 +5053,22 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 	{
 		if (PM_SaberInAnyBlockMove(self->client->ps.saberMove)
 			|| (self->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_T)
-			|| (self->client->ps.torsoAnim >= BOTH_SABERBLOCK_FL1 && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_BR2))
-		{
-			dmg = 0.0;
+			|| (self->client->ps.torsoAnim >= BOTH_SABERBLOCK_FL1 && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_BR5)
+			|| (self->client->ps.torsoAnim >= BOTH_CC_SABERBLOCK_FL1 && self->client->ps.torsoAnim <= BOTH_CC_SABERBLOCK_BR5))
+		{// Very low damage while in a bounce...
+			dmg = 1.0;
 		}
 		else if (BG_SaberInSpecial(self->client->ps.saberMove) || BG_SaberInKata(self->client->ps.saberMove))
-		{
-			dmg = 20.0;
+		{// High damage in special attacks...
+			dmg = 4.0;
 		}
 		else if (BG_SaberInFullDamageMove(&self->client->ps, self->localAnimIndex))
-		{
-			dmg = 10.0;
+		{// Normal damage...
+			dmg = 2.0;
 		}
 		else if (self->client->ps.saberInFlight && rSaberNum == 0)
-		{
-			dmg = 5.0;
+		{// Low damage in saber throws...
+			dmg = 1.5;
 		}
 		else
 		{
@@ -5306,9 +5292,7 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 			passthru = qtrue;
 		}
 
-#define CLASH_MINIMUM_TIME 750// 100//300
-
-		if (dmg <= SABER_NONATTACK_DAMAGE)
+		if (realTraceResult != REALTRACE_HIT_PLAYER && dmg <= SABER_NONATTACK_DAMAGE)
 		{
 			self->client->ps.saberIdleWound = level.time + 350;
 
@@ -5329,7 +5313,11 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 						//if (BG_SaberInAttack(self->client->ps.saberMove))
 						if (self->client->pers.cmd.buttons & BUTTON_ATTACK)
 						{
-							G_DoClashTaunting(self, otherOwner);
+							G_DoClashTaunting(self, self);
+						}
+						else
+						{
+							G_DoClashTaunting(otherOwner, self);
 						}
 					}
 
@@ -5344,7 +5332,11 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 						//if (BG_SaberInAttack(otherOwner->client->ps.saberMove))
 						if (otherOwner->client->pers.cmd.buttons & BUTTON_ATTACK)
 						{
-							G_DoClashTaunting(otherOwner, self);
+							G_DoClashTaunting(otherOwner, otherOwner);
+						}
+						else
+						{
+							G_DoClashTaunting(self, otherOwner);
 						}
 					}
 				}
@@ -5420,15 +5412,8 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 				dmg = (int)damage;
 			}
 
-#define SABER_DAMAGE_TIME 1000
-
 			//We need the final damage total to know if we need to bounce the saber back or not.
-			if (realTraceResult == REALTRACE_HIT_PLAYER 
-				&& victim->nextSaberDamage <= level.time
-				&& !(self->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_T)
-				&& !(self->client->ps.torsoAnim >= BOTH_SABERBLOCK_FL1 && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_BR2)
-				&& !(victim->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL && victim->client->ps.torsoAnim <= BOTH_SABERBLOCK_T)
-				&& !(victim->client->ps.torsoAnim >= BOTH_SABERBLOCK_FL1 && victim->client->ps.torsoAnim <= BOTH_SABERBLOCK_BR2))
+			if (realTraceResult == REALTRACE_HIT_PLAYER && victim->nextSaberDamage <= level.time)
 			{// Scale damage by enemy type...
 				extern qboolean NPC_IsJedi(gentity_t *self);
 				extern qboolean NPC_IsBoss(gentity_t *self);
@@ -5454,13 +5439,13 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 				else if (victim && victim->client && (NPC_IsBountyHunter(victim) || NPC_IsCommando(victim) || NPC_IsAdvancedGunner(victim)))
 				{
 					//Com_Printf("Saber damage %i to advanced gunner.\n", int(dmg * 1.75));
-					G_Damage(victim, self, self, dir, tr.endpos, int(dmg * 3.5), dflags, MOD_SABER);
+					G_Damage(victim, self, self, dir, tr.endpos, int(dmg * 10.0), dflags, MOD_SABER);
 					victim->nextSaberDamage = level.time + SABER_DAMAGE_TIME;
 				}
 				else if (victim && victim->client && (NPC_IsGunner(victim) || NPC_IsAnimalEnemyFaction(victim)))
 				{
 					//Com_Printf("Saber damage %i to gunner/animal.\n", int(dmg * 2.5));
-					G_Damage(victim, self, self, dir, tr.endpos, int(dmg * 5.0), dflags, MOD_SABER);
+					G_Damage(victim, self, self, dir, tr.endpos, int(dmg * 20.0), dflags, MOD_SABER);
 					victim->nextSaberDamage = level.time + SABER_DAMAGE_TIME;
 				}
 				else
@@ -5485,9 +5470,14 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 #endif //__DEBUG_REALTRACE__
 						self->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
 
-						if (BG_SaberInAttack(self->client->ps.saberMove))
+						//if (BG_SaberInAttack(self->client->ps.saberMove))
+						if (self->client->pers.cmd.buttons & BUTTON_ATTACK)
 						{
-							G_DoClashTaunting(self, otherOwner);
+							G_DoClashTaunting(self, self);
+						}
+						else
+						{
+							G_DoClashTaunting(otherOwner, self);
 						}
 					}
 
@@ -5499,9 +5489,14 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 #endif //__DEBUG_REALTRACE__
 						otherOwner->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
 
-						if (BG_SaberInAttack(otherOwner->client->ps.saberMove))
+						//if (BG_SaberInAttack(otherOwner->client->ps.saberMove))
+						if (otherOwner->client->pers.cmd.buttons & BUTTON_ATTACK)
 						{
-							G_DoClashTaunting(otherOwner, self);
+							G_DoClashTaunting(otherOwner, otherOwner);
+						}
+						else
+						{
+							G_DoClashTaunting(self, otherOwner);
 						}
 					}
 				}
@@ -9760,7 +9755,9 @@ qboolean WP_SaberCanBlock(gentity_t *atk, gentity_t *self, vec3_t point, vec3_t 
 	qboolean		saberInAttack = WP_PlayerSaberAttack(self);
 	qboolean		isCrowdControlDeflection = qfalse;
 
-	if (((self->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_T) || (self->client->ps.torsoAnim >= BOTH_SABERBLOCK_FL1 && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_BR2))
+	if (((self->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_T) 
+		|| (self->client->ps.torsoAnim >= BOTH_SABERBLOCK_FL1 && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_BR5)
+		|| (self->client->ps.torsoAnim >= BOTH_CC_SABERBLOCK_FL1 && self->client->ps.torsoAnim <= BOTH_CC_SABERBLOCK_BR5))
 		&& !projectile)
 	{// Projectiles may be ok, but can't block sabers...
 		return qfalse;
@@ -10006,8 +10003,10 @@ qboolean WP_SaberCanBlock_NPC(gentity_t *self, vec3_t point, int dflags, int mod
 		return qfalse;
 	}
 
-	if (((self->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_T) || (self->client->ps.torsoAnim >= BOTH_SABERBLOCK_FL1 && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_BR2))
-		&& !projectile)
+	if (((self->client->ps.torsoAnim >= BOTH_SABERBLOCK_TL && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_T) 
+		|| (self->client->ps.torsoAnim >= BOTH_SABERBLOCK_FL1 && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_BR5)
+		|| (self->client->ps.torsoAnim >= BOTH_CC_SABERBLOCK_FL1 && self->client->ps.torsoAnim <= BOTH_CC_SABERBLOCK_BR5))
+			&& !projectile)
 	{// Projectiles may be ok, but can't block sabers...
 		return qfalse;
 	}
