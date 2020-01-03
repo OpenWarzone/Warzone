@@ -1811,7 +1811,46 @@ void BG_LootInventoryFromNPC(gentity_t *player, gentity_t *victim)
 	}
 }
 
-void BG_CreatePlayerDefaultJediInventory(playerState_t *ps, team_t team)
+/*
+typedef enum {
+ITEM_CRYSTAL_DEFAULT,			// GREY shots/blade? No special damage/resistance type...
+ITEM_CRYSTAL_RED,				// Bonus Heat Damage/Resistance
+ITEM_CRYSTAL_GREEN,				// Bonus Kinetic (force) Damage/Resistance
+ITEM_CRYSTAL_BLUE,				// Bonus Electric Damage/Resistance
+ITEM_CRYSTAL_WHITE,				// Bonus Cold Damage/Resistance
+// Maybe extras below should be combos of the above? Stois? Thoughts?
+ITEM_CRYSTAL_YELLOW,			// Bonus 1/2 Heat + 1/2 Kinetic Damage/Resistance
+ITEM_CRYSTAL_PURPLE,			// Bonus 1/2 Electric + 1/2 Heat Damage/Resistance
+ITEM_CRYSTAL_ORANGE,			// Bonus 1/2 Cold + 1/2 Kinetic Damage/Resistance
+ITEM_CRYSTAL_PINK,				// Bonus 1/2 Electric + 1/2 Cold Damage/Resistance
+ITEM_CRYSTAL_MAX
+} itemPowerCrystal_t;
+*/
+uint16_t TranslateSaberColorToCrystal(const char *name) 
+{
+	if (!Q_stricmp(name, "red"))
+		return ITEM_CRYSTAL_RED;
+	if (!Q_stricmp(name, "orange"))
+		return ITEM_CRYSTAL_ORANGE;
+	if (!Q_stricmp(name, "yellow"))
+		return ITEM_CRYSTAL_YELLOW;
+	if (!Q_stricmp(name, "green"))
+		return ITEM_CRYSTAL_GREEN;
+	if (!Q_stricmp(name, "blue"))
+		return ITEM_CRYSTAL_BLUE;
+	if (!Q_stricmp(name, "purple"))
+		return ITEM_CRYSTAL_PURPLE;
+	if (!Q_stricmp(name, "white"))
+		return ITEM_CRYSTAL_WHITE;
+	if (!Q_stricmp(name, "pink"))
+		return ITEM_CRYSTAL_PINK;
+	if (!Q_stricmp(name, "random"))
+		return (saber_colors_t)Q_irand(ITEM_CRYSTAL_RED, ITEM_CRYSTAL_PINK);
+
+	return ITEM_CRYSTAL_DEFAULT;
+}
+
+void BG_CreatePlayerDefaultJediInventory(gentity_t *ent, playerState_t *ps, team_t team)
 {
 	if (BG_CountInventoryItems(ps) > 0)
 	{
@@ -1978,7 +2017,28 @@ void BG_CreatePlayerDefaultJediInventory(playerState_t *ps, team_t team)
 
 	if (!haveSaber)
 	{// Give them the default saber...
-		BG_CreatePlayerInventoryItem(ps, -1, 38, MODELTYPE_DEFAULT, QUALITY_GREY, team == FACTION_EMPIRE ? ITEM_CRYSTAL_RED : ITEM_CRYSTAL_BLUE, SABER_STAT1_DEFAULT, SABER_STAT2_DEFAULT, SABER_STAT3_DEFAULT);
+		if (ent->s.number < MAX_CLIENTS)
+		{
+			extern const char *SaberColorToString(saber_colors_t color);
+
+			char userinfo[MAX_INFO_STRING], saberColor[64] = { { 0 } };
+			trap->GetUserinfo(ent->s.number, userinfo, sizeof(userinfo));
+			strcpy(saberColor, Info_ValueForKey(userinfo, "color1"));
+			uint16_t crystal = TranslateSaberColorToCrystal(SaberColorToString(saber_colors_t(atoi(saberColor))));
+
+			//Com_Printf("Saber Color %s (%u).\n", SaberColorToString(saber_colors_t(atoi(saberColor))), crystal);
+
+			if (crystal == ITEM_CRYSTAL_DEFAULT)
+			{
+				crystal = (team == FACTION_EMPIRE) ? ITEM_CRYSTAL_RED : ITEM_CRYSTAL_BLUE;
+			}
+
+			BG_CreatePlayerInventoryItem(ps, -1, 38, MODELTYPE_DEFAULT, QUALITY_GREY, crystal, SABER_STAT1_DEFAULT, SABER_STAT2_DEFAULT, SABER_STAT3_DEFAULT);
+		}
+		else
+		{
+			BG_CreatePlayerInventoryItem(ps, -1, 38, MODELTYPE_DEFAULT, QUALITY_GREY, team == FACTION_EMPIRE ? ITEM_CRYSTAL_RED : ITEM_CRYSTAL_BLUE, SABER_STAT1_DEFAULT, SABER_STAT2_DEFAULT, SABER_STAT3_DEFAULT);
+		}
 
 		if (ps->inventoryEquipped[0] < 0)
 		{
@@ -1994,6 +2054,11 @@ void BG_CreatePlayerDefaultJediInventory(playerState_t *ps, team_t team)
 	if (!haveWeapon)
 	{// Give them the default gun in slot 1 (2)...
 		BG_CreatePlayerInventoryItem(ps, -1, 39, MODELTYPE_DEFAULT, QUALITY_GREY, team == FACTION_EMPIRE ? ITEM_CRYSTAL_RED : ITEM_CRYSTAL_BLUE, WEAPON_STAT1_DEFAULT, WEAPON_STAT2_DEFAULT, WEAPON_STAT3_SHOT_DEFAULT);
+	}
+
+	if (ent->s.number < MAX_CLIENTS)
+	{// Update saber color on client...
+		ClientUserinfoChanged(ent->s.number);
 	}
 }
 

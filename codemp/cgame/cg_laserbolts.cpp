@@ -60,30 +60,39 @@ void CG_RegisterDefaultBlasterShaders(void)
 	//
 
 	cgs.media.whiteBlasterShot = trap->R_RegisterShader("laserbolt_white"); // the basic color of the actual bolt...
+	cgs.media.whiteTrail = trap->R_RegisterShader("laserbolt_trail_white"); // the trail color of the actual bolt...
 	CG_MakeShaderBoltGlow(cgs.media.whiteBlasterShot, trap->R_RegisterShader("laserbolt_white_glow"), boltCoreColorWhite, boltLightColorWhite); // a glow shader matching the bolt color and glow color...
 
 	cgs.media.yellowBlasterShot = trap->R_RegisterShader("laserbolt_yellow");
+	cgs.media.yellowTrail = trap->R_RegisterShader("laserbolt_trail_yellow");
 	CG_MakeShaderBoltGlow(cgs.media.yellowBlasterShot, trap->R_RegisterShader("laserbolt_yellow_glow"), boltCoreColorYellow, boltLightColorYellow);
 
 	cgs.media.redBlasterShot = trap->R_RegisterShader("laserbolt_red");
+	cgs.media.redTrail = trap->R_RegisterShader("laserbolt_trail_red");
 	CG_MakeShaderBoltGlow(cgs.media.redBlasterShot, trap->R_RegisterShader("laserbolt_red_glow"), boltCoreColorRed, boltLightColorRed);
 
 	cgs.media.blueBlasterShot = trap->R_RegisterShader("laserbolt_blue");
+	cgs.media.blueTrail = trap->R_RegisterShader("laserbolt_trail_blue");
 	CG_MakeShaderBoltGlow(cgs.media.blueBlasterShot, trap->R_RegisterShader("laserbolt_blue_glow"), boltCoreColorBlue, boltLightColorBlue);
 
 	cgs.media.greenBlasterShot = trap->R_RegisterShader("laserbolt_green");
+	cgs.media.greenTrail = trap->R_RegisterShader("laserbolt_trail_green");
 	CG_MakeShaderBoltGlow(cgs.media.greenBlasterShot, trap->R_RegisterShader("laserbolt_green_glow"), boltCoreColorGreen, boltLightColorGreen);
 	
 	cgs.media.PurpleBlasterShot = trap->R_RegisterShader("laserbolt_purple");
+	cgs.media.PurpleTrail = trap->R_RegisterShader("laserbolt_trail_purple");
 	CG_MakeShaderBoltGlow(cgs.media.PurpleBlasterShot, trap->R_RegisterShader("laserbolt_purple_glow"), boltCoreColorPurple, boltLightColorPurple);
 
 	cgs.media.orangeBlasterShot = trap->R_RegisterShader("laserbolt_orange");
+	cgs.media.orangeTrail = trap->R_RegisterShader("laserbolt_trail_orange");
 	CG_MakeShaderBoltGlow(cgs.media.orangeBlasterShot, trap->R_RegisterShader("laserbolt_orange_glow"), boltCoreColorOrange, boltLightColorOrange);
 
 	cgs.media.BluePurpleBlasterShot = trap->R_RegisterShader("laserbolt_bluepurple");
+	cgs.media.BluePurpleTrail = trap->R_RegisterShader("laserbolt_trail_bluepurple");
 	CG_MakeShaderBoltGlow(cgs.media.BluePurpleBlasterShot, trap->R_RegisterShader("laserbolt_bluepurple_glow"), boltCoreColorBluePurple, boltLightColorBluePurple);
 
 	cgs.media.PinkBlasterShot = trap->R_RegisterShader("laserbolt_pink");
+	cgs.media.PinkTrail = trap->R_RegisterShader("laserbolt_trail_pink");
 	CG_MakeShaderBoltGlow(cgs.media.PinkBlasterShot, trap->R_RegisterShader("laserbolt_pink_glow"), boltCoreColorPink, boltLightColorPink);
 }
 
@@ -405,6 +414,7 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 			}
 		}
 
+#if 0
 		trailDur = int(float(trailDur) * 120.0/*cg_saberTrailMult.value*/);
 
 		// if we happen to be timescaled or running in a high framerate situation, we don't want to flood
@@ -413,18 +423,18 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 
 		if (cg.time > saberTrail->lastTime + 2 && cg.time < saberTrail->lastTime + 2000) // 2ms
 		{
-			qboolean inSaberMove = (BG_SaberInAttack(cent->currentState.saberMove) 
-				|| BG_SuperBreakWinAnim(cent->currentState.torsoAnim) 
-				|| BG_SaberInProjectileBlockSpin(cent->currentState.torsoAnim) 
+			qboolean inSaberMove = (BG_SaberInAttack(cent->currentState.saberMove)
+				|| BG_SuperBreakWinAnim(cent->currentState.torsoAnim)
+				|| BG_SaberInProjectileBlockSpin(cent->currentState.torsoAnim)
 				|| PM_SaberInAnyBlockMove(cent->currentState.saberMove)
 				|| (cent->currentState.torsoAnim >= BOTH_SABERBLOCK_TL && cent->currentState.torsoAnim <= BOTH_SABERBLOCK_T)
 				|| (cent->currentState.torsoAnim >= BOTH_SABERBLOCK_FL1 && cent->currentState.torsoAnim <= BOTH_SABERBLOCK_BR2)) ? qtrue : qfalse;
 
-			if (BG_SuperBreakWinAnim(cent->currentState.torsoAnim) 
+			if (BG_SuperBreakWinAnim(cent->currentState.torsoAnim)
 				|| BG_SaberInProjectileBlockSpin(cent->currentState.torsoAnim)
 				|| PM_SaberInAnyBlockMove(cent->currentState.saberMove)
-				|| saberMoveData[cent->currentState.saberMove].trailLength > 0 
-				|| (cent->currentState.powerups & (1 << PW_SPEED) && cg_speedTrail.integer) 
+				|| saberMoveData[cent->currentState.saberMove].trailLength > 0
+				|| (cent->currentState.powerups & (1 << PW_SPEED) && cg_speedTrail.integer)
 				|| (cent->currentState.saberInFlight && saberNum == 0)) // if we have a stale segment, don't draw until we have a fresh one
 			{
 				float diff = 0;
@@ -464,7 +474,6 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 					break;
 				}
 
-#if 1
 				//VectorCopy(CG_Get3DWeaponBoltLightColor(bolt3D), rgb1);
 				VectorCopy(CG_Get3DWeaponBoltCoreColor(bolt3D), rgb1);
 				rgb1[0] *= 255.0;
@@ -548,8 +557,67 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 					trap->FX_AddPrimitive(&fx);
 				}
 #else
-				//VectorCopy(CG_Get3DWeaponBoltLightColor(bolt3D), rgb1);
-				//VectorCopy(CG_Get3DWeaponBoltCoreColor(bolt3D), rgb1);
+		trailDur = int(float(trailDur) * 10.0);
+
+		// if we happen to be timescaled or running in a high framerate situation, we don't want to flood
+		// the system with very small trail slices...but perhaps doing it by distance would yield better results?
+		if (cg.time >= saberTrail->lastTime + 2000) saberTrail->lastTime = cg.time + 2;
+
+		if (cg.time > saberTrail->lastTime + 2 && cg.time < saberTrail->lastTime + 2000) // 2ms
+		{
+			/*qboolean inSaberMove = (BG_SaberInAttack(cent->currentState.saberMove)
+				|| BG_SuperBreakWinAnim(cent->currentState.torsoAnim)
+				|| BG_SaberInProjectileBlockSpin(cent->currentState.torsoAnim)
+				|| PM_SaberInAnyBlockMove(cent->currentState.saberMove)
+				|| (cent->currentState.torsoAnim >= BOTH_SABERBLOCK_TL && cent->currentState.torsoAnim <= BOTH_SABERBLOCK_T)
+				|| (cent->currentState.torsoAnim >= BOTH_SABERBLOCK_FL1 && cent->currentState.torsoAnim <= BOTH_SABERBLOCK_BR2)) ? qtrue : qfalse;*/
+
+			qboolean inSaberMove = BG_SaberInIdle(cent->currentState.saberMove) ? qfalse : qtrue;
+
+			if (/*BG_SuperBreakWinAnim(cent->currentState.torsoAnim)
+				|| BG_SaberInProjectileBlockSpin(cent->currentState.torsoAnim)
+				|| PM_SaberInAnyBlockMove(cent->currentState.saberMove)
+				|| saberMoveData[cent->currentState.saberMove].trailLength > 0
+				|| (cent->currentState.powerups & (1 << PW_SPEED) && cg_speedTrail.integer)
+				|| (cent->currentState.saberInFlight && saberNum == 0)*/inSaberMove) // if we have a stale segment, don't draw until we have a fresh one
+			{
+				float diff = 0;
+
+				qhandle_t bolt3D = 0;
+
+				switch (BG_EquippedWeaponCrystal(cent->playerState))
+				{
+				case ITEM_CRYSTAL_RED:				// Bonus Heat Damage/Resistance
+					bolt3D = cgs.media.redTrail;
+					break;
+				case ITEM_CRYSTAL_GREEN:				// Bonus Kinetic (force) Damage/Resistance
+					bolt3D = cgs.media.greenTrail;
+					break;
+				case ITEM_CRYSTAL_BLUE:				// Bonus Electric Damage/Resistance
+					bolt3D = cgs.media.blueTrail;
+					break;
+				case ITEM_CRYSTAL_WHITE:				// Bonus Cold Damage/Resistance
+					bolt3D = cgs.media.whiteTrail;
+					break;
+				case ITEM_CRYSTAL_YELLOW:			// Bonus 1/2 Heat + 1/2 Kinetic Damage/Resistance
+					bolt3D = cgs.media.yellowTrail;
+					break;
+				case ITEM_CRYSTAL_PURPLE:			// Bonus 1/2 Electric + 1/2 Heat Damage/Resistance
+					bolt3D = cgs.media.PurpleTrail;
+					break;
+				case ITEM_CRYSTAL_ORANGE:			// Bonus 1/2 Cold + 1/2 Kinetic Damage/Resistance
+					bolt3D = cgs.media.orangeTrail;
+					break;
+				case ITEM_CRYSTAL_PINK:				// Bonus 1/2 Electric + 1/2 Cold Damage/Resistance
+					bolt3D = cgs.media.PinkTrail; // TODO: Add actual pink...
+					break;
+				case ITEM_CRYSTAL_DEFAULT:			// GREY shots/blade? No special damage/resistance type...
+				default:
+					// Nope...
+					bolt3D = cgs.media.whiteTrail; // CG_GetSaberBoltColor(scolor);// cgs.media.whiteBlasterShot;
+					break;
+				}
+
 				rgb1[0] = 255.0;
 				rgb1[1] = 255.0;
 				rgb1[2] = 255.0;
@@ -574,7 +642,7 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 				if ((inSaberMove && diff <= 10000) || (!inSaberMove && diff <= SABER_TRAIL_TIME * 2))
 				{ //don't draw it if the last time is way out of date
 					float	oldAlpha = 1.0f - (diff / trailDur);
-					float	useAlpha = cg_saberTrailAlpha.value;// 0.01;
+					float	useAlpha = 1.0f;
 
 					if ((!WP_SaberBladeUseSecondBladeStyle(&client->saber[saberNum], bladeNum) && client->saber[saberNum].trailStyle == 1)
 						|| (WP_SaberBladeUseSecondBladeStyle(&client->saber[saberNum], bladeNum) && client->saber[saberNum].trailStyle2 == 1))
@@ -588,8 +656,8 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 						fx.mShader = bolt3D;// cgs.media.saberBlurShader;
 					}
 
-					fx.mKillTime = int(float(trailDur) / /*40.0*/cg_saberTrailDecay.value);
-					if (cg_testvalue0.integer) fx.mSetFlags = FX_USE_ALPHA;
+					fx.mKillTime = int(float(trailDur) / 16.0);
+					fx.mSetFlags = FX_USE_ALPHA;
 
 
 					// New muzzle
@@ -614,7 +682,7 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 					VectorCopy(rgb1, fx.mVerts[2].rgb);
 					fx.mVerts[2].alpha = useAlpha * oldAlpha;
 
-					fx.mVerts[2].ST[0] = cg_testvalue1.integer ? 1.0f : (1.0f - oldAlpha); // NOTE: this just happens to contain the value I want
+					fx.mVerts[2].ST[0] = 1.0f; // NOTE: this just happens to contain the value I want
 					fx.mVerts[2].ST[1] = 0.0f;
 					fx.mVerts[2].destST[0] = 1.0f + fx.mVerts[2].ST[0];
 					fx.mVerts[2].destST[1] = 0.0f;
@@ -623,7 +691,7 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 					VectorCopy(rgb1, fx.mVerts[3].rgb);
 					fx.mVerts[3].alpha = useAlpha * oldAlpha;
 
-					fx.mVerts[3].ST[0] = cg_testvalue1.integer ? 1.0f : (1.0f - oldAlpha); // NOTE: this just happens to contain the value I want
+					fx.mVerts[3].ST[0] = 1.0f; // NOTE: this just happens to contain the value I want
 					fx.mVerts[3].ST[1] = 1.0f;
 					fx.mVerts[3].destST[0] = 1.0f + fx.mVerts[2].ST[0];
 					fx.mVerts[3].destST[1] = 1.0f;

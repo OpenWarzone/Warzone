@@ -3914,6 +3914,44 @@ void ClientSpawn(gentity_t *ent) {
 	for ( i=0; i<HL_MAX; i++ )
 		ent->locationDamage[i] = 0;
 
+
+	//
+	// Inventory Data...
+	//
+	extern int BG_CountInventoryItems(playerState_t *ps);
+	
+	qboolean		inventorySaved = qfalse;
+
+	int				savedInventoryBlank[16] = { { -1 } };
+	uint16_t		savedInventoryItems[64] = { { 0 } }; // Need to keep values < 65536 for transmission
+	uint16_t		savedInventoryMod1[64] = { { 0 } }; // Need to keep values < 65536 for transmission
+	uint16_t		savedInventoryMod2[64] = { { 0 } }; // Need to keep values < 65536 for transmission
+	uint16_t		savedInventoryMod3[64] = { { 0 } }; // Need to keep values < 65536 for transmission
+	int				savedInventoryEquipped[16] = { { -1 } }; // Inventory Slot ID of the item...
+
+	memset(&savedInventoryBlank, 0, sizeof(savedInventoryBlank));
+	memset(&savedInventoryItems, 0, sizeof(savedInventoryItems));
+	memset(&savedInventoryMod1, 0, sizeof(savedInventoryMod1));
+	memset(&savedInventoryMod2, 0, sizeof(savedInventoryMod2));
+	memset(&savedInventoryMod3, 0, sizeof(savedInventoryMod3));
+	memset(&savedInventoryEquipped, 0, sizeof(savedInventoryEquipped));
+
+	if (BG_CountInventoryItems(&client->ps) > 0)
+	{
+		inventorySaved = qtrue;
+
+		memcpy(&savedInventoryBlank, client->ps.inventoryBlank, sizeof(client->ps.inventoryBlank));
+		memcpy(&savedInventoryItems, client->ps.inventoryItems, sizeof(client->ps.inventoryItems));
+		memcpy(&savedInventoryMod1, client->ps.inventoryMod1, sizeof(client->ps.inventoryMod1));
+		memcpy(&savedInventoryMod2, client->ps.inventoryMod2, sizeof(client->ps.inventoryMod2));
+		memcpy(&savedInventoryMod3, client->ps.inventoryMod3, sizeof(client->ps.inventoryMod3));
+		memcpy(&savedInventoryEquipped, client->ps.inventoryEquipped, sizeof(client->ps.inventoryEquipped));
+	}
+
+	//
+	//
+	//
+
 	memset( client, 0, sizeof( *client ) ); // bk FIXME: Com_Memset?
 	client->bodyGrabIndex = ENTITYNUM_NONE;
 
@@ -3982,6 +4020,20 @@ void ClientSpawn(gentity_t *ent) {
 	client->ps.persistant[PERS_TEAM] = client->sess.sessionTeam;
 
 	client->airOutTime = level.time + 12000;
+
+
+	//
+	// Inventory Data...
+	//
+	if (inventorySaved)
+	{
+		memcpy(&client->ps.inventoryBlank, &savedInventoryBlank, sizeof(client->ps.inventoryBlank));
+		memcpy(&client->ps.inventoryItems, &savedInventoryItems, sizeof(client->ps.inventoryItems));
+		memcpy(&client->ps.inventoryMod1, &savedInventoryMod1, sizeof(client->ps.inventoryMod1));
+		memcpy(&client->ps.inventoryMod2, &savedInventoryMod2, sizeof(client->ps.inventoryMod2));
+		memcpy(&client->ps.inventoryMod3, &savedInventoryMod3, sizeof(client->ps.inventoryMod3));
+		memcpy(&client->ps.inventoryEquipped, &savedInventoryEquipped, sizeof(client->ps.inventoryEquipped));
+	}
 
 #if 0
 	// set max health
@@ -4123,7 +4175,7 @@ void ClientSpawn(gentity_t *ent) {
 			client->ps.weapon = WP_SABER;
 			client->ps.primaryWeapon = WP_SABER;
 			client->ps.secondaryWeapon = WP_MODULIZED_WEAPON;
-			BG_CreatePlayerDefaultJediInventory(&client->ps, client->sess.sessionTeam);
+			BG_CreatePlayerDefaultJediInventory(ent, &client->ps, client->sess.sessionTeam);
 		}
 		else
 		{//no force powers set
@@ -4141,14 +4193,14 @@ void ClientSpawn(gentity_t *ent) {
 		{
 			//always get free saber level 1 in holocron
 			client->ps.primaryWeapon = WP_SABER;
-			BG_CreatePlayerDefaultJediInventory(&client->ps, client->sess.sessionTeam);
+			BG_CreatePlayerDefaultJediInventory(ent, &client->ps, client->sess.sessionTeam);
 		}
 		else
 		{
 			if (client->ps.fd.forcePowerLevel[FP_SABER_OFFENSE])
 			{
 				client->ps.primaryWeapon = WP_SABER;
-				BG_CreatePlayerDefaultJediInventory(&client->ps, client->sess.sessionTeam);
+				BG_CreatePlayerDefaultJediInventory(ent, &client->ps, client->sess.sessionTeam);
 			}
 			else
 			{ //if you don't have saber attack rank then you don't get a saber
@@ -4171,7 +4223,7 @@ void ClientSpawn(gentity_t *ent) {
 		if (HaveWeapon(&client->ps, WP_SABER))
 		{
 			client->ps.weapon = WP_SABER;
-			BG_CreatePlayerDefaultJediInventory(&client->ps, client->sess.sessionTeam);
+			BG_CreatePlayerDefaultJediInventory(ent, &client->ps, client->sess.sessionTeam);
 		}
 		else if (HaveWeapon(&client->ps, WP_MODULIZED_WEAPON))
 		{
@@ -4195,7 +4247,7 @@ void ClientSpawn(gentity_t *ent) {
 	if (HaveWeapon(&client->ps, WP_SABER))
 	{
 		client->ps.weapon = WP_SABER;
-		BG_CreatePlayerDefaultJediInventory(&client->ps, client->sess.sessionTeam);
+		BG_CreatePlayerDefaultJediInventory(ent, &client->ps, client->sess.sessionTeam);
 	}
 	else if (HaveWeapon(&client->ps, WP_MELEE))
 	{
@@ -4219,7 +4271,7 @@ void ClientSpawn(gentity_t *ent) {
 		if (HaveWeapon(&client->ps, WP_SABER))
 		{
 			client->ps.weapon = WP_SABER;
-			BG_CreatePlayerDefaultJediInventory(&client->ps, client->sess.sessionTeam);
+			BG_CreatePlayerDefaultJediInventory(ent, &client->ps, client->sess.sessionTeam);
 		}
 		else if (HaveWeapon(&client->ps, WP_MODULIZED_WEAPON))
 		{

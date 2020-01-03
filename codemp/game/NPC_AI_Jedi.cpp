@@ -8274,7 +8274,7 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 
 	if (NPC->s.weapon == WP_SABER)
 	{
-		OPTIMAL_MIN_RANGE = 32 * NPC->modelScale[2];// g_testvalue1.value; //24
+		OPTIMAL_MIN_RANGE = 48/*32*/ * NPC->modelScale[2];// g_testvalue1.value; //24
 		OPTIMAL_MAX_RANGE = 256 * NPC->modelScale[2];// g_testvalue2.value;//56;// 40;
 	}
 
