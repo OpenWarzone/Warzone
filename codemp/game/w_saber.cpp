@@ -3013,6 +3013,51 @@ static QINLINE qboolean G_SaberCollide(gentity_t *atk, gentity_t *def, vec3_t at
 	return qfalse;
 }
 
+//check for collision of 2 blades -rww
+static QINLINE qboolean G_PlayerCollide(gentity_t *atk, gentity_t *def, vec3_t atkStart, vec3_t atkEnd, vec3_t atkMins, vec3_t atkMaxs, trace_t *tr)
+{
+	if (!def->inuse || !def->client)
+	{ //must have 2 clients and a valid saber entity
+		TraceClear(tr, atkEnd);
+		return qfalse;
+	}
+
+	vec3_t v, fwd, right, base, tip;
+	int fNum;
+	saberFace_t *fList;
+
+	//first get base and tip of blade - TODO: Big monsters like rancors etc...
+	VectorCopy(def->r.currentOrigin, base);
+	VectorCopy(def->r.currentOrigin, tip);
+	tip[2] += 48.0 * def->modelScale[2];
+
+	//Now get relative angles between the points
+	VectorSubtract(tip, base, v);
+	vectoangles(v, v);
+	AngleVectors(v, NULL, right, fwd);
+
+	//now build collision faces for this blade
+	G_BuildSaberFaces(base, tip, 24.0f, fwd, right, &fNum, &fList);
+	if (fNum > 0)
+	{
+		if (G_SaberFaceCollisionCheck(fNum, fList, atkStart, atkEnd, atkMins, atkMaxs, tip))
+		{ //collided
+			vec3_t result;
+
+			tr->fraction = CalcTraceFraction(atkStart, atkEnd, tr->endpos);
+
+			G_FindClosestPointOnLineSegment(base, tip, tr->endpos, result);
+			VectorSubtract(tr->endpos, result, result);
+			VectorCopy(result, tr->plane.normal);
+			return qtrue;
+		}
+	}
+
+	//Make sure the trace has the correct trace data
+	TraceClear(tr, atkEnd);
+	return qfalse;
+}
+
 //[SaberSys]
 #if 0
 qboolean IsMoving(gentity_t*ent)
@@ -3646,6 +3691,111 @@ int WP_DoFrameSaberTrace(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t s
 	{// Ok, this saber and blade has not been done this frame, so do it...
 		vec3_t mins, maxs;
 
+#if 1 // Fuck realtrace...
+		// Check for saber collisions first...
+		float		traceDist = Distance(saberStart, saberEnd) * 2.0;
+		vec3_t		range;
+
+		// Record this frame for this saber and blade, so we don't need to trace a bunch of times this frame...
+		self->saberTrace[rSaberNum][rBladeNum].frameNum = level.framenum;
+		self->saberTrace[rSaberNum][rBladeNum].realTraceResult = REALTRACE_MISS;
+
+		VectorSet(range, traceDist, traceDist, traceDist);
+
+		VectorSubtract(self->client->ps.origin, range, mins);
+		VectorAdd(self->client->ps.origin, range, maxs);
+
+		extern	qboolean NPC_IsAlive(gentity_t *self, gentity_t *NPC);
+		int		touch[MAX_GENTITIES];
+		int		num = trap->EntitiesInBox(mins, maxs, touch, MAX_GENTITIES);
+
+		for (int i = 0; i < num; i++)
+		{
+			if (touch[i] == self->s.number) continue;
+			if (touch[i] == self->s.saberEntityNum) continue;
+
+			gentity_t *ent = &g_entities[touch[i]];
+
+			if (!ent) continue;
+			if (!ent->inuse) continue;
+			if (!ent->client) continue;
+			if (!NPC_IsAlive(self, ent)) continue;
+			if (ent->client->ps.weapon != WP_SABER) continue;
+			if (BG_SabersOff(&ent->client->ps)) continue;
+
+			vec3_t sbMins, sbMaxs;
+			sbMins[0] = sbMins[1] = -2.0;
+			sbMaxs[0] = sbMaxs[1] = 2.0;
+			sbMins[2] = -8.0;
+			sbMaxs[2] = 8.0;
+				
+			TraceClear(&self->saberTrace[rSaberNum][rBladeNum].trace, saberEnd);
+			qboolean hitSaber = G_SaberCollide(self, ent, saberStart, saberEnd, sbMins, sbMaxs, &self->saberTrace[rSaberNum][rBladeNum].trace);
+
+			if (hitSaber)
+			{
+				self->saberTrace[rSaberNum][rBladeNum].trace.entityNum = ent->s.saberEntityNum;
+				self->saberTrace[rSaberNum][rBladeNum].realTraceResult = REALTRACE_HIT_SABER;
+				return self->saberTrace[rSaberNum][rBladeNum].realTraceResult;
+			}
+		}
+
+		// No saber collisions found, check for player collisions...
+		for (int i = 0; i < num; i++)
+		{
+			if (touch[i] == self->s.number) continue;
+			if (touch[i] == self->s.saberEntityNum) continue;
+
+			gentity_t *ent = &g_entities[touch[i]];
+
+			if (!ent) continue;
+			if (!ent->inuse) continue;
+			if (!ent->client) continue;
+			if (!NPC_IsAlive(self, ent)) continue;
+			if (ent->nextSaberDamage > level.time) continue;
+
+			vec3_t sbMins, sbMaxs;
+			sbMins[0] = sbMins[1] = sbMins[2] = -2.0;
+			sbMaxs[0] = sbMaxs[1] = sbMaxs[2] = 2.0;
+
+			TraceClear(&self->saberTrace[rSaberNum][rBladeNum].trace, saberEnd);
+
+			//ok, no bbox block this time.  So, try a ghoul2 trace then.
+			self->saberTrace[rSaberNum][rBladeNum].trace.entityNum = ent->s.number;
+			//qboolean hitEntity = G_G2TraceCollide(&self->saberTrace[rSaberNum][rBladeNum].trace, saberStart, saberEnd, sbMins, sbMaxs);
+			qboolean hitEntity = G_PlayerCollide(self, ent, saberStart, saberEnd, sbMins, sbMaxs, &self->saberTrace[rSaberNum][rBladeNum].trace);
+
+			if (hitEntity)
+			{
+				//self->saberTrace[rSaberNum][rBladeNum].trace.entityNum = touch[i];
+				//self->saberTrace[rSaberNum][rBladeNum].realTraceResult = REALTRACE_HIT_PLAYER;
+				//return self->saberTrace[rSaberNum][rBladeNum].realTraceResult;
+
+				hitEntity = G_G2TraceCollide(&self->saberTrace[rSaberNum][rBladeNum].trace, saberStart, saberEnd, sbMins, sbMaxs);
+
+				if (hitEntity)
+				{
+					self->saberTrace[rSaberNum][rBladeNum].trace.entityNum = touch[i];
+					self->saberTrace[rSaberNum][rBladeNum].realTraceResult = REALTRACE_HIT_PLAYER;
+					return self->saberTrace[rSaberNum][rBladeNum].realTraceResult;
+				}
+				else
+				{
+					self->saberTrace[rSaberNum][rBladeNum].realTraceResult = REALTRACE_MISS;
+					self->saberTrace[rSaberNum][rBladeNum].trace.entityNum = ENTITYNUM_NONE;
+				}
+			}
+			else
+			{
+				self->saberTrace[rSaberNum][rBladeNum].realTraceResult = REALTRACE_MISS;
+				self->saberTrace[rSaberNum][rBladeNum].trace.entityNum = ENTITYNUM_NONE;
+			}
+		}
+
+		TraceClear(&self->saberTrace[rSaberNum][rBladeNum].trace, saberEnd);
+		self->saberTrace[rSaberNum][rBladeNum].realTraceResult = REALTRACE_MISS;
+		self->saberTrace[rSaberNum][rBladeNum].trace.entityNum = ENTITYNUM_NONE;
+#else
 		// First do a precision trace... Best for saber vs saber and saber vs weapon bolt...
 		float saberBoxSize = 32.0;// g_testvalue0.value;// 8.0;// 2.0;// 4.0;// 1.0;// self->client->saber[rSaberNum].blade[rBladeNum].radius * 4.0;
 		VectorSet(mins, -saberBoxSize, -saberBoxSize, -saberBoxSize);
@@ -3653,36 +3803,8 @@ int WP_DoFrameSaberTrace(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t s
 
 		// Record the saber's trace into self->saberTrace.XXXXX
 		//self->saberTrace[rSaberNum][rBladeNum].realTraceResult = G_RealTrace(self, &self->saberTrace[rSaberNum][rBladeNum].trace, saberStart, mins, maxs, saberEnd, self->s.number, trMask, rSaberNum, rBladeNum);
-		self->saberTrace[rSaberNum][rBladeNum].realTraceResult = G_RealTrace(self, &self->saberTrace[rSaberNum][rBladeNum].trace, saberStart, mins, maxs, saberEnd, self->s.number, CONTENTS_BODY|CONTENTS_LIGHTSABER, rSaberNum, rBladeNum);
+		self->saberTrace[rSaberNum][rBladeNum].realTraceResult = G_RealTrace(self, &self->saberTrace[rSaberNum][rBladeNum].trace, saberStart, mins, maxs, saberEnd, self->s.number, CONTENTS_BODY/*|CONTENTS_LIGHTSABER*/, rSaberNum, rBladeNum);
 		self->saberTrace[rSaberNum][rBladeNum].frameNum = level.framenum;
-
-#if 0
-		if (self->saberTrace[rSaberNum][rBladeNum].realTraceResult == REALTRACE_MISS)
-		{// Since we got nothing on the precision trace, do a box trace... Better for saber vs NPC...
-			saberBoxSize = 32.0;
-
-			VectorSet(mins, -saberBoxSize, -saberBoxSize, -saberBoxSize);
-			VectorSet(maxs, saberBoxSize, saberBoxSize, saberBoxSize);
-
-			// Record the saber's trace into self->saberTrace.XXXXX
-			self->saberTrace[rSaberNum][rBladeNum].realTraceResult = G_RealTrace(self, &self->saberTrace[rSaberNum][rBladeNum].trace, saberStart, mins, maxs, saberEnd, self->s.number, /*trMask*/CONTENTS_BODY/*|CONTENTS_LIGHTSABER*/, rSaberNum, rBladeNum);
-			self->saberTrace[rSaberNum][rBladeNum].frameNum = level.framenum;
-
-			if (self->saberTrace[rSaberNum][rBladeNum].realTraceResult == REALTRACE_HIT_SABER)
-			{
-				//Com_Printf("Hit! entitynum %i. entitytype %s.\n", self->saberTrace[rSaberNum][rBladeNum].trace.entityNum, (self->saberTrace[rSaberNum][rBladeNum].trace.entityNum < ENTITYNUM_WORLD) ? g_entities[self->saberTrace[rSaberNum][rBladeNum].trace.entityNum].classname : "WORLD");
-
-				if (self->saberTrace[rSaberNum][rBladeNum].trace.entityNum >= ENTITYNUM_WORLD)
-				{// Either an entity that is not "inuse" or not a client... Ignore it...
-					TraceClear(&self->saberTrace[rSaberNum][rBladeNum].trace, vec3_origin);
-					self->saberTrace[rSaberNum][rBladeNum].realTraceResult = REALTRACE_MISS;
-				}
-			}
-			else if (self->saberTrace[rSaberNum][rBladeNum].realTraceResult == REALTRACE_HIT_PLAYER)
-			{
-				//Com_Printf("Hit Player!\n");
-			}
-		}
 #endif
 	}
 
@@ -4993,7 +5115,80 @@ void G_DoClashTaunting(gentity_t *self, gentity_t *attacker)
 	}
 }
 
-#define CLASH_MINIMUM_TIME 500//750
+int WP_SaberBlockDirection(gentity_t *self, vec3_t hitloc)
+{
+	vec3_t diff, fwdangles = { 0,0,0 }, fwd, right;
+	vec3_t clEye;
+	float fwddot, rightdot;
+	float zdiff;
+
+	VectorCopy(self->client->ps.origin, clEye);
+	clEye[2] += self->client->ps.viewheight;
+
+	VectorSubtract(hitloc, clEye, diff);
+	diff[2] = 0;
+	VectorNormalize(diff);
+
+	fwdangles[1] = self->client->ps.viewangles[1];
+	// Ultimately we might care if the shot was ahead or behind, but for now, just quadrant is fine.
+	AngleVectors(fwdangles, fwd, right, NULL);
+
+	fwddot = DotProduct(fwd, diff);
+	rightdot = DotProduct(right, diff);
+
+	/*
+	BLOCKED_FORWARD_LEFT,
+	BLOCKED_FORWARD_RIGHT,
+	BLOCKED_LEFT,
+	BLOCKED_RIGHT,
+	BLOCKED_BACK_LEFT,
+	BLOCKED_BACK_RIGHT,
+	*/
+
+	if (fwddot > 0.2)
+	{
+		if (rightdot >= 0.0)
+		{
+			//if (self->s.number < MAX_CLIENTS) Com_Printf("BLOCKED_FORWARD_RIGHT\n");
+			return BLOCKED_FORWARD_RIGHT;
+		}
+		else
+		{
+			//if (self->s.number < MAX_CLIENTS) Com_Printf("BLOCKED_FORWARD_LEFT\n");
+			return BLOCKED_FORWARD_LEFT;
+		}
+	}
+	else if (fwddot < -0.2)
+	{
+		if (rightdot >= 0.0)
+		{
+			//if (self->s.number < MAX_CLIENTS) Com_Printf("BLOCKED_BACK_RIGHT\n");
+			return BLOCKED_BACK_RIGHT;
+		}
+		else
+		{
+			//if (self->s.number < MAX_CLIENTS) Com_Printf("BLOCKED_BACK_LEFT\n");
+			return BLOCKED_BACK_LEFT;
+		}
+	}
+	else
+	{
+		if (rightdot >= 0.0)
+		{
+			//if (self->s.number < MAX_CLIENTS) Com_Printf("BLOCKED_RIGHT\n");
+			return BLOCKED_RIGHT;
+		}
+		else
+		{
+			//if (self->s.number < MAX_CLIENTS) Com_Printf("BLOCKED_LEFT\n");
+			return BLOCKED_LEFT;
+		}
+	}
+
+	return BLOCKED_NONE;
+}
+
+#define CLASH_MINIMUM_TIME 100//50//g_testvalue0.integer// 500//750
 #define SABER_DAMAGE_TIME 100//100//1000
 
 static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t saberStart, vec3_t saberEnd, qboolean doInterpolate, int trMask, qboolean extrapolate)
@@ -5060,11 +5255,11 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 		}
 		else if (BG_SaberInSpecial(self->client->ps.saberMove) || BG_SaberInKata(self->client->ps.saberMove))
 		{// High damage in special attacks...
-			dmg = 4.0;
+			dmg = 5.0;
 		}
 		else if (BG_SaberInFullDamageMove(&self->client->ps, self->localAnimIndex))
 		{// Normal damage...
-			dmg = 2.0;
+			dmg = 3.0;
 		}
 		else if (self->client->ps.saberInFlight && rSaberNum == 0)
 		{// Low damage in saber throws...
@@ -5282,10 +5477,14 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 		}
 	}
 
-	if (didHit && (!OnSameTeam(self, &g_entities[tr.entityNum]) || g_friendlySaber.integer))
+	gentity_t *victim = (otherOwner && otherOwner->client) ? otherOwner : &g_entities[tr.entityNum];
+
+	//extern char *Get_NPC_Name(int NAME_ID);
+	//Com_Printf("Hit ent %i. IsOther %s. trEnt %i. Name %s.\n", victim->s.number, victim == otherOwner ? "TRUE" : "FALSE", tr.entityNum, (victim->s.eType == ET_NPC) ? Get_NPC_Name(victim->s.NPC_NAME_ID) : "NOT NPC");
+
+	if (didHit && (!OnSameTeam(self, victim) || g_friendlySaber.integer))
 	{// damage the thing we hit
 		int dflags = 0;
-		gentity_t *victim = (otherOwner && otherOwner->client) ? otherOwner : &g_entities[tr.entityNum];
 
 		if (victim->health <= 0)
 		{//The attack killed your opponent, don't bounce the saber back to prevent nasty passthru.
@@ -5308,7 +5507,8 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 #ifdef __DEBUG_REALTRACE__
 						Com_Printf("Non-damage self bounce.\n");
 #endif //__DEBUG_REALTRACE__
-						self->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
+						//self->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
+						self->client->ps.saberBlocked = WP_SaberBlockDirection(self, tr.endpos);
 
 						//if (BG_SaberInAttack(self->client->ps.saberMove))
 						if (self->client->pers.cmd.buttons & BUTTON_ATTACK)
@@ -5327,7 +5527,8 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 #ifdef __DEBUG_REALTRACE__
 						Com_Printf("Non-damage victim bounce.\n");
 #endif //__DEBUG_REALTRACE__
-						otherOwner->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
+						//otherOwner->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
+						otherOwner->client->ps.saberBlocked = WP_SaberBlockDirection(otherOwner, tr.endpos);
 
 						//if (BG_SaberInAttack(otherOwner->client->ps.saberMove))
 						if (otherOwner->client->pers.cmd.buttons & BUTTON_ATTACK)
@@ -5451,7 +5652,7 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 				else
 				{
 					//Com_Printf("Saber damage 200 to non-jedi.\n");
-					G_Damage(victim, self, self, dir, tr.endpos, 200 /* attacking fodder always deals deadly damage */, dflags, MOD_SABER);
+					G_Damage(victim, self, self, dir, tr.endpos, 500 /* attacking fodder always deals deadly damage */, dflags, MOD_SABER);
 					victim->nextSaberDamage = level.time + SABER_DAMAGE_TIME;
 				}
 			}
@@ -5468,7 +5669,8 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 #ifdef __DEBUG_REALTRACE__
 						Com_Printf("Damage self bounce.\n");
 #endif //__DEBUG_REALTRACE__
-						self->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
+						//self->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
+						self->client->ps.saberBlocked = WP_SaberBlockDirection(self, tr.endpos);
 
 						//if (BG_SaberInAttack(self->client->ps.saberMove))
 						if (self->client->pers.cmd.buttons & BUTTON_ATTACK)
@@ -5487,7 +5689,8 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 #ifdef __DEBUG_REALTRACE__
 						Com_Printf("Damage victim bounce.\n");
 #endif //__DEBUG_REALTRACE__
-						otherOwner->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
+						//otherOwner->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
+						otherOwner->client->ps.saberBlocked = WP_SaberBlockDirection(otherOwner, tr.endpos);
 
 						//if (BG_SaberInAttack(otherOwner->client->ps.saberMove))
 						if (otherOwner->client->pers.cmd.buttons & BUTTON_ATTACK)

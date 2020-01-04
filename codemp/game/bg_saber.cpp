@@ -3763,51 +3763,37 @@ void PM_WeaponLightsaber(void)
 		PM_SaberLocked();
 		return;
 	}
+#if 0
 	else
 	{
-		if ( /*( (pm->ps->torsoAnim) == BOTH_BF2LOCK ||
-			 (pm->ps->torsoAnim) == BOTH_BF1LOCK ||
-			 (pm->ps->torsoAnim) == BOTH_CWCIRCLELOCK ||
-			 (pm->ps->torsoAnim) == BOTH_CCWCIRCLELOCK ||*/
-			pm->ps->saberLockFrame
-			)
+		if ( pm->ps->saberLockFrame && pm->ps->saberLockEnemy < ENTITYNUM_NONE && pm->ps->saberLockEnemy >= 0 )
 		{
-			if (pm->ps->saberLockEnemy < ENTITYNUM_NONE &&
-				pm->ps->saberLockEnemy >= 0)
+			bgEntity_t *bgEnt;
+			playerState_t *en;
+
+			bgEnt = PM_BGEntForNum(pm->ps->saberLockEnemy);
+
+			if (bgEnt)
 			{
-				bgEntity_t *bgEnt;
-				playerState_t *en;
+				en = bgEnt->playerState;
 
-				bgEnt = PM_BGEntForNum(pm->ps->saberLockEnemy);
-
-				if (bgEnt)
+				if (en)
 				{
-					en = bgEnt->playerState;
-
-					if (en)
-					{
-						PM_SaberLockBreak(en, qfalse, 0);
-						return;
-					}
+					PM_SaberLockBreak(en, qfalse, 0);
+					return;
 				}
 			}
-
-			if (/* ( (pm->ps->torsoAnim) == BOTH_BF2LOCK ||
-				(pm->ps->torsoAnim) == BOTH_BF1LOCK ||
-				(pm->ps->torsoAnim) == BOTH_CWCIRCLELOCK ||
-				(pm->ps->torsoAnim) == BOTH_CCWCIRCLELOCK ||*/
-				pm->ps->saberLockFrame
-				)
-			{
-				pm->ps->torsoTimer = 0;
-				PM_SetAnim(SETANIM_TORSO, BOTH_STAND1, SETANIM_FLAG_OVERRIDE);
-				pm->ps->saberLockFrame = 0;
-			}
 		}
-	}
 
-	if (BG_KickingAnim(pm->ps->legsAnim) ||
-		BG_KickingAnim(pm->ps->torsoAnim))
+		/*
+		pm->ps->torsoTimer = 0;
+		PM_SetAnim(SETANIM_TORSO, BOTH_STAND1, SETANIM_FLAG_OVERRIDE);
+		pm->ps->saberLockFrame = 0;
+		*/
+	}
+#endif
+
+	if (BG_KickingAnim(pm->ps->legsAnim) || BG_KickingAnim(pm->ps->torsoAnim))
 	{
 		if (pm->ps->legsTimer > 0)
 		{//you're kicking, no interruptions
@@ -3817,38 +3803,6 @@ void PM_WeaponLightsaber(void)
 		pm->ps->saberMove = LS_READY;
 		pm->ps->weaponTime = 0;
 	}
-
-	//if (BG_SuperBreakLoseAnim(pm->ps->torsoAnim)
-	//	|| BG_SuperBreakWinAnim(pm->ps->torsoAnim)
-	//	|| BG_SaberLockBreakAnim(pm->ps->torsoAnim)
-	//	|| pm->ps->torsoAnim == BOTH_BF1RETURN)
-	//{
-	//	if (pm->ps->torsoTimer > 0)
-	//	{//never interrupt these
-	//		return;
-	//	}
-	//	else if (pm->ps->torsoAnim == BOTH_BF2BREAK || pm->ps->torsoAnim == BOTH_BF1BREAK)
-	//	{
-	//		int returnAnim = (pm->ps->torsoAnim == BOTH_BF2BREAK ? BOTH_BF2RETURN : BOTH_BF1RETURN);
-	//		PM_SetAnim(SETANIM_TORSO, returnAnim, SETANIM_FLAG_OVERRIDE);
-	//		if (returnAnim == BOTH_BF1RETURN)
-	//			pm->ps->weaponTime = (pm->ps->torsoTimer += 1500);
-	//		return;
-	//	}
-	//}
-
-	//[SaberLockSys]
-	/* racc - we now want to be able to interrupt these animations.
-	if ( BG_SuperBreakLoseAnim( pm->ps->torsoAnim )
-	|| BG_SuperBreakWinAnim( pm->ps->torsoAnim ) )
-	{
-	if ( pm->ps->torsoTimer > 0 )
-	{//never interrupt these
-	return;
-	}
-	}
-	*/
-	//[/SaberLockSys]
 
 	//[NewSaberSys]
 	if (BG_SabersOff(pm->ps) /*|| !(pm->cmd.buttons & BUTTON_ALT_ATTACK)*/)
@@ -4483,6 +4437,7 @@ void PM_WeaponLightsaber(void)
 		{
 			int bounceMove;
 
+#if 0
 			switch (saberMoveData[pm->ps->saberMove].startQuad/*pm->ps->torsoTimer < 200 ? saberMoveData[pm->ps->saberMove].startQuad : saberMoveData[pm->ps->saberMove].endQuad*/)
 			{
 			case Q_B:
@@ -4529,6 +4484,30 @@ void PM_WeaponLightsaber(void)
 				bounceMove = LS_R_T2B;
 				break;
 			}
+#else
+			switch (pm->ps->saberBlocked)
+			{
+			case BLOCKED_FORWARD_LEFT:
+				bounceMove = LS_R_TL2BR;
+				break;
+			case BLOCKED_FORWARD_RIGHT:
+				bounceMove = LS_R_TR2BL;
+				break;
+			case BLOCKED_LEFT:
+				bounceMove = LS_R_L2R;
+				break;
+			case BLOCKED_RIGHT:
+			default:
+				bounceMove = LS_R_R2L;
+				break;
+			case BLOCKED_BACK_LEFT:
+				bounceMove = LS_R_BL2TR;
+				break;
+			case BLOCKED_BACK_RIGHT:
+				bounceMove = LS_R_BR2TL;
+				break;
+			}
+#endif
 
 			if (pm->ps->saberMove != bounceMove)
 			{
@@ -5919,6 +5898,7 @@ int PM_AnimationForBounceMove(short newMove)
 		return pm->ps->torsoAnim;
 	}*/
 
+#if 0
 	if (pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL)
 	{
 		if (pm->cmd.forwardmove < 0)
@@ -5985,6 +5965,84 @@ int PM_AnimationForBounceMove(short newMove)
 			}
 		}
 	}
+#else
+	/*
+	switch (pm->ps->saberBlocked)
+	{
+	case BLOCKED_FORWARD_LEFT:
+		bounceMove = LS_R_TL2BR;
+		break;
+	case BLOCKED_FORWARD_RIGHT:
+		bounceMove = LS_R_TR2BL;
+		break;
+	case BLOCKED_LEFT:
+		bounceMove = LS_R_L2R;
+		break;
+	case BLOCKED_RIGHT:
+	default:
+		bounceMove = LS_R_R2L;
+		break;
+	case BLOCKED_BACK_LEFT:
+		bounceMove = LS_R_BL2TR;
+		break;
+	case BLOCKED_BACK_RIGHT:
+		bounceMove = LS_R_BR2TL;
+		break;
+	}
+	*/
+	if (pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL)
+	{
+		switch (newMove)
+		{
+		case LS_R_TL2BR:
+			return BOTH_CC_SABERBLOCK_FL1 + irand(0, 4);
+			break;
+		case LS_R_TR2BL:
+			return BOTH_CC_SABERBLOCK_FR1 + irand(0, 4);
+			break;
+		case LS_R_L2R:
+			//return BOTH_CC_SABERBLOCK_B1 + irand(0, 4);
+			return BOTH_CC_SABERBLOCK_FL1 + irand(0, 4);
+			break;
+		case LS_R_R2L:
+			//return BOTH_CC_SABERBLOCK_F1 + irand(0, 4);
+			return BOTH_CC_SABERBLOCK_FR1 + irand(0, 4);
+			break;
+		case LS_R_BL2TR:
+			return BOTH_CC_SABERBLOCK_BL1 + irand(0, 4);
+			break;
+		case LS_R_BR2TL:
+			return BOTH_CC_SABERBLOCK_BR1 + irand(0, 4);
+			break;
+		}
+	}
+	else
+	{
+		switch (newMove)
+		{
+		case LS_R_TL2BR:
+			return BOTH_SABERBLOCK_FL1 + irand(0, 4);
+			break;
+		case LS_R_TR2BL:
+			return BOTH_SABERBLOCK_FR1 + irand(0, 4);
+			break;
+		case LS_R_L2R:
+			//return BOTH_SABERBLOCK_B1 + irand(0, 4);
+			return BOTH_SABERBLOCK_FL1 + irand(0, 4);
+			break;
+		case LS_R_R2L:
+			//return BOTH_SABERBLOCK_F1 + irand(0, 4);
+			return BOTH_SABERBLOCK_FR1 + irand(0, 4);
+			break;
+		case LS_R_BL2TR:
+			return BOTH_SABERBLOCK_BL1 + irand(0, 4);
+			break;
+		case LS_R_BR2TL:
+			return BOTH_SABERBLOCK_BR1 + irand(0, 4);
+			break;
+		}
+	}
+#endif
 }
 
 int currentTestAnim = 0;
