@@ -8325,7 +8325,7 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 		}
 		else if ((dist > 256 || (dist > 64 && !Jedi_ClearPathToSpot(aiEnt, aiEnt->enemy->r.currentOrigin, aiEnt->enemy->s.number))) && NPC_FollowEnemyRoute(aiEnt))
 		{
-			if (aiEnt->s.weapon == WP_SABER && (aiEnt->enemy->s.weapon != WP_SABER || dist < 384))
+			if (aiEnt->s.weapon == WP_SABER && (aiEnt->enemy->s.weapon != WP_SABER || dist <= 384))
 			{// Do blocking while heading to enemy...
 				aiEnt->client->pers.cmd.buttons &= ~BUTTON_ATTACK;
 				aiEnt->client->pers.cmd.buttons |= BUTTON_ALT_ATTACK;

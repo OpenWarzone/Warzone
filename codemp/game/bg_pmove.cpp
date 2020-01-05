@@ -466,42 +466,13 @@ qboolean PM_AllowDefenceSpin(void)
 
 		for (int i = 0; i < MAX_GENTITIES; i++)
 		{
-#if defined (_CGAME)
-			centity_t *cent = &cg_entities[i];
-
-			if (cent == pmEntity)
+			if (i == pm->baseEnt->s.number)
 			{
 				continue;
 			}
 
-			if (cent->currentState.weapon != WP_SABER)
-			{
-				continue;
-			}
-
-			if (cent->currentState.eType == ET_PLAYER || cent->currentState.eType == ET_NPC)
-			{
-				float dist = Distance(pm->ps->origin, cent->lerpOrigin);
-
-				if (dist <= 128 || (lenientCheck && dist <= 256))
-				{
-					jediInRange = qtrue;
-					break;
-				}
-			}
-#elif defined (_GAME)
-			gentity_t *ent = &g_entities[i];
-
-			if (!ent || !ent->inuse)
-			{
-				continue;
-			}
-
-			if (ent == pmEntity)
-			{
-				continue;
-			}
-
+			bgEntity_t *ent = PM_BGEntForNum(i);
+			
 			if (ent->s.weapon != WP_SABER)
 			{
 				continue;
@@ -509,15 +480,14 @@ qboolean PM_AllowDefenceSpin(void)
 
 			if (ent->s.eType == ET_PLAYER || ent->s.eType == ET_NPC)
 			{
-				float dist = Distance(pm->ps->origin, ent->r.currentOrigin);
+				float dist = Distance(pm->ps->origin, ent->playerState->origin);
 
-				if (dist <= 128 || (lenientCheck && dist <= 256))
+				if (dist <= 192 || (lenientCheck && dist <= 384))
 				{
 					jediInRange = qtrue;
 					break;
 				}
 			}
-#endif
 		}
 	}
 

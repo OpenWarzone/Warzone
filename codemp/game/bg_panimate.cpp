@@ -3298,7 +3298,8 @@ void BG_SaberStartTransAnim(int clientNum, playerState_t *ps, int saberAnimLevel
 
 	if (ps->saberMove >= LS_V1_BR && ps->saberMove <= LS_V1_B_)
 	{
-		stancescale = 1.5;
+		//stancescale = 1.5;
+		stancescale = 2.0;
 	}
 
 	if (anim >= BOTH_A1_T__B_ && anim <= BOTH_ROLL_STAB)

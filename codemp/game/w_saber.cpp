@@ -5262,15 +5262,15 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 		}
 		else if (BG_SaberInSpecial(self->client->ps.saberMove) || BG_SaberInKata(self->client->ps.saberMove))
 		{// High damage in special attacks...
-			dmg = 5.0;
+			dmg = 25.0;
 		}
 		else if (BG_SaberInFullDamageMove(&self->client->ps, self->localAnimIndex))
 		{// Normal damage...
-			dmg = 3.0;
+			dmg = 10.0;
 		}
 		else if (self->client->ps.saberInFlight && rSaberNum == 0)
 		{// Low damage in saber throws...
-			dmg = 1.5;
+			dmg = 2.0;
 		}
 		else
 		{
