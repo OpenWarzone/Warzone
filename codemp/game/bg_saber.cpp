@@ -4514,6 +4514,7 @@ void PM_WeaponLightsaber(void)
 			}
 			else
 			{
+				/*
 				switch (pm->ps->saberBlocked)
 				{
 				case BLOCKED_FORWARD_LEFT:
@@ -4538,6 +4539,31 @@ void PM_WeaponLightsaber(void)
 					//bounceMove = pm->ps->saberMove;
 					//pm->ps->saberBlocked = BLOCKED_NONE;
 					bounceMove = LS_R_R2L;
+					break;
+				}
+				*/
+				switch (pm->ps->saberBlocked)
+				{
+				case BLOCKED_FORWARD_LEFT:
+					bounceMove = LS_B1_TL;
+					break;
+				case BLOCKED_FORWARD_RIGHT:
+					bounceMove = LS_B1_TR;
+					break;
+				case BLOCKED_LEFT:
+					bounceMove = LS_B1__L;
+					break;
+				case BLOCKED_RIGHT:
+					bounceMove = LS_B1__R;
+					break;
+				case BLOCKED_BACK_LEFT:
+					bounceMove = LS_B1_BL;
+					break;
+				case BLOCKED_BACK_RIGHT:
+					bounceMove = LS_B1_BR;
+					break;
+				default:
+					bounceMove = LS_B1_TR;
 					break;
 				}
 			}
@@ -5387,11 +5413,6 @@ weapChecks:
 				else
 				{//get attack move from movement command
 					newmove = PM_SaberAttackForMovement(curmove);
-
-					if (PM_SaberKataDone(curmove, newmove))
-					{
-						newmove = saberMoveData[curmove].chain_idle;
-					}
 				}
 
 				if (newmove != LS_NONE)
@@ -5926,195 +5947,60 @@ int BG_GetSingleStanceMove(short newMove)
 
 int PM_AnimationForBounceMove(short newMove)
 {
-	/*if ((pm->ps->torsoAnim >= BOTH_SABERBLOCK_FL1 && pm->ps->torsoAnim <= BOTH_SABERBLOCK_BR5)
-		|| (pm->ps->torsoAnim >= BOTH_CC_SABERBLOCK_FL1 && pm->ps->torsoAnim <= BOTH_CC_SABERBLOCK_BR5))
-	{
-		return pm->ps->torsoAnim;
-	}*/
-
-#if 0
 	if (pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL)
 	{
-		if (pm->cmd.forwardmove < 0)
+		switch (newMove)
 		{
-			if (pm->cmd.rightmove < 0)
-			{
-				return BOTH_CC_SABERBLOCK_BL1 + irand(0, 4);
-			}
-			else if (pm->cmd.rightmove > 0)
-			{
-				return BOTH_CC_SABERBLOCK_BR1 + irand(0, 4);
-			}
-			else
-			{
-				return BOTH_CC_SABERBLOCK_B1 + irand(0, 4);
-			}
-		}
-		else
-		{
-			if (pm->cmd.rightmove < 0)
-			{
-				return BOTH_CC_SABERBLOCK_FL1 + irand(0, 4);
-			}
-			else if (pm->cmd.rightmove > 0)
-			{
-				return BOTH_CC_SABERBLOCK_FR1 + irand(0, 4);
-			}
-			else
-			{
-				return BOTH_CC_SABERBLOCK_F1 + irand(0, 4);
-			}
+		case LS_B1_TL:
+			return BOTH_CC_SABERBLOCK_FL1 + irand(0, 4);
+			break;
+		case LS_B1_TR:
+		default:
+			return BOTH_CC_SABERBLOCK_FR1 + irand(0, 4);
+			break;
+		case LS_B1__L:
+			//return BOTH_CC_SABERBLOCK_B1 + irand(0, 4);
+			return BOTH_CC_SABERBLOCK_FL1 + irand(0, 4);
+			break;
+		case LS_B1__R:
+			//return BOTH_CC_SABERBLOCK_F1 + irand(0, 4);
+			return BOTH_CC_SABERBLOCK_FR1 + irand(0, 4);
+			break;
+		case LS_B1_BL:
+			return BOTH_CC_SABERBLOCK_BL1 + irand(0, 4);
+			break;
+		case LS_B1_BR:
+			return BOTH_CC_SABERBLOCK_BR1 + irand(0, 4);
+			break;
 		}
 	}
 	else
 	{
-		if (pm->cmd.forwardmove < 0)
+		switch (newMove)
 		{
-			if (pm->cmd.rightmove < 0)
-			{
-				return BOTH_SABERBLOCK_BL1 + irand(0, 4);
-			}
-			else if (pm->cmd.rightmove > 0)
-			{
-				return BOTH_SABERBLOCK_BR1 + irand(0, 4);
-			}
-			else
-			{
-				return BOTH_SABERBLOCK_B1 + irand(0, 4);
-			}
-		}
-		else
-		{
-			if (pm->cmd.rightmove < 0)
-			{
-				return BOTH_SABERBLOCK_FL1 + irand(0, 4);
-			}
-			else if (pm->cmd.rightmove > 0)
-			{
-				return BOTH_SABERBLOCK_FR1 + irand(0, 4);
-			}
-			else
-			{
-				return BOTH_SABERBLOCK_F1 + irand(0, 4);
-			}
+		case LS_B1_TL:
+			return BOTH_SABERBLOCK_FL1 + irand(0, 4);
+			break;
+		case LS_B1_TR:
+		default:
+			return BOTH_SABERBLOCK_FR1 + irand(0, 4);
+			break;
+		case LS_B1__L:
+			//return BOTH_SABERBLOCK_B1 + irand(0, 4);
+			return BOTH_SABERBLOCK_FL1 + irand(0, 4);
+			break;
+		case LS_B1__R:
+			//return BOTH_SABERBLOCK_F1 + irand(0, 4);
+			return BOTH_SABERBLOCK_FR1 + irand(0, 4);
+			break;
+		case LS_B1_BL:
+			return BOTH_SABERBLOCK_BL1 + irand(0, 4);
+			break;
+		case LS_B1_BR:
+			return BOTH_SABERBLOCK_BR1 + irand(0, 4);
+			break;
 		}
 	}
-#else
-	/*if (bg_testvalue0.integer >= 0 && bg_testvalue0.integer <= 4)
-	{
-		if (pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL)
-		{
-			switch (newMove)
-			{
-			case LS_R_TL2BR:
-				return BOTH_CC_SABERBLOCK_FL1 + bg_testvalue0.integer;
-				break;
-			case LS_R_TR2BL:
-				return BOTH_CC_SABERBLOCK_FR1 + bg_testvalue0.integer;
-				break;
-			case LS_R_L2R:
-				//return BOTH_CC_SABERBLOCK_B1 + bg_testvalue0.integer;
-				return BOTH_CC_SABERBLOCK_FL1 + bg_testvalue0.integer;
-				break;
-			case LS_R_R2L:
-			default:
-				//return BOTH_CC_SABERBLOCK_F1 + bg_testvalue0.integer;
-				return BOTH_CC_SABERBLOCK_FR1 + bg_testvalue0.integer;
-				break;
-			case LS_R_BL2TR:
-				return BOTH_CC_SABERBLOCK_BL1 + bg_testvalue0.integer;
-				break;
-			case LS_R_BR2TL:
-				return BOTH_CC_SABERBLOCK_BR1 + bg_testvalue0.integer;
-				break;
-			}
-		}
-		else
-		{
-			switch (newMove)
-			{
-			case LS_R_TL2BR:
-				return BOTH_SABERBLOCK_FL1 + bg_testvalue0.integer;
-				break;
-			case LS_R_TR2BL:
-				return BOTH_SABERBLOCK_FR1 + bg_testvalue0.integer;
-				break;
-			case LS_R_L2R:
-				//return BOTH_SABERBLOCK_B1 + bg_testvalue0.integer;
-				return BOTH_SABERBLOCK_FL1 + bg_testvalue0.integer;
-				break;
-			case LS_R_R2L:
-			default:
-				//return BOTH_SABERBLOCK_F1 + bg_testvalue0.integer;
-				return BOTH_SABERBLOCK_FR1 + bg_testvalue0.integer;
-				break;
-			case LS_R_BL2TR:
-				return BOTH_SABERBLOCK_BL1 + bg_testvalue0.integer;
-				break;
-			case LS_R_BR2TL:
-				return BOTH_SABERBLOCK_BR1 + bg_testvalue0.integer;
-				break;
-			}
-		}
-	}
-	else*/
-	{
-		if (pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL)
-		{
-			switch (newMove)
-			{
-			case LS_R_TL2BR:
-				return BOTH_CC_SABERBLOCK_FL1 + irand(0, 4);
-				break;
-			case LS_R_TR2BL:
-			default:
-				return BOTH_CC_SABERBLOCK_FR1 + irand(0, 4);
-				break;
-			case LS_R_L2R:
-				//return BOTH_CC_SABERBLOCK_B1 + irand(0, 4);
-				return BOTH_CC_SABERBLOCK_FL1 + irand(0, 4);
-				break;
-			case LS_R_R2L:
-				//return BOTH_CC_SABERBLOCK_F1 + irand(0, 4);
-				return BOTH_CC_SABERBLOCK_FR1 + irand(0, 4);
-				break;
-			case LS_R_BL2TR:
-				return BOTH_CC_SABERBLOCK_BL1 + irand(0, 4);
-				break;
-			case LS_R_BR2TL:
-				return BOTH_CC_SABERBLOCK_BR1 + irand(0, 4);
-				break;
-			}
-		}
-		else
-		{
-			switch (newMove)
-			{
-			case LS_R_TL2BR:
-				return BOTH_SABERBLOCK_FL1 + irand(0, 4);
-				break;
-			case LS_R_TR2BL:
-			default:
-				return BOTH_SABERBLOCK_FR1 + irand(0, 4);
-				break;
-			case LS_R_L2R:
-				//return BOTH_SABERBLOCK_B1 + irand(0, 4);
-				return BOTH_SABERBLOCK_FL1 + irand(0, 4);
-				break;
-			case LS_R_R2L:
-				//return BOTH_SABERBLOCK_F1 + irand(0, 4);
-				return BOTH_SABERBLOCK_FR1 + irand(0, 4);
-				break;
-			case LS_R_BL2TR:
-				return BOTH_SABERBLOCK_BL1 + irand(0, 4);
-				break;
-			case LS_R_BR2TL:
-				return BOTH_SABERBLOCK_BR1 + irand(0, 4);
-				break;
-			}
-		}
-	}
-#endif
 }
 
 int currentTestAnim = 0;
@@ -6552,7 +6438,17 @@ void PM_SetSaberMove(short newMove)
 	{
 		anim += (pm->ps->fd.saberAnimLevel - SS_FAST) * SABER_ANIM_GROUP_SIZE;
 	}*/
-	else if (newMove >= LS_R_TL2BR && newMove < LS_R_T2B && newMove < LS_B1_BR)
+	/*else if (newMove >= LS_R_TL2BR && newMove < LS_R_T2B && newMove < LS_B1_BR)
+	{
+		anim = PM_AnimationForBounceMove(newMove);
+		if (bg_debugbounce.integer)
+		{
+			extern stringID_table_t animTable[MAX_ANIMATIONS + 1];
+			Com_Printf("Using bounce anim %i (%s).\n", anim, animTable[anim].name);
+		}
+	}*/
+	else if ((pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL || pm->ps->fd.saberAnimLevelBase == SS_SINGLE)
+		&& newMove >= LS_B1_BR && newMove < LS_B1_BL)
 	{
 		anim = PM_AnimationForBounceMove(newMove);
 		if (bg_debugbounce.integer)
