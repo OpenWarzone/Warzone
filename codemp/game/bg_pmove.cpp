@@ -444,10 +444,10 @@ qboolean PM_AllowDefenceSpin(void)
 	qboolean		jediInRange = qfalse;
 
 #if defined (_CGAME)
-	centity_t		*pmEntity = &cg_entities[pm->baseEnt->s.number];
+	centity_t		*pmEntity = &cg_entities[pm->ps->clientNum];
 	int				curTime = cg.time;
 #elif defined (_GAME)
-	gentity_t		*pmEntity = &g_entities[pm->baseEnt->s.number];
+	gentity_t		*pmEntity = &g_entities[pm->ps->clientNum];
 	int				curTime = level.time;
 #endif
 
@@ -466,7 +466,7 @@ qboolean PM_AllowDefenceSpin(void)
 
 		for (int i = 0; i < MAX_GENTITIES; i++)
 		{
-			if (i == pm->baseEnt->s.number)
+			if (i == pm->ps->clientNum)
 			{
 				continue;
 			}
