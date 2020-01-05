@@ -3296,6 +3296,11 @@ void BG_SaberStartTransAnim(int clientNum, playerState_t *ps, int saberAnimLevel
 	float	tavionanimscale = 1.1f;
 	float	stancescale = BG_GetSpeedMultiplierForStance(saberAnimLevelBase);
 
+	if (ps->saberMove >= LS_V1_BR && ps->saberMove <= LS_V1_B_)
+	{
+		stancescale = 1.5;
+	}
+
 	if (anim >= BOTH_A1_T__B_ && anim <= BOTH_ROLL_STAB)
 	{
 		if (weapon == WP_SABER)

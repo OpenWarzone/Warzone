@@ -5188,8 +5188,9 @@ int WP_SaberBlockDirection(gentity_t *self, vec3_t hitloc)
 	return BLOCKED_NONE;
 }
 
-#define CLASH_MINIMUM_TIME 100//50//g_testvalue0.integer// 500//750
-#define SABER_DAMAGE_TIME 100//100//1000
+#define CLASH_MINIMUM_TIME_BLOCKING		50
+#define CLASH_MINIMUM_TIME				200//50//g_testvalue0.integer// 500//750
+#define SABER_DAMAGE_TIME				100//100//1000
 
 static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t saberStart, vec3_t saberEnd, qboolean doInterpolate, int trMask, qboolean extrapolate)
 {
@@ -5207,6 +5208,7 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 	int					sabimpactentitynum = 0;
 	qboolean			saberHitWall = qfalse;
 	gentity_t			*otherOwner = NULL;
+	qboolean			isBlocking = qfalse;
 
 	if (BG_SabersOff(&self->client->ps) || (!self->client->ps.saberEntityNum && self->client->ps.fd.saberAnimLevelBase != SS_DUAL))
 	{// register as a hit so we don't do a lot of interplotation. 
@@ -5224,6 +5226,11 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 	{
 		self->client->ps.saberBlocked = BLOCKED_NONE;
 		return qtrue;
+	}
+
+	if ((self->client->pers.cmd.buttons & BUTTON_ALT_ATTACK) && !(self->client->pers.cmd.buttons & BUTTON_ATTACK))
+	{// When actively blocking, do parrys, or short bounces...
+		isBlocking = qtrue;
 	}
 
 	//selfSaberLevel = G_SaberAttackPower(self, SaberAttacking(self));
@@ -5503,7 +5510,7 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 				{
 					if (!BG_SaberInSpecialAttack(self->client->ps.torsoAnim))
 					{
-						self->nextSaberTrace = level.time + CLASH_MINIMUM_TIME;
+						self->nextSaberTrace = level.time + isBlocking ? CLASH_MINIMUM_TIME_BLOCKING : CLASH_MINIMUM_TIME;
 #ifdef __DEBUG_REALTRACE__
 						Com_Printf("Non-damage self bounce.\n");
 #endif //__DEBUG_REALTRACE__
@@ -5523,7 +5530,14 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 
 					if (otherOwner && otherOwner->client && !BG_SaberInSpecialAttack(otherOwner->client->ps.torsoAnim))
 					{
-						self->nextSaberTrace = level.time + CLASH_MINIMUM_TIME;
+						qboolean isOtherBlocking = qfalse;
+
+						if (otherOwner && otherOwner->client && (otherOwner->client->pers.cmd.buttons & BUTTON_ALT_ATTACK) && !(otherOwner->client->pers.cmd.buttons & BUTTON_ATTACK))
+						{// When actively blocking, do parrys, or short bounces...
+							isOtherBlocking = qtrue;
+						}
+
+						otherOwner->nextSaberTrace = level.time + isOtherBlocking ? CLASH_MINIMUM_TIME_BLOCKING : CLASH_MINIMUM_TIME;
 #ifdef __DEBUG_REALTRACE__
 						Com_Printf("Non-damage victim bounce.\n");
 #endif //__DEBUG_REALTRACE__
@@ -5665,7 +5679,7 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 				{
 					if (!BG_SaberInSpecialAttack(self->client->ps.torsoAnim))
 					{
-						self->nextSaberTrace = level.time + CLASH_MINIMUM_TIME;
+						self->nextSaberTrace = level.time + isBlocking ? CLASH_MINIMUM_TIME_BLOCKING : CLASH_MINIMUM_TIME;
 #ifdef __DEBUG_REALTRACE__
 						Com_Printf("Damage self bounce.\n");
 #endif //__DEBUG_REALTRACE__
@@ -5685,7 +5699,14 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 
 					if (otherOwner && otherOwner->client && !BG_SaberInSpecialAttack(otherOwner->client->ps.torsoAnim))
 					{
-						self->nextSaberTrace = level.time + CLASH_MINIMUM_TIME;
+						qboolean isOtherBlocking = qfalse;
+
+						if (otherOwner && otherOwner->client && (otherOwner->client->pers.cmd.buttons & BUTTON_ALT_ATTACK) && !(otherOwner->client->pers.cmd.buttons & BUTTON_ATTACK))
+						{// When actively blocking, do parrys, or short bounces...
+							isOtherBlocking = qtrue;
+						}
+
+						otherOwner->nextSaberTrace = level.time + isOtherBlocking ? CLASH_MINIMUM_TIME_BLOCKING : CLASH_MINIMUM_TIME;
 #ifdef __DEBUG_REALTRACE__
 						Com_Printf("Damage victim bounce.\n");
 #endif //__DEBUG_REALTRACE__
