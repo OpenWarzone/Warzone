@@ -8321,16 +8321,28 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 
 		if (dist < 512.0 && (NPC_IsJedi(aiEnt) || aiEnt->client->ps.weapon == WP_SABER) && Jedi_DashAttack(aiEnt))
 		{// See if we can use a fast force speed attack on them, and slash or push them over...
-
+			return qfalse;
 		}
 		else if ((dist > 256 || (dist > 64 && !Jedi_ClearPathToSpot(aiEnt, aiEnt->enemy->r.currentOrigin, aiEnt->enemy->s.number))) && NPC_FollowEnemyRoute(aiEnt))
 		{
+			if (aiEnt->s.weapon == WP_SABER && (aiEnt->enemy->s.weapon != WP_SABER || dist < 384))
+			{// Do blocking while heading to enemy...
+				aiEnt->client->pers.cmd.buttons &= ~BUTTON_ATTACK;
+				aiEnt->client->pers.cmd.buttons |= BUTTON_ALT_ATTACK;
+			}
+
 			//JEDI_Debug(va("optimal position (too far - routing). Dist %f. Opt %f. Allow %f. Min %f. Max %f.", dist, OPTIMAL_RANGE, OPTIMAL_RANGE_ALLOWANCE, OPTIMAL_MIN_RANGE, OPTIMAL_MAX_RANGE));
 			return qtrue;
 		}
 		else
 		{
 			Jedi_Advance(aiEnt);
+
+			if (aiEnt->s.weapon == WP_SABER)
+			{// Do blocking while heading to enemy...
+				aiEnt->client->pers.cmd.buttons &= ~BUTTON_ATTACK;
+				aiEnt->client->pers.cmd.buttons |= BUTTON_ALT_ATTACK;
+			}
 
 			//JEDI_Debug(va("optimal position (too far - combatmove). Dist %f. Opt %f. Allow %f. Min %f. Max %f.", dist, OPTIMAL_RANGE, OPTIMAL_RANGE_ALLOWANCE, OPTIMAL_MIN_RANGE, OPTIMAL_MAX_RANGE));
 			

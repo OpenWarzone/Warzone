@@ -380,8 +380,9 @@ void CG_Do3DSaber(centity_t *cent, vec3_t origin, vec3_t dir, float length, floa
 	FX_SaberBolt3D(mid, dir, cg_saberLengthMult.value * len, cg_saberRadiusMult.value, bolt3D);
 }
 
-#define SABER_TRAIL_TIME	40.0f
-#define FX_USE_ALPHA		0x08000000
+#define SABER_TRAIL_TIME			40.0f
+#define SABER_TRAIL_LENGTH_MULT		-1.0f
+#define FX_USE_ALPHA				0x08000000
 
 extern qboolean BG_SuperBreakWinAnim(int anim);
 extern qboolean WP_SaberBladeUseSecondBladeStyle(saberInfo_t *saber, int bladeNum);
@@ -414,7 +415,7 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 			}
 		}
 
-#if 1
+#if 0
 		trailDur = int(float(trailDur) * 120.0/*cg_saberTrailMult.value*/);
 
 		// if we happen to be timescaled or running in a high framerate situation, we don't want to flood
@@ -479,7 +480,7 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 				// Go from new muzzle to new end...then to old end...back down to old muzzle...finally
 				// connect back to the new muzzle...this is our trail quad
 				VectorCopy(org_, fx.mVerts[0].origin);
-				VectorMA(end, 3.0f, axis_[0], fx.mVerts[1].origin);
+				VectorMA(end, SABER_TRAIL_LENGTH_MULT, axis_[0], fx.mVerts[1].origin);
 
 				VectorCopy(saberTrail->tip, fx.mVerts[2].origin);
 				VectorCopy(saberTrail->base, fx.mVerts[3].origin);
@@ -549,7 +550,7 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 					trap->FX_AddPrimitive(&fx);
 				}
 #else
-		trailDur = int(float(trailDur) * 10.0);
+		trailDur = int(float(trailDur) * 50.0);
 
 		// if we happen to be timescaled or running in a high framerate situation, we don't want to flood
 		// the system with very small trail slices...but perhaps doing it by distance would yield better results?
@@ -610,137 +611,82 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 
 				// Go from new muzzle to new end...then to old end...back down to old muzzle...finally
 				// connect back to the new muzzle...this is our trail quad
-#define __TRAIL_FIX__
-#ifndef __TRAIL_FIX__
 				VectorCopy(org_, fx.mVerts[0].origin);
-				VectorMA(end, 3.0f, axis_[0], fx.mVerts[1].origin);
+				VectorMA(end, SABER_TRAIL_LENGTH_MULT, axis_[0], fx.mVerts[1].origin);
 
 				VectorCopy(saberTrail->tip, fx.mVerts[2].origin);
 				VectorCopy(saberTrail->base, fx.mVerts[3].origin);
 
 				diff = cg.time - saberTrail->lastTime;
-#else //__TRAIL_FIX__
 
-#define TRAIL_SEGMENTS		8
-#define TRAIL_SEGMENT_SIZE	4
+				// I'm not sure that clipping this is really the best idea
+				//This prevents the trail from showing at all in low framerate situations.
+				//if ( diff <= SABER_TRAIL_TIME * 2 )
+				if ((inSaberMove && diff <= 10000) || (!inSaberMove && diff <= SABER_TRAIL_TIME * 2))
+				{ //don't draw it if the last time is way out of date
+					float	oldAlpha = 1.0f - (diff / trailDur);
+					float	useAlpha = 1.0f;
 
-				diff = cg.time - saberTrail->lastTime;
-
-				vec3_t start1, start2, end1, end2;
-
-				VectorCopy(org_, start1);
-				VectorMA(end, 3.0f, axis_[0], end1);
-
-				VectorCopy(saberTrail->tip, end2);
-				VectorCopy(saberTrail->base, start2);
-
-				vec3_t trailStartDir;
-				vec3_t trailEndDir;
-
-				VectorSubtract(start2, start1, trailStartDir);
-				VectorSubtract(end2, end1, trailEndDir);
-
-				VectorScale(trailStartDir, 1.0 / TRAIL_SEGMENTS, trailStartDir);
-				VectorScale(trailEndDir, 1.0 / TRAIL_SEGMENTS, trailEndDir);
-
-				bool backwards = true;
-
-				for (int i = 0; i < TRAIL_SEGMENTS; i++)
-				{
-					backwards = !backwards;
-
-					if (backwards)
-					{
-						VectorMA(end1, Q_clamp(0.0, (i - TRAIL_SEGMENT_SIZE), TRAIL_SEGMENTS), trailEndDir, fx.mVerts[0].origin);
-						VectorMA(end2, Q_clamp(0.0, (i + TRAIL_SEGMENT_SIZE), TRAIL_SEGMENTS), trailEndDir, fx.mVerts[3].origin);
-
-						VectorMA(start1, Q_clamp(0.0, (i - TRAIL_SEGMENT_SIZE), TRAIL_SEGMENTS), trailStartDir, fx.mVerts[1].origin);
-						VectorMA(start2, Q_clamp(0.0, (i + TRAIL_SEGMENT_SIZE), TRAIL_SEGMENTS), trailStartDir, fx.mVerts[2].origin);
+					if ((!WP_SaberBladeUseSecondBladeStyle(&client->saber[saberNum], bladeNum) && client->saber[saberNum].trailStyle == 1)
+						|| (WP_SaberBladeUseSecondBladeStyle(&client->saber[saberNum], bladeNum) && client->saber[saberNum].trailStyle2 == 1))
+					{//motion trail
+						fx.mShader = cgs.media.swordTrailShader;
+						VectorSet(rgb1, 32.0f, 32.0f, 32.0f); // make the sith sword trail pretty faint
+															  //trailDur *= 2.0f; // stay around twice as long?
 					}
 					else
 					{
-						VectorMA(start1, Q_clamp(0.0, (i - TRAIL_SEGMENT_SIZE), TRAIL_SEGMENTS), trailStartDir, fx.mVerts[0].origin);
-						VectorMA(start2, Q_clamp(0.0, (i + TRAIL_SEGMENT_SIZE), TRAIL_SEGMENTS), trailStartDir, fx.mVerts[3].origin);
-
-						VectorMA(end1, Q_clamp(0.0, (i - TRAIL_SEGMENT_SIZE), TRAIL_SEGMENTS), trailEndDir, fx.mVerts[1].origin);
-						VectorMA(end2, Q_clamp(0.0, (i + TRAIL_SEGMENT_SIZE), TRAIL_SEGMENTS), trailEndDir, fx.mVerts[2].origin);
+						fx.mShader = bolt3D;// cgs.media.saberBlurShader;
 					}
-#endif //__TRAIL_FIX__
-					// I'm not sure that clipping this is really the best idea
-					//This prevents the trail from showing at all in low framerate situations.
-					//if ( diff <= SABER_TRAIL_TIME * 2 )
-					if ((inSaberMove && diff <= 10000) || (!inSaberMove && diff <= SABER_TRAIL_TIME * 2))
-					{ //don't draw it if the last time is way out of date
-						float	oldAlpha = 1.0f - (diff / trailDur);
-						float	useAlpha = 1.0f;
 
-#ifdef __TRAIL_FIX__
-						useAlpha = 1.0f - ((float)i / (float)TRAIL_SEGMENTS);
-#endif //__TRAIL_FIX__
-
-						if ((!WP_SaberBladeUseSecondBladeStyle(&client->saber[saberNum], bladeNum) && client->saber[saberNum].trailStyle == 1)
-							|| (WP_SaberBladeUseSecondBladeStyle(&client->saber[saberNum], bladeNum) && client->saber[saberNum].trailStyle2 == 1))
-						{//motion trail
-							fx.mShader = cgs.media.swordTrailShader;
-							VectorSet(rgb1, 32.0f, 32.0f, 32.0f); // make the sith sword trail pretty faint
-																  //trailDur *= 2.0f; // stay around twice as long?
-						}
-						else
-						{
-							fx.mShader = bolt3D;// cgs.media.saberBlurShader;
-						}
-
-						fx.mKillTime = int(float(trailDur) / 16.0);
-						fx.mSetFlags = FX_USE_ALPHA;
+					fx.mKillTime = int(float(trailDur) / 35.0);
+					fx.mSetFlags = FX_USE_ALPHA;
 
 
-						// New muzzle
-						VectorCopy(rgb1, fx.mVerts[0].rgb);
-						fx.mVerts[0].alpha = useAlpha * oldAlpha;
+					// New muzzle
+					VectorCopy(rgb1, fx.mVerts[0].rgb);
+					fx.mVerts[0].alpha = useAlpha * oldAlpha;
 
-						fx.mVerts[0].ST[0] = 0.0f;
-						fx.mVerts[0].ST[1] = 1.0f;
-						fx.mVerts[0].destST[0] = 1.0f;
-						fx.mVerts[0].destST[1] = 1.0f;
+					fx.mVerts[0].ST[0] = 0.0f;
+					fx.mVerts[0].ST[1] = 1.0f;
+					fx.mVerts[0].destST[0] = 1.0f;
+					fx.mVerts[0].destST[1] = 1.0f;
 
-						// new tip
-						VectorCopy(rgb1, fx.mVerts[1].rgb);
-						fx.mVerts[1].alpha = useAlpha * oldAlpha;
+					// new tip
+					VectorCopy(rgb1, fx.mVerts[1].rgb);
+					fx.mVerts[1].alpha = useAlpha * oldAlpha;
 
-						fx.mVerts[1].ST[0] = 0.0f;
-						fx.mVerts[1].ST[1] = 0.0f;
-						fx.mVerts[1].destST[0] = 1.0f;
-						fx.mVerts[1].destST[1] = 0.0f;
+					fx.mVerts[1].ST[0] = 0.0f;
+					fx.mVerts[1].ST[1] = 0.0f;
+					fx.mVerts[1].destST[0] = 1.0f;
+					fx.mVerts[1].destST[1] = 0.0f;
 
-						// old tip
-						VectorCopy(rgb1, fx.mVerts[2].rgb);
-						fx.mVerts[2].alpha = useAlpha * oldAlpha;
+					// old tip
+					VectorCopy(rgb1, fx.mVerts[2].rgb);
+					fx.mVerts[2].alpha = useAlpha * oldAlpha;
 
-						fx.mVerts[2].ST[0] = 1.0f; // NOTE: this just happens to contain the value I want
-						fx.mVerts[2].ST[1] = 0.0f;
-						fx.mVerts[2].destST[0] = 1.0f;// +fx.mVerts[2].ST[0];
-						fx.mVerts[2].destST[1] = 0.0f;
+					fx.mVerts[2].ST[0] = 1.0f; // NOTE: this just happens to contain the value I want
+					fx.mVerts[2].ST[1] = 0.0f;
+					fx.mVerts[2].destST[0] = 1.0f;// +fx.mVerts[2].ST[0];
+					fx.mVerts[2].destST[1] = 0.0f;
 
-						// old muzzle
-						VectorCopy(rgb1, fx.mVerts[3].rgb);
-						fx.mVerts[3].alpha = useAlpha * oldAlpha;
+					// old muzzle
+					VectorCopy(rgb1, fx.mVerts[3].rgb);
+					fx.mVerts[3].alpha = useAlpha * oldAlpha;
 
-						fx.mVerts[3].ST[0] = 1.0f; // NOTE: this just happens to contain the value I want
-						fx.mVerts[3].ST[1] = 1.0f;
-						fx.mVerts[3].destST[0] = 1.0f;// +fx.mVerts[2].ST[0];
-						fx.mVerts[3].destST[1] = 1.0f;
+					fx.mVerts[3].ST[0] = 1.0f; // NOTE: this just happens to contain the value I want
+					fx.mVerts[3].ST[1] = 1.0f;
+					fx.mVerts[3].destST[0] = 1.0f;// +fx.mVerts[2].ST[0];
+					fx.mVerts[3].destST[1] = 1.0f;
 
-						trap->FX_AddPrimitive(&fx);
-					}
-#ifdef __TRAIL_FIX__
+					trap->FX_AddPrimitive(&fx);
 				}
-#endif //__TRAIL_FIX__
 #endif
 			}
 
 			// we must always do this, even if we aren't active..otherwise we won't know where to pick up from
 			VectorCopy(org_, saberTrail->base);
-			VectorMA(end, 3.0f, axis_[0], saberTrail->tip);
+			VectorMA(end, SABER_TRAIL_LENGTH_MULT, axis_[0], saberTrail->tip);
 			saberTrail->lastTime = cg.time;
 		}
 	}

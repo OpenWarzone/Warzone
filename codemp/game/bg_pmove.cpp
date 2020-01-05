@@ -343,7 +343,8 @@ int PM_GetSaberStance(void)
 
 //#define __DEBUG_TEST_ANIMS__
 
-qboolean PM_BlockableBlasterBoltsInRange( void )
+#if 0
+qboolean PM_AllowDefenceSpin( void )
 {
 #if defined (_CGAME) || defined (_GAME)
 	qboolean		boltInRange = qfalse;
@@ -436,6 +437,111 @@ qboolean PM_BlockableBlasterBoltsInRange( void )
 	return qfalse;
 #endif//!defined (_CGAME) && !defined (_GAME)
 }
+#else
+qboolean PM_AllowDefenceSpin(void)
+{
+#if defined (_CGAME) || defined (_GAME)
+	qboolean		jediInRange = qfalse;
+
+#if defined (_CGAME)
+	centity_t		*pmEntity = &cg_entities[pm->baseEnt->s.number];
+	int				curTime = cg.time;
+#elif defined (_GAME)
+	gentity_t		*pmEntity = &g_entities[pm->baseEnt->s.number];
+	int				curTime = level.time;
+#endif
+
+	if (pmEntity->defenseSpinLastValidTime >= curTime - 250)
+	{// Continue the spin for at least 1/2 second after no bolts seen around the player...
+		return qtrue;
+	}
+	else
+	{// Check if there are blaster bolts to block...
+		qboolean	lenientCheck = qfalse;
+
+		if (pmEntity->defenseSpinLastValidTime >= curTime - 1000)
+		{// Do more lenient checking of distance and FOV, since we are already spinning...
+			lenientCheck = qtrue;
+		}
+
+		for (int i = 0; i < MAX_GENTITIES; i++)
+		{
+#if defined (_CGAME)
+			centity_t *cent = &cg_entities[i];
+
+			if (cent == pmEntity)
+			{
+				continue;
+			}
+
+			if (cent->currentState.weapon != WP_SABER)
+			{
+				continue;
+			}
+
+			if (cent->currentState.eType == ET_PLAYER || cent->currentState.eType == ET_NPC)
+			{
+				float dist = Distance(pm->ps->origin, cent->lerpOrigin);
+
+				if (dist <= 128 || (lenientCheck && dist <= 256))
+				{
+					jediInRange = qtrue;
+					break;
+				}
+			}
+#elif defined (_GAME)
+			gentity_t *ent = &g_entities[i];
+
+			if (!ent || !ent->inuse)
+			{
+				continue;
+			}
+
+			if (ent == pmEntity)
+			{
+				continue;
+			}
+
+			if (ent->s.weapon != WP_SABER)
+			{
+				continue;
+			}
+
+			if (ent->s.eType == ET_PLAYER || ent->s.eType == ET_NPC)
+			{
+				float dist = Distance(pm->ps->origin, ent->r.currentOrigin);
+
+				if (dist <= 128 || (lenientCheck && dist <= 256))
+				{
+					jediInRange = qtrue;
+					break;
+				}
+			}
+#endif
+		}
+	}
+
+	if (!jediInRange)
+	{
+		if (pmEntity->defenseSpinStartTime == 0)
+		{// This one only marks the start of a new spin... To be used for accuracy and timing based blocking...
+			pmEntity->defenseSpinStartTime = curTime;
+		}
+
+		pmEntity->defenseSpinLastValidTime = curTime;
+	}
+	else
+	{// Init both the timers...
+		pmEntity->defenseSpinStartTime = 0;
+		pmEntity->defenseSpinLastValidTime = 0;
+	}
+
+	return jediInRange ? qfalse : qtrue;
+#else //!defined (_CGAME) && !defined (_GAME)
+	return qfalse;
+#endif//!defined (_CGAME) && !defined (_GAME)
+}
+#endif
 
 qboolean PM_BlockableSaberInRange(void)
 {
@@ -604,13 +710,13 @@ int PM_GetSaberStance()
 	if (pm->ps->fd.saberDrawAnimLevel == SS_CROWD_CONTROL 
 		&& (pm->cmd.buttons & BUTTON_ALT_ATTACK)
 		&& !(pm->cmd.buttons & BUTTON_ATTACK)
-		&& (bg_testspinanimation.integer || pm->ps->torsoAnim == BOTH_CC_DEFENCE_SPIN || PM_BlockableBlasterBoltsInRange()))
+		&& (bg_testspinanimation.integer || pm->ps->torsoAnim == BOTH_CC_DEFENCE_SPIN || PM_AllowDefenceSpin()))
 	{
 		return BOTH_CC_DEFENCE_SPIN;
 	}
 	else if ((pm->cmd.buttons & BUTTON_ALT_ATTACK)
 		&& !(pm->cmd.buttons & BUTTON_ATTACK)
-		&& (bg_testspinanimation.integer || pm->ps->torsoAnim == BOTH_SINGLE_DEFENCE_SPIN || PM_BlockableBlasterBoltsInRange()))
+		&& (bg_testspinanimation.integer || pm->ps->torsoAnim == BOTH_SINGLE_DEFENCE_SPIN || PM_AllowDefenceSpin()))
 	{
 		return BOTH_SINGLE_DEFENCE_SPIN;
 	}
