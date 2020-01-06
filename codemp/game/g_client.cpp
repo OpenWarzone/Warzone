@@ -2198,17 +2198,17 @@ void G_CheckSaber(gentity_t *ent)
 		}
 		else
 		{
-			if (Q_stricmp(ent->client->saber[0].model, "single_5"))
+			if (Q_stricmp(ent->client->saber[0].model, "single_16"))
 			{
 				if (ent->s.eType == ET_NPC)
 				{
-					WP_SaberParseParms("single_5", &ent->client->saber[0]);
-					ent->s.npcSaber1 = G_ModelIndex(va("@%s", "single_5"));
+					WP_SaberParseParms("single_16", &ent->client->saber[0]);
+					ent->s.npcSaber1 = G_ModelIndex(va("@%s", "single_16"));
 					ent->s.npcSaber2 = G_ModelIndex(va("@%s", "none"));
 				}
 				else
 				{
-					G_SetSaber(ent, 0, "single_5", qtrue);
+					G_SetSaber(ent, 0, "single_16", qtrue);
 					G_SetSaber(ent, 1, "none", qtrue);
 					changed = qtrue;
 				}
@@ -2217,17 +2217,17 @@ void G_CheckSaber(gentity_t *ent)
 	}
 	else
 	{
-		if (Q_stricmp(ent->client->saber[0].model, "single_5"))
+		if (Q_stricmp(ent->client->saber[0].model, "single_16"))
 		{
 			if (ent->s.eType == ET_NPC)
 			{
-				WP_SaberParseParms("single_5", &ent->client->saber[0]);
-				ent->s.npcSaber1 = G_ModelIndex(va("@%s", "single_5"));
+				WP_SaberParseParms("single_16", &ent->client->saber[0]);
+				ent->s.npcSaber1 = G_ModelIndex(va("@%s", "single_16"));
 				ent->s.npcSaber2 = G_ModelIndex(va("@%s", "none"));
 			}
 			else
 			{
-				G_SetSaber(ent, 0, "single_5", qtrue);
+				G_SetSaber(ent, 0, "single_16", qtrue);
 				G_SetSaber(ent, 1, "none", qtrue);
 				changed = qtrue;
 			}
@@ -2642,12 +2642,12 @@ qboolean ClientUserinfoChanged( int clientNum ) {
 		}
 		else
 		{
-			if (Q_stricmp(ent->client->saber[0].model, "single_5"))
+			if (Q_stricmp(ent->client->saber[0].model, "single_16"))
 			{
-				G_SetSaber(ent, 0, "single_5", qtrue);
+				G_SetSaber(ent, 0, "single_16", qtrue);
 				G_SetSaber(ent, 1, "none", qtrue);
 
-				Info_SetValueForKey(userinfo, "saber1", "single_5");
+				Info_SetValueForKey(userinfo, "saber1", "single_16");
 				Info_SetValueForKey(userinfo, "saber2", "none");
 			}
 		}
