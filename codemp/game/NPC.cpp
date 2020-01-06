@@ -4128,7 +4128,6 @@ qboolean NPC_EscapeWater ( gentity_t *aiEnt )
 	*/
 }
 
-extern void Boba_SetFlamerAngles(gentity_t *self);
 extern qboolean Boba_DoFlameThrower(gentity_t *self);
 
 #if	AI_TIMERS
@@ -4152,7 +4151,7 @@ void NPC_Think ( gentity_t *self )//, int msec )
 		self->pathlist = (int *)malloc(MAX_WPARRAY_SIZE*sizeof(int));
 	}
 
-	self->nextthink = level.time + FRAMETIME;
+	self->nextthink = level.time + self->thinkrate;// FRAMETIME / 2;
 
 #ifdef __AAS_AI_TESTING__
 	if (!botstates[self->s.number])
@@ -4284,23 +4283,7 @@ void NPC_Think ( gentity_t *self )//, int msec )
 		return;
 	}
 
-	/*if (!TIMER_Done(self, "flameTime"))
-	{// When using flamer, smoothly do flame thrower coverage of area... Doing this to hold angles and position while doing the sweep...
-		VectorCopy(oldMoveDir, self->client->ps.moveDir);
-
-		//or use client->pers.lastCommand?
-		aiEnt->NPC->last_ucmd.serverTime = level.time - 50;
-
-		Boba_SetFlamerAngles(aiEnt);
-		Boba_DoFlameThrower(aiEnt);
-
-		aiEnt->client->pers.cmd.forwardmove = 0;
-		aiEnt->client->pers.cmd.rightmove = 0;
-		aiEnt->client->pers.cmd.upmove = 0;
-
-		ClientThink(aiEnt->s.number, &aiEnt->client->pers.cmd);
-	}
-	else*/ if ( aiEnt->NPC->nextBStateThink <= level.time && !aiEnt->s.m_iVehicleNum )//NPCs sitting in Vehicles do NOTHING
+	if ( aiEnt->NPC->nextBStateThink <= level.time && !aiEnt->s.m_iVehicleNum )//NPCs sitting in Vehicles do NOTHING
 	{
 #if	AI_TIMERS
 		int	startTime = GetTime(0);
@@ -4322,9 +4305,12 @@ void NPC_Think ( gentity_t *self )//, int msec )
 
 		// UQ1: Think more often!
 #ifndef __LOW_THINK_AI__
+
+#if 0
 		if (is_jedi && haveEnemyPlayer && enemyDist <= 256)
 		{// When a jedi NPC has a valid enemy, let it think a lot more, for smooth saber moves...
 			self->nextthink = aiEnt->NPC->nextBStateThink = level.time;
+			self->thinkrate = 0;
 
 			if (self->client->pers.cmd.buttons & BUTTON_ATTACK)
 			{// Keep things exactly as before, for saber chaining like players do...
@@ -4346,6 +4332,7 @@ void NPC_Think ( gentity_t *self )//, int msec )
 			// Basic (ClientThink - no AI changes) think every 10ms -> 50ms, by range...
 			float nextThinkDivider = Q_clamp(1.0, rangeMultiplier * 5.0, 5.0); // Should give us a number between 1.0 and 5.0. 5.0 being the closest and 1.0 being the furthest...
 			self->nextthink = level.time + (int)(((float)FRAMETIME / 2.0) / nextThinkDivider);
+			self->thinkrate = (int)(((float)FRAMETIME / 2.0) / nextThinkDivider);
 
 			// Full think (AI updates) every 25ms -> 50ms, by range...
 			float nextbSThinkDivider = Q_clamp(1.0, rangeMultiplier + 1.0, 2.0); // Should give us a number between 1.0 and 2.0. 2.0 being the closest and 1.0 being the furthest...
@@ -4354,8 +4341,10 @@ void NPC_Think ( gentity_t *self )//, int msec )
 			aiEnt->client->pers.cmd.buttons = 0; // init buttons...
 		}
 		else
+#endif
 		{// Slow think, every 100ms...
 			self->nextthink = aiEnt->NPC->nextBStateThink = level.time + (FRAMETIME / 2);
+			self->thinkrate = (FRAMETIME / 2);
 			//self->nextthink = aiEnt->NPC->nextBStateThink = level.time + FRAMETIME;
 			aiEnt->client->pers.cmd.buttons = 0; // init buttons...
 		}
@@ -4654,11 +4643,7 @@ void NPC_Think ( gentity_t *self )//, int msec )
 			{
 				//trap->Print("NPCBOT DEBUG: NPC is attacking.\n");
 
-				if (!TIMER_Done(self, "flameTime"))
-				{// When using flamer, don't follow paths...
-					Boba_SetFlamerAngles(aiEnt);
-				}
-				else if (NPC_IsCombatPathing(aiEnt))
+				if (NPC_IsCombatPathing(aiEnt))
 				{// If we have combat pathing, use it while we do the other stuff...
 					NPC_FollowRoutes(aiEnt);
 				}
@@ -4695,11 +4680,6 @@ void NPC_Think ( gentity_t *self )//, int msec )
 
 		//or use client->pers.lastCommand?
 		aiEnt->NPC->last_ucmd.serverTime = level.time - 50;
-
-		if (!TIMER_Done(self, "flameTime"))
-		{// When using flamer, smoothly do flame thrower coverage of area...
-			Boba_SetFlamerAngles(aiEnt);
-		}
 
 		ClientThink(aiEnt->s.number, &aiEnt->client->pers.cmd);
 #else //__LOW_THINK_AI__

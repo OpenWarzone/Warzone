@@ -426,7 +426,7 @@ float s_mix(float x, float y, float a)
 qboolean PM_SaberBounceRagdollRightContinue(void)
 {
 #if defined(_GAME) || defined(_CGAME)
-	if (pm->baseEnt && pm->baseEnt->ghoul2)
+	if (pm->baseEnt[pm->ps->clientNum] && pm->baseEnt[pm->ps->clientNum].ghoul2)
 	{
 #if defined(_GAME)
 		int curtime = level.time;
@@ -436,7 +436,7 @@ qboolean PM_SaberBounceRagdollRightContinue(void)
 
 		if (pm->saberBounceRightTimer >= curtime)
 		{
-			int rHandBolt = trap->G2API_AddBolt(pm->baseEnt->ghoul2, 0, BLOCK_BOLTNAME);
+			int rHandBolt = trap->G2API_AddBolt(pm->baseEnt[pm->ps->clientNum].ghoul2, 0, BLOCK_BOLTNAME);
 
 			if (rHandBolt)
 			{
@@ -457,7 +457,7 @@ qboolean PM_SaberBounceRagdollRightContinue(void)
 				char side[] = "CGAME";
 				Com_Printf("[%s] ent %i bounce. boltAngOrig %f %f %f. boltAngCurrent %f %f %f. percent %f.\n"
 					, side
-					, pm->baseEnt->s.number
+					, pm->ps->clientNum
 					, pm->saberBounceRightStartAngles[0], pm->saberBounceRightStartAngles[1], pm->saberBounceRightStartAngles[2]
 					, boltAng[0], boltAng[1], boltAng[2]
 					, amount);
@@ -465,14 +465,14 @@ qboolean PM_SaberBounceRagdollRightContinue(void)
 				char side[] = "GAME";
 				Com_Printf("[%s] ent %i bounce. boltAngOrig %f %f %f. boltAngCurrent %f %f %f. percent %f.\n"
 					, side
-					, pm->baseEnt->s.number
+					, pm->ps->clientNum
 					, pm->saberBounceRightStartAngles[0], pm->saberBounceRightStartAngles[1], pm->saberBounceRightStartAngles[2]
 					, boltAng[0], boltAng[1], boltAng[2]
 					, amount);
 #endif
 
-				trap->G2API_SetBoneAngles(pm->baseEnt->ghoul2, 0, BLOCK_BOLTNAME, boltAng, BONE_ANGLES_REPLACE, NEGATIVE_Y, NEGATIVE_Z, NEGATIVE_X, NULL, 100, curtime);
-				trap->G2API_RemoveBone(pm->baseEnt->ghoul2, BLOCK_BOLTNAME, 0);
+				trap->G2API_SetBoneAngles(pm->baseEnt[pm->ps->clientNum].ghoul2, 0, BLOCK_BOLTNAME, boltAng, BONE_ANGLES_REPLACE, NEGATIVE_Y, NEGATIVE_Z, NEGATIVE_X, NULL, 100, curtime);
+				trap->G2API_RemoveBone(pm->baseEnt[pm->ps->clientNum].ghoul2, BLOCK_BOLTNAME, 0);
 
 				return qtrue;
 			}
@@ -492,7 +492,7 @@ qboolean PM_SaberBounceRagdollRightBegin(int curMove, int nextMove)
 #if defined(_GAME) || defined(_CGAME)
 	//if (PM_SaberInBounce(nextMove) || PM_SaberInDeflect(nextMove) || PM_SaberInParry(nextMove) || PM_SaberInKnockaway(nextMove) || PM_SaberInReflect(nextMove) || (pm->ps->saberBlocked > BLOCKED_NONE && pm->ps->saberBlocked < BLOCKED_LIGHTNING))
 	{
-		if (pm->baseEnt && pm->baseEnt->ghoul2)
+		if (pm->baseEnt && pm->baseEnt[pm->ps->clientNum].ghoul2)
 		{
 #if defined(_GAME)
 			int curtime = level.time;
@@ -502,13 +502,13 @@ qboolean PM_SaberBounceRagdollRightBegin(int curMove, int nextMove)
 
 #if defined(_CGAME)
 			char side[] = "CGAME";
-			Com_Printf("[%s] ent %i begin saberBlocked %i.\n", side, pm->baseEnt->s.number, pm->ps->saberBlocked);
+			Com_Printf("[%s] ent %i begin saberBlocked %i.\n", side, pm->ps->clientNum, pm->ps->saberBlocked);
 #elif defined(_GAME)
 			char side[] = "GAME";
-			Com_Printf("[%s] ent %i begin saberBlocked %i.\n", side, pm->baseEnt->s.number, pm->ps->saberBlocked);
+			Com_Printf("[%s] ent %i begin saberBlocked %i.\n", side, pm->ps->clientNum, pm->ps->saberBlocked);
 #endif
 
-			int rHandBolt = trap->G2API_AddBolt(pm->baseEnt->ghoul2, 0, BLOCK_BOLTNAME);
+			int rHandBolt = trap->G2API_AddBolt(pm->baseEnt[pm->ps->clientNum].ghoul2, 0, BLOCK_BOLTNAME);
 
 			if (rHandBolt)
 			{
@@ -519,7 +519,7 @@ qboolean PM_SaberBounceRagdollRightBegin(int curMove, int nextMove)
 				VectorCopy(pm->ps->viewangles, tAngles);
 				tAngles[PITCH] = tAngles[ROLL] = 0;
 
-				trap->G2API_GetBoltMatrix(pm->baseEnt->ghoul2, 0, rHandBolt, &boltMatrix, tAngles, pm->ps->origin, curtime, 0, pm->modelScale);
+				trap->G2API_GetBoltMatrix(pm->baseEnt[pm->ps->clientNum].ghoul2, 0, rHandBolt, &boltMatrix, tAngles, pm->ps->origin, curtime, 0, pm->modelScale);
 				//BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, boltOrg);
 				BG_GiveMeVectorFromMatrix(&boltMatrix, NEGATIVE_X, boltAng);
 
@@ -540,25 +540,25 @@ qboolean PM_SaberBounceRagdollRightBegin(int curMove, int nextMove)
 
 #if defined(_CGAME)
 				char side[] = "CGAME";
-				Com_Printf("[%s] ent %i begin. boltOrg %f %f %f. boltAngStart %f %f %f.\n", side, pm->baseEnt->s.number, boltOrg[0], boltOrg[1], boltOrg[2], boltAng[0], boltAng[1], boltAng[2]);
+				Com_Printf("[%s] ent %i begin. boltOrg %f %f %f. boltAngStart %f %f %f.\n", side, pm->ps->clientNum, boltOrg[0], boltOrg[1], boltOrg[2], boltAng[0], boltAng[1], boltAng[2]);
 #elif defined(_GAME)
 				char side[] = "GAME";
-				Com_Printf("[%s] ent %i begin. boltAngStart %f %f %f.\n", side, pm->baseEnt->s.number, boltAng[0], boltAng[1], boltAng[2]);
+				Com_Printf("[%s] ent %i begin. boltAngStart %f %f %f.\n", side, pm->ps->clientNum, boltAng[0], boltAng[1], boltAng[2]);
 #endif
-				trap->G2API_RemoveBone(pm->baseEnt->ghoul2, BLOCK_BOLTNAME, 0);
+				trap->G2API_RemoveBone(pm->baseEnt[pm->ps->clientNum].ghoul2, BLOCK_BOLTNAME, 0);
 				return qtrue;
 			}
 #if defined(_CGAME)
 			else
 			{
 				char side[] = "CGAME";
-				Com_Printf("[%s] ent %i begin. no bolt\n", side, pm->baseEnt->s.number);
+				Com_Printf("[%s] ent %i begin. no bolt\n", side, pm->baseEnt[pm->ps->clientNum].s.number);
 			}
 #elif defined(_GAME)
 			else
 			{
 				char side[] = "GAME";
-				Com_Printf("[%s] ent %i begin. no bolt\n", side, pm->baseEnt->s.number);
+				Com_Printf("[%s] ent %i begin. no bolt\n", side, pm->baseEnt[pm->ps->clientNum].s.number);
 			}
 #endif
 		}
@@ -566,13 +566,13 @@ qboolean PM_SaberBounceRagdollRightBegin(int curMove, int nextMove)
 		else
 		{
 			char side[] = "CGAME";
-			Com_Printf("[%s] ent %i begin. no baseEnt or ghoul2\n", side, pm->baseEnt->s.number);
+			Com_Printf("[%s] ent %i begin. no baseEnt or ghoul2\n", side, pm->baseEnt[pm->ps->clientNum].s.number);
 		}
 #elif defined(_GAME)
 		else
 		{
 			char side[] = "CGAME";
-			Com_Printf("[%s] ent %i begin. no baseEnt or ghoul2\n", side, pm->baseEnt->s.number);
+			Com_Printf("[%s] ent %i begin. no baseEnt or ghoul2\n", side, pm->baseEnt[pm->ps->clientNum].s.number);
 		}
 #endif
 	}
@@ -604,7 +604,7 @@ qboolean PM_SaberBounceRagdollRightContinue(void)
 #if defined(_GAME) || defined(_CGAME)
 	if (pm->ikStatusRightArm)
 	{
-		if (pm->baseEnt && pm->baseEnt->ghoul2)
+		if (pm->baseEnt && pm->baseEnt[pm->ps->clientNum].ghoul2)
 		{
 #if defined(_GAME)
 			int curtime = level.time;
@@ -620,30 +620,30 @@ qboolean PM_SaberBounceRagdollRightContinue(void)
 				float cFrame, animSpeed;
 				int sFrame, eFrame, flags;
 
-				trap->G2API_SetBoneIKState(pm->baseEnt->ghoul2, curtime, "rhumerus", IKS_NONE, NULL);
-				trap->G2API_SetBoneIKState(pm->baseEnt->ghoul2, curtime, "rradius", IKS_NONE, NULL);
+				trap->G2API_SetBoneIKState(pm->baseEnt[pm->ps->clientNum].ghoul2, curtime, "rhumerus", IKS_NONE, NULL);
+				trap->G2API_SetBoneIKState(pm->baseEnt[pm->ps->clientNum].ghoul2, curtime, "rradius", IKS_NONE, NULL);
 
 #define BONE_ANGLES_PREMULT			0x0001
 #define BONE_ANGLES_POSTMULT		0x0002
 #define BONE_ANGLES_REPLACE			0x0004
 
 				//then reset the angles/anims on these PCJs
-				trap->G2API_SetBoneAngles(pm->baseEnt->ghoul2, 0, "rhumerus", vec3_origin, BONE_ANGLES_POSTMULT, POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z, NULL, 0, curtime);
-				trap->G2API_SetBoneAngles(pm->baseEnt->ghoul2, 0, "rradius", vec3_origin, BONE_ANGLES_POSTMULT, POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z, NULL, 0, curtime);
+				trap->G2API_SetBoneAngles(pm->baseEnt[pm->ps->clientNum].ghoul2, 0, "rhumerus", vec3_origin, BONE_ANGLES_POSTMULT, POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z, NULL, 0, curtime);
+				trap->G2API_SetBoneAngles(pm->baseEnt[pm->ps->clientNum].ghoul2, 0, "rradius", vec3_origin, BONE_ANGLES_POSTMULT, POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z, NULL, 0, curtime);
 
 				//Get the anim/frames that the pelvis is on exactly, and match the left arm back up with them again.
-				trap->G2API_GetBoneAnim(pm->baseEnt->ghoul2, "pelvis", (const int)curtime, &cFrame, &sFrame, &eFrame, &flags, &animSpeed, 0, 0);
-				trap->G2API_SetBoneAnim(pm->baseEnt->ghoul2, 0, "rhumerus", sFrame, eFrame, flags, animSpeed, curtime, sFrame, 300);
-				trap->G2API_SetBoneAnim(pm->baseEnt->ghoul2, 0, "rradius", sFrame, eFrame, flags, animSpeed, curtime, sFrame, 300);
+				trap->G2API_GetBoneAnim(pm->baseEnt[pm->ps->clientNum].ghoul2, "pelvis", (const int)curtime, &cFrame, &sFrame, &eFrame, &flags, &animSpeed, 0, 0);
+				trap->G2API_SetBoneAnim(pm->baseEnt[pm->ps->clientNum].ghoul2, 0, "rhumerus", sFrame, eFrame, flags, animSpeed, curtime, sFrame, 300);
+				trap->G2API_SetBoneAnim(pm->baseEnt[pm->ps->clientNum].ghoul2, 0, "rradius", sFrame, eFrame, flags, animSpeed, curtime, sFrame, 300);
 
 				//And finally, get rid of all the ik state effector data by calling with null bone name (similar to how we init it).
-				trap->G2API_SetBoneIKState(pm->baseEnt->ghoul2, curtime, NULL, IKS_NONE, NULL);
+				trap->G2API_SetBoneIKState(pm->baseEnt[pm->ps->clientNum].ghoul2, curtime, NULL, IKS_NONE, NULL);
 
 				return pm->ikStatusRightArm;
 			}
 
-			//int rHandBolt = trap->G2API_AddBolt(pm->baseEnt->ghoul2, 0, "*r_hand");
-			int rHandBolt = trap->G2API_AddBolt(pm->baseEnt->ghoul2, 0, "rhand");
+			//int rHandBolt = trap->G2API_AddBolt(pm->baseEnt[pm->ps->clientNum].ghoul2, 0, "*r_hand");
+			int rHandBolt = trap->G2API_AddBolt(pm->baseEnt[pm->ps->clientNum].ghoul2, 0, "rhand");
 
 			if (rHandBolt)
 			{
@@ -654,7 +654,7 @@ qboolean PM_SaberBounceRagdollRightContinue(void)
 				VectorCopy(pm->ps->viewangles, tAngles);
 				tAngles[PITCH] = tAngles[ROLL] = 0;
 
-				trap->G2API_GetBoltMatrix(pm->baseEnt->ghoul2, 0, rHandBolt, &boltMatrix, tAngles, pm->ps->origin, curtime, 0, pm->modelScale);
+				trap->G2API_GetBoltMatrix(pm->baseEnt[pm->ps->clientNum].ghoul2, 0, rHandBolt, &boltMatrix, tAngles, pm->ps->origin, curtime, 0, pm->modelScale);
 				BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, boltOrg);
 				BG_GiveMeVectorFromMatrix(&boltMatrix, NEGATIVE_Y, boltAng);
 
@@ -676,14 +676,14 @@ qboolean PM_SaberBounceRagdollRightContinue(void)
 					VectorCopy(pm->ps->viewangles, tAngles);
 					tAngles[PITCH] = tAngles[ROLL] = 0;
 
-					BG_IK_MoveRightArm(pm->baseEnt->ghoul2, rHandBolt, curtime, &pm->baseEnt->s, pm->ps->torsoAnim, wantedOrg, &pm->ikStatusRightArm, pm->ps->origin, tAngles, pm->modelScale, 250, qfalse);
+					BG_IK_MoveRightArm(pm->baseEnt[pm->ps->clientNum].ghoul2, rHandBolt, curtime, &pm->baseEnt[pm->ps->clientNum].s, pm->ps->torsoAnim, wantedOrg, &pm->ikStatusRightArm, pm->ps->origin, tAngles, pm->modelScale, 250, qfalse);
 
 #if defined(_CGAME)
 					vec3_t bDiff;
 					bDiff[0] = wantedOrg[0] - pm->ikStatusRightBouncePoint[0];
 					bDiff[1] = wantedOrg[1] - pm->ikStatusRightBouncePoint[1];
 					bDiff[2] = wantedOrg[2] - pm->ikStatusRightBouncePoint[2];
-					Com_Printf("ent %i bounce. amt %f. bDiff %f %f %f. boltAng %f %f %f.\n", pm->baseEnt->s.number, amt, bDiff[0], bDiff[1], bDiff[2], boltAng[0], boltAng[1], boltAng[2]);
+					Com_Printf("ent %i bounce. amt %f. bDiff %f %f %f. boltAng %f %f %f.\n", pm->ps->clientNum, amt, bDiff[0], bDiff[1], bDiff[2], boltAng[0], boltAng[1], boltAng[2]);
 #endif
 				}
 				else
@@ -700,14 +700,14 @@ qboolean PM_SaberBounceRagdollRightContinue(void)
 					VectorCopy(pm->ps->viewangles, tAngles);
 					tAngles[PITCH] = tAngles[ROLL] = 0;
 
-					BG_IK_MoveRightArm(pm->baseEnt->ghoul2, rHandBolt, curtime, &pm->baseEnt->s, pm->ps->torsoAnim, wantedOrg, &pm->ikStatusRightArm, pm->ps->origin, tAngles, pm->modelScale, 250, qfalse);
+					BG_IK_MoveRightArm(pm->baseEnt[pm->ps->clientNum].ghoul2, rHandBolt, curtime, &pm->baseEnt[pm->ps->clientNum].s, pm->ps->torsoAnim, wantedOrg, &pm->ikStatusRightArm, pm->ps->origin, tAngles, pm->modelScale, 250, qfalse);
 
 #if defined(_CGAME)
 					vec3_t bDiff;
 					bDiff[0] = wantedOrg[0] - pm->ikStatusRightBouncePoint[0];
 					bDiff[1] = wantedOrg[1] - pm->ikStatusRightBouncePoint[1];
 					bDiff[2] = wantedOrg[2] - pm->ikStatusRightBouncePoint[2];
-					Com_Printf("ent %i recover. amt %f. bDiff %f %f %f. boltAng %f %f %f.\n", pm->baseEnt->s.number, amt, bDiff[0], bDiff[1], bDiff[2], boltAng[0], boltAng[1], boltAng[2]);
+					Com_Printf("ent %i recover. amt %f. bDiff %f %f %f. boltAng %f %f %f.\n", pm->ps->clientNum, amt, bDiff[0], bDiff[1], bDiff[2], boltAng[0], boltAng[1], boltAng[2]);
 #endif
 				}
 			}
@@ -725,7 +725,7 @@ qboolean PM_SaberBounceRagdollRightBegin(int curMove, int nextMove)
 #if defined(_GAME) || defined(_CGAME)
 	if (PM_SaberInBounce(curMove) || PM_SaberInDeflect(curMove) || PM_SaberInParry(curMove) || PM_SaberInKnockaway(curMove) || PM_SaberInReflect(curMove) || (pm->ps->saberBlocked > BLOCKED_NONE && pm->ps->saberBlocked < BLOCKED_LIGHTNING))
 	{
-		if (pm->baseEnt && pm->baseEnt->ghoul2)
+		if (pm->baseEnt && pm->baseEnt[pm->ps->clientNum].ghoul2)
 		{
 #if defined(_GAME)
 			int curtime = level.time;
@@ -736,32 +736,32 @@ qboolean PM_SaberBounceRagdollRightBegin(int curMove, int nextMove)
 #if defined(_CGAME)
 			if (PM_SaberInBounce(curMove))
 			{
-				Com_Printf("ent %i begin bounce.\n", pm->baseEnt->s.number);
+				Com_Printf("ent %i begin bounce.\n", pm->ps->clientNum);
 			}
 			else if (PM_SaberInDeflect(curMove))
 			{
-				Com_Printf("ent %i begin deflect.\n", pm->baseEnt->s.number);
+				Com_Printf("ent %i begin deflect.\n", pm->ps->clientNum);
 			}
 			else if (PM_SaberInParry(curMove))
 			{
-				Com_Printf("ent %i begin parry.\n", pm->baseEnt->s.number);
+				Com_Printf("ent %i begin parry.\n", pm->ps->clientNum);
 			}
 			else if (PM_SaberInKnockaway(curMove))
 			{
-				Com_Printf("ent %i begin knockaway.\n", pm->baseEnt->s.number);
+				Com_Printf("ent %i begin knockaway.\n", pm->ps->clientNum);
 			}
 			else if (PM_SaberInReflect(curMove))
 			{
-				Com_Printf("ent %i begin reflect.\n", pm->baseEnt->s.number);
+				Com_Printf("ent %i begin reflect.\n", pm->ps->clientNum);
 			}
 			else if (pm->ps->saberBlocked > BLOCKED_NONE && pm->ps->saberBlocked < BLOCKED_LIGHTNING)
 			{
-				Com_Printf("ent %i begin saberBlocked %i.\n", pm->baseEnt->s.number, pm->ps->saberBlocked);
+				Com_Printf("ent %i begin saberBlocked %i.\n", pm->ps->clientNum, pm->ps->saberBlocked);
 			}
 #endif
 
-			//int rHandBolt = trap->G2API_AddBolt(pm->baseEnt->ghoul2, 0, "*r_hand");
-			int rHandBolt = trap->G2API_AddBolt(pm->baseEnt->ghoul2, 0, "rhand");
+			//int rHandBolt = trap->G2API_AddBolt(pm->baseEnt[pm->ps->clientNum].ghoul2, 0, "*r_hand");
+			int rHandBolt = trap->G2API_AddBolt(pm->baseEnt[pm->ps->clientNum].ghoul2, 0, "rhand");
 
 			if (rHandBolt)
 			{
@@ -772,7 +772,7 @@ qboolean PM_SaberBounceRagdollRightBegin(int curMove, int nextMove)
 				VectorCopy(pm->ps->viewangles, tAngles);
 				tAngles[PITCH] = tAngles[ROLL] = 0;
 				
-				trap->G2API_GetBoltMatrix(pm->baseEnt->ghoul2, 0, rHandBolt, &boltMatrix, tAngles, pm->ps->origin, curtime, 0, pm->modelScale);
+				trap->G2API_GetBoltMatrix(pm->baseEnt[pm->ps->clientNum].ghoul2, 0, rHandBolt, &boltMatrix, tAngles, pm->ps->origin, curtime, 0, pm->modelScale);
 				BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, boltOrg);
 				BG_GiveMeVectorFromMatrix(&boltMatrix, NEGATIVE_Y, boltAng);
 
@@ -796,19 +796,19 @@ qboolean PM_SaberBounceRagdollRightBegin(int curMove, int nextMove)
 				VectorCopy(boltAng, pm->ikStatusRightCurrentAngles);
 
 #if defined(_CGAME)
-				Com_Printf("ent %i begin. boltOrg %f %f %f. boltAng %f %f %f.\n", pm->baseEnt->s.number, boltOrg[0], boltOrg[1], boltOrg[2], boltAng[0], boltAng[1], boltAng[2]);
+				Com_Printf("ent %i begin. boltOrg %f %f %f. boltAng %f %f %f.\n", pm->ps->clientNum, boltOrg[0], boltOrg[1], boltOrg[2], boltAng[0], boltAng[1], boltAng[2]);
 #endif
 
-				BG_IK_MoveRightArm(pm->baseEnt->ghoul2, rHandBolt, curtime, &pm->baseEnt->s, pm->ps->torsoAnim, boltOrg, &pm->ikStatusRightArm, pm->ps->origin, pm->ps->viewangles, pm->modelScale, 25, qfalse);
+				BG_IK_MoveRightArm(pm->baseEnt[pm->ps->clientNum].ghoul2, rHandBolt, curtime, &pm->baseEnt[pm->ps->clientNum].s, pm->ps->torsoAnim, boltOrg, &pm->ikStatusRightArm, pm->ps->origin, pm->ps->viewangles, pm->modelScale, 25, qfalse);
 			}
 #if defined(_CGAME)
 			else
-				Com_Printf("ent %i begin. no bolt\n", pm->baseEnt->s.number);
+				Com_Printf("ent %i begin. no bolt\n", pm->ps->clientNum);
 #endif
 		}
 #if defined(_CGAME)
 		else
-			Com_Printf("ent %i begin. no baseEnt or ghoul2\n", pm->baseEnt->s.number);
+			Com_Printf("ent %i begin. no baseEnt or ghoul2\n", pm->ps->clientNum);
 #endif
 	}
 

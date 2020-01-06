@@ -397,6 +397,7 @@ struct gentity_s {
 
 //Think Functions
 	int			nextthink;
+	int			thinkrate = FRAMETIME;
 	void		(*think)(gentity_t *self);
 	void		(*reached)(gentity_t *self);	// movers call this when hitting endpoint
 	void		(*blocked)(gentity_t *self, gentity_t *other);

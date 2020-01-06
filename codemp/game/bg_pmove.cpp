@@ -343,101 +343,6 @@ int PM_GetSaberStance(void)
 
 //#define __DEBUG_TEST_ANIMS__
 
-#if 0
-qboolean PM_AllowDefenceSpin( void )
-{
-#if defined (_CGAME) || defined (_GAME)
-	qboolean		boltInRange = qfalse;
-
-#if defined (_CGAME)
-	centity_t		*pmEntity = &cg_entities[pm->baseEnt->s.number];
-	int				curTime = cg.time;
-#elif defined (_GAME)
-	gentity_t		*pmEntity = &g_entities[pm->baseEnt->s.number];
-	int				curTime = level.time;
-#endif
-
-	if (pmEntity->defenseSpinLastValidTime >= curTime - 250)
-	{// Continue the spin for at least 1/2 second after no bolts seen around the player...
-		return qtrue;
-	}
-	else
-	{// Check if there are blaster bolts to block...
-		qboolean	lenientCheck = qfalse;
-
-		if (pmEntity->defenseSpinLastValidTime >= curTime - 1000)
-		{// Do more lenient checking of distance and FOV, since we are already spinning...
-			lenientCheck = qtrue;
-		}
-
-		for (int i = 0; i < MAX_GENTITIES; i++)
-		{
-#if defined (_CGAME)
-			extern qboolean CG_InFOV(vec3_t spot, vec3_t from, vec3_t fromAngles, int hFOV, int vFOV);
-
-			centity_t *cent = &cg_entities[i];
-
-			if (cent->currentState.eType == ET_MISSILE)
-			{
-				float dist = Distance(pm->ps->origin, cent->lerpOrigin);
-
-				if (dist <= 512 || (lenientCheck && dist <= 768))
-				{
-					if (CG_InFOV(cent->lerpOrigin, pm->ps->origin, cent->lerpAngles, 90, 90) || (lenientCheck && CG_InFOV(cent->lerpOrigin, pm->ps->origin, cent->lerpAngles, 120, 120)))
-					{
-						boltInRange = qtrue;
-						break;
-					}
-				}
-			}
-#elif defined (_GAME)
-			extern qboolean InFOV3(vec3_t spot, vec3_t from, vec3_t fromAngles, int hFOV, int vFOV);
-
-			gentity_t *ent = &g_entities[i];
-
-			if (!ent || !ent->inuse)
-			{
-				continue;
-			}
-
-			if (ent->s.eType == ET_MISSILE)
-			{
-				float dist = Distance(pm->ps->origin, ent->r.currentOrigin);
-
-				if (dist <= 512 || (lenientCheck && dist <= 768))
-				{
-					if (InFOV3(ent->r.currentOrigin, pm->ps->origin, ent->r.currentAngles, 90, 90) || (lenientCheck && InFOV3(ent->r.currentOrigin, pm->ps->origin, ent->r.currentAngles, 120, 120)))
-					{
-						boltInRange = qtrue;
-						break;
-					}
-				}
-			}
-#endif
-		}
-	}
-
-	if (boltInRange)
-	{
-		if (pmEntity->defenseSpinStartTime == 0)
-		{// This one only marks the start of a new spin... To be used for accuracy and timing based blocking...
-			pmEntity->defenseSpinStartTime = curTime;
-		}
-
-		pmEntity->defenseSpinLastValidTime = curTime;
-	}
-	else
-	{// Init both the timers...
-		pmEntity->defenseSpinStartTime = 0;
-		pmEntity->defenseSpinLastValidTime = 0;
-	}
-
-	return boltInRange;
-#else //!defined (_CGAME) && !defined (_GAME)
-	return qfalse;
-#endif//!defined (_CGAME) && !defined (_GAME)
-}
-#else
 qboolean PM_AllowDefenceSpin(void)
 {
 #if defined (_CGAME) || defined (_GAME)
@@ -511,7 +416,6 @@ qboolean PM_AllowDefenceSpin(void)
 	return qfalse;
 #endif//!defined (_CGAME) && !defined (_GAME)
 }
-#endif
 
 qboolean PM_BlockableSaberInRange(void)
 {
@@ -519,10 +423,10 @@ qboolean PM_BlockableSaberInRange(void)
 	qboolean		boltInRange = qfalse;
 
 #if defined (_CGAME)
-	centity_t		*pmEntity = &cg_entities[pm->baseEnt->s.number];
+	centity_t		*pmEntity = &cg_entities[pm->ps->clientNum];
 	int				curTime = cg.time;
 #elif defined (_GAME)
-	gentity_t		*pmEntity = &g_entities[pm->baseEnt->s.number];
+	gentity_t		*pmEntity = &g_entities[pm->ps->clientNum];
 	int				curTime = level.time;
 #endif
 
@@ -541,48 +445,32 @@ qboolean PM_BlockableSaberInRange(void)
 
 		for (int i = 0; i < MAX_GENTITIES; i++)
 		{
-#if defined (_CGAME)
-			extern qboolean CG_InFOV(vec3_t spot, vec3_t from, vec3_t fromAngles, int hFOV, int vFOV);
-
-			centity_t *cent = &cg_entities[i];
-
-			if ((cent->currentState.eType == ET_PLAYER || cent->currentState.eType == ET_NPC) && cent->currentState.number != pm->baseEnt->s.number)
-			{
-				float dist = Distance(pm->ps->origin, cent->lerpOrigin);
-
-				if (dist <= 768 || (lenientCheck && dist <= 1024))
-				{
-					if (CG_InFOV(cent->lerpOrigin, pm->ps->origin, cent->lerpAngles, 90, 90) || (lenientCheck && CG_InFOV(cent->lerpOrigin, pm->ps->origin, cent->lerpAngles, 120, 120)))
-					{
-						boltInRange = qtrue;
-						break;
-					}
-				}
-			}
-#elif defined (_GAME)
-			extern qboolean InFOV3(vec3_t spot, vec3_t from, vec3_t fromAngles, int hFOV, int vFOV);
-
-			gentity_t *ent = &g_entities[i];
-
-			if (!ent || !ent->inuse)
+			if (i == pm->ps->clientNum)
 			{
 				continue;
 			}
 
-			if ((ent->s.eType == ET_PLAYER || ent->s.eType == ET_NPC) && ent->s.number != pm->baseEnt->s.number)
+			bgEntity_t *ent = PM_BGEntForNum(i);
+
+			if ((ent->s.eType == ET_PLAYER || ent->s.eType == ET_NPC))
 			{
-				float dist = Distance(pm->ps->origin, ent->r.currentOrigin);
+				float dist = Distance(pm->ps->origin, ent->playerState->origin);
 
 				if (dist <= 768 || (lenientCheck && dist <= 1024))
 				{
-					if (InFOV3(ent->r.currentOrigin, pm->ps->origin, ent->r.currentAngles, 90, 90) || (lenientCheck && InFOV3(ent->r.currentOrigin, pm->ps->origin, ent->r.currentAngles, 120, 120)))
+#if defined (_CGAME)
+					extern qboolean CG_InFOV(vec3_t spot, vec3_t from, vec3_t fromAngles, int hFOV, int vFOV);
+					if (CG_InFOV(ent->playerState->origin, pm->ps->origin, ent->playerState->viewangles, 90, 90) || (lenientCheck && CG_InFOV(ent->playerState->origin, pm->ps->origin, ent->playerState->viewangles, 120, 120)))
+#elif defined (_GAME)
+					extern qboolean InFOV3(vec3_t spot, vec3_t from, vec3_t fromAngles, int hFOV, int vFOV);
+					if (InFOV3(ent->playerState->origin, pm->ps->origin, ent->playerState->viewangles, 90, 90) || (lenientCheck && InFOV3(ent->playerState->origin, pm->ps->origin, ent->playerState->viewangles, 120, 120)))
+#endif
 					{
 						boltInRange = qtrue;
 						break;
 					}
 				}
 			}
-#endif
 		}
 	}
 
