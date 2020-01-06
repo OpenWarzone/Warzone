@@ -9142,7 +9142,25 @@ nextStep:
 
 	VectorCopy(boltAngles, rawAngles);
 
-	VectorMA( boltOrigin, self->client->saber[0].blade[0].lengthMax, boltAngles, end );
+	/* BEGIN: INV SYSTEM SABER LENGTHS */
+	float lengthMult = 1.0f;
+
+	inventoryItem *invSaber = BG_EquippedWeapon(&self->client->ps);
+
+	if (invSaber->getBasicStat3() == SABER_STAT3_LENGTH_MODIFIER)
+	{
+		lengthMult *= 1.0f + invSaber->getBasicStat3Value();
+	}
+
+	inventoryItem *invSaberMod3 = BG_EquippedMod3(&self->client->ps);
+
+	if (invSaberMod3->getBasicStat3() == SABER_STAT3_LENGTH_MODIFIER)
+	{
+		lengthMult *= 1.0f + invSaberMod3->getBasicStat3Value();
+	}
+	/* END: INV SYSTEM SABER LENGTHS */
+
+	VectorMA( boltOrigin, self->client->saber[0].blade[0].lengthMax * lengthMult, boltAngles, end );
 
 	if (self->client->ps.saberEntityNum)
 	{
