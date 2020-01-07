@@ -4582,7 +4582,28 @@ vec3_t gPainPoint;
 
 int G_CheckCritDamage ( gentity_t *targ, gentity_t *attacker )
 {// UQ1: Improve me later... Offensive/Defensive perks to increase/decrease crit chance and damage...
-	int d20_roll = irand(1, 20);
+	/* BEGIN: INV SYSTEM SABER CRIT CHANCE */
+	float critChanceMult = 1.0f;
+
+	if (attacker && attacker->client)
+	{
+		inventoryItem *invSaber = BG_EquippedWeapon(&attacker->client->ps);
+
+		if (invSaber && invSaber->getBasicStat2() == SABER_STAT2_CRITICAL_CHANCE_MODIFIER)
+		{
+			critChanceMult *= 1.0f + invSaber->getBasicStat2Value();
+		}
+
+		inventoryItem *invSaberMod3 = BG_EquippedMod2(&attacker->client->ps);
+
+		if (invSaberMod3 && invSaberMod3->getBasicStat2() == SABER_STAT2_CRITICAL_CHANCE_MODIFIER)
+		{
+			critChanceMult *= 1.0f + invSaberMod3->getBasicStat2Value();
+		}
+	}
+	/* END: INV SYSTEM SABER CRIT CHANCE */
+
+	int d20_roll = int(float(irand(1, 20)) * critChanceMult);
 	if (d20_roll >= 19) return DAMAGE_CRITICAL; // UQ1: Standard D&D d20 crit range...
 	if (d20_roll <= 1) return DAMAGE_MISS; // UQ1: Standard D&D d20 crit range...
 	return DAMAGE_STANDARD;
@@ -4701,9 +4722,85 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 	}
 	else if (targ && targ->client && damage > 0 && damage_type == DAMAGE_CRITICAL)
 	{// If this was a crit, inform the client(s) and add the extra damage...
+		/* BEGIN: INV SYSTEM SABER CRIT DAMAGE */
+		float critDamageMult = 1.0f;
+
+		if (attacker && attacker->client)
+		{
+			inventoryItem *invSaber = BG_EquippedWeapon(&attacker->client->ps);
+
+			if (invSaber && invSaber->getBasicStat2() == SABER_STAT2_CRITICAL_POWER_MODIFIER)
+			{
+				critDamageMult *= 1.0f + invSaber->getBasicStat2Value();
+			}
+
+			inventoryItem *invSaberMod3 = BG_EquippedMod2(&attacker->client->ps);
+
+			if (invSaberMod3 && invSaberMod3->getBasicStat2() == SABER_STAT2_CRITICAL_POWER_MODIFIER)
+			{
+				critDamageMult *= 1.0f + invSaberMod3->getBasicStat2Value();
+			}
+		}
+		/* END: INV SYSTEM SABER CRIT DAMAGE */
+
 		float rnd = (float)irand(0, 100) / 100.0f;
-		damage = int((float)damage * (2.0 + rnd));
+		damage = int((float)damage * (2.0 + rnd) * critDamageMult);
 		targ->client->ps.damageCrit = qtrue;
+
+		/* BEGIN: INV SYSTEM SABER HEALTH DRAIN */
+		float healthDrain = 0.0f;
+		float forceDrain = 0.0f;
+
+		if (attacker && attacker->client)
+		{
+			inventoryItem *invSaber = BG_EquippedWeapon(&attacker->client->ps);
+
+			if (invSaber && invSaber->getBasicStat2() == SABER_STAT2_HEALTH_DRAIN)
+			{
+				healthDrain += invSaber->getBasicStat2Value();
+			}
+
+			if (invSaber && invSaber->getBasicStat2() == SABER_STAT2_FORCE_DRAIN)
+			{
+				forceDrain += invSaber->getBasicStat2Value();
+			}
+
+			inventoryItem *invSaberMod = BG_EquippedMod2(&attacker->client->ps);
+
+			if (invSaberMod && invSaberMod->getBasicStat2() == SABER_STAT2_HEALTH_DRAIN)
+			{
+				healthDrain += invSaberMod->getBasicStat2Value();
+			}
+
+			if (invSaberMod && invSaberMod->getBasicStat2() == SABER_STAT2_FORCE_DRAIN)
+			{
+				forceDrain += invSaberMod->getBasicStat2Value();
+			}
+
+			float drainHP = float(damage) * healthDrain;
+			float drainFORCE = float(damage) * forceDrain;
+
+			attacker->health += drainHP;
+			attacker->client->ps.stats[STAT_HEALTH] += drainHP;
+
+			if (attacker->health > attacker->maxHealth)
+			{
+				attacker->health = attacker->maxHealth;
+			}
+
+			if (attacker->client->ps.stats[STAT_HEALTH] > attacker->client->ps.stats[STAT_MAX_HEALTH])
+			{
+				attacker->client->ps.stats[STAT_HEALTH] = attacker->client->ps.stats[STAT_MAX_HEALTH];
+			}
+
+			attacker->client->ps.fd.forcePower += drainFORCE;
+
+			if (attacker->client->ps.fd.forcePower > attacker->client->ps.fd.forcePowerMax)
+			{
+				attacker->client->ps.fd.forcePower = attacker->client->ps.fd.forcePowerMax;
+			}
+		}
+		/* END: INV SYSTEM SABER HEALTH DRAIN */
 	}
 	else if (targ && targ->client && damage > 0 && damage_type == DAMAGE_MISS)
 	{// If this was a miss, inform the client(s) and remove all damage...

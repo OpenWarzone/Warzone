@@ -6605,14 +6605,14 @@ void CG_AddSaberBlade(centity_t *cent, centity_t *scent, refEntity_t *saber, int
 
 	inventoryItem *invSaber = BG_EquippedWeapon(cent->playerState);
 
-	if (invSaber->getBasicStat3() == SABER_STAT3_LENGTH_MODIFIER)
+	if (invSaber && invSaber->getBasicStat3() == SABER_STAT3_LENGTH_MODIFIER)
 	{
 		lengthMult *= 1.0f + invSaber->getBasicStat3Value();
 	}
 
 	inventoryItem *invSaberMod3 = BG_EquippedMod3(cent->playerState);
 
-	if (invSaberMod3->getBasicStat3() == SABER_STAT3_LENGTH_MODIFIER)
+	if (invSaberMod3 && invSaberMod3->getBasicStat3() == SABER_STAT3_LENGTH_MODIFIER)
 	{
 		lengthMult *= 1.0f + invSaberMod3->getBasicStat3Value();
 	}

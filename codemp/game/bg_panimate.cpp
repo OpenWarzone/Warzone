@@ -3302,6 +3302,26 @@ void BG_SaberStartTransAnim(int clientNum, playerState_t *ps, int saberAnimLevel
 		stancescale = 2.0;
 	}
 
+	/* BEGIN: INV SYSTEM SABER SPEEDS */
+	float statsMult = 1.0f;
+
+	inventoryItem *invSaber = BG_EquippedWeapon(ps);
+
+	if (invSaber && invSaber->getBasicStat3() == SABER_STAT3_SPEED_MODIFIER)
+	{
+		statsMult *= 1.0f + invSaber->getBasicStat3Value();
+	}
+
+	inventoryItem *invSaberMod3 = BG_EquippedMod3(ps);
+
+	if (invSaberMod3 && invSaberMod3->getBasicStat3() == SABER_STAT3_SPEED_MODIFIER)
+	{
+		statsMult *= 1.0f + invSaberMod3->getBasicStat3Value();
+	}
+
+	stancescale *= statsMult;
+	/* END: INV SYSTEM SABER SPEEDS */
+
 	if (anim >= BOTH_A1_T__B_ && anim <= BOTH_ROLL_STAB)
 	{
 		if (weapon == WP_SABER)

@@ -5282,6 +5282,26 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 		dmg = 25.0;
 	}
 
+	/* BEGIN: INV SYSTEM SABER DAMAGE */
+	float damageMult = 1.0f;
+
+	inventoryItem *invSaber = BG_EquippedWeapon(&self->client->ps);
+
+	if (invSaber && invSaber->getBasicStat2() == SABER_STAT2_DAMAGE_MODIFIER)
+	{
+		damageMult *= 1.0f + invSaber->getBasicStat3Value();
+	}
+
+	inventoryItem *invSaberMod3 = BG_EquippedMod2(&self->client->ps);
+
+	if (invSaberMod3 && invSaberMod3->getBasicStat2() == SABER_STAT2_DAMAGE_MODIFIER)
+	{
+		damageMult *= 1.0f + invSaberMod3->getBasicStat3Value();
+	}
+
+	dmg *= damageMult;
+	/* END: INV SYSTEM SABER DAMAGE */
+
 	if (BG_StabDownAnim(self->client->ps.torsoAnim)
 		&& g_entities[tr.entityNum].client
 		&& !BG_InKnockDownOnGround(&g_entities[tr.entityNum].client->ps))
@@ -9147,14 +9167,14 @@ nextStep:
 
 	inventoryItem *invSaber = BG_EquippedWeapon(&self->client->ps);
 
-	if (invSaber->getBasicStat3() == SABER_STAT3_LENGTH_MODIFIER)
+	if (invSaber && invSaber->getBasicStat3() == SABER_STAT3_LENGTH_MODIFIER)
 	{
 		lengthMult *= 1.0f + invSaber->getBasicStat3Value();
 	}
 
 	inventoryItem *invSaberMod3 = BG_EquippedMod3(&self->client->ps);
 
-	if (invSaberMod3->getBasicStat3() == SABER_STAT3_LENGTH_MODIFIER)
+	if (invSaberMod3 && invSaberMod3->getBasicStat3() == SABER_STAT3_LENGTH_MODIFIER)
 	{
 		lengthMult *= 1.0f + invSaberMod3->getBasicStat3Value();
 	}
