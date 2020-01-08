@@ -128,5 +128,7 @@ XCVAR_DEF(bg_testanimation, "0", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(bg_debugbounce, "0", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(bg_testspinanimation, "0", NULL, CVAR_ARCHIVE)
 XCVAR_DEF(bg_torsoBlend, "250", NULL, CVAR_ARCHIVE)
+XCVAR_DEF(g_saberPairedAnimations, "0", NULL, CVAR_SERVERINFO | CVAR_ARCHIVE)
+XCVAR_DEF(g_mmoStyleAttacking, "0", NULL, CVAR_SERVERINFO | CVAR_ARCHIVE)
 
 #undef XCVAR_DEF

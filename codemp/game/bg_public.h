@@ -1904,6 +1904,7 @@ qboolean BG_InRoll( playerState_t *ps, int anim );
 qboolean BG_InDeathAnim( int anim );
 qboolean BG_InSaberLockOld( int anim );
 qboolean BG_InSaberLock( int anim );
+qboolean BG_InSaberPairedAnimation(int anim);
 
 //[NewSaberSys]
 qboolean BG_InKnockDownOnGround(playerState_t *ps);

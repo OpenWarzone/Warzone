@@ -9478,6 +9478,14 @@ void CG_Player( centity_t *cent ) {
 		return;
 	}
 
+	if (cg_showShieldBubble.integer)
+	{// This is just here for debugging saber distances from player...
+		extern void CG_ForcefieldDraw(vec3_t origin, vec3_t radius);
+		vec3_t shieldRadius;
+		shieldRadius[0] = shieldRadius[1] = shieldRadius[2] = 125.0;
+		CG_ForcefieldDraw(cent->lerpOrigin, shieldRadius);
+	}
+
 	team = ci->team;
 
 	if (cent->currentState.eType == ET_NPC)

@@ -341,7 +341,7 @@ int PM_GetSaberStance(void)
 }
 */
 
-//#define __DEBUG_TEST_ANIMS__
+#define __DEBUG_TEST_ANIMS__
 
 qboolean PM_AllowDefenceSpin(void)
 {
@@ -8705,7 +8705,15 @@ static void PM_Weapon( void )
 	if (pm->ps->weapon == WP_SABER)
 	{
 		//rww - we still need the item stuff, so we won't return immediately
-		PM_WeaponLightsaber();
+		if (g_saberPairedAnimations.integer == 1)
+		{
+			PM_WeaponLightsaberPaired();
+		}
+		else
+		{
+			PM_WeaponLightsaber();
+		}
+
 		killAfterItem = 1;
 	}
 	else if (pm->ps->weapon != WP_EMPLACED_GUN)

@@ -1224,7 +1224,23 @@ qboolean BG_InSaberLockOld(int anim)
 	case BOTH_BF1LOCK:
 	case BOTH_CWCIRCLELOCK:
 	case BOTH_CCWCIRCLELOCK:
+	case PAIRED_ATTACKER01:
+	case PAIRED_DEFENDER01:
 		return qtrue;
+	}
+	return qfalse;
+}
+
+qboolean BG_InSaberPairedAnimation(int anim)
+{
+	switch (anim)
+	{
+	case PAIRED_ATTACKER01:
+	case PAIRED_DEFENDER01:
+		return qtrue;
+		break;
+	default:
+		break;
 	}
 	return qfalse;
 }

@@ -1116,7 +1116,8 @@ typedef enum
 	LOCK_DIAG_BL,
 	LOCK_R,
 	LOCK_L,
-	LOCK_RANDOM
+	LOCK_RANDOM,
+	LOCK_PAIRED_ANIM,
 } sabersLockMode_t;
 
 #define LOCK_IDEAL_DIST_TOP 32.0f
@@ -1249,6 +1250,7 @@ int G_SaberLockAnim( int attackerSaberStyle, int defenderSaberStyle, int topOrSi
 }
 
 extern qboolean BG_CheckIncrementLockAnim( int anim, int winOrLose ); //bg_saber.c
+
 #define LOCK_IDEAL_DIST_JKA 46.0f//all of the new saberlocks are 46.08 from each other because Richard Lico is da MAN
 
 static QINLINE qboolean WP_SabersCheckLock2( gentity_t *attacker, gentity_t *defender, sabersLockMode_t lockMode )
@@ -1267,7 +1269,15 @@ static QINLINE qboolean WP_SabersCheckLock2( gentity_t *attacker, gentity_t *def
 	{
 		lockMode = (sabersLockMode_t)Q_irand( (int)LOCK_FIRST, (int)(LOCK_RANDOM)-1 );
 	}
-	if ( attacker->client->ps.fd.saberAnimLevel >= SS_FAST
+	
+	if (lockMode == LOCK_PAIRED_ANIM)
+	{
+		attAnim = PAIRED_ATTACKER01;
+		defAnim = PAIRED_DEFENDER01;
+		attStart = defStart = 0.5f;
+		idealDist = LOCK_IDEAL_DIST_JKA;
+	}
+	else if ( attacker->client->ps.fd.saberAnimLevel >= SS_FAST
 		&& attacker->client->ps.fd.saberAnimLevel <= SS_TAVION
 		&& defender->client->ps.fd.saberAnimLevel >= SS_FAST
 		&& defender->client->ps.fd.saberAnimLevel <= SS_TAVION )
@@ -1432,11 +1442,38 @@ static QINLINE qboolean WP_SabersCheckLock2( gentity_t *attacker, gentity_t *def
 		}
 	}
 
-	G_SetAnim(attacker, NULL, SETANIM_BOTH, attAnim, SETANIM_FLAG_OVERRIDE|SETANIM_FLAG_HOLD, 0);
-	attacker->client->ps.saberLockFrame = bgAllAnims[attacker->localAnimIndex].anims[attAnim].firstFrame+(bgAllAnims[attacker->localAnimIndex].anims[attAnim].numFrames*attStart);
+	if (lockMode == LOCK_PAIRED_ANIM)
+	{
+		float animSpeedFactor = 1.0f;
 
-	G_SetAnim(defender, NULL, SETANIM_BOTH, defAnim, SETANIM_FLAG_OVERRIDE|SETANIM_FLAG_HOLD, 0);
-	defender->client->ps.saberLockFrame = bgAllAnims[defender->localAnimIndex].anims[defAnim].firstFrame+(bgAllAnims[defender->localAnimIndex].anims[defAnim].numFrames*defStart);
+		//Be sure to scale by the proper anim speed just as if we were going to play the animation
+		BG_SaberStartTransAnim(attacker->s.number, &attacker->client->ps, attacker->client->ps.fd.saberAnimLevel, attacker->client->ps.fd.saberAnimLevelBase, attacker->client->ps.weapon, attAnim, &animSpeedFactor, attacker->client->ps.brokenLimbs);
+
+		G_SetAnim(attacker, NULL, SETANIM_BOTH, attAnim, SETANIM_FLAG_OVERRIDE, 0);
+		//attacker->client->ps.torsoTimer = BG_AnimLength(attacker->localAnimIndex, (animNumber_t)attAnim) * (1 / animSpeedFactor);
+		attacker->client->ps.torsoTimer = (bgAllAnims[attacker->localAnimIndex].anims[attAnim].numFrames * 1000.0) / bgAllAnims[attacker->localAnimIndex].anims[attAnim].frameLerp * (1 / animSpeedFactor);
+		attacker->client->ps.saberLockTime = level.time + attacker->client->ps.torsoTimer;
+		attacker->client->ps.weaponTime = attacker->client->ps.torsoTimer;
+		
+		animSpeedFactor = 1.0f;
+
+		//Be sure to scale by the proper anim speed just as if we were going to play the animation
+		BG_SaberStartTransAnim(defender->s.number, &defender->client->ps, defender->client->ps.fd.saberAnimLevel, defender->client->ps.fd.saberAnimLevelBase, defender->client->ps.weapon, defAnim, &animSpeedFactor, defender->client->ps.brokenLimbs);
+
+		G_SetAnim(defender, NULL, SETANIM_BOTH, defAnim, SETANIM_FLAG_OVERRIDE, 0);
+		//defender->client->ps.torsoTimer = BG_AnimLength(defender->localAnimIndex, (animNumber_t)defAnim) * (1 / animSpeedFactor);
+		defender->client->ps.torsoTimer = (bgAllAnims[defender->localAnimIndex].anims[defAnim].numFrames * 1000.0) / bgAllAnims[defender->localAnimIndex].anims[defAnim].frameLerp * (1 / animSpeedFactor);
+		defender->client->ps.saberLockTime = level.time + defender->client->ps.torsoTimer;
+		defender->client->ps.weaponTime = defender->client->ps.torsoTimer;
+	}
+	else
+	{
+		G_SetAnim(attacker, NULL, SETANIM_BOTH, attAnim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
+		attacker->client->ps.saberLockFrame = bgAllAnims[attacker->localAnimIndex].anims[attAnim].firstFrame + (bgAllAnims[attacker->localAnimIndex].anims[attAnim].numFrames*attStart);
+
+		G_SetAnim(defender, NULL, SETANIM_BOTH, defAnim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
+		defender->client->ps.saberLockFrame = bgAllAnims[defender->localAnimIndex].anims[defAnim].firstFrame + (bgAllAnims[defender->localAnimIndex].anims[defAnim].numFrames*defStart);
+	}
 
 	attacker->client->ps.saberLockHits = 0;
 	defender->client->ps.saberLockHits = 0;
@@ -1446,53 +1483,275 @@ static QINLINE qboolean WP_SabersCheckLock2( gentity_t *attacker, gentity_t *def
 
 	VectorClear( attacker->client->ps.velocity );
 	VectorClear( defender->client->ps.velocity );
-	attacker->client->ps.saberLockTime = defender->client->ps.saberLockTime = level.time + 10000;
+
+	if (lockMode != LOCK_PAIRED_ANIM)
+	{
+		attacker->client->ps.saberLockTime = defender->client->ps.saberLockTime = level.time + 10000;
+		attacker->client->ps.weaponTime = defender->client->ps.weaponTime = Q_irand(1000, 3000);//delay 1 to 3 seconds before pushing
+	}
+
 	attacker->client->ps.saberLockEnemy = defender->s.number;
 	defender->client->ps.saberLockEnemy = attacker->s.number;
-	attacker->client->ps.weaponTime = defender->client->ps.weaponTime = Q_irand( 1000, 3000 );//delay 1 to 3 seconds before pushing
 
-	VectorSubtract( defender->r.currentOrigin, attacker->r.currentOrigin, defDir );
-	VectorCopy( attacker->client->ps.viewangles, attAngles );
-	attAngles[YAW] = vectoyaw( defDir );
-	SetClientViewAngle( attacker, attAngles );
-	defAngles[PITCH] = attAngles[PITCH]*-1;
-	defAngles[YAW] = AngleNormalize180( attAngles[YAW] + 180);
-	defAngles[ROLL] = 0;
-	SetClientViewAngle( defender, defAngles );
-
-	//MATCH POSITIONS
-	diff = VectorNormalize( defDir ) - idealDist;//diff will be the total error in dist
-	//try to move attacker half the diff towards the defender
-	VectorMA( attacker->r.currentOrigin, diff*0.5f, defDir, newOrg );
-
-	trap->Trace( &trace, attacker->r.currentOrigin, attacker->r.mins, attacker->r.maxs, newOrg, attacker->s.number, attacker->clipmask, qfalse, 0, 0 );
-	if ( !trace.startsolid && !trace.allsolid )
+	if (lockMode != LOCK_PAIRED_ANIM)
 	{
-		G_SetOrigin( attacker, trace.endpos );
-		if (attacker->client)
+		VectorSubtract(defender->r.currentOrigin, attacker->r.currentOrigin, defDir);
+		VectorCopy(attacker->client->ps.viewangles, attAngles);
+
+		attAngles[YAW] = vectoyaw(defDir);
+		SetClientViewAngle(attacker, attAngles);
+		defAngles[PITCH] = attAngles[PITCH] * -1;
+		defAngles[YAW] = AngleNormalize180(attAngles[YAW] + 180);
+		defAngles[ROLL] = 0;
+		SetClientViewAngle(defender, defAngles);
+
+		//MATCH POSITIONS
+		diff = VectorNormalize(defDir) - idealDist;//diff will be the total error in dist
+		//try to move attacker half the diff towards the defender
+		VectorMA(attacker->r.currentOrigin, diff*0.5f, defDir, newOrg);
+
+		trap->Trace(&trace, attacker->r.currentOrigin, attacker->r.mins, attacker->r.maxs, newOrg, attacker->s.number, attacker->clipmask, qfalse, 0, 0);
+		if (!trace.startsolid && !trace.allsolid)
 		{
-			VectorCopy(trace.endpos, attacker->client->ps.origin);
+			G_SetOrigin(attacker, trace.endpos);
+			if (attacker->client)
+			{
+				VectorCopy(trace.endpos, attacker->client->ps.origin);
+			}
+			trap->LinkEntity((sharedEntity_t *)attacker);
 		}
-		trap->LinkEntity( (sharedEntity_t *)attacker );
-	}
-	//now get the defender's dist and do it for him too
-	VectorSubtract( attacker->r.currentOrigin, defender->r.currentOrigin, attDir );
-	diff = VectorNormalize( attDir ) - idealDist;//diff will be the total error in dist
-	//try to move defender all of the remaining diff towards the attacker
-	VectorMA( defender->r.currentOrigin, diff, attDir, newOrg );
-	trap->Trace( &trace, defender->r.currentOrigin, defender->r.mins, defender->r.maxs, newOrg, defender->s.number, defender->clipmask, qfalse, 0, 0 );
-	if ( !trace.startsolid && !trace.allsolid )
-	{
-		if (defender->client)
+		//now get the defender's dist and do it for him too
+		VectorSubtract(attacker->r.currentOrigin, defender->r.currentOrigin, attDir);
+		diff = VectorNormalize(attDir) - idealDist;//diff will be the total error in dist
+		//try to move defender all of the remaining diff towards the attacker
+		VectorMA(defender->r.currentOrigin, diff, attDir, newOrg);
+		trap->Trace(&trace, defender->r.currentOrigin, defender->r.mins, defender->r.maxs, newOrg, defender->s.number, defender->clipmask, qfalse, 0, 0);
+		if (!trace.startsolid && !trace.allsolid)
 		{
-			VectorCopy(trace.endpos, defender->client->ps.origin);
+			if (defender->client)
+			{
+				VectorCopy(trace.endpos, defender->client->ps.origin);
+			}
+			G_SetOrigin(defender, trace.endpos);
+			trap->LinkEntity((sharedEntity_t *)defender);
 		}
-		G_SetOrigin( defender, trace.endpos );
-		trap->LinkEntity( (sharedEntity_t *)defender );
 	}
 
 	//DONE!
 	return qtrue;
+}
+
+extern qboolean ValidEnemy(gentity_t *aiEnt, gentity_t *ent);
+
+gentity_t *WP_PairedSaberAnimationGetClosestEnemy(gentity_t *self)
+{
+	gentity_t		*closestEnt = NULL;
+	float			closestDist = 128.0;
+
+	for (int i = 0; i < MAX_GENTITIES; i++)
+	{
+		if (i == self->s.number)
+		{
+			continue;
+		}
+
+		gentity_t *ent = &g_entities[i];
+
+		if (!ent)
+		{
+			continue;
+		}
+
+		if (ent->s.eType != ET_PLAYER && ent->s.eType != ET_NPC)
+		{
+			continue;
+		}
+
+		if (!ent->client)
+		{
+			continue;
+		}
+
+		if (ent->client->ps.eFlags & EF_DEAD)
+		{
+			continue;
+		}
+
+		if (ent->client->ps.stats[STAT_HEALTH] <= 0)
+		{
+			continue;
+		}
+
+		if (!ValidEnemy(self, ent))
+		{
+			continue;
+		}
+
+		//if (!InFront(ent->client->ps.origin, self->client->ps.origin, self->client->ps.viewangles, /*0.4f*/0.9f))
+		//{
+		//	continue;
+		//}
+
+		float dist = Distance(self->client->ps.origin, ent->client->ps.origin);
+
+		if (dist < closestDist)
+		{
+			closestDist = dist;
+			closestEnt = ent;
+		}
+	}
+
+	return closestEnt;
+}
+
+#define PAIRED_IDEAL_DIST 64.0f
+
+qboolean WP_PairedSaberAnimation_MoveIntoPosition(gentity_t *self, vec3_t dest)
+{
+	vec3_t		forward, right, wantedangles, finalangles;
+	float		walkSpeed = 63.0;
+	usercmd_t	*cmd = &self->client->pers.cmd;
+	vec3_t		dir;
+	qboolean	walk = qfalse;
+
+	VectorSubtract(dest, self->client->ps.origin, dir);
+	VectorNormalize(dir);
+	dir[ROLL] = 0;
+
+	/* Set view direction toward the target over time */
+	vectoangles(dir, wantedangles);
+
+	wantedangles[YAW] = AngleNormalize360(wantedangles[YAW]);
+	wantedangles[PITCH] = 0;
+	wantedangles[ROLL] = 0;
+
+	/*finalangles[YAW] = AngleNormalize360(self->client->ps.viewangles[YAW]);
+	finalangles[PITCH] = 0;
+	finalangles[ROLL] = 0;
+
+	float rotateSpeed = Distance(finalangles, wantedangles) / g_testvalue0.value;//2.0;
+
+	float yawdiff = finalangles[YAW] - wantedangles[YAW];
+	if (yawdiff < 0.0) yawdiff *= -1.0;
+
+	if (yawdiff <= rotateSpeed)
+	{
+		finalangles[YAW] = wantedangles[YAW];
+	}
+	else if (self->client->ps.viewangles[YAW] < wantedangles[YAW])
+	{
+		finalangles[YAW] -= rotateSpeed;
+	}
+	else if (self->client->ps.viewangles[YAW] > wantedangles[YAW])
+	{
+		finalangles[YAW] += rotateSpeed;
+	}
+
+	Com_Printf("Wanted %f. Current %f.\n", wantedangles[YAW], finalangles[YAW]);*/
+
+	finalangles[YAW] = AngleNormalize180(wantedangles[YAW]/*finalangles[YAW]*/);
+	finalangles[PITCH] = AngleNormalize180(self->client->ps.viewangles[PITCH]);
+	finalangles[ROLL] = AngleNormalize180(self->client->ps.viewangles[ROLL]);
+	SetClientViewAngle(self, finalangles);
+	/* */
+
+	float dist = Distance(self->client->ps.origin, dest);
+
+	if (dist <= PAIRED_IDEAL_DIST)
+	{
+		//if (yawdiff == 0.0 /*&& pitchdiff == 0.0*/)
+		//{// Still need to update angles...
+		//	return qtrue;
+		//}
+
+		//Com_Printf("%i at ideal distance.\n", self->s.number);
+
+		return qfalse;
+	}
+
+	//Com_Printf("%i at distance %f.\n", self->s.number, dist);
+
+	if (walk)
+	{
+		cmd->buttons |= BUTTON_WALKING;
+	}
+
+	AngleVectors(self->client->ps.viewangles, forward, right, NULL);
+
+	cmd->upmove = 0;
+
+	//NPCs cheat and store this directly because converting movement into a ucmd loses precision
+	VectorCopy(dir, self->client->ps.moveDir);
+
+	forward[2] = 0;
+	VectorNormalize(forward);
+	right[2] = 0;
+	VectorNormalize(right);
+
+	// get direction and non-optimal magnitude
+	float speed = walk ? walkSpeed : 127.0f;
+	float forwardmove = speed * DotProduct(forward, dir);
+	float rightmove = speed * DotProduct(right, dir);
+
+	// find optimal magnitude to make speed as high as possible
+	if (Q_fabs(forwardmove) > Q_fabs(rightmove))
+	{
+		float highestforward = forwardmove < 0 ? -speed : speed;
+
+		float highestright = highestforward * rightmove / forwardmove;
+
+		cmd->forwardmove = ClampChar(highestforward);
+		cmd->rightmove = ClampChar(highestright);
+
+		//Com_Printf("%i forward %f. right %f.\n", self->client->ps.clientNum, highestforward, highestright);
+	}
+	else
+	{
+		float highestright = rightmove < 0 ? -speed : speed;
+
+		float highestforward = highestright * forwardmove / rightmove;
+
+		cmd->forwardmove = ClampChar(highestforward);
+		cmd->rightmove = ClampChar(highestright);
+
+		//Com_Printf("%i forward %f. right %f.\n", self->s.number, highestforward, highestright);
+	}
+
+	if (self->s.eType == ET_PLAYER)
+	{
+		//VectorMA(self->client->ps.velocity, g_testvalue1.value, dir, self->client->ps.velocity);
+		self->client->ps.velocity[0] = dir[0] * g_testvalue1.value;
+		self->client->ps.velocity[1] = dir[1] * g_testvalue1.value;
+		self->client->ps.velocity[2] = dir[2] * g_testvalue1.value;
+	}
+
+	return qtrue;
+}
+
+qboolean WP_PairedSaberAnimation(gentity_t *self)
+{
+	if (self->client->ps.saberLockTime >= level.time)
+	{
+		return qtrue;
+	}
+
+	gentity_t *enemy = WP_PairedSaberAnimationGetClosestEnemy(self);
+	
+	if (enemy)
+	{
+		if (WP_PairedSaberAnimation_MoveIntoPosition(self, enemy->client->ps.origin))
+		{
+			return qtrue;
+		}
+		
+		if (WP_SabersCheckLock2(self, enemy, LOCK_PAIRED_ANIM))
+		{
+			//Com_Printf("%i attacking %i.\n", self->s.number, enemy->s.number);
+			return qtrue;
+		}
+	}
+
+	return qfalse;
 }
 
 qboolean WP_SabersCheckLock( gentity_t *ent1, gentity_t *ent2 )
@@ -10503,3 +10762,201 @@ void DebounceSaberImpact(gentity_t *self, gentity_t *otherSaberer,
 	}
 }
 //[SaberSys]
+
+extern qboolean NPC_IsJedi(gentity_t *self);
+extern qboolean NPC_IsBoss(gentity_t *self);
+extern qboolean NPC_IsBountyHunter(gentity_t *self);
+extern qboolean NPC_IsCommando(gentity_t *self);
+extern qboolean NPC_IsAdvancedGunner(gentity_t *self);
+extern qboolean NPC_IsGunner(gentity_t *self);
+extern qboolean NPC_IsFollowerGunner(gentity_t *self);
+extern qboolean NPC_IsAnimalEnemyFaction(gentity_t *self);
+
+#define MMO_SABER_DAMAGE_RANGE		96.0f
+#define MMO_SABER_DAMAGE_TIME		800
+#define MMO_SABER_BASE_DAMAGE		10.0
+
+void WP_MMOSaberUpdate(gentity_t *self)
+{// This is it.. The whole code for a basic MMO style AOE saber/melee-weapon damage system...
+	if (!self || !self->client)
+	{
+		return;
+	}
+
+	if (self->client->ps.weapon != WP_SABER)
+	{
+		return;
+	}
+
+	if (!(self->client->pers.cmd.buttons & BUTTON_ATTACK) || (self->client->pers.cmd.buttons & BUTTON_ALT_ATTACK))
+	{
+		return;
+	}
+
+	if (self->nextSaberDamage > level.time)
+	{
+		return;
+	}
+
+	qboolean				isStaff = BG_EquippedWeaponIsTwoHanded(&self->client->ps);
+	qboolean				saberInAOE = (BG_SaberInSpecial(self->client->ps.saberMove) || BG_SaberInKata(self->client->ps.saberMove)) ? qtrue : qfalse;
+	float					dmg = MMO_SABER_BASE_DAMAGE;
+	int						dflags = 0;
+	int						touch[MAX_GENTITIES];
+	int						num = 0;
+	vec3_t					mins, maxs;
+	vec3_t					range = { MMO_SABER_DAMAGE_RANGE, MMO_SABER_DAMAGE_RANGE, 64.0f };
+
+	if (saberInAOE)
+	{// High damage in special attacks...
+		dmg = 25.0;
+		dflags |= DAMAGE_EXTRA_KNOCKBACK;
+	}
+
+	if (isStaff)
+	{// Staff does a little less damage than a directed single saber...
+		dmg *= 0.75;
+	}
+
+	/* BEGIN: INV SYSTEM SABER DAMAGE */
+	float damageMult = 1.0f;
+
+	inventoryItem *invSaber = BG_EquippedWeapon(&self->client->ps);
+
+	if (invSaber && invSaber->getBasicStat2() == SABER_STAT2_DAMAGE_MODIFIER)
+	{
+		damageMult *= 1.0f + invSaber->getBasicStat3Value();
+	}
+
+	inventoryItem *invSaberMod2 = BG_EquippedMod2(&self->client->ps);
+
+	if (invSaberMod2 && invSaberMod2->getBasicStat2() == SABER_STAT2_DAMAGE_MODIFIER)
+	{
+		damageMult *= 1.0f + invSaberMod2->getBasicStat2Value();
+	}
+
+	dmg *= damageMult;
+	/* END: INV SYSTEM SABER DAMAGE */
+
+	/* BEGIN: INV SYSTEM SABER LENGTHS */
+	float lengthMult = 1.0f;
+
+	if (invSaber && invSaber->getBasicStat3() == SABER_STAT3_LENGTH_MODIFIER)
+	{
+		lengthMult *= 1.0f + invSaber->getBasicStat3Value();
+	}
+
+	inventoryItem *invSaberMod3 = BG_EquippedMod3(&self->client->ps);
+
+	if (invSaberMod3 && invSaberMod3->getBasicStat3() == SABER_STAT3_LENGTH_MODIFIER)
+	{
+		lengthMult *= 1.0f + invSaberMod3->getBasicStat3Value();
+	}
+
+	range[0] *= lengthMult;
+	range[1] *= lengthMult;
+	/* END: INV SYSTEM SABER LENGTHS */
+
+
+	VectorSubtract(self->client->ps.origin, range, mins);
+	VectorAdd(self->client->ps.origin, range, maxs);
+	
+	num = trap->EntitiesInBox(mins, maxs, touch, MAX_GENTITIES);
+
+	for (int i = 0; i < num; i++)
+	{
+		float blockingDamageMultiplier = 1.0f;
+
+		if (touch[i] == self->s.number)
+		{
+			continue;
+		}
+
+		gentity_t *ent = &g_entities[touch[i]];
+
+		if (!ent)
+		{
+			continue;
+		}
+
+		if (ent->s.eType != ET_PLAYER && ent->s.eType != ET_NPC)
+		{
+			continue;
+		}
+
+		if (!ent->client)
+		{
+			continue;
+		}
+
+		if (ent->client->ps.eFlags & EF_DEAD)
+		{
+			continue;
+		}
+
+		if (ent->client->ps.stats[STAT_HEALTH] <= 0)
+		{
+			continue;
+		}
+
+		if (!ValidEnemy(self, ent))
+		{
+			continue;
+		}
+
+		if (!isStaff && !saberInAOE)
+		{// Staff is full 360 degrees, as are AOE special abilities/attacks...
+			if (!InFront(ent->client->ps.origin, self->client->ps.origin, self->client->ps.viewangles, 0.9f))
+			{
+				continue;
+			}
+		}
+
+		if (ent->client->ps.weapon == WP_SABER && (ent->client->pers.cmd.buttons & BUTTON_ALT_ATTACK) && !(ent->client->pers.cmd.buttons & BUTTON_ATTACK))
+		{
+			if (irand(0, 3) == 0)
+			{// Blocking randomly blocks some attacks...
+				continue;
+			}
+
+			// Reduced damage while blocking...
+			blockingDamageMultiplier *= 0.333;
+		}
+
+		if (Distance(ent->r.currentOrigin, ent->client->ps.origin) > range[0])
+		{
+			continue;
+		}
+
+		vec3_t enemyOrg, enemyDir;
+
+		enemyOrg[0] = ent->client->ps.origin[0];
+		enemyOrg[1] = ent->client->ps.origin[1];
+		enemyOrg[2] = ent->client->ps.origin[2] + irand(0, 8);
+		
+		VectorSubtract(ent->client->ps.origin, self->client->ps.origin, enemyDir);
+
+		if (ent->client->ps.weapon == WP_SABER || NPC_IsJedi(ent) || NPC_IsBoss(ent))
+		{
+			G_Damage(ent, self, self, enemyDir, enemyOrg, int(dmg), dflags, MOD_SABER);
+		}
+		else if (NPC_IsFollowerGunner(ent))
+		{
+			G_Damage(ent, self, self, enemyDir, enemyOrg, int(dmg * 1.5), dflags, MOD_SABER);
+		}
+		else if (NPC_IsBountyHunter(ent) || NPC_IsCommando(ent) || NPC_IsAdvancedGunner(ent))
+		{
+			G_Damage(ent, self, self, enemyDir, enemyOrg, int(dmg * 5.0), dflags, MOD_SABER);
+		}
+		else if (NPC_IsGunner(ent) || NPC_IsAnimalEnemyFaction(ent))
+		{
+			G_Damage(ent, self, self, enemyDir, enemyOrg, int(dmg * 15.0), dflags, MOD_SABER);
+		}
+		else
+		{/* attacking fodder always deals high damage */
+			G_Damage(ent, self, self, enemyDir, enemyOrg, 500, dflags, MOD_SABER);
+		}
+	}
+
+	self->nextSaberDamage = level.time + MMO_SABER_DAMAGE_TIME;
+}

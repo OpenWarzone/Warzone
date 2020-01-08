@@ -4660,7 +4660,17 @@ void G_RunFrame( int levelTime ) {
 			{
 				JKG_DoPlayerDamageEffects(ent);
 				WP_ForcePowersUpdate(ent, &ent->client->pers.cmd );
-				WP_SaberPositionUpdate(ent, &ent->client->pers.cmd);
+
+				if (g_mmoStyleAttacking.integer)
+				{
+					extern void WP_MMOSaberUpdate(gentity_t *self);
+					WP_MMOSaberUpdate(ent);
+				}
+				else
+				{
+					WP_SaberPositionUpdate(ent, &ent->client->pers.cmd);
+				}
+
 				ent->client->lastSaberFrameData = level.time;
 				WP_SaberStartMissileBlockCheck(ent, &ent->client->pers.cmd);
 			}
@@ -4704,7 +4714,17 @@ void G_RunFrame( int levelTime ) {
 		{
 			JKG_DoPlayerDamageEffects(ent);
 			WP_ForcePowersUpdate(ent, &ent->client->pers.cmd );
-			WP_SaberPositionUpdate(ent, &ent->client->pers.cmd);
+			
+			if (g_mmoStyleAttacking.integer)
+			{
+				extern void WP_MMOSaberUpdate(gentity_t *self);
+				WP_MMOSaberUpdate(ent);
+			}
+			else
+			{
+				WP_SaberPositionUpdate(ent, &ent->client->pers.cmd);
+			}
+
 			ent->client->lastSaberFrameData = level.time;
 			WP_SaberStartMissileBlockCheck(ent, &ent->client->pers.cmd);
 		}

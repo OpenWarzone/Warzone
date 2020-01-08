@@ -127,6 +127,8 @@ qboolean BG_InGetUpAnim(playerState_t *ps);
 qboolean PM_StaggerAnim(int anim);
 //[/NewSaberSys]
 
+void PM_WeaponLightsaberPaired(void);
+
 //[SaberSys]
 //for now, I've dramatically reduced the cost of the saber special moves to
 //racc - force cost of doing cartwheels.
