@@ -6410,6 +6410,13 @@ void CG_SaberCompWork(vec3_t start, vec3_t end, centity_t *owner, int saberNum, 
 										trace.endpos, splashBackDir, owner->currentState.clientNum, owner->lerpOrigin, owner->lerpAngles[YAW],
 										owner->ghoul2, owner->modelScale, Q_irand(5000, 10000));
 								}//[/RGBSabers]
+
+								
+								if (client && client->infoValid)
+								{// UQ1: Also do blood sparks here...
+									PlayEffectID(cgs.effects.mSaberBloodSparks, trace.endpos, trace.plane.normal, -1, -1, qfalse);
+									trap->S_StartSound(trace.endpos, trace.entityNum, CHAN_SABER, trap->S_RegisterSound(va("sound/weapons/saber/saberhit%i.wav", Q_irand(1, 3))));
+								}
 							}
 						}
 					}
@@ -6693,7 +6700,7 @@ void CG_AddSaberBlade(centity_t *cent, centity_t *scent, refEntity_t *saber, int
 
 	if (!dontDraw)
 	{
-		if (cg_saberModelTraceEffect.integer)
+		if (cg_saberModelTraceEffect.integer || g_mmoStyleAttacking.integer)
 		{
 			CG_G2SaberEffects(org_, end, cent);
 		}
@@ -6720,6 +6727,31 @@ void CG_AddSaberBlade(centity_t *cent, centity_t *scent, refEntity_t *saber, int
 				CG_SaberCompWork(org_, trace.endpos, cent, saberNum, bladeNum);
 
 				client->saber[saberNum].blade[bladeNum].storageTime = cg.time + 5;
+			}
+		}
+
+		if (cent->nextSaberClash <= cg.time && g_mmoStyleAttacking.integer)
+		{// UQ1: Do a trace for saber vs saber clashes...
+			vec3_t tMins, tMaxs;
+			VectorSet(tMins, -16.0, -16.0, -32.0);
+			VectorSet(tMaxs, 16.0, 16.0, 32.0);
+			CG_Trace(&trace, org_, tMins, tMaxs, end, cent->currentState.saberEntityNum, CONTENTS_LIGHTSABER);
+			
+			if (trace.fraction != 1)
+			{// Hit another saber, do a clash...
+				//Com_Printf("Saber clash at %f %f %f angle %f %f %f.\n", trace.endpos[0], trace.endpos[1], trace.endpos[2], trace.plane.normal[0], trace.plane.normal[1], trace.plane.normal[2]);
+
+				extern int cg_saberFlashTime;
+				extern vec3_t cg_saberFlashPos;
+
+				trap->S_StartSound(trace.endpos, -1, CHAN_SABER, trap->S_RegisterSound(va("sound/weapons/saber/saberblock%d.wav", Q_irand(1, 9))));
+				//PlayEffectID(cgs.effects.mSaberBlock, trace.endpos, trace.plane.normal, -1, -1, qfalse);
+
+				// And do an actual clash...
+				VectorCopy(trace.endpos, cg_saberFlashPos);
+				cg_saberFlashTime = cg.time - 50;
+
+				cent->nextSaberClash = cg.time + irand(1500, 3800);
 			}
 		}
 

@@ -6141,6 +6141,9 @@ void PM_SetSaberMove(short newMove)
 		&& !BG_SaberInSpecial(newMove))
 	{
 		anim = BG_GetMMOCrowdControlStanceMove(newMove);
+		parts = SETANIM_TORSO;
+		pm->ps->saberMove = newMove = LS_A_R2L;
+		//pm->ps->saberMove = LS_A_T2B;
 	}
 	else if (g_mmoStyleAttacking.integer
 		&& pm->ps->fd.saberAnimLevelBase == SS_SINGLE
@@ -6148,6 +6151,9 @@ void PM_SetSaberMove(short newMove)
 		&& !BG_SaberInSpecial(newMove))
 	{
 		anim = BG_GetMMOSingleStanceMove(newMove);
+		parts = SETANIM_TORSO;
+		pm->ps->saberMove = newMove = LS_A_R2L;
+		//pm->ps->saberMove = LS_A_T2B;
 	}
 	else if (newMove == LS_DRAW)
 	{

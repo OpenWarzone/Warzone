@@ -1420,6 +1420,7 @@ void G_CheckClientIdle( gentity_t *ent, usercmd_t *ucmd )
 			ent->client->ps.torsoAnim = TORSO_RAISEWEAP1;
 		}
 	}
+#if 0 // yeah, no... causes glitches...
 	else if ( level.time - ent->client->idleTime > 5000 )
 	{//been idle for 5 seconds
 		int	idleAnim = -1;
@@ -1453,6 +1454,7 @@ void G_CheckClientIdle( gentity_t *ent, usercmd_t *ucmd )
 			ent->client->idleTime = level.time + ent->client->ps.legsTimer + Q_irand( 0, 2000 );
 		}
 	}
+#endif
 }
 
 void NPC_Accelerate( gentity_t *ent, qboolean fullWalkAcc, qboolean fullRunAcc )

@@ -4583,7 +4583,7 @@ vec3_t gPainPoint;
 int G_CheckCritDamage ( gentity_t *targ, gentity_t *attacker )
 {// UQ1: Improve me later... Offensive/Defensive perks to increase/decrease crit chance and damage...
 	/* BEGIN: INV SYSTEM SABER CRIT CHANCE */
-	float critChanceMult = 1.0f;
+	float critChance = 1.0f;
 
 	if (attacker && attacker->client)
 	{
@@ -4591,20 +4591,23 @@ int G_CheckCritDamage ( gentity_t *targ, gentity_t *attacker )
 
 		if (invSaber && invSaber->getBasicStat2() == SABER_STAT2_CRITICAL_CHANCE_MODIFIER)
 		{
-			critChanceMult *= 1.0f + invSaber->getBasicStat2Value();
+			critChance *= 1.0f + invSaber->getBasicStat2Value();
 		}
 
 		inventoryItem *invSaberMod3 = BG_EquippedMod2(&attacker->client->ps);
 
 		if (invSaberMod3 && invSaberMod3->getBasicStat2() == SABER_STAT2_CRITICAL_CHANCE_MODIFIER)
 		{
-			critChanceMult *= 1.0f + invSaberMod3->getBasicStat2Value();
+			critChance *= 1.0f + invSaberMod3->getBasicStat2Value();
 		}
+
+		//critChance *= 20.0;
+		critChance *= 30.0;
 	}
 	/* END: INV SYSTEM SABER CRIT CHANCE */
 
-	int d20_roll = int(float(irand(1, 20)) * critChanceMult);
-	if (d20_roll >= 19) return DAMAGE_CRITICAL; // UQ1: Standard D&D d20 crit range...
+	int d20_roll = int(float(irand(1, 20)));
+	if (d20_roll >= 19 - critChance) return DAMAGE_CRITICAL; // UQ1: Standard D&D d20 crit range...
 	if (d20_roll <= 1) return DAMAGE_MISS; // UQ1: Standard D&D d20 crit range...
 	return DAMAGE_STANDARD;
 }

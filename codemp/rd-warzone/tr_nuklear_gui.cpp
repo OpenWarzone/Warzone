@@ -4307,11 +4307,11 @@ void GUI_Init(void)
 			char nameString[128] = { 0 };
 			char tooltipString[1024] = { 0 };
 
-			sprintf(nameString, "%s^BSome Force Power^b\n", ColorStringForQuality(QUALITY_BLUE));
+			sprintf(nameString, "%s^BSome Ability^b\n", ColorStringForQuality(QUALITY_BLUE));
 
 			sprintf(tooltipString, "%s%s%s%s%s%s%s%s"
 				, nameString
-				, "^POne handed power, Force\n"
+				, "^POne handed ability, Force\n"
 				, " \n"
 				, "^7Scaling Attribute: ^PIntelligence\n"
 				, "^7Damage: ^P78-102 ^8(^P40.5 DPS^8).\n"

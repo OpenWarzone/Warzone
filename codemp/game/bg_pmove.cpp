@@ -552,14 +552,14 @@ int PM_GetSaberStance()
 	}
 #endif
 
-	if (hideStance
+	/*if (hideStance
 		&& !(pm->cmd.buttons & BUTTON_ALT_ATTACK)
 		&& !(pm->ps->weaponstate == WEAPON_DROPPING || pm->ps->weaponstate == WEAPON_RAISING))
 	{
 		return BOTH_STAND1;
-	}
+	}*/
 
-	if (BG_SabersOff(pm->ps) && !(pm->ps->weaponstate == WEAPON_DROPPING || pm->ps->weaponstate == WEAPON_RAISING))
+	if (BG_SabersOff(pm->ps) /*&& !(pm->ps->weaponstate == WEAPON_DROPPING || pm->ps->weaponstate == WEAPON_RAISING)*/)
 	{
 		return BOTH_STAND1;
 	}
@@ -568,13 +568,13 @@ int PM_GetSaberStance()
 	if (pm->ps->fd.saberDrawAnimLevel == SS_CROWD_CONTROL 
 		&& (pm->cmd.buttons & BUTTON_ALT_ATTACK)
 		&& !(pm->cmd.buttons & BUTTON_ATTACK)
-		&& (bg_testspinanimation.integer || pm->ps->torsoAnim == BOTH_CC_DEFENCE_SPIN || PM_AllowDefenceSpin()))
+		&& (bg_testspinanimation.integer || pm->ps->torsoAnim == BOTH_CC_DEFENCE_SPIN || g_mmoStyleAttacking.integer || PM_AllowDefenceSpin()))
 	{
 		return BOTH_CC_DEFENCE_SPIN;
 	}
 	else if ((pm->cmd.buttons & BUTTON_ALT_ATTACK)
 		&& !(pm->cmd.buttons & BUTTON_ATTACK)
-		&& (bg_testspinanimation.integer || pm->ps->torsoAnim == BOTH_SINGLE_DEFENCE_SPIN || PM_AllowDefenceSpin()))
+		&& (bg_testspinanimation.integer || pm->ps->torsoAnim == BOTH_SINGLE_DEFENCE_SPIN || g_mmoStyleAttacking.integer || PM_AllowDefenceSpin()))
 	{
 		return BOTH_SINGLE_DEFENCE_SPIN;
 	}
@@ -812,6 +812,7 @@ int PM_GetSaberStance()
 			return BOTH_P1_S1_T_;
 		}
 
+		//return 686;
 		return BOTH_SINGLE_STANCE;
 	}
 

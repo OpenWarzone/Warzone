@@ -10774,7 +10774,7 @@ extern qboolean NPC_IsAnimalEnemyFaction(gentity_t *self);
 
 #define MMO_SABER_DAMAGE_RANGE		96.0f
 #define MMO_SABER_DAMAGE_TIME		800
-#define MMO_SABER_BASE_DAMAGE		10.0
+#define MMO_SABER_BASE_DAMAGE		15.0
 
 void WP_MMOSaberUpdate(gentity_t *self)
 {// This is it.. The whole code for a basic MMO style AOE saber/melee-weapon damage system...
@@ -10800,7 +10800,7 @@ void WP_MMOSaberUpdate(gentity_t *self)
 
 	qboolean				isStaff = BG_EquippedWeaponIsTwoHanded(&self->client->ps);
 	qboolean				saberInAOE = (BG_SaberInSpecial(self->client->ps.saberMove) || BG_SaberInKata(self->client->ps.saberMove)) ? qtrue : qfalse;
-	float					dmg = MMO_SABER_BASE_DAMAGE;
+	float					dmg = irand(MMO_SABER_BASE_DAMAGE - 5.0, MMO_SABER_BASE_DAMAGE + 5.0);
 	int						dflags = 0;
 	int						touch[MAX_GENTITIES];
 	int						num = 0;
@@ -10809,7 +10809,7 @@ void WP_MMOSaberUpdate(gentity_t *self)
 
 	if (saberInAOE)
 	{// High damage in special attacks...
-		dmg = 25.0;
+		dmg = irand(30, 40);
 		dflags |= DAMAGE_EXTRA_KNOCKBACK;
 	}
 
