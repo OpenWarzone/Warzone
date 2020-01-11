@@ -517,7 +517,7 @@ uint16_t inventoryItem::getVisualType3(uint16_t modItemID)
 
 float inventoryItem::getCrystalPower(void)
 {
-	return 0.01 * pow(float(m_quality + 1), 1.1);
+	return 0.025 * pow(float(m_quality + 1), 1.1);
 }
 
 float inventoryItem::getCost(uint16_t modItemID1, uint16_t modItemID2, uint16_t modItemID3)

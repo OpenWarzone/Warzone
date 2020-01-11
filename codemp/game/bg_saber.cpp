@@ -6072,7 +6072,7 @@ int PM_AnimationForBounceMove(short newMove)
 
 int BG_GetMMOCrowdControlStanceMove(short newMove)
 {
-	return BOTH_SABERATTACK_01;
+	return BOTH_SABERATTACK_02;
 }
 
 int BG_GetMMOSingleStanceMove(short newMove)

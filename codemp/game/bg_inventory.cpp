@@ -1046,7 +1046,12 @@ inventoryItem			*allInventoryItems[65536]; // need to keep < 65536 for transmiss
 //
 float StatRollForQuality(uint16_t quality)
 {
-	return 0.005 * pow(float(quality + 1), 1.1);
+	return 0.025 * pow(float(quality + 1), 1.1);
+}
+
+float StatRollForSaberQuality(uint16_t quality)
+{
+	return 0.033 * pow(float(quality + 1), 1.1);
 }
 
 void GenerateAllInventoryItems(void)
@@ -1099,7 +1104,7 @@ void GenerateAllInventoryItems(void)
 	// Sabers...
 	for (uint16_t quality = QUALITY_GREY; quality <= QUALITY_GOLD; quality++)
 	{
-		float roll = StatRollForQuality(quality);
+		float roll = StatRollForSaberQuality(quality);
 
 		for (uint16_t modelType = MODELTYPE_DEFAULT; modelType < MODELTYPE_MAX; modelType++)
 		{
@@ -1226,7 +1231,7 @@ void GenerateAllInventoryItems(void)
 
 	for (uint16_t quality = QUALITY_GREEN; quality <= QUALITY_GOLD; quality++)
 	{
-		float roll = StatRollForQuality(quality);
+		float roll = StatRollForSaberQuality(quality);
 
 		for (uint16_t stat1 = SABER_STAT1_MELEE_BLOCKING; stat1 < SABER_STAT1_MAX; stat1++)
 		{
@@ -1307,7 +1312,7 @@ void GenerateAllInventoryItems(void)
 
 	for (uint16_t quality = QUALITY_GREEN; quality <= QUALITY_GOLD; quality++)
 	{
-		float roll = StatRollForQuality(quality);
+		float roll = StatRollForSaberQuality(quality);
 
 		for (uint16_t crystal = ITEM_CRYSTAL_RED; crystal < ITEM_CRYSTAL_MAX; crystal++)
 		{

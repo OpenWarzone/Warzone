@@ -4664,7 +4664,9 @@ void G_RunFrame( int levelTime ) {
 				if (g_mmoStyleAttacking.integer)
 				{
 					extern void WP_MMOSaberUpdate(gentity_t *self);
+					extern void WP_MMODoOldSaberChecks(gentity_t *self, usercmd_t *ucmd);
 					WP_MMOSaberUpdate(ent);
+					WP_MMODoOldSaberChecks(ent, &ent->client->pers.cmd);
 				}
 				else
 				{
@@ -4718,7 +4720,9 @@ void G_RunFrame( int levelTime ) {
 			if (g_mmoStyleAttacking.integer)
 			{
 				extern void WP_MMOSaberUpdate(gentity_t *self);
+				extern void WP_MMODoOldSaberChecks(gentity_t *self, usercmd_t *ucmd);
 				WP_MMOSaberUpdate(ent);
+				WP_MMODoOldSaberChecks(ent, &ent->client->pers.cmd);
 			}
 			else
 			{

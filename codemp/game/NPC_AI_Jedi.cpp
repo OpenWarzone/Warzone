@@ -237,7 +237,8 @@ qboolean Jedi_AttackOrCounter( gentity_t *NPC )
 	//
 
 	//NPC_SetLookTarget(NPC, NPC->enemy->s.number, level.time + 100);
-	NPC_FaceEntity(NPC, NPC->enemy, qtrue);
+	//NPC_FaceEntity(NPC, NPC->enemy, qtrue);
+	NPC_FaceEnemy(NPC, qtrue);
 
 	if (NPC->enemy->s.eType != ET_PLAYER)
 	{
@@ -1702,6 +1703,82 @@ void Jedi_Retreat(gentity_t *aiEnt)
 #endif //__USE_NAVLIB__
 }
 
+extern float WP_SpeedOfMissileForWeapon(int wp, qboolean alt_fire);
+static void Jedi_FaceEnemy(gentity_t *aiEnt, qboolean doPitch)
+{
+	vec3_t	enemy_eyes, eyes, angles;
+
+	if (aiEnt == NULL)
+		return;
+
+	if (aiEnt->enemy == NULL)
+		return;
+
+	if (aiEnt->client->ps.fd.forcePowersActive & (1 << FP_GRIP) &&
+		aiEnt->client->ps.fd.forcePowerLevel[FP_GRIP] > FORCE_LEVEL_1)
+	{//don't update?
+		aiEnt->NPC->desiredPitch = aiEnt->client->ps.viewangles[PITCH];
+		aiEnt->NPC->desiredYaw = aiEnt->client->ps.viewangles[YAW];
+		return;
+	}
+	CalcEntitySpot(aiEnt, SPOT_HEAD, eyes);
+
+	CalcEntitySpot(aiEnt->enemy, SPOT_HEAD, enemy_eyes);
+
+	if ((NPC_IsBountyHunter(aiEnt) || aiEnt->hasJetpack)
+		&& TIMER_Done(aiEnt, "flameTime")
+		&& aiEnt->s.weapon != WP_NONE
+		&& !(WeaponIsSniperCharge(aiEnt->s.weapon) && Distance(aiEnt->r.currentOrigin, aiEnt->enemy->r.currentOrigin) >= 512.0)
+		//&& (aiEnt->s.weapon != WP_ROCKET_LAUNCHER||!(aiEnt->NPC->scriptFlags&SCF_ALT_FIRE))
+		&& aiEnt->s.weapon != WP_THERMAL
+		&& aiEnt->s.weapon != WP_TRIP_MINE
+		&& aiEnt->s.weapon != WP_DET_PACK)
+	{//boba leads his enemy
+		if (aiEnt->enemy && aiEnt->enemy->client && aiEnt->health < aiEnt->client->pers.maxHealth*0.5f)
+		{//lead
+			float missileSpeed = WP_SpeedOfMissileForWeapon(aiEnt->s.weapon, ((qboolean)(aiEnt->NPC->scriptFlags&SCF_ALT_FIRE)));
+			if (missileSpeed)
+			{
+				float eDist = Distance(eyes, enemy_eyes);
+				eDist /= missileSpeed;//How many seconds it will take to get to the enemy
+				VectorMA(enemy_eyes, eDist*flrand(0.95f, 1.25f), aiEnt->enemy->client->ps.velocity, enemy_eyes);
+			}
+		}
+	}
+
+	//Find the desired angles
+	if (!aiEnt->client->ps.saberInFlight
+		&& (aiEnt->client->ps.legsAnim == BOTH_A2_STABBACK1
+			|| aiEnt->client->ps.legsAnim == BOTH_CROUCHATTACKBACK1
+			|| aiEnt->client->ps.legsAnim == BOTH_ATTACK_BACK)
+		)
+	{//point *away*
+		GetAnglesForDirection(enemy_eyes, eyes, angles);
+	}
+	else
+	{//point towards him
+		GetAnglesForDirection(eyes, enemy_eyes, angles);
+	}
+
+	aiEnt->NPC->desiredYaw = AngleNormalize360(angles[YAW]);
+	/*
+	if ( NPC->client->ps.saberBlocked == BLOCKED_UPPER_LEFT )
+	{//temp hack- to make up for poor coverage on left side
+	NPCInfo->desiredYaw += 30;
+	}
+	*/
+
+	if (doPitch)
+	{
+		aiEnt->NPC->desiredPitch = AngleNormalize360(angles[PITCH]);
+		if (aiEnt->client->ps.saberInFlight)
+		{//tilt down a little
+			aiEnt->NPC->desiredPitch += 10;
+		}
+	}
+	//FIXME: else desiredPitch = 0?  Or keep previous?
+}
+
 void Jedi_Advance( gentity_t *aiEnt)
 {
 	if ( !aiEnt->client->ps.saberInFlight )
@@ -1710,6 +1787,9 @@ void Jedi_Advance( gentity_t *aiEnt)
 		WP_ActivateSaber(aiEnt);
 	}
 	//Com_Printf( "Advancing\n" );
+
+	Jedi_FaceEnemy(aiEnt, qtrue);
+	NPC_UpdateAngles(aiEnt, qtrue, qtrue);
 
 #ifdef __USE_NAVLIB__
 	if (!aiEnt->enemy || !ValidEnemy(aiEnt, aiEnt->enemy))
@@ -4597,82 +4677,6 @@ void Jedi_SetEnemyInfo( gentity_t *aiEnt, vec3_t enemy_dest, vec3_t enemy_dir, f
 	}
 }
 
-extern float WP_SpeedOfMissileForWeapon( int wp, qboolean alt_fire );
-static void Jedi_FaceEnemy( gentity_t *aiEnt, qboolean doPitch )
-{
-	vec3_t	enemy_eyes, eyes, angles;
-
-	if ( aiEnt == NULL )
-		return;
-
-	if ( aiEnt->enemy == NULL )
-		return;
-
-	if ( aiEnt->client->ps.fd.forcePowersActive & (1<<FP_GRIP) &&
-		aiEnt->client->ps.fd.forcePowerLevel[FP_GRIP] > FORCE_LEVEL_1 )
-	{//don't update?
-		aiEnt->NPC->desiredPitch = aiEnt->client->ps.viewangles[PITCH];
-		aiEnt->NPC->desiredYaw = aiEnt->client->ps.viewangles[YAW];
-		return;
-	}
-	CalcEntitySpot( aiEnt, SPOT_HEAD, eyes );
-
-	CalcEntitySpot( aiEnt->enemy, SPOT_HEAD, enemy_eyes );
-
-	if ( (NPC_IsBountyHunter(aiEnt) || aiEnt->hasJetpack)
-		&& TIMER_Done( aiEnt, "flameTime" )
-		&& aiEnt->s.weapon != WP_NONE
-		&& !(WeaponIsSniperCharge(aiEnt->s.weapon) && Distance(aiEnt->r.currentOrigin, aiEnt->enemy->r.currentOrigin) >= 512.0)
-		//&& (aiEnt->s.weapon != WP_ROCKET_LAUNCHER||!(aiEnt->NPC->scriptFlags&SCF_ALT_FIRE))
-		&& aiEnt->s.weapon != WP_THERMAL
-		&& aiEnt->s.weapon != WP_TRIP_MINE
-		&& aiEnt->s.weapon != WP_DET_PACK )
-	{//boba leads his enemy
-		if ( aiEnt->enemy && aiEnt->enemy->client && aiEnt->health < aiEnt->client->pers.maxHealth*0.5f )
-		{//lead
-			float missileSpeed = WP_SpeedOfMissileForWeapon( aiEnt->s.weapon, ((qboolean)(aiEnt->NPC->scriptFlags&SCF_ALT_FIRE)) );
-			if ( missileSpeed )
-			{
-				float eDist = Distance( eyes, enemy_eyes );
-				eDist /= missileSpeed;//How many seconds it will take to get to the enemy
-				VectorMA( enemy_eyes, eDist*flrand(0.95f,1.25f), aiEnt->enemy->client->ps.velocity, enemy_eyes );
-			}
-		}
-	}
-
-	//Find the desired angles
-	if ( !aiEnt->client->ps.saberInFlight
-		&& (aiEnt->client->ps.legsAnim == BOTH_A2_STABBACK1
-			|| aiEnt->client->ps.legsAnim == BOTH_CROUCHATTACKBACK1
-			|| aiEnt->client->ps.legsAnim == BOTH_ATTACK_BACK)
-		)
-	{//point *away*
-		GetAnglesForDirection( enemy_eyes, eyes, angles );
-	}
-	else
-	{//point towards him
-		GetAnglesForDirection( eyes, enemy_eyes, angles );
-	}
-
-	aiEnt->NPC->desiredYaw	= AngleNormalize360( angles[YAW] );
-	/*
-	if ( NPC->client->ps.saberBlocked == BLOCKED_UPPER_LEFT )
-	{//temp hack- to make up for poor coverage on left side
-		NPCInfo->desiredYaw += 30;
-	}
-	*/
-
-	if ( doPitch )
-	{
-		aiEnt->NPC->desiredPitch = AngleNormalize360( angles[PITCH] );
-		if ( aiEnt->client->ps.saberInFlight )
-		{//tilt down a little
-			aiEnt->NPC->desiredPitch += 10;
-		}
-	}
-	//FIXME: else desiredPitch = 0?  Or keep previous?
-}
-
 static void Jedi_DebounceDirectionChanges( gentity_t *aiEnt)
 {
 	//FIXME: check these before making fwd/back & right/left decisions?
@@ -5259,7 +5263,8 @@ static qboolean Jedi_AttackDecide( gentity_t *aiEnt, int enemy_dist )
 		{// UQ1: Umm, how about we actually check if we can hit them first???
 			if (aiEnt->s.weapon == WP_SABER)
 			{//Try to attack
-				NPC_FaceEnemy(aiEnt, qtrue);
+				Jedi_FaceEnemy(aiEnt, qtrue);
+				NPC_UpdateAngles(aiEnt, qtrue, qtrue);
 
 				if (!BG_SaberInAttack(aiEnt->client->ps.saberMove) && !Jedi_SaberBusy( aiEnt ))
 				{
@@ -6326,10 +6331,10 @@ static void Jedi_Combat( gentity_t *aiEnt)
 	}
 
 	//Turn to face the enemy
-	if ( TIMER_Done( aiEnt, "noturn" ) )
-	{
+	//if ( TIMER_Done( aiEnt, "noturn" ) )
+	//{
 		Jedi_FaceEnemy(aiEnt, qtrue );
-	}
+	//}
 
 	NPC_UpdateAngles(aiEnt, qtrue, qtrue );
 
@@ -7206,10 +7211,10 @@ static void Jedi_Attack( gentity_t *aiEnt)
 	//Don't do anything if we're in a pain anim
 	if ( aiEnt->painDebounceTime > level.time )
 	{
-		if ( Q_irand( 0, 1 ) )
-		{
+		//if ( Q_irand( 0, 1 ) )
+		//{
 			Jedi_FaceEnemy(aiEnt, qtrue );
-		}
+		//}
 		NPC_UpdateAngles(aiEnt, qtrue, qtrue );
 
 		//JEDI_Debug(aiEnt, "painDebounce.");
@@ -8285,11 +8290,12 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 	}
 	else if (diff <= OPTIMAL_RANGE_ALLOWANCE)
 	{// We are at optimal range now...
+		NPC_FacePosition(aiEnt, NPC->enemy->r.currentOrigin, qtrue);
 		return qfalse;
 	}
 	else if (dist > OPTIMAL_MAX_RANGE)
 	{// If clear then move stright there...
-		NPC_FacePosition(aiEnt, NPC->enemy->r.currentOrigin, qfalse );
+		NPC_FacePosition(aiEnt, NPC->enemy->r.currentOrigin, qtrue );
 
 		//qboolean pathClear = Jedi_ClearPathToSpot(aiEnt, aiEnt->enemy->r.currentOrigin, aiEnt->enemy->s.number);
 
@@ -8332,7 +8338,7 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 	}*/
 	else if (dist < OPTIMAL_MIN_RANGE)
 	{// If clear then move back a bit...
-		NPC_FacePosition(aiEnt, NPC->enemy->r.currentOrigin, qfalse );
+		NPC_FacePosition(aiEnt, NPC->enemy->r.currentOrigin, qtrue);
 
 		if (NPC_IsJedi(aiEnt) || aiEnt->client->ps.weapon == WP_SABER)
 		{// Hmm, can't evade for whatever reason, just move back...
