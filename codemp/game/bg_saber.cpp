@@ -6135,27 +6135,7 @@ void PM_SetSaberMove(short newMove)
 		pm->ps->saberAttackChainCount = 16;
 	}
 
-	if (g_mmoStyleAttacking.integer
-		&& pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL
-		&& (pm->cmd.buttons & BUTTON_ATTACK)
-		&& !BG_SaberInSpecial(newMove))
-	{
-		anim = BG_GetMMOCrowdControlStanceMove(newMove);
-		parts = SETANIM_TORSO;
-		pm->ps->saberMove = newMove = LS_A_R2L;
-		//pm->ps->saberMove = LS_A_T2B;
-	}
-	else if (g_mmoStyleAttacking.integer
-		&& pm->ps->fd.saberAnimLevelBase == SS_SINGLE
-		&& (pm->cmd.buttons & BUTTON_ATTACK)
-		&& !BG_SaberInSpecial(newMove))
-	{
-		anim = BG_GetMMOSingleStanceMove(newMove);
-		parts = SETANIM_TORSO;
-		pm->ps->saberMove = newMove = LS_A_R2L;
-		//pm->ps->saberMove = LS_A_T2B;
-	}
-	else if (newMove == LS_DRAW)
+	if (newMove == LS_DRAW)
 	{
 		saberInfo_t *saber1 = BG_MySaber(pm->ps->clientNum, 0);
 		saberInfo_t *saber2 = BG_MySaber(pm->ps->clientNum, 1);
@@ -6204,6 +6184,42 @@ void PM_SetSaberMove(short newMove)
 		}
 
 		pm->ps->nextTransitionAnim = 0;
+	}
+	else if (g_mmoStyleAttacking.integer
+		&& pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL
+		&& (pm->cmd.buttons & BUTTON_ATTACK)
+		&& !BG_SaberInSpecial(newMove))
+	{
+		anim = BG_GetMMOCrowdControlStanceMove(newMove);
+		parts = SETANIM_TORSO;
+		pm->ps->saberMove = newMove = LS_A_R2L;
+	}
+	else if (g_mmoStyleAttacking.integer
+		&& pm->ps->fd.saberAnimLevelBase == SS_SINGLE
+		&& (pm->cmd.buttons & BUTTON_ATTACK)
+		&& !BG_SaberInSpecial(newMove))
+	{
+		anim = BG_GetMMOSingleStanceMove(newMove);
+		parts = SETANIM_TORSO;
+		pm->ps->saberMove = newMove = LS_A_R2L;
+	}
+	else if (g_mmoStyleAttacking.integer
+		&& pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL
+		&& !(pm->cmd.buttons & BUTTON_ATTACK)
+		&& !BG_SaberInSpecial(newMove))
+	{
+		//anim = PM_GetSaberStance();
+		//parts = SETANIM_TORSO;
+		pm->ps->saberMove = newMove = LS_READY;
+	}
+	else if (g_mmoStyleAttacking.integer
+		&& pm->ps->fd.saberAnimLevelBase == SS_SINGLE
+		&& !(pm->cmd.buttons & BUTTON_ATTACK)
+		&& !BG_SaberInSpecial(newMove))
+	{
+		//anim = PM_GetSaberStance();
+		//parts = SETANIM_TORSO;
+		pm->ps->saberMove = newMove = LS_READY;
 	}
 	/*else if (BG_InSaberLock(pm->ps->torsoAnim))
 	{

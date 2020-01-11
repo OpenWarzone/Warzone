@@ -3905,6 +3905,28 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		}
 		break;
 
+	case EV_SABER_KILLMOVE01:
+	case EV_SABER_KILLMOVE02:
+	case EV_SABER_KILLMOVE03:
+	case EV_SABER_KILLMOVE04:
+	case EV_SABER_KILLMOVE05:
+	case EV_SABER_KILLMOVE06:
+	case EV_SABER_KILLMOVE07:
+	case EV_SABER_KILLMOVE08:
+	case EV_SABER_KILLMOVE09:
+	case EV_SABER_KILLMOVE10:
+		DEBUGNAME("EV_SABER_KILLMOVEx");
+		if (es->eventParm >= 0)
+		{
+			trap->S_StartSound(NULL, es->eventParm, CHAN_VOICE, CG_CustomSound(es->eventParm, va("*death%i.wav", irand(0, 3))));
+			if (es->eventParm == cg.snap->ps.clientNum)
+			{
+				trap->S_StartLocalSound(cgs.media.dramaticFailure, CHAN_LOCAL);
+				CGCam_SetMusicMult(0.3f, 5000);
+			}
+		}
+		break;
+
 
 	case EV_OBITUARY:
 		DEBUGNAME("EV_OBITUARY");

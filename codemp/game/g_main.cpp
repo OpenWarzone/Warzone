@@ -4356,6 +4356,11 @@ void G_RunFrame( int levelTime ) {
 			continue;
 		}
 
+		if (ent->client)
+		{// Init killmove ability on each frame...
+			ent->client->killmovePossible = KILLMOVE_NONE;
+		}
+
 		// clear events that are too old
 		if (level.time - ent->eventTime > EVENT_VALID_MSEC) {
 			if (ent->s.event) {

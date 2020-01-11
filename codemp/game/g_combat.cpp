@@ -2807,6 +2807,137 @@ extern void RunEmplacedWeapon( gentity_t *ent, usercmd_t **ucmd );
 
 		static int deathAnim;
 
+#ifdef __KILLMOVES__
+		//qboolean inKillMove = qfalse;
+
+		int deathAnimOrig = deathAnim;
+
+/*
+typedef enum
+{
+	KILLMOVE_NONE,
+	KILLMOVE_SINGLE,
+	KILLMOVE_SINGLE_FAR,
+	KILLMOVE_SINGLE_BACK,
+	KILLMOVE_BACK_AOE,
+	KILLMOVE_DUO_LR,
+	KILLMOVE_DUO_FB,
+	KILLMOVE_FORWARD_AOE,
+	KILLMOVE_FORWARD_MULTI_AOE,
+	KILLMOVE_360_AOE,
+} killMoveType_t;
+*/
+		float dist = Distance(attacker->client->ps.origin, self->client->ps.origin);
+
+		if (attacker 
+			&& attacker->client 
+			&& attacker->client->killmovePossible > KILLMOVE_NONE
+			&& self 
+			&& self->client 
+			&& meansOfDeath == MOD_SABER
+			&& damage >= self->client->ps.stats[STAT_HEALTH]
+			&& (dist <= 64.0 || attacker->client->killmovePossible == KILLMOVE_SINGLE_FAR || attacker->client->killmovePossible == KILLMOVE_FORWARD_MULTI_AOE))
+		{// Trigger a saber kill move...
+			int			deathChoice = irand(0, 9);
+			//int			attackAnim = deathChoice;
+
+			/* First, make sure they are looking at eachother, and if one is a player, their cam rotates toward the target */
+			vec3_t		selfPos, attPos, defDir, attAngles, defAngles;
+
+			CalcEntitySpot(self, SPOT_HEAD_LEAN, selfPos);
+			CalcEntitySpot(attacker, SPOT_HEAD_LEAN, attPos);
+
+			VectorSubtract(selfPos, attPos, defDir);
+			VectorCopy(attacker->client->ps.viewangles, attAngles);
+
+			if (attacker->client->killmovePossible == KILLMOVE_SINGLE_BACK || attacker->client->killmovePossible == KILLMOVE_BACK_AOE)
+			{// Special case for backstab killmove... Face directly away from the enemy, but they still face me...
+				attAngles[YAW] = vectoyaw(defDir);
+				//defAngles[PITCH] = attAngles[PITCH] * -1;
+				defAngles[YAW] = AngleNormalize180(attAngles[YAW] + 180);
+				defAngles[ROLL] = 0;
+				SetClientViewAngle(self, defAngles);
+				SetClientViewAngle(attacker, defAngles);
+			}
+			else if (attacker->client->killmovePossible == KILLMOVE_SINGLE_FAR)
+			{// Special case for single far killmove, move us a little to the left of the target...
+				vec3_t right;
+				attAngles[YAW] = vectoyaw(defDir);
+				//defAngles[PITCH] = attAngles[PITCH] * -1;
+				defAngles[YAW] = AngleNormalize180(attAngles[YAW] + 180);
+				defAngles[ROLL] = 0;
+				SetClientViewAngle(self, defAngles);
+
+				// Now move the player view to the left of them a bit...
+				AngleVectors(attAngles, NULL, right, NULL);
+				VectorNormalize(right);
+				VectorMA(attPos, -64.0, right, attPos);
+				attAngles[YAW] = vectoyaw(defDir);
+				SetClientViewAngle(attacker, attAngles);
+			}
+			else
+			{// Face the enemy, and make them face attacker...
+				attAngles[YAW] = vectoyaw(defDir);
+				SetClientViewAngle(attacker, attAngles);
+				defAngles[PITCH] = attAngles[PITCH] * -1;
+				defAngles[YAW] = AngleNormalize180(attAngles[YAW] + 180);
+				defAngles[ROLL] = 0;
+				SetClientViewAngle(self, defAngles);
+			}
+			/* */
+
+			/* Do attacker kill move anim */
+			VectorClear(attacker->client->ps.velocity);
+			sPMType = attacker->client->ps.pm_type;
+			attacker->client->ps.pm_type = PM_NORMAL; //don't want pm type interfering with our setanim calls.
+			switch (attacker->client->killmovePossible)
+			{
+			case KILLMOVE_SINGLE:
+			default:
+				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_PULL_IMPALE_STAB, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART, 0);
+				break;
+			case KILLMOVE_SINGLE_FAR:
+				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_TUSKENLUNGE1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART, 0);
+				break;
+			case KILLMOVE_SINGLE_BACK:
+				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_A2_STABBACK1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART, 0);
+				break;
+			case KILLMOVE_BACK_AOE:
+				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_ATTACK_BACK, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART, 0);
+				break;
+			case KILLMOVE_DUO_LR:
+				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_A6_LR, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART, 0);
+				break;
+			case KILLMOVE_DUO_FB:
+				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_A6_FB, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART, 0);
+				break;
+			case KILLMOVE_FORWARD_AOE:
+				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_PULL_IMPALE_SWING, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART, 0);
+				break;
+			case KILLMOVE_FORWARD_MULTI_AOE:
+				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_A7_SOULCAL, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART, 0);
+				break;
+			case KILLMOVE_SINGLE_360_AOE:
+				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_A1_SPECIAL, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART, 0);
+				break;
+			case KILLMOVE_360_AOE:
+				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_A1_SPECIAL, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART, 0);
+				break;
+			}
+			attacker->client->ps.pm_type = sPMType;
+			/* */
+
+			/* Do the target's death anim and death sound event for this poor sod */
+			VectorClear(self->client->ps.velocity);
+			G_AddEvent(self, EV_SABER_KILLMOVE01 + deathChoice, self->s.number);
+
+			anim = G_PickDeathAnim(self, self->pos1, damage, meansOfDeath, HL_WAIST);
+			/* */
+
+			//inKillMove = qtrue;
+		}
+		else
+#endif //__KILLMOVES__
 		anim = G_PickDeathAnim(self, self->pos1, damage, meansOfDeath, HL_NONE);
 
 		if (anim >= 1)
@@ -2820,6 +2951,7 @@ extern void RunEmplacedWeapon( gentity_t *ent, usercmd_t **ucmd );
 			self->client->respawnTime = level.time + 1000;//((self->client->animations[anim].numFrames*40)/(50.0f / self->client->animations[anim].frameLerp))+300;
 
 			sPMType = self->client->ps.pm_type;
+
 			self->client->ps.pm_type = PM_NORMAL; //don't want pm type interfering with our setanim calls.
 
 			if (self->inuse)
@@ -2859,6 +2991,19 @@ extern void RunEmplacedWeapon( gentity_t *ent, usercmd_t **ucmd );
 		//rww - do this on respawn, not death
 		//CopyToBodyQue (self);
 
+#ifdef __KILLMOVES__
+		if (attacker
+			&& attacker->client
+			&& self
+			&& self->client
+			&& meansOfDeath == MOD_SABER
+			&& damage >= self->client->ps.stats[STAT_HEALTH]
+			&& Distance(attacker->client->ps.origin, self->client->ps.origin) <= 64.0)
+		{// A kill move was triggerred instead...Copy original current deathAnim back to the static variable for use below and next time...
+			deathAnim = deathAnimOrig;
+		}
+		else
+#endif //__KILLMOVES__
 		//G_AddEvent( self, EV_DEATH1 + i, killer );
 		if (wasJediMaster)
 		{
@@ -4580,29 +4725,47 @@ vec3_t gPainPoint;
 #define DAMAGE_CRITICAL 1
 #define DAMAGE_MISS 2
 
-int G_CheckCritDamage ( gentity_t *targ, gentity_t *attacker )
+int G_CheckCritDamage ( gentity_t *targ, gentity_t *attacker, int mod)
 {// UQ1: Improve me later... Offensive/Defensive perks to increase/decrease crit chance and damage...
 	/* BEGIN: INV SYSTEM SABER CRIT CHANCE */
 	float critChance = 1.0f;
 
 	if (attacker && attacker->client)
 	{
-		inventoryItem *invSaber = BG_EquippedWeapon(&attacker->client->ps);
-
-		if (invSaber && invSaber->getBasicStat2() == SABER_STAT2_CRITICAL_CHANCE_MODIFIER)
+		if (mod == MOD_SABER)
 		{
-			critChance *= 1.0f + invSaber->getBasicStat2Value();
+			inventoryItem *invSaber = BG_EquippedWeapon(&attacker->client->ps);
+
+			if (invSaber && invSaber->getBasicStat2() == SABER_STAT2_CRITICAL_CHANCE_MODIFIER)
+			{
+				critChance *= 1.0f + invSaber->getBasicStat2Value();
+			}
+
+			inventoryItem *invSaberMod3 = BG_EquippedMod2(&attacker->client->ps);
+
+			if (invSaberMod3 && invSaberMod3->getBasicStat2() == SABER_STAT2_CRITICAL_CHANCE_MODIFIER)
+			{
+				critChance *= 1.0f + invSaberMod3->getBasicStat2Value();
+			}
+		}
+		else if (mod == MOD_DISRUPTOR_SNIPER || mod == MOD_REPEATER || mod == MOD_BOWCASTER)
+		{
+			inventoryItem *invWeapon = BG_EquippedWeapon(&attacker->client->ps);
+
+			if (invWeapon && invWeapon->getBasicStat2() == WEAPON_STAT2_CRITICAL_CHANCE_MODIFIER)
+			{
+				critChance *= 1.0f + invWeapon->getBasicStat2Value();
+			}
+
+			inventoryItem *invMod3 = BG_EquippedMod2(&attacker->client->ps);
+
+			if (invMod3 && invMod3->getBasicStat2() == WEAPON_STAT2_CRITICAL_CHANCE_MODIFIER)
+			{
+				critChance *= 1.0f + invMod3->getBasicStat2Value();
+			}
 		}
 
-		inventoryItem *invSaberMod3 = BG_EquippedMod2(&attacker->client->ps);
-
-		if (invSaberMod3 && invSaberMod3->getBasicStat2() == SABER_STAT2_CRITICAL_CHANCE_MODIFIER)
-		{
-			critChance *= 1.0f + invSaberMod3->getBasicStat2Value();
-		}
-
-		//critChance *= 20.0;
-		critChance *= 30.0;
+		critChance *= 20.0;
 	}
 	/* END: INV SYSTEM SABER CRIT CHANCE */
 
@@ -4717,7 +4880,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 	//
 	// BEGIN - Critical damage and miss system...
 	//
-	damage_type = G_CheckCritDamage( targ, attacker );
+	damage_type = G_CheckCritDamage( targ, attacker, mod);
 
 	if (mod == MOD_CRUSH || mod == MOD_FALLING)
 	{
@@ -4730,18 +4893,37 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 
 		if (attacker && attacker->client)
 		{
-			inventoryItem *invSaber = BG_EquippedWeapon(&attacker->client->ps);
-
-			if (invSaber && invSaber->getBasicStat2() == SABER_STAT2_CRITICAL_POWER_MODIFIER)
+			if (mod == MOD_SABER)
 			{
-				critDamageMult *= 1.0f + invSaber->getBasicStat2Value();
+				inventoryItem *invSaber = BG_EquippedWeapon(&attacker->client->ps);
+
+				if (invSaber && invSaber->getBasicStat2() == SABER_STAT2_CRITICAL_POWER_MODIFIER)
+				{
+					critDamageMult *= 1.0f + invSaber->getBasicStat2Value();
+				}
+
+				inventoryItem *invSaberMod3 = BG_EquippedMod2(&attacker->client->ps);
+
+				if (invSaberMod3 && invSaberMod3->getBasicStat2() == SABER_STAT2_CRITICAL_POWER_MODIFIER)
+				{
+					critDamageMult *= 1.0f + invSaberMod3->getBasicStat2Value();
+				}
 			}
-
-			inventoryItem *invSaberMod3 = BG_EquippedMod2(&attacker->client->ps);
-
-			if (invSaberMod3 && invSaberMod3->getBasicStat2() == SABER_STAT2_CRITICAL_POWER_MODIFIER)
+			else if (mod == MOD_DISRUPTOR_SNIPER || mod == MOD_REPEATER || mod == MOD_BOWCASTER)
 			{
-				critDamageMult *= 1.0f + invSaberMod3->getBasicStat2Value();
+				inventoryItem *invWeapon = BG_EquippedWeapon(&attacker->client->ps);
+
+				if (invWeapon && invWeapon->getBasicStat2() == WEAPON_STAT2_CRITICAL_POWER_MODIFIER)
+				{
+					critDamageMult *= 1.0f + invWeapon->getBasicStat2Value();
+				}
+
+				inventoryItem *invSaberMod3 = BG_EquippedMod2(&attacker->client->ps);
+
+				if (invSaberMod3 && invSaberMod3->getBasicStat2() == WEAPON_STAT2_CRITICAL_POWER_MODIFIER)
+				{
+					critDamageMult *= 1.0f + invSaberMod3->getBasicStat2Value();
+				}
 			}
 		}
 		/* END: INV SYSTEM SABER CRIT DAMAGE */
@@ -4756,51 +4938,54 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 
 		if (attacker && attacker->client)
 		{
-			inventoryItem *invSaber = BG_EquippedWeapon(&attacker->client->ps);
-
-			if (invSaber && invSaber->getBasicStat2() == SABER_STAT2_HEALTH_DRAIN)
+			if (mod == MOD_SABER)
 			{
-				healthDrain += invSaber->getBasicStat2Value();
-			}
+				inventoryItem *invSaber = BG_EquippedWeapon(&attacker->client->ps);
 
-			if (invSaber && invSaber->getBasicStat2() == SABER_STAT2_FORCE_DRAIN)
-			{
-				forceDrain += invSaber->getBasicStat2Value();
-			}
+				if (invSaber && invSaber->getBasicStat2() == SABER_STAT2_HEALTH_DRAIN)
+				{
+					healthDrain += invSaber->getBasicStat2Value();
+				}
 
-			inventoryItem *invSaberMod = BG_EquippedMod2(&attacker->client->ps);
+				if (invSaber && invSaber->getBasicStat2() == SABER_STAT2_FORCE_DRAIN)
+				{
+					forceDrain += invSaber->getBasicStat2Value();
+				}
 
-			if (invSaberMod && invSaberMod->getBasicStat2() == SABER_STAT2_HEALTH_DRAIN)
-			{
-				healthDrain += invSaberMod->getBasicStat2Value();
-			}
+				inventoryItem *invSaberMod = BG_EquippedMod2(&attacker->client->ps);
 
-			if (invSaberMod && invSaberMod->getBasicStat2() == SABER_STAT2_FORCE_DRAIN)
-			{
-				forceDrain += invSaberMod->getBasicStat2Value();
-			}
+				if (invSaberMod && invSaberMod->getBasicStat2() == SABER_STAT2_HEALTH_DRAIN)
+				{
+					healthDrain += invSaberMod->getBasicStat2Value();
+				}
 
-			float drainHP = float(damage) * healthDrain;
-			float drainFORCE = float(damage) * forceDrain;
+				if (invSaberMod && invSaberMod->getBasicStat2() == SABER_STAT2_FORCE_DRAIN)
+				{
+					forceDrain += invSaberMod->getBasicStat2Value();
+				}
 
-			attacker->health += drainHP;
-			attacker->client->ps.stats[STAT_HEALTH] += drainHP;
+				float drainHP = float(damage) * healthDrain;
+				float drainFORCE = float(damage) * forceDrain;
 
-			if (attacker->health > attacker->maxHealth)
-			{
-				attacker->health = attacker->maxHealth;
-			}
+				attacker->health += drainHP;
+				attacker->client->ps.stats[STAT_HEALTH] += drainHP;
 
-			if (attacker->client->ps.stats[STAT_HEALTH] > attacker->client->ps.stats[STAT_MAX_HEALTH])
-			{
-				attacker->client->ps.stats[STAT_HEALTH] = attacker->client->ps.stats[STAT_MAX_HEALTH];
-			}
+				if (attacker->health > attacker->maxHealth)
+				{
+					attacker->health = attacker->maxHealth;
+				}
 
-			attacker->client->ps.fd.forcePower += drainFORCE;
+				if (attacker->client->ps.stats[STAT_HEALTH] > attacker->client->ps.stats[STAT_MAX_HEALTH])
+				{
+					attacker->client->ps.stats[STAT_HEALTH] = attacker->client->ps.stats[STAT_MAX_HEALTH];
+				}
 
-			if (attacker->client->ps.fd.forcePower > attacker->client->ps.fd.forcePowerMax)
-			{
-				attacker->client->ps.fd.forcePower = attacker->client->ps.fd.forcePowerMax;
+				attacker->client->ps.fd.forcePower += drainFORCE;
+
+				if (attacker->client->ps.fd.forcePower > attacker->client->ps.fd.forcePowerMax)
+				{
+					attacker->client->ps.fd.forcePower = attacker->client->ps.fd.forcePowerMax;
+				}
 			}
 		}
 		/* END: INV SYSTEM SABER HEALTH DRAIN */

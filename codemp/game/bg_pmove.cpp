@@ -12842,6 +12842,19 @@ void PM_MoveForKata(usercmd_t *ucmd)
 			pm->cmd.forwardmove = 0;
 		}
 	}
+	else if (pm->ps->legsAnim == BOTH_TUSKENLUNGE1)
+	{
+		pm->cmd.rightmove = 0;
+		pm->cmd.upmove = 0;
+		//if (pm->ps->legsTimer < 1700 && pm->ps->legsTimer > 1000)
+		//{
+			pm->cmd.forwardmove = 127;
+		//}
+		//else
+		//{
+		//	pm->cmd.forwardmove = 0;
+		//}
+	}
 	else
 	{
 		pm->cmd.forwardmove = 0;
@@ -13156,6 +13169,29 @@ void PmoveSingle (pmove_t *pmove) {
 		pm->ps->legsAnim == BOTH_FORCELANDLEFT1)
 	{ //can't move while in a force land
 		stiffenedUp = qtrue;
+	}
+
+	if (g_mmoStyleAttacking.integer)
+	{
+		if (pm->ps->saberMove == BOTH_PULL_IMPALE_STAB
+			|| pm->ps->saberMove == BOTH_A2_STABBACK1
+			|| pm->ps->saberMove == BOTH_ATTACK_BACK
+			|| pm->ps->saberMove == BOTH_A6_LR
+			|| pm->ps->saberMove == BOTH_A6_FB
+			|| pm->ps->saberMove == BOTH_PULL_IMPALE_SWING
+			|| pm->ps->saberMove == BOTH_A1_SPECIAL)
+		{//can't move left or right during these scripted kill moves...
+			pm->cmd.rightmove = pm->cmd.upmove = 0;
+			//lock their viewangles during these attacks.
+			PM_SetPMViewAngle(pm->ps, pm->ps->viewangles, &pm->cmd);
+		}
+		else if (pm->ps->saberMove == BOTH_TUSKENLUNGE1
+			|| pm->ps->saberMove == BOTH_A7_SOULCAL)
+		{//can't move left or right during these scripted kill moves...
+			pm->cmd.upmove = 0;
+			//lock their viewangles during these attacks.
+			PM_SetPMViewAngle(pm->ps, pm->ps->viewangles, &pm->cmd);
+		}
 	}
 
 	if ( pm->ps->saberMove == LS_A_LUNGE )

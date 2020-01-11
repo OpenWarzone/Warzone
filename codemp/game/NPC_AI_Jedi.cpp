@@ -8561,19 +8561,19 @@ void NPC_CallForHelp(gentity_t *aiEnt)
 		{// Jedi/Sith call for help based on health...
 			if (aiEnt->health < aiEnt->maxHealth * 0.75)
 			{// Call for help on low health, from a larger area...
-				NPC_CreateAttackGroup(aiEnt->client->sess.sessionTeam, aiEnt->r.currentOrigin, aiEnt, aiEnt->enemy, 1024.0);
+				NPC_CreateAttackGroup(aiEnt->client->sess.sessionTeam, aiEnt->r.currentOrigin, aiEnt, aiEnt->enemy, 256.0);
 				NPC_CallForHelpSpeech(aiEnt);
 				aiEnt->NPC->helpCallJediLevel = 1;
 			}
 			else if (aiEnt->health < aiEnt->maxHealth * 0.5)
 			{// Call for help on low health, from a larger area...
-				NPC_CreateAttackGroup(aiEnt->client->sess.sessionTeam, aiEnt->r.currentOrigin, aiEnt, aiEnt->enemy, 2048.0);
+				NPC_CreateAttackGroup(aiEnt->client->sess.sessionTeam, aiEnt->r.currentOrigin, aiEnt, aiEnt->enemy, 384.0);
 				NPC_CallForHelpSpeech(aiEnt);
 				aiEnt->NPC->helpCallJediLevel = 2;
 			}
 			else if (aiEnt->health < aiEnt->maxHealth * 0.25)
 			{// Call for help on low health, from a larger area...
-				NPC_CreateAttackGroup(aiEnt->client->sess.sessionTeam, aiEnt->r.currentOrigin, aiEnt, aiEnt->enemy, 4096.0);
+				NPC_CreateAttackGroup(aiEnt->client->sess.sessionTeam, aiEnt->r.currentOrigin, aiEnt, aiEnt->enemy, 512.0);
 				NPC_CallForHelpSpeech(aiEnt);
 				aiEnt->NPC->helpCallJediLevel = 3;
 			}
@@ -8585,13 +8585,13 @@ void NPC_CallForHelp(gentity_t *aiEnt)
 		{// Standard gunners work on a timer...
 			if (NPC_CanUseAdvancedFighting(aiEnt))
 			{// Stormies, gunners, etc... Call all their friends from the start...
-				NPC_CreateAttackGroup(aiEnt->client->sess.sessionTeam, aiEnt->r.currentOrigin, aiEnt, aiEnt->enemy, 2048.0);
+				NPC_CreateAttackGroup(aiEnt->client->sess.sessionTeam, aiEnt->r.currentOrigin, aiEnt, aiEnt->enemy, 384.0);
 				NPC_CallForHelpSpeech(aiEnt);
 				aiEnt->NPC->helpCallTime = level.time + 15000;
 			}
 			else
 			{
-				NPC_CreateAttackGroup(aiEnt->client->sess.sessionTeam, aiEnt->r.currentOrigin, aiEnt, aiEnt->enemy, 512.0);
+				NPC_CreateAttackGroup(aiEnt->client->sess.sessionTeam, aiEnt->r.currentOrigin, aiEnt, aiEnt->enemy, 256.0);
 				NPC_CallForHelpSpeech(aiEnt);
 				aiEnt->NPC->helpCallTime = level.time + 30000;
 			}

@@ -831,6 +831,25 @@ typedef struct navlibTarget_t
 #endif //defined(__USE_NAVLIB__) && defined(NAVLIB)
 
 
+typedef enum
+{
+	KILLMOVE_NONE,
+	KILLMOVE_SINGLE,
+	KILLMOVE_SINGLE_FAR,
+	KILLMOVE_SINGLE_BACK,
+	KILLMOVE_BACK_AOE,
+	KILLMOVE_DUO_LR,
+	KILLMOVE_DUO_FB,
+	KILLMOVE_FORWARD_AOE,
+	KILLMOVE_FORWARD_MULTI_AOE,
+	KILLMOVE_SINGLE_360_AOE,
+	KILLMOVE_360_AOE,
+	KILLMOVE_MAX
+} killMoveType_t;
+
+extern stringID_table_t killMoveTable[KILLMOVE_MAX + 1];
+
+
 // this structure is cleared on each ClientSpawn(),
 // except for 'client->pers' and 'client->sess'
 struct gclient_s {
@@ -1091,6 +1110,8 @@ struct gclient_s {
 
 	char          botSoundDir[MAX_QPATH];
 	float		  blockingLightningAccumulation;
+
+	killMoveType_t			killmovePossible = KILLMOVE_NONE;
 };
 
 //Interest points

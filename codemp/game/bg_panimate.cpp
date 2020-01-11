@@ -129,6 +129,7 @@ qboolean BG_InSpecialJump(int anim)
 	case BOTH_FLIP_HOLD7:
 	case BOTH_FLIP_LAND:
 	case BOTH_A7_SOULCAL:
+	case BOTH_TUSKENLUNGE1:
 		return qtrue;
 	}
 	if (BG_InReboundJump(anim))
@@ -348,6 +349,7 @@ qboolean BG_InKataAnim(int anim)
 	case BOTH_A1_SPECIAL:
 	case BOTH_A2_SPECIAL:
 	case BOTH_A3_SPECIAL:
+	case BOTH_TUSKENLUNGE1:
 		return qtrue;
 	}
 	return qfalse;
@@ -458,6 +460,7 @@ qboolean BG_FlippingAnim(int anim)
 	case BOTH_FORCEWALLRUNFLIP_ALT:
 	case BOTH_FLIP_ATTACK7:
 	case BOTH_A7_SOULCAL:
+	case BOTH_TUSKENLUNGE1:
 		return qtrue;
 		break;
 	}
@@ -806,6 +809,7 @@ qboolean BG_SaberInSpecialAttack(int anim)
 	case BOTH_A6_LR:
 	case BOTH_A7_HILT:
 	case SPY_SLIDE:
+	case BOTH_TUSKENLUNGE1:
 		return qtrue;
 	}
 	return qfalse;

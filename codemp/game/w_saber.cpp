@@ -11444,7 +11444,30 @@ extern qboolean NPC_IsGunner(gentity_t *self);
 extern qboolean NPC_IsFollowerGunner(gentity_t *self);
 extern qboolean NPC_IsAnimalEnemyFaction(gentity_t *self);
 
-#define MMO_SABER_DAMAGE_RANGE		96.0f
+extern qboolean IsLeft(vec3_t spot, vec3_t from, vec3_t fromAngles, float threshHold);
+extern qboolean IsRight(vec3_t spot, vec3_t from, vec3_t fromAngles, float threshHold);
+
+stringID_table_t killMoveTable[KILLMOVE_MAX + 1] =
+{
+	ENUM2STRING(KILLMOVE_NONE),
+	ENUM2STRING(KILLMOVE_SINGLE),
+	ENUM2STRING(KILLMOVE_SINGLE_FAR),
+	ENUM2STRING(KILLMOVE_SINGLE_BACK),
+	ENUM2STRING(KILLMOVE_BACK_AOE),
+	ENUM2STRING(KILLMOVE_DUO_LR),
+	ENUM2STRING(KILLMOVE_DUO_FB),
+	ENUM2STRING(KILLMOVE_FORWARD_AOE),
+	ENUM2STRING(KILLMOVE_FORWARD_MULTI_AOE),
+	ENUM2STRING(KILLMOVE_SINGLE_360_AOE),
+	ENUM2STRING(KILLMOVE_360_AOE),
+
+	//must be terminated
+	{ NULL,-1 }
+};
+
+#define __ONLY_ONE_KILL__
+
+#define MMO_SABER_DAMAGE_RANGE		128.0f//96.0f
 #define MMO_SABER_DAMAGE_TIME		200
 #define MMO_SABER_BASE_DAMAGE		5.0
 
@@ -11474,10 +11497,11 @@ void WP_MMOSaberUpdate(gentity_t *self)
 	qboolean				saberInAOE = (BG_SaberInSpecial(self->client->ps.saberMove) || BG_SaberInKata(self->client->ps.saberMove)) ? qtrue : qfalse;
 	float					dmg = irand(MMO_SABER_BASE_DAMAGE - 2.0, MMO_SABER_BASE_DAMAGE + 2.0);
 	int						dflags = 0;
-	int						touch[MAX_GENTITIES];
-	int						num = 0;
+	static int				touch[MAX_GENTITIES], hits[MAX_GENTITIES], isBack[MAX_GENTITIES];
+	int						num = 0, numHits = 0, numHitsForward = 0, numHitsBehind = 0, numHitsLeft = 0, numHitsRight = 0, numHitsTrueForward = 0, numHitsTrueBehind = 0, numKillMoves = 0;
 	vec3_t					mins, maxs;
 	vec3_t					range = { MMO_SABER_DAMAGE_RANGE, MMO_SABER_DAMAGE_RANGE, 64.0f };
+	float					furthestDist = 0.0;
 
 	if (saberInAOE)
 	{// High damage in special attacks...
@@ -11489,6 +11513,10 @@ void WP_MMOSaberUpdate(gentity_t *self)
 	{// Staff does a little less damage than a directed single saber...
 		dmg *= 0.75;
 	}
+
+
+	self->client->killmovePossible = KILLMOVE_NONE;
+
 
 	/* BEGIN: INV SYSTEM SABER DAMAGE */
 	float damageMult = 1.0f;
@@ -11537,8 +11565,6 @@ void WP_MMOSaberUpdate(gentity_t *self)
 
 	for (int i = 0; i < num; i++)
 	{
-		float blockingDamageMultiplier = 1.0f;
-
 		if (touch[i] == self->s.number)
 		{
 			continue;
@@ -11576,10 +11602,197 @@ void WP_MMOSaberUpdate(gentity_t *self)
 			continue;
 		}
 
+		//qboolean isForward = InFront(ent->client->ps.origin, self->client->ps.origin, self->client->ps.viewangles, 0.9f);
+		//qboolean isBehind = InFront(ent->client->ps.origin, self->client->ps.origin, self->client->ps.viewangles, -0.9f);
+		//qboolean isTrueForward = InFront(ent->client->ps.origin, self->client->ps.origin, self->client->ps.viewangles, 0.2f);
+		//qboolean isTrueBehind = InFront(ent->client->ps.origin, self->client->ps.origin, self->client->ps.viewangles, -0.2f);
+		//qboolean isLeft = IsLeft(ent->client->ps.origin, self->client->ps.origin, self->client->ps.viewangles, 0.2f);
+		//qboolean isRight = IsRight(ent->client->ps.origin, self->client->ps.origin, self->client->ps.viewangles, 0.2f);
+
+		float dist = Distance(self->client->ps.origin, ent->client->ps.origin);
+
+		if (dist > range[0])
+		{
+			continue;
+		}
+
+		//qboolean isForward = InFOV3(ent->client->ps.origin, self->client->ps.origin, self->client->ps.viewangles, 120.0, 120.0);
+		//qboolean isBehind = isForward ? qfalse : qtrue;
+		qboolean isForward = InFront(ent->client->ps.origin, self->client->ps.origin, self->client->ps.viewangles, 0.0f);
+		qboolean isBehind = isForward ? qfalse : qtrue;//InFront(ent->client->ps.origin, self->client->ps.origin, self->client->ps.viewangles, 0.9f);
+
+		if (!isStaff && !saberInAOE && !isForward && dist > 64.0 * lengthMult)
+		{// Staff is full 360 degrees, as are AOE special abilities/attacks...
+			continue;
+		}
+
+		if (isBehind && dist > 96.0 * lengthMult)
+		{
+			continue;
+		}
+
+		// Record to the hits array, so as we can do kill moves if appropriate...
+		hits[numHits] = touch[i];
+
+		if (dist > furthestDist)
+		{
+			furthestDist = dist;
+		}
+
+		isBack[numHits] = qfalse;
+
+		/*if (isLeft)
+		{
+			numHitsLeft++;
+		}
+		else if (isRight)
+		{
+			numHitsRight++;
+		}
+		else if (isTrueBehind && dist <= 64.0)
+		{
+			numHitsTrueBehind++;
+			numHitsBehind++;
+		}
+		else if (isTrueForward && dist <= 64.0)
+		{
+			numHitsTrueForward++;
+			numHitsForward++;
+		}
+		else*/ if (isBehind)
+		{
+			numHitsBehind++;
+			isBack[numHits] = qtrue;
+		}
+		else if (isForward)
+		{
+			numHitsForward++;
+		}
+
+		numHits++;
+	}
+
+/*
+typedef enum
+{
+	KILLMOVE_NONE,
+	KILLMOVE_SINGLE,
+	KILLMOVE_SINGLE_FAR,
+	KILLMOVE_SINGLE_BACK,
+	KILLMOVE_BACK_AOE,
+	KILLMOVE_DUO_LR,
+	KILLMOVE_DUO_FB,
+	KILLMOVE_FORWARD_AOE,
+	KILLMOVE_FORWARD_MULTI_AOE,
+	KILLMOVE_SINGLE_360_AOE,
+	KILLMOVE_360_AOE,
+} killMoveType_t;
+*/
+
+#ifdef __ONLY_ONE_KILL__
+	if (numHitsBehind > 0)
+	{// Stab the one behind us...
+		self->client->killmovePossible = KILLMOVE_SINGLE_BACK;
+		numHits = 1;
+	}
+	else
+	{// Single forward stab...
+		if (furthestDist >= 96.0 * lengthMult)
+		{
+			self->client->killmovePossible = KILLMOVE_SINGLE_FAR;
+			numHits = 1;
+		}
+		else
+		{
+			self->client->killmovePossible = KILLMOVE_SINGLE;
+			numHits = 1;
+		}
+	}
+#else //!__ONLY_ONE_KILL__
+	if (numHits == 1)
+	{
+		if (numHitsBehind > 0)
+		{// Stab the one behind us...
+			self->client->killmovePossible = KILLMOVE_SINGLE_BACK;
+		}
+		else
+		{// Single forward stab...
+			if (furthestDist >= 96.0 * lengthMult)
+				self->client->killmovePossible = KILLMOVE_SINGLE_FAR;
+			else
+				self->client->killmovePossible = KILLMOVE_SINGLE;
+		}
+	}
+	/*
+	// TODO: Break saber in half and stab both directions...
+	else if (numHits >= 2 && numHitsTrueForward >= 1 && numHitsTrueBehind >= 1)
+	{// We can do a forward + backwards stab...
+		self->client->killmovePossible = KILLMOVE_DUO_FB;
+	}
+	else if (numHits >= 2 && numHitsLeft >= 1 && numHitsRight >= 1)
+	{// We can do a left + right stab...
+		self->client->killmovePossible = KILLMOVE_DUO_LR;
+	}*/
+	else if (numHits >= 2)
+	{
+		if (isStaff)
+		{
+			if (numHitsBehind > 0)
+			{// Allow for 360 degree killmove AOE...
+				self->client->killmovePossible = KILLMOVE_360_AOE;
+			}
+			else
+			{// Forward AOE killmove only...
+				if (furthestDist >= 96.0 * lengthMult)
+					self->client->killmovePossible = KILLMOVE_FORWARD_MULTI_AOE;
+				else
+					self->client->killmovePossible = KILLMOVE_FORWARD_AOE;
+			}
+		}
+		else
+		{
+			if (numHitsForward > 0 && numHitsBehind > 0)
+			{// Special case to allow single saber full 360 AOE...
+				self->client->killmovePossible = KILLMOVE_SINGLE_360_AOE;
+			}
+			else if (numHitsForward <= 0 && numHitsBehind > 0)
+			{// Special case to allow single saber back AOE...
+				self->client->killmovePossible = KILLMOVE_BACK_AOE;
+			}
+			else
+			{// Forward AOE killmove only...
+				if (furthestDist >= 96.0 * lengthMult)
+					self->client->killmovePossible = KILLMOVE_FORWARD_MULTI_AOE;
+				else
+					self->client->killmovePossible = KILLMOVE_FORWARD_AOE;
+			}
+		}
+	}
+#endif //__ONLY_ONE_KILL__
+
+	/*if (self->s.eType == ET_PLAYER && numHits > 0)
+	{
+		Com_Printf("hits %i. behind %i. forward %i. trueForward %i. trueBehind %i. left %i. right %i. furthest %f. killMove %i (%s).\n", numHits, numHitsBehind, numHitsForward, numHitsTrueForward, numHitsTrueBehind, numHitsLeft, numHitsRight, furthestDist, (int)self->client->killmovePossible, killMoveTable[self->client->killmovePossible].name);
+	}*/
+	
+	for (int i = 0; i < numHits; i++)
+	{
+		float blockingDamageMultiplier = 1.0f;
+
+		if (hits[i] == self->s.number)
+		{
+			continue;
+		}
+
+		gentity_t *ent = &g_entities[hits[i]];
+
 		if (!isStaff && !saberInAOE)
 		{// Staff is full 360 degrees, as are AOE special abilities/attacks...
-			if (!InFront(ent->client->ps.origin, self->client->ps.origin, self->client->ps.viewangles, 0.9f))
-			{
+			if (isBack[i]
+				&& self->client->killmovePossible != KILLMOVE_SINGLE_BACK
+				&& self->client->killmovePossible != KILLMOVE_BACK_AOE
+				&& self->client->killmovePossible != KILLMOVE_SINGLE_360_AOE)
+			{// For single saber back attacks, only backstab, BACK AOE, or single version of the 360 AOE allowed...
 				continue;
 			}
 		}
@@ -11595,22 +11808,21 @@ void WP_MMOSaberUpdate(gentity_t *self)
 			blockingDamageMultiplier *= 0.333;
 		}
 
-		if (Distance(ent->r.currentOrigin, ent->client->ps.origin) > range[0])
-		{
-			continue;
-		}
-
 		vec3_t enemyOrg, enemyDir;
 
 		enemyOrg[0] = ent->client->ps.origin[0];
 		enemyOrg[1] = ent->client->ps.origin[1];
 		enemyOrg[2] = ent->client->ps.origin[2] + irand(0, 16);
-		
+
 		VectorSubtract(ent->client->ps.origin, self->client->ps.origin, enemyDir);
 
 		if (ent->client->ps.weapon == WP_SABER || NPC_IsJedi(ent) || NPC_IsBoss(ent))
 		{
 			G_Damage(ent, self, self, enemyDir, enemyOrg, int(dmg), dflags, MOD_SABER);
+		}
+		else if (ent->s.eType == ET_PLAYER)
+		{
+			G_Damage(ent, self, self, enemyDir, enemyOrg, int(dmg * 1.5), dflags, MOD_SABER);
 		}
 		else if (NPC_IsFollowerGunner(ent))
 		{
@@ -11626,7 +11838,15 @@ void WP_MMOSaberUpdate(gentity_t *self)
 		}
 		else
 		{/* attacking fodder always deals high damage */
-			G_Damage(ent, self, self, enemyDir, enemyOrg, 500, dflags, MOD_SABER);
+			if (self->client->killmovePossible > KILLMOVE_NONE)
+				G_Damage(ent, self, self, enemyDir, enemyOrg, 2000, dflags, MOD_SABER); // Insta-kill whenever there is a killmove possibility...
+			else
+				G_Damage(ent, self, self, enemyDir, enemyOrg, 500, dflags, MOD_SABER);
+		}
+
+		if (ent->client->ps.stats[STAT_HEALTH] <= 0 || (ent->client->ps.eFlags & EF_DEAD))
+		{
+			numKillMoves++;
 		}
 	}
 

@@ -96,6 +96,43 @@ qboolean InFront( vec3_t spot, vec3_t from, vec3_t fromAngles, float threshHold 
 	return (qboolean)(dot > threshHold);
 }
 
+qboolean IsLeft(vec3_t spot, vec3_t from, vec3_t fromAngles, float threshHold)
+{
+	vec3_t	dir, forward, angles;
+	float	dot;
+
+	VectorSubtract(spot, from, dir);
+	dir[2] = 0;
+	VectorNormalize(dir);
+
+	VectorCopy(fromAngles, angles);
+	angles[0] = 0;
+	AngleVectors(angles, NULL, forward, NULL);
+	VectorScale(forward, -1.0, forward);
+
+	dot = DotProduct(dir, forward);
+
+	return (qboolean)(dot > threshHold);
+}
+
+qboolean IsRight(vec3_t spot, vec3_t from, vec3_t fromAngles, float threshHold)
+{
+	vec3_t	dir, forward, angles;
+	float	dot;
+
+	VectorSubtract(spot, from, dir);
+	dir[2] = 0;
+	VectorNormalize(dir);
+
+	VectorCopy(fromAngles, angles);
+	angles[0] = 0;
+	AngleVectors(angles, NULL, forward, NULL);
+
+	dot = DotProduct(dir, forward);
+
+	return (qboolean)(dot > threshHold);
+}
+
 /*
 InFOV
 
