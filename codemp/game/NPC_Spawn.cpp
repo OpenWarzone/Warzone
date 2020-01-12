@@ -2664,6 +2664,8 @@ void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team )
 #endif
 
 				VectorCopy(origin, self->s.origin);
+
+				G_FreeEntity(self);
 				return;
 			}
 			
@@ -2697,6 +2699,8 @@ void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team )
 #endif
 
 				VectorCopy(origin, self->s.origin);
+
+				G_FreeEntity(self);
 				return;
 			}
 		}
@@ -2729,6 +2733,8 @@ void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team )
 				SP_NPC_spawner2(self);
 
 				VectorCopy(origin, self->s.origin);
+
+				G_FreeEntity(self);
 				return;
 			}
 
@@ -2754,6 +2760,8 @@ void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team )
 				SP_NPC_spawner2(self);
 
 				VectorCopy(origin, self->s.origin);
+
+				G_FreeEntity(self);
 				return;
 			}
 		}*/

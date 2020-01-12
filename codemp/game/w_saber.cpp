@@ -3157,7 +3157,7 @@ void TraceCopy(trace_t *a, trace_t *b)
 
 
 //Reset the trace to be "blank".
-static QINLINE void TraceClear(trace_t *tr, vec3_t end)
+/*static*/ QINLINE void TraceClear(trace_t *tr, vec3_t end)
 {
 	tr->fraction = 1;
 	VectorCopy(end, tr->endpos);
@@ -11432,6 +11432,24 @@ nextStep:
 	}
 
 finishedUpdate:
+	/*
+	if (!BG_SaberInSpecialAttack(self->client->ps.torsoAnim) 
+		&& !BG_InSaberStandAnim(self->client->ps.torsoAnim)
+		&& !(ucmd->buttons & BUTTON_ATTACK) 
+		&& !(ucmd->buttons & BUTTON_ALT_ATTACK))
+	{
+		if (self->client->ps.torsoTimer <= 0)
+		{// Not in a special move? Reset our torso anims as required...
+			int anim = BG_GetSaberStanceForPS(&self->client->ps, ucmd);
+			
+			if (self->client->ps.torsoAnim != anim)
+			{
+				//G_SetAnim(self, ucmd, SETANIM_TORSO, anim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART, 0);
+				G_SetAnim(self, ucmd, SETANIM_TORSO, anim, SETANIM_FLAG_OVERRIDE, 0);
+			}
+		}
+	}
+	*/
 	return;
 }
 
@@ -11786,6 +11804,11 @@ typedef enum
 
 		gentity_t *ent = &g_entities[hits[i]];
 
+		if (!ent || !ent->client)
+		{
+			continue;
+		}
+
 		if (!isStaff && !saberInAOE)
 		{// Staff is full 360 degrees, as are AOE special abilities/attacks...
 			if (isBack[i]
@@ -11850,5 +11873,8 @@ typedef enum
 		}
 	}
 
-	self->nextSaberDamage = level.time + MMO_SABER_DAMAGE_TIME;
+	if (numKillMoves > 0)
+		self->nextSaberDamage = level.time + 1000;
+	else
+		self->nextSaberDamage = level.time + MMO_SABER_DAMAGE_TIME;
 }

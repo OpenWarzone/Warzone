@@ -1051,7 +1051,7 @@ float StatRollForQuality(uint16_t quality)
 
 float StatRollForSaberQuality(uint16_t quality)
 {
-	return 0.033 * pow(float(quality + 1), 1.1);
+	return 0.025 * pow(float(quality + 1), 1.1);
 }
 
 void GenerateAllInventoryItems(void)

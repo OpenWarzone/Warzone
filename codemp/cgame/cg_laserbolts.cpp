@@ -380,9 +380,10 @@ void CG_Do3DSaber(centity_t *cent, vec3_t origin, vec3_t dir, float length, floa
 	FX_SaberBolt3D(mid, dir, cg_saberLengthMult.value * len, cg_saberRadiusMult.value, bolt3D);
 }
 
-#define SABER_TRAIL_TIME			40.0f
-#define SABER_TRAIL_LENGTH_MULT		-1.0f
-#define FX_USE_ALPHA				0x08000000
+#define SABER_TRAIL_TIME					40.0f
+#define SABER_TRAIL_LENGTH_MULT				-1.0f
+#define SABER_TRAIL_LENGTH_MULT_STAFF		5.5f
+#define FX_USE_ALPHA						0x08000000
 
 extern qboolean BG_SuperBreakWinAnim(int anim);
 extern qboolean WP_SaberBladeUseSecondBladeStyle(saberInfo_t *saber, int bladeNum);
@@ -612,7 +613,15 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 				// Go from new muzzle to new end...then to old end...back down to old muzzle...finally
 				// connect back to the new muzzle...this is our trail quad
 				VectorCopy(org_, fx.mVerts[0].origin);
-				VectorMA(end, SABER_TRAIL_LENGTH_MULT, axis_[0], fx.mVerts[1].origin);
+
+				if (client->saber->numBlades > 1)
+				{
+					VectorMA(end, SABER_TRAIL_LENGTH_MULT_STAFF, axis_[0], fx.mVerts[1].origin);
+				}
+				else
+				{
+					VectorMA(end, SABER_TRAIL_LENGTH_MULT, axis_[0], fx.mVerts[1].origin);
+				}
 
 				VectorCopy(saberTrail->tip, fx.mVerts[2].origin);
 				VectorCopy(saberTrail->base, fx.mVerts[3].origin);
@@ -686,7 +695,15 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 
 			// we must always do this, even if we aren't active..otherwise we won't know where to pick up from
 			VectorCopy(org_, saberTrail->base);
-			VectorMA(end, SABER_TRAIL_LENGTH_MULT, axis_[0], saberTrail->tip);
+
+			if (client->saber->numBlades > 1)
+			{
+				VectorMA(end, SABER_TRAIL_LENGTH_MULT_STAFF, axis_[0], saberTrail->tip);
+			}
+			else
+			{
+				VectorMA(end, SABER_TRAIL_LENGTH_MULT, axis_[0], saberTrail->tip);
+			}
 			saberTrail->lastTime = cg.time;
 		}
 	}

@@ -498,41 +498,41 @@ qboolean PM_BlockableSaberInRange(void)
 int currentTestAnimationNumver = 0;
 
 //[NewSaberSys]
-int PM_GetSaberStance()
+int BG_GetSaberStanceForPS(playerState_t *ps, usercmd_t *ucmd)
 {
 	int anim = BOTH_STAND2;
-	saberInfo_t *saber1 = BG_MySaber(pm->ps->clientNum, 0);
-	saberInfo_t *saber2 = BG_MySaber(pm->ps->clientNum, 1);
+	saberInfo_t *saber1 = BG_MySaber(ps->clientNum, 0);
+	saberInfo_t *saber2 = BG_MySaber(ps->clientNum, 1);
 
-	signed char forwardmove = pm->cmd.forwardmove;
-	signed char rightmove = pm->cmd.rightmove;
+	signed char forwardmove = ucmd->forwardmove;
+	signed char rightmove = ucmd->rightmove;
 
-	int mblockforstance = pm->ps->fd.saberAnimLevel;
+	int mblockforstance = ps->fd.saberAnimLevel;
 
-	if (pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL)
+	if (ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL)
 	{
-		pm->ps->fd.saberAnimLevel = SS_CROWD_CONTROL;
+		ps->fd.saberAnimLevel = SS_CROWD_CONTROL;
 		mblockforstance = SS_TAVION;
 	}
 
-	if (pm->ps->fd.saberAnimLevelBase == SS_SINGLE)
+	if (ps->fd.saberAnimLevelBase == SS_SINGLE)
 	{
-		pm->ps->fd.saberAnimLevel = SS_SINGLE;
+		ps->fd.saberAnimLevel = SS_SINGLE;
 		mblockforstance = SS_TAVION;
 	}
 
-	if (!pm->ps->saberEntityNum)
+	if (!ps->saberEntityNum)
 	{ //lost it
 		return BOTH_STAND1;
 	}
 
-	if (pm->ps->weaponstate == WEAPON_RAISING)
+	if (ps->weaponstate == WEAPON_RAISING)
 	{
-		if (pm->ps->fd.saberAnimLevel == SS_STAFF)
+		if (ps->fd.saberAnimLevel == SS_STAFF)
 		{
 			return BOTH_S1_S7;
 		}
-		else if (pm->ps->fd.saberAnimLevel != SS_DUAL)
+		else if (ps->fd.saberAnimLevel != SS_DUAL)
 		{
 			return BOTH_STAND1TO2;
 		}
@@ -546,35 +546,35 @@ int PM_GetSaberStance()
 		hideStance = qtrue;
 	}
 #elif defined(_CGAME)
-	if (cgs.hideStance || cgs.gametype == GT_DUEL || cgs.gametype == GT_POWERDUEL )
+	if (cgs.hideStance || cgs.gametype == GT_DUEL || cgs.gametype == GT_POWERDUEL)
 	{
 		hideStance = qtrue;
 	}
 #endif
 
 	/*if (hideStance
-		&& !(pm->cmd.buttons & BUTTON_ALT_ATTACK)
-		&& !(pm->ps->weaponstate == WEAPON_DROPPING || pm->ps->weaponstate == WEAPON_RAISING))
+	&& !(ucmd.buttons & BUTTON_ALT_ATTACK)
+	&& !(ps->weaponstate == WEAPON_DROPPING || ps->weaponstate == WEAPON_RAISING))
 	{
-		return BOTH_STAND1;
+	return BOTH_STAND1;
 	}*/
 
-	if (BG_SabersOff(pm->ps) /*&& !(pm->ps->weaponstate == WEAPON_DROPPING || pm->ps->weaponstate == WEAPON_RAISING)*/)
+	if (BG_SabersOff(ps) /*&& !(ps->weaponstate == WEAPON_DROPPING || ps->weaponstate == WEAPON_RAISING)*/)
 	{
 		return BOTH_STAND1;
 	}
 
 	// Projectile block/defence spins... It all starts/continues here...
-	if (pm->ps->fd.saberDrawAnimLevel == SS_CROWD_CONTROL 
-		&& (pm->cmd.buttons & BUTTON_ALT_ATTACK)
-		&& !(pm->cmd.buttons & BUTTON_ATTACK)
-		&& (bg_testspinanimation.integer || pm->ps->torsoAnim == BOTH_CC_DEFENCE_SPIN || g_mmoStyleAttacking.integer || PM_AllowDefenceSpin()))
+	if (ps->fd.saberDrawAnimLevel == SS_CROWD_CONTROL
+		&& (ucmd->buttons & BUTTON_ALT_ATTACK)
+		&& !(ucmd->buttons & BUTTON_ATTACK)
+		&& (bg_testspinanimation.integer || ps->torsoAnim == BOTH_CC_DEFENCE_SPIN || g_mmoStyleAttacking.integer || PM_AllowDefenceSpin()))
 	{
 		return BOTH_CC_DEFENCE_SPIN;
 	}
-	else if ((pm->cmd.buttons & BUTTON_ALT_ATTACK)
-		&& !(pm->cmd.buttons & BUTTON_ATTACK)
-		&& (bg_testspinanimation.integer || pm->ps->torsoAnim == BOTH_SINGLE_DEFENCE_SPIN || g_mmoStyleAttacking.integer || PM_AllowDefenceSpin()))
+	else if ((ucmd->buttons & BUTTON_ALT_ATTACK)
+		&& !(ucmd->buttons & BUTTON_ATTACK)
+		&& (bg_testspinanimation.integer || ps->torsoAnim == BOTH_SINGLE_DEFENCE_SPIN || g_mmoStyleAttacking.integer || PM_AllowDefenceSpin()))
 	{
 		return BOTH_SINGLE_DEFENCE_SPIN;
 	}
@@ -599,11 +599,11 @@ int PM_GetSaberStance()
 
 	qboolean blockableSaber = qtrue;// PM_BlockableSaberInRange();
 
-	if (blockableSaber && (hideStance || ((pm->cmd.buttons & BUTTON_ALT_ATTACK) && !(pm->cmd.buttons & BUTTON_ATTACK))))
+	if (blockableSaber && (hideStance || ((ucmd->buttons & BUTTON_ALT_ATTACK) && !(ucmd->buttons & BUTTON_ATTACK))))
 	{//for now I'll assume that we're using an inverted control system.
 		if (forwardmove < 0)
 		{
-			if (pm->ps->fd.saberDrawAnimLevel == SS_CROWD_CONTROL)
+			if (ps->fd.saberDrawAnimLevel == SS_CROWD_CONTROL)
 			{// Always hold saber in front of face, so that the blade doesn't clip into player's legs when moving side to side...
 				return 838;
 			}
@@ -710,7 +710,7 @@ int PM_GetSaberStance()
 			else
 			{
 				//Top Block
-				if (pm->ps->fd.saberDrawAnimLevel == SS_CROWD_CONTROL)
+				if (ps->fd.saberDrawAnimLevel == SS_CROWD_CONTROL)
 				{
 					return 838;
 				}
@@ -790,14 +790,14 @@ int PM_GetSaberStance()
 		return saber2->readyAnim;
 	}
 
-	if (saber1 && saber2 && !pm->ps->saberHolstered)
+	if (saber1 && saber2 && !ps->saberHolstered)
 	{//dual sabers, both on
 		return BOTH_SABERDUAL_STANCE;
 	}
 
-	if (pm->ps->fd.saberDrawAnimLevel == SS_CROWD_CONTROL)
+	if (ps->fd.saberDrawAnimLevel == SS_CROWD_CONTROL)
 	{
-		if ((pm->cmd.buttons & BUTTON_ALT_ATTACK) && !(pm->cmd.buttons & BUTTON_ATTACK) && blockableSaber)
+		if ((ucmd->buttons & BUTTON_ALT_ATTACK) && !(ucmd->buttons & BUTTON_ATTACK) && blockableSaber)
 		{
 			return 838;
 		}
@@ -805,9 +805,9 @@ int PM_GetSaberStance()
 		return BOTH_CC_STANCE;
 	}
 
-	if (pm->ps->fd.saberDrawAnimLevel == SS_SINGLE)
+	if (ps->fd.saberDrawAnimLevel == SS_SINGLE)
 	{
-		if ((pm->cmd.buttons & BUTTON_ALT_ATTACK) && !(pm->cmd.buttons & BUTTON_ATTACK) && blockableSaber)
+		if ((ucmd->buttons & BUTTON_ALT_ATTACK) && !(ucmd->buttons & BUTTON_ATTACK) && blockableSaber)
 		{
 			return BOTH_P1_S1_T_;
 		}
@@ -816,7 +816,7 @@ int PM_GetSaberStance()
 		return BOTH_SINGLE_STANCE;
 	}
 
-	switch (pm->ps->fd.saberAnimLevel)
+	switch (ps->fd.saberAnimLevel)
 	{
 	case SS_DUAL:
 		anim = BOTH_SABERDUAL_STANCE;
@@ -849,6 +849,11 @@ int PM_GetSaberStance()
 	return anim;
 }
 //[/NewSaberSys]
+
+int PM_GetSaberStance(void)
+{// Changed to above function, so we can call it outside of BG_ and PM_
+	return BG_GetSaberStanceForPS(pm->ps, &pm->cmd);
+}
 
 qboolean PM_DoSlowFall(void)
 {
@@ -12844,16 +12849,21 @@ void PM_MoveForKata(usercmd_t *ucmd)
 	}
 	else if (pm->ps->legsAnim == BOTH_TUSKENLUNGE1)
 	{
-		pm->cmd.rightmove = 0;
-		pm->cmd.upmove = 0;
-		//if (pm->ps->legsTimer < 1700 && pm->ps->legsTimer > 1000)
-		//{
+		//Com_Printf("legs timer %i.\n", pm->ps->legsTimer);
+
+		if (pm->ps->legsTimer <= 100 || !(pm->cmd.buttons & BUTTON_ATTACK))
+		{
+			pm->ps->torsoAnim = PM_GetSaberStance();
+			pm->ps->legsTimer = pm->ps->torsoTimer = 0;
+			pm->ps->weaponTime = 0;
+			pm->ps->saberMove = LS_READY;
+		}
+		else
+		{
+			pm->cmd.rightmove = 0;
+			pm->cmd.upmove = 0;
 			pm->cmd.forwardmove = 127;
-		//}
-		//else
-		//{
-		//	pm->cmd.forwardmove = 0;
-		//}
+		}
 	}
 	else
 	{

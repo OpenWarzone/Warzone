@@ -985,7 +985,98 @@ void G_RunMissile(gentity_t *ent) {
 		}
 	}
 	// trace a line from the previous position to the current position
-	if (d_projectileGhoul2Collision.integer)
+	if (g_mmoStyleAttacking.integer)
+	{
+		trap->Trace(&tr, ent->r.currentOrigin, ent->r.mins, ent->r.maxs, origin, passent, ent->clipmask, qfalse, 0, 0);
+
+		if (tr.fraction == 1.0 && !(tr.startsolid || tr.allsolid))
+		{// Scan around for sabers that may be blocking it...
+			int				touch[MAX_GENTITIES];
+			int				num = 0;
+			vec3_t			range = { 128.0, 128.0, 128.0 }, mins, maxs;
+
+			VectorSubtract(ent->r.currentOrigin, range, mins);
+			VectorAdd(ent->r.currentOrigin, range, maxs);
+
+			num = trap->EntitiesInBox(mins, maxs, touch, MAX_GENTITIES);
+
+			for (int i = 0; i < num; i++)
+			{
+				if (touch[i] == ent->s.number)
+				{
+					continue;
+				}
+
+				if (touch[i] == passent)
+				{
+					continue;
+				}
+
+				gentity_t *saber = &g_entities[touch[i]];
+
+				if (!saber || !saber->inuse)
+				{
+					continue;
+				}
+
+				if (!saber->isSaberEntity)
+				{
+					continue;
+				}
+
+				gentity_t *owner = &g_entities[saber->r.ownerNum];
+
+				float dist = DistanceVertical(ent->r.currentOrigin, saber->r.currentOrigin);
+
+				if (dist < 128.0 && owner && owner->client && (owner->client->pers.cmd.buttons & BUTTON_ALT_ATTACK))
+				{// Found the owner of the saber entity, get the real blade length to use...
+					float blockRange = 0.0;
+
+					/* BEGIN: INV SYSTEM SABER LENGTHS */
+					float lengthMult = 1.0f;
+
+					inventoryItem *invSaber = BG_EquippedWeapon(&owner->client->ps);
+
+					if (invSaber && invSaber->getBasicStat3() == SABER_STAT3_LENGTH_MODIFIER)
+					{
+						lengthMult *= 1.0f + invSaber->getBasicStat3Value();
+					}
+
+					inventoryItem *invSaberMod3 = BG_EquippedMod3(&owner->client->ps);
+
+					if (invSaberMod3 && invSaberMod3->getBasicStat3() == SABER_STAT3_LENGTH_MODIFIER)
+					{
+						lengthMult *= 1.0f + invSaberMod3->getBasicStat3Value();
+					}
+					/* END: INV SYSTEM SABER LENGTHS */
+
+					blockRange = (owner->client->saber[0].blade[0].length * lengthMult) * 16.0f; // + 16.0f to also block a little extra outside of the blade...
+
+
+					if (dist <= blockRange)
+					{
+						extern float CalcTraceFraction(vec3_t Start, vec3_t End, vec3_t Endpos);
+						extern QINLINE void TraceClear(trace_t *tr, vec3_t end);
+
+						vec3_t dir, endPos;
+						VectorSubtract(saber->r.currentOrigin, ent->r.currentOrigin, dir);
+						VectorNormalize(dir);
+						VectorMA(ent->r.currentOrigin, blockRange, dir, endPos);
+
+						tr.entityNum = touch[i];
+						VectorCopy(saber->r.currentOrigin, tr.endpos);
+						tr.fraction = CalcTraceFraction(ent->r.currentOrigin, saber->r.currentOrigin, endPos);
+						tr.contents = CONTENTS_LIGHTSABER;
+						tr.allsolid = qfalse;
+						tr.startsolid = qfalse;
+						VectorCopy(dir, tr.plane.normal);
+						break;
+					}
+				}
+			}
+		}
+	}
+	else if (d_projectileGhoul2Collision.integer)
 	{
 		trap->Trace(&tr, ent->r.currentOrigin, ent->r.mins, ent->r.maxs, origin, passent, ent->clipmask, qfalse, G2TRFLAG_DOGHOULTRACE | G2TRFLAG_GETSURFINDEX | G2TRFLAG_THICK | G2TRFLAG_HITCORPSES, g_g2TraceLod.integer);
 

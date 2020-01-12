@@ -84,8 +84,8 @@ qboolean PM_InRollComplete( playerState_t *ps, int anim );
 int PM_AnimLength( int index, animNumber_t anim );
 
 //[NewSaberSys]
-//int PM_GetSaberStance(void);
-int PM_GetSaberStance();
+int PM_GetSaberStance(void);
+int BG_GetSaberStanceForPS(playerState_t *ps, usercmd_t *ucmd);
 //[/NewSaberSys]
 float PM_GroundDistance(void);
 qboolean PM_SomeoneInFront(trace_t *tr);

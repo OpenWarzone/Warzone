@@ -2890,38 +2890,42 @@ typedef enum
 			VectorClear(attacker->client->ps.velocity);
 			sPMType = attacker->client->ps.pm_type;
 			attacker->client->ps.pm_type = PM_NORMAL; //don't want pm type interfering with our setanim calls.
+			
+			//int animFlags = SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART;
+			int animFlags = SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART | SETANIM_FLAG_HOLDLESS;
+
 			switch (attacker->client->killmovePossible)
 			{
 			case KILLMOVE_SINGLE:
 			default:
-				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_PULL_IMPALE_STAB, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART, 0);
+				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_PULL_IMPALE_STAB, animFlags, 0);
 				break;
 			case KILLMOVE_SINGLE_FAR:
-				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_TUSKENLUNGE1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART, 0);
+				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_TUSKENLUNGE1, animFlags, 0);
 				break;
 			case KILLMOVE_SINGLE_BACK:
-				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_A2_STABBACK1, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART, 0);
+				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_A2_STABBACK1, animFlags, 0);
 				break;
 			case KILLMOVE_BACK_AOE:
-				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_ATTACK_BACK, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART, 0);
+				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_ATTACK_BACK, animFlags, 0);
 				break;
 			case KILLMOVE_DUO_LR:
-				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_A6_LR, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART, 0);
+				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_A6_LR, animFlags, 0);
 				break;
 			case KILLMOVE_DUO_FB:
-				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_A6_FB, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART, 0);
+				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_A6_FB, animFlags, 0);
 				break;
 			case KILLMOVE_FORWARD_AOE:
-				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_PULL_IMPALE_SWING, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART, 0);
+				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_PULL_IMPALE_SWING, animFlags, 0);
 				break;
 			case KILLMOVE_FORWARD_MULTI_AOE:
-				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_A7_SOULCAL, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART, 0);
+				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_A7_SOULCAL, animFlags, 0);
 				break;
 			case KILLMOVE_SINGLE_360_AOE:
-				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_A1_SPECIAL, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART, 0);
+				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_A1_SPECIAL, animFlags, 0);
 				break;
 			case KILLMOVE_360_AOE:
-				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_A1_SPECIAL, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART, 0);
+				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_A1_SPECIAL, animFlags, 0);
 				break;
 			}
 			attacker->client->ps.pm_type = sPMType;
@@ -4728,7 +4732,7 @@ vec3_t gPainPoint;
 int G_CheckCritDamage ( gentity_t *targ, gentity_t *attacker, int mod)
 {// UQ1: Improve me later... Offensive/Defensive perks to increase/decrease crit chance and damage...
 	/* BEGIN: INV SYSTEM SABER CRIT CHANCE */
-	float critChance = 1.0f;
+	float critChance = 0.0f;
 
 	if (attacker && attacker->client)
 	{
@@ -4738,14 +4742,14 @@ int G_CheckCritDamage ( gentity_t *targ, gentity_t *attacker, int mod)
 
 			if (invSaber && invSaber->getBasicStat2() == SABER_STAT2_CRITICAL_CHANCE_MODIFIER)
 			{
-				critChance *= 1.0f + invSaber->getBasicStat2Value();
+				critChance += invSaber->getBasicStat2Value();
 			}
 
 			inventoryItem *invSaberMod3 = BG_EquippedMod2(&attacker->client->ps);
 
 			if (invSaberMod3 && invSaberMod3->getBasicStat2() == SABER_STAT2_CRITICAL_CHANCE_MODIFIER)
 			{
-				critChance *= 1.0f + invSaberMod3->getBasicStat2Value();
+				critChance += invSaberMod3->getBasicStat2Value();
 			}
 		}
 		else if (mod == MOD_DISRUPTOR_SNIPER || mod == MOD_REPEATER || mod == MOD_BOWCASTER)
@@ -4754,14 +4758,14 @@ int G_CheckCritDamage ( gentity_t *targ, gentity_t *attacker, int mod)
 
 			if (invWeapon && invWeapon->getBasicStat2() == WEAPON_STAT2_CRITICAL_CHANCE_MODIFIER)
 			{
-				critChance *= 1.0f + invWeapon->getBasicStat2Value();
+				critChance += invWeapon->getBasicStat2Value();
 			}
 
 			inventoryItem *invMod3 = BG_EquippedMod2(&attacker->client->ps);
 
 			if (invMod3 && invMod3->getBasicStat2() == WEAPON_STAT2_CRITICAL_CHANCE_MODIFIER)
 			{
-				critChance *= 1.0f + invMod3->getBasicStat2Value();
+				critChance += invMod3->getBasicStat2Value();
 			}
 		}
 
@@ -4770,6 +4774,7 @@ int G_CheckCritDamage ( gentity_t *targ, gentity_t *attacker, int mod)
 	/* END: INV SYSTEM SABER CRIT CHANCE */
 
 	int d20_roll = int(float(irand(1, 20)));
+	//Com_Printf("d20Roll %i. Crit chance %f. Crit range %i to 20.\n", d20_roll, critChance, int(19 - critChance));
 	if (d20_roll >= 19 - critChance) return DAMAGE_CRITICAL; // UQ1: Standard D&D d20 crit range...
 	if (d20_roll <= 1) return DAMAGE_MISS; // UQ1: Standard D&D d20 crit range...
 	return DAMAGE_STANDARD;
@@ -4885,6 +4890,18 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 	if (mod == MOD_CRUSH || mod == MOD_FALLING)
 	{
 		damage_type = DAMAGE_STANDARD;
+
+		if (targ && targ->client)
+		{
+			targ->client->ps.damageCrit = qfalse;
+		}
+	}
+	else if (targ && targ->client && damage > 0 && damage_type == DAMAGE_MISS)
+	{// If this was a miss, inform the client(s) and remove all damage...
+		damage = 0;
+		targ->client->ps.damageValue = 0;
+		targ->client->ps.damageCrit = qfalse;
+		return;
 	}
 	else if (targ && targ->client && damage > 0 && damage_type == DAMAGE_CRITICAL)
 	{// If this was a crit, inform the client(s) and add the extra damage...
@@ -4989,13 +5006,6 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 			}
 		}
 		/* END: INV SYSTEM SABER HEALTH DRAIN */
-	}
-	else if (targ && targ->client && damage > 0 && damage_type == DAMAGE_MISS)
-	{// If this was a miss, inform the client(s) and remove all damage...
-		damage = 0;
-		targ->client->ps.damageValue = 0;
-		targ->client->ps.damageCrit = qfalse;
-		return;
 	}
 	else if (targ && targ->client && damage > 0 )
 	{// Not a crit. Reset the qboolean...

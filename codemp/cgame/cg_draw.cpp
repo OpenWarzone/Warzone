@@ -9079,12 +9079,12 @@ void CG_DrawDamage( void )
 			continue;
 		}
 
+		VectorCopy( cent->lerpOrigin, origin );
+		origin[2] += 35;//30;
+
 		dist = Distance(cg.refdef.vieworg/*cg.snap->ps.origin*/, origin);
 
 		if (dist > 2048.0f/*1024.0f*/) continue; // Too far...
-
-		VectorCopy( cent->lerpOrigin, origin );
-		origin[2] += 35;//30;
 
 		// Account for ducking
 		if ( cent->playerState->pm_flags & PMF_DUCKED )

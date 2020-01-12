@@ -952,7 +952,7 @@ void G_FreeEntity( gentity_t *ed ) {
 		ed->padawanGoalEntity = NULL;
 	}
 
-	trap->UnlinkEntity ((sharedEntity_t *)ed);		// unlink from world
+	//trap->UnlinkEntity ((sharedEntity_t *)ed);		// unlink from world
 
 #ifndef __NO_ICARUS__
 	trap->ICARUS_FreeEnt( (sharedEntity_t *)ed );	//ICARUS information must be added after this point
@@ -961,6 +961,11 @@ void G_FreeEntity( gentity_t *ed ) {
 	if ( ed->neverFree ) {
 		return;
 	}
+
+	// UQ1: Fill it with freed data here, before unlinking, maybe it will then update cgame...
+	ed->inuse = qfalse;
+	ed->s.eType = ET_FREED;
+	trap->UnlinkEntity((sharedEntity_t *)ed);		// unlink from world
 
 	//rww - this may seem a bit hackish, but unfortunately we have no access
 	//to anything ghoul2-related on the server and thus must send a message
