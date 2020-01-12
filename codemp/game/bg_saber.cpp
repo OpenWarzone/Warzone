@@ -6188,7 +6188,8 @@ void PM_SetSaberMove(short newMove)
 	else if (g_mmoStyleAttacking.integer
 		&& pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL
 		&& (pm->cmd.buttons & BUTTON_ATTACK)
-		&& !BG_SaberInSpecial(newMove))
+		&& !BG_SaberInSpecial(newMove)
+		&& pm->ps->saberMove > LS_PUTAWAY)
 	{
 		anim = BG_GetMMOCrowdControlStanceMove(newMove);
 		parts = SETANIM_TORSO;
@@ -6197,7 +6198,8 @@ void PM_SetSaberMove(short newMove)
 	else if (g_mmoStyleAttacking.integer
 		&& pm->ps->fd.saberAnimLevelBase == SS_SINGLE
 		&& (pm->cmd.buttons & BUTTON_ATTACK)
-		&& !BG_SaberInSpecial(newMove))
+		&& !BG_SaberInSpecial(newMove)
+		&& pm->ps->saberMove > LS_PUTAWAY)
 	{
 		anim = BG_GetMMOSingleStanceMove(newMove);
 		parts = SETANIM_TORSO;
@@ -6205,7 +6207,7 @@ void PM_SetSaberMove(short newMove)
 	}
 	else if (g_mmoStyleAttacking.integer
 		&& pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL
-		&& !(pm->cmd.buttons & BUTTON_ATTACK)
+		&& (!(pm->cmd.buttons & BUTTON_ATTACK) || pm->ps->saberMove > LS_READY)
 		&& !BG_SaberInSpecial(newMove))
 	{
 		//anim = PM_GetSaberStance();
@@ -6214,7 +6216,7 @@ void PM_SetSaberMove(short newMove)
 	}
 	else if (g_mmoStyleAttacking.integer
 		&& pm->ps->fd.saberAnimLevelBase == SS_SINGLE
-		&& !(pm->cmd.buttons & BUTTON_ATTACK)
+		&& (!(pm->cmd.buttons & BUTTON_ATTACK) || pm->ps->saberMove > LS_READY)
 		&& !BG_SaberInSpecial(newMove))
 	{
 		//anim = PM_GetSaberStance();
