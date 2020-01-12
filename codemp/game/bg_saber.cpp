@@ -3762,6 +3762,12 @@ void PM_WeaponLightsaber(void)
 
 	qboolean checkOnlyWeap = qfalse;
 
+	/*if (g_mmoStyleAttacking.integer
+		&& (pm->ps->torsoAnim == PAIRED_ATTACKER01 || pm->ps->torsoAnim == PAIRED_DEFENDER01))
+	{// Don't do any of this stuff...
+		return;
+	}*/
+
 #if defined(__SABER_EXPERIMENTAL_BOUNCE__) || defined(__SABER_EXPERIMENTAL_BOUNCE2__)
 	if (PM_SaberBounceRagdollRightContinue())
 	{
@@ -6105,6 +6111,14 @@ void PM_SetSaberMove(short newMove)
 	else
 		trap->G2API_AbsurdSmoothing(pm->ghoul2, qfalse);
 	*/
+
+	if (g_mmoStyleAttacking.integer
+		&& (pm->ps->torsoAnim == PAIRED_ATTACKER01 || pm->ps->torsoAnim == PAIRED_DEFENDER01)
+		&& pm->ps->torsoTimer > 0)
+	{// Don't do any of this stuff...
+		pm->cmd.forwardmove = pm->cmd.rightmove = pm->cmd.upmove = 0;
+		return;
+	}
 
 #define SABER_BLEND_BASE_TIME 100
 	pm->ps->torsoBlendTime = SABER_BLEND_BASE_TIME;

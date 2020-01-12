@@ -12865,6 +12865,12 @@ void PM_MoveForKata(usercmd_t *ucmd)
 			pm->cmd.forwardmove = 127;
 		}
 	}
+	else if (pm->ps->legsAnim == PAIRED_ATTACKER01 || pm->ps->legsAnim == PAIRED_DEFENDER01)
+	{
+		pm->cmd.rightmove = 0;
+		pm->cmd.upmove = 0;
+		pm->cmd.forwardmove = 0;
+	}
 	else
 	{
 		pm->cmd.forwardmove = 0;
@@ -13183,22 +13189,29 @@ void PmoveSingle (pmove_t *pmove) {
 
 	if (g_mmoStyleAttacking.integer)
 	{
-		if (pm->ps->saberMove == BOTH_PULL_IMPALE_STAB
-			|| pm->ps->saberMove == BOTH_A2_STABBACK1
-			|| pm->ps->saberMove == BOTH_ATTACK_BACK
-			|| pm->ps->saberMove == BOTH_A6_LR
-			|| pm->ps->saberMove == BOTH_A6_FB
-			|| pm->ps->saberMove == BOTH_PULL_IMPALE_SWING
-			|| pm->ps->saberMove == BOTH_A1_SPECIAL)
+		if (pm->ps->torsoAnim == BOTH_PULL_IMPALE_STAB
+			|| pm->ps->torsoAnim == BOTH_A2_STABBACK1
+			|| pm->ps->torsoAnim == BOTH_ATTACK_BACK
+			|| pm->ps->torsoAnim == BOTH_A6_LR
+			|| pm->ps->torsoAnim == BOTH_A6_FB
+			|| pm->ps->torsoAnim == BOTH_PULL_IMPALE_SWING
+			|| pm->ps->torsoAnim == BOTH_A1_SPECIAL)
 		{//can't move left or right during these scripted kill moves...
 			pm->cmd.rightmove = pm->cmd.upmove = 0;
 			//lock their viewangles during these attacks.
 			PM_SetPMViewAngle(pm->ps, pm->ps->viewangles, &pm->cmd);
 		}
-		else if (pm->ps->saberMove == BOTH_TUSKENLUNGE1
-			|| pm->ps->saberMove == BOTH_A7_SOULCAL)
+		else if (pm->ps->torsoAnim == BOTH_TUSKENLUNGE1
+			|| pm->ps->torsoAnim == BOTH_A7_SOULCAL)
 		{//can't move left or right during these scripted kill moves...
 			pm->cmd.upmove = 0;
+			//lock their viewangles during these attacks.
+			PM_SetPMViewAngle(pm->ps, pm->ps->viewangles, &pm->cmd);
+		}
+		else if (pm->ps->torsoAnim == PAIRED_ATTACKER01
+			|| pm->ps->torsoAnim == PAIRED_DEFENDER01)
+		{// Can't move at all while in paired animations...
+			pm->cmd.forwardmove = pm->cmd.rightmove = pm->cmd.upmove = 0;
 			//lock their viewangles during these attacks.
 			PM_SetPMViewAngle(pm->ps, pm->ps->viewangles, &pm->cmd);
 		}

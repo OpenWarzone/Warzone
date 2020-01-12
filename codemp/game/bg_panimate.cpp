@@ -349,6 +349,8 @@ qboolean BG_InKataAnim(int anim)
 	case BOTH_A2_SPECIAL:
 	case BOTH_A3_SPECIAL:
 	case BOTH_TUSKENLUNGE1:
+	case PAIRED_ATTACKER01:
+	case PAIRED_DEFENDER01:
 		return qtrue;
 	}
 	return qfalse;
@@ -808,6 +810,8 @@ qboolean BG_SaberInSpecialAttack(int anim)
 	case BOTH_A7_HILT:
 	case SPY_SLIDE:
 	case BOTH_TUSKENLUNGE1:
+	case PAIRED_ATTACKER01:
+	case PAIRED_DEFENDER01:
 		return qtrue;
 	}
 	return qfalse;
@@ -3313,6 +3317,12 @@ void BG_SaberStartTransAnim(int clientNum, playerState_t *ps, int saberAnimLevel
 	float	mediumanimscale = 0.95f;
 	float	tavionanimscale = 1.1f;
 	float	stancescale = BG_GetSpeedMultiplierForStance(saberAnimLevelBase);
+
+	if (ps->torsoAnim == PAIRED_ATTACKER01 || ps->torsoAnim == PAIRED_DEFENDER01)
+	{// ALWAYS 1.0f...
+		*animSpeed = 1.0f;
+		return;
+	}
 
 	if (ps->saberMove >= LS_V1_BR && ps->saberMove <= LS_V1_B_)
 	{

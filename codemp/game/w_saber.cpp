@@ -5379,7 +5379,6 @@ int WP_SaberBlockDirection(gentity_t *self, vec3_t hitloc)
 	vec3_t diff, fwdangles = { 0,0,0 }, fwd, right;
 	vec3_t clEye;
 	float fwddot, rightdot;
-	float zdiff;
 
 	VectorCopy(self->client->ps.origin, clEye);
 	clEye[2] += self->client->ps.viewheight;
@@ -11483,6 +11482,81 @@ stringID_table_t killMoveTable[KILLMOVE_MAX + 1] =
 	{ NULL,-1 }
 };
 
+stringID_table_t scriptedMoveTable[SCRIPTEDMOVE_MAX + 1] =
+{
+	ENUM2STRING(SCRIPTEDMOVE_NONE),
+	ENUM2STRING(SCRIPTEDMOVE_01),
+
+	//must be terminated
+	{ NULL,-1 }
+};
+
+extern void CalcEntitySpot(const gentity_t *ent, const spot_t spot, vec3_t point);
+
+void WP_MMOSaberScriptedMove(gentity_t *attacker, gentity_t *blocker)
+{
+	if (attacker
+		&& attacker->client
+		&& attacker->client->killmovePossible > KILLMOVE_NONE
+		&& blocker
+		&& blocker->client)
+	{// Trigger a saber paired attack/defend move...
+		int			attackerAnimChoice = PAIRED_ATTACKER01 + irand(0, 0);
+		int			defenderAnimChoice = PAIRED_DEFENDER01 + irand(0, 0);
+
+		/* First, make sure they are looking at eachother, and if one is a player, their cam rotates toward the target */
+		vec3_t		blkPos, attPos, blkDir, attAngles, defAngles;
+
+		CalcEntitySpot(blocker, SPOT_HEAD_LEAN, blkPos);
+		CalcEntitySpot(attacker, SPOT_HEAD_LEAN, attPos);
+
+		VectorSubtract(blkPos, attPos, blkDir);
+		VectorCopy(attacker->client->ps.viewangles, attAngles);
+
+		// Face the enemy, and make them face attacker...
+		attAngles[YAW] = vectoyaw(blkDir);
+		SetClientViewAngle(attacker, attAngles);
+		defAngles[PITCH] = attAngles[PITCH] * -1;
+		defAngles[YAW] = AngleNormalize180(attAngles[YAW] + 180);
+		defAngles[ROLL] = 0;
+		SetClientViewAngle(blocker, defAngles);
+		// Move them to exactly 64.0 from the blocker...
+		vec3_t finalOrigin;
+		VectorNormalize(blkDir);
+		VectorMA(blocker->client->ps.origin, -42.0, blkDir, finalOrigin);
+		TeleportPlayer(attacker, finalOrigin, attAngles);
+		/* */
+
+		/* Do attacker kill move anim */
+		VectorClear(attacker->client->ps.velocity);
+		int aPMType = attacker->client->ps.pm_type;
+		attacker->client->ps.pm_type = PM_NORMAL; //don't want pm type interfering with our setanim calls.
+		G_SetAnim(attacker, NULL, SETANIM_BOTH, attackerAnimChoice, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART | SETANIM_FLAG_HOLDLESS, 0);
+		attacker->client->ps.pm_type = aPMType;
+		/* */
+
+		/* Do the target's death anim and death sound event for this poor sod */
+		VectorClear(blocker->client->ps.velocity);
+		int dPMType = blocker->client->ps.pm_type;
+		blocker->client->ps.pm_type = PM_NORMAL; //don't want pm type interfering with our setanim calls.
+		G_SetAnim(blocker, NULL, SETANIM_BOTH, defenderAnimChoice, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART | SETANIM_FLAG_HOLDLESS, 0);
+		blocker->client->ps.pm_type = dPMType;
+		/* */
+
+		if (blocker->s.eType == ET_NPC)
+		{
+			blocker->beStillTime = level.time + 5000;
+			blocker->client->pers.cmd.forwardmove = blocker->client->pers.cmd.rightmove = blocker->client->pers.cmd.upmove = 0;
+		}
+
+		if (attacker->s.eType == ET_NPC)
+		{
+			attacker->beStillTime = level.time + 5000;
+			attacker->client->pers.cmd.forwardmove = attacker->client->pers.cmd.rightmove = attacker->client->pers.cmd.upmove = 0;
+		}
+	}
+}
+
 #define __ONLY_ONE_KILL__
 
 #define MMO_SABER_DAMAGE_RANGE		128.0f//96.0f
@@ -11510,9 +11584,9 @@ void WP_MMOSaberUpdate(gentity_t *self)
 	{
 		return;
 	}
-
+	
 	qboolean				isStaff = BG_EquippedWeaponIsTwoHanded(&self->client->ps);
-	qboolean				saberInAOE = (BG_SaberInSpecial(self->client->ps.saberMove) || BG_SaberInKata(self->client->ps.saberMove)) ? qtrue : qfalse;
+	qboolean				saberInAOE = (BG_SaberInSpecialAttack(self->client->ps.torsoAnim) || BG_SaberInSpecial(self->client->ps.saberMove) || BG_SaberInKata(self->client->ps.saberMove)) ? qtrue : qfalse;
 	float					dmg = irand(MMO_SABER_BASE_DAMAGE - 2.0, MMO_SABER_BASE_DAMAGE + 2.0);
 	int						dflags = 0;
 	static int				touch[MAX_GENTITIES], hits[MAX_GENTITIES], isBack[MAX_GENTITIES];
@@ -11535,6 +11609,11 @@ void WP_MMOSaberUpdate(gentity_t *self)
 
 	self->client->killmovePossible = KILLMOVE_NONE;
 
+	if (self->client->ps.torsoAnim == PAIRED_ATTACKER01
+		|| self->client->ps.torsoAnim == PAIRED_DEFENDER01)
+	{// Always continue scripted paired animations...
+		return;
+	}
 
 	/* BEGIN: INV SYSTEM SABER DAMAGE */
 	float damageMult = 1.0f;
@@ -11824,6 +11903,19 @@ typedef enum
 		{
 			if (irand(0, 3) == 0)
 			{// Blocking randomly blocks some attacks...
+				if (!saberInAOE && numHits <= 1)
+				{
+					float dist = Distance(self->client->ps.origin, ent->client->ps.origin);
+
+					//Com_Printf("BLOCK. num is %i. furthest %f.\n", num, dist);
+
+					if (dist >= 32.0 && dist <= 56.0)
+					{
+						WP_MMOSaberScriptedMove(self, ent);
+					}
+					break;
+				}
+
 				continue;
 			}
 

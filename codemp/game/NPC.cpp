@@ -4365,6 +4365,17 @@ void NPC_Think ( gentity_t *self )//, int msec )
 			qboolean is_vendor = NPC_IsVendor(self);
 			qboolean use_pathing = qfalse;
 
+			if (self->client->ps.torsoAnim == PAIRED_ATTACKER01
+				|| self->client->ps.torsoAnim == PAIRED_DEFENDER01)
+			{// Always continue scripted paired animations...
+				aiEnt->client->pers.cmd.forwardmove = 0;
+				aiEnt->client->pers.cmd.rightmove = 0;
+				aiEnt->client->pers.cmd.upmove = 0;
+				self->beStillTime = level.time + 100;
+				NPC_GenericFrameCode(self);
+				return;
+			}
+
 			if (self->isPadawan || is_bot) is_jedi = qfalse;
 
 			if (is_civilian || is_vendor)

@@ -849,6 +849,15 @@ typedef enum
 
 extern stringID_table_t killMoveTable[KILLMOVE_MAX + 1];
 
+typedef enum
+{
+	SCRIPTEDMOVE_NONE,
+	SCRIPTEDMOVE_01,
+	SCRIPTEDMOVE_MAX
+} scriptedMoveType_t;
+
+extern stringID_table_t scriptedMoveTable[SCRIPTEDMOVE_MAX + 1];
+
 
 // this structure is cleared on each ClientSpawn(),
 // except for 'client->pers' and 'client->sess'
