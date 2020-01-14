@@ -11911,7 +11911,10 @@ typedef enum
 
 					if (dist >= 32.0 && dist <= 56.0)
 					{
-						WP_MMOSaberScriptedMove(self, ent);
+						if (g_saberScriptedAnimations.integer)
+						{
+							WP_MMOSaberScriptedMove(self, ent);
+						}
 					}
 					break;
 				}

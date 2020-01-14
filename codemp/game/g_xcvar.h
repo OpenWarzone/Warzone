@@ -177,7 +177,7 @@ XCVAR_DEF(bg_testspinanimation,			"0",			NULL,				CVAR_ARCHIVE,									qfalse)
 XCVAR_DEF(bg_debugbounce,				"0",			NULL,				CVAR_ARCHIVE,									qfalse)
 XCVAR_DEF(bg_torsoBlend,				"250",			NULL,				CVAR_ARCHIVE,									qfalse)
 XCVAR_DEF(sv_saberHideStance,			"0",			NULL,				CVAR_SERVERINFO|CVAR_ARCHIVE,					qfalse )
-XCVAR_DEF(g_saberPairedAnimations,		"0",			NULL,				CVAR_SERVERINFO | CVAR_ARCHIVE,					qtrue)
+XCVAR_DEF(g_saberScriptedAnimations,		"0",			NULL,				CVAR_SERVERINFO | CVAR_ARCHIVE,					qtrue)
 XCVAR_DEF(g_mmoStyleAttacking,			"0",			NULL,				CVAR_SERVERINFO | CVAR_ARCHIVE,					qtrue)
 
 #undef XCVAR_DEF
