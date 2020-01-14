@@ -3176,7 +3176,7 @@ void G_RunItem( gentity_t *ent ) {
 	contents = trap->PointContents( ent->r.currentOrigin, -1 );
 	if ( contents & CONTENTS_NODROP ) {
 		if (ent->item && ent->item->giType == IT_TEAM) {
-			FACTION_FREEEntity(ent);
+			Team_FreeEntity(ent);
 		} else if(ent->genericValue15 == HI_SENTRY_GUN) {
 			turret_free(ent);
 		} else {

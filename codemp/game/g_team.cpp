@@ -714,7 +714,7 @@ void Team_ReturnFlag( int team ) {
 	}
 }
 
-void FACTION_FREEEntity( gentity_t *ent ) {
+void Team_FreeEntity( gentity_t *ent ) {
 	if( ent->item->giTag == PW_REDFLAG ) {
 		Team_ReturnFlag( FACTION_EMPIRE );
 	}

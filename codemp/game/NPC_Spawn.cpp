@@ -1642,6 +1642,10 @@ gentity_t *NPC_Spawn_Do( gentity_t *ent )
 	if ( newent == NULL )
 	{
 		Com_Printf ( S_COLOR_RED"ERROR: NPC G_Spawn failed\n" );
+		//return NULL;
+
+		//get rid of the spawner, too, I guess
+		G_FreeEntity(ent);
 		return NULL;
 	}
 
@@ -1658,8 +1662,12 @@ gentity_t *NPC_Spawn_Do( gentity_t *ent )
 	if ( newent->NPC == NULL )
 	{
 		Com_Printf ( S_COLOR_RED"ERROR: NPC G_Alloc NPC failed\n" );
-		goto finish;
-	//	return NULL;
+		//goto finish;
+
+		G_FreeEntity(newent);
+		//get rid of the spawner, too, I guess
+		G_FreeEntity(ent);
+		return NULL;
 	}
 
 	//newent->client = (gclient_s *)G_Alloc (sizeof(gclient_s));
@@ -1683,11 +1691,18 @@ gentity_t *NPC_Spawn_Do( gentity_t *ent )
 	if ( newent->client == NULL )
 	{
 		Com_Printf ( S_COLOR_RED"ERROR: NPC BG_Alloc client failed\n" );
-		goto finish;
-	//	return NULL;
+		//goto finish;
+
+		G_FreeEntity(newent);
+		//get rid of the spawner, too, I guess
+		G_FreeEntity(ent);
+		return NULL;
 	}
 
 	memset ( newent->client, 0, sizeof(*newent->client) );
+
+	// UQ1: Record their event spawn area ID, for counting...
+	newent->spawnArea = ent->spawnArea;
 
 	//Assign the pointer for bg entity access
 	newent->playerState = &newent->client->ps;
@@ -2155,13 +2170,6 @@ void NPC_Spawn ( gentity_t *ent, gentity_t *other, gentity_t *activator )
 	//delay before spawning NPC
 	if( ent->delay )
 	{
-/*		//Stasis does an extra step
-		if ( Q_stricmp( ent->classname, "NPC_Stasis" ) == 0 )
-		{
-			if ( NPC_StasisSpawn_Go( ent ) == qfalse )
-				return;
-		}
-*/
 		if ( ent->spawnflags & 2048 )  // SHY
 		{
 			ent->think = NPC_ShySpawn;
@@ -2420,8 +2428,10 @@ void SP_NPC_spawner2( gentity_t *self)
 
 	//self->delay *= 1000;//1 = 1 msec, 1000 = 1 sec -- UQ1: WTF is this hackiness????
 
+	// UQ1: None of this sp sillyness, k, thx...
 	self->wait = 0;
 	self->delay = 0;
+	self->spawnflags = 0;
 
 	G_SpawnInt( "showhealth", "0", &t );
 
@@ -2575,7 +2585,7 @@ void SP_NPC_spawner( gentity_t *self)
 	G_FreeEntity( self );//bye!
 }
 
-void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team )
+void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team, int spawnArea)
 {
 	gentity_t *self = G_Spawn();
 	VectorCopy(position, self->s.origin);
@@ -2586,6 +2596,7 @@ void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team )
 	self->s.angles[ROLL] = 0;
 	self->team = NULL;
 	self->s.eType = ET_NPC_SPAWNER;
+	self->spawnArea = spawnArea;
 
 	if (level.gametype == GT_INSTANCE || level.gametype == GT_WARZONE)
 	{

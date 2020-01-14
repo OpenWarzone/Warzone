@@ -613,6 +613,9 @@ struct gentity_s {
 
 	int				saberDefenseStartTime = 0;
 	int				saberDefenseLastValidTime = 0;
+
+
+	int				spawnArea = -1;
 };
 
 #define DAMAGEREDIRECT_HEAD		1
@@ -1631,12 +1634,6 @@ qboolean SpotWouldTelefrag( gentity_t *spot );
 extern gentity_t *gJMSaberEnt;
 
 //
-// g_eventsystem.cpp
-//
-void G_InitEventAreas(void);
-void FindRandomEventSpawnpoint(team_t team, vec3_t point);
-
-//
 // g_svcmds.c
 //
 qboolean	ConsoleCommand( void );
@@ -1934,8 +1931,28 @@ extern spawnGroupLists_t	spawnGroupData[MAX_SPAWNGROUP_FILES+1];
 
 qboolean NPC_LoadSpawnList( char *listname );
 spawnGroup_t GetSpawnGroup(char *filename, int RARITY);
-void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team );
+void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team, int spawnArea);
 
+
+//
+// g_eventsystem.cpp
+//
+void G_InitEventAreas(void);
+int G_GetEventsCount(void);
+void G_PrintEventAreaInfo(void);
+void G_CountEventAreaSpawns(void);
+void G_UpdateSpawnAreaWaves(void);
+int G_GetEventMostNeedingSpawns(void);
+int G_SpawnCountForEvent(int eventNum);
+int G_WaveSpawnCountForEventWave(int eventNum);
+team_t G_GetFactionForEvent(int eventNum);
+spawnGroupRarity_t G_GetRarityForEventWave(int eventNum);
+void FindRandomEventSpawnpoint(int eventArea, vec3_t point);
+
+
+//
+//
+//
 qboolean FOLIAGE_TreeSolidBlocking(gentity_t *ent, vec3_t moveOrg);
 
 void BG_SetAnim(playerState_t *ps, animation_t *animations, int setAnimParts, int anim, int setAnimFlags, int blendTime = 100);

@@ -691,6 +691,7 @@ void G_InitGentity( gentity_t *e ) {
 	e->r.ownerNum = ENTITYNUM_NONE;
 	e->s.modelGhoul2 = 0; //assume not
 	e->s.eType = ET_GENERAL;
+	e->spawnArea = -1;
 #ifndef __NO_ICARUS__
 	trap->ICARUS_FreeEnt( (sharedEntity_t *)e );	//ICARUS information must be added after this point
 #endif //__NO_ICARUS__

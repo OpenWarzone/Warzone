@@ -1035,6 +1035,8 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 
 	G_InitWorldSession();
 
+	MAPPING_LoadMapInfo();
+
 	// initialize all entities for this game
 	memset( g_entities, 0, MAX_GENTITIES * sizeof(g_entities[0]) );
 	level.gentities = g_entities;
@@ -1132,8 +1134,6 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 		G_SoundIndex( "sound/player/gurp1.wav" );
 		G_SoundIndex( "sound/player/gurp2.wav" );
 	}
-
-	MAPPING_LoadMapInfo();
 
 	if ( trap->Cvar_VariableIntegerValue( "bot_enable" ) ) {
 		BotAISetup( restart );
@@ -4197,6 +4197,8 @@ void G_RunFrame( int levelTime ) {
 #endif //__NPC_DYNAMIC_THREADS__
 	ACTIVE_ENTS_NUM = 0;
 	
+	// Get an event areas spawns count for this frame...
+	G_CountEventAreaSpawns();
 
 	if (level.gametype == GT_SIEGE &&
 		g_siegeRespawn.integer &&
@@ -4937,7 +4939,7 @@ void G_RunFrame( int levelTime ) {
 		iTimer_Queues);
 #endif
 
-	NPC_PrintNumActiveNPCs();
+	//NPC_PrintNumActiveNPCs();
 
 	g_LastFrameTime = level.time;
 }

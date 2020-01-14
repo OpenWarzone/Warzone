@@ -3986,12 +3986,12 @@ extern bot_moveresult_t BotAttackMove(bot_state_t *bs, int tfl);
 
 //#define __LOW_THINK_AI__
 
-int next_active_npc_print = 0;
+//int next_active_npc_print = 0;
 
 void NPC_PrintNumActiveNPCs(void)
 {
-	if (!dedicated.integer) return;
-	if (next_active_npc_print > level.time) return;
+	//if (!dedicated.integer) return;
+	//if (next_active_npc_print > level.time) return;
 
 	int num_active_npcs = 0;
 	int num_inactive_npcs = 0;
@@ -4026,9 +4026,9 @@ void NPC_PrintNumActiveNPCs(void)
 		percActive = percInactive = 0;
 	}
 
-	trap->Print("^7%i ^5(^7%i^5 percent) active and ^7%i^5 (^7%i^5 percent) inactive NPCs.\n", num_active_npcs, percActive, num_inactive_npcs, percInactive);
+	trap->Print("^5There are ^7%i ^5(^7%i^5 percent) thinking and ^7%i^5 (^7%i^5 percent) idle NPCs.\n", num_active_npcs, percActive, num_inactive_npcs, percInactive);
 
-	next_active_npc_print = level.time + 10000;
+	//next_active_npc_print = level.time + 10000;
 }
 
 qboolean NPC_CheckNearbyPlayers(gentity_t *NPC)

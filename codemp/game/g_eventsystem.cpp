@@ -20,6 +20,13 @@ extern float			EVENT_TRACE_SIZE;
 
 extern float			MAP_WATER_LEVEL;
 
+typedef enum {
+	EVENT_SIZE_SMALL,
+	EVENT_SIZE_MEDIUM,
+	EVENT_SIZE_LARGE,
+	EVENT_SIZE_MAX
+} eventSize_t;
+
 
 //#define					DISTANCE_BETWEEN_EVENTS (EVENT_BUFFER >= 8192.0) ? EVENT_BUFFER : 32768.0
 float					DISTANCE_BETWEEN_EVENTS = EVENT_BUFFER;
@@ -32,7 +39,11 @@ qboolean				event_areas_initialized = qfalse;
 int						num_event_areas = 0;
 vec3_t					event_areas[MAX_TEAM_EVENT_AREAS] = { { 0.0 } };
 team_t					event_areas_current_team[MAX_TEAM_EVENT_AREAS] = { { FACTION_SPECTATOR } };
-int						event_areas_spawn_count[MAX_TEAM_EVENT_AREAS] = { { 0 } }; // Not currently used, but should be to spread them out...
+eventSize_t				event_areas_event_size[MAX_TEAM_EVENT_AREAS] = { { EVENT_SIZE_SMALL } };
+int						event_areas_spawn_count[MAX_TEAM_EVENT_AREAS] = { { 0 } };
+int						event_areas_spawn_wave[MAX_TEAM_EVENT_AREAS] = { { 0 } };
+int						event_areas_spawn_quality[MAX_TEAM_EVENT_AREAS] = { { 0 } };
+qboolean				event_areas_wave_filled[MAX_TEAM_EVENT_AREAS] = { { qfalse } };
 qboolean				event_areas_has_ship[MAX_TEAM_EVENT_AREAS] = { { qfalse } };
 
 char					*miscModelString = "misc_model";
@@ -97,6 +108,8 @@ void G_CreateSpawnVesselForEventArea(int area)
 	int loopSound = 0;
 	float zOffset = 8192.0;
 
+	event_areas_event_size[area] = EVENT_SIZE_SMALL;
+
 	switch (team)
 	{
 	case FACTION_WILDLIFE:
@@ -118,6 +131,7 @@ void G_CreateSpawnVesselForEventArea(int area)
 				loopSound = G_SoundIndex("sound/vehicles/shuttle/loop.wav");
 				modelScale = 56;
 				zOffset = 32768.0;
+				event_areas_event_size[area] = EVENT_SIZE_SMALL;
 			}
 			else if (choice == 1)
 			{
@@ -125,6 +139,7 @@ void G_CreateSpawnVesselForEventArea(int area)
 				loopSound = G_SoundIndex("sound/vehicles/shuttle/loop.wav");
 				modelScale = 56;
 				zOffset = 32768.0;
+				event_areas_event_size[area] = EVENT_SIZE_SMALL;
 			}
 			else if (choice == 2)
 			{
@@ -132,6 +147,7 @@ void G_CreateSpawnVesselForEventArea(int area)
 				loopSound = G_SoundIndex("sound/vehicles/shuttle/loop.wav");
 				modelScale = 64;
 				zOffset = 49152.0;
+				event_areas_event_size[area] = EVENT_SIZE_MEDIUM;
 			}
 			else
 #ifdef __USE_ALL_IMPERIAL_SHIPS__
@@ -142,6 +158,7 @@ void G_CreateSpawnVesselForEventArea(int area)
 				loopSound = G_SoundIndex("sound/vehicles/shuttle/loop.wav");
 				modelScale = 112;
 				zOffset = 65536.0;
+				event_areas_event_size[area] = EVENT_SIZE_LARGE;
 			}
 #ifdef __USE_ALL_IMPERIAL_SHIPS__
 			else
@@ -150,6 +167,7 @@ void G_CreateSpawnVesselForEventArea(int area)
 				loopSound = G_SoundIndex("sound/vehicles/ambience/cockpit_steady.wav");
 				modelScale = 56;
 				zOffset = 32768.0;
+				event_areas_event_size[area] = EVENT_SIZE_SMALL;
 			}
 #endif //__USE_ALL_IMPERIAL_SHIPS__
 		}
@@ -164,6 +182,7 @@ void G_CreateSpawnVesselForEventArea(int area)
 				loopSound = G_SoundIndex("sound/movers/objects/shuttle_hover_8.wav");
 				modelScale = 56;
 				zOffset = 32768.0;
+				event_areas_event_size[area] = EVENT_SIZE_LARGE;
 			}
 			else if (choice == 1)
 			{
@@ -172,6 +191,7 @@ void G_CreateSpawnVesselForEventArea(int area)
 				modelFrame = 0;
 				modelScale = 12;
 				zOffset = 6144.0;
+				event_areas_event_size[area] = EVENT_SIZE_SMALL;
 			}
 			else if (choice == 2)
 			{
@@ -180,6 +200,7 @@ void G_CreateSpawnVesselForEventArea(int area)
 				modelFrame = 0;
 				modelScale = 12;
 				zOffset = 6144.0;
+				event_areas_event_size[area] = EVENT_SIZE_SMALL;
 			}
 			else if (choice == 3)
 			{
@@ -188,6 +209,7 @@ void G_CreateSpawnVesselForEventArea(int area)
 				modelFrame = 0;
 				modelScale = 16;
 				zOffset = 4096.0;
+				event_areas_event_size[area] = EVENT_SIZE_SMALL;
 			}
 			else if (choice == 4)
 			{
@@ -196,6 +218,7 @@ void G_CreateSpawnVesselForEventArea(int area)
 				modelFrame = 0;
 				modelScale = 16;
 				zOffset = 4096.0;
+				event_areas_event_size[area] = EVENT_SIZE_SMALL;
 			}
 			else
 			{
@@ -204,12 +227,14 @@ void G_CreateSpawnVesselForEventArea(int area)
 				modelFrame = 0;
 				modelScale = 6;
 				zOffset = 2048.0;
+				event_areas_event_size[area] = EVENT_SIZE_SMALL;
 			}
 #else //!__USE_ALL_REBEL_SHIPS__
 		sprintf(modelName, "models/warzone/ships/calamari/calamari.3ds");
 		loopSound = G_SoundIndex("sound/movers/objects/shuttle_hover_8.wav");
 		modelScale = 56;
 		zOffset = 32768.0;
+		event_areas_event_size[area] = EVENT_SIZE_LARGE;
 #endif //__USE_ALL_REBEL_SHIPS__
 		}
 		break;
@@ -219,6 +244,7 @@ void G_CreateSpawnVesselForEventArea(int area)
 			loopSound = G_SoundIndex("sound/vehicles/shuttle/loop.wav");
 			modelScale = 42;
 			zOffset = 24576.0;
+			event_areas_event_size[area] = EVENT_SIZE_MEDIUM;
 		}
 		break;
 	case FACTION_MERC:
@@ -227,6 +253,7 @@ void G_CreateSpawnVesselForEventArea(int area)
 			loopSound = G_SoundIndex("sound/vehicles/shuttle/loop.wav");
 			modelScale = 56;
 			zOffset = 32768.0;
+			event_areas_event_size[area] = EVENT_SIZE_MEDIUM;
 		}
 		break;
 	case FACTION_PIRATES:
@@ -235,6 +262,7 @@ void G_CreateSpawnVesselForEventArea(int area)
 			loopSound = G_SoundIndex("sound/vehicles/shuttle/loop.wav");
 			modelScale = 56;
 			zOffset = 32768.0;
+			event_areas_event_size[area] = EVENT_SIZE_MEDIUM;
 		}
 		break;
 	default:
@@ -345,7 +373,11 @@ qboolean G_LoadEventAreas(void)
 	for (int i = 0; i < MAX_TEAM_EVENT_AREAS; i++)
 	{
 		VectorClear(event_areas[i]);
+		event_areas_event_size[i] = EVENT_SIZE_SMALL;
 		event_areas_spawn_count[i] = 0;
+		event_areas_spawn_wave[i] = 0;
+		event_areas_spawn_quality[i] = 0;
+		event_areas_wave_filled[i] = qfalse;
 		event_areas_has_ship[i] = qfalse;
 
 		//trap->Print("EVENTS: area %i is team %s.\n", i, TeamName(CURRENT_FACTION));
@@ -449,7 +481,11 @@ void G_SetupEventAreas(void)
 			for (int i = 0; i < MAX_TEAM_EVENT_AREAS; i++)
 			{
 				VectorClear(event_areas[i]);
+				event_areas_event_size[i] = EVENT_SIZE_SMALL;
 				event_areas_spawn_count[i] = 0;
+				event_areas_spawn_wave[i] = 0;
+				event_areas_spawn_quality[i] = 0;
+				event_areas_wave_filled[i] = qfalse;
 				event_areas_has_ship[i] = qfalse;
 
 				//trap->Print("EVENTS: area %i is team %s.\n", i, TeamName(CURRENT_FACTION));
@@ -569,9 +605,13 @@ void G_InitEventAreas(void)
 
 	memset(event_areas, 0, sizeof(event_areas));
 	memset(event_areas_current_team, 0, sizeof(event_areas_current_team));
+	memset(event_areas_event_size, EVENT_SIZE_SMALL, sizeof(event_areas_event_size));
 	memset(event_areas_spawn_count, 0, sizeof(event_areas_spawn_count));
+	memset(event_areas_spawn_wave, 0, sizeof(event_areas_spawn_wave));
+	memset(event_areas_spawn_quality, 0, sizeof(event_areas_spawn_quality));
+	memset(event_areas_wave_filled, qfalse, sizeof(event_areas_wave_filled));
 	memset(event_areas_has_ship, 0, sizeof(event_areas_has_ship));
-
+	
 	for (int i = 0; i < MAX_GENTITIES; i++)
 	{
 		gentity_t *ent = &g_entities[i];
@@ -583,6 +623,373 @@ void G_InitEventAreas(void)
 	}
 
 	G_SetupEventAreas();
+}
+
+int G_GetEventsCount(void)
+{
+	if (!EVENTS_ENABLED || !event_areas_initialized)
+	{
+		if (event_areas_initialized)
+		{
+			return 0;
+		}
+
+		// Special case, so other stuff knows events have not been setup yet...
+		return -1;
+	}
+
+	return num_event_areas;
+}
+
+void G_CountEventAreaSpawns(void)
+{
+	if (!EVENTS_ENABLED)
+	{
+		return;
+	}
+
+	if (num_event_areas > 0)
+	{
+		memset(event_areas_spawn_count, 0, sizeof(event_areas_spawn_count));
+
+		for (int i = 0; i < MAX_GENTITIES; i++)
+		{
+			gentity_t *ent = &g_entities[i];
+
+			if (NPC_IsCivilian(ent)) continue;
+			if (NPC_IsVendor(ent)) continue;
+
+			if (ent 
+				&& ent->s.eType == ET_NPC 
+				&& ent->r.linked
+				&& NPC_IsAlive(ent, ent) 
+				&& ent->spawnArea >= 0 
+				&& ent->spawnArea < num_event_areas)
+			{
+				event_areas_spawn_count[ent->spawnArea]++;
+			}
+		}
+	}
+}
+
+int G_SpawnCountForEvent(int eventNum)
+{
+	if (!EVENTS_ENABLED || eventNum < 0 || num_event_areas <= 0)
+	{
+		return 0;
+	}
+
+	return event_areas_spawn_count[eventNum];
+}
+
+int G_MaxSpawnsPerWave(int wave, eventSize_t eventSize)
+{// NOTE: Must be in groups of 4, as this is how the spawnGroups system is set up... TODO: Varying event sizes...
+	switch (wave)
+	{
+	case 0:
+	default:
+		// Trash...
+		switch (eventSize)
+		{
+		case EVENT_SIZE_SMALL:
+		default:
+			return 4;
+			break;
+		case EVENT_SIZE_MEDIUM:
+			return 8;
+			break;
+		case EVENT_SIZE_LARGE:
+			return 12;
+			break;
+		}
+		break;
+	case 1:
+		// More Trash...
+		switch (eventSize)
+		{
+		case EVENT_SIZE_SMALL:
+		default:
+			return 8;
+			break;
+		case EVENT_SIZE_MEDIUM:
+			return 12;
+			break;
+		case EVENT_SIZE_LARGE:
+			return 16;
+			break;
+		}
+		break;
+	case 2:
+		// Common...
+		switch (eventSize)
+		{
+		case EVENT_SIZE_SMALL:
+		default:
+			return 8;
+			break;
+		case EVENT_SIZE_MEDIUM:
+			return 12;
+			break;
+		case EVENT_SIZE_LARGE:
+			return 16;
+			break;
+		}
+		break;
+	case 3:
+		// Commanders...
+		switch (eventSize)
+		{
+		case EVENT_SIZE_SMALL:
+		default:
+			return 8;
+			break;
+		case EVENT_SIZE_MEDIUM:
+			return 12;
+			break;
+		case EVENT_SIZE_LARGE:
+			return 16;
+			break;
+		}
+		break;
+	case 4:
+		// Elites...
+		switch (eventSize)
+		{
+		case EVENT_SIZE_SMALL:
+		default:
+			return 8;
+			break;
+		case EVENT_SIZE_MEDIUM:
+			return 12;
+			break;
+		case EVENT_SIZE_LARGE:
+			return 16;
+			break;
+		}
+		break;
+	case 5:
+		// Boss...
+		switch (eventSize)
+		{
+		case EVENT_SIZE_SMALL:
+		default:
+			return 8;
+			break;
+		case EVENT_SIZE_MEDIUM:
+			return 12;
+			break;
+		case EVENT_SIZE_LARGE:
+			return 16;
+			break;
+		}
+		break;
+	}
+}
+
+int G_WaveSpawnCountForEventWave(int eventNum)
+{
+	if (!EVENTS_ENABLED || eventNum < 0 || num_event_areas <= 0)
+	{
+		return 4;
+	}
+
+	return G_MaxSpawnsPerWave(event_areas_spawn_wave[eventNum], event_areas_event_size[eventNum]);
+}
+
+spawnGroupRarity_t G_GetRarityForEventWave(int eventNum)
+{
+	if (!EVENTS_ENABLED || eventNum < 0 || num_event_areas <= 0)
+	{
+		return RARITY_SPAM;
+	}
+
+	if (event_areas_spawn_quality[eventNum] > 0)
+	{// Special case for end boss fight, spawn 1 boss spawn, and then elites with him...
+		return RARITY_ELITE;
+	}
+
+	int wave = event_areas_spawn_wave[eventNum];
+
+	switch (wave)
+	{
+	case 0:
+	default:
+		// Trash...
+		return RARITY_SPAM;
+		break;
+	case 1:
+		// Trash...
+		return RARITY_SPAM;
+		break;
+	case 2:
+		// Common...
+		return RARITY_COMMON;
+		break;
+	case 3:
+		// Commanders...
+		return RARITY_OFFICER;
+		break;
+	case 4:
+		// Elites...
+		return RARITY_ELITE;
+		break;
+	case 5:
+		// Boss...
+		event_areas_spawn_quality[eventNum]++; // Force elite defenders to spawn after this boss...
+		return RARITY_BOSS;
+		break;
+	}
+}
+
+void G_UpdateSpawnAreaWaves(void)
+{
+	if (!EVENTS_ENABLED)
+	{
+		return;
+	}
+
+	if (num_event_areas > 0)
+	{
+		for (int i = 0; i < num_event_areas; i++)
+		{
+			int wave = event_areas_spawn_wave[i];
+			int maxWaveSpawns = G_MaxSpawnsPerWave(wave, event_areas_event_size[i]);
+			int currentCount = event_areas_spawn_count[i];
+
+			if (currentCount > maxWaveSpawns - 4)
+			{// This event is filled up, make sure we wait until the wave completes before spawning NPCs...
+				event_areas_wave_filled[i] = qtrue;
+			}
+
+			if (currentCount <= 0)
+			{// This wave is completed, increment the wave, and allow new spawns...
+				if (event_areas_wave_filled[i])
+				{
+					event_areas_spawn_wave[i]++;
+					event_areas_spawn_quality[i] = 0;
+					event_areas_wave_filled[i] = qfalse;
+				}
+
+				if (event_areas_spawn_wave[i] > 5)
+				{// Reset to 0 for now... TODO: Switch to another event and ship hyperspace out/in over time...
+					event_areas_spawn_wave[i] = 0;
+					event_areas_spawn_quality[i] = 0;
+				}
+			}
+		}
+	}
+}
+
+void G_PrintEventAreaInfo(void)
+{
+	if (!EVENTS_ENABLED)
+	{
+		return;
+	}
+
+	for (int i = 0; i < num_event_areas; i++)
+	{
+		if (event_areas_spawn_count[i] > 0)
+		{
+			int currentWave = event_areas_spawn_wave[i];
+			int maxWaveSpawns = G_MaxSpawnsPerWave(currentWave, event_areas_event_size[i]);
+			int currentCount = event_areas_spawn_count[i];
+
+			trap->Print("^5Area ^7%i^5 (wave ^7%i^5) has ^7%i^5/^7%i^5 spawned NPCs.\n", i, currentWave, currentCount, maxWaveSpawns);
+		}
+	}
+}
+
+extern vmCvar_t npc_imperials;
+extern vmCvar_t npc_rebels;
+extern vmCvar_t npc_mandalorians;
+extern vmCvar_t npc_mercs;
+extern vmCvar_t npc_pirates;
+extern vmCvar_t npc_wildlife;
+
+qboolean G_EnabledFactionEvent(int eventNum)
+{
+	team_t eventFaction = event_areas_current_team[eventNum];
+
+	switch (eventFaction)
+	{
+	case FACTION_EMPIRE:
+		trap->Cvar_Update(&npc_imperials);
+		if (npc_imperials.integer)
+			return qtrue;
+		break;
+	case FACTION_REBEL:
+		trap->Cvar_Update(&npc_rebels);
+		if (npc_rebels.integer)
+			return qtrue;
+		break;
+	case FACTION_MANDALORIAN:
+		trap->Cvar_Update(&npc_mandalorians);
+		if (npc_mandalorians.integer)
+			return qtrue;
+		break;
+	case FACTION_MERC:
+		trap->Cvar_Update(&npc_mercs);
+		if (npc_mercs.integer)
+			return qtrue;
+		break;
+	case FACTION_PIRATES:
+		trap->Cvar_Update(&npc_pirates);
+		if (npc_pirates.integer)
+			return qtrue;
+		break;
+	case FACTION_WILDLIFE:
+		trap->Cvar_Update(&npc_wildlife);
+		if (npc_wildlife.integer)
+			return qtrue;
+		break;
+	case FACTION_SPECTATOR:
+	default:
+		return qtrue;
+		break;
+	}
+
+	return qfalse;
+}
+
+int G_GetEventMostNeedingSpawns(void)
+{
+	int leastSpawnsEvent = -1;
+	int leastSpawnsCount = 9999;
+
+	if (!EVENTS_ENABLED)
+	{
+		return -1;
+	}
+
+	if (num_event_areas > 0)
+	{
+		for (int i = 0; i < num_event_areas; i++)
+		{
+			int				currentWave = event_areas_spawn_wave[i];
+			int				maxWaveSpawns = G_MaxSpawnsPerWave(currentWave, event_areas_event_size[i]);
+			int				currentCount = event_areas_spawn_count[i];
+			qboolean		waitingForWave = event_areas_wave_filled[i];
+
+			if (!waitingForWave && currentWave >= 0 && G_EnabledFactionEvent(i) && currentCount < leastSpawnsCount && currentCount < maxWaveSpawns)
+			{
+				leastSpawnsEvent = i;
+				leastSpawnsCount = event_areas_spawn_count[i];
+			}
+		}
+	}
+
+	return leastSpawnsEvent;
+}
+
+team_t G_GetFactionForEvent(int eventNum)
+{
+	if (!EVENTS_ENABLED || num_event_areas <= 0 || eventNum < 0)
+	{
+		return FACTION_SPECTATOR;
+	}
+
+	return event_areas_current_team[eventNum];
 }
 
 qboolean WildlifeSpawnpointTooCloseToEvent(vec3_t pos)
@@ -613,7 +1020,7 @@ void FindRandomWildlifeSpawnpoint(vec3_t point)
 	}
 }
 
-void FindRandomEventSpawnpoint(team_t team, vec3_t point)
+void FindRandomEventSpawnpoint(int eventArea, vec3_t point)
 {
 	if (!EVENTS_ENABLED)
 	{// Events are not enabled for this map...
@@ -627,6 +1034,13 @@ void FindRandomEventSpawnpoint(team_t team, vec3_t point)
 		return;
 	}
 
+	team_t team = FACTION_WILDLIFE;
+
+	if (eventArea >= 0)
+	{
+		team = G_GetFactionForEvent(eventArea);
+	}
+
 	if (team == FACTION_WILDLIFE)
 	{// Spawn outside of event areas so they don't interract with the NPCs in them, and for random enemy encounters heading to/from events...
 		FindRandomWildlifeSpawnpoint(point);
@@ -637,6 +1051,7 @@ void FindRandomEventSpawnpoint(team_t team, vec3_t point)
 
 	vec3_t event_position;
 
+#if 0
 	int numPossibleAreas = 0;
 	int possibleAreas[MAX_TEAM_EVENT_AREAS] = { { -1 } };
 
@@ -652,6 +1067,9 @@ void FindRandomEventSpawnpoint(team_t team, vec3_t point)
 
 	// Select an area at random... (TODO: sort and weight?)
 	int bestArea = possibleAreas[irand(0, numPossibleAreas - 1)];
+#else
+	int bestArea = eventArea;
+#endif
 	VectorCopy(event_areas[bestArea], event_position);
 
 	//trap->Print("EVENT: area %i selected for team %s spawn.\n", bestArea, TeamName(event_areas_current_team[bestArea]));
@@ -662,6 +1080,8 @@ void FindRandomEventSpawnpoint(team_t team, vec3_t point)
 #if defined(__USE_NAVLIB__) || defined(__USE_NAVLIB_SPAWNPOINTS__)
 	if (G_NavmeshIsLoaded())
 	{
+		VectorSet(point, 0.0, 0.0, 0.0);
+
 #pragma omp critical
 		{
 			FindRandomNavmeshPointInRadius(-1, event_position, point, 2048.0);
@@ -690,5 +1110,4 @@ void FindRandomEventSpawnpoint(team_t team, vec3_t point)
 			VectorCopy(spawn->s.origin, point);
 		}
 	}
-
 }
