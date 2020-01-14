@@ -522,6 +522,153 @@ int svcmdcmp( const void *a, const void *b ) {
 	return Q_stricmp( (const char *)a, ((svcmd_t*)b)->name );
 }
 
+/*
+Svcmd_NPC_Kill_f
+*/
+extern stringID_table_t TeamTable[];
+extern char	*TeamNames[FACTION_NUM_FACTIONS];
+
+void Svcmd_NPC_Kill_f(void)
+{
+	int			n;
+	gentity_t	*player;
+	char		name[1024];
+	npcteam_t	killTeam = NPCTEAM_FREE;
+	qboolean	killNonSF = qfalse;
+
+	trap->Argv(2, name, 1024);
+
+	if (!name[0])
+	{
+		Com_Printf(S_COLOR_RED"Error, Expected:\n");
+		Com_Printf(S_COLOR_RED"NPC kill '[NPC targetname]' - kills NPCs with certain targetname\n");
+		Com_Printf(S_COLOR_RED"or\n");
+		Com_Printf(S_COLOR_RED"NPC kill 'all' - kills all NPCs\n");
+		Com_Printf(S_COLOR_RED"or\n");
+		Com_Printf(S_COLOR_RED"NPC team '[teamname]' - kills all NPCs of a certain team ('nonally' is all but your allies)\n");
+		return;
+	}
+
+	if (Q_stricmp("team", name) == 0)
+	{
+		trap->Argv(3, name, 1024);
+
+		if (!name[0])
+		{
+			Com_Printf(S_COLOR_RED"NPC_Kill Error: 'npc kill team' requires a team name!\n");
+			Com_Printf(S_COLOR_RED"Valid team names are:\n");
+			for (n = (FACTION_FREE + 1); n < FACTION_NUM_FACTIONS; n++)
+			{
+				Com_Printf(S_COLOR_RED"%s\n", TeamNames[n]);
+			}
+			Com_Printf(S_COLOR_RED"nonally - kills all but your teammates\n");
+			return;
+		}
+
+		if (Q_stricmp("nonally", name) == 0)
+		{
+			killNonSF = qtrue;
+		}
+		else
+		{
+			killTeam = (npcteam_t)GetIDForString(TeamTable, name);
+
+			if (killTeam == NPCTEAM_FREE)
+			{
+				Com_Printf(S_COLOR_RED"NPC_Kill Error: team '%s' not recognized\n", name);
+				Com_Printf(S_COLOR_RED"Valid team names are:\n");
+				for (n = (FACTION_FREE + 1); n < FACTION_NUM_FACTIONS; n++)
+				{
+					Com_Printf(S_COLOR_RED"%s\n", TeamNames[n]);
+				}
+				Com_Printf(S_COLOR_RED"nonally - kills all but your teammates\n");
+				return;
+			}
+		}
+	}
+
+	for (n = 1; n < ENTITYNUM_MAX_NORMAL; n++)
+	{
+		player = &g_entities[n];
+		if (!player->inuse) {
+			continue;
+		}
+		if (killNonSF)
+		{
+			if (player)
+			{
+				if (player->client)
+				{
+					if (player->client->playerTeam != NPCTEAM_PLAYER)
+					{
+						Com_Printf(S_COLOR_GREEN"Killing NPC %s named %s\n", player->NPC_type, player->targetname);
+						player->health = 0;
+
+						if (player->die && player->client)
+						{
+							player->die(player, player, player, player->client->pers.maxHealth, MOD_UNKNOWN);
+						}
+					}
+				}
+				else if (player->NPC_type && player->classname && player->classname[0] && Q_stricmp("NPC_starfleet", player->classname) != 0)
+				{//A spawner, remove it
+					Com_Printf(S_COLOR_GREEN"Removing NPC spawner %s with NPC named %s\n", player->NPC_type, player->NPC_targetname);
+					G_FreeEntity(player);
+					//FIXME: G_UseTargets2(player, player, player->NPC_target & player->target);?
+				}
+			}
+		}
+		else if (player && player->NPC && player->client)
+		{
+			if (killTeam != NPCTEAM_FREE)
+			{
+				if (player->client->playerTeam == killTeam)
+				{
+					Com_Printf(S_COLOR_GREEN"Killing NPC %s named %s\n", player->NPC_type, player->targetname);
+					player->health = 0;
+					player->s.health = player->client->ps.stats[STAT_HEALTH] = 0;
+					player->client->ps.eFlags |= EF_DEAD;
+					player->s.eFlags |= EF_DEAD;
+					if (player->die)
+					{
+						player->die(player, player, player, player->client->pers.maxHealth, MOD_UNKNOWN);
+					}
+				}
+			}
+			else if ((player->targetname && Q_stricmp(name, player->targetname) == 0)
+				|| Q_stricmp(name, "all") == 0)
+			{
+				Com_Printf(S_COLOR_GREEN"Killing NPC %s named %s\n", player->NPC_type, player->targetname);
+				player->health = 0;
+				player->s.health = player->client->ps.stats[STAT_HEALTH] = 0;
+				player->client->ps.eFlags |= EF_DEAD;
+				player->s.eFlags |= EF_DEAD;
+				if (player->die)
+				{
+					player->die(player, player, player, 100, MOD_UNKNOWN);
+				}
+			}
+		}
+	}
+}
+
+void Svcmd_NPC_f(void)
+{
+	char	cmd[1024];
+
+	trap->Argv(1, cmd, 1024);
+
+	if (!cmd[0])
+	{
+		Com_Printf("Valid NPC commands are:\n");
+		Com_Printf(" kill [NPC targetname] or [all(kills all NPCs)] or 'team [teamname]'\n");
+	}
+	else if (Q_stricmp(cmd, "kill") == 0)
+	{
+		Svcmd_NPC_Kill_f();
+	}
+}
+
 void G_CheckFields( void );
 void G_CheckSpawns( void );
 
@@ -532,11 +679,12 @@ svcmd_t svcmds[] = {
 	{ "botlist",					Svcmd_BotList_f,					qfalse },
 	{ "checkfields",				G_CheckFields,						qfalse },
 	{ "checkspawns",				G_CheckSpawns,						qfalse },
-//	{ "dlmemstats",					DL_MemStats,						qfalse },
+	//	{ "dlmemstats",					DL_MemStats,						qfalse },
 	{ "entitylist",					Svcmd_EntityList_f,					qfalse },
 	{ "forceteam",					Svcmd_ForceTeam_f,					qfalse },
 	{ "game_memory",				Svcmd_GameMem_f,					qfalse },
 	{ "listip",						Svcmd_ListIP_f,						qfalse },
+	{ "npc", 						Svcmd_NPC_f,						qfalse },
 	{ "removeip",					Svcmd_RemoveIP_f,					qfalse },
 	{ "say",						Svcmd_Say_f,						qtrue },
 	{ "toggleuserinfovalidation",	Svcmd_ToggleUserinfoValidation_f,	qfalse },

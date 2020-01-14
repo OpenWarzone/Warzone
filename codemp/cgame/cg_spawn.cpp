@@ -532,7 +532,7 @@ void SP_worldspawn( void ) {
 	}
 
 	CG_SpawnFloat( "fogstart", "0", &cg_linearFogOverride );
-	CG_SpawnFloat( "radarrange", "2500", &cg_radarRange );
+	CG_SpawnFloat( "radarrange", /*"2500"*/"16384", &cg_radarRange );
 }
 /*
 ==============

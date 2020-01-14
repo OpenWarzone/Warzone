@@ -956,6 +956,7 @@ void NPC_Begin (gentity_t *ent)
 	//if (ent->spawnflags & SFB_NOTSOLID) ent->spawnflags &= ~SFB_NOTSOLID;
 	ent->spawnflags = 0;
 
+#if 0
 	if ( !(ent->spawnflags & SFB_NOTSOLID) && !(ent->s.eFlags & EF_FAKE_NPC_BOT) )
 	{//No NPCs should telefrag
 		if (NPC_SpotWouldTelefrag(ent))
@@ -979,6 +980,7 @@ void NPC_Begin (gentity_t *ent)
 			return;
 		}
 	}
+#endif
 
 	if (!(ent->s.eFlags & EF_FAKE_NPC_BOT))
 	{
@@ -1407,24 +1409,35 @@ void NPC_Begin (gentity_t *ent)
 		}
 	}
 
+#if 0
 	//if (g_gametype.integer == GT_INSTANCE) // UQ1: Screw it. Will do this for all gametypes.
 	{
-		if (ent->NPC->stats.health <= 0) ent->NPC->stats.health = 30; // UQ1: Because not all NPC files have a health value...
+		if (ent->NPC->stats.health <= 100) ent->NPC->stats.health = 200; // UQ1: Because not all NPC files have a health value...
 		if (ent->client->ps.fd.forcePowerMax <= 0) ent->client->ps.fd.forcePowerMax = 500;
 
+		if (ent->client->NPC_class == CLASS_IMPERIAL)
+		{
+			ent->NPC->stats.health = 300;
+		}
+
 		// More health for instance enemies... This is meant to be run as a team...
-		if (ent->client->ps.weapon == WP_SABER)
+		if (ent->client->ps.weapon == WP_SABER || NPC_IsJedi(ent))
 		{// Bosses... TODO: Sub-types...
 			if (ent->client->NPC_class == CLASS_PADAWAN)
 			{// Padawans get just over half health/force... The extra .5 is to compensate for falling, etc following master around map...
-				ent->NPC->stats.health *= 2.5;
-				ent->client->ps.fd.forcePowerMax *= 2.5;
+				ent->NPC->stats.health *= 3;
+				ent->client->ps.fd.forcePowerMax *= 3;
 			}
 			else
 			{
-				ent->NPC->stats.health *= 4;
-				ent->client->ps.fd.forcePowerMax *= 4;
+				ent->NPC->stats.health *= 6;
+				ent->client->ps.fd.forcePowerMax *= 6;
 			}
+		}
+		else if (NPC_IsBountyHunter(ent) || NPC_IsAdvancedGunner(ent) || NPC_IsCommando(ent))
+		{
+			ent->NPC->stats.health *= 3;
+			ent->client->ps.fd.forcePowerMax *= 3;
 		}
 		else
 		{// TODO: Sub-types...
@@ -1435,6 +1448,101 @@ void NPC_Begin (gentity_t *ent)
 		ent->health = ent->maxHealth = client->pers.maxHealth = client->ps.stats[STAT_MAX_HEALTH] = client->ps.stats[STAT_HEALTH] = ent->NPC->stats.health;
 		ent->client->ps.fd.forcePower = ent->client->ps.fd.forcePowerMax;
 	}
+#else
+	if (!NPC_IsHumanoid(ent))
+	{// Animal or droid... Use original stats...
+		if (ent->NPC->stats.health <= 100) ent->NPC->stats.health = 200; // UQ1: Because not all NPC files have a health value...
+		if (ent->client->ps.fd.forcePowerMax <= 0) ent->client->ps.fd.forcePowerMax = 500;
+
+		if (ent->client->NPC_class == CLASS_IMPERIAL)
+		{
+			ent->NPC->stats.health = 300;
+		}
+
+		// More health for instance enemies... This is meant to be run as a team...
+		if (ent->client->ps.weapon == WP_SABER || NPC_IsJedi(ent))
+		{// Bosses... TODO: Sub-types...
+			if (ent->client->NPC_class == CLASS_PADAWAN)
+			{// Padawans get just over half health/force... The extra .5 is to compensate for falling, etc following master around map...
+				ent->NPC->stats.health *= 3;
+				ent->client->ps.fd.forcePowerMax *= 3;
+			}
+			else
+			{
+				ent->NPC->stats.health *= 6;
+				ent->client->ps.fd.forcePowerMax *= 6;
+			}
+		}
+		else if (NPC_IsBountyHunter(ent) || NPC_IsAdvancedGunner(ent) || NPC_IsCommando(ent))
+		{
+			ent->NPC->stats.health *= 3;
+			ent->client->ps.fd.forcePowerMax *= 3;
+		}
+		else
+		{// TODO: Sub-types...
+			ent->NPC->stats.health *= 2;
+			ent->client->ps.fd.forcePowerMax *= 2;
+		}
+
+		ent->health = ent->maxHealth = client->pers.maxHealth = client->ps.stats[STAT_MAX_HEALTH] = client->ps.stats[STAT_HEALTH] = ent->NPC->stats.health;
+		ent->client->ps.fd.forcePower = ent->client->ps.fd.forcePowerMax;
+	}
+	else
+	{// More health for enemies...
+		if (ent->client->ps.weapon == WP_SABER || NPC_IsJedi(ent))
+		{// Bosses... TODO: Sub-types...
+			if (ent->client->NPC_class == CLASS_PADAWAN)
+			{// Padawans get just over half health/force... The extra .5 is to compensate for falling, etc following master around map...
+				ent->NPC->stats.health = 800;
+				ent->client->ps.fd.forcePowerMax = 500;
+			}
+			else if (NPC_IsBoss(ent))
+			{
+				ent->NPC->stats.health = 1800;
+				ent->client->ps.fd.forcePowerMax = 1000;
+			}
+			else
+			{
+				ent->NPC->stats.health = 1200;
+				ent->client->ps.fd.forcePowerMax = 600;
+			}
+		}
+		else if (NPC_IsFollowerGunner(ent))
+		{
+			ent->NPC->stats.health = 800;
+			ent->client->ps.fd.forcePowerMax = 500;
+		}
+		else if (NPC_IsBountyHunter(ent))
+		{
+			ent->NPC->stats.health = 950;
+			ent->client->ps.fd.forcePowerMax = 600;
+		}
+		else if (NPC_IsCommando(ent))
+		{
+			ent->NPC->stats.health = 850;
+			ent->client->ps.fd.forcePowerMax = 500;
+		}
+		else if (NPC_IsAdvancedGunner(ent))
+		{
+			ent->NPC->stats.health = 725;
+			ent->client->ps.fd.forcePowerMax = 600;
+		}
+		else if (NPC_IsStormtrooper(ent))
+		{
+			ent->NPC->stats.health = 600;
+			ent->client->ps.fd.forcePowerMax = 300;
+		}
+		else
+		{// TODO: Sub-types...
+			ent->NPC->stats.health = 500;
+			ent->client->ps.fd.forcePowerMax = 600;
+		}
+
+		// Why are there so many fucking health variables... ffs raven...
+		ent->s.health = ent->s.maxhealth = ent->health = ent->maxHealth = client->pers.maxHealth = client->ps.stats[STAT_MAX_HEALTH] = client->ps.stats[STAT_HEALTH] = ent->NPC->stats.health;
+		ent->client->ps.fd.forcePower = ent->client->ps.fd.forcePowerMax;
+	}
+#endif
 
 	// UQ1: Init original weapon info...
 	if (NPC_IsBountyHunter(ent))

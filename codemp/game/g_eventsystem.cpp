@@ -661,8 +661,9 @@ void G_CountEventAreaSpawns(void)
 
 			if (ent 
 				&& ent->s.eType == ET_NPC 
+				&& ent->inuse
 				&& ent->r.linked
-				&& NPC_IsAlive(ent, ent) 
+				//&& NPC_IsAlive(ent, ent) // we still want to wait for the bodies to disappear before the next wave...
 				&& ent->spawnArea >= 0 
 				&& ent->spawnArea < num_event_areas)
 			{

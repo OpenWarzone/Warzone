@@ -1331,11 +1331,11 @@ void G_CheckMinimumNpcs(void)
 
 	if (EVENT_COUNT > 0)
 	{
-		// Update event area spawn counts before spawning anything new...
-		G_CountEventAreaSpawns();
-
 		// Update event area spawn waves...
 		G_UpdateSpawnAreaWaves();
+
+		// Update event area spawn counts before spawning anything new...
+		G_CountEventAreaSpawns();
 
 		EVENT_AREA_ID = G_GetEventMostNeedingSpawns();
 
@@ -1352,6 +1352,8 @@ void G_CheckMinimumNpcs(void)
 			}
 			else
 			{
+				//Com_Printf("EVENT_SPAWN_SPAWNCOUNT %i. EVENT_SPAWN_WAVECOUNT %i.\n", EVENT_SPAWN_SPAWNCOUNT, EVENT_SPAWN_WAVECOUNT);
+
 				switch (EVENT_SPAWN_FACTION)
 				{
 				case FACTION_EMPIRE:
@@ -1400,7 +1402,15 @@ void G_CheckMinimumNpcs(void)
 	{
 		gentity_t *npc = &g_entities[i];
 
-		if (!(npc && npc->inuse && npc->client && npc->r.linked && npc->s.eType == ET_NPC && NPC_IsAlive(npc, npc))) continue;
+		if (!(npc
+			&& npc->inuse
+			&& npc->r.linked
+			&& npc->s.eType == ET_NPC
+			/*&& NPC_IsAlive(npc, npc)*/)) // we still want to wait for the bodies to disappear before the next wave...
+		{
+			continue;
+		}
+
 		if (NPC_IsCivilian(npc)) continue;
 		if (NPC_IsVendor(npc)) continue;
 		
@@ -1416,6 +1426,11 @@ void G_CheckMinimumNpcs(void)
 			num_pirate_npcs++;
 		else if (npc->client->sess.sessionTeam == FACTION_WILDLIFE)
 			num_wildlife_npcs++;
+	}
+
+	if (EVENT_SPAWN_SPAWNCOUNT + 4 > EVENT_SPAWN_WAVECOUNT)
+	{// Event is already full...
+		skipSpawning = qtrue;
 	}
 
 	if (((g_consoleNPCStats.integer && dedicated.integer) || g_consoleNPCStats.integer == 2) 

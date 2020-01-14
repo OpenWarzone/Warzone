@@ -422,7 +422,7 @@ qboolean NPC_IsAdvancedGunner ( gentity_t *self )
 	//case CLASS_GONK:				// droid
 	//case CLASS_GRAN:
 	//case CLASS_HOWLER:
-	//case CLASS_IMPERIAL:
+	case CLASS_IMPERIAL:
 	//case CLASS_IMPWORKER:
 	//case CLASS_INTERROGATOR:		// droid 
 	//case CLASS_JAN:				

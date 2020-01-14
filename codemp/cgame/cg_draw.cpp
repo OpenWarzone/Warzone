@@ -5122,7 +5122,7 @@ CG_DrawRadar
 =====================
 */
 
-float	cg_radarRange = 2500.0f;
+float	cg_radarRange = 16384.0f;// 2500.0f;
 
 #define RADAR_RADIUS			40
 #define RADAR_X					(595 - RADAR_RADIUS)
@@ -5280,10 +5280,10 @@ float CG_DrawRadar(float y)
 #define ELEVATION_DIFFERENCE_LIMIT 25		// Change to adjust when it starts drawing the elevation versions of the "CLOSE" ones.
 #endif
 		//for outdoor big maps
-#define RADAR_FAR_RANGE	2500//600			// Adjust this one to adjust when the radar picks up a target AT ALL. Will show the outside tic.
-#define RADAR_CLOSE_RANGE 800//300			// Adjust this for switching from the Far away indicator to the close-by one. The weak highlight, but full tic.
-#define RADAR_REALLY_CLOSE_RANGE 400//100	// Adjust this one for the distance to draw the strong full tic. Needs to be smaller than the one above
-#define RADAR_RIGHT_HERE 100	//50				// Draw the center piece at this distance
+#define RADAR_FAR_RANGE	16384//2500//600			// Adjust this one to adjust when the radar picks up a target AT ALL. Will show the outside tic.
+#define RADAR_CLOSE_RANGE 4096//800//300			// Adjust this for switching from the Far away indicator to the close-by one. The weak highlight, but full tic.
+#define RADAR_REALLY_CLOSE_RANGE 1024//400//100	// Adjust this one for the distance to draw the strong full tic. Needs to be smaller than the one above
+#define RADAR_RIGHT_HERE 256//100	//50				// Draw the center piece at this distance
 #define ELEVATION_DIFFERENCE_LIMIT 25		// Change to adjust when it starts drawing the elevation versions of the "CLOSE" ones.
 			// actualDist will be used to figure out which image to show. Or to skip if the enemy is too far away.
 			if (actualDist <= RADAR_FAR_RANGE) // Skip if not within radar range.

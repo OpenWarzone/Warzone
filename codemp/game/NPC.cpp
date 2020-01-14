@@ -113,6 +113,11 @@ qboolean NPC_IsAlive (gentity_t *self, gentity_t *NPC )
 			return qfalse;
 		}
 
+		if (NPC->s.eFlags & EF_DEAD)
+		{
+			return qfalse;
+		}
+
 		if (NPC->health <= 0 && (NPC->client && NPC->client->ps.stats[STAT_HEALTH] <= 0))
 		{
 			return qfalse;
@@ -4048,6 +4053,12 @@ qboolean NPC_CheckNearbyPlayers(gentity_t *NPC)
 		return qfalse;
 	}
 
+	if (NPC->s.eFlags & EF_DEAD)
+	{// Always think...
+		NPC->npc_activate_time = level.time + 5000;
+		return qtrue;
+	}
+
 	if (NPC->isPadawan)
 	{// Padawans and followers with a player or an active NPC parent are always enabled...
 		if (NPC->parent 
@@ -4202,7 +4213,7 @@ void NPC_Think ( gentity_t *self )//, int msec )
 
 	// dead NPCs have a special think, don't run scripts (for now)
 	//FIXME: this breaks deathscripts
-	if ( /*self->health <= 0*//*self->client->ps.stats[STAT_HEALTH] <= 0*/self->s.health <= 0 )
+	if ( /*self->health <= 0*//*self->client->ps.stats[STAT_HEALTH] <= 0*/self->s.health <= 0 || (self->s.eFlags & EF_DEAD) )
 	{
 		//Com_Printf("NPC %i - DEAD THINK.\n", self->s.number);
 
