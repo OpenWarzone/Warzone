@@ -1996,8 +1996,10 @@ static void CG_ServerModel(centity_t *cent) {
 		}
 	}
 
-	switch (cent->currentState.teamowner)
-	{
+	if (s1->generic1 != 2)
+	{// 2 means that the ship is in hyperspace, so don't launcher fighters, or fight until we stop...
+		switch (cent->currentState.teamowner)
+		{
 		case FACTION_WILDLIFE:
 		{// Wildlife is native and does not spawn from a ship...
 
@@ -2032,6 +2034,7 @@ static void CG_ServerModel(centity_t *cent) {
 		break;
 		default:
 			break;
+		}
 	}
 }
 

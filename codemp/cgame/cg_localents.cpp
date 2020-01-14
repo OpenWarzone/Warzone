@@ -1183,6 +1183,11 @@ void CG_ShipLaserCreate(centity_t *myShip, centity_t *enemyShip)
 
 void CG_ShootAtEnemyShips(centity_t *myShip)
 {
+	if (myShip->currentState.generic1 == 2)
+	{// 2 means that the ship is in hyperspace, so don't launcher fighters, or fight until we stop...
+		return;
+	}
+
 	if (Distance(myShip->lerpOrigin, cg.refdef.vieworg) > MAX_SHIP_LASER_DRAW_DISTANCE)
 	{
 		return;
@@ -1304,106 +1309,108 @@ void CG_Fighters(centity_t *myShip)
 		return;
 	}
 
-	if (myShip->numFighters <= 0)
-	{
-		memset(myShip->fighters, 0, sizeof(myShip->fighters));
-
-		for (int i = 0; i < FIGHTERS_COUNT && i < 16; i++)
+	if (myShip->currentState.generic1 != 2)
+	{// 2 means that the ship is in hyperspace, so don't launcher fighters, or fight until we stop...
+		if (myShip->numFighters <= 0)
 		{
-			mapFighters_t *fighter = &myShip->fighters[i];
+			memset(myShip->fighters, 0, sizeof(myShip->fighters));
 
-			// In random positions near the ship...
-			fighter->origin[0] = myShip->lerpOrigin[0] + irand(0, 32768) - 16386;
-			fighter->origin[1] = myShip->lerpOrigin[1] + irand(0, 32768) - 16386;
-			fighter->origin[2] = myShip->lerpOrigin[2] - irand(4096, 8192);
+			for (int i = 0; i < FIGHTERS_COUNT && i < 16; i++)
+			{
+				mapFighters_t *fighter = &myShip->fighters[i];
 
-			fighter->rotate = 1.0;
+				// In random positions near the ship...
+				fighter->origin[0] = myShip->lerpOrigin[0] + irand(0, 32768) - 16386;
+				fighter->origin[1] = myShip->lerpOrigin[1] + irand(0, 32768) - 16386;
+				fighter->origin[2] = myShip->lerpOrigin[2] - irand(4096, 8192);
 
-			if (irand(0, 1) == 1)
-			{// This one flies in counter clockwise...
-				fighter->rotate = -1.0;
+				fighter->rotate = 1.0;
+
+				if (irand(0, 1) == 1)
+				{// This one flies in counter clockwise...
+					fighter->rotate = -1.0;
+				}
+
+				fighter->circleSize = irand(1, FIGHTERS_MAX_CIRCLE_SIZE);
+
+				float a = ((float(cg.time) / 1000.0) / fighter->circleSize + i) * fighter->rotate;
+				float b = 0.0;
+				fighter->dir[0] = cos(a) * cos(b);
+				fighter->dir[1] = sin(a) * cos(b);
+				fighter->dir[2] = 0.0;// sin(b);
+
+				VectorCopy(fighter->origin, fighter->startOrigin);
+
+				//trap->Print("Fighter %i spawn at %f %f %f. Dir %f.\n", i, fighter->origin[0], fighter->origin[1], fighter->origin[2], fighter->dir[YAW]);
+
+				fighter->loopSound = fighterSounds[(myShip->currentState.teamowner == FACTION_EMPIRE) ? 0 : 1];
+
+				fighter->team = myShip->currentState.teamowner;
+
+				// Allocate a local sound entity number so sound system can track the sound...
+				fighter->localSoundEntityNum = numLocalSoundEntities;
+				numLocalSoundEntities++;
+
+				myShip->numFighters++;
+
+				// Add it to the global fighter list as well, so we can do fighter vs fighter weapon fx...
+				mapFighters[numMapFighters] = fighter;
+				numMapFighters++;
 			}
 
-			fighter->circleSize = irand(1, FIGHTERS_MAX_CIRCLE_SIZE);
+			//trap->Print("Event ship %i given %i fighter escorts...\n", myShip->currentState.number, FIGHTERS_COUNT);
 
-			float a = ((float(cg.time) / 1000.0) / fighter->circleSize + i) * fighter->rotate;
-			float b = 0.0;
-			fighter->dir[0] = cos(a) * cos(b);
-			fighter->dir[1] = sin(a) * cos(b);
-			fighter->dir[2] = 0.0;// sin(b);
+			//
+			// Also assign enemy attacking fighters... Hmm, maybe only when we are within range of an enemy capital (or shooting at one)?
+			//
+			memset(myShip->enemyFighters, 0, sizeof(myShip->enemyFighters));
 
-			VectorCopy(fighter->origin, fighter->startOrigin);
+			for (int i = 0; i < ENEMY_FIGHTERS_COUNT && i < 16; i++)
+			{
+				mapFighters_t *fighter = &myShip->enemyFighters[i];
 
-			//trap->Print("Fighter %i spawn at %f %f %f. Dir %f.\n", i, fighter->origin[0], fighter->origin[1], fighter->origin[2], fighter->dir[YAW]);
+				// In random positions near the ship...
+				fighter->origin[0] = myShip->lerpOrigin[0] + irand(0, 32768) - 16386;
+				fighter->origin[1] = myShip->lerpOrigin[1] + irand(0, 32768) - 16386;
+				fighter->origin[2] = myShip->lerpOrigin[2] - irand(4096, 8192);
 
-			fighter->loopSound = fighterSounds[(myShip->currentState.teamowner == FACTION_EMPIRE) ? 0 : 1];
-			
-			fighter->team = myShip->currentState.teamowner;
+				fighter->rotate = 1.0;
 
-			// Allocate a local sound entity number so sound system can track the sound...
-			fighter->localSoundEntityNum = numLocalSoundEntities;
-			numLocalSoundEntities++;
+				if (irand(0, 1) == 1)
+				{// This one flies in counter clockwise...
+					fighter->rotate = -1.0;
+				}
 
-			myShip->numFighters++;
+				fighter->circleSize = irand(1, FIGHTERS_MAX_CIRCLE_SIZE);
 
-			// Add it to the global fighter list as well, so we can do fighter vs fighter weapon fx...
-			mapFighters[numMapFighters] = fighter;
-			numMapFighters++;
-		}
+				float a = ((float(cg.time) / 1000.0) / fighter->circleSize + i) * fighter->rotate;
+				float b = 0.0;
+				fighter->dir[0] = cos(a) * cos(b);
+				fighter->dir[1] = sin(a) * cos(b);
+				fighter->dir[2] = 0.0;// sin(b);
 
-		//trap->Print("Event ship %i given %i fighter escorts...\n", myShip->currentState.number, FIGHTERS_COUNT);
+				VectorCopy(fighter->origin, fighter->startOrigin);
 
-		//
-		// Also assign enemy attacking fighters... Hmm, maybe only when we are within range of an enemy capital (or shooting at one)?
-		//
-		memset(myShip->enemyFighters, 0, sizeof(myShip->enemyFighters));
+				//trap->Print("Enemy fighter %i spawn at %f %f %f. Dir %f.\n", i, fighter->origin[0], fighter->origin[1], fighter->origin[2], fighter->dir[YAW]);
 
-		for (int i = 0; i < ENEMY_FIGHTERS_COUNT && i < 16; i++)
-		{
-			mapFighters_t *fighter = &myShip->enemyFighters[i];
+				fighter->loopSound = fighterSounds[(myShip->currentState.teamowner == FACTION_EMPIRE) ? 1 : 0];
 
-			// In random positions near the ship...
-			fighter->origin[0] = myShip->lerpOrigin[0] + irand(0, 32768) - 16386;
-			fighter->origin[1] = myShip->lerpOrigin[1] + irand(0, 32768) - 16386;
-			fighter->origin[2] = myShip->lerpOrigin[2] - irand(4096, 8192);
+				fighter->team = (myShip->currentState.teamowner == FACTION_EMPIRE) ? FACTION_REBEL : FACTION_EMPIRE;
 
-			fighter->rotate = 1.0;
+				// Allocate a local sound entity number so sound system can track the sound...
+				fighter->localSoundEntityNum = numLocalSoundEntities;
+				numLocalSoundEntities++;
 
-			if (irand(0, 1) == 1)
-			{// This one flies in counter clockwise...
-				fighter->rotate = -1.0;
+				myShip->numEnemyFighters++;
+
+				// Add it to the global fighter list as well, so we can do fighter vs fighter weapon fx...
+				mapFighters[numMapFighters] = fighter;
+				numMapFighters++;
 			}
 
-			fighter->circleSize = irand(1, FIGHTERS_MAX_CIRCLE_SIZE);
-
-			float a = ((float(cg.time) / 1000.0) / fighter->circleSize + i) * fighter->rotate;
-			float b = 0.0;
-			fighter->dir[0] = cos(a) * cos(b);
-			fighter->dir[1] = sin(a) * cos(b);
-			fighter->dir[2] = 0.0;// sin(b);
-
-			VectorCopy(fighter->origin, fighter->startOrigin);
-
-			//trap->Print("Enemy fighter %i spawn at %f %f %f. Dir %f.\n", i, fighter->origin[0], fighter->origin[1], fighter->origin[2], fighter->dir[YAW]);
-
-			fighter->loopSound = fighterSounds[(myShip->currentState.teamowner == FACTION_EMPIRE) ? 1 : 0];
-
-			fighter->team = (myShip->currentState.teamowner == FACTION_EMPIRE) ? FACTION_REBEL : FACTION_EMPIRE;
-
-			// Allocate a local sound entity number so sound system can track the sound...
-			fighter->localSoundEntityNum = numLocalSoundEntities;
-			numLocalSoundEntities++;
-
-			myShip->numEnemyFighters++;
-
-			// Add it to the global fighter list as well, so we can do fighter vs fighter weapon fx...
-			mapFighters[numMapFighters] = fighter;
-			numMapFighters++;
+			//trap->Print("Event ship %i given %i enemy fighter attackers...\n", myShip->currentState.number, ENEMY_FIGHTERS_COUNT);
 		}
-
-		//trap->Print("Event ship %i given %i enemy fighter attackers...\n", myShip->currentState.number, ENEMY_FIGHTERS_COUNT);
 	}
-
 
 	//
 	// Draw all escort fighters...
@@ -1419,6 +1426,11 @@ void CG_Fighters(centity_t *myShip)
 	for (int i = 0; i < myShip->numFighters && i < 16; i++)
 	{
 		mapFighters_t *fighter = &myShip->fighters[i];
+
+		if (myShip->currentState.generic1 == 2)
+		{// 2 means that the ship is in hyperspace, so don't launcher fighters, or fight until we stop...
+			continue;
+		}
 
 		if (myShip->numEnemyFighters > 0 && fighter->chaseTime < cg.time && irand(0, FIGHTER_CHASE_CHANCE) == 0)
 		{
@@ -1606,6 +1618,11 @@ void CG_Fighters(centity_t *myShip)
 	// Update and draw fighters...
 	for (int i = 0; i < myShip->numEnemyFighters && i < 8; i++)
 	{
+		if (myShip->currentState.generic1 == 2)
+		{// 2 means that the ship is in hyperspace, so don't launcher fighters, or fight until we stop...
+			continue;
+		}
+
 		mapFighters_t *fighter = &myShip->enemyFighters[i];
 
 		// Randomly adjust the fighter's circle size over time...

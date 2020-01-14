@@ -13179,7 +13179,7 @@ void PmoveSingle (pmove_t *pmove) {
 		stiffenedUp = qtrue;
 	}
 
-	if (g_mmoStyleAttacking.integer)
+	/*if (g_mmoStyleAttacking.integer)
 	{
 		if (pm->ps->torsoAnim == BOTH_PULL_IMPALE_STAB
 			|| pm->ps->torsoAnim == BOTH_A2_STABBACK1
@@ -13207,7 +13207,7 @@ void PmoveSingle (pmove_t *pmove) {
 			//lock their viewangles during these attacks.
 			PM_SetPMViewAngle(pm->ps, pm->ps->viewangles, &pm->cmd);
 		}
-	}
+	}*/
 
 	if ( pm->ps->saberMove == LS_A_LUNGE )
 	{//can't move during lunge

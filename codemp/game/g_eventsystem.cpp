@@ -44,14 +44,81 @@ int						event_areas_spawn_count[MAX_TEAM_EVENT_AREAS] = { { 0 } };
 int						event_areas_spawn_wave[MAX_TEAM_EVENT_AREAS] = { { 0 } };
 int						event_areas_spawn_quality[MAX_TEAM_EVENT_AREAS] = { { 0 } };
 qboolean				event_areas_wave_filled[MAX_TEAM_EVENT_AREAS] = { { qfalse } };
-qboolean				event_areas_has_ship[MAX_TEAM_EVENT_AREAS] = { { qfalse } };
+gentity_t				*event_areas_ship[MAX_TEAM_EVENT_AREAS] = { { NULL } };
+int						event_areas_ship_hyperspace_in_time[MAX_TEAM_EVENT_AREAS] = { { 0 } };
+int						event_areas_ship_hyperspace_out_time[MAX_TEAM_EVENT_AREAS] = { { 0 } };
 
 char					*miscModelString = "misc_model";
 
+#define					SHIP_HYPERSPACE_TIME	10000
+#define					SHIP_HYPERPACE_POW		16.0f
+
+float ship_move_mix(float x, float y, float a)
+{
+	return x * (1.0 - a) + y * a;
+}
 
 void G_EventShipThink(gentity_t *ent)
 {
-	ent->nextthink = level.time + 1000;
+	int area = ent->spawnArea;
+
+	if (event_areas_ship_hyperspace_in_time[area] >= level.time)
+	{
+		// Mark as hyperspacing...
+		ent->s.generic1 = 2;
+
+		int time = event_areas_ship_hyperspace_in_time[area] - (level.time - 50);
+		
+		vec3_t pos;
+		float alpha = Q_clamp(0.0, (float)time / (float)SHIP_HYPERSPACE_TIME, 1.0);
+		alpha = 1.0 - pow(alpha, SHIP_HYPERPACE_POW);
+		pos[0] = ship_move_mix(ent->movedir[0], ent->move_vector[0], alpha);
+		pos[1] = ship_move_mix(ent->movedir[1], ent->move_vector[1], alpha);
+		pos[2] = ent->move_vector[2];
+		G_SetOrigin(ent, pos);
+
+		//Com_Printf("Hyperspace in at %i %i %i. Target %i %i %i. alpha %f.\n", (int)pos[0], (int)pos[1], (int)pos[2], (int)ent->move_vector[0], (int)ent->move_vector[1], (int)ent->move_vector[2], alpha);
+
+		ent->nextthink = level.time + 5;
+	}
+	else if (event_areas_ship_hyperspace_out_time[area] >= level.time)
+	{
+		// Mark as hyperspacing...
+		ent->s.generic1 = 2;
+
+		int time = event_areas_ship_hyperspace_out_time[area] - (level.time - 50);
+
+		if (time <= 100)
+		{// Just unspawn the ship and wait...
+			if (event_areas_ship[area])
+			{
+				G_FreeEntity(event_areas_ship[area]);
+				event_areas_ship[area] = NULL;
+				event_areas_ship_hyperspace_out_time[area] = 0;
+			}
+		}
+		else
+		{
+			vec3_t pos;
+			float alpha = (float)time / (float)SHIP_HYPERSPACE_TIME;
+			alpha = 1.0 - pow(1.0 - alpha, SHIP_HYPERPACE_POW);
+			pos[0] = ship_move_mix(ent->movedir[0], ent->move_vector[0], alpha);
+			pos[1] = ship_move_mix(ent->movedir[1], ent->move_vector[1], alpha);
+			pos[2] = ent->move_vector[2];
+			G_SetOrigin(ent, pos);
+
+			//Com_Printf("Hyperspace out at %i %i %i. Target %i %i %i. alpha %f.\n", (int)pos[0], (int)pos[1], (int)pos[2], (int)ent->move_vector[0], (int)ent->move_vector[1], (int)ent->move_vector[2], alpha);
+		}
+
+		ent->nextthink = level.time + 5;
+	}
+	else
+	{
+		// Mark as bobbing...
+		ent->s.generic1 = 1;
+
+		ent->nextthink = level.time + 1000;
+	}
 }
 
 void G_EventModelPrecache(void)
@@ -96,7 +163,7 @@ void G_EventModelPrecache(void)
 
 void G_CreateSpawnVesselForEventArea(int area)
 {
-	if (event_areas_has_ship[area])
+	if (event_areas_ship[area])
 	{// Already spawned the ship for this area...
 		return;
 	}
@@ -300,19 +367,32 @@ void G_CreateSpawnVesselForEventArea(int area)
 	ent->s.loopSound = loopSound;
 
 	//TODO: Come from sky and hover...
-	ent->nextthink = level.time + 200;
+	ent->nextthink = level.time + 50;
 	ent->think = G_EventShipThink;
 
-	VectorCopy(event_areas[area], ent->s.origin);
-	ent->s.origin[2] += zOffset;// 2048.0;
+	
 
-	G_SetOrigin(ent, ent->s.origin);
 	VectorCopy(vec3_origin, ent->s.angles);
 	G_SetAngles(ent, ent->s.angles);
 
+	VectorCopy(event_areas[area], ent->move_vector);
+	ent->move_vector[2] += zOffset;
+
+	vec3_t startPos, fwd;
+	//AngleVectors(ent->s.angles, fwd, NULL, NULL);
+	AngleVectors(ent->s.angles, NULL, fwd, NULL); // Because the models are rotated 90 deg lol...
+	VectorNormalize(fwd);
+	VectorMA(ent->move_vector, 1999999.0, fwd, startPos);
+	G_SetOrigin(ent, startPos);
+	VectorCopy(startPos, ent->movedir);
+
+	ent->spawnArea = area;
+
+	event_areas_ship_hyperspace_in_time[area] = level.time + SHIP_HYPERSPACE_TIME;
+
 	trap->LinkEntity((sharedEntity_t *)ent);
 
-	event_areas_has_ship[area] = qtrue;
+	event_areas_ship[area] = ent;
 
 	/*
 	trap->Print("EVENT: Spawned ship %s for team %s above event area %i (position %f %f %f) at %f %f %f.\n", modelName, TeamName(event_areas_current_team[area]), area
@@ -378,7 +458,9 @@ qboolean G_LoadEventAreas(void)
 		event_areas_spawn_wave[i] = 0;
 		event_areas_spawn_quality[i] = 0;
 		event_areas_wave_filled[i] = qfalse;
-		event_areas_has_ship[i] = qfalse;
+		event_areas_ship[i] = NULL;
+		event_areas_ship_hyperspace_in_time[i] = 0;
+		event_areas_ship_hyperspace_out_time[i] = 0;
 
 		//trap->Print("EVENTS: area %i is team %s.\n", i, TeamName(CURRENT_FACTION));
 
@@ -486,7 +568,9 @@ void G_SetupEventAreas(void)
 				event_areas_spawn_wave[i] = 0;
 				event_areas_spawn_quality[i] = 0;
 				event_areas_wave_filled[i] = qfalse;
-				event_areas_has_ship[i] = qfalse;
+				event_areas_ship[i] = NULL;
+				event_areas_ship_hyperspace_in_time[i] = 0;
+				event_areas_ship_hyperspace_out_time[i] = 0;
 
 				//trap->Print("EVENTS: area %i is team %s.\n", i, TeamName(CURRENT_FACTION));
 
@@ -610,7 +694,9 @@ void G_InitEventAreas(void)
 	memset(event_areas_spawn_wave, 0, sizeof(event_areas_spawn_wave));
 	memset(event_areas_spawn_quality, 0, sizeof(event_areas_spawn_quality));
 	memset(event_areas_wave_filled, qfalse, sizeof(event_areas_wave_filled));
-	memset(event_areas_has_ship, 0, sizeof(event_areas_has_ship));
+	memset(event_areas_ship, NULL, sizeof(event_areas_ship));
+	memset(event_areas_ship_hyperspace_in_time, 0, sizeof(event_areas_ship_hyperspace_in_time));
+	memset(event_areas_ship_hyperspace_out_time, 0, sizeof(event_areas_ship_hyperspace_out_time));
 	
 	for (int i = 0; i < MAX_GENTITIES; i++)
 	{
@@ -623,6 +709,27 @@ void G_InitEventAreas(void)
 	}
 
 	G_SetupEventAreas();
+}
+
+void G_InitEventArea(int eventArea)
+{
+	event_areas_event_size[eventArea] = EVENT_SIZE_SMALL;
+	event_areas_spawn_count[eventArea] = 0;
+	event_areas_spawn_wave[eventArea] = 0;
+	event_areas_spawn_quality[eventArea] = 0;
+	event_areas_ship_hyperspace_in_time[eventArea] = 0;
+	event_areas_wave_filled[eventArea] = qfalse;
+
+	if (event_areas_ship[eventArea])
+	{// Tell the ship to warp out, ready for the next event...
+		vec3_t fwd;
+		//AngleVectors(event_areas_ship[eventArea]->s.angles, fwd, NULL, NULL);
+		AngleVectors(event_areas_ship[eventArea]->s.angles, NULL, fwd, NULL); // Because the models are rotated 90 deg lol...
+		VectorNormalize(fwd);
+		VectorMA(event_areas_ship[eventArea]->move_vector, -1999999.0, fwd, event_areas_ship[eventArea]->movedir);
+
+		event_areas_ship_hyperspace_out_time[eventArea] = level.time + SHIP_HYPERSPACE_TIME;
+	}
 }
 
 int G_GetEventsCount(void)
@@ -873,8 +980,7 @@ void G_UpdateSpawnAreaWaves(void)
 
 				if (event_areas_spawn_wave[i] > 5)
 				{// Reset to 0 for now... TODO: Switch to another event and ship hyperspace out/in over time...
-					event_areas_spawn_wave[i] = 0;
-					event_areas_spawn_quality[i] = 0;
+					G_InitEventArea(i);
 				}
 			}
 		}
@@ -971,8 +1077,10 @@ int G_GetEventMostNeedingSpawns(void)
 			int				maxWaveSpawns = G_MaxSpawnsPerWave(currentWave, event_areas_event_size[i]);
 			int				currentCount = event_areas_spawn_count[i];
 			qboolean		waitingForWave = event_areas_wave_filled[i];
+			qboolean		hyperspaceIn = (event_areas_ship[i] && event_areas_ship_hyperspace_in_time != 0 && event_areas_ship_hyperspace_in_time[i] >= level.time) ? qtrue : qfalse;
+			qboolean		hyperspaceOut = (event_areas_ship[i] && event_areas_ship_hyperspace_out_time != 0 && event_areas_ship_hyperspace_out_time[i] >= level.time) ? qtrue : qfalse;
 
-			if (!waitingForWave && currentWave >= 0 && G_EnabledFactionEvent(i) && currentCount < leastSpawnsCount && currentCount < maxWaveSpawns)
+			if (!waitingForWave && !hyperspaceIn && !hyperspaceOut && currentWave >= 0 && G_EnabledFactionEvent(i) && currentCount < leastSpawnsCount && currentCount < maxWaveSpawns)
 			{
 				leastSpawnsEvent = i;
 				leastSpawnsCount = event_areas_spawn_count[i];

@@ -11969,7 +11969,7 @@ typedef enum
 	}
 
 	if (numKillMoves > 0)
-		self->nextSaberDamage = level.time + 1000;
+		self->nextSaberDamage = level.time + 500;
 	else
 		self->nextSaberDamage = level.time + MMO_SABER_DAMAGE_TIME;
 }
