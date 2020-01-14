@@ -3664,6 +3664,8 @@ Ghoul2 Insert End
 	case ET_SERVERMODEL:
 		CG_ServerModel(cent);
 		break;
+	case ET_NPC_SPAWNER:
+		break;
 	}
 
 	CG_CheckEvents(cent);

@@ -2369,6 +2369,8 @@ void NPC_PrecacheWarzoneNPCs ( void )
 
 void SP_NPC_spawner2( gentity_t *self)
 {
+	self->s.eType = ET_NPC_SPAWNER;
+	
 	int t;
 	if (!g_allowNPC.integer && level.gametype != GT_SINGLE_PLAYER && level.gametype != GT_INSTANCE && level.gametype != GT_WARZONE)
 	{
@@ -2407,18 +2409,22 @@ void SP_NPC_spawner2( gentity_t *self)
 		}
 	}
 
-	if ( !self->wait )
-	{
-		self->wait = 500;
-	}
-	else
-	{
-		self->wait *= 1000;//1 = 1 msec, 1000 = 1 sec
-	}
+	//if ( !self->wait )
+	//{
+	//	self->wait = 500;
+	//}
+	//else
+	//{
+	//	self->wait *= 1000;//1 = 1 msec, 1000 = 1 sec -- UQ1: WTF is this hackiness????
+	//}
 
-	self->delay *= 1000;//1 = 1 msec, 1000 = 1 sec
+	//self->delay *= 1000;//1 = 1 msec, 1000 = 1 sec -- UQ1: WTF is this hackiness????
+
+	self->wait = 0;
+	self->delay = 0;
 
 	G_SpawnInt( "showhealth", "0", &t );
+
 	if (t)
 	{
 		self->s.shouldtarget = qtrue;
@@ -2482,6 +2488,8 @@ extern int OrgVisibleBox(vec3_t org1, vec3_t mins, vec3_t maxs, vec3_t org2, int
 
 void SP_NPC_spawner( gentity_t *self)
 {
+	self->s.eType = ET_NPC_SPAWNER;
+
 	self->padawanSaberType = -1;
 
 	if (level.gametype == GT_INSTANCE || level.gametype == GT_WARZONE)
@@ -2577,6 +2585,7 @@ void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team )
 	self->s.angles[YAW] = irand(0,359);
 	self->s.angles[ROLL] = 0;
 	self->team = NULL;
+	self->s.eType = ET_NPC_SPAWNER;
 
 	if (level.gametype == GT_INSTANCE || level.gametype == GT_WARZONE)
 	{

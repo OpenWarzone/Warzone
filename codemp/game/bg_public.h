@@ -1401,6 +1401,7 @@ typedef enum {
 	ET_TRIGGER_HURT,
 	ET_NPCGOAL,
 	ET_SERVERMODEL,
+	ET_NPC_SPAWNER,
 
 
 	ET_FREED,				// UQ1: Added to mark freed entities...

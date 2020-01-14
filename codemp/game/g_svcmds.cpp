@@ -283,6 +283,8 @@ void Svcmd_ListIP_f (void)
 Svcmd_EntityList_f
 ===================
 */
+extern stringID_table_t ClassTable[];
+
 void	Svcmd_EntityList_f (void) {
 	int			e;
 	gentity_t		*check;
@@ -360,6 +362,9 @@ void	Svcmd_EntityList_f (void) {
 		case ET_SERVERMODEL:
 			trap->Print("ET_SERVERMODEL      ");
 			break;
+		case ET_NPC_SPAWNER:
+			trap->Print("ET_NPC_SPAWNER      ");
+			break;
 		case ET_FREED:
 			trap->Print("ET_FREED            ");
 			break;
@@ -370,10 +375,28 @@ void	Svcmd_EntityList_f (void) {
 				trap->Print("EVENT: %-3i          ", check->s.eType);
 			break;
 		}
+		
+		trap->Print("Linked: %s  ", check->r.linked ? "TRUE " : "FALSE");
 
-		if ( check->classname ) {
-			trap->Print("%s", check->classname);
+		trap->Print("Origin: %-6i %-6i %-6i  ", (int)check->r.currentOrigin[0], (int)check->r.currentOrigin[1], (int)check->r.currentOrigin[2]);
+
+		if (check->client)
+			trap->Print("Health: %-5i (max %-5i) psHealth: %-5i (max %-5i) Dead: %s  ", check->s.health, check->s.maxhealth, check->client->ps.stats[STAT_HEALTH], check->client->ps.stats[STAT_MAX_HEALTH], (check->s.eFlags & EF_DEAD) ? "TRUE " : "FALSE");
+		else
+			trap->Print("Health: %-5i (max %-5i) psHealth: NONE  (max NONE ) Dead: %s  ", check->s.health, check->s.maxhealth, (check->s.eFlags & EF_DEAD) ? "TRUE " : "FALSE");
+
+		if ( check->classname ) 
+		{
+			if (check->s.eType == ET_NPC)
+			{
+				trap->Print("%s (%s)", check->classname, ClassTable[check->s.NPC_class].name);
+			}
+			else
+			{
+				trap->Print("%s", check->classname);
+			}
 		}
+
 		trap->Print("\n");
 	}
 }

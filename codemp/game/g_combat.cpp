@@ -3041,6 +3041,7 @@ typedef enum
 	if (self->s.eType == ET_NPC)
 	{//If an NPC, make sure we start running our scripts again- this gets set to infinite while we fall to our deaths
 		self->NPC->nextBStateThink = level.time;
+		self->think = NPC_Think;
 	}
 
 	if ( G_ActivateBehavior( self, BSET_DEATH ) )
@@ -3083,7 +3084,9 @@ typedef enum
 	// Start any necessary death fx for this entity
 	//if ( self->NPC )
 	if (self->s.eType == ET_NPC)
-		DeathFX( self );
+	{
+		DeathFX(self);
+	}
 
 
 	if (level.gametype == GT_POWERDUEL && !g_noPDuelCheck)

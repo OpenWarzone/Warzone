@@ -308,6 +308,7 @@ void CG_ShowLifts ( void )
 }
 //[/AUTOWAYPOINT]
 
+/*
 void	Clcmd_EntityList_f (void) {
 	int			e;
 	centity_t		*check;
@@ -391,12 +392,222 @@ void	Clcmd_EntityList_f (void) {
 		case ET_SERVERMODEL:
 			trap->Print("ET_SERVERMODEL      ");
 			break;
+		case ET_NPC_SPAWNER:
+			trap->Print("ET_NPC_SPAWNER      ");
+			break;
 		default:
 			trap->Print("%-3i                ", check->currentState.eType);
 			break;
 		}
 
 		trap->Print(" - origin %f %f %f.", check->currentState.origin[0], check->currentState.origin[1], check->currentState.origin[2]);
+		trap->Print("\n");
+	}
+}*/
+
+// this list was made using the model directories, this MUST be in the same order as the CLASS_ enum in teams.h
+stringID_table_t ClassTable[] =
+{
+	ENUM2STRING(CLASS_NONE),				// hopefully this will never be used by an npc), just covering all bases
+	ENUM2STRING(CLASS_ATST),				// technically droid...
+	ENUM2STRING(CLASS_BARTENDER),
+	ENUM2STRING(CLASS_BESPIN_COP),
+	ENUM2STRING(CLASS_CLAW),
+	ENUM2STRING(CLASS_COMMANDO),
+	ENUM2STRING(CLASS_DESANN),
+	ENUM2STRING(CLASS_FISH),
+	ENUM2STRING(CLASS_FLIER2),
+	ENUM2STRING(CLASS_GALAK),
+	ENUM2STRING(CLASS_GLIDER),
+	ENUM2STRING(CLASS_GONK),				// droid
+	ENUM2STRING(CLASS_GRAN),
+	ENUM2STRING(CLASS_HOWLER),
+	ENUM2STRING(CLASS_IMPERIAL),
+	ENUM2STRING(CLASS_IMPWORKER),
+	ENUM2STRING(CLASS_INTERROGATOR),		// droid
+	ENUM2STRING(CLASS_JAN),
+	ENUM2STRING(CLASS_JEDI),
+	ENUM2STRING(CLASS_PADAWAN),
+	ENUM2STRING(CLASS_HK51),
+	ENUM2STRING(CLASS_NATIVE),
+	ENUM2STRING(CLASS_NATIVE_GUNNER),
+	ENUM2STRING(CLASS_KYLE),
+	ENUM2STRING(CLASS_LANDO),
+	ENUM2STRING(CLASS_LIZARD),
+	ENUM2STRING(CLASS_LUKE),
+	ENUM2STRING(CLASS_MARK1),			// droid
+	ENUM2STRING(CLASS_MARK2),			// droid
+	ENUM2STRING(CLASS_GALAKMECH),		// droid
+	ENUM2STRING(CLASS_MINEMONSTER),
+	ENUM2STRING(CLASS_MONMOTHA),
+	ENUM2STRING(CLASS_MORGANKATARN),
+	ENUM2STRING(CLASS_MOUSE),			// droid
+	ENUM2STRING(CLASS_MURJJ),
+	ENUM2STRING(CLASS_PRISONER),
+	ENUM2STRING(CLASS_PROBE),			// droid
+	ENUM2STRING(CLASS_PROTOCOL),			// droid
+	ENUM2STRING(CLASS_R2D2),				// droid
+	ENUM2STRING(CLASS_R5D2),				// droid
+	ENUM2STRING(CLASS_REBEL),
+	ENUM2STRING(CLASS_REBORN),
+	ENUM2STRING(CLASS_REELO),
+	ENUM2STRING(CLASS_REMOTE),
+	ENUM2STRING(CLASS_RODIAN),
+	ENUM2STRING(CLASS_SEEKER),			// droid
+	ENUM2STRING(CLASS_SENTRY),
+	ENUM2STRING(CLASS_SHADOWTROOPER),
+	ENUM2STRING(CLASS_STORMTROOPER),
+	ENUM2STRING(CLASS_STORMTROOPER_ADVANCED),
+	ENUM2STRING(CLASS_SWAMP),
+	ENUM2STRING(CLASS_SWAMPTROOPER),
+	ENUM2STRING(CLASS_TAVION),
+	ENUM2STRING(CLASS_TRANDOSHAN),
+	ENUM2STRING(CLASS_UGNAUGHT),
+	ENUM2STRING(CLASS_JAWA),
+	ENUM2STRING(CLASS_WEEQUAY),
+	ENUM2STRING(CLASS_BOBAFETT),
+	ENUM2STRING(CLASS_VEHICLE),
+	ENUM2STRING(CLASS_RANCOR),
+	ENUM2STRING(CLASS_WAMPA),
+
+	ENUM2STRING(CLASS_REEK),
+	ENUM2STRING(CLASS_NEXU),
+	ENUM2STRING(CLASS_ACKLAY),
+
+	// UQ1: Extras from SP...
+	ENUM2STRING(CLASS_SAND_CREATURE),
+	ENUM2STRING(CLASS_SABOTEUR),
+	ENUM2STRING(CLASS_NOGHRI),
+	ENUM2STRING(CLASS_ALORA),
+	ENUM2STRING(CLASS_TUSKEN),
+	ENUM2STRING(CLASS_ROCKETTROOPER),
+	ENUM2STRING(CLASS_SABER_DROID),
+	ENUM2STRING(CLASS_ASSASSIN_DROID),
+	ENUM2STRING(CLASS_HAZARD_TROOPER),
+	ENUM2STRING(CLASS_MERC),
+
+	// UQ1: Civilians...
+	ENUM2STRING(CLASS_CIVILIAN),
+	ENUM2STRING(CLASS_CIVILIAN_R2D2),
+	ENUM2STRING(CLASS_CIVILIAN_R5D2),
+	ENUM2STRING(CLASS_CIVILIAN_PROTOCOL),
+	ENUM2STRING(CLASS_CIVILIAN_WEEQUAY),
+	ENUM2STRING(CLASS_GENERAL_VENDOR),
+	ENUM2STRING(CLASS_WEAPONS_VENDOR),
+	ENUM2STRING(CLASS_ARMOR_VENDOR),
+	ENUM2STRING(CLASS_SUPPLIES_VENDOR),
+	ENUM2STRING(CLASS_FOOD_VENDOR),
+	ENUM2STRING(CLASS_MEDICAL_VENDOR),
+	ENUM2STRING(CLASS_GAMBLER_VENDOR),
+	ENUM2STRING(CLASS_TRADE_VENDOR),
+	ENUM2STRING(CLASS_ODDITIES_VENDOR),
+	ENUM2STRING(CLASS_DRUG_VENDOR),
+	ENUM2STRING(CLASS_TRAVELLING_VENDOR),
+
+	ENUM2STRING(CLASS_PLAYER),
+	{ "",	-1 }
+};
+
+void	Clcmd_EntityList_f(void) {
+	int			e;
+	centity_t		*check;
+
+	check = cg_entities;
+	for (e = 0; e < MAX_GENTITIES; e++, check++) {
+		if (!check || check->currentState.eType == ET_FREED) {
+			continue;
+		}
+		trap->Print("%3i:", e);
+		switch (check->currentState.eType) {
+		case ET_GENERAL:
+			trap->Print("ET_GENERAL          ");
+			break;
+		case ET_PLAYER:
+			trap->Print("ET_PLAYER           ");
+			break;
+		case ET_ITEM:
+			trap->Print("ET_ITEM             ");
+			break;
+		case ET_MISSILE:
+			trap->Print("ET_MISSILE          ");
+			break;
+		case ET_SPECIAL:
+			trap->Print("ET_SPECIAL          ");
+			break;
+		case ET_HOLOCRON:
+			trap->Print("ET_HOLOCRON         ");
+			break;
+		case ET_MOVER:
+			trap->Print("ET_MOVER            ");
+			break;
+		case ET_BEAM:
+			trap->Print("ET_BEAM             ");
+			break;
+		case ET_PORTAL:
+			trap->Print("ET_PORTAL           ");
+			break;
+		case ET_SPEAKER:
+			trap->Print("ET_SPEAKER          ");
+			break;
+		case ET_PUSH_TRIGGER:
+			trap->Print("ET_PUSH_TRIGGER     ");
+			break;
+		case ET_TELEPORT_TRIGGER:
+			trap->Print("ET_TELEPORT_TRIGGER ");
+			break;
+		case ET_INVISIBLE:
+			trap->Print("ET_INVISIBLE        ");
+			break;
+		case ET_NPC:
+			trap->Print("ET_NPC              ");
+			break;
+		case ET_TEAM:
+			trap->Print("ET_TEAM             ");
+			break;
+		case ET_BODY:
+			trap->Print("ET_BODY             ");
+			break;
+		case ET_TERRAIN:
+			trap->Print("ET_TERRAIN          ");
+			break;
+		case ET_FX:
+			trap->Print("ET_FX               ");
+			break;
+		case ET_MOVER_MARKER:
+			trap->Print("ET_MOVER_MARKER     ");
+			break;
+		case ET_SPAWNPOINT:
+			trap->Print("ET_SPAWNPOINT       ");
+			break;
+		case ET_TRIGGER_HURT:
+			trap->Print("ET_TRIGGER_HURT     ");
+			break;
+		case ET_SERVERMODEL:
+			trap->Print("ET_SERVERMODEL      ");
+			break;
+		case ET_NPC_SPAWNER:
+			trap->Print("ET_NPC_SPAWNER      ");
+			break;
+		case ET_FREED:
+			trap->Print("ET_FREED            ");
+			break;
+		default:
+			trap->Print("EVENT: %-3i          ", check->currentState.eType);
+			break;
+		}
+
+		trap->Print("Origin: %-6i %-6i %-6i  ", (int)check->lerpOrigin[0], (int)check->lerpOrigin[1], (int)check->lerpOrigin[2]);
+
+		if (check->playerState)
+			trap->Print("Health: %-5i (max %-5i) psHealth: %-5i (max %-5i) Dead: %s  ", check->currentState.health, check->currentState.maxhealth, check->playerState->stats[STAT_HEALTH], check->playerState->stats[STAT_MAX_HEALTH], (check->currentState.eFlags & EF_DEAD) ? "TRUE " : "FALSE");
+		else
+			trap->Print("Health: %-5i (max %-5i) psHealth: NONE  (max NONE ) Dead: %s  ", check->currentState.health, check->currentState.maxhealth, (check->currentState.eFlags & EF_DEAD) ? "TRUE " : "FALSE");
+
+		if (check->currentState.eType == ET_NPC)
+		{
+			trap->Print("%s", ClassTable[check->currentState.NPC_class].name);
+		}
+
 		trap->Print("\n");
 	}
 }

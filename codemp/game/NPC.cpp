@@ -250,6 +250,9 @@ void NPC_RemoveBody( gentity_t *self )
 
 	CorpsePhysics( self );
 
+	self->s.eFlags |= EF_DEAD;
+	self->client->ps.pm_type = PM_DEAD;
+
 	self->nextthink = level.time + FRAMETIME;
 
 #ifndef __NO_ICARUS__
@@ -4199,8 +4202,10 @@ void NPC_Think ( gentity_t *self )//, int msec )
 
 	// dead NPCs have a special think, don't run scripts (for now)
 	//FIXME: this breaks deathscripts
-	if ( self->health <= 0 )
+	if ( /*self->health <= 0*//*self->client->ps.stats[STAT_HEALTH] <= 0*/self->s.health <= 0 )
 	{
+		//Com_Printf("NPC %i - DEAD THINK.\n", self->s.number);
+
 		self->s.eFlags |= EF_DEAD;
 		self->client->ps.pm_type = PM_DEAD;
 

@@ -1989,6 +1989,10 @@ void BG_PlayerStateToEntityState( playerState_t *ps, entityState_t *s, qboolean 
 
 	s->healFxTime = ps->healFxTime;
 
+	// UQ1: WTF were these not in here???
+	s->health = ps->stats[STAT_HEALTH];
+	s->maxhealth = ps->stats[STAT_MAX_HEALTH];
+
 	// UQ1: Added - NPC sounds...
 	s->csSounds_Std = ps->csSounds_Std;
 	s->csSounds_Combat = ps->csSounds_Combat;
@@ -2285,6 +2289,10 @@ void BG_PlayerStateToEntityStateExtraPolate( playerState_t *ps, entityState_t *s
 	s->eventIndex = ps->eventIndex;
 
 	s->healFxTime = ps->healFxTime;
+
+	// UQ1: WTF were these not in here???
+	s->health = ps->stats[STAT_HEALTH];
+	s->maxhealth = ps->stats[STAT_MAX_HEALTH];
 
 	// UQ1: Added - NPC sounds...
 	s->csSounds_Std = ps->csSounds_Std;
