@@ -3519,7 +3519,7 @@ int GLSL_BeginLoadGPUShaders(void)
 
 		extradefines[0] = '\0';
 
-		Q_strcat(extradefines, 1024, "#define __USE_UNDERWATER_ONLY__\n");
+		Q_strcat(extradefines, 1024, "#define __USE_UNDERWATER__\n");
 #ifdef __HUMANOIDS_BEND_GRASS__
 		Q_strcat(extradefines, 1024, "#define __HUMANOIDS_BEND_GRASS__\n");
 		Q_strcat(extradefines, 1024, va("#define MAX_GRASSBEND_HUMANOIDS %i\n", MAX_GRASSBEND_HUMANOIDS));

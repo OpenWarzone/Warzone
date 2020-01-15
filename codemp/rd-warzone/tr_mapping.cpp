@@ -1600,7 +1600,7 @@ float		GRASS_PATCHES_LOD_START_RANGE = 8192.0;
 image_t		*GRASS_PATCHES_CONTROL_TEXTURE = NULL;
 
 qboolean	GRASS_ENABLED = qtrue;
-qboolean	GRASS_UNDERWATER_ONLY = qfalse;
+int			GRASS_UNDERWATER = 0;
 qboolean	GRASS_RARE_PATCHES_ONLY = qfalse;
 int			GRASS_WIDTH_REPEATS = 0;
 int			GRASS_DENSITY = 2;
@@ -1611,6 +1611,7 @@ float		GRASS_SURFACE_MINIMUM_SIZE = 128.0;
 float		GRASS_SURFACE_SIZE_DIVIDER = 1024.0;
 float		GRASS_TYPE_UNIFORMALITY = 0.97;
 float		GRASS_TYPE_UNIFORMALITY_SCALER = 0.008;
+float		GRASS_TYPE_UNIFORMALITY_WATER = 0.66;
 float		GRASS_DISTANCE_FROM_ROADS = 0.25;
 float		GRASS_SIZE_MULTIPLIER_COMMON = 1.0;
 float		GRASS_SIZE_MULTIPLIER_RARE = 2.75;
@@ -1626,7 +1627,7 @@ float		FAKE_GRASS_COLORMULT = 0.3;
 float		FAKE_GRASS_COLORMULT_UNDERWATER = 0.3;
 
 qboolean	GRASS2_ENABLED = qtrue;
-qboolean	GRASS2_UNDERWATER_ONLY = qfalse;
+int			GRASS2_UNDERWATER = 0;
 qboolean	GRASS2_RARE_PATCHES_ONLY = qfalse;
 int			GRASS2_WIDTH_REPEATS = 0;
 int			GRASS2_DENSITY = 2;
@@ -1645,7 +1646,7 @@ float		GRASS2_LOD_START_RANGE = 8192.0;
 image_t		*GRASS2_CONTROL_TEXTURE = NULL;
 
 qboolean	GRASS3_ENABLED = qtrue;
-qboolean	GRASS3_UNDERWATER_ONLY = qfalse;
+int			GRASS3_UNDERWATER = 0;
 qboolean	GRASS3_RARE_PATCHES_ONLY = qfalse;
 int			GRASS3_WIDTH_REPEATS = 0;
 int			GRASS3_DENSITY = 2;
@@ -1664,7 +1665,7 @@ float		GRASS3_LOD_START_RANGE = 8192.0;
 image_t		*GRASS3_CONTROL_TEXTURE = NULL;
 
 qboolean	GRASS4_ENABLED = qtrue;
-qboolean	GRASS4_UNDERWATER_ONLY = qfalse;
+int			GRASS4_UNDERWATER = 0;
 qboolean	GRASS4_RARE_PATCHES_ONLY = qfalse;
 int			GRASS4_WIDTH_REPEATS = 0;
 int			GRASS4_DENSITY = 2;
@@ -2636,7 +2637,7 @@ void MAPPING_LoadMapInfo(void)
 
 	if (GRASS_ENABLED)
 	{
-		GRASS_UNDERWATER_ONLY = (atoi(IniRead(mapname, "GRASS", "GRASS_UNDERWATER_ONLY", "0")) > 0) ? qtrue : qfalse;
+		GRASS_UNDERWATER = (atoi(IniRead(mapname, "GRASS", "GRASS_UNDERWATER", "0")));
 		GRASS_RARE_PATCHES_ONLY = (atoi(IniRead(mapname, "GRASS", "GRASS_RARE_PATCHES_ONLY", "0")) > 0) ? qtrue : qfalse;
 		GRASS_DENSITY = atoi(IniRead(mapname, "GRASS", "GRASS_DENSITY", "2"));
 		GRASS_WIDTH_REPEATS = atoi(IniRead(mapname, "GRASS", "GRASS_WIDTH_REPEATS", "0"));
@@ -2648,6 +2649,7 @@ void MAPPING_LoadMapInfo(void)
 		GRASS_LOD_START_RANGE = atof(IniRead(mapname, "GRASS", "GRASS_LOD_START_RANGE", va("%f", GRASS_DISTANCE)));
 		GRASS_TYPE_UNIFORMALITY = atof(IniRead(mapname, "GRASS", "GRASS_TYPE_UNIFORMALITY", "0.97"));
 		GRASS_TYPE_UNIFORMALITY_SCALER = atof(IniRead(mapname, "GRASS", "GRASS_TYPE_UNIFORMALITY_SCALER", "0.008"));
+		GRASS_TYPE_UNIFORMALITY_WATER = atof(IniRead(mapname, "GRASS", "GRASS_TYPE_UNIFORMALITY_WATER", "0.66"));
 		GRASS_DISTANCE_FROM_ROADS = Q_clamp(0.0, atof(IniRead(mapname, "GRASS", "GRASS_DISTANCE_FROM_ROADS", "0.25")), 0.9);
 		GRASS_SIZE_MULTIPLIER_COMMON = atof(IniRead(mapname, "GRASS", "GRASS_SIZE_MULTIPLIER_COMMON", "1.0"));
 		GRASS_SIZE_MULTIPLIER_RARE = atof(IniRead(mapname, "GRASS", "GRASS_SIZE_MULTIPLIER_RARE", "2.75"));
@@ -2692,7 +2694,7 @@ void MAPPING_LoadMapInfo(void)
 
 	if (GRASS2_ENABLED)
 	{
-		GRASS2_UNDERWATER_ONLY = (atoi(IniRead(mapname, "GRASS2", "GRASS_UNDERWATER_ONLY", "0")) > 0) ? qtrue : qfalse;
+		GRASS2_UNDERWATER = (atoi(IniRead(mapname, "GRASS2", "GRASS_UNDERWATER", "0")));
 		GRASS2_RARE_PATCHES_ONLY = (atoi(IniRead(mapname, "GRASS2", "GRASS_RARE_PATCHES_ONLY", "0")) > 0) ? qtrue : qfalse;
 		GRASS2_DENSITY = atoi(IniRead(mapname, "GRASS2", "GRASS_DENSITY", "2"));
 		GRASS2_WIDTH_REPEATS = atoi(IniRead(mapname, "GRASS2", "GRASS_WIDTH_REPEATS", "0"));
@@ -2740,7 +2742,7 @@ void MAPPING_LoadMapInfo(void)
 
 	if (GRASS3_ENABLED)
 	{
-		GRASS3_UNDERWATER_ONLY = (atoi(IniRead(mapname, "GRASS3", "GRASS_UNDERWATER_ONLY", "0")) > 0) ? qtrue : qfalse;
+		GRASS3_UNDERWATER = (atoi(IniRead(mapname, "GRASS3", "GRASS_UNDERWATER", "0")));
 		GRASS3_RARE_PATCHES_ONLY = (atoi(IniRead(mapname, "GRASS3", "GRASS_RARE_PATCHES_ONLY", "0")) > 0) ? qtrue : qfalse;
 		GRASS3_DENSITY = atoi(IniRead(mapname, "GRASS3", "GRASS_DENSITY", "2"));
 		GRASS3_WIDTH_REPEATS = atoi(IniRead(mapname, "GRASS3", "GRASS_WIDTH_REPEATS", "0"));
@@ -2788,7 +2790,7 @@ void MAPPING_LoadMapInfo(void)
 
 	if (GRASS4_ENABLED)
 	{
-		GRASS4_UNDERWATER_ONLY = (atoi(IniRead(mapname, "GRASS4", "GRASS_UNDERWATER_ONLY", "0")) > 0) ? qtrue : qfalse;
+		GRASS4_UNDERWATER = (atoi(IniRead(mapname, "GRASS4", "GRASS_UNDERWATER", "0")));
 		GRASS4_RARE_PATCHES_ONLY = (atoi(IniRead(mapname, "GRASS4", "GRASS_RARE_PATCHES_ONLY", "0")) > 0) ? qtrue : qfalse;
 		GRASS4_DENSITY = atoi(IniRead(mapname, "GRASS4", "GRASS_DENSITY", "2"));
 		GRASS4_WIDTH_REPEATS = atoi(IniRead(mapname, "GRASS4", "GRASS_WIDTH_REPEATS", "0"));
@@ -3102,7 +3104,7 @@ void MAPPING_LoadMapInfo(void)
 
 	if ((GRASS_ENABLED && r_foliage->integer))
 	{
-		if (!GRASS_UNDERWATER_ONLY)
+		if (!GRASS_UNDERWATER)
 		{
 			char grassImages[16][512] = { 0 };
 
@@ -3136,7 +3138,7 @@ void MAPPING_LoadMapInfo(void)
 
 	if ((GRASS2_ENABLED && r_foliage->integer))
 	{
-		if (!GRASS2_UNDERWATER_ONLY)
+		if (!GRASS2_UNDERWATER)
 		{
 			char grassImages[16][512] = { 0 };
 
@@ -3170,7 +3172,7 @@ void MAPPING_LoadMapInfo(void)
 
 	if ((GRASS3_ENABLED && r_foliage->integer))
 	{
-		if (!GRASS3_UNDERWATER_ONLY)
+		if (!GRASS3_UNDERWATER)
 		{
 			char grassImages[16][512] = { 0 };
 
@@ -3204,7 +3206,7 @@ void MAPPING_LoadMapInfo(void)
 
 	if ((GRASS4_ENABLED && r_foliage->integer))
 	{
-		if (!GRASS4_UNDERWATER_ONLY)
+		if (!GRASS4_UNDERWATER)
 		{
 			char grassImages[16][512] = { 0 };
 
@@ -3377,7 +3379,7 @@ void MAPPING_LoadMapInfo(void)
 
 		ri->Printf(PRINT_ALL, "^4*** ^3MAP-INFO^4: ^5Road texture is ^7%s^5 and road control texture is %s on this map.\n", ROAD_TEXTURE, (!tr.roadsMapImage || tr.roadsMapImage == tr.blackImage) ? "none" : tr.roadsMapImage->imgName);
 
-		ri->Printf(PRINT_ALL, "^4*** ^3MAP-INFO^4: ^5Grass is ^7%s^5 and underwater grass only is ^7%s^5 on this map.\n", GRASS_ENABLED ? "ENABLED" : "DISABLED", GRASS_UNDERWATER_ONLY ? "ENABLED" : "DISABLED");
+		ri->Printf(PRINT_ALL, "^4*** ^3MAP-INFO^4: ^5Grass is ^7%s^5 and underwater grass only is ^7%s^5 on this map.\n", GRASS_ENABLED ? "ENABLED" : "DISABLED", GRASS_UNDERWATER ? "ENABLED" : "DISABLED");
 		ri->Printf(PRINT_ALL, "^4*** ^3MAP-INFO^4: ^5Grass rare patches only is ^7%s^5 on this map.\n", GRASS_RARE_PATCHES_ONLY ? "ENABLED" : "DISABLED");
 		ri->Printf(PRINT_ALL, "^4*** ^3MAP-INFO^4: ^5Grass density is ^7%i^5 and grass distance is ^7%i^5 on this map.\n", GRASS_DENSITY, GRASS_DISTANCE);
 		ri->Printf(PRINT_ALL, "^4*** ^3MAP-INFO^4: ^5Grass width repeats is ^7%i^5 and grass max slope is ^7%.4f^5 on this map.\n", GRASS_WIDTH_REPEATS, GRASS_MAX_SLOPE);

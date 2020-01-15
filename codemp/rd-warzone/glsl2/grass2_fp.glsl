@@ -252,7 +252,7 @@ void main()
 
 	if (GRASS_WIDTH_REPEATS > 0.0) tc.x *= (GRASS_WIDTH_REPEATS * 2.0);
 
-#if defined(__USE_UNDERWATER_ONLY__)
+#if defined(__USE_UNDERWATER__)
 	if (IS_DEPTH_PASS > 0.0)
 	{
 		diffuse = vec4(1.0, 1.0, 1.0, texture(u_WaterEdgeMap, tc).a);
@@ -261,7 +261,7 @@ void main()
 	{
 		diffuse = texture(u_WaterEdgeMap, tc);
 	}
-#else //!defined(__USE_UNDERWATER_ONLY__)
+#else //!defined(__USE_UNDERWATER__)
 	if (IS_DEPTH_PASS > 0.0)
 	{
 #ifdef FAKE_LOD
@@ -327,7 +327,7 @@ void main()
 			diffuse = texture(u_DiffuseMap, tc);
 		}
 	}
-#endif //defined(__USE_UNDERWATER_ONLY__)
+#endif //defined(__USE_UNDERWATER__)
 
 	if (MAP_COLOR_SWITCH_RG > 0.0)
 	{

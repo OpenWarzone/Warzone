@@ -220,7 +220,7 @@ extern float			GRASS_PATCHES_LOD_START_RANGE;
 extern image_t			*GRASS_PATCHES_CONTROL_TEXTURE;
 
 extern qboolean			GRASS_ENABLED;
-extern qboolean			GRASS_UNDERWATER_ONLY;
+extern int				GRASS_UNDERWATER;
 extern qboolean			GRASS_RARE_PATCHES_ONLY;
 extern int				GRASS_WIDTH_REPEATS;
 extern int				GRASS_DENSITY;
@@ -231,6 +231,7 @@ extern float			GRASS_SURFACE_MINIMUM_SIZE;
 extern float			GRASS_SURFACE_SIZE_DIVIDER;
 extern float			GRASS_TYPE_UNIFORMALITY;
 extern float			GRASS_TYPE_UNIFORMALITY_SCALER;
+extern float			GRASS_TYPE_UNIFORMALITY_WATER;
 extern float			GRASS_DISTANCE_FROM_ROADS;
 extern float			GRASS_SIZE_MULTIPLIER_COMMON;
 extern float			GRASS_SIZE_MULTIPLIER_RARE;
@@ -246,7 +247,7 @@ extern float			FAKE_GRASS_COLORMULT;
 extern float			FAKE_GRASS_COLORMULT_UNDERWATER;
 
 extern qboolean			GRASS2_ENABLED;
-extern qboolean			GRASS2_UNDERWATER_ONLY;
+extern int				GRASS2_UNDERWATER;
 extern qboolean			GRASS2_RARE_PATCHES_ONLY;
 extern int				GRASS2_WIDTH_REPEATS;
 extern int				GRASS2_DENSITY;
@@ -265,7 +266,7 @@ extern float			GRASS2_LOD_START_RANGE;
 extern image_t			*GRASS2_CONTROL_TEXTURE;
 
 extern qboolean			GRASS3_ENABLED;
-extern qboolean			GRASS3_UNDERWATER_ONLY;
+extern int				GRASS3_UNDERWATER;
 extern qboolean			GRASS3_RARE_PATCHES_ONLY;
 extern int				GRASS3_WIDTH_REPEATS;
 extern int				GRASS3_DENSITY;
@@ -284,7 +285,7 @@ extern float			GRASS3_LOD_START_RANGE;
 extern image_t			*GRASS3_CONTROL_TEXTURE;
 
 extern qboolean			GRASS4_ENABLED;
-extern qboolean			GRASS4_UNDERWATER_ONLY;
+extern int				GRASS4_UNDERWATER;
 extern qboolean			GRASS4_RARE_PATCHES_ONLY;
 extern int				GRASS4_WIDTH_REPEATS;
 extern int				GRASS4_DENSITY;
@@ -315,7 +316,7 @@ extern float			FOLIAGE_TYPE_UNIFORMALITY_SCALER;
 extern float			FOLIAGE_DISTANCE_FROM_ROADS;
 
 extern qboolean			VINES_ENABLED;
-extern qboolean			VINES_UNDERWATER_ONLY;
+extern qboolean			VINES_UNDERWATER;
 extern int				VINES_WIDTH_REPEATS;
 extern int				VINES_DENSITY;
 extern float			VINES_HEIGHT;

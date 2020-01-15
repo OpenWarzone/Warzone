@@ -75,7 +75,7 @@ uniform vec4								u_Local10; // foliageLODdistance, TERRAIN_TESS_OFFSET, 0.0, 
 uniform vec4								u_Local11; // GRASS_WIDTH_REPEATS, GRASS_MAX_SLOPE, GRASS_TYPE_UNIFORMALITY_SCALER, GRASS_RARE_PATCHES_ONLY
 uniform vec4								u_Local12; // GRASS_SIZE_MULTIPLIER_COMMON, GRASS_SIZE_MULTIPLIER_RARE, GRASS_SIZE_MULTIPLIER_UNDERWATER, GRASS_LOD_START_RANGE
 uniform vec4								u_Local13; // HAVE_GRASS_CONTROL, HAVE_GRASS_CONTROL1, HAVE_GRASS_CONTROL2, HAVE_GRASS_CONTROL3
-uniform vec4								u_Local21; // WATEREDGE_RANGE_MULTIPLIER, 0.0, 0.0, 0.0
+uniform vec4								u_Local21; // WATEREDGE_RANGE_MULTIPLIER, GRASS_TYPE_UNIFORMALITY_WATER, GRASS_UNDERWATER, 0.0
 
 #define SHADER_MAP_SIZE						u_Local1.r
 #define SHADER_SWAY							u_Local1.g
@@ -117,9 +117,10 @@ uniform vec4								u_Local21; // WATEREDGE_RANGE_MULTIPLIER, 0.0, 0.0, 0.0
 #define HAVE_GRASS_CONTROL3					u_Local13.a
 
 #define WATEREDGE_RANGE_MULTIPLIER			u_Local21.r
+#define GRASS_TYPE_UNIFORM_WATER			u_Local21.g //0.66
+#define GRASS_UNDERWATER					u_Local21.b
 
 #define MAP_WATER_LEVEL						SHADER_WATER_LEVEL // TODO: Use water map
-#define GRASS_TYPE_UNIFORM_WATER			0.66
 
 uniform vec3								u_ViewOrigin;
 uniform vec3								u_PlayerOrigin;
@@ -531,6 +532,11 @@ void main()
 
 	if (vGrassFieldPos.z < MAP_WATER_LEVEL)
 	{
+		if (GRASS_UNDERWATER <= 0.0)
+		{
+			return;
+		}
+
 		CULL_RANGE = MAX_RANGE;
 	}
 
@@ -671,7 +677,7 @@ void main()
 	vec2 tcOffsetBegin;
 	vec2 tcOffsetEnd;
 
-#if defined(__USE_UNDERWATER_ONLY__)
+#if defined(__USE_UNDERWATER__)
 	iGrassType = 0;
 
 	vLocalSeed = round(vGrassFieldPos * GRASS_TYPE_UNIFORMALITY_SCALER) + 1.0;
@@ -679,6 +685,10 @@ void main()
 	if (randZeroOne() > GRASS_TYPE_UNIFORM_WATER)
 	{// Randomize...
 		iGrassType = randomInt(0, 3);
+	}
+	else //if (GRASS_RARE_PATCHES_ONLY > 0.0)
+	{// If only drawing rare grasses, skip adding anything when it's not a rare...
+		return;
 	}
 
 	/*if (heightAboveWaterLength <= 192.0)
@@ -696,16 +706,25 @@ void main()
 	tcOffsetEnd = tcOffsetBegin + 0.25;
 
 	iGrassType = 1;
-#else //!defined(__USE_UNDERWATER_ONLY__)
+#else //!defined(__USE_UNDERWATER__)
 	if (heightAboveWater < 0.0)
 	{
 		iGrassType = 0;
+
+		if (GRASS_UNDERWATER <= 0.0)
+		{
+			return;
+		}
 
 		vLocalSeed = round(vGrassFieldPos * GRASS_TYPE_UNIFORMALITY_SCALER) + 1.0;
 
 		if (randZeroOne() > GRASS_TYPE_UNIFORM_WATER)
 		{// Randomize...
 			iGrassType = randomInt(0, 3);
+		}
+		else //if (GRASS_RARE_PATCHES_ONLY > 0.0)
+		{// If only drawing rare grasses, skip adding anything when it's not a rare...
+			return;
 		}
 
 		/*if (heightAboveWaterLength <= 192.0)
@@ -761,7 +780,7 @@ void main()
 		// Final value set to 0 == an above water grass...
 		iGrassType = 0;
 	}
-#endif //defined(__USE_UNDERWATER_ONLY__)
+#endif //defined(__USE_UNDERWATER__)
 
 	fGrassPatchHeight = clamp(controlMapScale /** vertDistanceScale*/ * 3.0, 0.0, 1.0);
 

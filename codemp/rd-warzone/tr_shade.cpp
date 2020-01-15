@@ -58,7 +58,7 @@ extern qboolean		ENABLE_CHRISTMAS_EFFECT;
 extern float		DYNAMIC_WEATHER_PUDDLE_STRENGTH;
 
 extern qboolean		GRASS_ENABLED;
-extern qboolean		GRASS_UNDERWATER_ONLY;
+extern int			GRASS_UNDERWATER;
 extern qboolean		GRASS_RARE_PATCHES_ONLY;
 extern int			GRASS_WIDTH_REPEATS;
 extern int			GRASS_DENSITY;
@@ -3044,7 +3044,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		{// Special extra pass stuff for grass...
 			if (stage > 0) return;
 
-			if (GRASS_UNDERWATER_ONLY)
+			if (GRASS_UNDERWATER > 1)
 				sp = &tr.grassShader[0];
 			else
 				sp = &tr.grassShader[1];
@@ -3055,7 +3055,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		{// Special extra pass stuff for grass...
 			if (stage > 0) return;
 
-			if (GRASS_UNDERWATER_ONLY)
+			if (GRASS2_UNDERWATER > 1)
 				sp = &tr.grassShader[0];
 			else
 				sp = &tr.grassShader[1];
@@ -3066,7 +3066,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		{// Special extra pass stuff for grass...
 			if (stage > 0) return;
 
-			if (GRASS_UNDERWATER_ONLY)
+			if (GRASS3_UNDERWATER > 1)
 				sp = &tr.grassShader[0];
 			else
 				sp = &tr.grassShader[1];
@@ -3077,7 +3077,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		{// Special extra pass stuff for grass...
 			if (stage > 0) return;
 
-			if (GRASS_UNDERWATER_ONLY)
+			if (GRASS4_UNDERWATER > 1)
 				sp = &tr.grassShader[0];
 			else
 				sp = &tr.grassShader[1];
@@ -3885,7 +3885,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformVec3xX(sp, UNIFORM_HUMANOIDORIGINS, backEnd.humanoidOrigins, backEnd.humanoidOriginsNum);
 #endif //__HUMANOIDS_BEND_GRASS__
 
-			if (GRASS_UNDERWATER_ONLY)
+			if (GRASS_UNDERWATER > 1)
 			{
 				if (sp->isBindless)
 				{
@@ -4024,7 +4024,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformVec3xX(sp, UNIFORM_HUMANOIDORIGINS, backEnd.humanoidOrigins, backEnd.humanoidOriginsNum);
 #endif //__HUMANOIDS_BEND_GRASS__
 
-			if (GRASS_UNDERWATER_ONLY)
+			if (GRASS2_UNDERWATER > 1)
 			{
 				if (sp->isBindless)
 				{
@@ -4164,7 +4164,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformVec3xX(sp, UNIFORM_HUMANOIDORIGINS, backEnd.humanoidOrigins, backEnd.humanoidOriginsNum);
 #endif //__HUMANOIDS_BEND_GRASS__
 
-			if (GRASS_UNDERWATER_ONLY)
+			if (GRASS3_UNDERWATER > 1)
 			{
 				if (sp->isBindless)
 				{
@@ -4303,7 +4303,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformVec3xX(sp, UNIFORM_HUMANOIDORIGINS, backEnd.humanoidOrigins, backEnd.humanoidOriginsNum);
 #endif //__HUMANOIDS_BEND_GRASS__
 
-			if (GRASS_UNDERWATER_ONLY)
+			if (GRASS4_UNDERWATER)
 			{
 				if (sp->isBindless)
 				{
@@ -6079,6 +6079,31 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL18, zero);
 		}
 
+		if (isGrass && backEnd.renderPass == RENDERPASS_GRASS)
+		{
+			vec4_t l21;
+			VectorSet4(l21, WATEREDGE_RANGE_MULTIPLIER, GRASS_TYPE_UNIFORMALITY_WATER, GRASS_UNDERWATER, 0.0);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL21, l21);
+		}
+		else if (isGrass2 && backEnd.renderPass == RENDERPASS_GRASS2)
+		{
+			vec4_t l21;
+			VectorSet4(l21, WATEREDGE_RANGE_MULTIPLIER, GRASS_TYPE_UNIFORMALITY_WATER, GRASS2_UNDERWATER, 0.0);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL21, l21);
+		}
+		else if (isGrass3 && backEnd.renderPass == RENDERPASS_GRASS3)
+		{
+			vec4_t l21;
+			VectorSet4(l21, WATEREDGE_RANGE_MULTIPLIER, GRASS_TYPE_UNIFORMALITY_WATER, GRASS3_UNDERWATER, 0.0);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL21, l21);
+		}
+		else if (isGrass4 && backEnd.renderPass == RENDERPASS_GRASS4)
+		{
+			vec4_t l21;
+			VectorSet4(l21, WATEREDGE_RANGE_MULTIPLIER, GRASS_TYPE_UNIFORMALITY_WATER, GRASS4_UNDERWATER, 0.0);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL21, l21);
+		}
+		else
 		{
 			vec4_t l21;
 			VectorSet4(l21, WATEREDGE_RANGE_MULTIPLIER, 0.0, 0.0, 0.0);

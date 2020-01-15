@@ -64,6 +64,7 @@ uniform vec4								u_Local10; // foliageLODdistance, TERRAIN_TESS_OFFSET, GRASS
 uniform vec4								u_Local11; // GRASS_WIDTH_REPEATS, GRASS_MAX_SLOPE, GRASS_TYPE_UNIFORMALITY_SCALER, 0.0
 uniform vec4								u_Local12; // GRASS_SIZE_MULTIPLIER_COMMON, GRASS_SIZE_MULTIPLIER_RARE, GRASS_SIZE_MULTIPLIER_UNDERWATER, 0.0
 uniform vec4								u_Local13; // HAVE_GRASS_CONTROL, HAVE_GRASS_CONTROL1, HAVE_GRASS_CONTROL2, HAVE_GRASS_CONTROL3
+uniform vec4								u_Local21; // WATEREDGE_RANGE_MULTIPLIER, GRASS_TYPE_UNIFORMALITY_WATER, GRASS_UNDERWATER, 0.0
 
 #define SHADER_MAP_SIZE						u_Local1.r
 #define SHADER_SWAY							u_Local1.g
@@ -102,8 +103,11 @@ uniform vec4								u_Local13; // HAVE_GRASS_CONTROL, HAVE_GRASS_CONTROL1, HAVE_
 #define HAVE_GRASS_CONTROL2					u_Local13.b
 #define HAVE_GRASS_CONTROL3					u_Local13.a
 
+#define WATEREDGE_RANGE_MULTIPLIER			u_Local21.r
+#define GRASS_TYPE_UNIFORM_WATER			u_Local21.g //0.66
+#define GRASS_UNDERWATER					u_Local21.b
+
 #define MAP_WATER_LEVEL						SHADER_WATER_LEVEL // TODO: Use water map
-#define GRASS_TYPE_UNIFORM_WATER			0.66
 
 uniform vec3								u_ViewOrigin;
 
@@ -157,7 +161,16 @@ void main()
 	vec3 Vert2 = gl_in[1].gl_Position.xyz;
 	vec3 Vert3 = gl_in[2].gl_Position.xyz;
 
-#ifdef __USE_UNDERWATER_ONLY__
+	if (GRASS_UNDERWATER <= 0.0)
+	{
+		if (Vert1.z <= MAP_WATER_LEVEL && Vert2.z <= MAP_WATER_LEVEL && Vert3.z <= MAP_WATER_LEVEL)
+		{// Can skip this triangle completely...
+			gl_TessLevelOuter[0] = gl_TessLevelOuter[1] = gl_TessLevelOuter[2] = gl_TessLevelInner[0] = 0.0;
+			return;
+		}
+	}
+
+#ifdef __USE_UNDERWATER__
 	float waterCheckLevel = MAP_WATER_LEVEL - 128.0;
 
 	if (Vert1.z >= waterCheckLevel && Vert2.z >= waterCheckLevel && Vert3.z >= waterCheckLevel)
@@ -165,17 +178,17 @@ void main()
 		gl_TessLevelOuter[0] = gl_TessLevelOuter[1] = gl_TessLevelOuter[2] = gl_TessLevelInner[0] = 0.0;
 		return;
 	}
-#endif //__USE_UNDERWATER_ONLY__
+#endif //__USE_UNDERWATER__
 
 	vec3 Pos = (Vert1 + Vert2 + Vert3) / 3.0;   //Center of the triangle - copy for later
 
-#ifdef __USE_UNDERWATER_ONLY__
+#ifdef __USE_UNDERWATER__
 	if (Pos.z >= MAP_WATER_LEVEL)
 	{// Do less grasses underwater...
 		gl_TessLevelOuter[0] = gl_TessLevelOuter[1] = gl_TessLevelOuter[2] = gl_TessLevelInner[0] = 0.0;
 		return;
 	}
-#endif //__USE_UNDERWATER_ONLY__
+#endif //__USE_UNDERWATER__
 
 	if (!CheckGrassMapPosition(Pos))
 	{
@@ -229,13 +242,13 @@ void main()
 	float uTessLevel = (GRASS_DENSITY * sizeMult > 1.0) ? GRASS_DENSITY * sizeMult : 1.0;
 
 	/*
-#ifndef __USE_UNDERWATER_ONLY__
+#ifndef __USE_UNDERWATER__
 	if (Pos.z < MAP_WATER_LEVEL)
 	{// Do less grasses underwater...
 		//uTessLevel = max(float(int(uTessLevel / 4.0)), 1.0);
 		uTessLevel = max(float(int(uTessLevel / 2.0)), 1.0);
 	}
-#endif //__USE_UNDERWATER_ONLY__
+#endif //__USE_UNDERWATER__
 	*/
 
 	// (3)
