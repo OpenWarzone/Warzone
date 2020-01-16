@@ -6700,6 +6700,7 @@ void CG_AddSaberBlade(centity_t *cent, centity_t *scent, refEntity_t *saber, int
 
 	if (!dontDraw)
 	{
+#if 0
 		if (cg_saberModelTraceEffect.integer || g_mmoStyleAttacking.integer)
 		{
 			CG_G2SaberEffects(org_, end, cent);
@@ -6729,6 +6730,7 @@ void CG_AddSaberBlade(centity_t *cent, centity_t *scent, refEntity_t *saber, int
 				client->saber[saberNum].blade[bladeNum].storageTime = cg.time + 5;
 			}
 		}
+#endif
 
 		if (cent->nextSaberClash <= cg.time && g_mmoStyleAttacking.integer)
 		{// UQ1: Do a trace for saber vs saber clashes...
@@ -6751,9 +6753,45 @@ void CG_AddSaberBlade(centity_t *cent, centity_t *scent, refEntity_t *saber, int
 				VectorCopy(trace.endpos, cg_saberFlashPos);
 				cg_saberFlashTime = cg.time - 50;
 
-				cent->nextSaberClash = cg.time + irand(1500, 3800);
+				cent->nextSaberClash = cg.time + irand(1200, 3800);
 			}
 		}
+
+#define __BLOOD_SPARKS__
+
+#ifdef __BLOOD_SPARKS__
+		for (i = 0; i < 1; i++)//was 2 because it would go through architecture and leave saber trails on either side of the brush - but still looks bad if we hit a corner, blade is still 8 longer than hit
+		{
+			if (i)
+			{//tracing from end to base
+				CG_Trace(&trace, end, NULL, NULL, org_, ENTITYNUM_NONE, MASK_PLAYERSOLID);
+			}
+			else
+			{//tracing from base to end
+				CG_Trace(&trace, org_, NULL, NULL, end, ENTITYNUM_NONE, MASK_PLAYERSOLID);
+			}
+
+			if (trace.fraction < 1.0f)
+			{
+				centity_t *hit = NULL;
+
+				if (trace.entityNum < ENTITYNUM_MAX_NORMAL)
+				{
+					hit = &cg_entities[trace.entityNum];
+				}
+
+				if (hit && (hit->currentState.eType == ET_PLAYER || hit->currentState.eType == ET_NPC))
+				{// UQ1: Also do blood sparks here...
+					if (hit->nextBodyClash <= cg.time && hit != cent)
+					{// Don't spam this, filling up memory...
+						PlayEffectID(cgs.effects.mSaberBloodSparks, trace.endpos, trace.plane.normal, -1, -1, qfalse);
+						trap->S_StartSound(trace.endpos, trace.entityNum, CHAN_SABER, trap->S_RegisterSound(va("sound/weapons/saber/saberhit%i.wav", Q_irand(1, 3))));
+						hit->nextSaberClash = cg.time + irand(1300, 4400);
+					}
+				}
+			}
+		}
+#endif //__BLOOD_SPARKS__
 
 		for (i = 0; i < 1; i++)//was 2 because it would go through architecture and leave saber trails on either side of the brush - but still looks bad if we hit a corner, blade is still 8 longer than hit
 		{
@@ -6782,9 +6820,7 @@ void CG_AddSaberBlade(centity_t *cent, centity_t *scent, refEntity_t *saber, int
 				{
 					if (!(trace.surfaceFlags & SURF_NOIMPACT)) // never spark on sky
 					{
-						PlayEffectID(
-							CG_EnableEnhancedFX(cgs.effects.mSparks,
-							cgs.effects.mSparksEnhancedFX), trace.endpos, trDir, -1, -1, qfalse);
+						PlayEffectID(CG_EnableEnhancedFX(cgs.effects.mSparks, cgs.effects.mSparksEnhancedFX), trace.endpos, trDir, -1, -1, qfalse);
 					}
 				}
 

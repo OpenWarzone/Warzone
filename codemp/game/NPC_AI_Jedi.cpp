@@ -526,6 +526,137 @@ void WP_ResistForcePush( gentity_t *self, gentity_t *pusher, qboolean noPenalty 
 	Jedi_PlayBlockedPushSound( self );
 }
 
+extern qboolean G_CanBeEnemy(gentity_t *self, gentity_t *enemy);
+extern qboolean G_PrettyCloseIGuess(float a, float b, float tolerance);
+
+qboolean G_SecurityDroidMelee(gentity_t *self)
+{
+	renderInfo_t *ri = &self->client->renderInfo;
+	mdxaBone_t boltMatrix;
+	vec3_t flatAng;
+	vec3_t pos;
+	vec3_t grabMins, grabMaxs;
+	trace_t trace;
+
+	if (!self->ghoul2 || ri->handRBolt == -1)
+	{ //no good
+		return qfalse;
+	}
+
+	if (!TIMER_Done(self, "k2sopunch"))
+	{
+		return qfalse;
+	}
+
+	VectorSet(flatAng, 0.0f, self->client->ps.viewangles[1], 0.0f);
+	trap->G2API_GetBoltMatrix(self->ghoul2, 0, ri->handRBolt, &boltMatrix, flatAng, self->client->ps.origin,
+		level.time, NULL, self->modelScale);
+	BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, pos);
+
+	//VectorSet(grabMins, -4.0f, -4.0f, -4.0f);
+	//VectorSet(grabMaxs, 4.0f, 4.0f, 4.0f);
+
+	VectorSet(grabMins, -64.0f, -64.0f, -64.0f);
+	VectorSet(grabMaxs, 64.0f, 64.0f, 64.0f);
+
+	//trace from my origin to my hand, if we hit anyone then get 'em
+	trap->Trace(&trace, self->client->ps.origin, grabMins, grabMaxs, pos, self->s.number, MASK_SHOT, qfalse, /*G2TRFLAG_DOGHOULTRACE | G2TRFLAG_GETSURFINDEX | G2TRFLAG_THICK | G2TRFLAG_HITCORPSES*/0, 0/*g_g2TraceLod.integer*/);
+
+	if (trace.fraction != 1.0f &&
+		trace.entityNum < ENTITYNUM_WORLD)
+	{
+		gentity_t *grabbed = &g_entities[trace.entityNum];
+
+		if (grabbed->inuse && (grabbed->s.eType == ET_PLAYER || grabbed->s.eType == ET_NPC) &&
+			grabbed->client && grabbed->health > 0 &&
+			G_CanBeEnemy(self, grabbed) &&
+			//G_PrettyCloseIGuess(grabbed->client->ps.origin[2], self->client->ps.origin[2], 4.0f) &&
+			(!BG_InGrappleMove(grabbed->client->ps.torsoAnim) || grabbed->client->ps.torsoAnim == BOTH_KYLE_GRAB) &&
+			(!BG_InGrappleMove(grabbed->client->ps.legsAnim) || grabbed->client->ps.legsAnim == BOTH_KYLE_GRAB))
+		{ //grabbed an active player/npc
+			int tortureAnim = -1;
+			int correspondingAnim = -1;
+
+			if (self->client->pers.cmd.forwardmove > 0)
+			{ //punch grab
+				tortureAnim = BOTH_KYLE_PA_1;
+				correspondingAnim = BOTH_PLAYER_PA_1;
+			}
+			else if (self->client->pers.cmd.forwardmove < 0)
+			{ //knee-throw
+				tortureAnim = BOTH_KYLE_PA_2;
+				correspondingAnim = BOTH_PLAYER_PA_2;
+			}
+
+			if (tortureAnim == -1 || correspondingAnim == -1)
+			{
+				if (self->client->ps.torsoTimer < 300 && !self->client->grappleState)
+				{ //you failed to grab anyone, play the "failed to grab" anim
+					G_SetAnim(self, &self->client->pers.cmd, SETANIM_BOTH, BOTH_KYLE_MISS, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
+					if (self->client->ps.torsoAnim == BOTH_KYLE_MISS)
+					{ //providing the anim set succeeded..
+						self->client->ps.weaponTime = self->client->ps.torsoTimer;
+					}
+				}
+
+				TIMER_Set(self, "k2sopunch", irand(5000, 7000));
+				return qfalse;
+			}
+
+			self->client->grappleIndex = grabbed->s.number;
+			self->client->grappleState = 1;
+
+			grabbed->client->grappleIndex = self->s.number;
+			grabbed->client->grappleState = 20;
+
+			//time to crack some heads
+			G_SetAnim(self, &self->client->pers.cmd, SETANIM_BOTH, tortureAnim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
+			if (self->client->ps.torsoAnim == tortureAnim)
+			{ //providing the anim set succeeded..
+				self->client->ps.weaponTime = self->client->ps.torsoTimer;
+			}
+
+			G_SetAnim(grabbed, &grabbed->client->pers.cmd, SETANIM_BOTH, correspondingAnim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
+			if (grabbed->client->ps.torsoAnim == correspondingAnim)
+			{ //providing the anim set succeeded..
+				if (grabbed->client->ps.weapon == WP_SABER)
+				{ //turn it off
+					if (!grabbed->client->ps.saberHolstered)
+					{
+						grabbed->client->ps.saberHolstered = 2;
+						if (grabbed->client->saber[0].soundOff)
+						{
+							G_Sound(grabbed, CHAN_AUTO, grabbed->client->saber[0].soundOff);
+						}
+						if (grabbed->client->saber[1].soundOff &&
+							grabbed->client->saber[1].model[0])
+						{
+							G_Sound(grabbed, CHAN_AUTO, grabbed->client->saber[1].soundOff);
+						}
+					}
+				}
+				if (grabbed->client->ps.torsoTimer < self->client->ps.torsoTimer)
+				{ //make sure they stay in the anim at least as long as the grabber
+					grabbed->client->ps.torsoTimer = self->client->ps.torsoTimer;
+				}
+				grabbed->client->ps.weaponTime = grabbed->client->ps.torsoTimer;
+			}
+		}
+	}
+
+	if (self->client->ps.torsoTimer < 300 && !self->client->grappleState)
+	{ //you failed to grab anyone, play the "failed to grab" anim
+		G_SetAnim(self, &self->client->pers.cmd, SETANIM_BOTH, BOTH_KYLE_MISS, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
+		if (self->client->ps.torsoAnim == BOTH_KYLE_MISS)
+		{ //providing the anim set succeeded..
+			self->client->ps.weaponTime = self->client->ps.torsoTimer;
+		}
+	}
+
+	TIMER_Set(self, "k2sopunch", irand(9000, 25000));
+	return qtrue;
+}
+
 qboolean Boba_StopKnockdown( gentity_t *self, gentity_t *pusher, vec3_t pushDir, qboolean forceKnockdown ) //forceKnockdown = qfalse
 {
 	vec3_t	pDir, fwd, right, ang;
@@ -601,14 +732,14 @@ qboolean Boba_StopKnockdown( gentity_t *self, gentity_t *pusher, vec3_t pushDir,
 
 #define __WRIST_FLAMER_SWEEP__
 
+extern stringID_table_t ClassTable[];
+
 #define WRIST_FLAMER_TIME			4000
 #define WRISE_FLAMER_FORCE_COST		50
 
 void Boba_FireFlameThrower( gentity_t *self )
 {
-	int		damage	= Q_irand( 20, 30 );
-
-	if (NPC_IsBountyHunter(self))
+	if (NPC_IsBountyHunter(self) || self->s.NPC_class == CLASS_K2SO)
 	{// Always hold the animation while firing flamer...
 		NPC_SetAnim(self, SETANIM_TORSO, BOTH_FORCELIGHTNING_HOLD, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD);
 	}
@@ -616,7 +747,28 @@ void Boba_FireFlameThrower( gentity_t *self )
 	self->beStillTime = level.time + WRIST_FLAMER_TIME;
 
 	// UQ1: Made this into an event... because it was really dumb and broken the way it was...
-	G_AddEvent(self, EV_WRIST_FLAMETHROWER_FIRE, 0);
+	int		type = 0;
+	int		damage = 0;
+
+	if (self->s.NPC_class == CLASS_SEEKER)
+	{
+		type = 1; // light lightning...
+		damage = Q_irand(10, 15);
+	}
+	else if (self->s.NPC_class == CLASS_K2SO)
+	{
+		type = 2; // heavy lightning...
+		damage = Q_irand(10, 25);
+	}
+	else //if (NPC_IsBountyHunter(self))
+	{
+		type = 0; // flamer...
+		damage = Q_irand(15, 30);
+	}
+
+	//Com_Printf("EV_WRIST_FLAMETHROWER_FIRE type %i on NPC %i (%s).\n", type, self->s.number, ClassTable[self->s.NPC_class].name);
+	
+	G_AddEvent(self, EV_WRIST_FLAMETHROWER_FIRE, type);
 
 	// UQ1: make this AOE effect...
 	int				touch[16];
@@ -692,7 +844,7 @@ void Boba_FireFlameThrower( gentity_t *self )
 			vec3_t dir;
 			VectorSubtract(ent->r.currentOrigin, self->client->ps.origin, dir);
 			VectorNormalize(dir);
-			G_Damage(ent, self, self, dir, ent->r.currentOrigin, damage, DAMAGE_NO_ARMOR | DAMAGE_NO_KNOCKBACK |/*DAMAGE_NO_HIT_LOC|*/DAMAGE_IGNORE_TEAM, MOD_LAVA);
+			G_Damage(ent, self, self, dir, ent->r.currentOrigin, damage, DAMAGE_NO_ARMOR | DAMAGE_NO_KNOCKBACK |/*DAMAGE_NO_HIT_LOC|*/DAMAGE_IGNORE_TEAM, (type == 0) ? MOD_LAVA : MOD_STUN_BATON);
 		}
 	}
 
@@ -762,7 +914,7 @@ void Boba_FireDecide( gentity_t *aiEnt )
 		return;
 	}
 
-	if (!TIMER_Done(aiEnt, "flameTime") && NPC_IsBountyHunter(aiEnt) && Boba_DoFlameThrower(aiEnt))
+	if (!TIMER_Done(aiEnt, "flameTime") && (NPC_IsBountyHunter(aiEnt) || aiEnt->s.NPC_class == CLASS_K2SO) && Boba_DoFlameThrower(aiEnt))
 	{// flamethrower
 		return;
 	}
@@ -774,7 +926,11 @@ void Boba_FireDecide( gentity_t *aiEnt )
 		return;
 	}
 
-	if ( !ENEMY_IS_BREAKABLE
+	if (aiEnt->s.NPC_class == CLASS_K2SO && G_SecurityDroidMelee(aiEnt))
+	{// Punch the crap outa dem!
+		return;
+	}
+	else if ( !ENEMY_IS_BREAKABLE
 		&& Distance(aiEnt->enemy->r.currentOrigin, aiEnt->r.currentOrigin) <= 64 
 		&& aiEnt->client->ps.weapon != WP_SABER
 		&& !NPC_IsBountyHunter(aiEnt)) // BOBA kicks like a jedi now...
@@ -860,7 +1016,7 @@ void Boba_FireDecide( gentity_t *aiEnt )
 	}
 
 	if ( !ENEMY_IS_BREAKABLE
-		&& NPC_IsBountyHunter(aiEnt)
+		&& (NPC_IsBountyHunter(aiEnt) || aiEnt->s.NPC_class == CLASS_K2SO)
 		&& (enemyDist < 256*256 && enemyInFOV)
 		&& Boba_DoFlameThrower(aiEnt))
 	{//flamethrower
@@ -1086,7 +1242,9 @@ void Jedi_Decloak( gentity_t *self )
 
 void Jedi_CheckCloak( gentity_t *aiEnt)
 {
-	if ( aiEnt && aiEnt->client && aiEnt->client->NPC_class == CLASS_SHADOWTROOPER )
+	if ( aiEnt 
+		&& aiEnt->client 
+		&& (aiEnt->client->NPC_class == CLASS_SHADOWTROOPER || aiEnt->client->NPC_class == CLASS_PURGETROOPER) )
 	{
 		if ( !aiEnt->client->ps.saberHolstered ||
 			aiEnt->health <= 0 ||
@@ -3710,6 +3868,16 @@ qboolean Jedi_SpeedEvasion(gentity_t *self)
 		return qfalse;
 	}
 
+	if (self->s.weapon != WP_SABER)
+	{
+		return qfalse;
+	}
+
+	if (!NPC_IsJedi(self))
+	{// Only jedi can do this...
+		return qfalse;
+	}
+
 	vec3_t edir, fwd, rt;
 	AngleVectors(self->r.currentAngles, fwd, rt, NULL);
 	VectorSubtract(self->enemy->r.currentOrigin, self->r.currentOrigin, edir);
@@ -3979,6 +4147,11 @@ qboolean Jedi_DashAttack(gentity_t *self)
 		Com_Printf("Speed attack - Continue.\n");
 #endif //__DEBUG_SPEED_ATTACK__
 		return qtrue;
+	}
+
+	if (!NPC_IsJedi(self))
+	{// Only jedi can do this...
+		return qfalse;
 	}
 
 	if (self->client->ps.groundEntityNum == ENTITYNUM_NONE)
@@ -5107,7 +5280,7 @@ static void Jedi_CombatIdle( gentity_t *aiEnt, int enemy_dist )
 	{//FIXME: only do this if standing still?
 		//based on aggression, flaunt/taunt
 		int chance = 20;
-		if ( aiEnt->client->NPC_class == CLASS_SHADOWTROOPER )
+		if ( aiEnt->client->NPC_class == CLASS_SHADOWTROOPER || aiEnt->client->NPC_class == CLASS_PURGETROOPER)
 		{
 			chance = 10;
 		}
@@ -5199,6 +5372,10 @@ static qboolean Jedi_AttackDecide( gentity_t *aiEnt, int enemy_dist )
 		{//tavion
 			chance = 10;
 		}
+		else if (aiEnt->client->NPC_class == CLASS_INQUISITOR || aiEnt->client->NPC_class == CLASS_PURGETROOPER)
+		{//
+			chance = 10;
+		}
 		else if ( aiEnt->client->NPC_class == CLASS_REBORN && aiEnt->NPC->rank == RANK_LT_JG )
 		{//fencer
 			chance = 5;
@@ -5220,11 +5397,7 @@ static qboolean Jedi_AttackDecide( gentity_t *aiEnt, int enemy_dist )
 		}
 	}
 	
-	if ( aiEnt->s.eFlags & EF_FAKE_NPC_BOT ||
-		/*aiEnt->client->NPC_class == CLASS_TAVION ||
-		( aiEnt->client->NPC_class == CLASS_REBORN && aiEnt->NPC->rank == RANK_LT_JG ) ||
-		( aiEnt->client->NPC_class == CLASS_JEDI && aiEnt->NPC->rank == RANK_COMMANDER ) ||
-		( aiEnt->client->NPC_class == CLASS_PADAWAN && aiEnt->NPC->rank == RANK_COMMANDER )*/NPC_IsJedi(aiEnt) )
+	if ( aiEnt->s.eFlags & EF_FAKE_NPC_BOT || NPC_IsJedi(aiEnt) )
 	{//tavion, fencers, jedi trainer are all good at following up a parry with an attack
 		if ( ( PM_SaberInParry( aiEnt->client->ps.saberMove ) || PM_SaberInKnockaway( aiEnt->client->ps.saberMove ) )
 			&& aiEnt->client->ps.saberBlocked != BLOCKED_PARRY_BROKEN )
@@ -6884,6 +7057,7 @@ qboolean Jedi_CanPullBackSaber( gentity_t *self )
 		|| self->client->NPC_class == CLASS_TAVION
 		|| self->client->NPC_class == CLASS_LUKE
 		|| self->client->NPC_class == CLASS_DESANN
+		|| self->client->NPC_class == CLASS_PURGETROOPER
 		|| !Q_stricmp( "Yoda", self->NPC_type ) )
 	{
 		return qtrue;
@@ -8271,6 +8445,11 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 		OPTIMAL_MIN_RANGE = 48/*32*/ * NPC->modelScale[2];// g_testvalue1.value; //24
 		OPTIMAL_MAX_RANGE = 256 * NPC->modelScale[2];// g_testvalue2.value;//56;// 40;
 	}
+	else if (NPC->s.weapon == WP_MELEE)
+	{
+		OPTIMAL_MIN_RANGE = 32 * NPC->modelScale[2];
+		OPTIMAL_MAX_RANGE = 56 * NPC->modelScale[2];
+	}
 
 	OPTIMAL_RANGE = OPTIMAL_MIN_RANGE + ((OPTIMAL_MAX_RANGE - OPTIMAL_MIN_RANGE) / 2.0);
 	OPTIMAL_RANGE_ALLOWANCE = (OPTIMAL_MAX_RANGE - OPTIMAL_MIN_RANGE);
@@ -8609,7 +8788,7 @@ void NPC_BSJedi_Default( gentity_t *aiEnt)
 		return;
 	}
 
-	if (NPC_IsBountyHunter(aiEnt) && !TIMER_Done(aiEnt, "flameTime") && Boba_DoFlameThrower(aiEnt))
+	if ((NPC_IsBountyHunter(aiEnt) || aiEnt->s.NPC_class == CLASS_K2SO) && !TIMER_Done(aiEnt, "flameTime") && Boba_DoFlameThrower(aiEnt))
 	{// flamethrower
 		//JEDI_Debug(aiEnt, "flametime.");
 		return;
@@ -8678,6 +8857,21 @@ void NPC_BSJedi_Default( gentity_t *aiEnt)
 			if (NPC_MoveIntoOptimalAttackPosition(aiEnt))
 			{// Just move into optimal range...
 				//return;
+			}
+
+			if (aiEnt->s.weapon == WP_MELEE)
+			{
+				float dist = Distance(aiEnt->r.currentOrigin, aiEnt->enemy->r.currentOrigin);
+
+				if (aiEnt->s.NPC_class == CLASS_K2SO && dist <= 256.0)
+				{
+					G_AddVoiceEvent(aiEnt, EV_TAUNT2, 5000 + irand(0, 15000));
+				}
+
+				if (dist > 56.0)
+				{
+					return;
+				}
 			}
 
 			Jedi_Attack(aiEnt);

@@ -587,6 +587,7 @@ typedef struct centity_s {
 	int				flamerSoundTime = 0;
 
 	int				nextSaberClash = 0;
+	int				nextBodyClash = 0;
 
 	/* Event ship fighters */
 	int				numFighters = 0;

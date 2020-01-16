@@ -4115,10 +4115,12 @@ void CG_DrawEnemyStatus( void )
 			case CLASS_MORGANKATARN:
 			case CLASS_TAVION:
 			case CLASS_ALORA:
+			case CLASS_INQUISITOR:
 			case CLASS_REBORN:
 			case CLASS_DESANN:
 			case CLASS_BOBAFETT:
 			case CLASS_COMMANDO:
+			case CLASS_DEATHTROOPER:
 			case CLASS_MERC:
 			case CLASS_BARTENDER:
 			case CLASS_BESPIN_COP:
@@ -4134,6 +4136,9 @@ void CG_DrawEnemyStatus( void )
 			case CLASS_UGNAUGHT:
 			case CLASS_JAWA:
 				sprintf(str1, "%s", NPC_NAME_LIST[crosshairEnt->currentState.NPC_NAME_ID].HumanNames);
+				break;
+			case CLASS_PURGETROOPER:
+				sprintf(str1, "PT-%i", crosshairEnt->currentState.NPC_NAME_ID);	// EVIL. for a number of reasons --eez
 				break;
 			case CLASS_STORMTROOPER_ADVANCED:
 				sprintf(str1, "TA-%i", crosshairEnt->currentState.NPC_NAME_ID);	// EVIL. for a number of reasons --eez
@@ -4194,6 +4199,9 @@ void CG_DrawEnemyStatus( void )
 				break;
 			case CLASS_WAMPA:
 				sprintf(str1, "Wampa");
+				break;
+			case CLASS_K2SO:
+				sprintf(str1, "K2-SO");
 				break;
 			case CLASS_R2D2:
 			case CLASS_CIVILIAN_R2D2:
@@ -4455,6 +4463,18 @@ void CG_DrawEnemyStatus( void )
 			tclr2[2] = 0.125f;
 			tclr2[3] = 1.0f;
 			break;
+		case CLASS_DEATHTROOPER:
+			sprintf(str2, "< Death Trooper >");
+			tclr[0] = 1.0f;
+			tclr[1] = 0.125f;
+			tclr[2] = 0.125f;
+			tclr[3] = 1.0f;
+
+			tclr2[0] = 1.0f;
+			tclr2[1] = 0.125f;
+			tclr2[2] = 0.125f;
+			tclr2[3] = 1.0f;
+			break;
 		case CLASS_HK51:
 			sprintf(str2, "< HK-51 >");
 			tclr[0] = 1.0f;
@@ -4464,6 +4484,42 @@ void CG_DrawEnemyStatus( void )
 
 			tclr2[0] = 1.0f;
 			tclr2[1] = 0.125f;
+			tclr2[2] = 0.125f;
+			tclr2[3] = 1.0f;
+			break;
+		case CLASS_K2SO:
+			sprintf(str2, "< Security Droid >");
+			tclr[0] = 1.0f;
+			tclr[1] = 0.125f;
+			tclr[2] = 0.125f;
+			tclr[3] = 1.0f;
+
+			tclr2[0] = 1.0f;
+			tclr2[1] = 0.125f;
+			tclr2[2] = 0.125f;
+			tclr2[3] = 1.0f;
+			break;
+		case CLASS_INQUISITOR:
+			sprintf(str2, "< Sith Inquisitor >");
+			tclr[0] = 1.0f;
+			tclr[1] = 0.325f;
+			tclr[2] = 0.125f;
+			tclr[3] = 1.0f;
+
+			tclr2[0] = 1.0f;
+			tclr2[1] = 0.325f;
+			tclr2[2] = 0.125f;
+			tclr2[3] = 1.0f;
+			break;
+		case CLASS_PURGETROOPER:
+			sprintf(str2, "< Purge Trooper >");
+			tclr[0] = 1.0f;
+			tclr[1] = 0.325f;
+			tclr[2] = 0.125f;
+			tclr[3] = 1.0f;
+
+			tclr2[0] = 1.0f;
+			tclr2[1] = 0.325f;
 			tclr2[2] = 0.125f;
 			tclr2[3] = 1.0f;
 			break;
@@ -8622,6 +8678,18 @@ void CG_DrawNPCNames( void )
 				tclr2[2] = 0.125f;
 				tclr2[3] = 1.0f;
 				break;
+			case CLASS_DEATHTROOPER:
+				sprintf(str2, "< Death Trooper >");
+				tclr[0] = 1.0f;
+				tclr[1] = 0.125f;
+				tclr[2] = 0.125f;
+				tclr[3] = 1.0f;
+
+				tclr2[0] = 1.0f;
+				tclr2[1] = 0.125f;
+				tclr2[2] = 0.125f;
+				tclr2[3] = 1.0f;
+				break;
 			case CLASS_HK51:
 				sprintf(str2, "< HK-51 >");
 				tclr[0] = 1.0f;
@@ -8631,6 +8699,42 @@ void CG_DrawNPCNames( void )
 
 				tclr2[0] = 1.0f;
 				tclr2[1] = 0.125f;
+				tclr2[2] = 0.125f;
+				tclr2[3] = 1.0f;
+				break;
+			case CLASS_K2SO:
+				sprintf(str2, "< Security Droid >");
+				tclr[0] = 1.0f;
+				tclr[1] = 0.125f;
+				tclr[2] = 0.125f;
+				tclr[3] = 1.0f;
+
+				tclr2[0] = 1.0f;
+				tclr2[1] = 0.125f;
+				tclr2[2] = 0.125f;
+				tclr2[3] = 1.0f;
+				break;
+			case CLASS_INQUISITOR:
+				sprintf(str2, "< Sith Inquisitor >");
+				tclr[0] = 1.0f;
+				tclr[1] = 0.325f;
+				tclr[2] = 0.125f;
+				tclr[3] = 1.0f;
+
+				tclr2[0] = 1.0f;
+				tclr2[1] = 0.325f;
+				tclr2[2] = 0.125f;
+				tclr2[3] = 1.0f;
+				break;
+			case CLASS_PURGETROOPER:
+				sprintf(str2, "< Purge Trooper >");
+				tclr[0] = 1.0f;
+				tclr[1] = 0.325f;
+				tclr[2] = 0.125f;
+				tclr[3] = 1.0f;
+
+				tclr2[0] = 1.0f;
+				tclr2[1] = 0.325f;
 				tclr2[2] = 0.125f;
 				tclr2[3] = 1.0f;
 				break;
@@ -8819,10 +8923,12 @@ void CG_DrawNPCNames( void )
 				case CLASS_MORGANKATARN:
 				case CLASS_TAVION:
 				case CLASS_ALORA:
+				case CLASS_INQUISITOR:
 				case CLASS_REBORN:
 				case CLASS_DESANN:
 				case CLASS_BOBAFETT:
 				case CLASS_COMMANDO:
+				case CLASS_DEATHTROOPER:
 				case CLASS_BARTENDER:
 				case CLASS_BESPIN_COP:
 				case CLASS_GALAK:
@@ -8837,6 +8943,9 @@ void CG_DrawNPCNames( void )
 				case CLASS_UGNAUGHT:
 				case CLASS_JAWA:
 					sprintf(str1, "%s", NPC_NAME_LIST[cent->currentState.NPC_NAME_ID].HumanNames);
+					break;
+				case CLASS_PURGETROOPER:
+					sprintf(str1, "PT-%i", cent->currentState.NPC_NAME_ID);	// EVIL. for a number of reasons --eez
 					break;
 				case CLASS_STORMTROOPER_ADVANCED:
 					sprintf(str1, "TA-%i", cent->currentState.NPC_NAME_ID);	// EVIL. for a number of reasons --eez
@@ -8897,6 +9006,9 @@ void CG_DrawNPCNames( void )
 					break;
 				case CLASS_WAMPA:
 					sprintf(str1, "Wampa");
+					break;
+				case CLASS_K2SO:
+					sprintf(str1, "K2-SO");
 					break;
 				case CLASS_R2D2:
 				case CLASS_CIVILIAN_R2D2:

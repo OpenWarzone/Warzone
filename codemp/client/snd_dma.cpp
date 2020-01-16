@@ -637,8 +637,8 @@ void S_StartSound(const vec3_t origin, int entityNum, int entchannel, sfxHandle_
 	if (s_knownSfx[ sfxHandle ].bassSampleID < 0) return;
 
 	// Always force sounds in the saber folder to use saber channel... Override for game sending events, etc...
-	qboolean forceSaberChannel = (Q_stricmpn("sound/weapons/saber/", s_knownSfx[sfxHandle].sSoundName, 20) && origin != NULL) ? qtrue : qfalse;
-
+	qboolean forceSaberChannel = (!Q_stricmpn("sound/weapons/saber/", s_knownSfx[sfxHandle].sSoundName, 20) && origin != NULL) ? qtrue : qfalse;
+	if (!forceSaberChannel) (!Q_stricmpn("sound/weapons/electrostaff/", s_knownSfx[sfxHandle].sSoundName, 27) && origin != NULL) ? qtrue : qfalse;
 	/*
 	if (origin)
 		Com_Printf("BASS_DEBUG: Entity %i playing sound %s (handle %i - bass id %ld) on channel %i at org %f %f %f.\n", entityNum, s_knownSfx[ sfxHandle ].sSoundName, sfxHandle, s_knownSfx[ sfxHandle ].bassSampleID, entchannel, origin[0], origin[1], origin[2]);

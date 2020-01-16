@@ -6165,7 +6165,12 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 					{
 						VectorCopy(targ->r.currentOrigin, gPainPoint);
 					}
-					targ->pain (targ, attacker, take);
+
+					if (damage_type == DAMAGE_CRITICAL && TIMER_Done(targ, "painDebounce"))
+					{
+						targ->pain(targ, attacker, take);
+						TIMER_Set(targ, "painDebounce", irand(7000, 15000));
+					}
 				}
 			}
 		}

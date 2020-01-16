@@ -10391,15 +10391,15 @@ nk_draw_list_add_text(struct nk_draw_list *list, const struct nk_user_font *font
 	nk_color currentColor = fg;
 
 	int numformatChanges = 0;
-	bool formatChanges[1024] = { false };
-	bool colorChanges[1024] = { false };
-	nk_color colorChangeColors[1024];
-	int colorChangeBolds[1024] = { 0 };
+	bool formatChanges[2048] = { false };
+	bool colorChanges[2048] = { false };
+	nk_color colorChangeColors[2048];
+	int colorChangeBolds[2048] = { 0 };
 
 	int texLen = strlen(text);
 	int numFinal = 0;
 	int numRemoved = 0;
-	char finalText[1024] = { 0 };
+	char finalText[2048] = { 0 };
 
 	for (int i = 0; i < texLen; i++)
 	{

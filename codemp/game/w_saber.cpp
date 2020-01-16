@@ -8694,7 +8694,7 @@ static void G_KickSomeMofos(gentity_t *ent)
 	}
 }
 
-static QINLINE qboolean G_PrettyCloseIGuess(float a, float b, float tolerance)
+/*static QINLINE*/ qboolean G_PrettyCloseIGuess(float a, float b, float tolerance)
 {
 	if ((a - b) < tolerance &&
 		(a - b) > -tolerance)
@@ -11934,7 +11934,11 @@ typedef enum
 
 		VectorSubtract(ent->client->ps.origin, self->client->ps.origin, enemyDir);
 
-		if (ent->client->ps.weapon == WP_SABER || NPC_IsJedi(ent) || NPC_IsBoss(ent))
+		if (ent->s.eType == ET_NPC && ent->s.NPC_class == CLASS_PURGETROOPER)
+		{
+			G_Damage(ent, self, self, enemyDir, enemyOrg, int(dmg * 2.0), dflags, MOD_SABER);
+		}
+		else if (ent->client->ps.weapon == WP_SABER || NPC_IsJedi(ent) || NPC_IsBoss(ent))
 		{
 			G_Damage(ent, self, self, enemyDir, enemyOrg, int(dmg), dflags, MOD_SABER);
 		}
@@ -11942,9 +11946,13 @@ typedef enum
 		{
 			G_Damage(ent, self, self, enemyDir, enemyOrg, int(dmg * 1.5), dflags, MOD_SABER);
 		}
+		else if (ent->s.eType == ET_NPC && ent->s.NPC_class == CLASS_K2SO)
+		{
+			G_Damage(ent, self, self, enemyDir, enemyOrg, int(dmg * 3.0), dflags, MOD_SABER);
+		}
 		else if (NPC_IsFollowerGunner(ent))
 		{
-			G_Damage(ent, self, self, enemyDir, enemyOrg, int(dmg * 1.5), dflags, MOD_SABER);
+			G_Damage(ent, self, self, enemyDir, enemyOrg, int(dmg * 2.0), dflags, MOD_SABER);
 		}
 		else if (NPC_IsBountyHunter(ent) || NPC_IsCommando(ent) || NPC_IsAdvancedGunner(ent))
 		{

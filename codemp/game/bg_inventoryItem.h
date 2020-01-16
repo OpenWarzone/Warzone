@@ -20,9 +20,10 @@ extern const char *saberStat3Tooltips[];
 extern const char *itemStatTooltips[];
 
 typedef enum {
-	MODELTYPE_DEFAULT,
-	MODELTYPE_STAFF,
-	MODELTYPE_MAX,
+	SABER_MODELTYPE_DEFAULT,
+	SABER_MODELTYPE_STAFF,
+	SABER_MODELTYPE_ELECTROSTAFF,
+	SABER_MODELTYPE_MAX,
 };
 
 //
@@ -197,7 +198,7 @@ public:
 	uint16_t getBaseItemID();
 	uint16_t getModelType();
 	itemQuality_t getQuality();
-	const char *getName(uint16_t modItemID1);
+	void getName(std::string &name, uint16_t modItemID1);
 	char *getDescription();
 	uint16_t getQuantity();
 	float getCost(uint16_t modItemID1, uint16_t modItemID2, uint16_t modItemID3);
@@ -232,7 +233,7 @@ public:
 	bool getIsTwoHanded(uint16_t modItemID1 = 0);
 
 	const char *getColorStringForQuality();
-	const char *getTooltip(uint16_t modItemID1, uint16_t modItemID2, uint16_t modItemID3); // Can parse modItemID# = 0 for base tooltip without any mods...
+	void getTooltip(std::string &tooltipText, uint16_t modItemID1, uint16_t modItemID2, uint16_t modItemID3); // Can parse modItemID# = 0 for base tooltip without any mods...
 };
 
 //

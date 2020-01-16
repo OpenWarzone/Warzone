@@ -2176,23 +2176,44 @@ void G_CheckSaber(gentity_t *ent)
 	qboolean changed = qfalse;
 	inventoryItem *saber = BG_EquippedWeapon(&ent->client->ps);
 
-	if (saber->getBaseItem()->giTag == WP_SABER)
+	if (saber && saber->getBaseItem()->giTag == WP_SABER)
 	{
 		if (saber->getIsTwoHanded())
 		{
-			if (Q_stricmp(ent->client->saber[0].model, "dual_1"))
+			if (saber->getModelType() == SABER_MODELTYPE_ELECTROSTAFF)
 			{
-				if (ent->s.eType == ET_NPC)
+				if (Q_stricmp(ent->client->saber[0].model, "electrostaff"))
 				{
-					WP_SaberParseParms("dual_1", &ent->client->saber[0]);
-					ent->s.npcSaber1 = G_ModelIndex(va("@%s", "dual_1"));
-					ent->s.npcSaber2 = G_ModelIndex(va("@%s", "none"));
+					if (ent->s.eType == ET_NPC)
+					{
+						WP_SaberParseParms("electrostaff", &ent->client->saber[0]);
+						ent->s.npcSaber1 = G_ModelIndex(va("@%s", "electrostaff"));
+						ent->s.npcSaber2 = G_ModelIndex(va("@%s", "none"));
+					}
+					else
+					{
+						G_SetSaber(ent, 0, "electrostaff", qtrue);
+						G_SetSaber(ent, 1, "none", qtrue);
+						changed = qtrue;
+					}
 				}
-				else
+			}
+			else
+			{
+				if (Q_stricmp(ent->client->saber[0].model, "dual_1"))
 				{
-					G_SetSaber(ent, 0, "dual_1", qtrue);
-					G_SetSaber(ent, 1, "none", qtrue);
-					changed = qtrue;
+					if (ent->s.eType == ET_NPC)
+					{
+						WP_SaberParseParms("dual_1", &ent->client->saber[0]);
+						ent->s.npcSaber1 = G_ModelIndex(va("@%s", "dual_1"));
+						ent->s.npcSaber2 = G_ModelIndex(va("@%s", "none"));
+					}
+					else
+					{
+						G_SetSaber(ent, 0, "dual_1", qtrue);
+						G_SetSaber(ent, 1, "none", qtrue);
+						changed = qtrue;
+					}
 				}
 			}
 		}
@@ -2627,17 +2648,31 @@ qboolean ClientUserinfoChanged( int clientNum ) {
 #else
 	inventoryItem *saber = BG_EquippedWeapon(&ent->client->ps);
 
-	if (saber->getBaseItem()->giTag == WP_SABER)
+	if (saber && saber->getBaseItem()->giTag == WP_SABER)
 	{
 		if (saber->getIsTwoHanded())
 		{
-			if (Q_stricmp(ent->client->saber[0].model, "dual_1"))
+			if (saber->getModelType() == SABER_MODELTYPE_ELECTROSTAFF)
 			{
-				G_SetSaber(ent, 0, "dual_1", qtrue);
-				G_SetSaber(ent, 1, "none", qtrue);
+				if (Q_stricmp(ent->client->saber[0].model, "electrostaff"))
+				{
+					G_SetSaber(ent, 0, "electrostaff", qtrue);
+					G_SetSaber(ent, 1, "none", qtrue);
 
-				Info_SetValueForKey(userinfo, "saber1", "dual_1");
-				Info_SetValueForKey(userinfo, "saber2", "none");
+					Info_SetValueForKey(userinfo, "saber1", "electrostaff");
+					Info_SetValueForKey(userinfo, "saber2", "none");
+				}
+			}
+			else
+			{
+				if (Q_stricmp(ent->client->saber[0].model, "dual_1"))
+				{
+					G_SetSaber(ent, 0, "dual_1", qtrue);
+					G_SetSaber(ent, 1, "none", qtrue);
+
+					Info_SetValueForKey(userinfo, "saber1", "dual_1");
+					Info_SetValueForKey(userinfo, "saber2", "none");
+				}
 			}
 		}
 		else

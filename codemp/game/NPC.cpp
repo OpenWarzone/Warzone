@@ -1052,6 +1052,7 @@ qboolean NPC_CanUseAdvancedFighting(gentity_t *aiEnt)
 	case CLASS_BESPIN_COP:		
 	case CLASS_CLAW:
 	case CLASS_COMMANDO:
+	case CLASS_DEATHTROOPER:
 	case CLASS_DESANN:		
 	//case CLASS_FISH:
 	//case CLASS_FLIER2:
@@ -1067,6 +1068,7 @@ qboolean NPC_CanUseAdvancedFighting(gentity_t *aiEnt)
 	case CLASS_JEDI:
 	case CLASS_PADAWAN:
 	case CLASS_HK51:
+	case CLASS_K2SO:
 	case CLASS_NATIVE:
 	case CLASS_NATIVE_GUNNER:
 	case CLASS_KYLE:				
@@ -1088,6 +1090,8 @@ qboolean NPC_CanUseAdvancedFighting(gentity_t *aiEnt)
 	//case CLASS_R5D2:				// droid
 	case CLASS_REBEL:
 	case CLASS_REBORN:
+	case CLASS_INQUISITOR:
+	case CLASS_PURGETROOPER:
 	case CLASS_REELO:
 	//case CLASS_REMOTE:
 	case CLASS_RODIAN:
@@ -1717,7 +1721,9 @@ void NPC_RunBehavior( gentity_t *aiEnt, int team, int bState )
 	else if ( aiEnt->client->NPC_class == CLASS_JEDI 
 		|| aiEnt->client->NPC_class == CLASS_PADAWAN 
 		|| aiEnt->client->NPC_class == CLASS_HK51
+		|| aiEnt->client->NPC_class == CLASS_K2SO
 		|| aiEnt->client->NPC_class == CLASS_REBORN
+		|| aiEnt->client->NPC_class == CLASS_INQUISITOR
 		|| aiEnt->client->NPC_class == CLASS_TAVION
 		|| aiEnt->client->NPC_class == CLASS_ALORA
 		|| aiEnt->client->NPC_class == CLASS_DESANN
@@ -1727,6 +1733,7 @@ void NPC_RunBehavior( gentity_t *aiEnt, int team, int bState )
 		|| aiEnt->client->NPC_class == CLASS_MONMOTHA
 		|| aiEnt->client->NPC_class == CLASS_SHADOWTROOPER
 		|| aiEnt->client->NPC_class == CLASS_JAN
+		|| aiEnt->client->NPC_class == CLASS_PURGETROOPER
 		|| (aiEnt->client->ps.eFlags & EF_FAKE_NPC_BOT) /* temporary */ )
 	{//jedi
 		NPC_BehaviorSet_Jedi(aiEnt, bState );

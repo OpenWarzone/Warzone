@@ -2638,7 +2638,9 @@ qboolean ForceTelepathyCheckDirectNPCTarget( gentity_t *self, trace_t *tr, qbool
 			{
 			}
 			else if ( traceEnt->s.weapon != WP_SABER
-				&& traceEnt->client->NPC_class != CLASS_REBORN )
+				&& traceEnt->client->NPC_class != CLASS_REBORN
+				&& traceEnt->client->NPC_class != CLASS_INQUISITOR
+				&& traceEnt->client->NPC_class != CLASS_PURGETROOPER)
 			{//haha!  Jedi aren't easily confused!
 				if ( self->client->ps.fd.forcePowerLevel[FP_TELEPATHY] > FORCE_LEVEL_2 )
 				{//turn them to our side

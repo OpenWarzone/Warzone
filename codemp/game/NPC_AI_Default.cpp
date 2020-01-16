@@ -11,52 +11,36 @@ qboolean NPC_IsHumanoid ( gentity_t *self )
 {
 	switch (self->client->NPC_class)
 	{
-	//case CLASS_ATST:
 	case CLASS_BARTENDER:
 	case CLASS_BESPIN_COP:		
 	case CLASS_CLAW:
 	case CLASS_COMMANDO:
+	case CLASS_DEATHTROOPER:
 	case CLASS_DESANN:		
-	//case CLASS_FISH:
-	//case CLASS_FLIER2:
 	case CLASS_GALAK:
-	//case CLASS_GLIDER:
-	//case CLASS_GONK:				// droid
 	case CLASS_GRAN:
-	//case CLASS_HOWLER:
 	case CLASS_IMPERIAL:
 	case CLASS_IMPWORKER:
-	//case CLASS_INTERROGATOR:		// droid 
 	case CLASS_JAN:				
 	case CLASS_JEDI:
 	case CLASS_PADAWAN:
 	case CLASS_HK51:
+	case CLASS_K2SO:
 	case CLASS_NATIVE:
 	case CLASS_NATIVE_GUNNER:
 	case CLASS_KYLE:				
 	case CLASS_LANDO:			
-	//case CLASS_LIZARD:
 	case CLASS_LUKE:				// UQ1: TODO - maybe should be allowed to switch to pistol/blaster???
-	//case CLASS_MARK1:			// droid
-	//case CLASS_MARK2:			// droid
-	//case CLASS_GALAKMECH:		// droid
-	//case CLASS_MINEMONSTER:
 	case CLASS_MONMOTHA:			
 	case CLASS_MORGANKATARN:
-	//case CLASS_MOUSE:			// droid
-	//case CLASS_MURJJ:
 	case CLASS_PRISONER:
-	//case CLASS_PROBE:			// droid
 	case CLASS_PROTOCOL:			// droid
-	//case CLASS_R2D2:				// droid
-	//case CLASS_R5D2:				// droid
 	case CLASS_REBEL:
 	case CLASS_REBORN:
+	case CLASS_INQUISITOR:
+	case CLASS_PURGETROOPER:
 	case CLASS_REELO:
-	//case CLASS_REMOTE:
 	case CLASS_RODIAN:
-	//case CLASS_SEEKER:			// droid
-	//case CLASS_SENTRY:
 	case CLASS_SHADOWTROOPER:
 	case CLASS_STORMTROOPER:
 	case CLASS_STORMTROOPER_ADVANCED:
@@ -68,9 +52,6 @@ qboolean NPC_IsHumanoid ( gentity_t *self )
 	case CLASS_JAWA:
 	case CLASS_WEEQUAY:
 	case CLASS_BOBAFETT:
-	//case CLASS_VEHICLE:
-	//case CLASS_RANCOR:
-	//case CLASS_WAMPA:
 	case CLASS_CIVILIAN:			// UQ1: Random civilian NPCs...
 	case CLASS_GENERAL_VENDOR:
 	case CLASS_WEAPONS_VENDOR:
@@ -106,6 +87,7 @@ qboolean NPC_IsBoss(gentity_t *self)
 	//case CLASS_LUKE:				// UQ1: TODO - maybe should be allowed to switch to pistol/blaster???			
 	//case CLASS_MORGANKATARN:
 	//case CLASS_REBORN:
+	case CLASS_INQUISITOR:
 	//case CLASS_SABER_DROID:
 	//case CLASS_SHADOWTROOPER:
 	//case CLASS_TAVION:
@@ -132,9 +114,11 @@ qboolean NPC_IsJedi ( gentity_t *self )
 	case CLASS_LUKE:				// UQ1: TODO - maybe should be allowed to switch to pistol/blaster???			
 	case CLASS_MORGANKATARN:
 	case CLASS_REBORN:
+	case CLASS_INQUISITOR:
 	//case CLASS_SABER_DROID:
 	case CLASS_SHADOWTROOPER:
 	case CLASS_TAVION:
+	case CLASS_PURGETROOPER:
 		// Is Jedi...
 		return qtrue;
 		break;
@@ -174,9 +158,11 @@ qboolean NPC_IsDarkJedi ( gentity_t *self )
 	case CLASS_ALORA:
 	case CLASS_DESANN:		
 	case CLASS_REBORN:
+	case CLASS_INQUISITOR:
 	//case CLASS_SABER_DROID:
 	case CLASS_SHADOWTROOPER:
 	case CLASS_TAVION:
+	case CLASS_PURGETROOPER:
 		// Is Jedi...
 		return qtrue;
 		break;
@@ -192,63 +178,15 @@ qboolean NPC_IsAnimalEnemyFaction ( gentity_t *self )
 {
 	switch (self->client->NPC_class)
 	{
-	//case CLASS_ATST:
-	//case CLASS_BARTENDER:
-	//case CLASS_BESPIN_COP:		
 	case CLASS_CLAW:
-	//case CLASS_COMMANDO:
-	//case CLASS_DESANN:		
-	//case CLASS_FISH:
 	case CLASS_FLIER2:
-	//case CLASS_GALAK:
 	case CLASS_GLIDER:
-	//case CLASS_GONK:				// droid
-	//case CLASS_GRAN:
 	case CLASS_HOWLER:
 	case CLASS_REEK:
 	case CLASS_NEXU:
 	case CLASS_ACKLAY:
-	//case CLASS_IMPERIAL:
-	//case CLASS_IMPWORKER:
-	//case CLASS_INTERROGATOR:		// droid 
-	//case CLASS_JAN:				
-	//case CLASS_JEDI:
-	//case CLASS_PADAWAN:
-	//case CLASS_KYLE:				
-	//case CLASS_LANDO:			
 	case CLASS_LIZARD:
-	//case CLASS_LUKE:				// UQ1: TODO - maybe should be allowed to switch to pistol/blaster???
-	//case CLASS_MARK1:			// droid
-	//case CLASS_MARK2:			// droid
-	//case CLASS_GALAKMECH:		// droid
 	case CLASS_MINEMONSTER:
-	//case CLASS_MONMOTHA:			
-	//case CLASS_MORGANKATARN:
-	//case CLASS_MOUSE:			// droid
-	//case CLASS_MURJJ:
-	//case CLASS_PRISONER:
-	//case CLASS_PROBE:			// droid
-	//case CLASS_PROTOCOL:			// droid
-	//case CLASS_R2D2:				// droid
-	//case CLASS_R5D2:				// droid
-	//case CLASS_REBEL:
-	//case CLASS_REBORN:
-	//case CLASS_REELO:
-	//case CLASS_REMOTE:
-	//case CLASS_RODIAN:
-	//case CLASS_SEEKER:			// droid
-	//case CLASS_SENTRY:
-	//case CLASS_SHADOWTROOPER:
-	//case CLASS_STORMTROOPER:
-	//case CLASS_SWAMP:
-	//case CLASS_SWAMPTROOPER:
-	//case CLASS_TAVION:
-	//case CLASS_TRANDOSHAN:
-	//case CLASS_UGNAUGHT:
-	//case CLASS_JAWA:
-	//case CLASS_WEEQUAY:
-	//case CLASS_BOBAFETT:
-	//case CLASS_VEHICLE:
 	case CLASS_RANCOR:
 	case CLASS_WAMPA:
 		// Is Enemy Animal...
@@ -266,62 +204,7 @@ qboolean NPC_IsBountyHunter ( gentity_t *self )
 {
 	switch (self->client->NPC_class)
 	{
-	//case CLASS_ATST:
-	//case CLASS_BARTENDER:
-	//case CLASS_BESPIN_COP:		
-	//case CLASS_CLAW:
-	//case CLASS_COMMANDO:
-	//case CLASS_DESANN:		
-	//case CLASS_FISH:
-	//case CLASS_FLIER2:
-	//case CLASS_GALAK:
-	//case CLASS_GLIDER:
-	//case CLASS_GONK:				// droid
-	//case CLASS_GRAN:
-	//case CLASS_HOWLER:
-	//case CLASS_IMPERIAL:
-	//case CLASS_IMPWORKER:
-	//case CLASS_INTERROGATOR:		// droid 
-	//case CLASS_JAN:				
-	//case CLASS_JEDI:
-	//case CLASS_PADAWAN:
-	//case CLASS_KYLE:				
-	//case CLASS_LANDO:			
-	//case CLASS_LIZARD:
-	//case CLASS_LUKE:				// UQ1: TODO - maybe should be allowed to switch to pistol/blaster???
-	//case CLASS_MARK1:			// droid
-	//case CLASS_MARK2:			// droid
-	//case CLASS_GALAKMECH:		// droid
-	//case CLASS_MINEMONSTER:
-	//case CLASS_MONMOTHA:			
-	//case CLASS_MORGANKATARN:
-	//case CLASS_MOUSE:			// droid
-	//case CLASS_MURJJ:
-	//case CLASS_PRISONER:
-	//case CLASS_PROBE:			// droid
-	//case CLASS_PROTOCOL:			// droid
-	//case CLASS_R2D2:				// droid
-	//case CLASS_R5D2:				// droid
-	//case CLASS_REBEL:
-	//case CLASS_REBORN:
-	//case CLASS_REELO:
-	//case CLASS_REMOTE:
-	//case CLASS_RODIAN:
-	//case CLASS_SEEKER:			// droid
-	//case CLASS_SENTRY:
-	//case CLASS_SHADOWTROOPER:
-	//case CLASS_STORMTROOPER:
-	//case CLASS_SWAMP:
-	//case CLASS_SWAMPTROOPER:
-	//case CLASS_TAVION:
-	//case CLASS_TRANDOSHAN:
-	//case CLASS_UGNAUGHT:
-	//case CLASS_JAWA:
-	//case CLASS_WEEQUAY:
 	case CLASS_BOBAFETT:
-	//case CLASS_VEHICLE:
-	//case CLASS_RANCOR:
-	//case CLASS_WAMPA:
 		// Is Bounty Hunter...
 		return qtrue;
 		break;
@@ -337,63 +220,10 @@ qboolean NPC_IsCommando ( gentity_t *self )
 {
 	switch (self->client->NPC_class)
 	{
-	//case CLASS_ATST:
-	//case CLASS_BARTENDER:
-	//case CLASS_BESPIN_COP:		
-	//case CLASS_CLAW:
 	case CLASS_COMMANDO:
-	//case CLASS_DESANN:		
-	//case CLASS_FISH:
-	//case CLASS_FLIER2:
-	//case CLASS_GALAK:
-	//case CLASS_GLIDER:
-	//case CLASS_GONK:				// droid
-	//case CLASS_GRAN:
-	//case CLASS_HOWLER:
+	case CLASS_DEATHTROOPER:
 	case CLASS_MERC:
-	//case CLASS_IMPERIAL:
-	//case CLASS_IMPWORKER:
-	//case CLASS_INTERROGATOR:		// droid 
 	case CLASS_JAN:				
-	//case CLASS_JEDI:
-	//case CLASS_PADAWAN:
-	//case CLASS_KYLE:				
-	//case CLASS_LANDO:			
-	//case CLASS_LIZARD:
-	//case CLASS_LUKE:				// UQ1: TODO - maybe should be allowed to switch to pistol/blaster???
-	//case CLASS_MARK1:			// droid
-	//case CLASS_MARK2:			// droid
-	//case CLASS_GALAKMECH:		// droid
-	//case CLASS_MINEMONSTER:
-	//case CLASS_MONMOTHA:			
-	//case CLASS_MORGANKATARN:
-	//case CLASS_MOUSE:			// droid
-	//case CLASS_MURJJ:
-	//case CLASS_PRISONER:
-	//case CLASS_PROBE:			// droid
-	//case CLASS_PROTOCOL:			// droid
-	//case CLASS_R2D2:				// droid
-	//case CLASS_R5D2:				// droid
-	//case CLASS_REBEL:
-	//case CLASS_REBORN:
-	//case CLASS_REELO:
-	//case CLASS_REMOTE:
-	//case CLASS_RODIAN:
-	//case CLASS_SEEKER:			// droid
-	//case CLASS_SENTRY:
-	//case CLASS_SHADOWTROOPER:
-	//case CLASS_STORMTROOPER:
-	//case CLASS_SWAMP:
-	//case CLASS_SWAMPTROOPER:
-	//case CLASS_TAVION:
-	//case CLASS_TRANDOSHAN:
-	//case CLASS_UGNAUGHT:
-	//case CLASS_JAWA:
-	//case CLASS_WEEQUAY:
-	//case CLASS_BOBAFETT:
-	//case CLASS_VEHICLE:
-	//case CLASS_RANCOR:
-	//case CLASS_WAMPA:
 		// Is Commando...
 		return qtrue;
 		break;
@@ -409,63 +239,10 @@ qboolean NPC_IsAdvancedGunner ( gentity_t *self )
 {
 	switch (self->client->NPC_class)
 	{
-	//case CLASS_ATST:
-	//case CLASS_BARTENDER:
 	case CLASS_BESPIN_COP:		
-	//case CLASS_CLAW:
-	//case CLASS_COMMANDO:
-	//case CLASS_DESANN:		
-	//case CLASS_FISH:
-	//case CLASS_FLIER2:
-	//case CLASS_GALAK:
-	//case CLASS_GLIDER:
-	//case CLASS_GONK:				// droid
-	//case CLASS_GRAN:
-	//case CLASS_HOWLER:
 	case CLASS_IMPERIAL:
-	//case CLASS_IMPWORKER:
-	//case CLASS_INTERROGATOR:		// droid 
-	//case CLASS_JAN:				
-	//case CLASS_JEDI:
-	//case CLASS_PADAWAN:
-	//case CLASS_KYLE:				
 	case CLASS_LANDO:			
-	//case CLASS_LIZARD:
-	//case CLASS_LUKE:				// UQ1: TODO - maybe should be allowed to switch to pistol/blaster???
-	//case CLASS_MARK1:			// droid
-	//case CLASS_MARK2:			// droid
-	//case CLASS_GALAKMECH:		// droid
-	//case CLASS_MINEMONSTER:
-	//case CLASS_MONMOTHA:			
-	//case CLASS_MORGANKATARN:
-	//case CLASS_MOUSE:			// droid
-	//case CLASS_MURJJ:
-	//case CLASS_PRISONER:
-	//case CLASS_PROBE:			// droid
-	//case CLASS_PROTOCOL:			// droid
-	//case CLASS_R2D2:				// droid
-	//case CLASS_R5D2:				// droid
-	//case CLASS_REBEL:
-	//case CLASS_REBORN:
-	//case CLASS_REELO:
-	//case CLASS_REMOTE:
-	//case CLASS_RODIAN:
-	//case CLASS_SEEKER:			// droid
-	//case CLASS_SENTRY:
-	//case CLASS_SHADOWTROOPER:
-	//case CLASS_STORMTROOPER:
 	case CLASS_STORMTROOPER_ADVANCED:
-	//case CLASS_SWAMP:
-	//case CLASS_SWAMPTROOPER:
-	//case CLASS_TAVION:
-	//case CLASS_TRANDOSHAN:
-	//case CLASS_UGNAUGHT:
-	//case CLASS_JAWA:
-	//case CLASS_WEEQUAY:
-	//case CLASS_BOBAFETT:
-	//case CLASS_VEHICLE:
-	//case CLASS_RANCOR:
-	//case CLASS_WAMPA:
 		// Is Commando...
 		return qtrue;
 		break;
@@ -530,63 +307,10 @@ qboolean NPC_IsStormtrooper ( gentity_t *self )
 {
 	switch (self->client->NPC_class)
 	{
-	//case CLASS_ATST:
-	//case CLASS_BARTENDER:
-	//case CLASS_BESPIN_COP:		
-	//case CLASS_CLAW:
-	//case CLASS_COMMANDO:
-	//case CLASS_DESANN:		
-	//case CLASS_FISH:
-	//case CLASS_FLIER2:
-	//case CLASS_GALAK:
-	//case CLASS_GLIDER:
-	//case CLASS_GONK:				// droid
-	//case CLASS_GRAN:
-	//case CLASS_HOWLER:
-	//case CLASS_IMPERIAL:
 	case CLASS_IMPWORKER:
-	//case CLASS_INTERROGATOR:		// droid 
-	//case CLASS_JAN:				
-	//case CLASS_JEDI:
-	//case CLASS_PADAWAN:
-	//case CLASS_KYLE:				
-	//case CLASS_LANDO:			
-	//case CLASS_LIZARD:
-	//case CLASS_LUKE:				// UQ1: TODO - maybe should be allowed to switch to pistol/blaster???
-	//case CLASS_MARK1:			// droid
-	//case CLASS_MARK2:			// droid
-	//case CLASS_GALAKMECH:		// droid
-	//case CLASS_MINEMONSTER:
-	//case CLASS_MONMOTHA:			
-	//case CLASS_MORGANKATARN:
-	//case CLASS_MOUSE:			// droid
-	//case CLASS_MURJJ:
-	//case CLASS_PRISONER:
-	//case CLASS_PROBE:			// droid
-	//case CLASS_PROTOCOL:			// droid
-	//case CLASS_R2D2:				// droid
-	//case CLASS_R5D2:				// droid
-	//case CLASS_REBEL:
-	//case CLASS_REBORN:
-	//case CLASS_REELO:
-	//case CLASS_REMOTE:
-	//case CLASS_RODIAN:
-	//case CLASS_SEEKER:			// droid
-	//case CLASS_SENTRY:
-	//case CLASS_SHADOWTROOPER:
 	case CLASS_STORMTROOPER:
 	case CLASS_STORMTROOPER_ADVANCED:
-	//case CLASS_SWAMP:
 	case CLASS_SWAMPTROOPER:
-	//case CLASS_TAVION:
-	//case CLASS_TRANDOSHAN:
-	//case CLASS_UGNAUGHT:
-	//case CLASS_JAWA:
-	//case CLASS_WEEQUAY:
-	//case CLASS_BOBAFETT:
-	//case CLASS_VEHICLE:
-	//case CLASS_RANCOR:
-	//case CLASS_WAMPA:
 		// Is Commando...
 		return qtrue;
 		break;
@@ -602,63 +326,20 @@ qboolean NPC_HasGrenades ( gentity_t *self )
 {
 	switch (self->client->NPC_class)
 	{
-	//case CLASS_ATST:
-	//case CLASS_BARTENDER:
 	case CLASS_BESPIN_COP:		
-	//case CLASS_CLAW:
 	case CLASS_COMMANDO:
-	//case CLASS_DESANN:		
-	//case CLASS_FISH:
-	//case CLASS_FLIER2:
-	//case CLASS_GALAK:
-	//case CLASS_GLIDER:
-	//case CLASS_GONK:				// droid
-	//case CLASS_GRAN:
-	//case CLASS_HOWLER:
+	case CLASS_DEATHTROOPER:
 	case CLASS_IMPERIAL:
-	//case CLASS_IMPWORKER:
-	//case CLASS_INTERROGATOR:		// droid 
 	case CLASS_JAN:				
-	//case CLASS_JEDI:
-	//case CLASS_PADAWAN:
-	//case CLASS_KYLE:				
 	case CLASS_LANDO:			
-	//case CLASS_LIZARD:
-	//case CLASS_LUKE:				// UQ1: TODO - maybe should be allowed to switch to pistol/blaster???
-	//case CLASS_MARK1:			// droid
-	//case CLASS_MARK2:			// droid
-	//case CLASS_GALAKMECH:		// droid
-	//case CLASS_MINEMONSTER:
-	//case CLASS_MONMOTHA:			
 	case CLASS_MORGANKATARN:
-	//case CLASS_MOUSE:			// droid
-	//case CLASS_MURJJ:
 	case CLASS_PRISONER:
-	//case CLASS_PROBE:			// droid
-	//case CLASS_PROTOCOL:			// droid
-	//case CLASS_R2D2:				// droid
-	//case CLASS_R5D2:				// droid
 	case CLASS_REBEL:
-	//case CLASS_REBORN:
-	//case CLASS_REELO:
-	//case CLASS_REMOTE:
-	//case CLASS_RODIAN:
-	//case CLASS_SEEKER:			// droid
-	//case CLASS_SENTRY:
-	//case CLASS_SHADOWTROOPER:
-	//case CLASS_STORMTROOPER:
 	case CLASS_STORMTROOPER_ADVANCED:
-	//case CLASS_SWAMP:
 	case CLASS_SWAMPTROOPER:
-	//case CLASS_TAVION:
 	case CLASS_TRANDOSHAN:
-	//case CLASS_UGNAUGHT:
-	//case CLASS_JAWA:
 	case CLASS_WEEQUAY:
 	case CLASS_BOBAFETT:
-	//case CLASS_VEHICLE:
-	//case CLASS_RANCOR:
-	//case CLASS_WAMPA:
 	case CLASS_HK51:
 	case CLASS_NATIVE:
 	case CLASS_NATIVE_GUNNER:
@@ -692,47 +373,35 @@ void NPC_CheckEvasion(gentity_t *aiEnt)
 	case CLASS_BESPIN_COP:		
 	case CLASS_CLAW:
 	case CLASS_COMMANDO:
+	case CLASS_DEATHTROOPER:
 	case CLASS_DESANN:		
-	//case CLASS_FISH:
-	//case CLASS_FLIER2:
 	case CLASS_GALAK:
-	//case CLASS_GLIDER:
-	//case CLASS_GONK:				// droid
 	case CLASS_GRAN:
-	//case CLASS_HOWLER:
 	case CLASS_IMPERIAL:
 	case CLASS_IMPWORKER:
-	//case CLASS_INTERROGATOR:		// droid 
 	case CLASS_JAN:				
 	case CLASS_JEDI:
 	case CLASS_PADAWAN:
 	case CLASS_HK51:
+	case CLASS_K2SO:
 	case CLASS_NATIVE:
 	case CLASS_NATIVE_GUNNER:
 	case CLASS_KYLE:				
 	case CLASS_LANDO:			
-	//case CLASS_LIZARD:
 	case CLASS_LUKE:				
 	case CLASS_MARK1:			// droid
 	case CLASS_MARK2:			// droid
-	//case CLASS_GALAKMECH:		// droid
-	//case CLASS_MINEMONSTER:
 	case CLASS_MONMOTHA:			
 	case CLASS_MORGANKATARN:
-	//case CLASS_MOUSE:			// droid
 	case CLASS_MURJJ:
 	case CLASS_PRISONER:
-	//case CLASS_PROBE:			// droid
 	case CLASS_PROTOCOL:			// droid
-	//case CLASS_R2D2:				// droid
-	//case CLASS_R5D2:				// droid
 	case CLASS_REBEL:
 	case CLASS_REBORN:
+	case CLASS_INQUISITOR:
+	case CLASS_PURGETROOPER:
 	case CLASS_REELO:
-	//case CLASS_REMOTE:
 	case CLASS_RODIAN:
-	//case CLASS_SEEKER:			// droid
-	//case CLASS_SENTRY:
 	case CLASS_SHADOWTROOPER:
 	case CLASS_STORMTROOPER:
 	case CLASS_STORMTROOPER_ADVANCED:
@@ -744,9 +413,6 @@ void NPC_CheckEvasion(gentity_t *aiEnt)
 	case CLASS_JAWA:
 	case CLASS_WEEQUAY:
 	case CLASS_BOBAFETT:
-	//case CLASS_VEHICLE:
-	//case CLASS_RANCOR:
-	//case CLASS_WAMPA:
 		// OK... EVADE AWAY!!!
 		break;
 	default:

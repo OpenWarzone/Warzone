@@ -228,7 +228,7 @@ inventoryItem::inventoryItem(uint16_t itemID)
 	m_itemID = itemID;
 	m_bgItemID = 0;
 
-	m_modelType = MODELTYPE_DEFAULT;
+	m_modelType = SABER_MODELTYPE_DEFAULT;
 	m_quality = QUALITY_GREY;
 	m_quantity = 0;
 
@@ -350,41 +350,42 @@ uint16_t inventoryItem::getModelType()
 	return m_modelType;
 }
 
-const char *inventoryItem::getName(uint16_t modItemID1)
+void inventoryItem::getName(std::string &name, uint16_t modItemID1)
 {
-	//return getBaseItem()->name;
 	int giType = getBaseItem()->giType;
 
-	static std::string tooltipText;
-	tooltipText.clear();
+	name.clear();
 
 	switch (giType)
 	{
 	case IT_WEARABLE:
-		tooltipText = va("%s%s%s%s%s (%s)", getColorStringForQuality(), itemStatNames[getBasicStat1()], itemStatNames[getBasicStat2()], itemStatNames[getBasicStat3()], getBaseItem()->name, itemCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
+		name = va("%s%s%s%s%s (%s)", getColorStringForQuality(), itemStatNames[getBasicStat1()], itemStatNames[getBasicStat2()], itemStatNames[getBasicStat3()], getBaseItem()->name, itemCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
 		break;
 	case IT_ITEM_MODIFICATION:
-		tooltipText = va("%s%s%s%s%s (%s)", getColorStringForQuality(), itemStatNames[getBasicStat1()], itemStatNames[getBasicStat2()], itemStatNames[getBasicStat3()], getBaseItem()->name, itemQualityTooltips[getQuality()]);
+		name = va("%s%s%s%s%s (%s)", getColorStringForQuality(), itemStatNames[getBasicStat1()], itemStatNames[getBasicStat2()], itemStatNames[getBasicStat3()], getBaseItem()->name, itemQualityTooltips[getQuality()]);
 		break;
 	case IT_ITEM_CRYSTAL:
-		tooltipText = va("%s%s%s (%s)", getColorStringForQuality(), getBaseItem()->name, itemCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
+		name = va("%s%s%s (%s)", getColorStringForQuality(), getBaseItem()->name, itemCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
 		break;
 	case IT_WEAPON_MODIFICATION:
-		tooltipText = va("%s%s%s%s%s (%s)", getColorStringForQuality(), weaponStat1Names[getBasicStat1()], weaponStat2Names[getBasicStat2()], weaponStat3Names[getBasicStat3()], getBaseItem()->name, itemQualityTooltips[getQuality()]);
+		name = va("%s%s%s%s%s (%s)", getColorStringForQuality(), weaponStat1Names[getBasicStat1()], weaponStat2Names[getBasicStat2()], weaponStat3Names[getBasicStat3()], getBaseItem()->name, itemQualityTooltips[getQuality()]);
 		break;
 	case IT_WEAPON_CRYSTAL:
-		tooltipText = va("%s%s%s (%s)", getColorStringForQuality(), getBaseItem()->name, weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
+		name = va("%s%s%s (%s)", getColorStringForQuality(), getBaseItem()->name, weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
 		break;
 	case IT_SABER_MODIFICATION:
-		tooltipText = va("%s%s%s%s%s (%s)", getColorStringForQuality(), saberStat1Names[getBasicStat1()], saberStat2Names[getBasicStat2()], saberStat3Names[getBasicStat3()], getBaseItem()->name, itemQualityTooltips[getQuality()]);
+		name = va("%s%s%s%s%s (%s)", getColorStringForQuality(), saberStat1Names[getBasicStat1()], saberStat2Names[getBasicStat2()], saberStat3Names[getBasicStat3()], getBaseItem()->name, itemQualityTooltips[getQuality()]);
 		break;
 	case IT_SABER_CRYSTAL:
-		tooltipText = va("%s%s%s (%s)", getColorStringForQuality(), getBaseItem()->name, weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
+		name = va("%s%s%s (%s)", getColorStringForQuality(), getBaseItem()->name, weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
 		break;
 	case IT_WEAPON:
 		if (getBaseItem()->giTag == WP_SABER)
 		{
-			tooltipText = va("%s%s%s%s%s%s (%s)", getColorStringForQuality(), saberStat1Names[getBasicStat1()], saberStat2Names[getBasicStat2()], saberStat3Names[getBasicStat3()], getBaseItem()->name, weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
+			if (getModelType() == SABER_MODELTYPE_ELECTROSTAFF)
+				name = va("%s%s%s%s%s%s (%s)", getColorStringForQuality(), saberStat1Names[getBasicStat1()], saberStat2Names[getBasicStat2()], saberStat3Names[getBasicStat3()], "Electrostaff", weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
+			else
+				name = va("%s%s%s%s%s%s (%s)", getColorStringForQuality(), saberStat1Names[getBasicStat1()], saberStat2Names[getBasicStat2()], saberStat3Names[getBasicStat3()], getBaseItem()->name, weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
 		}
 		else
 		{
@@ -392,22 +393,22 @@ const char *inventoryItem::getName(uint16_t modItemID1)
 			{
 			case WEAPON_STAT1_DEFAULT:
 			default:
-				tooltipText = va("%s%s%s%s%s%s (%s)", getColorStringForQuality(), weaponStat1Names[getBasicStat1()], weaponStat2Names[getBasicStat2()], weaponStat3Names[getBasicStat3()], "Pistol", weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
+				name = va("%s%s%s%s%s%s (%s)", getColorStringForQuality(), weaponStat1Names[getBasicStat1()], weaponStat2Names[getBasicStat2()], weaponStat3Names[getBasicStat3()], "Pistol", weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
 				break;
 			case WEAPON_STAT1_HEAVY_PISTOL:
-				tooltipText = va("%s%s%s%s%s%s (%s)", getColorStringForQuality(), weaponStat1Names[getBasicStat1()], weaponStat2Names[getBasicStat2()], weaponStat3Names[getBasicStat3()], "Heavy Pistol", weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
+				name = va("%s%s%s%s%s%s (%s)", getColorStringForQuality(), weaponStat1Names[getBasicStat1()], weaponStat2Names[getBasicStat2()], weaponStat3Names[getBasicStat3()], "Heavy Pistol", weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
 				break;
 			case WEAPON_STAT1_FIRE_ACCURACY_MODIFIER:
-				tooltipText = va("%s%s%s%s%s%s (%s)", getColorStringForQuality(), weaponStat1Names[getBasicStat1()], weaponStat2Names[getBasicStat2()], weaponStat3Names[getBasicStat3()], "Sniper Rifle", weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
+				name = va("%s%s%s%s%s%s (%s)", getColorStringForQuality(), weaponStat1Names[getBasicStat1()], weaponStat2Names[getBasicStat2()], weaponStat3Names[getBasicStat3()], "Sniper Rifle", weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
 				break;
 			case WEAPON_STAT1_FIRE_RATE_MODIFIER:
-				tooltipText = va("%s%s%s%s%s%s (%s)", getColorStringForQuality(), weaponStat1Names[getBasicStat1()], weaponStat2Names[getBasicStat2()], weaponStat3Names[getBasicStat3()], "Blaster Rifle", weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
+				name = va("%s%s%s%s%s%s (%s)", getColorStringForQuality(), weaponStat1Names[getBasicStat1()], weaponStat2Names[getBasicStat2()], weaponStat3Names[getBasicStat3()], "Blaster Rifle", weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
 				break;
 			case WEAPON_STAT1_VELOCITY_MODIFIER:
-				tooltipText = va("%s%s%s%s%s%s (%s)", getColorStringForQuality(), weaponStat1Names[getBasicStat1()], weaponStat2Names[getBasicStat2()], weaponStat3Names[getBasicStat3()], "Assault Rifle", weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
+				name = va("%s%s%s%s%s%s (%s)", getColorStringForQuality(), weaponStat1Names[getBasicStat1()], weaponStat2Names[getBasicStat2()], weaponStat3Names[getBasicStat3()], "Assault Rifle", weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
 				break;
 			case WEAPON_STAT1_HEAT_ACCUMULATION_MODIFIER:
-				tooltipText = va("%s%s%s%s%s%s (%s)", getColorStringForQuality(), weaponStat1Names[getBasicStat1()], weaponStat2Names[getBasicStat2()], weaponStat3Names[getBasicStat3()], "Heavy Blaster", weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
+				name = va("%s%s%s%s%s%s (%s)", getColorStringForQuality(), weaponStat1Names[getBasicStat1()], weaponStat2Names[getBasicStat2()], weaponStat3Names[getBasicStat3()], "Heavy Blaster", weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
 				break;
 			}
 		}
@@ -416,8 +417,6 @@ const char *inventoryItem::getName(uint16_t modItemID1)
 		// hmm. shouldn't happen, hopefully...
 		break;
 	}
-
-	return tooltipText.c_str();
 }
 
 char *inventoryItem::getDescription()
@@ -523,7 +522,7 @@ float inventoryItem::getCrystalPower(void)
 float inventoryItem::getCost(uint16_t modItemID1, uint16_t modItemID2, uint16_t modItemID3)
 {// Apply multipliers based on how many extra stats this item has...
 	float crystalCostMultiplier = getCrystal() ? 1.5 * (1.0 + getCrystalPower()) : 1.0;
-	float dualbladeCostMultiplier = (getBaseItem()->giTag == WP_SABER && getModelType() == MODELTYPE_STAFF) ? 1.5 * (1.0 + getCrystalPower()) : 1.0;
+	float dualbladeCostMultiplier = (getBaseItem()->giTag == WP_SABER && getModelType() == SABER_MODELTYPE_STAFF) ? 1.5 * (1.0 + getCrystalPower()) : 1.0;
 	float statCostMultiplier1 = getBasicStat1() ? 1.25 * (1.0 + getBasicStat1Value()) : 1.0;
 	float statCostMultiplier2 = getBasicStat1() ? 1.25 * (1.0 + getBasicStat2Value()) : 1.0;
 	float statCostMultiplier3 = getBasicStat1() ? 1.25 * (1.0 + getBasicStat3Value()) : 1.0;
@@ -540,6 +539,23 @@ float inventoryItem::getStackCost(uint16_t modItemID1, uint16_t modItemID2, uint
 
 bool inventoryItem::getIsTwoHanded(uint16_t modItemID1)
 {
+	if (getBaseItem()->giTag == WP_SABER)
+	{
+		switch (getModelType())
+		{
+		case SABER_MODELTYPE_DEFAULT:
+		default:
+			return qfalse;
+			break;
+		case SABER_MODELTYPE_STAFF:
+		case SABER_MODELTYPE_ELECTROSTAFF:
+			return qtrue;
+			break;
+		}
+
+		return qfalse;
+	}
+
 	bool		isTwoHanded = true;
 	uint16_t	stat1Type = (modItemID1 && getMod1Stat(modItemID1)) ? getMod1Stat(modItemID1) : getBasicStat1();
 
@@ -589,17 +605,20 @@ const char *inventoryItem::getColorStringForQuality()
 	return "^5";
 }
 
-const char *inventoryItem::getTooltip(uint16_t modItemID1, uint16_t modItemID2, uint16_t modItemID3)
+void inventoryItem::getTooltip(std::string &tooltipText, uint16_t modItemID1, uint16_t modItemID2, uint16_t modItemID3)
 {
 	int giType = getBaseItem()->giType;
-	
-	static std::string tooltipText;
+
+	static std::string itemName;
+	itemName.clear();
 	tooltipText.clear();
+
+	getName(itemName, modItemID1);
 
 	switch (giType)
 	{
 	case IT_WEARABLE:
-		tooltipText = va("^B%s^b\n", getName(modItemID1));
+		tooltipText = va("^B%s^b\n", itemName.c_str());
 		tooltipText.append("^PClothing\n");
 		tooltipText.append(" \n");
 		tooltipText.append(va("^5%s\n", getDescription()));
@@ -619,7 +638,7 @@ const char *inventoryItem::getTooltip(uint16_t modItemID1, uint16_t modItemID2, 
 		break;
 	case IT_ITEM_MODIFICATION:
 	case IT_ITEM_CRYSTAL:
-		tooltipText = va("^B%s^b\n", getName(modItemID1));
+		tooltipText = va("^B%s^b\n", itemName.c_str());
 		tooltipText.append(va("^PItem %s\n", IT_ITEM_CRYSTAL ? "Crystal" : "Modification"));
 		tooltipText.append(" \n");
 		tooltipText.append(va("^5%s\n", getDescription()));
@@ -639,7 +658,7 @@ const char *inventoryItem::getTooltip(uint16_t modItemID1, uint16_t modItemID2, 
 		break;
 	case IT_WEAPON_MODIFICATION:
 	case IT_WEAPON_CRYSTAL:
-		tooltipText = va("^B%s^b\n", getName(modItemID1));
+		tooltipText = va("^B%s^b\n", itemName.c_str());
 		tooltipText.append(va("^PWeapon %s\n", IT_WEAPON_CRYSTAL ? "Crystal" : "Modification"));
 		tooltipText.append(" \n");
 		tooltipText.append(va("^5%s\n", getDescription()));
@@ -659,7 +678,7 @@ const char *inventoryItem::getTooltip(uint16_t modItemID1, uint16_t modItemID2, 
 		break;
 	case IT_SABER_MODIFICATION:
 	case IT_SABER_CRYSTAL:
-		tooltipText = va("^B%s^b\n", getName(modItemID1));
+		tooltipText = va("^B%s^b\n", itemName.c_str());
 		tooltipText.append(va("^PLightsaber %s\n", IT_SABER_CRYSTAL ? "Crystal" : "Modification"));
 		tooltipText.append(" \n");
 		tooltipText.append(va("^5%s\n", getDescription()));
@@ -680,10 +699,12 @@ const char *inventoryItem::getTooltip(uint16_t modItemID1, uint16_t modItemID2, 
 	case IT_WEAPON:
 		if (getBaseItem()->giTag == WP_SABER)
 		{
-			tooltipText = va("^B%s^b\n", getName(modItemID1));
+			tooltipText = va("^B%s^b\n", itemName.c_str());
 			
-			if (getIsTwoHanded())
+			if (getModelType() == SABER_MODELTYPE_STAFF)
 				tooltipText.append("^PTwo handed weapon, Lightsaber\n");
+			else if (getModelType() == SABER_MODELTYPE_ELECTROSTAFF)
+				tooltipText.append("^PTwo handed weapon, Electrostaff\n");
 			else
 				tooltipText.append("^POne handed weapon, Lightsaber\n");
 
@@ -711,7 +732,7 @@ const char *inventoryItem::getTooltip(uint16_t modItemID1, uint16_t modItemID2, 
 		}
 		else
 		{
-			tooltipText = va("^B%s^b\n", getName(modItemID1));
+			tooltipText = va("^B%s^b\n", itemName.c_str());
 			switch (getVisualType1(modItemID1))
 			{
 			case WEAPON_STAT1_DEFAULT:
@@ -762,8 +783,6 @@ const char *inventoryItem::getTooltip(uint16_t modItemID1, uint16_t modItemID2, 
 		// hmm. shouldn't happen, hopefully...
 		break;
 	}
-
-	return tooltipText.c_str();
 }
 
 qboolean inventoryItem::isModification()

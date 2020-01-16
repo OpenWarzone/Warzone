@@ -515,13 +515,15 @@ void NPC_SetMiscDefaultData( gentity_t *ent )
 	case NPCTEAM_ENEMY:
 		{
 			ent->NPC->defaultBehavior = BS_DEFAULT;
-			if ( ent->client->NPC_class == CLASS_SHADOWTROOPER )
+			if ( ent->client->NPC_class == CLASS_SHADOWTROOPER || ent->client->NPC_class == CLASS_PURGETROOPER)
 			{//FIXME: a spawnflag?
 				Jedi_Cloak( ent );
 			}
 		 	if( ent->client->NPC_class == CLASS_TAVION ||
 				ent->client->NPC_class == CLASS_REBORN ||
 				ent->client->NPC_class == CLASS_DESANN ||
+				ent->client->NPC_class == CLASS_INQUISITOR ||
+				ent->client->NPC_class == CLASS_PURGETROOPER ||
 				ent->client->NPC_class == CLASS_SHADOWTROOPER )
 			{
 				ent->client->enemyTeam = NPCTEAM_PLAYER;
@@ -1028,6 +1030,7 @@ void NPC_Begin (gentity_t *ent)
 	{
 		if ( ent->client->NPC_class != CLASS_REBORN
 			&& ent->client->NPC_class != CLASS_SHADOWTROOPER
+			&& ent->client->NPC_class != CLASS_PURGETROOPER
 			//&& ent->client->NPC_class != CLASS_TAVION
 			//&& ent->client->NPC_class != CLASS_DESANN
 			&& ent->client->NPC_class != CLASS_JEDI
@@ -1091,6 +1094,8 @@ void NPC_Begin (gentity_t *ent)
 		}
 	}
 	else if ( ent->client->NPC_class == CLASS_REBORN
+		|| ent->client->NPC_class == CLASS_INQUISITOR
+		|| ent->client->NPC_class == CLASS_PURGETROOPER
 		|| ent->client->NPC_class == CLASS_SHADOWTROOPER )
 	{
 		switch ( g_npcspskill.integer )
@@ -1454,35 +1459,8 @@ void NPC_Begin (gentity_t *ent)
 		if (ent->NPC->stats.health <= 100) ent->NPC->stats.health = 200; // UQ1: Because not all NPC files have a health value...
 		if (ent->client->ps.fd.forcePowerMax <= 0) ent->client->ps.fd.forcePowerMax = 500;
 
-		if (ent->client->NPC_class == CLASS_IMPERIAL)
-		{
-			ent->NPC->stats.health = 300;
-		}
-
-		// More health for instance enemies... This is meant to be run as a team...
-		if (ent->client->ps.weapon == WP_SABER || NPC_IsJedi(ent))
-		{// Bosses... TODO: Sub-types...
-			if (ent->client->NPC_class == CLASS_PADAWAN)
-			{// Padawans get just over half health/force... The extra .5 is to compensate for falling, etc following master around map...
-				ent->NPC->stats.health *= 3;
-				ent->client->ps.fd.forcePowerMax *= 3;
-			}
-			else
-			{
-				ent->NPC->stats.health *= 6;
-				ent->client->ps.fd.forcePowerMax *= 6;
-			}
-		}
-		else if (NPC_IsBountyHunter(ent) || NPC_IsAdvancedGunner(ent) || NPC_IsCommando(ent))
-		{
-			ent->NPC->stats.health *= 3;
-			ent->client->ps.fd.forcePowerMax *= 3;
-		}
-		else
-		{// TODO: Sub-types...
-			ent->NPC->stats.health *= 2;
-			ent->client->ps.fd.forcePowerMax *= 2;
-		}
+		ent->NPC->stats.health *= 2;
+		ent->client->ps.fd.forcePowerMax *= 2;
 
 		ent->health = ent->maxHealth = client->pers.maxHealth = client->ps.stats[STAT_MAX_HEALTH] = client->ps.stats[STAT_HEALTH] = ent->NPC->stats.health;
 		ent->client->ps.fd.forcePower = ent->client->ps.fd.forcePowerMax;
@@ -1501,11 +1479,26 @@ void NPC_Begin (gentity_t *ent)
 				ent->NPC->stats.health = 1800;
 				ent->client->ps.fd.forcePowerMax = 1000;
 			}
+			else if (ent->s.NPC_class == CLASS_PURGETROOPER)
+			{
+				ent->NPC->stats.health = 850;
+				ent->client->ps.fd.forcePowerMax = 400;
+			}
 			else
 			{
 				ent->NPC->stats.health = 1200;
 				ent->client->ps.fd.forcePowerMax = 600;
 			}
+		}
+		else if (NPC_IsBoss(ent))
+		{
+			ent->NPC->stats.health = 1800;
+			ent->client->ps.fd.forcePowerMax = 1000;
+		}
+		else if (ent->s.NPC_class == CLASS_K2SO)
+		{
+			ent->NPC->stats.health = 1200;
+			ent->client->ps.fd.forcePowerMax = 300;
 		}
 		else if (NPC_IsFollowerGunner(ent))
 		{
@@ -1563,6 +1556,10 @@ void NPC_Begin (gentity_t *ent)
 
 		switch( ent->s.NPC_class )
 		{
+		case CLASS_PURGETROOPER:
+			ent->s.NPC_NAME_ID = irand(100, 999);
+			strcpy(ent->client->pers.netname, va("PT-%i", ent->s.NPC_NAME_ID));
+			break;
 		case CLASS_STORMTROOPER_ADVANCED:
 			ent->s.NPC_NAME_ID = irand(100, 999);
 			strcpy(ent->client->pers.netname, va("TA-%i", ent->s.NPC_NAME_ID));
@@ -2621,32 +2618,32 @@ void SP_NPC_spawner( gentity_t *self)
 		VectorCopy(self->s.origin, origin);
 
 		
-		self->s.origin[0] += 16;
-		self->s.origin[1] += 16;
+		self->s.origin[0] += 64;
+		self->s.origin[1] += 64;
 		if (OrgVisibleBox(origin, playerMins, playerMaxs, self->s.origin, -1))
 		{
 			SP_NPC_spawner2( self );
 			VectorCopy(origin, self->s.origin);
 		}
 
-		self->s.origin[0] -= 16;
-		self->s.origin[1] += 16;
+		self->s.origin[0] -= 64;
+		self->s.origin[1] += 64;
 		if (OrgVisibleBox(origin, playerMins, playerMaxs, self->s.origin, -1))
 		{
 			SP_NPC_spawner2(self);
 			VectorCopy(origin, self->s.origin);
 		}
 
-		self->s.origin[0] += 16;
-		self->s.origin[1] -= 16;
+		self->s.origin[0] += 64;
+		self->s.origin[1] -= 64;
 		if (OrgVisibleBox(origin, playerMins, playerMaxs, self->s.origin, -1))
 		{
 			SP_NPC_spawner2(self);
 			VectorCopy(origin, self->s.origin);
 		}
 
-		self->s.origin[0] -= 16;
-		self->s.origin[1] -= 16;
+		self->s.origin[0] -= 64;
+		self->s.origin[1] -= 64;
 		if (OrgVisibleBox(origin, playerMins, playerMaxs, self->s.origin, -1))
 		{
 			if (npc_followers.integer
@@ -2716,16 +2713,16 @@ void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team, int sp
 		self->s.origin[2] += 32;
 		VectorCopy(self->s.origin, origin);
 
-		self->s.origin[0] += 16;
-		self->s.origin[1] += 16;
+		self->s.origin[0] += 64;
+		self->s.origin[1] += 64;
 		if (OrgVisibleBox(origin, playerMins, playerMaxs, self->s.origin, -1))
 		{
 			SP_NPC_spawner2( self );
 			VectorCopy(origin, self->s.origin);
 		}
 
-		self->s.origin[0] -= 16;
-		self->s.origin[1] += 16;
+		self->s.origin[0] -= 64;
+		self->s.origin[1] += 64;
 		if (OrgVisibleBox(origin, playerMins, playerMaxs, self->s.origin, -1))
 		{
 			if (group.npcCount >= 2) self->NPC_type = group.npcNames[1];
@@ -2734,8 +2731,8 @@ void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team, int sp
 			VectorCopy(origin, self->s.origin);
 		}
 
-		self->s.origin[0] += 16;
-		self->s.origin[1] -= 16;
+		self->s.origin[0] += 64;
+		self->s.origin[1] -= 64;
 		if (OrgVisibleBox(origin, playerMins, playerMaxs, self->s.origin, -1))
 		{
 			if (group.npcCount >= 3) self->NPC_type = group.npcNames[2];
@@ -2744,8 +2741,8 @@ void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team, int sp
 			VectorCopy(origin, self->s.origin);
 		}
 
-		self->s.origin[0] -= 16;
-		self->s.origin[1] -= 16;
+		self->s.origin[0] -= 64;
+		self->s.origin[1] -= 64;
 
 		if (OrgVisibleBox(origin, playerMins, playerMaxs, self->s.origin, -1))
 		{
@@ -2800,6 +2797,7 @@ void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team, int sp
 			VectorCopy(origin, self->s.origin);
 			self->s.origin[0] += 64;
 			self->s.origin[1] += 64;
+			self->s.origin[2] += 128;
 
 			if (OrgVisibleBox(origin, playerMins, playerMaxs, self->s.origin, -1))
 			{

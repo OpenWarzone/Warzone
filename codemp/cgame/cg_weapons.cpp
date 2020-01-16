@@ -2909,7 +2909,7 @@ void CG_UpdateEntityAnglesForWristFlmatethrower(centity_t *cent)
 #endif //__WRIST_FLAMER_SWEEP__
 }
 
-void CG_WristFlamethrowerFire(int entityNum)
+void CG_WristFlamethrowerFire(int entityNum, int eventParam)
 {
 	centity_t	*cent = &cg_entities[entityNum];
 
@@ -2924,7 +2924,19 @@ void CG_WristFlamethrowerFire(int entityNum)
 
 	if (cent->flamerSoundTime <= cg.time)
 	{// Only play the sound at the start of the flame burst...
-		trap->S_StartSound(start, entityNum, CHAN_WEAPON, trap->S_RegisterSound("sound/effects/flamejet_lp.wav"));
+		if (eventParam == 1)
+		{// Seeker Droid lightning...
+			// Sound? I guess lightning efx already has it???
+		}
+		else if (eventParam == 2)
+		{// K2-SO Security Droid Lightning...
+			// Sound? I guess lightning efx already has it???
+		}
+		else
+		{
+			trap->S_StartSound(start, entityNum, CHAN_WEAPON, trap->S_RegisterSound("sound/effects/flamejet_lp.wav"));
+		}
+
 		cent->flamerSoundTime = cg.time + WRIST_FLAMER_TIME;
 	}
 
@@ -2984,8 +2996,27 @@ void CG_WristFlamethrowerFire(int entityNum)
 	// Forcing animation here because some code somewhere overrides the animation set in game...
 	BG_SetAnim(cent->playerState, NULL, SETANIM_BOTH, BOTH_FORCELIGHTNING_HOLD, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 100);
 
-	//PlayEffectID(trap->FX_RegisterEffect("boba/fthrw"), start, dir, 0, 0, qfalse);
-	PlayEffectID(trap->FX_RegisterEffect("chemicals/flamethrowerNew"), start, dir, 0, 0, qfalse);
+	extern void CG_NewLightningActEffect(vec3_t muzzle, vec3_t muzzleDir, float length);
+
+	if (eventParam == 1)
+	{// Seeker Droid lightning, thin...
+		//Com_Printf("Seeker lightning.\n");
+		CG_NewLightningActEffect(start, dir, 0);
+		CG_NewLightningActEffect(start, dir, 0);
+		PlayEffectID(cgs.effects.forceLightning, start, dir, 0, 0, qfalse);
+	}
+	else if (eventParam == 2)
+	{// K2-SO Security Droid Lightning - wide...
+		//Com_Printf("K2-SO lightning.\n");
+		CG_NewLightningActEffect(start, dir, 0);
+		CG_NewLightningActEffect(start, dir, 0);
+		PlayEffectID(cgs.effects.forceLightningWide, start, dir, 0, 0, qfalse);
+	}
+	else
+	{// Flamer...
+		//PlayEffectID(trap->FX_RegisterEffect("boba/fthrw"), start, dir, 0, 0, qfalse);
+		PlayEffectID(trap->FX_RegisterEffect("chemicals/flamethrowerNew"), start, dir, 0, 0, qfalse);
+	}
 }
 
 /*

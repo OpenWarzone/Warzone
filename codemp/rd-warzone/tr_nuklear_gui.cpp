@@ -994,7 +994,7 @@ uq_tooltip_begin(struct nk_context *ctx, float textWidth, float maxHeight, struc
 }
 
 NK_API void
-uq_tooltip(struct nk_context *ctx, const char *text, struct media *media, struct nk_image *icon)
+uq_tooltip(struct nk_context *ctx, std::string &text, struct media *media, struct nk_image *icon)
 {
 	const struct nk_style *style;
 	struct nk_vec2 padding;
@@ -1003,7 +1003,7 @@ uq_tooltip(struct nk_context *ctx, const char *text, struct media *media, struct
 	NK_ASSERT(ctx->current);
 	NK_ASSERT(ctx->current->layout);
 	NK_ASSERT(text);
-	if (!ctx || !ctx->current || !ctx->current->layout || !text)
+	if (!ctx || !ctx->current || !ctx->current->layout || !text.length())
 		return;
 
 	/* fetch configuration data */
@@ -1020,7 +1020,7 @@ uq_tooltip(struct nk_context *ctx, const char *text, struct media *media, struct
 		return;
 	}
 
-	if (!text)
+	if (!text.length())
 	{
 		//ri->Printf(PRINT_ALL, "!text\n");
 		return;
@@ -1034,14 +1034,14 @@ uq_tooltip(struct nk_context *ctx, const char *text, struct media *media, struct
 	style = &ctx->style;
 	padding = style->window.padding;
 
-	char convertedStrings[64][256] = { 0 };
+	char convertedStrings[256][2048] = { 0 };
 
 	int currentCount = 0;
 	int stringCount = 0;
 	int longest = 0;
 	int longestCount = 0;
 
-	int startLen = nk_strlen(text);
+	int startLen = text.length();
 
 	//ri->Printf(PRINT_ALL, "text (count %i): %s\n", startLen, text);
 
@@ -1061,7 +1061,7 @@ uq_tooltip(struct nk_context *ctx, const char *text, struct media *media, struct
 			continue;
 		}
 
-		convertedStrings[stringCount][currentCount] = text[i];
+		convertedStrings[stringCount][currentCount] = text.at(i);
 		currentCount++;
 	}
 
@@ -1112,7 +1112,7 @@ uq_tooltip(struct nk_context *ctx, const char *text, struct media *media, struct
 
 	int texLen = nk_strlen(convertedStrings[longest]);
 	int strippedLength = 0;
-	char strippedText[1024] = { 0 };
+	char strippedText[2048] = { 0 };
 
 	for (int i = 0; i < texLen; i++)
 	{
@@ -1163,20 +1163,10 @@ uq_tooltip(struct nk_context *ctx, const char *text, struct media *media, struct
 
 		for (int i = 0; i < stringCount; i++)
 		{
-			/*if (i == 0)
-			{
-				if (gui_tooltipCentered->integer)
-					nk_button_image_label(ctx, *icon, convertedStrings[i], NK_TEXT_CENTERED);
-				else
-					nk_button_image_label(ctx, *icon, convertedStrings[i], NK_TEXT_LEFT);
-			}
-			else*/
-			{
-				if (gui_tooltipCentered->integer)
-					nk_text(ctx, convertedStrings[i], nk_strlen(convertedStrings[i]), NK_TEXT_CENTERED);
-				else
-					nk_text(ctx, convertedStrings[i], nk_strlen(convertedStrings[i]), NK_TEXT_LEFT);
-			}
+			if (gui_tooltipCentered->integer)
+				nk_text(ctx, convertedStrings[i], nk_strlen(convertedStrings[i]), NK_TEXT_CENTERED);
+			else
+				nk_text(ctx, convertedStrings[i], nk_strlen(convertedStrings[i]), NK_TEXT_LEFT);
 		}
 
 		nk_tooltip_end(ctx);
@@ -1497,13 +1487,13 @@ void GUI_CheckOpenWindows(struct nk_context *ctx)
 }
 
 static void
-GUI_MenuHoverTooltip(struct nk_context *ctx, struct media *media, char *tooltipText, struct nk_image icon)
+GUI_MenuHoverTooltip(struct nk_context *ctx, struct media *media, std::string tooltipText, struct nk_image icon)
 {
 	if (ctx->last_widget_state & NK_WIDGET_STATE_HOVER && !backEnd.ui_MouseCursor)
 	{// Hoverred...
-		std::string finalText;
+		static std::string finalText;
 
-		if (tooltipText[0] == '^')
+		if (tooltipText.at(0) == '^')
 		{
 			finalText = tooltipText;
 		}
@@ -1518,7 +1508,7 @@ GUI_MenuHoverTooltip(struct nk_context *ctx, struct media *media, char *tooltipT
 			finalText.append("\n");
 		}
 		
-		uq_tooltip(ctx, finalText.c_str(), media, &icon);
+		uq_tooltip(ctx, finalText, media, &icon);
 		nk_style_set_font(ctx, &media->font_20->handle);
 	}
 }
@@ -2331,15 +2321,15 @@ GUI_Radio(struct nk_context *ctx, struct media *media)
 typedef enum inventorySelectionType_s {
 	INVENTORY_TYPE_NONE,
 	INVENTORY_TYPE_INVENTORY,
-	INVENTORY_TYPE_FORCE,
+	INVENTORY_TYPE_ABILITY,
 	INVENTORY_TYPE_MAX
 } inventorySelectionType_t;
 
 typedef struct uiItemInfo_s
 {
 	inventorySelectionType_t	type;
-	char						name[128];
-	char						tooltip[1024];
+	//std::string					name;
+	//std::string					tooltip;
 	int							quality;
 	struct nk_image				*icon;
 	int							invSlot;
@@ -2351,9 +2341,12 @@ uiItemInfo_t			abilityItems[64];
 uiItemInfo_t			nullItem;
 
 static void
-GUI_SetInventoryItem(int slot, int quality, struct nk_image *icon, char *name, char *tooltip)
+GUI_SetInventoryItem(int slot, int quality, struct nk_image *icon/*, std::string name, std::string tooltip*/)
 {
 	if (slot < 0 || slot > 63) return;
+
+	//inventoryItems[slot].name.clear();
+	//inventoryItems[slot].tooltip.clear();
 
 	memset(&inventoryItems[slot], 0, sizeof(inventoryItems[slot]));
 
@@ -2361,8 +2354,8 @@ GUI_SetInventoryItem(int slot, int quality, struct nk_image *icon, char *name, c
 	inventoryItems[slot].quality = quality;
 	inventoryItems[slot].icon = icon;
 	inventoryItems[slot].invSlot = slot;
-	strcpy(inventoryItems[slot].name, name);
-	strcpy(inventoryItems[slot].tooltip, tooltip);
+	//inventoryItems[slot].name = name;
+	//inventoryItems[slot].tooltip = tooltip;
 
 	//ri->Printf(PRINT_WARNING, "Inventory slot %i set to: type %i, quality %i, icon %i.\n", slot, (int)inventoryItems[slot].type, inventoryItems[slot].quality, inventoryItems[slot].icon->handle.id);
 }
@@ -2375,8 +2368,8 @@ GUI_InitInventory(void)
 	nullItem.type = INVENTORY_TYPE_NONE;
 	nullItem.quality = 0;
 	nullItem.icon = NULL;
-	strcpy(nullItem.name, "");
-	strcpy(nullItem.tooltip, "");
+	//nullItem.name = "";
+	//nullItem.tooltip = "";
 	nullItem.invSlot = -1;
 
 	for (int i = 0; i < 64; i++)
@@ -2393,18 +2386,18 @@ GUI_InitInventorySlot(int slot)
 }
 
 static void
-GUI_SetAbilityItem(int slot, struct nk_image *icon, char *name, char *tooltip)
+GUI_SetAbilityItem(int slot, struct nk_image *icon/*, std::string name, std::string tooltip*/)
 {
 	if (slot < 0 || slot > 63) return;
 
 	memset(&abilityItems[slot], 0, sizeof(abilityItems[slot]));
 
-	abilityItems[slot].type = INVENTORY_TYPE_FORCE;
+	abilityItems[slot].type = INVENTORY_TYPE_ABILITY;
 	abilityItems[slot].quality = QUALITY_GREY;
 	abilityItems[slot].icon = icon;
 	abilityItems[slot].invSlot = slot;
-	strcpy(abilityItems[slot].name, name);
-	strcpy(abilityItems[slot].tooltip, tooltip);
+	//abilityItems[slot].name = name;
+	//abilityItems[slot].tooltip = tooltip;
 
 	//ri->Printf(PRINT_WARNING, "Ability slot %i set to: type %i, icon %i.\n", slot, (int)abilityItems[slot].type, abilityItems[slot].icon->handle.id);
 }
@@ -2451,6 +2444,36 @@ uint64_t GUI_GetMouseCursorBindless(void)
 		}
 
 		return cursor->icon->bindlessHandle;
+	}
+}
+
+void GUI_ItemNameForInventorySlot(int slot, std::string &name)
+{
+	name.clear();
+
+	if (playerInventory[slot] > 0)
+	{
+		inventoryItem *item = BG_GetInventoryItemByID(playerInventory[slot]);
+		
+		if (item)
+		{
+			return item->getName(name, playerInventoryMod1[slot]);
+		}
+	}
+}
+
+void GUI_ItemTooltipForInventorySlot(int slot, std::string &tooltipText)
+{
+	tooltipText.clear();
+
+	if (playerInventory[slot] > 0)
+	{
+		inventoryItem *item = BG_GetInventoryItemByID(playerInventory[slot]);
+
+		if (item)
+		{
+			item->getTooltip(tooltipText, playerInventoryMod1[slot], playerInventoryMod2[slot], playerInventoryMod3[slot]);
+		}
 	}
 }
 
@@ -2501,29 +2524,6 @@ GUI_InitQuickBar(void)
 			GUI_InitQuickBarSlot(i);
 		}
 
-		/*
-		int bestSaber = GUI_FindInventoryBestSaber();
-		int bestWeapon = GUI_FindInventoryBestWeapon();
-
-		if (bestSaber > -1 && bestWeapon > -1)
-		{
-			GUI_SetQuickBarSlot(0, &inventoryItems[bestSaber]);
-			GUI_SetQuickBarSlot(1, &inventoryItems[bestWeapon]);
-		}
-		else if (bestSaber > -1)
-		{
-			GUI_SetQuickBarSlot(0, &inventoryItems[bestSaber]);
-		}
-		else if (bestWeapon > -1)
-		{
-			GUI_SetQuickBarSlot(0, &inventoryItems[bestWeapon]);
-		}
-		else
-		{// Nothing to add, should never happen, but whatever...
-			
-		}
-		*/
-
 		GUI_SetQuickBarSlot(0, &inventoryItems[0]);
 		GUI_SetQuickBarSlot(1, &inventoryItems[1]);
 
@@ -2562,17 +2562,21 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 
 			if (ctx->last_widget_state & NK_WIDGET_STATE_HOVER && !backEnd.ui_MouseCursor)
 			{// Hoverred...
-				uq_tooltip(ctx, quickBarSelections[i].item->tooltip, media, quickBarSelections[i].item->icon);
+				static std::string tooltip;
+				GUI_ItemTooltipForInventorySlot(i, tooltip);
+				uq_tooltip(ctx, tooltip, media, quickBarSelections[i].item->icon);
 			}
 		}
-		else if (quickBarSelections[i].item && quickBarSelections[i].item->type == INVENTORY_TYPE_FORCE)
+		else if (quickBarSelections[i].item && quickBarSelections[i].item->type == INVENTORY_TYPE_ABILITY)
 		{
 			ctx->style.button.padding = nk_vec2(-1.0, -1.0);
 			ret = nk_button_image_label_overlayed(ctx, *quickBarSelections[i].item->icon, "", NK_TEXT_CENTERED, GUI_media.quickbarOverlays[i]);
 
 			if (ctx->last_widget_state & NK_WIDGET_STATE_HOVER && !backEnd.ui_MouseCursor)
 			{// Hoverred...
-				uq_tooltip(ctx, quickBarSelections[i].item->tooltip, media, quickBarSelections[i].item->icon);
+				static std::string tooltip;
+				GUI_ItemTooltipForInventorySlot(i, tooltip);
+				uq_tooltip(ctx, tooltip, media, quickBarSelections[i].item->icon);
 			}
 		}
 		else
@@ -2622,6 +2626,33 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 *                            POWERS
 *
 * ===============================================================*/
+
+std::string abilityNames[] =
+{
+	"^4^BSome Ability^b\n",
+};
+
+std::string abilityTooltips[] =
+{
+"^4^BSome Ability^b\n\
+^POne handed ability, Force\n\
+ \n\
+^7Scaling Attribute: ^PIntelligence\n\
+^7Damage: ^P78-102 ^8(^P40.5 DPS^8).\n\
+^7Attacks per Second: ^P0.45\n\
+^7Crit Chance: ^P+11.5%\n\
+^7Crit Power: ^P+41.0%\n"
+};
+
+void GUI_NameForAbility(std::string name, int abilityNum)
+{
+	name = abilityNames[0];
+}
+
+void GUI_TooltipForAbility(std::string tooltip, int abilityNum)
+{
+	tooltip = abilityTooltips[0];
+}
 
 static void
 GUI_Powers(struct nk_context *ctx, struct media *media)
@@ -2681,7 +2712,9 @@ GUI_Powers(struct nk_context *ctx, struct media *media)
 			&& abilityItems[i].icon->handle.id != media->inventoryIconsBlank.handle.id)
 		{// Hoverred...
 			hovered = true;
-			uq_tooltip(ctx, abilityItems[i].tooltip, media, abilityItems[i].icon);
+			static std::string tooltip;
+			GUI_TooltipForAbility(tooltip, i);
+			uq_tooltip(ctx, tooltip, media, abilityItems[i].icon);
 		}
 
 		if (hovered
@@ -2757,7 +2790,7 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 
 		ctx->style.button.border_color = nk_rgba(0, 0, 0, 0);
 		
-		if (playerInventory[i] > 0)
+		if (playerInventory && playerInventory[i] > 0)
 		{
 			inventoryItems[i].invSlot = i; // make sure icon's invslot is always set...
 
@@ -2931,7 +2964,9 @@ GUI_Inventory(struct nk_context *ctx, struct media *media)
 			tooltipNum = i;
 			tooltipQuality = quality;
 			hovered = true;
-			uq_tooltip(ctx, inventoryItems[i].tooltip, media, inventoryItems[i].icon);
+			static std::string tooltip;
+			GUI_ItemTooltipForInventorySlot(i, tooltip);
+			uq_tooltip(ctx, tooltip, media, inventoryItems[i].icon);
 		}
 		
 		if (hovered 
@@ -3108,10 +3143,10 @@ GUI_Character(struct nk_context *ctx, struct media *media)
 				inventoryItem *mod2 = BG_GetInventoryItemByID(playerInventoryMod2[playerInventoryEquipped[0]]);
 				inventoryItem *mod3 = BG_GetInventoryItemByID(playerInventoryMod3[playerInventoryEquipped[0]]);
 
-				char tooltip[1024] = { { 0 } };
-				strcpy(tooltip, item->getTooltip(mod1->getItemID(), mod2->getItemID(), mod3->getItemID()));
+				static std::string tooltipText;
+				item->getTooltip(tooltipText, mod1->getItemID(), mod2->getItemID(), mod3->getItemID());
 				ret = nk_button_image_label(ctx, icon, "", NK_TEXT_ALIGN_RIGHT);
-				GUI_MenuHoverTooltip(ctx, media, tooltip, media->characterWeapon);
+				GUI_MenuHoverTooltip(ctx, media, tooltipText, media->characterWeapon);
 				found = true;
 
 				if (ret != 0 && backEnd.ui_MouseCursor && noSelectTime <= backEnd.refdef.time)
@@ -4015,45 +4050,11 @@ void GUI_Shutdown(void);
 
 qboolean GUI_Initialized = qfalse;
 
-void GUI_SetPlayerInventorySlot(int slot, int iconID, int quality, const char *name, const char *tooltip)
+void GUI_SetPlayerInventorySlot(int slot, int iconID, int quality/*, std::string name, std::string tooltip*/)
 {
 	if (slot < 64)
 	{
-		char nameString[128] = { 0 };
-		char tooltipString[1024] = { 0 };
-
-		if (name && name[0])
-			strcpy(nameString, name);
-		else
-			sprintf(nameString, "%s^BMy schwartz is bigger than yours (%s)^b\n", ColorStringForQuality(quality), itemQualityNames[quality]);
-
-		if (tooltip && tooltip[0])
-			strcpy(tooltipString, tooltip);
-		else
-		{
-			sprintf(tooltipString, "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s"
-				, nameString
-				, "^POne handed weapon, Lightsaber\n"
-				, " \n"
-				, "^7Scaling Attribute: ^PStrength\n"
-				, "^7Damage: ^P78-102 ^8(^P40.5 DPS^8).\n"
-				, "^7Attacks per Second: ^P0.45\n"
-				, "^7Crit Chance: ^P+11.5%\n"
-				, "^7Crit Power: ^P+41.0%\n"
-				, " \n"
-				, "^0Purple Crystal: ^P+12.0% ^4electric^0, and ^P+12.0% ^Nheat ^0damage.\n"
-				, "^N-42.0% ^7Dexterity.\n"
-				, "^N-97.0% ^7Intelligence.\n"
-				, "^N+33.0% ^7Weight.\n"
-				, " \n"
-				, "^P+15.0% ^2bonus to trip over your own feet.\n"
-				, "^P+50.0% ^2bonus to asking dumb questions.\n"
-				, "^P+20.0% ^2bonus to epeen trolling.\n"
-				, " \n"
-				, "^5Value: Priceless.\n");
-		}
-
-		GUI_SetInventoryItem(slot, quality, &GUI_media.inventoryIcons[iconID][quality], nameString, tooltipString);
+		GUI_SetInventoryItem(slot, quality, &GUI_media.inventoryIcons[iconID][quality]/*, name, tooltip*/);
 	}
 }
 
@@ -4070,7 +4071,7 @@ void GUI_UpdateInventory(void)
 
 			if (item->getBaseItem()->giTag == WP_SABER)
 			{
-				GUI_SetPlayerInventorySlot(i, 0, item->getQuality(), item->getName(playerInventoryMod1[i]), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
+				GUI_SetPlayerInventorySlot(i, 0, item->getQuality());
 			}
 			else if (item->getBaseItem()->giTag == WP_MODULIZED_WEAPON)
 			{
@@ -4080,22 +4081,22 @@ void GUI_UpdateInventory(void)
 				{// TODO: A better way, that uses all the possible icons...
 					case WEAPON_STAT1_DEFAULT:						// Pistol
 					default:
-						GUI_SetPlayerInventorySlot(i, 4, item->getQuality(), item->getName(playerInventoryMod1[i]), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
+						GUI_SetPlayerInventorySlot(i, 4, item->getQuality());
 						break;
 					case WEAPON_STAT1_HEAVY_PISTOL:					// Heavy Pistol
-						GUI_SetPlayerInventorySlot(i, 8, item->getQuality(), item->getName(playerInventoryMod1[i]), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
+						GUI_SetPlayerInventorySlot(i, 8, item->getQuality());
 						break;
 					case WEAPON_STAT1_FIRE_ACCURACY_MODIFIER:		// Sniper Rifle
-						GUI_SetPlayerInventorySlot(i, 13, item->getQuality(), item->getName(playerInventoryMod1[i]), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
+						GUI_SetPlayerInventorySlot(i, 13, item->getQuality());
 						break;
 					case WEAPON_STAT1_FIRE_RATE_MODIFIER:			// Blaster Rifle
-						GUI_SetPlayerInventorySlot(i, 14, item->getQuality(), item->getName(playerInventoryMod1[i]), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
+						GUI_SetPlayerInventorySlot(i, 14, item->getQuality());
 						break;
 					case WEAPON_STAT1_VELOCITY_MODIFIER:			// Assault Rifle
-						GUI_SetPlayerInventorySlot(i, 1, item->getQuality(), item->getName(playerInventoryMod1[i]), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
+						GUI_SetPlayerInventorySlot(i, 1, item->getQuality());
 						break;
 					case WEAPON_STAT1_HEAT_ACCUMULATION_MODIFIER:	// Heavy Blster
-						GUI_SetPlayerInventorySlot(i, 10, item->getQuality(), item->getName(playerInventoryMod1[i]), item->getTooltip(playerInventoryMod1[i], playerInventoryMod2[i], playerInventoryMod3[i]));
+						GUI_SetPlayerInventorySlot(i, 10, item->getQuality());
 						break;
 				}
 			}
@@ -4304,8 +4305,9 @@ void GUI_Init(void)
 			//ri->Printf(PRINT_WARNING, "Register Warzone/gui/powers/icon_%d.png\n", num);
 			GUI_media.forcePowerIcons[i] = icon_load(va("Warzone/gui/powers/icon_%d.png", num));
 
-			char nameString[128] = { 0 };
-			char tooltipString[1024] = { 0 };
+			/*
+			char nameString[256] = { 0 };
+			char tooltipString[2048] = { 0 };
 
 			sprintf(nameString, "%s^BSome Ability^b\n", ColorStringForQuality(QUALITY_BLUE));
 
@@ -4318,8 +4320,9 @@ void GUI_Init(void)
 				, "^7Attacks per Second: ^P0.45\n"
 				, "^7Crit Chance: ^P+11.5%\n"
 				, "^7Crit Power: ^P+41.0%\n");
+			*/
 
-			GUI_SetAbilityItem(i, &GUI_media.forcePowerIcons[i], nameString, tooltipString);
+			GUI_SetAbilityItem(i, &GUI_media.forcePowerIcons[i]/*, nameString, tooltipString*/);
 			num++;
 		}
 	}

@@ -1027,6 +1027,7 @@ qboolean CG_AllowBackupCombatSounds ( centity_t *self )
 	case CLASS_JEDI:
 	case CLASS_PADAWAN:
 	//case CLASS_HK51:
+	//case CLASS_K2SO:
 	case CLASS_KYLE:				
 	case CLASS_LANDO:			
 	//case CLASS_LIZARD:
@@ -1046,6 +1047,8 @@ qboolean CG_AllowBackupCombatSounds ( centity_t *self )
 	//case CLASS_R5D2:				// droid
 	case CLASS_REBEL:
 	case CLASS_REBORN:
+	case CLASS_INQUISITOR:
+	//case CLASS_PURGETROOPER:
 	case CLASS_REELO:
 	//case CLASS_REMOTE:
 	case CLASS_RODIAN:
@@ -1562,7 +1565,7 @@ also called by CG_CheckPlayerstateEvents
 ==============
 */
 
-extern void CG_WristFlamethrowerFire(int entityNum);
+extern void CG_WristFlamethrowerFire(int entityNum, int eventParam);
 extern void CG_ChatBox_AddString(char *chatStr); //cg_draw.c
 
 #define	DEBUGNAME(x) if(cg_debugEvents.integer){trap->Print(x"\n");}
@@ -2188,7 +2191,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 
 	case EV_WRIST_FLAMETHROWER_FIRE:
 		DEBUGNAME("EV_WRIST_FLAMETHROWER_FIRE");
-		CG_WristFlamethrowerFire(es->number);
+		CG_WristFlamethrowerFire(es->number, es->eventParm);
 		break;
 
 	case EV_WATER_TOUCH:

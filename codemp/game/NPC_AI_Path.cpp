@@ -1680,10 +1680,10 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 
 			if (UQ1_UcmdMoveForDir(NPC, ucmd, NPC->movedir, walk, NPC->client->navigation.nav.lookPos))
 			{
-				if (/*NavlibJump(NPC) || NPC->last_move_time < level.time - 2000 ||*/ DistanceVertical(NPC->client->navigation.nav.lookPos, NPC->r.currentOrigin) > DistanceHorizontal(NPC->client->navigation.nav.lookPos, NPC->r.currentOrigin) * 0.666)
-				{
-					ucmd->upmove = 127;
-				}
+				//if (/*NavlibJump(NPC) || NPC->last_move_time < level.time - 2000 ||*/ DistanceVertical(NPC->client->navigation.nav.lookPos, NPC->r.currentOrigin) > DistanceHorizontal(NPC->client->navigation.nav.lookPos, NPC->r.currentOrigin) * 0.666)
+				//{
+				//	ucmd->upmove = 127;
+				//}
 
 				return qtrue;
 			}
@@ -1699,10 +1699,10 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 			{
 				ucmd->rightmove = 127;
 			}
-			else if (/*NPC->last_move_time < level.time - 2000 ||*/ DistanceVertical(NPC->client->navigation.nav.pos, NPC->r.currentOrigin) > DistanceHorizontal(NPC->client->navigation.nav.pos, NPC->r.currentOrigin) * 0.666)
-			{
-				ucmd->upmove = 127;
-			}
+			//else if (/*NPC->last_move_time < level.time - 2000 ||*/ DistanceVertical(NPC->client->navigation.nav.pos, NPC->r.currentOrigin) > DistanceHorizontal(NPC->client->navigation.nav.pos, NPC->r.currentOrigin) * 0.666)
+			//{
+			//	ucmd->upmove = 127;
+			//}
 #endif //__USE_NAVLIB_INTERNAL_MOVEMENT__
 			return qtrue;
 		}
@@ -1746,7 +1746,7 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 				{
 					return qtrue;
 				}
-				else if (NPC->bot_strafe_jump_timer > level.time)
+				/*else if (NPC->bot_strafe_jump_timer > level.time)
 				{
 					ucmd->upmove = 127;
 
@@ -1754,7 +1754,7 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 					{
 						trap->EA_Jump(NPC->s.number);
 					}
-				}
+				}*/
 				else if (NPC->bot_strafe_left_timer > level.time)
 				{
 					ucmd->rightmove = -127;
@@ -1768,7 +1768,7 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 #endif //__USE_NAVLIB_INTERNAL_MOVEMENT__
 				return qtrue;
 			}
-			else if (NPC->bot_strafe_jump_timer > level.time)
+			/*else if (NPC->bot_strafe_jump_timer > level.time)
 			{
 				ucmd->upmove = 127;
 
@@ -1776,7 +1776,7 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 				{
 					trap->EA_Jump(NPC->s.number);
 				}
-			}
+			}*/
 			else if (NPC->bot_strafe_left_timer > level.time)
 			{
 				ucmd->rightmove = -127;
