@@ -536,55 +536,15 @@ void Svcmd_NPC_Kill_f(void)
 	npcteam_t	killTeam = NPCTEAM_FREE;
 	qboolean	killNonSF = qfalse;
 
-	trap->Argv(2, name, 1024);
+	trap->Argv(1, name, 1024);
 
 	if (!name[0])
 	{
 		Com_Printf(S_COLOR_RED"Error, Expected:\n");
-		Com_Printf(S_COLOR_RED"NPC kill '[NPC targetname]' - kills NPCs with certain targetname\n");
+		Com_Printf(S_COLOR_RED"NPCkill '[NPC targetname]' - kills NPCs with certain targetname\n");
 		Com_Printf(S_COLOR_RED"or\n");
-		Com_Printf(S_COLOR_RED"NPC kill 'all' - kills all NPCs\n");
-		Com_Printf(S_COLOR_RED"or\n");
-		Com_Printf(S_COLOR_RED"NPC team '[teamname]' - kills all NPCs of a certain team ('nonally' is all but your allies)\n");
+		Com_Printf(S_COLOR_RED"NPCkill 'all' - kills all NPCs\n");
 		return;
-	}
-
-	if (Q_stricmp("team", name) == 0)
-	{
-		trap->Argv(3, name, 1024);
-
-		if (!name[0])
-		{
-			Com_Printf(S_COLOR_RED"NPC_Kill Error: 'npc kill team' requires a team name!\n");
-			Com_Printf(S_COLOR_RED"Valid team names are:\n");
-			for (n = (FACTION_FREE + 1); n < FACTION_NUM_FACTIONS; n++)
-			{
-				Com_Printf(S_COLOR_RED"%s\n", TeamNames[n]);
-			}
-			Com_Printf(S_COLOR_RED"nonally - kills all but your teammates\n");
-			return;
-		}
-
-		if (Q_stricmp("nonally", name) == 0)
-		{
-			killNonSF = qtrue;
-		}
-		else
-		{
-			killTeam = (npcteam_t)GetIDForString(TeamTable, name);
-
-			if (killTeam == NPCTEAM_FREE)
-			{
-				Com_Printf(S_COLOR_RED"NPC_Kill Error: team '%s' not recognized\n", name);
-				Com_Printf(S_COLOR_RED"Valid team names are:\n");
-				for (n = (FACTION_FREE + 1); n < FACTION_NUM_FACTIONS; n++)
-				{
-					Com_Printf(S_COLOR_RED"%s\n", TeamNames[n]);
-				}
-				Com_Printf(S_COLOR_RED"nonally - kills all but your teammates\n");
-				return;
-			}
-		}
 	}
 
 	for (n = 1; n < ENTITYNUM_MAX_NORMAL; n++)
@@ -652,23 +612,6 @@ void Svcmd_NPC_Kill_f(void)
 	}
 }
 
-void Svcmd_NPC_f(void)
-{
-	char	cmd[1024];
-
-	trap->Argv(1, cmd, 1024);
-
-	if (!cmd[0])
-	{
-		Com_Printf("Valid NPC commands are:\n");
-		Com_Printf(" kill [NPC targetname] or [all(kills all NPCs)] or 'team [teamname]'\n");
-	}
-	else if (Q_stricmp(cmd, "kill") == 0)
-	{
-		Svcmd_NPC_Kill_f();
-	}
-}
-
 void G_CheckFields( void );
 void G_CheckSpawns( void );
 
@@ -684,7 +627,7 @@ svcmd_t svcmds[] = {
 	{ "forceteam",					Svcmd_ForceTeam_f,					qfalse },
 	{ "game_memory",				Svcmd_GameMem_f,					qfalse },
 	{ "listip",						Svcmd_ListIP_f,						qfalse },
-	{ "npc", 						Svcmd_NPC_f,						qfalse },
+	{ "npckill", 					Svcmd_NPC_Kill_f,					qfalse },
 	{ "removeip",					Svcmd_RemoveIP_f,					qfalse },
 	{ "say",						Svcmd_Say_f,						qtrue },
 	{ "toggleuserinfovalidation",	Svcmd_ToggleUserinfoValidation_f,	qfalse },

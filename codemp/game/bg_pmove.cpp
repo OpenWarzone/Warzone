@@ -13179,9 +13179,9 @@ void PmoveSingle (pmove_t *pmove) {
 		stiffenedUp = qtrue;
 	}
 
-	/*if (g_mmoStyleAttacking.integer)
+	if (g_mmoStyleAttacking.integer)
 	{
-		if (pm->ps->torsoAnim == BOTH_PULL_IMPALE_STAB
+		/*if (pm->ps->torsoAnim == BOTH_PULL_IMPALE_STAB
 			|| pm->ps->torsoAnim == BOTH_A2_STABBACK1
 			|| pm->ps->torsoAnim == BOTH_ATTACK_BACK
 			|| pm->ps->torsoAnim == BOTH_A6_LR
@@ -13200,14 +13200,34 @@ void PmoveSingle (pmove_t *pmove) {
 			//lock their viewangles during these attacks.
 			PM_SetPMViewAngle(pm->ps, pm->ps->viewangles, &pm->cmd);
 		}
-		else if (pm->ps->torsoAnim == PAIRED_ATTACKER01
+		else*/ if (pm->ps->torsoAnim == PAIRED_ATTACKER01
 			|| pm->ps->torsoAnim == PAIRED_DEFENDER01)
 		{// Can't move at all while in paired animations...
 			pm->cmd.forwardmove = pm->cmd.rightmove = pm->cmd.upmove = 0;
+			
 			//lock their viewangles during these attacks.
-			PM_SetPMViewAngle(pm->ps, pm->ps->viewangles, &pm->cmd);
+			//PM_SetPMViewAngle(pm->ps, pm->ps->viewangles, &pm->cmd);
+
+			vec3_t	angle;
+			VectorCopy(pm->ps->viewangles, angle);
+			angle[ROLL] = 0;
+			angle[PITCH] = 0;
+
+			if (bg_testvalue0.integer)
+			{
+				for (int i = 0; i < 3; i++)
+				{ // set the delta angle
+					int cmdAngle = ANGLE2SHORT(angle[i]);
+					//if (bg_testvalue1.integer) pm->cmd.angles[i] -= 180.0;
+					pm->ps->delta_angles[i] = (cmdAngle - pm->cmd.angles[i]);// +180.0;
+					//if (!bg_testvalue1.integer) pm->cmd.angles[i] -= 180.0;
+				}
+			}
+
+			//angle[YAW] -= 180.0;
+			VectorCopy(angle, pm->ps->viewangles);
 		}
-	}*/
+	}
 
 	if ( pm->ps->saberMove == LS_A_LUNGE )
 	{//can't move during lunge

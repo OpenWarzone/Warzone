@@ -3836,6 +3836,22 @@ qboolean NPC_ParseParms( const char *NPCName, gentity_t *NPC )
 		int loop;
 		strcpy(NPC->client->modelname, playerModel);
 
+#ifdef __STANDARDIZED_MODEL_SCALING__
+		if (!NPC_IsHumanoid(NPC))
+		{// Animal or droid... Use original scales...
+			for (loop = 0; loop < num_scale_models; loop++)
+			{
+				//G_Printf("Checking %s against %s.\n", model_scale_list[loop].botName, NPC->client->modelname);
+
+				if (!Q_stricmp(model_scale_list[loop].botName, NPC->client->modelname))
+				{// A match! Set the scale!
+					NPC->modelScale[0] = NPC->modelScale[1] = NPC->modelScale[2] = (model_scale_list[loop].scale*scaleBoost) / 100.0f;
+					NPC->client->ps.iModelScale = model_scale_list[loop].scale * scaleBoost;
+					NPC->s.iModelScale = model_scale_list[loop].scale * scaleBoost;
+				}
+			}
+		}
+#else //!__STANDARDIZED_MODEL_SCALING__
 		for (loop = 0; loop < num_scale_models; loop++)
 		{
 			//G_Printf("Checking %s against %s.\n", model_scale_list[loop].botName, NPC->client->modelname);
@@ -3847,6 +3863,7 @@ qboolean NPC_ParseParms( const char *NPCName, gentity_t *NPC )
 				NPC->s.iModelScale = model_scale_list[loop].scale * scaleBoost;
 			}
 		}
+#endif //__STANDARDIZED_MODEL_SCALING__
 	}
 
 /*

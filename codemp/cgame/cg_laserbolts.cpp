@@ -561,7 +561,9 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 		{
 			qboolean inSaberMove = (BG_SaberInIdle(cent->currentState.saberMove) 
 				&& cent->currentState.torsoAnim != BOTH_CC_DEFENCE_SPIN 
-				&& cent->currentState.torsoAnim != BOTH_SINGLE_DEFENCE_SPIN) ? qfalse : qtrue;
+				&& cent->currentState.torsoAnim != BOTH_SINGLE_DEFENCE_SPIN
+				&& cent->currentState.torsoAnim != PAIRED_ATTACKER01
+				&& cent->currentState.torsoAnim != PAIRED_DEFENDER01) ? qfalse : qtrue;
 
 			if (inSaberMove) // if we have a stale segment, don't draw until we have a fresh one
 			{

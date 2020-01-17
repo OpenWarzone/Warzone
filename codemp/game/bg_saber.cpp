@@ -6205,9 +6205,16 @@ void PM_SetSaberMove(short newMove)
 		&& !BG_SaberInSpecial(newMove)
 		&& pm->ps->saberMove > LS_PUTAWAY)
 	{
-		anim = BG_GetMMOCrowdControlStanceMove(newMove);
-		parts = SETANIM_TORSO;
-		pm->ps->saberMove = newMove = LS_A_R2L;
+		if (PM_irand_timesync(0,2) == 0)
+		{// Do a transition anim every so often...
+			anim = BG_GetCrowdControlStanceMove(newMove);
+		}
+		else
+		{// Do normal repeating saber anim...
+			anim = BG_GetMMOCrowdControlStanceMove(newMove);
+			parts = SETANIM_TORSO;
+			pm->ps->saberMove = newMove = LS_A_R2L;
+		}
 	}
 	else if (g_mmoStyleAttacking.integer
 		&& pm->ps->fd.saberAnimLevelBase == SS_SINGLE
@@ -6215,9 +6222,16 @@ void PM_SetSaberMove(short newMove)
 		&& !BG_SaberInSpecial(newMove)
 		&& pm->ps->saberMove > LS_PUTAWAY)
 	{
-		anim = BG_GetMMOSingleStanceMove(newMove);
-		parts = SETANIM_TORSO;
-		pm->ps->saberMove = newMove = LS_A_R2L;
+		if (PM_irand_timesync(0, 2) == 0)
+		{// Do a transition anim every so often...
+			anim = BG_GetSingleStanceMove(newMove);
+		}
+		else
+		{// Do normal repeating saber anim...
+			anim = BG_GetMMOSingleStanceMove(newMove);
+			parts = SETANIM_TORSO;
+			pm->ps->saberMove = newMove = LS_A_R2L;
+		}
 	}
 	else if (g_mmoStyleAttacking.integer
 		&& pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL

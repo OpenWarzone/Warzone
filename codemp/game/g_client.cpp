@@ -2499,6 +2499,36 @@ qboolean ClientUserinfoChanged( int clientNum ) {
 
 	client->ps.customRGBA[3]=255;
 
+#ifdef __STANDARDIZED_MODEL_SCALING__
+	vec3_t		playerMaxs = { 15, 15, DEFAULT_MAXS_2 };
+
+	if (StringContainsWord(model, "padawan"))
+	{// Padawan/child model is scale 0.88.
+		ent->modelScale[0] = ent->modelScale[1] = ent->modelScale[2] = 0.85f;
+		client->ps.iModelScale = ent->modelScale[0] * 88;
+		ent->s.iModelScale = ent->modelScale[0] * 88;
+
+		ent->r.maxs[0] = playerMaxs[0] * ent->modelScale[0];
+		ent->r.maxs[1] = playerMaxs[1] * ent->modelScale[1];
+		ent->r.maxs[2] = playerMaxs[2] * ent->modelScale[2];
+
+		ent->client->ps.standheight = DEFAULT_MAXS_2 * ent->modelScale[2];
+		ent->client->ps.crouchheight = CROUCH_MAXS_2 * ent->modelScale[2];
+	}
+	else
+	{// Standard player is scale 1.0.
+		ent->modelScale[0] = ent->modelScale[1] = ent->modelScale[2] = 1.0f;
+		client->ps.iModelScale = ent->modelScale[0] * 100;
+		ent->s.iModelScale = ent->modelScale[0] * 100;
+
+		ent->r.maxs[0] = playerMaxs[0] * ent->modelScale[0];
+		ent->r.maxs[1] = playerMaxs[1] * ent->modelScale[1];
+		ent->r.maxs[2] = playerMaxs[2] * ent->modelScale[2];
+
+		ent->client->ps.standheight = DEFAULT_MAXS_2 * ent->modelScale[2];
+		ent->client->ps.crouchheight = CROUCH_MAXS_2 * ent->modelScale[2];
+	}
+#else //!__STANDARDIZED_MODEL_SCALING__
 	if (scale_models_loaded)
 	{
 		int			loop = 0;
@@ -2553,6 +2583,7 @@ qboolean ClientUserinfoChanged( int clientNum ) {
 			Com_Printf("^1*** ^3MODEL-SCALE^5: Scale set to ^7%fx^5 normal for UNKNOWN model %s.\n", 1.0f, model);
 		}
 	}
+#endif //__STANDARDIZED_MODEL_SCALING__
 
 	Q_strncpyz( forcePowers, Info_ValueForKey( userinfo, "forcepowers" ), sizeof( forcePowers ) );
 

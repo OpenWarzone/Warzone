@@ -415,7 +415,45 @@ void CG_UpdateCamera(void)
 	sprintf(val2, "%i", hRange);
 	trap->Cvar_Set("cg_thirdPersonVertOffset", val2);
 
-	
+	if (cg.snap->ps.torsoAnim == PAIRED_ATTACKER01 || cg.snap->ps.torsoAnim == PAIRED_DEFENDER01)
+	{
+#define CAMERA_MOVE_SPEED 0.5
+		wantedCameraAngle = (currentCameraAngle - cg_entities[cg.snap->ps.clientNum].lerpAngles[YAW]) + float(double(cg.time) * 0.0333);//360.0 - cg_entities[cg.snap->ps.clientNum].lerpAngles[YAW];
+
+		/*if (wantedCameraAngle < 0.0)
+		{
+			wantedCameraAngle *= -1.0;
+		}*/
+
+		if (currentCameraAngle > wantedCameraAngle)
+		{
+			currentCameraAngle -= CAMERA_MOVE_SPEED;
+		}
+		else if (currentCameraAngle < wantedCameraAngle)
+		{
+			currentCameraAngle += CAMERA_MOVE_SPEED;
+		}
+
+		float diff = currentCameraAngle - wantedCameraAngle;
+
+		if (diff < 0.0) diff *= -1.0;
+
+		if (diff < CAMERA_MOVE_SPEED)
+		{
+			currentCameraAngle = wantedCameraAngle;
+		}
+
+		char val3[16] = { { 0 } };
+		sprintf(val3, "%f", wantedCameraAngle - currentCameraAngle);
+		trap->Cvar_Set("cg_thirdPersonAngle", val3);
+
+		//trap->Print("cam angle %f. wanted %f.\n", currentCameraAngle, wantedCameraAngle);
+	}
+	else
+	{
+		trap->Cvar_Set("cg_thirdPersonAngle", "0");
+	}
+
 #if 0
 	if (cg_entities[cg.snap->ps.clientNum].currentState.weapon == WP_SABER)
 	{

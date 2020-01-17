@@ -531,130 +531,104 @@ extern qboolean G_PrettyCloseIGuess(float a, float b, float tolerance);
 
 qboolean G_SecurityDroidMelee(gentity_t *self)
 {
-	renderInfo_t *ri = &self->client->renderInfo;
-	mdxaBone_t boltMatrix;
-	vec3_t flatAng;
-	vec3_t pos;
-	vec3_t grabMins, grabMaxs;
-	trace_t trace;
-
-	if (!self->ghoul2 || ri->handRBolt == -1)
-	{ //no good
-		return qfalse;
-	}
+	qboolean didSpecialMove = qfalse;
 
 	if (!TIMER_Done(self, "k2sopunch"))
 	{
 		return qfalse;
 	}
 
-	VectorSet(flatAng, 0.0f, self->client->ps.viewangles[1], 0.0f);
-	trap->G2API_GetBoltMatrix(self->ghoul2, 0, ri->handRBolt, &boltMatrix, flatAng, self->client->ps.origin,
-		level.time, NULL, self->modelScale);
-	BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, pos);
-
-	//VectorSet(grabMins, -4.0f, -4.0f, -4.0f);
-	//VectorSet(grabMaxs, 4.0f, 4.0f, 4.0f);
-
-	VectorSet(grabMins, -64.0f, -64.0f, -64.0f);
-	VectorSet(grabMaxs, 64.0f, 64.0f, 64.0f);
-
-	//trace from my origin to my hand, if we hit anyone then get 'em
-	trap->Trace(&trace, self->client->ps.origin, grabMins, grabMaxs, pos, self->s.number, MASK_SHOT, qfalse, /*G2TRFLAG_DOGHOULTRACE | G2TRFLAG_GETSURFINDEX | G2TRFLAG_THICK | G2TRFLAG_HITCORPSES*/0, 0/*g_g2TraceLod.integer*/);
-
-	if (trace.fraction != 1.0f &&
-		trace.entityNum < ENTITYNUM_WORLD)
+	if (!self->enemy || !ValidEnemy(self, self->enemy))
 	{
-		gentity_t *grabbed = &g_entities[trace.entityNum];
-
-		if (grabbed->inuse && (grabbed->s.eType == ET_PLAYER || grabbed->s.eType == ET_NPC) &&
-			grabbed->client && grabbed->health > 0 &&
-			G_CanBeEnemy(self, grabbed) &&
-			//G_PrettyCloseIGuess(grabbed->client->ps.origin[2], self->client->ps.origin[2], 4.0f) &&
-			(!BG_InGrappleMove(grabbed->client->ps.torsoAnim) || grabbed->client->ps.torsoAnim == BOTH_KYLE_GRAB) &&
-			(!BG_InGrappleMove(grabbed->client->ps.legsAnim) || grabbed->client->ps.legsAnim == BOTH_KYLE_GRAB))
-		{ //grabbed an active player/npc
-			int tortureAnim = -1;
-			int correspondingAnim = -1;
-
-			if (self->client->pers.cmd.forwardmove > 0)
-			{ //punch grab
-				tortureAnim = BOTH_KYLE_PA_1;
-				correspondingAnim = BOTH_PLAYER_PA_1;
-			}
-			else if (self->client->pers.cmd.forwardmove < 0)
-			{ //knee-throw
-				tortureAnim = BOTH_KYLE_PA_2;
-				correspondingAnim = BOTH_PLAYER_PA_2;
-			}
-
-			if (tortureAnim == -1 || correspondingAnim == -1)
-			{
-				if (self->client->ps.torsoTimer < 300 && !self->client->grappleState)
-				{ //you failed to grab anyone, play the "failed to grab" anim
-					G_SetAnim(self, &self->client->pers.cmd, SETANIM_BOTH, BOTH_KYLE_MISS, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
-					if (self->client->ps.torsoAnim == BOTH_KYLE_MISS)
-					{ //providing the anim set succeeded..
-						self->client->ps.weaponTime = self->client->ps.torsoTimer;
-					}
-				}
-
-				TIMER_Set(self, "k2sopunch", irand(5000, 7000));
-				return qfalse;
-			}
-
-			self->client->grappleIndex = grabbed->s.number;
-			self->client->grappleState = 1;
-
-			grabbed->client->grappleIndex = self->s.number;
-			grabbed->client->grappleState = 20;
-
-			//time to crack some heads
-			G_SetAnim(self, &self->client->pers.cmd, SETANIM_BOTH, tortureAnim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
-			if (self->client->ps.torsoAnim == tortureAnim)
-			{ //providing the anim set succeeded..
-				self->client->ps.weaponTime = self->client->ps.torsoTimer;
-			}
-
-			G_SetAnim(grabbed, &grabbed->client->pers.cmd, SETANIM_BOTH, correspondingAnim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
-			if (grabbed->client->ps.torsoAnim == correspondingAnim)
-			{ //providing the anim set succeeded..
-				if (grabbed->client->ps.weapon == WP_SABER)
-				{ //turn it off
-					if (!grabbed->client->ps.saberHolstered)
-					{
-						grabbed->client->ps.saberHolstered = 2;
-						if (grabbed->client->saber[0].soundOff)
-						{
-							G_Sound(grabbed, CHAN_AUTO, grabbed->client->saber[0].soundOff);
-						}
-						if (grabbed->client->saber[1].soundOff &&
-							grabbed->client->saber[1].model[0])
-						{
-							G_Sound(grabbed, CHAN_AUTO, grabbed->client->saber[1].soundOff);
-						}
-					}
-				}
-				if (grabbed->client->ps.torsoTimer < self->client->ps.torsoTimer)
-				{ //make sure they stay in the anim at least as long as the grabber
-					grabbed->client->ps.torsoTimer = self->client->ps.torsoTimer;
-				}
-				grabbed->client->ps.weaponTime = grabbed->client->ps.torsoTimer;
-			}
-		}
+		return qfalse;
 	}
 
-	if (self->client->ps.torsoTimer < 300 && !self->client->grappleState)
-	{ //you failed to grab anyone, play the "failed to grab" anim
-		G_SetAnim(self, &self->client->pers.cmd, SETANIM_BOTH, BOTH_KYLE_MISS, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD, 0);
-		if (self->client->ps.torsoAnim == BOTH_KYLE_MISS)
+	gentity_t *grabbed = self->enemy;
+
+	float dist = Distance(self->client->ps.origin, grabbed->client->ps.origin);
+
+	if (dist > 64.0f)
+	{
+		return qfalse;
+	}
+
+	qboolean isForward = InFront(grabbed->client->ps.origin, self->client->ps.origin, self->client->ps.viewangles, 0.0f);
+
+	if (!isForward)
+	{
+		return qfalse;
+	}
+
+	if ((!BG_InGrappleMove(grabbed->client->ps.torsoAnim) || grabbed->client->ps.torsoAnim == BOTH_KYLE_GRAB)
+		&& (!BG_InGrappleMove(grabbed->client->ps.legsAnim) || grabbed->client->ps.legsAnim == BOTH_KYLE_GRAB))
+	{ //grabbed an active player/npc
+		int tortureAnim = BOTH_KYLE_PA_1; //punch grab
+		int correspondingAnim = BOTH_PLAYER_PA_1;
+
+		self->client->grappleIndex = grabbed->s.number;
+		self->client->grappleState = 1;
+
+		grabbed->client->grappleIndex = self->s.number;
+		grabbed->client->grappleState = 20;
+
+		//time to crack some heads
+		G_SetAnim(self, &self->client->pers.cmd, SETANIM_BOTH, tortureAnim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART | SETANIM_FLAG_HOLDLESS/*SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD*/, 0);
+
+		if (self->client->ps.torsoAnim == tortureAnim)
 		{ //providing the anim set succeeded..
 			self->client->ps.weaponTime = self->client->ps.torsoTimer;
 		}
+
+		G_SetAnim(grabbed, &grabbed->client->pers.cmd, SETANIM_BOTH, correspondingAnim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART | SETANIM_FLAG_HOLDLESS/*SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD*/, 0);
+
+		if (grabbed->client->ps.torsoAnim == correspondingAnim)
+		{ //providing the anim set succeeded..
+			if (grabbed->client->ps.torsoTimer < self->client->ps.torsoTimer)
+			{ //make sure they stay in the anim at least as long as the grabber
+				grabbed->client->ps.torsoTimer = self->client->ps.torsoTimer;
+			}
+
+			grabbed->client->ps.weaponTime = grabbed->client->ps.torsoTimer;
+
+			vec3_t edir;
+			VectorSubtract(grabbed->r.currentOrigin, self->r.currentOrigin, edir);
+			VectorNormalize(edir);
+
+			G_Damage(grabbed, self, self, edir, grabbed->r.currentOrigin, irand(15, 25), DAMAGE_NO_ARMOR | DAMAGE_NO_KNOCKBACK, MOD_MELEE);
+		}
+
+		if (self->client->ps.torsoAnim == tortureAnim && grabbed->client->ps.torsoAnim == correspondingAnim)
+		{ //providing the anim set succeeded..
+			didSpecialMove = qtrue;
+		}
+		else
+		{
+			if (self->client->ps.torsoTimer < 300 && !self->client->grappleState)
+			{ //you failed to grab anyone, play the "failed to grab" anim
+				G_SetAnim(self, &self->client->pers.cmd, SETANIM_BOTH, BOTH_KYLE_MISS, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART | SETANIM_FLAG_HOLDLESS/*SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD*/, 0);
+
+				if (self->client->ps.torsoAnim == BOTH_KYLE_MISS)
+				{ //providing the anim set succeeded..
+					self->client->ps.weaponTime = self->client->ps.torsoTimer;
+				}
+			}
+
+			didSpecialMove = qfalse;
+		}
 	}
 
-	TIMER_Set(self, "k2sopunch", irand(9000, 25000));
-	return qtrue;
+	if (didSpecialMove)
+	{
+		Com_Printf("K2SO did special melee\n");
+		TIMER_Set(self, "k2sopunch", irand(9000, 25000));
+		return qtrue;
+	}
+	else
+	{
+		Com_Printf("K2SO did not do special melee\n");
+		TIMER_Set(self, "k2sopunch", irand(1000, 2500));
+		return qfalse;
+	}
 }
 
 qboolean Boba_StopKnockdown( gentity_t *self, gentity_t *pusher, vec3_t pushDir, qboolean forceKnockdown ) //forceKnockdown = qfalse

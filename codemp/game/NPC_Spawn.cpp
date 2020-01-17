@@ -942,6 +942,140 @@ qboolean NPC_SpotWouldTelefrag( gentity_t *npc )
 
 extern void NPC_PickRandomIdleAnimantion();
 
+void NPC_StandardizeModelScales(gentity_t *ent)
+{// Standardize NPC scales, based on classes... +/- 12% of young adult age player.
+#ifdef __STANDARDIZED_MODEL_SCALING__
+	float adjustedScale = ent->client->ps.iModelScale;
+
+	if (ent->client->ps.weapon == WP_SABER || NPC_IsJedi(ent))
+	{// Bosses... TODO: Sub-types...
+		if (ent->client->NPC_class == CLASS_PADAWAN)
+		{
+			adjustedScale = 88;
+		}
+		else if (NPC_IsBoss(ent))
+		{
+			adjustedScale = 112;
+		}
+		else if (ent->s.NPC_class == CLASS_PURGETROOPER)
+		{
+			adjustedScale = 112;
+		}
+		else
+		{
+			adjustedScale = 112;
+		}
+	}
+	else if (NPC_IsBoss(ent))
+	{
+		adjustedScale = 112;
+	}
+	else if (ent->s.NPC_class == CLASS_K2SO)
+	{
+		adjustedScale = 130;
+	}
+	else if (NPC_IsFollowerGunner(ent))
+	{
+		adjustedScale = 112;
+	}
+	else if (NPC_IsBountyHunter(ent))
+	{
+		adjustedScale = 112;
+	}
+	else if (NPC_IsCommando(ent))
+	{
+		adjustedScale = 112;
+	}
+	else if (NPC_IsAdvancedGunner(ent))
+	{
+		adjustedScale = 112;
+	}
+	else if (NPC_IsStormtrooper(ent))
+	{
+		adjustedScale = 112;
+	}
+	else
+	{// TODO: Sub-types...
+		adjustedScale = 112;
+	}
+
+	ent->modelScale[0] = ent->modelScale[1] = ent->modelScale[2] = adjustedScale / 100.0f;
+	ent->client->ps.iModelScale = int(adjustedScale);
+	ent->s.iModelScale = int(adjustedScale);
+#endif //__STANDARDIZED_MODEL_SCALING__
+}
+
+void NPC_StandardizeModelStats(gentity_t *ent)
+{// Standardize NPC stats, based on classes...
+	if (ent->client->ps.weapon == WP_SABER || NPC_IsJedi(ent))
+	{// Bosses... TODO: Sub-types...
+		if (ent->client->NPC_class == CLASS_PADAWAN)
+		{// Padawans get just over half health/force... The extra .5 is to compensate for falling, etc following master around map...
+			ent->NPC->stats.health = 800;
+			ent->client->ps.fd.forcePowerMax = 500;
+		}
+		else if (NPC_IsBoss(ent))
+		{
+			ent->NPC->stats.health = 1800;
+			ent->client->ps.fd.forcePowerMax = 1000;
+		}
+		else if (ent->s.NPC_class == CLASS_PURGETROOPER)
+		{
+			ent->NPC->stats.health = 850;
+			ent->client->ps.fd.forcePowerMax = 400;
+		}
+		else
+		{
+			ent->NPC->stats.health = 1200;
+			ent->client->ps.fd.forcePowerMax = 600;
+		}
+	}
+	else if (NPC_IsBoss(ent))
+	{
+		ent->NPC->stats.health = 1800;
+		ent->client->ps.fd.forcePowerMax = 1000;
+	}
+	else if (ent->s.NPC_class == CLASS_K2SO)
+	{
+		ent->NPC->stats.health = 1200;
+		ent->client->ps.fd.forcePowerMax = 300;
+	}
+	else if (NPC_IsFollowerGunner(ent))
+	{
+		ent->NPC->stats.health = 800;
+		ent->client->ps.fd.forcePowerMax = 500;
+	}
+	else if (NPC_IsBountyHunter(ent))
+	{
+		ent->NPC->stats.health = 950;
+		ent->client->ps.fd.forcePowerMax = 600;
+	}
+	else if (NPC_IsCommando(ent))
+	{
+		ent->NPC->stats.health = 850;
+		ent->client->ps.fd.forcePowerMax = 500;
+	}
+	else if (NPC_IsAdvancedGunner(ent))
+	{
+		ent->NPC->stats.health = 725;
+		ent->client->ps.fd.forcePowerMax = 600;
+	}
+	else if (NPC_IsStormtrooper(ent))
+	{
+		ent->NPC->stats.health = 600;
+		ent->client->ps.fd.forcePowerMax = 300;
+	}
+	else
+	{// TODO: Sub-types...
+		ent->NPC->stats.health = 500;
+		ent->client->ps.fd.forcePowerMax = 600;
+	}
+
+	// Why are there so many fucking health variables... ffs raven...
+	ent->s.health = ent->s.maxhealth = ent->health = ent->maxHealth = ent->client->pers.maxHealth = ent->client->ps.stats[STAT_MAX_HEALTH] = ent->client->ps.stats[STAT_HEALTH] = ent->NPC->stats.health;
+	ent->client->ps.fd.forcePower = ent->client->ps.fd.forcePowerMax;
+}
+
 //--------------------------------------------------------------
 void NPC_Begin (gentity_t *ent)
 {
@@ -1466,74 +1600,9 @@ void NPC_Begin (gentity_t *ent)
 		ent->client->ps.fd.forcePower = ent->client->ps.fd.forcePowerMax;
 	}
 	else
-	{// More health for enemies...
-		if (ent->client->ps.weapon == WP_SABER || NPC_IsJedi(ent))
-		{// Bosses... TODO: Sub-types...
-			if (ent->client->NPC_class == CLASS_PADAWAN)
-			{// Padawans get just over half health/force... The extra .5 is to compensate for falling, etc following master around map...
-				ent->NPC->stats.health = 800;
-				ent->client->ps.fd.forcePowerMax = 500;
-			}
-			else if (NPC_IsBoss(ent))
-			{
-				ent->NPC->stats.health = 1800;
-				ent->client->ps.fd.forcePowerMax = 1000;
-			}
-			else if (ent->s.NPC_class == CLASS_PURGETROOPER)
-			{
-				ent->NPC->stats.health = 850;
-				ent->client->ps.fd.forcePowerMax = 400;
-			}
-			else
-			{
-				ent->NPC->stats.health = 1200;
-				ent->client->ps.fd.forcePowerMax = 600;
-			}
-		}
-		else if (NPC_IsBoss(ent))
-		{
-			ent->NPC->stats.health = 1800;
-			ent->client->ps.fd.forcePowerMax = 1000;
-		}
-		else if (ent->s.NPC_class == CLASS_K2SO)
-		{
-			ent->NPC->stats.health = 1200;
-			ent->client->ps.fd.forcePowerMax = 300;
-		}
-		else if (NPC_IsFollowerGunner(ent))
-		{
-			ent->NPC->stats.health = 800;
-			ent->client->ps.fd.forcePowerMax = 500;
-		}
-		else if (NPC_IsBountyHunter(ent))
-		{
-			ent->NPC->stats.health = 950;
-			ent->client->ps.fd.forcePowerMax = 600;
-		}
-		else if (NPC_IsCommando(ent))
-		{
-			ent->NPC->stats.health = 850;
-			ent->client->ps.fd.forcePowerMax = 500;
-		}
-		else if (NPC_IsAdvancedGunner(ent))
-		{
-			ent->NPC->stats.health = 725;
-			ent->client->ps.fd.forcePowerMax = 600;
-		}
-		else if (NPC_IsStormtrooper(ent))
-		{
-			ent->NPC->stats.health = 600;
-			ent->client->ps.fd.forcePowerMax = 300;
-		}
-		else
-		{// TODO: Sub-types...
-			ent->NPC->stats.health = 500;
-			ent->client->ps.fd.forcePowerMax = 600;
-		}
-
-		// Why are there so many fucking health variables... ffs raven...
-		ent->s.health = ent->s.maxhealth = ent->health = ent->maxHealth = client->pers.maxHealth = client->ps.stats[STAT_MAX_HEALTH] = client->ps.stats[STAT_HEALTH] = ent->NPC->stats.health;
-		ent->client->ps.fd.forcePower = ent->client->ps.fd.forcePowerMax;
+	{// More health for enemies... Scale them to +/- 10% of player scale...
+		NPC_StandardizeModelStats(ent);
+		NPC_StandardizeModelScales(ent);
 	}
 #endif
 
