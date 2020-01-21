@@ -13213,18 +13213,12 @@ void PmoveSingle (pmove_t *pmove) {
 			angle[ROLL] = 0;
 			angle[PITCH] = 0;
 
-			if (bg_testvalue0.integer)
-			{
-				for (int i = 0; i < 3; i++)
-				{ // set the delta angle
-					int cmdAngle = ANGLE2SHORT(angle[i]);
-					//if (bg_testvalue1.integer) pm->cmd.angles[i] -= 180.0;
-					pm->ps->delta_angles[i] = (cmdAngle - pm->cmd.angles[i]);// +180.0;
-					//if (!bg_testvalue1.integer) pm->cmd.angles[i] -= 180.0;
-				}
+			for (int i = 0; i < 3; i++)
+			{ // set the delta angle
+				int cmdAngle = ANGLE2SHORT(angle[i]);
+				pm->ps->delta_angles[i] = (cmdAngle - pm->cmd.angles[i]);
 			}
 
-			//angle[YAW] -= 180.0;
 			VectorCopy(angle, pm->ps->viewangles);
 		}
 	}

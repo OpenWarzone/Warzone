@@ -11545,13 +11545,13 @@ void WP_MMOSaberScriptedMove(gentity_t *attacker, gentity_t *blocker)
 
 		if (blocker->s.eType == ET_NPC)
 		{
-			blocker->beStillTime = level.time + 5000;
+			blocker->beStillTime = level.time + 100;
 			blocker->client->pers.cmd.forwardmove = blocker->client->pers.cmd.rightmove = blocker->client->pers.cmd.upmove = 0;
 		}
 
 		if (attacker->s.eType == ET_NPC)
 		{
-			attacker->beStillTime = level.time + 5000;
+			attacker->beStillTime = level.time + 100;
 			attacker->client->pers.cmd.forwardmove = attacker->client->pers.cmd.rightmove = attacker->client->pers.cmd.upmove = 0;
 		}
 	}
@@ -11612,6 +11612,11 @@ void WP_MMOSaberUpdate(gentity_t *self)
 	if (self->client->ps.torsoAnim == PAIRED_ATTACKER01
 		|| self->client->ps.torsoAnim == PAIRED_DEFENDER01)
 	{// Always continue scripted paired animations...
+		self->client->pers.cmd.forwardmove = 0;
+		self->client->pers.cmd.rightmove = 0;
+		self->client->pers.cmd.upmove = 0;
+		VectorClear(self->client->ps.velocity);
+		self->beStillTime = level.time + 100;
 		return;
 	}
 

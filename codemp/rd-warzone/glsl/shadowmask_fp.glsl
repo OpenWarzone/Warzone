@@ -46,6 +46,8 @@ uniform sampler2D			u_ScreenDepthMap;
 uniform sampler2DShadow		u_ShadowMap;
 uniform sampler2DShadow		u_ShadowMap2;
 uniform sampler2DShadow		u_ShadowMap3;
+uniform sampler2DShadow		u_ShadowMap4;
+uniform sampler2DShadow		u_ShadowMap5;
 #endif //defined(USE_BINDLESS_TEXTURES)
 
 uniform mat4				u_ShadowMvp;

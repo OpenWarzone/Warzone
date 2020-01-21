@@ -97,10 +97,10 @@ vec3 noised( in vec2 x )
 	vec2 p = floor(x);
     vec2 f = fract(x);
     vec2 u = f*f*(3.0-2.0*f);
-	float a = fnoise((p+vec2(0.5,0.5))/256.0).x;
-	float b = fnoise((p+vec2(1.5,0.5))/256.0).x;
-	float c = fnoise((p+vec2(0.5,1.5))/256.0).x;
-	float d = fnoise((p+vec2(1.5,1.5))/256.0).x;
+	float a = fnoise((p+vec2(0.5,0.5))/256.0);
+	float b = fnoise((p+vec2(1.5,0.5))/256.0);
+	float c = fnoise((p+vec2(0.5,1.5))/256.0);
+	float d = fnoise((p+vec2(1.5,1.5))/256.0);
 	return vec3(a+(b-a)*u.x+(c-a)*u.y+(a-b-c+d)*u.x*u.y,
 				6.0*f*(1.0-f)*(vec2(b-a,c-a)+(a-b-c+d)*u.yx)) * 0.5 + 0.333;
 #endif

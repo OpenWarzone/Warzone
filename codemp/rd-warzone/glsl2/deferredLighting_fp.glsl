@@ -1,4 +1,6 @@
-﻿#define __PROCEDURALS_IN_DEFERRED_SHADER__
+﻿//#extension GL_ARB_explicit_uniform_location : require
+
+#define __PROCEDURALS_IN_DEFERRED_SHADER__
 //#define __USE_MAP_EMMISSIVE_BLOCK__
 
 #ifndef __LQ_MODE__
@@ -110,13 +112,15 @@ struct Lights_t
 	vec4										u_lightColors;
 };
 
-layout (std430, binding=2) buffer LightBlock
+//layout(std430, binding=2) buffer LightBlock
+layout(std140) buffer LightBlock // hopefully this will work, and be compatible with older shit hardware
 { 
 	Lights_t lights[];
 };
 
 #ifdef __USE_MAP_EMMISSIVE_BLOCK__
-layout (std430, binding=3) buffer EmissiveLightBlock
+//layout(std430, binding=3) buffer EmissiveLightBlock
+layout(std140) buffer EmissiveLightBlock // hopefully this will work, and be compatible with older shit hardware
 { 
 	Lights_t emissiveLights[];
 };

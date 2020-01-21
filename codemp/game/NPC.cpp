@@ -4394,6 +4394,7 @@ void NPC_Think ( gentity_t *self )//, int msec )
 				aiEnt->client->pers.cmd.forwardmove = 0;
 				aiEnt->client->pers.cmd.rightmove = 0;
 				aiEnt->client->pers.cmd.upmove = 0;
+				VectorClear(aiEnt->client->ps.velocity);
 				self->beStillTime = level.time + 100;
 				NPC_GenericFrameCode(self);
 				return;
