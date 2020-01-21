@@ -383,6 +383,7 @@ cvar_t  *r_testvalue0;
 cvar_t  *r_testvalue1;
 cvar_t  *r_testvalue2;
 cvar_t  *r_testvalue3;
+cvar_t	*r_bindlessTextures;
 cvar_t  *r_esharpening;
 //cvar_t  *r_esharpening2;
 cvar_t  *r_multipost;
@@ -1712,6 +1713,7 @@ void R_Register( void )
 	r_testvalue1 = ri->Cvar_Get( "r_testvalue1", "0.005", CVAR_ARCHIVE );
 	r_testvalue2 = ri->Cvar_Get( "r_testvalue2", "4.0", CVAR_ARCHIVE );
 	r_testvalue3 = ri->Cvar_Get( "r_testvalue3", "4.0", CVAR_ARCHIVE );
+	r_bindlessTextures = ri->Cvar_Get("r_bindlessTextures", "1", CVAR_ARCHIVE);
 	r_esharpening = ri->Cvar_Get( "r_esharpening", "true", CVAR_ARCHIVE );
 	//r_esharpening2 = ri->Cvar_Get( "r_esharpening2", "false", CVAR_ARCHIVE );
 	r_fxaa = ri->Cvar_Get( "r_fxaa", "false", CVAR_ARCHIVE );

@@ -2502,9 +2502,9 @@ qboolean ClientUserinfoChanged( int clientNum ) {
 #ifdef __STANDARDIZED_MODEL_SCALING__
 	vec3_t		playerMaxs = { 15, 15, DEFAULT_MAXS_2 };
 
-	if (StringContainsWord(model, "padawan"))
+	if (StringContainsWord(model, "padawan") || StringContainsWord(model, "roxas"))
 	{// Padawan/child model is scale 0.88.
-		ent->modelScale[0] = ent->modelScale[1] = ent->modelScale[2] = 0.85f;
+		ent->modelScale[0] = ent->modelScale[1] = ent->modelScale[2] = 0.88f;
 		client->ps.iModelScale = ent->modelScale[0] * 88;
 		ent->s.iModelScale = ent->modelScale[0] * 88;
 

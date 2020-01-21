@@ -947,13 +947,13 @@ void NPC_StandardizeModelScales(gentity_t *ent)
 #ifdef __STANDARDIZED_MODEL_SCALING__
 	float adjustedScale = ent->client->ps.iModelScale;
 
-	if (ent->client->ps.weapon == WP_SABER || NPC_IsJedi(ent))
+	if (ent->client->NPC_class == CLASS_PADAWAN || StringContainsWord(ent->NPC_type, "padawan") || StringContainsWord(ent->NPC_type, "roxas"))
+	{
+		adjustedScale = 88;
+	}
+	else if (ent->client->ps.weapon == WP_SABER || NPC_IsJedi(ent))
 	{// Bosses... TODO: Sub-types...
-		if (ent->client->NPC_class == CLASS_PADAWAN)
-		{
-			adjustedScale = 88;
-		}
-		else if (NPC_IsBoss(ent))
+		if (NPC_IsBoss(ent))
 		{
 			adjustedScale = 112;
 		}
@@ -1009,7 +1009,7 @@ void NPC_StandardizeModelStats(gentity_t *ent)
 {// Standardize NPC stats, based on classes...
 	if (ent->client->ps.weapon == WP_SABER || NPC_IsJedi(ent))
 	{// Bosses... TODO: Sub-types...
-		if (ent->client->NPC_class == CLASS_PADAWAN)
+		if (ent->client->NPC_class == CLASS_PADAWAN || StringContainsWord(ent->NPC_type, "padawan") || StringContainsWord(ent->NPC_type, "roxas"))
 		{// Padawans get just over half health/force... The extra .5 is to compensate for falling, etc following master around map...
 			ent->NPC->stats.health = 800;
 			ent->client->ps.fd.forcePowerMax = 500;

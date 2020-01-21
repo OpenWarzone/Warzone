@@ -484,38 +484,46 @@ void GLimp_InitExtraExtensions()
 	// GL_ARB_buffer_storage
 	extension = "GL_ARB_bindless_texture";
 	glRefConfig.bindlessTextures = qfalse;
-	if (GLimp_HaveExtension(extension))
+
+	if (r_bindlessTextures->integer)
 	{
-		qboolean loaded = qtrue;
+		if (GLimp_HaveExtension(extension))
+		{
+			qboolean loaded = qtrue;
 
-		loaded = (qboolean)(loaded && GetGLFunction(qglGetTextureHandle, "glGetTextureHandleARB", qfalse));
-		loaded = (qboolean)(loaded && GetGLFunction(qglGetTextureSamplerHandle, "glGetTextureSamplerHandleARB", qfalse));
+			loaded = (qboolean)(loaded && GetGLFunction(qglGetTextureHandle, "glGetTextureHandleARB", qfalse));
+			loaded = (qboolean)(loaded && GetGLFunction(qglGetTextureSamplerHandle, "glGetTextureSamplerHandleARB", qfalse));
 
-		loaded = (qboolean)(loaded && GetGLFunction(qglMakeTextureHandleResident, "glMakeTextureHandleResidentARB", qfalse));
-		loaded = (qboolean)(loaded && GetGLFunction(qglMakeTextureHandleNonResident, "glMakeTextureHandleNonResidentARB", qfalse));
+			loaded = (qboolean)(loaded && GetGLFunction(qglMakeTextureHandleResident, "glMakeTextureHandleResidentARB", qfalse));
+			loaded = (qboolean)(loaded && GetGLFunction(qglMakeTextureHandleNonResident, "glMakeTextureHandleNonResidentARB", qfalse));
 
-		loaded = (qboolean)(loaded && GetGLFunction(qglGetImageHandle, "glGetImageHandleARB", qfalse));
+			loaded = (qboolean)(loaded && GetGLFunction(qglGetImageHandle, "glGetImageHandleARB", qfalse));
 
-		loaded = (qboolean)(loaded && GetGLFunction(qglMakeImageHandleResident, "glMakeImageHandleResidentARB", qfalse));
-		loaded = (qboolean)(loaded && GetGLFunction(qglMakeImageHandleNonResident, "glMakeImageHandleNonResidentARB", qfalse));
+			loaded = (qboolean)(loaded && GetGLFunction(qglMakeImageHandleResident, "glMakeImageHandleResidentARB", qfalse));
+			loaded = (qboolean)(loaded && GetGLFunction(qglMakeImageHandleNonResident, "glMakeImageHandleNonResidentARB", qfalse));
 
-		loaded = (qboolean)(loaded && GetGLFunction(qglUniformHandleui64, "glUniformHandleui64ARB", qfalse));
-		loaded = (qboolean)(loaded && GetGLFunction(qglUniformHandleui64v, "glUniformHandleui64vARB", qfalse));
-		loaded = (qboolean)(loaded && GetGLFunction(qglProgramUniformHandleui64, "glProgramUniformHandleui64ARB", qfalse));
-		loaded = (qboolean)(loaded && GetGLFunction(qglProgramUniformHandleui64v, "glProgramUniformHandleui64vARB", qfalse));
+			loaded = (qboolean)(loaded && GetGLFunction(qglUniformHandleui64, "glUniformHandleui64ARB", qfalse));
+			loaded = (qboolean)(loaded && GetGLFunction(qglUniformHandleui64v, "glUniformHandleui64vARB", qfalse));
+			loaded = (qboolean)(loaded && GetGLFunction(qglProgramUniformHandleui64, "glProgramUniformHandleui64ARB", qfalse));
+			loaded = (qboolean)(loaded && GetGLFunction(qglProgramUniformHandleui64v, "glProgramUniformHandleui64vARB", qfalse));
 
-		loaded = (qboolean)(loaded && GetGLFunction(qglIsTextureHandleResident, "glIsTextureHandleResidentARB", qfalse));
-		loaded = (qboolean)(loaded && GetGLFunction(qglIsImageHandleResident, "glIsImageHandleResidentARB", qfalse));
+			loaded = (qboolean)(loaded && GetGLFunction(qglIsTextureHandleResident, "glIsTextureHandleResidentARB", qfalse));
+			loaded = (qboolean)(loaded && GetGLFunction(qglIsImageHandleResident, "glIsImageHandleResidentARB", qfalse));
 
-		loaded = (qboolean)(loaded && GetGLFunction(qglVertexAttribL1ui64, "glVertexAttribL1ui64ARB", qfalse));
-		loaded = (qboolean)(loaded && GetGLFunction(qglVertexAttribL1ui64v, "glVertexAttribL1ui64vARB", qfalse));
-		loaded = (qboolean)(loaded && GetGLFunction(qglGetVertexAttribLui64v, "glGetVertexAttribLui64vARB", qfalse));
+			loaded = (qboolean)(loaded && GetGLFunction(qglVertexAttribL1ui64, "glVertexAttribL1ui64ARB", qfalse));
+			loaded = (qboolean)(loaded && GetGLFunction(qglVertexAttribL1ui64v, "glVertexAttribL1ui64vARB", qfalse));
+			loaded = (qboolean)(loaded && GetGLFunction(qglGetVertexAttribLui64v, "glGetVertexAttribLui64vARB", qfalse));
 
-		glRefConfig.bindlessTextures = loaded;
-		ri->Printf(PRINT_ALL, result[loaded], extension);
+			glRefConfig.bindlessTextures = loaded;
+			ri->Printf(PRINT_ALL, result[loaded], extension);
+		}
+		else
+		{
+			ri->Printf(PRINT_ALL, result[2], extension);
+		}
 	}
 	else
-	{
+	{// Bindless textures disabled by cvar...
 		ri->Printf(PRINT_ALL, result[2], extension);
 	}
 

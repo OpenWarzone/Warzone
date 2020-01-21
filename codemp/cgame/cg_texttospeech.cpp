@@ -226,7 +226,7 @@ qboolean CG_IsPadawan(centity_t *ent)
 
 	if (ci->modelName && ci->modelName[0])
 	{
-		if (StringContainsWord(ci->modelName, "padawan"))
+		if (StringContainsWord(ci->modelName, "padawan") || StringContainsWord(ci->modelName, "roxas"))
 			return qtrue;
 
 		if (StringContainsWord(ci->modelName, "youngling"))
