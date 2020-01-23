@@ -1,8 +1,9 @@
 ﻿#define _PROCEDURALS_IN_DEFERRED_SHADER_
 //#define _USE_MAP_EMMISSIVE_BLOCK_
 
+#define _AMBIENT_OCCLUSION_
+
 #ifndef LQ_MODE
-	#define _AMBIENT_OCCLUSION_
 	#define _ENHANCED_AO_
 	#define _SCREEN_SPACE_REFLECTIONS_
 	#define _CLOUD_SHADOWS_
@@ -1538,6 +1539,27 @@ void main(void)
 		shadowValue = clamp((clamp(shadowValue - sm_cont_1, 0.0, 1.0)) * sm_cont_2, 0.0, 1.0);
 		finalShadow = clamp(shadowValue + SHADOW_MINBRIGHT, SHADOW_MINBRIGHT, SHADOW_MAXBRIGHT);
 	}
+#elif defined(LQ_MODE)
+	if (SHADOWS_ENABLED > 0.0 && NIGHT_SCALE < 1.0)
+	{
+		float selfShadow = max(dot(flatNorm, -sunDir.rgb), 0.0);
+
+		if (position.a - 1.0 == MATERIAL_GREENLEAVES)
+		{
+			selfShadow = clamp(selfShadow + 0.5, 0.0, 1.0);
+		}
+		if (position.a - 1.0 == MATERIAL_PROCEDURALFOLIAGE)
+		{
+			selfShadow = clamp(selfShadow + 0.5, 0.0, 1.0);
+		}
+
+		selfShadow = pow(selfShadow, 1.5);
+
+#define sm_cont_1 ( 64.0 / 255.0)
+#define sm_cont_2 (255.0 / 200.0)
+		selfShadow = clamp((clamp(selfShadow - sm_cont_1, 0.0, 1.0)) * sm_cont_2, 0.0, 1.0);
+		finalShadow = clamp(selfShadow + SHADOW_MINBRIGHT, SHADOW_MINBRIGHT, SHADOW_MAXBRIGHT);
+	}
 #endif //defined(USE_SHADOWMAP) && !defined(LQ_MODE)
 
 	vec3 specularColor = vec3(0.0);
@@ -1882,13 +1904,17 @@ void main(void)
 #endif //defined(_SCREEN_SPACE_REFLECTIONS_)
 
 #if defined(_AMBIENT_OCCLUSION_)
-	if (AO_TYPE == 1.0)
-	{// Fast AO enabled...
-		float ao = calculateAO(sunDir, N * 10000.0, texCoords);
-		float selfShadow = clamp(pow(clamp(dot(-sunDir.rgb, bump.rgb), 0.0, 1.0), 8.0), 0.0, 1.0);
-		ao = clamp(((ao + selfShadow) / 2.0) * AO_MULTBRIGHT + AO_MINBRIGHT, AO_MINBRIGHT, 1.0);
-		outColor.rgb *= ao;
-	}
+	#if defined(_ENHANCED_AO_)
+		if (AO_TYPE == 1.0)
+	#else //!defined(_ENHANCED_AO_)
+		if (AO_TYPE >= 1.0)
+	#endif //defined(_ENHANCED_AO_)
+		{// Fast AO enabled...
+			float ao = calculateAO(sunDir, N * 10000.0, texCoords);
+			float selfShadow = clamp(pow(clamp(dot(-sunDir.rgb, bump.rgb), 0.0, 1.0), 8.0), 0.0, 1.0);
+			ao = clamp(((ao + selfShadow) / 2.0) * AO_MULTBRIGHT + AO_MINBRIGHT, AO_MINBRIGHT, 1.0);
+			outColor.rgb *= ao;
+		}
 #endif //defined(_AMBIENT_OCCLUSION_)
 
 #if defined(_ENHANCED_AO_)

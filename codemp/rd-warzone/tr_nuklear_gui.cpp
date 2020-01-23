@@ -2563,7 +2563,7 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 			if (ctx->last_widget_state & NK_WIDGET_STATE_HOVER && !backEnd.ui_MouseCursor)
 			{// Hoverred...
 				static std::string tooltip;
-				GUI_ItemTooltipForInventorySlot(i, tooltip);
+				GUI_ItemTooltipForInventorySlot(quickBarSelections[i].item->invSlot, tooltip);
 				uq_tooltip(ctx, tooltip, media, quickBarSelections[i].item->icon);
 			}
 		}
@@ -2575,7 +2575,7 @@ GUI_QuickBar(struct nk_context *ctx, struct media *media)
 			if (ctx->last_widget_state & NK_WIDGET_STATE_HOVER && !backEnd.ui_MouseCursor)
 			{// Hoverred...
 				static std::string tooltip;
-				GUI_ItemTooltipForInventorySlot(i, tooltip);
+				GUI_ItemTooltipForInventorySlot(quickBarSelections[i].item->invSlot, tooltip);
 				uq_tooltip(ctx, tooltip, media, quickBarSelections[i].item->icon);
 			}
 		}
