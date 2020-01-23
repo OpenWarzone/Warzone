@@ -68,12 +68,6 @@ varying vec2					var_TexCoords;
 #define zfar					u_ViewInfo.g									//camera clipping end
 #define zfar2					u_ViewInfo.a									//camera clipping end
 
-//#define __ENCODE_NORMALS_RECONSTRUCT_Z__
-#define __ENCODE_NORMALS_STEREOGRAPHIC_PROJECTION__
-//#define __ENCODE_NORMALS_CRY_ENGINE__
-//#define __ENCODE_NORMALS_EQUAL_AREA_PROJECTION__
-
-#ifdef __ENCODE_NORMALS_STEREOGRAPHIC_PROJECTION__
 vec2 EncodeNormal(vec3 n)
 {
 	float scale = 1.7777;
@@ -92,48 +86,6 @@ vec3 DecodeNormal(vec2 enc)
 	float g = 2.0 / dot(nn.xyz, nn.xyz);
 	return vec3(g * nn.xy, g - 1.0);
 }
-#elif defined(__ENCODE_NORMALS_CRY_ENGINE__)
-vec3 DecodeNormal(in vec2 N)
-{
-	vec2 encoded = N * 4.0 - 2.0;
-	float f = dot(encoded, encoded);
-	float g = sqrt(1.0 - f * 0.25);
-	return vec3(encoded * g, 1.0 - f * 0.5);
-}
-vec2 EncodeNormal(in vec3 N)
-{
-	float f = sqrt(8.0 * N.z + 8.0);
-	return N.xy / f + 0.5;
-}
-#elif defined(__ENCODE_NORMALS_EQUAL_AREA_PROJECTION__)
-vec2 EncodeNormal(vec3 n)
-{
-	float f = sqrt(8.0 * n.z + 8.0);
-	return n.xy / f + 0.5;
-}
-vec3 DecodeNormal(vec2 enc)
-{
-	vec2 fenc = enc * 4.0 - 2.0;
-	float f = dot(fenc, fenc);
-	float g = sqrt(1.0 - f / 4.0);
-	vec3 n;
-	n.xy = fenc*g;
-	n.z = 1.0 - f / 2.0;
-	return n;
-}
-#else //__ENCODE_NORMALS_RECONSTRUCT_Z__
-vec3 DecodeNormal(in vec2 N)
-{
-	vec3 norm;
-	norm.xy = N * 2.0 - 1.0;
-	norm.z = sqrt(1.0 - dot(norm.xy, norm.xy));
-	return norm;
-}
-vec2 EncodeNormal(vec3 n)
-{
-	return vec2(n.xy * 0.5 + 0.5);
-}
-#endif //__ENCODE_NORMALS_RECONSTRUCT_Z__
 
 float getDepth(vec2 coord) {
     return texture(u_ScreenDepthMap, coord).r;
@@ -533,13 +485,13 @@ float ReliefMapping(vec2 dp, vec2 ds, float origDepth, float materialMultiplier)
 {
 	//return clamp(GetDisplacementAtCoord(dp + ds), 0.0, 1.0);
 
-#ifdef __HQ_PARALLAX__
+#ifdef _HQ_PARALLAX_
 	int linear_steps = 10 * int(materialMultiplier);
 	int binary_steps = 5 * int(materialMultiplier);
-#else //!__HQ_PARALLAX__
+#else //!_HQ_PARALLAX_
 	const int linear_steps = 10;// 4;// 5;// 10;
 	const int binary_steps = 5;// 2;// 5;
-#endif //__HQ_PARALLAX__
+#endif //_HQ_PARALLAX_
 	float size = 1.0 / linear_steps;
 	float depth = 1.0;
 	float best_depth = 1.0;

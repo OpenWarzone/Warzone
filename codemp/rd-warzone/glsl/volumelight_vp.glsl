@@ -1,6 +1,6 @@
-#define __USING_SHADOW_MAP__
+#define _USING_SHADOW_MAP_
 
-#ifndef __USING_SHADOW_MAP__
+#ifndef _USING_SHADOW_MAP_
 
 attribute vec3				attr_Position;
 attribute vec2				attr_TexCoord0;
@@ -15,7 +15,7 @@ void main()
 	var_TexCoords = attr_TexCoord0.st;
 }
 
-#else //__USING_SHADOW_MAP__
+#else //_USING_SHADOW_MAP_
 
 attribute vec4				attr_Position;
 attribute vec2				attr_TexCoord0;
@@ -40,4 +40,4 @@ void main()
 	var_ViewDir2 = u_ViewForward + u_ViewLeft * 0.0 + u_ViewUp * 0.0;
 }
 
-#endif //__USING_SHADOW_MAP__
+#endif //_USING_SHADOW_MAP_

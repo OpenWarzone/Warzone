@@ -1982,7 +1982,7 @@ static void R_AddEntitySurface (int entityNum)
 	{
 		if ((tr.viewParms.flags & VPF_SHADOWPASS) || backEnd.depthFill)
 		{// Don't draw grass and plants on shadow pass for speed...
-			if (!r_foliageShadows->integer || r_lowVram->integer)
+			if (!r_foliageShadows->integer)
 			{
 				switch (ent->e.reType) {
 				case RT_GRASS:

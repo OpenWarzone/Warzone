@@ -13,9 +13,9 @@ varying vec2			var_TexCoords;
 out vec4 out_Glow;
 out vec4 out_Position;
 out vec4 out_Normal;
-#ifdef __USE_REAL_NORMALMAPS__
+#ifdef USE_REAL_NORMALMAPS
 out vec4 out_NormalDetail;
-#endif //__USE_REAL_NORMALMAPS__
+#endif //USE_REAL_NORMALMAPS
 
 
 #define m_Normal		var_Normal
@@ -29,15 +29,15 @@ out vec4 out_NormalDetail;
 #define iTimeDelta 0.5
 
 
-//#define __TIE_FIGHTERS__
-//#define __HYPERSPACE__
-//#define __HYPERSPACE2__
+//#define _TIE_FIGHTERS_
+//#define _HYPERSPACE_
+//#define _HYPERSPACE2_
 
-#define __GREEN_PLANET__
-//#define __BESPIN__
+#define _GREEN_PLANET_
+//#define _BESPIN_
 
 
-#ifdef __GREEN_PLANET__
+#ifdef _GREEN_PLANET_
 //Sirenian Dawn by nimitz (twitter: @stormoid)
 
 #define ADD_WATER
@@ -114,7 +114,12 @@ float terrain( in vec2 p)
     float scl = 3.95;
     float zscl = -.4;
     float zz = 5.;
+
+#ifdef LQ_MODE
+	for( int i=0; i<2; i++ )
+#else //!LQ_MODE
     for( int i=0; i<5; i++ )
+#endif //LQ_MODE
     {
         vec3 n = noised(p);
         d += pow(abs(n.yz),vec2(zz));
@@ -140,6 +145,9 @@ float map(vec3 p)
 	this allows for better performance with virtually no loss in visual quality. */
 float march(in vec3 ro, in vec3 rd, out float itrc)
 {
+#ifdef LQ_MODE
+	float t = 0; // Just draw the corona, forget the terrain...
+#else //!LQ_MODE
     float t = 0.;
     float d = map(rd*t+ro);
     float precis = 0.0001;
@@ -152,6 +160,7 @@ float march(in vec3 ro, in vec3 rd, out float itrc)
         d = map(rd*t+ro)*0.7;
         itrc++;
     }
+#endif //LQ_MODE
 
     return t;
 }
@@ -421,9 +430,9 @@ void getBackground( out vec4 fragColor, in vec2 fragCoord )
     
 	fragColor = vec4(col, 1.0);
 }
-#endif //__GREEN_PLANET__
+#endif //_GREEN_PLANET_
 
-#ifdef __TIE_FIGHTERS__
+#ifdef _TIE_FIGHTERS_
 //Fancy ties by nimitz (twitter: @stormoid)
 
 /*
@@ -869,9 +878,9 @@ void getBackground( out vec4 fragColor, in vec2 fragCoord )
 	
 	fragColor = vec4( col, 1.0 );
 }
-#endif //__TIE_FIGHTERS__
+#endif //_TIE_FIGHTERS_
 
-#ifdef __HYPERSPACE__
+#ifdef _HYPERSPACE_
 // 'Warp Speed' by David Hoskins 2013.
 // I tried to find gaps and variation in the star cloud for a feeling of structure.
 void getBackground( out vec4 fragColor, in vec2 fragCoord )
@@ -899,9 +908,9 @@ void getBackground( out vec4 fragColor, in vec2 fragCoord )
 	}
 	fragColor = vec4(col, 1.0);
 }
-#endif //__HYPERSPACE__
+#endif //_HYPERSPACE_
 
-#ifdef __HYPERSPACE2__
+#ifdef _HYPERSPACE2_
 void getBackground( out vec4 fragColor, in vec2 fragCoord ) 
 {
 	float time = (iTime+2.4) * 16.0;
@@ -926,9 +935,9 @@ void getBackground( out vec4 fragColor, in vec2 fragCoord )
 	
     fragColor = vec4(col, 1.0);
 }
-#endif //__HYPERSPACE2__
+#endif //_HYPERSPACE2_
 
-#ifdef __BESPIN__
+#ifdef _BESPIN_
 // Flight over Bespin - yamahabob
 // Borrowed most of this code from inigo quilez et al
 // License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
@@ -1588,7 +1597,7 @@ void getBackground( out vec4 fragColor, in vec2 fragCoord )
     col = shipRender( ro, rd, col );
     fragColor = vec4(col, 1.);
 }
-#endif //__BESPIN__
+#endif //_BESPIN_
 
 void main()
 {
@@ -1596,7 +1605,7 @@ void main()
 	out_Glow = vec4(0.0);
 	out_Position = vec4(0.0);
 	out_Normal = vec4(0.0);
-#ifdef __USE_REAL_NORMALMAPS__
+#ifdef USE_REAL_NORMALMAPS
 	out_NormalDetail = vec4(0.0);
-#endif //__USE_REAL_NORMALMAPS__
+#endif //USE_REAL_NORMALMAPS
 }

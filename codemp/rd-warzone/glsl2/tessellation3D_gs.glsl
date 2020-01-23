@@ -8,24 +8,24 @@ uniform vec4			u_TesselationInfo;
 #define TessLevelInner	u_TesselationInfo.g
 #define TessLevelOuter	u_TesselationInfo.b
 
-in precise vec3 WorldPos_GS_in[];
-in precise vec2 TexCoord_GS_in[];
-in precise vec3 Normal_GS_in[];
-in precise vec3 ViewDir_GS_in[];
-in precise vec4 Color_GS_in[];
-in precise vec4 PrimaryLightDir_GS_in[];
-in precise vec2 TexCoord2_GS_in[];
-in precise vec3 Blending_GS_in[];
+in vec3 WorldPos_GS_in[];
+in vec2 TexCoord_GS_in[];
+in vec3 Normal_GS_in[];
+in vec3 ViewDir_GS_in[];
+in vec4 Color_GS_in[];
+in vec4 PrimaryLightDir_GS_in[];
+in vec2 TexCoord2_GS_in[];
+in vec3 Blending_GS_in[];
 in float Slope_GS_in[];
 
-out precise vec3 WorldPos_FS_in;
-out precise vec2 TexCoord_FS_in;
-out precise vec3 Normal_FS_in;
-out precise vec3 ViewDir_FS_in;
-out precise vec4 Color_FS_in;
-out precise vec4 PrimaryLightDir_FS_in;
-out precise vec2 TexCoord2_FS_in;
-out precise vec3 Blending_FS_in;
+out vec3 WorldPos_FS_in;
+out vec2 TexCoord_FS_in;
+out vec3 Normal_FS_in;
+out vec3 ViewDir_FS_in;
+out vec4 Color_FS_in;
+out vec4 PrimaryLightDir_FS_in;
+out vec2 TexCoord2_FS_in;
+out vec3 Blending_FS_in;
 /*flat*/ out float Slope_FS_in;
  
 void main()

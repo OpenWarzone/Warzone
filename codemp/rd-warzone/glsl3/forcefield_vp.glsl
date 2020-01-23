@@ -110,9 +110,9 @@ uniform vec4						u_Local20; // bird origin x,y,z, 0.0
 #define GRASS_DISTANCE				u_Local16.g
 #define GRASS_MAX_SLOPE				u_Local16.b
 
-#ifdef __CHEAP_VERTS__
+#ifdef CHEAP_VERTS
 uniform int							u_isWorld;
-#endif //__CHEAP_VERTS__
+#endif //CHEAP_VERTS
 
 uniform float						u_Time;
 

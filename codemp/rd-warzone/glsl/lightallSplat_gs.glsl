@@ -22,16 +22,16 @@ in vec2 TexCoord2_CS_in[];
 in vec3 Blending_CS_in[];
 in float Slope_CS_in[];
 
-out precise vec3 WorldPos_FS_in;
-out precise vec2 TexCoord_FS_in;
-out precise vec3 Normal_FS_in;
-out precise vec3 ViewDir_FS_in;
-out precise vec4 Tangent_FS_in;
-out precise vec4 Bitangent_FS_in;
-out precise vec4 Color_FS_in;
-out precise vec4 PrimaryLightDir_FS_in;
-out precise vec2 TexCoord2_FS_in;
-out precise vec3 Blending_FS_in;
+out vec3 WorldPos_FS_in;
+out vec2 TexCoord_FS_in;
+out vec3 Normal_FS_in;
+out vec3 ViewDir_FS_in;
+out vec4 Tangent_FS_in;
+out vec4 Bitangent_FS_in;
+out vec4 Color_FS_in;
+out vec4 PrimaryLightDir_FS_in;
+out vec2 TexCoord2_FS_in;
+out vec3 Blending_FS_in;
 flat out float Slope_FS_in;
 
 

@@ -9,11 +9,11 @@ attribute vec4 attr_BoneIndexes;
 attribute vec4 attr_BoneWeights;
 #endif
 
-#ifdef __VBO_PACK_COLOR__
+#ifdef VBO_PACK_COLOR
 attribute float attr_Color;
-#else //!__VBO_PACK_COLOR__
+#else //!VBO_PACK_COLOR
 attribute vec4 attr_Color;
-#endif //__VBO_PACK_COLOR__
+#endif //VBO_PACK_COLOR
 
 attribute vec2 attr_TexCoord0;
 
@@ -21,9 +21,9 @@ attribute vec2 attr_TexCoord0;
 attribute vec2 attr_TexCoord1;
 #endif
 
-#ifdef __CHEAP_VERTS__
+#ifdef CHEAP_VERTS
 uniform int					u_isWorld;
-#endif //__CHEAP_VERTS__
+#endif //CHEAP_VERTS
 
 uniform vec2	u_Dimensions;
 
@@ -194,23 +194,23 @@ vec4 CalcColor(vec3 position, vec3 normal)
 {
 	vec4 color;
 
-#ifdef __CHEAP_VERTS__
+#ifdef CHEAP_VERTS
 	if (u_isWorld > 0)
 	{
 		color = u_VertColor + u_BaseColor;
 	}
 	else
-#endif //__CHEAP_VERTS__
+#endif //CHEAP_VERTS
 	{
-//#ifdef __CHEAP_VERTS__
+//#ifdef CHEAP_VERTS
 //		color = u_VertColor + u_BaseColor;
-//#else //!__CHEAP_VERTS__
-	#ifdef __VBO_PACK_COLOR__
+//#else //!CHEAP_VERTS
+	#ifdef VBO_PACK_COLOR
 		color = u_VertColor * DecodeFloatRGBA(attr_Color) + u_BaseColor;
-	#else //!__VBO_PACK_COLOR__
+	#else //!VBO_PACK_COLOR
 		color = u_VertColor * attr_Color + u_BaseColor;
-	#endif //__VBO_PACK_COLOR__
-//#endif //__CHEAP_VERTS__
+	#endif //VBO_PACK_COLOR
+//#endif //CHEAP_VERTS
 	}
 	
 	if (u_ColorGen == CGEN_LIGHTING_DIFFUSE)
@@ -312,11 +312,11 @@ void main()
 #if defined(USE_RGBAGEN)
 	var_Color = CalcColor(position, normal);
 #else
-	#ifdef __VBO_PACK_COLOR__
+	#ifdef VBO_PACK_COLOR
 		var_Color = u_VertColor * DecodeFloatRGBA(attr_Color) + u_BaseColor;
-	#else //!__VBO_PACK_COLOR__
+	#else //!VBO_PACK_COLOR
 		var_Color = u_VertColor * attr_Color + u_BaseColor;
-	#endif //__VBO_PACK_COLOR__
+	#endif //VBO_PACK_COLOR
 #endif
 
 #if defined(USE_FOG)

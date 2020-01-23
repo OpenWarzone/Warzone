@@ -1,4 +1,4 @@
-//#define __EXPERIMETNAL_CHARACTER_EDITOR__
+//#define _EXPERIMETNAL_CHARACTER_EDITOR_
 
 invariant gl_Position;
 
@@ -6,11 +6,11 @@ attribute vec2 attr_TexCoord0;
 
 attribute vec2 attr_TexCoord1;
 
-#ifdef __VBO_PACK_COLOR__
+#ifdef VBO_PACK_COLOR
 attribute float attr_Color;
-#else //!__VBO_PACK_COLOR__
+#else //!VBO_PACK_COLOR
 attribute vec4 attr_Color;
-#endif //__VBO_PACK_COLOR__
+#endif //VBO_PACK_COLOR
 
 attribute vec3 attr_Position;
 attribute vec3 attr_Normal;
@@ -129,9 +129,9 @@ uniform vec4						u_Local20; // bird origin x,y,z, 0.0
 #define GRASS_DISTANCE				u_Local16.g
 #define GRASS_MAX_SLOPE				u_Local16.b
 
-#ifdef __CHEAP_VERTS__
+#ifdef CHEAP_VERTS
 uniform int							u_isWorld;
-#endif //__CHEAP_VERTS__
+#endif //CHEAP_VERTS
 
 uniform vec4						u_Mins;
 uniform vec4						u_Maxs;
@@ -176,9 +176,9 @@ uniform vec4						u_VertColor;
 
 uniform float						u_VertexLerp;
 uniform mat4						u_BoneMatrices[MAX_GLM_BONEREFS];
-#ifdef __EXPERIMETNAL_CHARACTER_EDITOR__
+#ifdef _EXPERIMETNAL_CHARACTER_EDITOR_
 uniform float						u_BoneScales[20];
-#endif //__EXPERIMETNAL_CHARACTER_EDITOR__
+#endif //_EXPERIMETNAL_CHARACTER_EDITOR_
 
 uniform vec4						u_PrimaryLightOrigin;
 uniform vec3						u_PrimaryLightColor;
@@ -435,23 +435,23 @@ vec4 CalcColor(vec3 position, vec3 normal)
 {
 	vec4 color;
 
-#ifdef __CHEAP_VERTS__
+#ifdef CHEAP_VERTS
 	if (u_isWorld > 0)
 	{
 		color = u_VertColor + u_BaseColor;
 	}
 	else
-#endif //__CHEAP_VERTS__
+#endif //CHEAP_VERTS
 	{
-//#ifdef __CHEAP_VERTS__
+//#ifdef CHEAP_VERTS
 //		color = u_VertColor + u_BaseColor;
-//#else //!__CHEAP_VERTS__
-	#ifdef __VBO_PACK_COLOR__
+//#else //!CHEAP_VERTS
+	#ifdef VBO_PACK_COLOR
 		color = u_VertColor * DecodeFloatRGBA(attr_Color) + u_BaseColor;
-	#else //!__VBO_PACK_COLOR__
+	#else //!VBO_PACK_COLOR
 		color = u_VertColor * attr_Color + u_BaseColor;
-	#endif //__VBO_PACK_COLOR__
-//#endif //__CHEAP_VERTS__
+	#endif //VBO_PACK_COLOR
+//#endif //CHEAP_VERTS
 	}
 	
 	if (USE_RGBA > 0.0)
@@ -564,14 +564,14 @@ void main()
 			}
 			else
 			{
-#ifdef __EXPERIMETNAL_CHARACTER_EDITOR__
+#ifdef _EXPERIMETNAL_CHARACTER_EDITOR_
 				vec4 boneScale = vec4(u_BoneScales[boneIndex], u_BoneScales[boneIndex], u_BoneScales[boneIndex], 1.0);
 				position4 += (u_BoneMatrices[boneIndex] * originalPosition) * attr_BoneWeights[i] * boneScale; // Could do X,Y,Z model scaling here...
 				normal4 += (u_BoneMatrices[boneIndex] * originalNormal) * attr_BoneWeights[i] * boneScale; // Could do X,Y,Z model scaling here...
-#else //!__EXPERIMETNAL_CHARACTER_EDITOR__
+#else //!_EXPERIMETNAL_CHARACTER_EDITOR_
 				position4 += (u_BoneMatrices[boneIndex] * originalPosition) * attr_BoneWeights[i]; // Could do X,Y,Z model scaling here...
 				normal4 += (u_BoneMatrices[boneIndex] * originalNormal) * attr_BoneWeights[i]; // Could do X,Y,Z model scaling here...
-#endif //__EXPERIMETNAL_CHARACTER_EDITOR__
+#endif //_EXPERIMETNAL_CHARACTER_EDITOR_
 			}
 		}
 

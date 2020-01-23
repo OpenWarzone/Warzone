@@ -192,9 +192,9 @@ float GetVolumetricShadow(void)
 	return result;
 }
 
-#define __LENS_FLARE__
+#define _LENS_FLARE_
 
-#ifdef __LENS_FLARE__
+#ifdef _LENS_FLARE_
 float flare(in vec3 s, in vec3 ctr, in vec3 sDir)
 {
 	float c = 0.;
@@ -233,7 +233,7 @@ vec3 lensflare3D(in vec3 ray, in vec3 ctr, in vec3 sDir)
 	float d = dot(ctr,sDir);
 	return .4*col*max(0.,d*d*d*d*d);
 }
-#endif //__LENS_FLARE__
+#endif //_LENS_FLARE_
 
 void main()
 {
@@ -285,12 +285,12 @@ void main()
 		sunColor = mix(sunColor, vec3(0.0), NIGHT_FACTOR);
 	}
 
-#ifdef __LENS_FLARE__
+#ifdef _LENS_FLARE_
 	if (LENS_FLARE_ENABLED > 0.0 && shadow > 0.0)
 	{
 		totalColor.rgb += lensflare3D(vDir.xzy, normalize(var_ViewDir2).xzy, lDir.xzy) * shadow * 2.0;
 	}
-#endif //__LENS_FLARE__
+#endif //_LENS_FLARE_
 
 	gl_FragColor = vec4(totalColor, 1.0);
 }

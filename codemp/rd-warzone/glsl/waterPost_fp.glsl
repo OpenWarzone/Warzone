@@ -3,7 +3,7 @@
 #define FIX_WATER_DEPTH_ISSUES		// Use basic depth value for sky hits...
 //#define EXPERIMENTAL_WATERFALL	// Experimental waterfalls...
 #define EXPERIMENTAL_WATERFALL2	// Experimental waterfalls...
-//#define __DEBUG__
+//#define _DEBUG_
 //#define USE_LIGHTING				// Use lighting in this shader? trying to handle the lighting in deferredlight now instead.
 //#define USE_DETAILED_UNDERWATER		// Experimenting...
 
@@ -410,7 +410,7 @@ vec4 waterMapUpperAtCoord ( vec2 coord )
 float pw = (1.0/u_Dimensions.x);
 float ph = (1.0/u_Dimensions.y);
 
-#if defined(USE_REFLECTION) && !defined(__LQ_MODE__)
+#if defined(USE_REFLECTION) && !defined(LQ_MODE)
 
 vec3 Vibrancy ( vec3 origcolor, float vibrancyStrength )
 {
@@ -471,7 +471,7 @@ vec3 AddReflection(vec2 coord, vec3 positionMap, vec3 waterMapLower, vec3 inColo
 
 	return mix(inColor.rgb, landColor.rgb, vec3(landColor.a * u_Local1.a));
 }
-#endif //defined(USE_REFLECTION) && !defined(__LQ_MODE__)
+#endif //defined(USE_REFLECTION) && !defined(LQ_MODE)
 
 
 float getdiffuse(vec3 n, vec3 l, float p) {
@@ -665,7 +665,7 @@ vec3 getNormalDetailed(in vec2 p, in float eps, out float height) {
 }
 
 void GetHeightAndNormal(in vec2 pos, in float e, in float depth, inout float height, inout float chopheight, inout vec3 waveNormal, inout vec3 lightingNormal, in vec3 eyeVecNorm, in float timer, in float level) {
-#if !defined(__LQ_MODE__) && defined(REAL_WAVES)
+#if !defined(LQ_MODE) && defined(REAL_WAVES)
 
 	if (USE_OCEAN > 0.0)
 	{
@@ -674,7 +674,7 @@ void GetHeightAndNormal(in vec2 pos, in float e, in float depth, inout float hei
 		chopheight = height;
 	}
 	else
-#endif //!defined(__LQ_MODE__) && defined(REAL_WAVES)
+#endif //!defined(LQ_MODE) && defined(REAL_WAVES)
 	{
 		waveNormal = getNormalDetailed(pos.xy, (4.0 / u_Dimensions.x), height);
 		lightingNormal = waveNormal;
@@ -694,7 +694,7 @@ void ScanHeightMap(in vec4 waterMapLower, inout vec3 surfacePoint, inout vec3 ey
 	GetHeightAndNormal(surfacePoint.xz*0.03, 0.004, 1.0, height, chopheight, waveNormal, lightingNormal, eyeVecNorm, timer, level);
 
 	surfacePoint.xyz = waterMapLower.xyz;
-#elif defined(__LQ_MODE__) || !defined(REAL_WAVES)
+#elif defined(LQ_MODE) || !defined(REAL_WAVES)
 	//
 	// No big waves, so we don't need to trace, just grab this pixel's height...
 	//
@@ -864,9 +864,9 @@ vec4 WaterFall(vec3 color, vec3 color2, vec3 waterMapUpper, vec3 position, float
 
 	//color += blinn_phong(waterMapUpper.xyz, color.rgb, normal, eyeVecNorm, lightDir, u_PrimaryLightColor.rgb, u_PrimaryLightColor.rgb, 1.0, u_PrimaryLightOrigin.xyz);
 
-#if defined(USE_REFLECTION) && !defined(__LQ_MODE__)
+#if defined(USE_REFLECTION) && !defined(LQ_MODE)
 	color = AddReflection(texCoord, position.xyz, waterMapUpper.xyz, color, 0.0, position.xyz);
-#endif //defined(USE_REFLECTION) && !defined(__LQ_MODE__)
+#endif //defined(USE_REFLECTION) && !defined(LQ_MODE)
 
 	return vec4(color, 1.0);
 #endif //EXPERIMENTAL_WATERFALL
@@ -1138,7 +1138,7 @@ void main ( void )
 		float pixDist = distance(surfacePoint.xyz, ViewOrigin.xyz);
 		causicStrength *= 1.0 - clamp(pixDist / 1024.0, 0.0, 1.0) * (1.0 - clamp(depth2 / extinction.y, 0.0, 1.0));
 
-#if !defined(__LQ_MODE__)
+#if !defined(LQ_MODE)
 		if (USE_OCEAN > 0.0)
 		{
 			if (depth2 < foamExistence.x)
@@ -1155,7 +1155,7 @@ void main ( void )
 				foam += GetFoamMap(origWaterMapUpper.xzy + foamExistence.z) * clamp((level - (waterLevel + foamExistence.z)) / (waveHeight - foamExistence.z), 0.0, 1.0);
 			}
 		}
-#endif //!defined(__LQ_MODE__)
+#endif //!defined(LQ_MODE)
 		
 		vec3 finalSunColor = u_PrimaryLightColor;
 
@@ -1181,12 +1181,12 @@ void main ( void )
 			color.rgb = ContrastSaturationBrightness(color.rgb, CONTRAST_STRENGTH, SATURATION_STRENGTH, BRIGHTNESS_STRENGTH);
 		}
 
-#if defined(USE_REFLECTION) && !defined(__LQ_MODE__)
+#if defined(USE_REFLECTION) && !defined(LQ_MODE)
 		if (!pixelIsUnderWater && u_Local1.g >= 2.0)
 		{
 			color = AddReflection(var_TexCoords, position, vec3(surfacePoint.x/*waterMapLower3.x*/, level, surfacePoint.z/*waterMapLower3.z*/), color.rgb, height, surfacePoint.xyz);
 		}
-#endif //defined(USE_REFLECTION) && !defined(__LQ_MODE__)
+#endif //defined(USE_REFLECTION) && !defined(LQ_MODE)
 
 		/*
 		// UQ1: Disabled because i cant be bothered fixing issues with it on the skybox right now...
@@ -1196,12 +1196,12 @@ void main ( void )
 		color = clamp(color + (caustic * causicStrength * 0.5), 0.0, 1.0);
 		*/
 
-#if !defined(__LQ_MODE__)
+#if !defined(LQ_MODE)
 		if (USE_OCEAN > 0.0)
 		{
 			color += foam.rgb * u_PrimaryLightColor;
 		}
-#endif //!defined(__LQ_MODE__)
+#endif //!defined(LQ_MODE)
 
 		color = mix(refraction, color, clamp(depth * shoreHardness, 0.0, 1.0));
 		color = mix(color, color2, 1.0 - clamp(waterClarity2 * depth, 0.8, 1.0));
@@ -1286,7 +1286,7 @@ void main ( void )
 				color = color2;
 		}
 
-#ifdef __DEBUG__
+#ifdef _DEBUG_
 		if (u_Local0.r == 1.0)
 		{
 			gl_FragColor = vec4(normal.rbg * 0.5 + 0.5, 1.0);
@@ -1322,7 +1322,7 @@ void main ( void )
 			gl_FragColor = vec4(height, height, height, 1.0);
 			return;
 		}
-#endif //__DEBUG__
+#endif //_DEBUG_
 	}
 
 	gl_FragColor = vec4(color, 1.0);

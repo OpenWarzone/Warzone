@@ -182,7 +182,6 @@ extern const char *fallbackShader_bloom_blur_vp;
 extern const char *fallbackShader_bloom_blur_fp;
 extern const char *fallbackShader_bloom_combine_vp;
 extern const char *fallbackShader_bloom_combine_fp;
-extern const char *fallbackShader_bloomArea_combine_fp;
 extern const char *fallbackShader_anamorphic_blur_vp;
 extern const char *fallbackShader_anamorphic_blur_fp;
 extern const char *fallbackShader_anamorphic_combine_vp;
@@ -472,7 +471,7 @@ static uniformInfo_t uniformsInfo[] =
 //#endif //__SSDO__
 };
 
-void GLSL_PrintProgramInfoLog(GLuint object, qboolean developerOnly)
+void GLSL_PrintProgramInfoLog(GLuint object, const char *name, qboolean developerOnly)
 {
 	char           *msg;
 	static char     msgPart[1024];
@@ -493,11 +492,11 @@ void GLSL_PrintProgramInfoLog(GLuint object, qboolean developerOnly)
 
 	if (maxLength <= 0)
 	{
-		ri->Printf(printLevel, "No compile log.\n");
+		ri->Printf(printLevel, "Shader %s - No compile log.\n", name);
 		return;
 	}
 
-	ri->Printf(printLevel, "compile log:\n");
+	ri->Printf(printLevel, "Shader %s - Compile log:\n", name);
 
 	if (maxLength < 1023)
 	{
@@ -600,14 +599,21 @@ void GLSL_PrintShaderSource(GLuint shader)
 }
 
 qboolean ALLOW_GL_400 = qfalse;
+qboolean ALLOW_GL_430 = qfalse;
 
 char *GLSL_GetHighestSupportedVersion(void)
 {
 	ALLOW_GL_400 = qfalse;
+	ALLOW_GL_430 = qfalse;
 
 	if (glRefConfig.glslMajorVersion >= 4)
 	{
 		ALLOW_GL_400 = qtrue;
+
+		if (glRefConfig.glslMajorVersion >= 4 && glRefConfig.glslMinorVersion >= 30)
+		{
+			ALLOW_GL_430 = qtrue;
+		}
 
 		if (glRefConfig.glslMajorVersion >= 5)
 			return "#version 500 core\n";
@@ -717,6 +723,11 @@ void GLSL_GetShaderHeader(GLenum shaderType, const GLcharARB *extra, std::string
 	else
 		dest.append(va("%s", GLSL_GetHighestSupportedVersion()));
 
+	if (!ALLOW_GL_400)
+	{
+		dest.append("#define NO_GL400\n");
+	}
+
 #ifdef __LIGHTS_SSBO__
 	dest.append("#extension GL_ARB_shader_storage_buffer_object : require\n");
 #endif //__LIGHTS_SSBO__
@@ -736,7 +747,7 @@ void GLSL_GetShaderHeader(GLenum shaderType, const GLcharARB *extra, std::string
 	}
 
 #ifdef __INVERSE_DEPTH_BUFFERS__
-	dest.append("#define INVERSE_DEPTH_BUFFERS\n");
+	dest.append("#define _INVERSE_DEPTH_BUFFERS_\n");
 #endif //__INVERSE_DEPTH_BUFFERS__
 
 	if (bindless && glRefConfig.bindlessTextures)
@@ -744,9 +755,10 @@ void GLSL_GetShaderHeader(GLenum shaderType, const GLcharARB *extra, std::string
 		dest.append("#define USE_BINDLESS_TEXTURES\n");
 	}
 
-#ifdef __LIGHTS_SSBO__
-	dest.append("#define USE_LIGHTS_SSBO\n");
-#endif //__LIGHTS_SSBO__
+	if (ALLOW_GL_430)
+	{
+		dest.append("#define USE_LIGHTS_SSBO\n");
+	}
 
 	if (shaderType == GL_VERTEX_SHADER)
 	{
@@ -754,11 +766,11 @@ void GLSL_GetShaderHeader(GLenum shaderType, const GLcharARB *extra, std::string
 		dest.append("#define varying out\n");
 
 #ifdef __VBO_PACK_COLOR__
-		dest.append("#define __VBO_PACK_COLOR__\n");
+		dest.append("#define VBO_PACK_COLOR\n");
 #endif //__VBO_PACK_COLOR__
 
 #ifdef __CHEAP_VERTS__
-		dest.append("#define __CHEAP_VERTS__\n");
+		dest.append("#define CHEAP_VERTS\n");
 #endif //__CHEAP_VERTS__
 
 		dest.append(glslMaterialsList);
@@ -938,11 +950,15 @@ void GLSL_GetShaderHeader(GLenum shaderType, const GLcharARB *extra, std::string
 			"#endif\n",
 			CGEN_LIGHTING_WARZONE));
 
-	if (!r_lowVram->integer)
-		dest.append("#define __HIGH_MTU_AVAILABLE__\n");
-
-	if (r_lowVram->integer)
-		dest.append("#define __LQ_MODE__\n");
+	if (r_lowQualityMode->integer)
+	{
+		dest.append("#define LQ_MODE\n");
+	}
+	else
+	{
+		dest.append("#define _HIGH_PASS_SHARPEN_\n");
+		dest.append("#define HIGH_MTU_AVAILABLE\n");
+	}
 
 	dest.append(va("#define MAX_INSTANCED_MODEL_INSTANCES %i\n", MAX_INSTANCED_MODEL_INSTANCES));
 
@@ -954,7 +970,7 @@ void GLSL_GetShaderHeader(GLenum shaderType, const GLcharARB *extra, std::string
 
 	if (r_normalMappingReal->integer)
 	{
-		dest.append("#define __USE_REAL_NORMALMAPS__\n");
+		dest.append("#define USE_REAL_NORMALMAPS\n");
 	}
 
 	if (extra)
@@ -983,7 +999,7 @@ int GLSL_EnqueueCompileGPUShader(GLuint program, GLuint *prevShader, const GLcha
 	return 1;
 }
 
-void GLSL_LinkProgram(GLuint program)
+void GLSL_LinkProgram(GLuint program, const char *name)
 {
 	GLint           linked;
 
@@ -992,7 +1008,7 @@ void GLSL_LinkProgram(GLuint program)
 	qglGetProgramiv(program, GL_LINK_STATUS, &linked);
 	if (!linked)
 	{
-		GLSL_PrintProgramInfoLog(program, qfalse);
+		GLSL_PrintProgramInfoLog(program, name, qfalse);
 		ri->Printf(PRINT_ALL, "\n");
 		ri->Error(ERR_DROP, "shaders failed to link");
 	}
@@ -1003,13 +1019,13 @@ GLint GLSL_LinkProgramSafe(GLuint program) {
 	qglLinkProgram(program);
 	qglGetProgramiv(program, GL_LINK_STATUS, &linked);
 	if (!linked) {
-		GLSL_PrintProgramInfoLog(program, qfalse);
+		GLSL_PrintProgramInfoLog(program, "UNKNOWN", qfalse);
 		Com_Printf("shaders failed to link\n");
 	}
 	return linked;
 }
 
-void GLSL_ValidateProgram(GLuint program)
+void GLSL_ValidateProgram(GLuint program, const char *name)
 {
 	GLint           validated;
 
@@ -1018,7 +1034,7 @@ void GLSL_ValidateProgram(GLuint program)
 	qglGetProgramiv(program, GL_VALIDATE_STATUS, &validated);
 	if (!validated)
 	{
-		GLSL_PrintProgramInfoLog(program, qfalse);
+		GLSL_PrintProgramInfoLog(program, name, qfalse);
 		ri->Printf(PRINT_ALL, "\n");
 		ri->Error(ERR_DROP, "shaders failed to validate");
 	}
@@ -1324,13 +1340,14 @@ int GLSL_LoadShaderFromCache(shaderProgram_t *program, const char *name)
 	if (!success)
 	{// Loading failed...
 		//ri->Printf(PRINT_WARNING, "%s no success loading from cache.\n", name);
-		Z_Free(program->name);
 
 		/*
-		GLSL_PrintProgramInfoLog(progId, qfalse);
+		GLSL_PrintProgramInfoLog(progId, program->name, qfalse);
 		ri->Printf(PRINT_ALL, "\n");
 		ri->Error(ERR_DROP, "shaders failed to link");
 		*/
+
+		Z_Free(program->name);
 
 		return -1; // Make sure the code knows it failed, so it can fall back to a recompile...
 	}
@@ -1429,15 +1446,15 @@ bool GLSL_EndLoadGPUShader(shaderProgram_t *program)
 	if (GLimp_HaveExtension("ARB_get_program_binary"))
 	{
 		qglProgramParameteri(program->program, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE);
-		GLSL_LinkProgram(program->program);
+		GLSL_LinkProgram(program->program, program->name.c_str());
 		GLSL_SaveShaderToCache(program);
 	}
 	else
 	{
-		GLSL_LinkProgram(program->program);
+		GLSL_LinkProgram(program->program, program->name.c_str());
 	}
 #else //__USE_GLSL_SHADER_CACHE__
-	GLSL_LinkProgram(program->program);
+	GLSL_LinkProgram(program->program, program->name.c_str());
 #endif //__USE_GLSL_SHADER_CACHE__
 
 	// Won't be needing these anymore...
@@ -1855,7 +1872,7 @@ void GLSL_FinishGPUShader(shaderProgram_t *program)
 #if defined(__GLSL_OPTIMIZER__) && defined(__GLSL_OPTIMIZER_DEBUG__)
 	ri->Printf(PRINT_WARNING, "Finish GPU shader: %s.\n", program->name);
 #endif //defined(__GLSL_OPTIMIZER__) && defined(__GLSL_OPTIMIZER_DEBUG__)
-	GLSL_ValidateProgram(program->program);
+	GLSL_ValidateProgram(program->program, program->name.c_str());
 	GLSL_ShowProgramUniforms(program);
 	GL_CheckErrors();
 }
@@ -3124,7 +3141,7 @@ int GLSL_BeginLoadGPUShaders(void)
 
 		strcat(extradefines, va("#define MAX_GLM_BONEREFS %i\n", MAX_GLM_BONEREFS));
 
-		strcat(extradefines, "#define __LAVA__\n");
+		strcat(extradefines, "#define _LAVA_\n");
 
 		if (!GLSL_BeginLoadGPUShader(&tr.lightAllShader[2], "lightall2", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_lightall_vp, fallbackShader_lightall_fp, NULL, NULL, NULL))
 		{
@@ -3149,7 +3166,7 @@ int GLSL_BeginLoadGPUShaders(void)
 			strcat(extradefines, "#define USE_DELUXEMAP\n");
 
 #ifdef __HEIGHTMAP_TERRAIN_TEST__
-		strcat(extradefines, "#define __HEIGHTMAP_TERRAIN_TEST__\n");
+		strcat(extradefines, "#define _HEIGHTMAP_TERRAIN_TEST_\n");
 #endif //__HEIGHTMAP_TERRAIN_TEST__
 
 		strcat(extradefines, va("#define MAX_GLM_BONEREFS %i\n", MAX_GLM_BONEREFS));
@@ -3504,7 +3521,7 @@ int GLSL_BeginLoadGPUShaders(void)
 		extradefines[0] = '\0';
 
 #ifdef __HUMANOIDS_BEND_GRASS__
-		Q_strcat(extradefines, 1024, "#define __HUMANOIDS_BEND_GRASS__\n");
+		Q_strcat(extradefines, 1024, "#define _HUMANOIDS_BEND_GRASS_\n");
 		Q_strcat(extradefines, 1024, va("#define MAX_GRASSBEND_HUMANOIDS %i\n", MAX_GRASSBEND_HUMANOIDS));
 #endif //__HUMANOIDS_BEND_GRASS__
 
@@ -3519,9 +3536,9 @@ int GLSL_BeginLoadGPUShaders(void)
 
 		extradefines[0] = '\0';
 
-		Q_strcat(extradefines, 1024, "#define __USE_UNDERWATER__\n");
+		Q_strcat(extradefines, 1024, "#define _USE_UNDERWATER_\n");
 #ifdef __HUMANOIDS_BEND_GRASS__
-		Q_strcat(extradefines, 1024, "#define __HUMANOIDS_BEND_GRASS__\n");
+		Q_strcat(extradefines, 1024, "#define _HUMANOIDS_BEND_GRASS_\n");
 		Q_strcat(extradefines, 1024, va("#define MAX_GRASSBEND_HUMANOIDS %i\n", MAX_GRASSBEND_HUMANOIDS));
 #endif //__HUMANOIDS_BEND_GRASS__
 
@@ -3536,7 +3553,7 @@ int GLSL_BeginLoadGPUShaders(void)
 		extradefines[0] = '\0';
 
 #ifdef __HUMANOIDS_BEND_GRASS__
-		Q_strcat(extradefines, 1024, "#define __HUMANOIDS_BEND_GRASS__\n");
+		Q_strcat(extradefines, 1024, "#define _HUMANOIDS_BEND_GRASS_\n");
 		Q_strcat(extradefines, 1024, va("#define MAX_GRASSBEND_HUMANOIDS %i\n", MAX_GRASSBEND_HUMANOIDS));
 #endif //__HUMANOIDS_BEND_GRASS__
 
@@ -3884,14 +3901,6 @@ int GLSL_BeginLoadGPUShaders(void)
 		ri->Error(ERR_FATAL, "Could not load bloom_combine shader!");
 	}
 
-	attribs = ATTR_POSITION | ATTR_TEXCOORD0;
-	extradefines[0] = '\0';
-
-	if (!GLSL_BeginLoadGPUShader(&tr.bloomAreaCombineShader, "bloomArea_combine", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_bloom_combine_vp, fallbackShader_bloomArea_combine_fp, NULL, NULL, NULL))
-	{
-		ri->Error(ERR_FATAL, "Could not load bloomArea_combine shader!");
-	}
-
 	/*attribs = ATTR_POSITION | ATTR_TEXCOORD0;
 	extradefines[0] = '\0';
 
@@ -4155,10 +4164,10 @@ int GLSL_BeginLoadGPUShaders(void)
 		}
 
 #ifdef __LIGHT_OCCLUSION__
-		Q_strcat(extradefines, 1024, "#define __LIGHT_OCCLUSION__\n");
+		Q_strcat(extradefines, 1024, "#define _LIGHT_OCCLUSION_\n");
 #endif //__LIGHT_OCCLUSION__
 
-		Q_strcat(extradefines, 1024, "#define __FAST_LIGHTING__\n");
+		Q_strcat(extradefines, 1024, "#define _FAST_LIGHTING_\n");
 
 #ifdef __REALTIME_CUBEMAP__
 		Q_strcat(extradefines, 1024, "#define REALTIME_CUBEMAPS\n");
@@ -4187,10 +4196,10 @@ int GLSL_BeginLoadGPUShaders(void)
 		}
 
 #ifdef __LIGHT_OCCLUSION__
-		Q_strcat(extradefines, 1024, "#define __LIGHT_OCCLUSION__\n");
+		Q_strcat(extradefines, 1024, "#define _LIGHT_OCCLUSION_\n");
 #endif //__LIGHT_OCCLUSION__
 
-		Q_strcat(extradefines, 1024, "#define __NAYAR_LIGHTING__\n");
+		Q_strcat(extradefines, 1024, "#define _NAYAR_LIGHTING_\n");
 
 #ifdef __REALTIME_CUBEMAP__
 		Q_strcat(extradefines, 1024, "#define REALTIME_CUBEMAPS\n");
@@ -4219,7 +4228,7 @@ int GLSL_BeginLoadGPUShaders(void)
 		}
 
 #ifdef __LIGHT_OCCLUSION__
-		Q_strcat(extradefines, 1024, "#define __LIGHT_OCCLUSION__\n");
+		Q_strcat(extradefines, 1024, "#define _LIGHT_OCCLUSION_\n");
 #endif //__LIGHT_OCCLUSION__
 
 #ifdef __REALTIME_CUBEMAP__
@@ -4251,7 +4260,7 @@ int GLSL_BeginLoadGPUShaders(void)
 	attribs = ATTR_POSITION | ATTR_TEXCOORD0;
 	extradefines[0] = '\0';
 
-	Q_strcat(extradefines, 1024, "#define __HQ_PARALLAX__\n");
+	Q_strcat(extradefines, 1024, "#define _HQ_PARALLAX_\n");
 
 	if (!GLSL_BeginLoadGPUShader(&tr.ssdmGenerateShader[1], "ssdmGenerate1", attribs, qtrue, qfalse, qfalse, qtrue/*qfalse*/, extradefines, qtrue, NULL, fallbackShader_ssdmGenerate_vp, fallbackShader_ssdmGenerate_fp, NULL, NULL, NULL))
 	{
@@ -5521,23 +5530,6 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 #if defined(_DEBUG)
 	GLSL_FinishGPUShader(&tr.bloomCombineShader);
-#endif
-
-	numEtcShaders++;
-
-
-	if (!GLSL_EndLoadGPUShader(&tr.bloomAreaCombineShader))
-	{
-		ri->Error(ERR_FATAL, "Could not load bloomArea_combine shader!");
-	}
-
-	GLSL_InitUniforms(&tr.bloomAreaCombineShader);
-	GLSL_BindProgram(&tr.bloomAreaCombineShader);
-	GLSL_SetUniformInt(&tr.bloomAreaCombineShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
-	GLSL_SetUniformInt(&tr.bloomAreaCombineShader, UNIFORM_NORMALMAP, TB_NORMALMAP);
-
-#if defined(_DEBUG)
-	GLSL_FinishGPUShader(&tr.bloomAreaCombineShader);
 #endif
 
 	numEtcShaders++;
@@ -7122,7 +7114,6 @@ void GLSL_ShutdownGPUShaders(void)
 	//GLSL_DeleteGPUShader(&tr.hbaoCombineShader);
 	GLSL_DeleteGPUShader(&tr.bloomBlurShader);
 	GLSL_DeleteGPUShader(&tr.bloomCombineShader);
-	GLSL_DeleteGPUShader(&tr.bloomAreaCombineShader);
 	//GLSL_DeleteGPUShader(&tr.lensflareShader);
 	GLSL_DeleteGPUShader(&tr.multipostShader);
 	GLSL_DeleteGPUShader(&tr.anamorphicBlurShader);

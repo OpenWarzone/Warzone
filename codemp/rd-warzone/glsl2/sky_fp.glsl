@@ -1,9 +1,15 @@
-#define __HIGH_PASS_SHARPEN__
-#define __CLOUDS__
-#define __LIGHTNING__
-#define __BACKGROUND_HILLS__
-#define __AURORA2__
-#define __RAINBOWS__
+#ifdef LQ_MODE
+	#define _CLOUDS_
+	#define _AURORA2_
+	#define _RAINBOWS_
+#else //!LQ_MODE
+	#define _HIGH_PASS_SHARPEN_
+	#define _CLOUDS_
+	#define _LIGHTNING_
+	#define _BACKGROUND_HILLS_
+	#define _AURORA2_
+	#define _RAINBOWS_
+#endif //LQ_MODE
 
 #if defined(USE_BINDLESS_TEXTURES)
 layout(std140) uniform u_bindlessTexturesBlock
@@ -158,16 +164,10 @@ varying vec4						var_Color;
 out vec4							out_Glow;
 out vec4							out_Position;
 out vec4							out_Normal;
-#ifdef __USE_REAL_NORMALMAPS__
+#ifdef USE_REAL_NORMALMAPS
 out vec4							out_NormalDetail;
-#endif //__USE_REAL_NORMALMAPS__
+#endif //USE_REAL_NORMALMAPS
 
-//#define __ENCODE_NORMALS_RECONSTRUCT_Z__
-#define __ENCODE_NORMALS_STEREOGRAPHIC_PROJECTION__
-//#define __ENCODE_NORMALS_CRY_ENGINE__
-//#define __ENCODE_NORMALS_EQUAL_AREA_PROJECTION__
-
-#ifdef __ENCODE_NORMALS_STEREOGRAPHIC_PROJECTION__
 vec2 EncodeNormal(vec3 n)
 {
 	float scale = 1.7777;
@@ -186,48 +186,6 @@ vec3 DecodeNormal(vec2 enc)
 	float g = 2.0 / dot(nn.xyz, nn.xyz);
 	return vec3(g * nn.xy, g - 1.0);
 }
-#elif defined(__ENCODE_NORMALS_CRY_ENGINE__)
-vec3 DecodeNormal(in vec2 N)
-{
-	vec2 encoded = N * 4.0 - 2.0;
-	float f = dot(encoded, encoded);
-	float g = sqrt(1.0 - f * 0.25);
-	return vec3(encoded * g, 1.0 - f * 0.5);
-}
-vec2 EncodeNormal(in vec3 N)
-{
-	float f = sqrt(8.0 * N.z + 8.0);
-	return N.xy / f + 0.5;
-}
-#elif defined(__ENCODE_NORMALS_EQUAL_AREA_PROJECTION__)
-vec2 EncodeNormal(vec3 n)
-{
-	float f = sqrt(8.0 * n.z + 8.0);
-	return n.xy / f + 0.5;
-}
-vec3 DecodeNormal(vec2 enc)
-{
-	vec2 fenc = enc * 4.0 - 2.0;
-	float f = dot(fenc, fenc);
-	float g = sqrt(1.0 - f / 4.0);
-	vec3 n;
-	n.xy = fenc*g;
-	n.z = 1.0 - f / 2.0;
-	return n;
-}
-#else //__ENCODE_NORMALS_RECONSTRUCT_Z__
-vec3 DecodeNormal(in vec2 N)
-{
-	vec3 norm;
-	norm.xy = N * 2.0 - 1.0;
-	norm.z = sqrt(1.0 - dot(norm.xy, norm.xy));
-	return norm;
-}
-vec2 EncodeNormal(vec3 n)
-{
-	return vec2(n.xy * 0.5 + 0.5);
-}
-#endif //__ENCODE_NORMALS_RECONSTRUCT_Z__
 
 
 #define MOD2 vec2(.16632,.17369)
@@ -366,7 +324,7 @@ vec3 extra_cheap_atmosphere(vec3 raydir, vec3 skyViewDir2, vec3 sunDir, inout ve
 	return color * 0.5;
 }
 
-#if defined(__HIGH_PASS_SHARPEN__)
+#if defined(_HIGH_PASS_SHARPEN_)
 vec3 Enhance(in sampler2D tex, in vec2 uv, vec3 color, float level)
 {
 	vec3 blur = textureLod(tex, uv, level).xyz;
@@ -375,10 +333,10 @@ vec3 Enhance(in sampler2D tex, in vec2 uv, vec3 color, float level)
 	col = mix(color, col * color, 1.0);
 	return col;
 }
-#endif //defined(__HIGH_PASS_SHARPEN__)
+#endif //defined(_HIGH_PASS_SHARPEN_)
 
 
-#ifdef __CLOUDS__
+#ifdef _CLOUDS_
 
 //#define RAY_TRACE_STEPS 55
 
@@ -643,11 +601,11 @@ vec4 Clouds(float colorMult)
 	alpha *= alphaMult;
 	return vec4(col.rgb, alpha);
 }
-#endif //__CLOUDS__
+#endif //_CLOUDS_
 
 
 
-#ifdef __LIGHTNING__
+#ifdef _LIGHTNING_
 
 #define pi 3.1415926535897932384626433832795
 
@@ -761,7 +719,7 @@ vec4 GetLightning( in vec3 position )
 	float alpha = max(col.r, max(col.g, col.b));
 	return vec4(col, alpha);
 }
-#endif //__LIGHTNING__
+#endif //_LIGHTNING_
 
 vec3 reachForTheNebulas(in vec3 from, in vec3 dir, float level, float power) 
 {
@@ -849,11 +807,13 @@ mat2 rot2D(float a) {
 	return mat2(cos(a),sin(a),-sin(a),cos(a));	
 }
 
-void GetPlanets(out vec4 fragColor, in vec3 position)
+vec4 GetPlanets(vec3 position)
 {
+	vec4 fragColor = vec4(0.0);
 	vec3 from = vec3(0.0);
 	vec3 dir = normalize(position);
 
+#if 0 // ARGH!!! SHIT OLD HARDWARE... Need to reference texture arrays by a const integer....
 	for (int i = 0; i < u_MoonCount; i++)
 	{
 		if (u_MoonInfos[i].r <= 0.0) continue;
@@ -883,14 +843,144 @@ void GetPlanets(out vec4 fragColor, in vec3 position)
 			vec3 color = planetshade * 0.7 * lglow;
 			color += max(0.0, 0.007 - abs(planet - planetSize)) * lglow * planetTexBright2;
 			fragColor = vec4(clamp(color, 0.0, 1.0), 0.8/*0.825*/);
-			return; // Since this planet drew a pixel, don't check any more planets, this is the closest one (first in the list)...
+			return fragColor; // Since this planet drew a pixel, don't check any more planets, this is the closest one (first in the list)...
+		}
+	}
+	#else
+	if (u_MoonInfos[0].r > 0.0)
+	{
+		const int i = 0;
+		vec3 sunPos = normalize(u_PrimaryLightOrigin.xyz);
+		vec3 planetPos = -normalize(u_PrimaryLightOrigin.xyz);
+
+		float planetSize = 1.0 - (0.0015 * u_MoonInfos[i].a);
+		float planetTexScale = 6.0 * u_MoonInfos2[i].g;
+		float planetTexBright = 2.0 * u_MoonInfos2[i].r;
+		float planetTexBright2 = 64.0;
+
+		// Adjust for planetary rotation...
+		mat2 planetRot1 = rot2D(u_MoonInfos[i].b);
+		mat2 planetRot2 = rot2D(u_MoonInfos[i].g);
+		planetPos.yz *= planetRot1;
+		planetPos.xy *= planetRot2;
+		planetPos = normalize(planetPos);
+
+		float planet = dot(dir, planetPos);
+
+		if (planet > planetSize) {
+			float ldot = clamp(dot(dir, sunPos), 0.0, 1.0);
+			float lglow = clamp(pow(max(0.0, dot(dir - planetPos, sunPos)), 3.0) * 768.0, 0.015, 1.0);
+
+			vec3 planetshade = texture(u_MoonMaps[i], (dir.xy - planetPos.xy) * planetTexScale).rgb * planetTexBright;
+			vec3 color = planetshade * 0.7 * lglow;
+			color += max(0.0, 0.007 - abs(planet - planetSize)) * lglow * planetTexBright2;
+			fragColor = vec4(clamp(color, 0.0, 1.0), 0.8/*0.825*/);
+			return fragColor; // Since this planet drew a pixel, don't check any more planets, this is the closest one (first in the list)...
 		}
 	}
 
+	if (u_MoonInfos[1].r > 0.0)
+	{
+		const int i = 1;
+		vec3 sunPos = normalize(u_PrimaryLightOrigin.xyz);
+		vec3 planetPos = -normalize(u_PrimaryLightOrigin.xyz);
+
+		float planetSize = 1.0 - (0.0015 * u_MoonInfos[i].a);
+		float planetTexScale = 6.0 * u_MoonInfos2[i].g;
+		float planetTexBright = 2.0 * u_MoonInfos2[i].r;
+		float planetTexBright2 = 64.0;
+
+		// Adjust for planetary rotation...
+		mat2 planetRot1 = rot2D(u_MoonInfos[i].b);
+		mat2 planetRot2 = rot2D(u_MoonInfos[i].g);
+		planetPos.yz *= planetRot1;
+		planetPos.xy *= planetRot2;
+		planetPos = normalize(planetPos);
+
+		float planet = dot(dir, planetPos);
+
+		if (planet > planetSize) {
+			float ldot = clamp(dot(dir, sunPos), 0.0, 1.0);
+			float lglow = clamp(pow(max(0.0, dot(dir - planetPos, sunPos)), 3.0) * 768.0, 0.015, 1.0);
+
+			vec3 planetshade = texture(u_MoonMaps[i], (dir.xy - planetPos.xy) * planetTexScale).rgb * planetTexBright;
+			vec3 color = planetshade * 0.7 * lglow;
+			color += max(0.0, 0.007 - abs(planet - planetSize)) * lglow * planetTexBright2;
+			fragColor = vec4(clamp(color, 0.0, 1.0), 0.8/*0.825*/);
+			return fragColor; // Since this planet drew a pixel, don't check any more planets, this is the closest one (first in the list)...
+		}
+	}
+
+	if (u_MoonInfos[2].r > 0.0)
+	{
+		const int i = 2;
+		vec3 sunPos = normalize(u_PrimaryLightOrigin.xyz);
+		vec3 planetPos = -normalize(u_PrimaryLightOrigin.xyz);
+
+		float planetSize = 1.0 - (0.0015 * u_MoonInfos[i].a);
+		float planetTexScale = 6.0 * u_MoonInfos2[i].g;
+		float planetTexBright = 2.0 * u_MoonInfos2[i].r;
+		float planetTexBright2 = 64.0;
+
+		// Adjust for planetary rotation...
+		mat2 planetRot1 = rot2D(u_MoonInfos[i].b);
+		mat2 planetRot2 = rot2D(u_MoonInfos[i].g);
+		planetPos.yz *= planetRot1;
+		planetPos.xy *= planetRot2;
+		planetPos = normalize(planetPos);
+
+		float planet = dot(dir, planetPos);
+
+		if (planet > planetSize) {
+			float ldot = clamp(dot(dir, sunPos), 0.0, 1.0);
+			float lglow = clamp(pow(max(0.0, dot(dir - planetPos, sunPos)), 3.0) * 768.0, 0.015, 1.0);
+
+			vec3 planetshade = texture(u_MoonMaps[i], (dir.xy - planetPos.xy) * planetTexScale).rgb * planetTexBright;
+			vec3 color = planetshade * 0.7 * lglow;
+			color += max(0.0, 0.007 - abs(planet - planetSize)) * lglow * planetTexBright2;
+			fragColor = vec4(clamp(color, 0.0, 1.0), 0.8/*0.825*/);
+			return fragColor; // Since this planet drew a pixel, don't check any more planets, this is the closest one (first in the list)...
+		}
+	}
+
+	if (u_MoonInfos[3].r > 0.0)
+	{
+		const int i = 3;
+		vec3 sunPos = normalize(u_PrimaryLightOrigin.xyz);
+		vec3 planetPos = -normalize(u_PrimaryLightOrigin.xyz);
+
+		float planetSize = 1.0 - (0.0015 * u_MoonInfos[i].a);
+		float planetTexScale = 6.0 * u_MoonInfos2[i].g;
+		float planetTexBright = 2.0 * u_MoonInfos2[i].r;
+		float planetTexBright2 = 64.0;
+
+		// Adjust for planetary rotation...
+		mat2 planetRot1 = rot2D(u_MoonInfos[i].b);
+		mat2 planetRot2 = rot2D(u_MoonInfos[i].g);
+		planetPos.yz *= planetRot1;
+		planetPos.xy *= planetRot2;
+		planetPos = normalize(planetPos);
+
+		float planet = dot(dir, planetPos);
+
+		if (planet > planetSize) {
+			float ldot = clamp(dot(dir, sunPos), 0.0, 1.0);
+			float lglow = clamp(pow(max(0.0, dot(dir - planetPos, sunPos)), 3.0) * 768.0, 0.015, 1.0);
+
+			vec3 planetshade = texture(u_MoonMaps[i], (dir.xy - planetPos.xy) * planetTexScale).rgb * planetTexBright;
+			vec3 color = planetshade * 0.7 * lglow;
+			color += max(0.0, 0.007 - abs(planet - planetSize)) * lglow * planetTexBright2;
+			fragColor = vec4(clamp(color, 0.0, 1.0), 0.8/*0.825*/);
+			return fragColor; // Since this planet drew a pixel, don't check any more planets, this is the closest one (first in the list)...
+		}
+	}
+	#endif
+
 	fragColor = vec4(0.0);
+	return fragColor;
 }
 
-#ifdef __BACKGROUND_HILLS__
+#ifdef _BACKGROUND_HILLS_
 #define EPSILON 0.1
 
 #define bghtime (u_Time+285.)
@@ -1083,7 +1173,7 @@ vec4 raymarchTerrain( const in vec3 ro, const in vec3 rd, const in vec3 bgc, con
 	return vec4(0.0);
 }
 
-#ifdef __AURORA2__
+#ifdef _AURORA2_
 //AURORA STUFF
 mat2 mm2(in float a){
 	float c = cos(a);
@@ -1173,7 +1263,7 @@ vec4 GetAurora2(in vec2 fragCoord)
 
 	return aur;
 }
-#endif //__AURORA2__
+#endif //_AURORA2_
 
 #define TAU 6.2831853071
 
@@ -1232,9 +1322,9 @@ vec4 GetAurora(in vec2 fragCoord)
 void GetBackgroundHills( inout vec4 fragColor, in vec2 fragCoord, vec3 ro, vec3 rd ) {
 	fragColor = raymarchTerrain( ro, rd, fragColor.rgb, 1200.0, 1200.0 );
 }
-#endif //__BACKGROUND_HILLS__
+#endif //_BACKGROUND_HILLS_
 
-#ifdef __RAINBOWS__
+#ifdef _RAINBOWS_
 #define colorStep 0.004
 #define gradStep 0.0022
 
@@ -1279,7 +1369,7 @@ vec4 Rainbow(vec3 rayDir, vec3 sunPos)
 	// tone rainbow colors to transparent the closer to rayDir = 0.0 we get
 	return color*visibility*3.5/*4.5*/*mix(0.0, 1.0, smoothstep(0.3, 0.0, length(0.3 - rayDir.y)))*combinedFade;
 }
-#endif //__RAINBOWS__
+#endif //_RAINBOWS_
 
 
 void main()
@@ -1295,9 +1385,9 @@ void main()
 	vec3 skyViewDir = normalize(position);
 	vec3 skyViewDir2 = normalize(u_ViewOrigin.xzy - position);
 	vec3 skySunDir = normalize(lightPosition);
-#if defined(__CLOUDS__)
+#if defined(_CLOUDS_)
 	float cloudiness = clamp(CLOUDS_CLOUDCOVER*0.3, 0.0, 0.3);
-#endif //defined(__CLOUDS__)
+#endif //defined(_CLOUDS_)
 
 	if (USE_TRIPLANAR > 0.0 || USE_REGIONS > 0.0)
 	{// Can skip nearly everything... These are always going to be solid color...
@@ -1311,14 +1401,14 @@ void main()
 		if (PROCEDURAL_SKY_ENABLED <= 0.0)
 		{
 			gl_FragColor = texture(u_DiffuseMap, texCoords);
-#ifdef __HIGH_PASS_SHARPEN__
+#ifdef _HIGH_PASS_SHARPEN_
 			gl_FragColor.rgb = Enhance(u_DiffuseMap, texCoords, gl_FragColor.rgb, 1.0);
-#endif //__HIGH_PASS_SHARPEN__
+#endif //_HIGH_PASS_SHARPEN_
 
 			nightDiffuse = texture(u_OverlayMap, texCoords).rgb;
-#ifdef __HIGH_PASS_SHARPEN__
+#ifdef _HIGH_PASS_SHARPEN_
 			nightDiffuse.rgb = Enhance(u_OverlayMap, texCoords, nightDiffuse.rgb, 1.0);
-#endif //__HIGH_PASS_SHARPEN__
+#endif //_HIGH_PASS_SHARPEN_
 
 			gl_FragColor.rgb = mix(gl_FragColor.rgb, nightDiffuse, SHADER_NIGHT_SCALE); // Mix in night sky with original sky from day -> night...
 			nightGlow = nightDiffuse * SHADER_NIGHT_SCALE;
@@ -1334,7 +1424,7 @@ void main()
 
 			vec3 atmos = extra_cheap_atmosphere(skyViewDir, skyViewDir2, skySunDir, sunColorMod);
 
-#ifdef __BACKGROUND_HILLS__
+#ifdef _BACKGROUND_HILLS_
 			if (!ENABLE_TERRAIN || SHADER_SKY_DIRECTION == 5.0 && SHADER_DAY_NIGHT_ENABLED > 0.0 && SHADER_NIGHT_SCALE >= 1.0)
 			{// At night, just do a black lower sky side...
 				terrainColor = vec4(0.0, 0.0, 0.0, 1.0);
@@ -1345,11 +1435,11 @@ void main()
 				terrainColor.a = 0.0;
 				GetBackgroundHills( terrainColor, texCoords, vec3(0.0), skyViewDir );
 			}
-#endif //__BACKGROUND_HILLS__
+#endif //_BACKGROUND_HILLS_
 
 			if (terrainColor.a != 1.0 && u_MoonCount > 0.0)
 			{// In the day, we still want to draw planets... Only if this is not background terrain...
-				GetPlanets(pCol, var_Position);
+				pCol = GetPlanets(var_Position.xyz);
 
 				if (pCol.a > 0.0)
 				{// Planet here, blend this behind the atmosphere...
@@ -1360,7 +1450,7 @@ void main()
 			gl_FragColor.rgb = clamp(atmos, 0.0, 1.0);
 			gl_FragColor.a = 1.0;
 
-#if defined(__CLOUDS__) && !defined(CLOUD_QUALITY0)
+#if defined(_CLOUDS_) && !defined(CLOUD_QUALITY0)
 			if (terrainColor.a != 1.0 && CLOUDS_ENABLED > 0.0 && SHADER_SKY_DIRECTION != 5.0)
 			{// Procedural clouds are enabled...
 				float nMult = 1.0;
@@ -1379,7 +1469,7 @@ void main()
 				nMult = min(cdMult, nMult);
 				clouds = Clouds(nMult);
 			}
-#endif //defined(__CLOUDS__) && !defined(CLOUD_QUALITY0)
+#endif //defined(_CLOUDS_) && !defined(CLOUD_QUALITY0)
 
 			if (ENABLE_SUN && pCol.a <= 0.0 && terrainColor.a != 1.0)
 			{
@@ -1391,10 +1481,10 @@ void main()
 				}
 			}
 
-#ifdef __RAINBOWS__
+#ifdef _RAINBOWS_
 			vec4 rainbow = Rainbow(skyViewDir, vec3(0.9, 1.0, 0.3));
 			gl_FragColor.rgb = mix(gl_FragColor.rgb, gl_FragColor.rgb + rainbow.rgb, rainbow.a);
-#endif //__RAINBOWS__
+#endif //_RAINBOWS_
 
 #define night_const_1 (PROCEDURAL_SKY_NIGHT_HDR_MIN / 255.0)
 #define night_const_2 (255.0 / PROCEDURAL_SKY_NIGHT_HDR_MAX)
@@ -1435,7 +1525,7 @@ void main()
 					nightGlow = nightDiffuse * SHADER_NIGHT_SCALE;
 				}
 
-#if defined(__AURORA2__) && defined(__BACKGROUND_HILLS__)
+#if defined(_AURORA2_) && defined(_BACKGROUND_HILLS_)
 				if (ENABLE_AURORA
 					&& SHADER_SKY_DIRECTION != 5.0																/* Not down sky textures */
 					&& SHADER_AURORA_ENABLED > 0.0																							/* Auroras Enabled */
@@ -1456,7 +1546,7 @@ void main()
 
 					gl_FragColor.rgb = mix(gl_FragColor.rgb, gl_FragColor.rgb + aucolor.rgb, aucolor.a);
 				}
-#elif !defined(__AURORA2__) && defined(__BACKGROUND_HILLS__)
+#elif !defined(_AURORA2_) && defined(_BACKGROUND_HILLS_)
 				if (ENABLE_AURORA
 					&& SHADER_SKY_DIRECTION != 4.0 && SHADER_SKY_DIRECTION != 5.0																/* Not up/down sky textures */
 					&& SHADER_AURORA_ENABLED > 0.0																							/* Auroras Enabled */
@@ -1465,33 +1555,33 @@ void main()
 					vec4 aucolor = GetAurora(texCoords);
 					gl_FragColor.rgb = mix(gl_FragColor.rgb, gl_FragColor.rgb + aucolor.rgb, aucolor.a);
 				}
-#endif //defined(__AURORA2__) && defined(__BACKGROUND_HILLS__)
+#endif //defined(_AURORA2_) && defined(_BACKGROUND_HILLS_)
 			}
 
-#if defined(__CLOUDS__)
+#if defined(_CLOUDS_)
 			if (clouds.a > 0.0 && terrainColor.a != 1.0 && CLOUDS_ENABLED > 0.0 && SHADER_SKY_DIRECTION != 5.0)
 			{// Procedural clouds are enabled...
 				float cloudMix = clamp(pow(clouds.a, mix(0.75, 0.5, SHADER_NIGHT_SCALE)), 0.0, 1.0);
 				gl_FragColor.rgb = mix(gl_FragColor.rgb, clouds.rgb, cloudMix);
 				nightGlow *= 1.0 - cloudMix;
 
-#ifdef __LIGHTNING__
+#ifdef _LIGHTNING_
 				if (cloudiness >= 0.275)
 				{// Distant lightning strikes...
 					vec4 lightning = GetLightning(var_Position.xyz*1025.0);
 					gl_FragColor.rgb += lightning.rgb * lightning.a * 0.5;
 					sun = max(sun, lightning * 0.5);
 				}
-#endif //__LIGHTNING__
+#endif //_LIGHTNING_
 			}
-#endif //defined(__CLOUDS__)
+#endif //defined(_CLOUDS_)
 
-#ifdef __BACKGROUND_HILLS__
+#ifdef _BACKGROUND_HILLS_
 			if (ENABLE_TERRAIN && PROCEDURAL_BACKGROUND_HILLS_ENABLED > 0.0 && SHADER_SKY_DIRECTION != 4.0 && SHADER_SKY_DIRECTION != 5.0)
 			{// Only on horizontal sides.
 				gl_FragColor.rgb = mix(gl_FragColor.rgb, terrainColor.rgb, terrainColor.a > 0.0 ? 1.0 : 0.0);
 			}
-#endif //__BACKGROUND_HILLS__
+#endif //_BACKGROUND_HILLS_
 
 			// Tonemap.
 			gl_FragColor.rgb = pow( gl_FragColor.rgb, vec3(0.7) );
@@ -1543,7 +1633,7 @@ void main()
 
 	out_Position = vec4(normalize(var_Position.xyz) * 524288.0, 1025.0);
 	out_Normal = vec4(EncodeNormal(-skyViewDir.rbg/*var_Normal.rgb*/), 0.0, 1.0);
-#ifdef __USE_REAL_NORMALMAPS__
+#ifdef USE_REAL_NORMALMAPS
 	out_NormalDetail = vec4(0.0);
-#endif //__USE_REAL_NORMALMAPS__
+#endif //USE_REAL_NORMALMAPS
 }

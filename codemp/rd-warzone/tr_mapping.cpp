@@ -2516,7 +2516,7 @@ void MAPPING_LoadMapInfo(void)
 		SHADOW_SOFT_WIDTH = atof(IniRead(mapname, "SHADOWS", "SHADOW_SOFT_WIDTH", "0.5"));
 		SHADOW_SOFT_STEP = atof(IniRead(mapname, "SHADOWS", "SHADOW_SOFT_STEP", "0.5"));
 
-		if (r_lowVram->integer)
+		if (r_lowQualityMode->integer)
 		{
 			SHADOWS_ENABLED = qfalse;
 		}

@@ -57,7 +57,7 @@ uniform vec4							u_Local1;			// realLightOrigin[0], realLightOrigin[1], realLi
 uniform vec4							u_Local2;			// playerOrigin[0], playerOrigin[1], playerOrigin[2], invLightPower
 
 #if defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
-	in precise vec3				WorldPos_FS_in;
+	in vec3						WorldPos_FS_in;
 	#define m_vertPos			WorldPos_FS_in
 #else //!defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
 	varying vec3				var_Position;
@@ -68,9 +68,9 @@ uniform vec4							u_Local2;			// playerOrigin[0], playerOrigin[1], playerOrigin
 out vec4 out_Glow;
 out vec4 out_Position;
 out vec4 out_Normal;
-#ifdef __USE_REAL_NORMALMAPS__
+#ifdef USE_REAL_NORMALMAPS
 out vec4 out_NormalDetail;
-#endif //__USE_REAL_NORMALMAPS__
+#endif //USE_REAL_NORMALMAPS
 
 void main()
 {
@@ -125,7 +125,7 @@ void main()
 	out_Glow = vec4(0.0);
 	out_Position = vec4(0.0);
 	out_Normal = vec4(0.0);
-#ifdef __USE_REAL_NORMALMAPS__
+#ifdef USE_REAL_NORMALMAPS
 	out_NormalDetail = vec4(0.0);
-#endif //__USE_REAL_NORMALMAPS__
+#endif //USE_REAL_NORMALMAPS
 }

@@ -20,9 +20,9 @@ varying vec2    var_TexCoords;
 out vec4 out_Glow;
 out vec4 out_Position;
 out vec4 out_Normal;
-#ifdef __USE_REAL_NORMALMAPS__
+#ifdef USE_REAL_NORMALMAPS
 out vec4 out_NormalDetail;
-#endif //__USE_REAL_NORMALMAPS__
+#endif //USE_REAL_NORMALMAPS
 
 
 #define m_Normal		var_Normal
@@ -33,10 +33,10 @@ out vec4 out_NormalDetail;
 
 #define shaderTime (u_Time * 0.4)
 
-#ifndef __LQ_MODE__
+#ifndef LQ_MODE
 // When not in LQ mode, also add sparks...
 #define USE_SPARKS
-#endif //__LQ_MODE__
+#endif //LQ_MODE
 
 float snoise(vec3 uv, float res)
 {
@@ -64,11 +64,11 @@ float snoise(vec3 uv, float res)
 float noise(vec2 uv, float baseres)
 {
     float n = 0.0;
-#ifdef __LQ_MODE__
+#ifdef LQ_MODE
 	for (int i = 0; i < 2; i++)
-#else //!__LQ_MODE__
+#else //!LQ_MODE
     for (int i = 0; i < 4; i++)
-#endif //__LQ_MODE__
+#endif //LQ_MODE
     {
         float v = pow(2.0, float(i));
         n += (1.5 / v) * snoise(vec3(uv + vec2(1.,1.) * (float(i) / 17.), 1), v * baseres);
@@ -150,7 +150,7 @@ void main()
 	out_Glow = vec4(0.0);
 	out_Position = vec4(0.0);
 	out_Normal = vec4(0.0);
-#ifdef __USE_REAL_NORMALMAPS__
+#ifdef USE_REAL_NORMALMAPS
 	out_NormalDetail = vec4(0.0);
-#endif //__USE_REAL_NORMALMAPS__
+#endif //USE_REAL_NORMALMAPS
 }

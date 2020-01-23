@@ -139,9 +139,9 @@ float offset_lookup(sampler2DShadow shadowmap, vec4 loc, vec2 offset, float scal
 #endif
 }
 
-//#define __VSM__
+//#define _VSM_
 
-#ifdef __VSM__
+#ifdef _VSM_
 float linstep(float low, float high, float v)
 {
 	return clamp((v-low)/(high-low), 0.0, 1.0);
@@ -165,13 +165,13 @@ float VSM(sampler2DShadow shadowmap, vec4 uv, float compare)
 	float p_max = linstep(0.2, 1.0, variance / (variance + d*d));
 	return clamp(max(p, p_max), 0.0, 1.0);
 }
-#endif //__VSM__
+#endif //_VSM_
 
 float PCF(const sampler2DShadow shadowmap, const vec4 st, const float dist, float scale, float depth, int cascade)
 {
-#ifdef __VSM__
+#ifdef _VSM_
 	return VSM(shadowmap, st, depth);
-#else //!__VSM__
+#else //!_VSM_
 
 #if 0
 	float mult;
@@ -216,7 +216,7 @@ float PCF(const sampler2DShadow shadowmap, const vec4 st, const float dist, floa
 	}
 #endif
 
-#endif //__VSM__
+#endif //_VSM_
 }
 
 //////////////////////////////////////////////////////////////////////////

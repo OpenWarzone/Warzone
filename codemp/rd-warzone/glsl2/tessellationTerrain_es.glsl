@@ -88,14 +88,14 @@ uniform vec4						u_MapInfo; // MAP_INFO_SIZE[0], MAP_INFO_SIZE[1], MAP_INFO_SIZ
 uniform vec4						u_Mins;
 uniform vec4						u_Maxs;
 
-out precise vec3 WorldPos_FS_in;
-out precise vec2 TexCoord_FS_in;
-out precise vec3 Normal_FS_in;
-out precise vec3 ViewDir_FS_in;
-out precise vec4 Color_FS_in;
-out precise vec4 PrimaryLightDir_FS_in;
-out precise vec2 TexCoord2_FS_in;
-out precise vec3 Blending_FS_in;
+out vec3 WorldPos_FS_in;
+out vec2 TexCoord_FS_in;
+out vec3 Normal_FS_in;
+out vec3 ViewDir_FS_in;
+out vec4 Color_FS_in;
+out vec4 PrimaryLightDir_FS_in;
+out vec2 TexCoord2_FS_in;
+out vec3 Blending_FS_in;
 /*flat*/ out float Slope_FS_in;
 /*flat*/ out float GrassSlope_FS_in;
 out float TessDepth_FS_in;
@@ -124,13 +124,13 @@ uniform vec3			u_ViewOrigin;
 uniform int    u_DeformGen;
 uniform float  u_DeformParams[7];
 
-in precise vec4 WorldPos_ES_in[];
-in precise vec3 iNormal[];
-in precise vec2 iTexCoord[];
-in precise vec4 Color_ES_in[];
-in precise vec4 PrimaryLightDir_ES_in[];
-in precise vec2 TexCoord2_ES_in[];
-in precise vec3 Blending_ES_in[];
+in vec4 WorldPos_ES_in[];
+in vec3 iNormal[];
+in vec2 iTexCoord[];
+in vec4 Color_ES_in[];
+in vec4 PrimaryLightDir_ES_in[];
+in vec2 TexCoord2_ES_in[];
+in vec3 Blending_ES_in[];
 in float Slope_ES_in[];
 in float GrassSlope_ES_in[];
 

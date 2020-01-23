@@ -3200,7 +3200,7 @@ const void *RB_PostProcess(const void *data)
 	dstBox[3] = backEnd.viewParms.viewportHeight;
 
 	// Pre-linearize all possibly needed depth maps, in a single pass...
-	if (!r_lowVram->integer)
+	//if (!r_lowQualityMode->integer)
 	{
 		DEBUG_StartTimer("Linearize", qtrue);
 		RB_LinearizeDepth();
@@ -3366,7 +3366,7 @@ const void *RB_PostProcess(const void *data)
 
 	/*if (!SCREEN_BLUR && r_dynamiclight->integer && r_volumeLight->integer)
 	{
-		if (!r_lowVram->integer)
+		if (!r_lowQualityMode->integer)
 		{
 			DEBUG_StartTimer("Volumetric Light Generate", qtrue);
 			RB_GenerateVolumeLightImage();
@@ -3412,7 +3412,7 @@ const void *RB_PostProcess(const void *data)
 
 		if (!SCREEN_BLUR && ENABLE_DISPLACEMENT_MAPPING && r_ssdm->integer)
 		{
-			if (!r_lowVram->integer)
+			//if (!r_lowQualityMode->integer)
 			{
 				DEBUG_StartTimer("SSDM Generate", qtrue);
 				RB_SSDM_Generate(currentFbo, srcBox, currentOutFbo, dstBox);
@@ -3422,7 +3422,7 @@ const void *RB_PostProcess(const void *data)
 
 		if (!SCREEN_BLUR && r_ao->integer >= 2.0)
 		{
-			if (!r_lowVram->integer)
+			//if (!r_lowQualityMode->integer)
 			{
 				DEBUG_StartTimer("SSAO Generate", qtrue);
 				RB_SSAO(currentFbo, srcBox, currentOutFbo, dstBox);
@@ -3440,7 +3440,7 @@ const void *RB_PostProcess(const void *data)
 
 		if (r_cartoon->integer >= 3.0)
 		{
-			if (!r_lowVram->integer)
+			//if (!r_lowQualityMode->integer)
 			{
 				DEBUG_StartTimer("Paint", qtrue);
 				RB_Paint(currentFbo, srcBox, currentOutFbo, dstBox);
@@ -3465,7 +3465,7 @@ const void *RB_PostProcess(const void *data)
 #ifdef __SSDO__
 		if (!SCREEN_BLUR && r_ssdo->integer /*&& AO_DIRECTIONAL*/)
 		{
-			if (!r_lowVram->integer)
+			//if (!r_lowQualityMode->integer)
 			{
 				DEBUG_StartTimer("SSDO", qtrue);
 				RB_SSDO(currentFbo, srcBox, currentOutFbo, dstBox);
@@ -3480,7 +3480,7 @@ const void *RB_PostProcess(const void *data)
 
 		/*if (!SCREEN_BLUR && r_sss->integer)
 		{
-			if (!r_lowVram->integer)
+			//if (!r_lowQualityMode->integer)
 			{
 				DEBUG_StartTimer("SSS", qtrue);
 
@@ -3495,7 +3495,7 @@ const void *RB_PostProcess(const void *data)
 
 		if (!SCREEN_BLUR && r_anamorphic->integer /*&& backEnd.pc.c_glowDraws > 0*/)
 		{
-			if (!r_lowVram->integer)
+			//if (!r_lowQualityMode->integer)
 			{
 				DEBUG_StartTimer("Create Anamorphic", qtrue);
 				RB_CreateAnamorphicImage();
@@ -3513,7 +3513,7 @@ const void *RB_PostProcess(const void *data)
 
 		/*if (!SCREEN_BLUR && (r_ssr->value > 0.0 || r_sse->value > 0.0))
 		{
-			if (!r_lowVram->integer)
+			//if (!r_lowQualityMode->integer)
 			{
 				DEBUG_StartTimer("SSR", qtrue);
 				RB_ScreenSpaceReflections(currentFbo, srcBox, currentOutFbo, dstBox);
@@ -3524,7 +3524,7 @@ const void *RB_PostProcess(const void *data)
 
 		/*if (r_underwater->integer && (backEnd.refdef.rdflags & RDF_UNDERWATER))
 		{
-			if (!r_lowVram->integer)
+			//if (!r_lowQualityMode->integer)
 			{
 				DEBUG_StartTimer("Underwater", qtrue);
 				RB_Underwater(currentFbo, srcBox, currentOutFbo, dstBox);
@@ -3535,7 +3535,7 @@ const void *RB_PostProcess(const void *data)
 
 		if (!SCREEN_BLUR && r_magicdetail->integer)
 		{
-			if (!r_lowVram->integer)
+			//if (!r_lowQualityMode->integer)
 			{
 				DEBUG_StartTimer("Magic Detail", qtrue);
 				RB_MagicDetail(currentFbo, srcBox, currentOutFbo, dstBox);
@@ -3546,7 +3546,7 @@ const void *RB_PostProcess(const void *data)
 
 		/*if (SCREEN_BLUR && r_screenBlurSlow->integer)
 		{
-			if (!r_lowVram->integer)
+			//if (!r_lowQualityMode->integer)
 			{
 				DEBUG_StartTimer("Screen Blur Slow", qtrue);
 
@@ -3567,7 +3567,7 @@ const void *RB_PostProcess(const void *data)
 
 		if (SCREEN_BLUR && r_screenBlurFast->integer)
 		{
-			if (!r_lowVram->integer)
+			//if (!r_lowQualityMode->integer)
 			{
 				DEBUG_StartTimer("Screen Blur Fast", qtrue);
 				RB_FastBlur(currentFbo, srcBox, currentOutFbo, dstBox);
@@ -3578,7 +3578,7 @@ const void *RB_PostProcess(const void *data)
 
 		/*if (!SCREEN_BLUR && r_hbao->integer)
 		{
-			if (!r_lowVram->integer)
+			//if (!r_lowQualityMode->integer)
 			{
 				DEBUG_StartTimer("HBAO", qtrue);
 				RB_HBAO(currentFbo, srcBox, currentOutFbo, dstBox);
@@ -3621,7 +3621,7 @@ const void *RB_PostProcess(const void *data)
 
 		if (!SCREEN_BLUR && r_dof->integer)
 		{
-			if (!r_lowVram->integer)
+			//if (!r_lowQualityMode->integer)
 			{
 				RB_DofFocusDepth();
 
@@ -3641,7 +3641,7 @@ const void *RB_PostProcess(const void *data)
 #if 0
 		if (!SCREEN_BLUR && r_lensflare->integer)
 		{
-			if (!r_lowVram->integer)
+			//if (!r_lowQualityMode->integer)
 			{
 				DEBUG_StartTimer("Lens Flare", qtrue);
 				RB_LensFlare(currentFbo, srcBox, currentOutFbo, dstBox);
@@ -3701,7 +3701,7 @@ const void *RB_PostProcess(const void *data)
 
 		if (!SCREEN_BLUR && r_esharpening->integer)
 		{
-			if (!r_lowVram->integer)
+			//if (!r_lowQualityMode->integer)
 			{
 				DEBUG_StartTimer("eSharpen", qtrue);
 				RB_ESharpening(currentFbo, srcBox, currentOutFbo, dstBox);
@@ -3712,7 +3712,7 @@ const void *RB_PostProcess(const void *data)
 
 		/*if (!SCREEN_BLUR && r_esharpening2->integer)
 		{
-			if (!r_lowVram->integer)
+			//if (!r_lowQualityMode->integer)
 			{
 				DEBUG_StartTimer("eSharpen2", qtrue);
 				RB_ESharpening2(currentFbo, srcBox, currentOutFbo, dstBox);
@@ -3723,7 +3723,7 @@ const void *RB_PostProcess(const void *data)
 
 		/*if (!SCREEN_BLUR && r_darkexpand->integer)
 		{
-			if (!r_lowVram->integer)
+			//if (!r_lowQualityMode->integer)
 			{
 				DEBUG_StartTimer("Dark Expand", qtrue);
 				for (int pass = 0; pass < 2; pass++)
@@ -3738,7 +3738,7 @@ const void *RB_PostProcess(const void *data)
 		/*
 		if (!SCREEN_BLUR && r_distanceBlur->integer)
 		{
-			if (!r_lowVram->integer)
+			//if (!r_lowQualityMode->integer)
 			{
 				DEBUG_StartTimer("Distance Blur", qtrue);
 				if (r_distanceBlur->integer >= 2)
@@ -3791,7 +3791,7 @@ const void *RB_PostProcess(const void *data)
 			DEBUG_EndTimer(qtrue);
 		}
 
-		if (!SCREEN_BLUR && (r_bloom->integer == 1 && !r_lowVram->integer) /*&& backEnd.pc.c_glowDraws > 0*/)
+		if (!SCREEN_BLUR && (r_bloom->integer == 1 /*&& !r_lowQualityMode->integer*/) /*&& backEnd.pc.c_glowDraws > 0*/)
 		{
 			DEBUG_StartTimer("Bloom", qtrue);
 			RB_Bloom(currentFbo, srcBox, currentOutFbo, dstBox);
@@ -3799,19 +3799,9 @@ const void *RB_PostProcess(const void *data)
 			DEBUG_EndTimer(qtrue);
 		}
 
-		/*
-		if (!SCREEN_BLUR && (r_testvalue0->integer && !r_lowVram->integer))
-		{
-			DEBUG_StartTimer("Bloom Area", qtrue);
-			RB_BloomArea(currentFbo, srcBox, currentOutFbo, dstBox);
-			RB_SwapFBOs(&currentFbo, &currentOutFbo);
-			DEBUG_EndTimer(qtrue);
-		}
-		*/
-
 		if (!SCREEN_BLUR && r_anamorphic->integer /*&& backEnd.pc.c_glowDraws > 0*/)
 		{
-			if (!r_lowVram->integer)
+			//if (!r_lowQualityMode->integer)
 			{
 				DEBUG_StartTimer("Anamorphic", qtrue);
 				RB_Anamorphic(currentFbo, srcBox, currentOutFbo, dstBox);
@@ -3822,7 +3812,7 @@ const void *RB_PostProcess(const void *data)
 
 		if (!SCREEN_BLUR && r_dynamiclight->integer && r_volumeLight->integer && RB_NightScale() < 1.0)
 		{
-			if (!r_lowVram->integer)
+			//if (!r_lowQualityMode->integer)
 			{
 				DEBUG_StartTimer("Volumetric Light Generate", qtrue);
 				RB_GenerateVolumeLightImage();
@@ -3837,7 +3827,7 @@ const void *RB_PostProcess(const void *data)
 
 		if (!SCREEN_BLUR && r_bloom->integer >= 2 /*&& backEnd.pc.c_glowDraws > 0*/)
 		{
-			if (!r_lowVram->integer)
+			//if (!r_lowQualityMode->integer)
 			{
 				DEBUG_StartTimer("Bloom Rays", qtrue);
 				RB_BloomRays(currentFbo, srcBox, currentOutFbo, dstBox);

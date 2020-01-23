@@ -1555,18 +1555,18 @@ static void GLW_InitExtensions( void )
 		qglGetIntegerv( GL_MAX_GENERAL_COMBINERS_NV, &iNumGeneralCombiners );
 
 	// Only allow dynamic glows/flares if they have the hardware
-	if ( bTexRectSupported && bARBVertexProgram && bHasRenderTexture && qglActiveTextureARB && glConfig.maxActiveTextures >= 4 &&
-		( ( bNVRegisterCombiners && iNumGeneralCombiners >= 2 ) || bARBFragmentProgram ) )
-	{
+	//if ( bTexRectSupported && bARBVertexProgram && bHasRenderTexture && qglActiveTextureARB && glConfig.maxActiveTextures >= 4 &&
+	//	( ( bNVRegisterCombiners && iNumGeneralCombiners >= 2 ) || bARBFragmentProgram ) )
+	//{
 		g_bDynamicGlowSupported = true;
 		// this would overwrite any achived setting gwg
 		// ri.Cvar_Set( "r_DynamicGlow", "1" );
-	}
-	else
-	{
-		g_bDynamicGlowSupported = false;
-		ri->Cvar_Set( "r_DynamicGlow","0" );
-	}
+	//}
+	//else
+	//{
+	//	g_bDynamicGlowSupported = false;
+	//	ri->Cvar_Set( "r_DynamicGlow","0" );
+	//}
 }
 
 /*

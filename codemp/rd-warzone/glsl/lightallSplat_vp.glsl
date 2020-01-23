@@ -7,11 +7,11 @@ attribute vec2 attr_TexCoord0;
 attribute vec2 attr_TexCoord1;
 
 
-#ifdef __VBO_PACK_COLOR__
+#ifdef VBO_PACK_COLOR
 attribute float attr_Color;
-#else //!__VBO_PACK_COLOR__
+#else //!VBO_PACK_COLOR
 attribute vec4 attr_Color;
-#endif //__VBO_PACK_COLOR__
+#endif //VBO_PACK_COLOR
 
 attribute vec3 attr_Position;
 attribute vec3 attr_Normal;
@@ -139,9 +139,9 @@ uniform vec4						u_Local19; // STANDARD_SPLATMAP_STEEPANGLE, STANDARD_SPLATMAP_
 #define SPLATMAP_STEEPMAXIMUM		u_Local19.a
 
 
-#ifdef __CHEAP_VERTS__
+#ifdef CHEAP_VERTS
 uniform int					u_isWorld;
-#endif //__CHEAP_VERTS__
+#endif //CHEAP_VERTS
 
 uniform float	u_Time;
 
@@ -248,23 +248,23 @@ vec4 CalcColor(vec3 position, vec3 normal)
 {
 	vec4 color;
 
-#ifdef __CHEAP_VERTS__
+#ifdef CHEAP_VERTS
 	if (u_isWorld > 0)
 	{
 		color = u_VertColor + u_BaseColor;
 	}
 	else
-#endif //__CHEAP_VERTS__
+#endif //CHEAP_VERTS
 	{
-//#ifdef __CHEAP_VERTS__
+//#ifdef CHEAP_VERTS
 //		color = u_VertColor + u_BaseColor;
-//#else //!__CHEAP_VERTS__
-	#ifdef __VBO_PACK_COLOR__
+//#else //!CHEAP_VERTS
+	#ifdef VBO_PACK_COLOR
 		color = u_VertColor * DecodeFloatRGBA(attr_Color) + u_BaseColor;
-	#else //!__VBO_PACK_COLOR__
+	#else //!VBO_PACK_COLOR
 		color = u_VertColor * attr_Color + u_BaseColor;
-	#endif //__VBO_PACK_COLOR__
-//#endif //__CHEAP_VERTS__
+	#endif //VBO_PACK_COLOR
+//#endif //CHEAP_VERTS
 	}
 	
 	if (USE_RGBA > 0.0)
@@ -570,7 +570,7 @@ void main()
 	highp vec3 position;
 	highp vec3 normal;
 
-#ifdef __HEIGHTMAP_TERRAIN_TEST__
+#ifdef _HEIGHTMAP_TERRAIN_TEST_
 	vec3 heightMap = vec3(0.0);
 
 	if (USE_IS2D <= 0.0)
@@ -581,7 +581,7 @@ void main()
 		float hmt = length(hm);
 		heightMap.z = hmt * u_Local9.g;
 	}
-#endif //__HEIGHTMAP_TERRAIN_TEST__
+#endif //_HEIGHTMAP_TERRAIN_TEST_
 
 	position  = attr_Position;
 	normal    = attr_Normal * 2.0 - 1.0;
@@ -597,9 +597,9 @@ void main()
 	position += OffsetForPosition(position);
 #endif //defined(USE_TESSELLATION_3D) && defined(USE_EDGE_TESSELLATION)
 
-#ifdef __HEIGHTMAP_TERRAIN_TEST__
+#ifdef _HEIGHTMAP_TERRAIN_TEST_
 	position.xyz += heightMap;
-#endif //__HEIGHTMAP_TERRAIN_TEST__
+#endif //_HEIGHTMAP_TERRAIN_TEST_
 
 
 #if 0

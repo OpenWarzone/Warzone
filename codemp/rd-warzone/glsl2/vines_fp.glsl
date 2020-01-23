@@ -1,4 +1,4 @@
-#define __CHRISTMAS_LIGHTS__
+#define _CHRISTMAS_LIGHTS_
 
 #if defined(USE_BINDLESS_TEXTURES)
 layout(std140) uniform u_bindlessTexturesBlock
@@ -103,21 +103,15 @@ flat in int			iGrassType;
 
 out vec4			out_Glow;
 out vec4			out_Normal;
-#ifdef __USE_REAL_NORMALMAPS__
+#ifdef USE_REAL_NORMALMAPS
 out vec4			out_NormalDetail;
-#endif //__USE_REAL_NORMALMAPS__
+#endif //USE_REAL_NORMALMAPS
 out vec4			out_Position;
 
 const float xdec = 1.0/255.0;
 const float ydec = 1.0/65025.0;
 const float zdec = 1.0/16581375.0;
 
-//#define __ENCODE_NORMALS_RECONSTRUCT_Z__
-#define __ENCODE_NORMALS_STEREOGRAPHIC_PROJECTION__
-//#define __ENCODE_NORMALS_CRY_ENGINE__
-//#define __ENCODE_NORMALS_EQUAL_AREA_PROJECTION__
-
-#ifdef __ENCODE_NORMALS_STEREOGRAPHIC_PROJECTION__
 vec2 EncodeNormal(vec3 n)
 {
 	float scale = 1.7777;
@@ -136,48 +130,6 @@ vec3 DecodeNormal(vec2 enc)
 	float g = 2.0 / dot(nn.xyz, nn.xyz);
 	return vec3(g * nn.xy, g - 1.0);
 }
-#elif defined(__ENCODE_NORMALS_CRY_ENGINE__)
-vec3 DecodeNormal(in vec2 N)
-{
-	vec2 encoded = N * 4.0 - 2.0;
-	float f = dot(encoded, encoded);
-	float g = sqrt(1.0 - f * 0.25);
-	return vec3(encoded * g, 1.0 - f * 0.5);
-}
-vec2 EncodeNormal(in vec3 N)
-{
-	float f = sqrt(8.0 * N.z + 8.0);
-	return N.xy / f + 0.5;
-}
-#elif defined(__ENCODE_NORMALS_EQUAL_AREA_PROJECTION__)
-vec2 EncodeNormal(vec3 n)
-{
-	float f = sqrt(8.0 * n.z + 8.0);
-	return n.xy / f + 0.5;
-}
-vec3 DecodeNormal(vec2 enc)
-{
-	vec2 fenc = enc * 4.0 - 2.0;
-	float f = dot(fenc, fenc);
-	float g = sqrt(1.0 - f / 4.0);
-	vec3 n;
-	n.xy = fenc*g;
-	n.z = 1.0 - f / 2.0;
-	return n;
-}
-#else //__ENCODE_NORMALS_RECONSTRUCT_Z__
-vec3 DecodeNormal(in vec2 N)
-{
-	vec3 norm;
-	norm.xy = N * 2.0 - 1.0;
-	norm.z = sqrt(1.0 - dot(norm.xy, norm.xy));
-	return norm;
-}
-vec2 EncodeNormal(vec3 n)
-{
-	return vec2(n.xy * 0.5 + 0.5);
-}
-#endif //__ENCODE_NORMALS_RECONSTRUCT_Z__
 
 vec4 DecodeFloatRGBA( float v ) {
   vec4 enc = vec4(1.0, 255.0, 65025.0, 16581375.0) * v;
@@ -186,7 +138,7 @@ vec4 DecodeFloatRGBA( float v ) {
   return enc;
 }
 
-#ifdef __CHRISTMAS_LIGHTS__
+#ifdef _CHRISTMAS_LIGHTS_
 float hash( const in float n ) {
 	return fract(sin(n)*4378.5453);
 }
@@ -239,7 +191,7 @@ float SmoothNoise( vec3 p, in float seed )
 	
     return f * (1.0 / (0.5000 + 0.2500));
 }
-#endif //__CHRISTMAS_LIGHTS__
+#endif //_CHRISTMAS_LIGHTS_
 
 bool isDithered(vec2 pos, float alpha)
 {
@@ -263,9 +215,9 @@ bool isDithered(vec2 pos, float alpha)
 void main() 
 {
 	vec4 diffuse;
-#ifdef __CHRISTMAS_LIGHTS__
+#ifdef _CHRISTMAS_LIGHTS_
 	vec4 lights = vec4(0.0);
-#endif //__CHRISTMAS_LIGHTS__
+#endif //_CHRISTMAS_LIGHTS_
 
 	vec2 tc = vTexCoord;
 
@@ -334,7 +286,7 @@ void main()
 		diffuse.a = 1.0;
 #endif
 
-#ifdef __CHRISTMAS_LIGHTS__
+#ifdef _CHRISTMAS_LIGHTS_
 		if (ENABLE_CHRISTMAS_EFFECT > 0.0 && diffuse.a > 0.05)
 		{
 			float mapmult = 0.05;
@@ -344,7 +296,7 @@ void main()
 			lights.rgb = bri*f*10240.0;
 			lights.a = clamp(max(lights.r, max(lights.g, lights.b)), 0.0, 1.0);
 		}
-#endif //__CHRISTMAS_LIGHTS__
+#endif //_CHRISTMAS_LIGHTS_
 	}
 	else
 	{
@@ -353,17 +305,17 @@ void main()
 
 	if (diffuse.a > 0.0/*0.05*//*0.5*/)
 	{
-	#ifdef __CHRISTMAS_LIGHTS__
+	#ifdef _CHRISTMAS_LIGHTS_
 		gl_FragColor = vec4(clamp(diffuse.rgb + (lights.rgb * lights.a), 0.0, 1.0), diffuse.a);
 		out_Glow = vec4(lights);
-	#else //!__CHRISTMAS_LIGHTS__
+	#else //!_CHRISTMAS_LIGHTS_
 		gl_FragColor = vec4(diffuse);
 		out_Glow = vec4(0.0);
-	#endif //__CHRISTMAS_LIGHTS__
+	#endif //_CHRISTMAS_LIGHTS_
 		out_Normal = vec4(vVertNormal.xy/*EncodeNormal(DecodeNormal(vVertNormal.xy))*/, 0.0, 1.0);
-#ifdef __USE_REAL_NORMALMAPS__
+#ifdef USE_REAL_NORMALMAPS
 		out_NormalDetail = vec4(0.0);
-#endif //__USE_REAL_NORMALMAPS__
+#endif //USE_REAL_NORMALMAPS
 		out_Position = vec4(vVertPosition, MATERIAL_PROCEDURALFOLIAGE+1.0);
 	}
 	else
@@ -371,9 +323,9 @@ void main()
 		gl_FragColor = vec4(0.0);
 		out_Glow = vec4(0.0);
 		out_Normal = vec4(0.0);
-#ifdef __USE_REAL_NORMALMAPS__
+#ifdef USE_REAL_NORMALMAPS
 		out_NormalDetail = vec4(0.0);
-#endif //__USE_REAL_NORMALMAPS__
+#endif //USE_REAL_NORMALMAPS
 		out_Position = vec4(0.0);
 	}
 }

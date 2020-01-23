@@ -1,5 +1,5 @@
-#define __PER_PIXEL_NORMAL__
-//#define __USING_GEOM_SHADER__
+#define _PER_PIXEL_NORMAL_
+//#define _USING_GEOM_SHADER_
 
 /* Cube and Bumpmaps */
 uniform samplerCube u_SkyCubeMap;
@@ -51,30 +51,24 @@ const vec3 waterColorDeep = vec3(0.0059, 0.1276, 0.18);
 #define blinn true
 
 
-#ifdef __USING_GEOM_SHADER__
+#ifdef _USING_GEOM_SHADER_
 in vec3 WorldPos_FS_in;
 in vec3 Normal_FS_in;
 #define FragPos WorldPos_FS_in
 #define Normal Normal_FS_in
-#else //!__USING_GEOM_SHADER__
+#else //!_USING_GEOM_SHADER_
 in vec3 FragPos;
 in vec3 Normal;
-#endif //__USING_GEOM_SHADER__
+#endif //_USING_GEOM_SHADER_
 
 
 out vec4 out_Glow;
 out vec4 out_Normal;
 out vec4 out_Position;
-#ifdef __USE_REAL_NORMALMAPS__
+#ifdef USE_REAL_NORMALMAPS
 out vec4 out_NormalDetail;
-#endif //__USE_REAL_NORMALMAPS__
+#endif //USE_REAL_NORMALMAPS
 
-//#define __ENCODE_NORMALS_RECONSTRUCT_Z__
-#define __ENCODE_NORMALS_STEREOGRAPHIC_PROJECTION__
-//#define __ENCODE_NORMALS_CRY_ENGINE__
-//#define __ENCODE_NORMALS_EQUAL_AREA_PROJECTION__
-
-#ifdef __ENCODE_NORMALS_STEREOGRAPHIC_PROJECTION__
 vec2 EncodeNormal(vec3 n)
 {
 	float scale = 1.7777;
@@ -93,48 +87,6 @@ vec3 DecodeNormal(vec2 enc)
 	float g = 2.0 / dot(nn.xyz, nn.xyz);
 	return vec3(g * nn.xy, g - 1.0);
 }
-#elif defined(__ENCODE_NORMALS_CRY_ENGINE__)
-vec3 DecodeNormal(in vec2 N)
-{
-	vec2 encoded = N * 4.0 - 2.0;
-	float f = dot(encoded, encoded);
-	float g = sqrt(1.0 - f * 0.25);
-	return vec3(encoded * g, 1.0 - f * 0.5);
-}
-vec2 EncodeNormal(in vec3 N)
-{
-	float f = sqrt(8.0 * N.z + 8.0);
-	return N.xy / f + 0.5;
-}
-#elif defined(__ENCODE_NORMALS_EQUAL_AREA_PROJECTION__)
-vec2 EncodeNormal(vec3 n)
-{
-	float f = sqrt(8.0 * n.z + 8.0);
-	return n.xy / f + 0.5;
-}
-vec3 DecodeNormal(vec2 enc)
-{
-	vec2 fenc = enc * 4.0 - 2.0;
-	float f = dot(fenc, fenc);
-	float g = sqrt(1.0 - f / 4.0);
-	vec3 n;
-	n.xy = fenc*g;
-	n.z = 1.0 - f / 2.0;
-	return n;
-}
-#else //__ENCODE_NORMALS_RECONSTRUCT_Z__
-vec3 DecodeNormal(in vec2 N)
-{
-	vec3 norm;
-	norm.xy = N * 2.0 - 1.0;
-	norm.z = sqrt(1.0 - dot(norm.xy, norm.xy));
-	return norm;
-}
-vec2 EncodeNormal(vec3 n)
-{
-	return vec2(n.xy * 0.5 + 0.5);
-}
-#endif //__ENCODE_NORMALS_RECONSTRUCT_Z__
 
 // R0 is a constant related to the index of refraction (IOR).
 // It should be computed on the CPU and passed to the shader.
@@ -170,7 +122,7 @@ float getspecular(vec3 n, vec3 l, vec3 e, float s) {
 	return pow(max(dot(reflect(e, n), l), 0.0), s) * nrm;
 }
 
-#ifdef __PER_PIXEL_NORMAL__
+#ifdef _PER_PIXEL_NORMAL_
 vec3 computePartialGerstnerNormal(Wave w, vec3 P, float time)
 {
 	vec3 N = vec3(0.0, 0.0, 0.0);
@@ -185,14 +137,14 @@ vec3 computePartialGerstnerNormal(Wave w, vec3 P, float time)
 		
 	return N;
 }
-#endif //__PER_PIXEL_NORMAL__
+#endif //_PER_PIXEL_NORMAL_
 
 void main()
 {
 	float ambientStrength = 0.7;
 	vec3 ambient = ambientStrength * lightColor;
 	
-#ifdef __PER_PIXEL_NORMAL__
+#ifdef _PER_PIXEL_NORMAL_
 	Wave W[10] = Wave[]
 	(
 		Wave( 0.050, 0.20, 1.5, vec2(-5.5, 2.0) ),
@@ -220,9 +172,9 @@ void main()
 	norm.z *= -1.0;
 	norm.y = 1.0 - norm.y;
 	norm = normalize(norm).xzy;
-#else //!__PER_PIXEL_NORMAL__
+#else //!_PER_PIXEL_NORMAL_
 	vec3 norm = normalize(Normal);
-#endif //__PER_PIXEL_NORMAL__
+#endif //_PER_PIXEL_NORMAL_
 
 	vec3 lightDir = normalize(lightPos - FragPos);
 	float diff = max(dot(norm, lightDir), 0.1);
@@ -324,8 +276,8 @@ void main()
 	out_Color.a = 1.0;
 	out_Glow = vec4(0.0);
 	out_Normal = vec4(EncodeNormal(norm), 0.0, 1.0);
-#ifdef __USE_REAL_NORMALMAPS__
+#ifdef USE_REAL_NORMALMAPS
 	out_NormalDetail = vec4(0.0);
-#endif //__USE_REAL_NORMALMAPS__
+#endif //USE_REAL_NORMALMAPS
 	out_Position = vec4(FragPos.xyz, MATERIAL_WATER+1.0);
 }

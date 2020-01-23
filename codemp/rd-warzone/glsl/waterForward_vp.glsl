@@ -1,5 +1,5 @@
-#define __PER_PIXEL_NORMAL__
-//#define __USING_GEOM_SHADER__
+#define _PER_PIXEL_NORMAL_
+//#define _USING_GEOM_SHADER_
 
 invariant gl_Position;
 
@@ -50,7 +50,7 @@ vec3 getGerstnerHeight(Wave w, vec2 pos, float time)
 	return gerstner;
 }
 
-#ifndef __PER_PIXEL_NORMAL__
+#ifndef _PER_PIXEL_NORMAL_
 vec3 computePartialBinormal(Wave w, vec3 P, float time)
 {
 	vec3 B = vec3(0.0, 0.0, 0.0);
@@ -95,7 +95,7 @@ vec3 computePartialGerstnerNormal(Wave w, vec3 P, float time)
 		
 	return N;
 }
-#endif //__PER_PIXEL_NORMAL__
+#endif //_PER_PIXEL_NORMAL_
 
 void main()
 {
@@ -136,7 +136,7 @@ void main()
 	position.z += gerstnerTot.z;
 	position.y += gerstnerTot.y;
 
-#ifndef __PER_PIXEL_NORMAL__
+#ifndef _PER_PIXEL_NORMAL_
 #if 0
 	vec3 T = vec3(0.0, 0.0, 0.0);
 	for(int i = 0; i < numWaves; i++)
@@ -168,13 +168,13 @@ void main()
 
 	Normal = normalize(N).xzy;
 	//Normal.y *= -1.0;
-#endif //__PER_PIXEL_NORMAL__
+#endif //_PER_PIXEL_NORMAL_
 
 	FragPos = position.xzy;
 
-#ifdef __USING_GEOM_SHADER__
+#ifdef _USING_GEOM_SHADER_
 	gl_Position = vec4(position.xzy, 1.0);
-#else //!__USING_GEOM_SHADER__
+#else //!_USING_GEOM_SHADER_
 	gl_Position = u_ModelViewProjectionMatrix * vec4(position.xzy, 1.0);
-#endif //__USING_GEOM_SHADER__
+#endif //_USING_GEOM_SHADER_
 }

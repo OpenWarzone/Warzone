@@ -83,15 +83,15 @@ uniform vec4						u_Maxs;
 
 uniform float						u_Time;
 
-out precise vec3 WorldPos_FS_in;
-out precise vec2 TexCoord_FS_in;
-out precise vec2 envTC_FS_in;
-out precise vec3 Normal_FS_in;
-out precise vec3 ViewDir_FS_in;
-out precise vec4 Color_FS_in;
-out precise vec4 PrimaryLightDir_FS_in;
-out precise vec2 TexCoord2_FS_in;
-out precise vec3 Blending_FS_in;
+out vec3 WorldPos_FS_in;
+out vec2 TexCoord_FS_in;
+out vec2 envTC_FS_in;
+out vec3 Normal_FS_in;
+out vec3 ViewDir_FS_in;
+out vec4 Color_FS_in;
+out vec4 PrimaryLightDir_FS_in;
+out vec2 TexCoord2_FS_in;
+out vec3 Blending_FS_in;
 /*flat*/ out float Slope_FS_in;
 /*flat*/ out float GrassSlope_FS_in;
 out float TessDepth_FS_in;
@@ -137,15 +137,15 @@ uniform vec3			u_ViewOrigin;
 uniform int    u_DeformGen;
 uniform float  u_DeformParams[7];
 
-in precise vec4 WorldPos_ES_in[];
-in precise vec3 iNormal[];
-in precise vec2 iTexCoord[];
-in precise vec2 ienvTC[];
-in precise PnPatch iPnPatch[];
-in precise vec4 Color_ES_in[];
-in precise vec4 PrimaryLightDir_ES_in[];
-in precise vec2 TexCoord2_ES_in[];
-in precise vec3 Blending_ES_in[];
+in vec4 WorldPos_ES_in[];
+in vec3 iNormal[];
+in vec2 iTexCoord[];
+in vec2 ienvTC[];
+in PnPatch iPnPatch[];
+in vec4 Color_ES_in[];
+in vec4 PrimaryLightDir_ES_in[];
+in vec2 TexCoord2_ES_in[];
+in vec3 Blending_ES_in[];
 in float Slope_ES_in[];
 in float GrassSlope_ES_in[];
 
@@ -414,7 +414,7 @@ void main()
 		finalPos.z += OffsetForPosition(finalPos);
 	}*/
 
-#ifndef __USE_GEOM_SHADER__
+#ifndef _USE_GEOM_SHADER_
 	gl_Position = u_ModelViewProjectionMatrix * vec4(finalPos, 1.0);
 
 	if (USE_DEFORM == 1.0)
@@ -426,9 +426,9 @@ void main()
 	Normal_GS_in = (u_ModelMatrix * vec4(Normal_GS_in, 0.0)).xyz;
 
 	//Normal_GS_in = uTessAlpha*(u_ModelMatrix * vec4(pnNormal, 0.0) + (1.0 - uTessAlpha)*(u_ModelMatrix * vec4(barNormal, 0.0);
-#else //__USE_GEOM_SHADER__
+#else //_USE_GEOM_SHADER_
 	gl_Position = vec4(finalPos, 1.0);
-#endif //__USE_GEOM_SHADER__
+#endif //_USE_GEOM_SHADER_
 	//WorldPos_GS_in = finalPos.xyz;
 	ViewDir_GS_in = u_ViewOrigin - finalPos;
 

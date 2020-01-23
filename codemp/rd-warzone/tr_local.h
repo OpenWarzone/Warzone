@@ -610,6 +610,7 @@ extern int		max_polyverts;
 extern cvar_t	*r_perf;
 extern cvar_t	*r_glslOptimize;
 extern cvar_t	*r_useLowP;
+extern cvar_t	*r_lowQualityMode;
 extern cvar_t	*r_lowVram;
 extern cvar_t	*r_useStaticVBO;
 extern cvar_t	*r_volumeLightHQ;
@@ -3334,7 +3335,6 @@ typedef struct trGlobals_s {
 	shaderProgram_t bloomDarkenShader;
 	shaderProgram_t bloomBlurShader;
 	shaderProgram_t bloomCombineShader;
-	shaderProgram_t bloomAreaCombineShader;
 	//shaderProgram_t lensflareShader;
 	shaderProgram_t multipostShader;
 	shaderProgram_t anamorphicDarkenShader;
@@ -3364,8 +3364,6 @@ typedef struct trGlobals_s {
 
 	image_t        *anamorphicRenderFBOImage;
 	image_t        *bloomRenderFBOImage[3];
-	image_t        *bloomAreaRenderFBOImage[8];
-	image_t        *bloomAreaRenderFinalFBOImage;
 	image_t        *volumetricFBOImage;
 	image_t        *bloomRaysFBOImage;
 	image_t        *waterReflectionRenderImage;
@@ -3382,8 +3380,6 @@ typedef struct trGlobals_s {
 
 	FBO_t          *anamorphicRenderFBO;
 	FBO_t          *bloomRenderFBO[3];
-	FBO_t          *bloomAreaRenderFBO[8];
-	FBO_t          *bloomAreaRenderFinalFBO;
 	FBO_t		   *volumetricFbo;
 	FBO_t		   *bloomRaysFbo;
 	FBO_t          *waterReflectionRenderFBO;
@@ -3740,6 +3736,7 @@ extern cvar_t	*r_dynamicGlowSoft;
 extern cvar_t	*r_perf;
 extern cvar_t	*r_glslOptimize;
 extern cvar_t	*r_useLowP;
+extern cvar_t	*r_lowQualityMode;
 extern cvar_t	*r_lowVram;
 extern cvar_t	*r_useStaticVBO;
 extern cvar_t	*r_volumeLightHQ;

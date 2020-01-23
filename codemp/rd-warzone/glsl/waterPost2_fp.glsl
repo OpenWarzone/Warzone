@@ -2,10 +2,10 @@
 //#define USE_REFLECTION				// Enable reflections on water. Define moved to renderer code.
 #define FIX_WATER_DEPTH_ISSUES		// Use basic depth value for sky hits...
 //#define EXPERIMENTAL_WATERFALL	// Experimental waterfalls...
-//#define __DEBUG__
+//#define _DEBUG_
 //#define USE_LIGHTING				// Use lighting in this shader? trying to handle the lighting in deferredlight now instead.
 //#define USE_DETAILED_UNDERWATER		// Experimenting...
-#define __USE_PROCEDURAL_NOISE__
+#define _USE_PROCEDURAL_NOISE_
 
 /*
 heightMap – height-map used for waves generation as described in the section “Modifying existing geometry”
@@ -305,7 +305,7 @@ vec4 waterMapUpperAtCoord ( vec2 coord )
 	return wmap;
 }
 
-#ifdef __USE_PROCEDURAL_NOISE__
+#ifdef _USE_PROCEDURAL_NOISE_
 float hash( const in float n ) {
 	return fract(sin(n)*4378.5453);
 }
@@ -345,7 +345,7 @@ float noise(in vec3 o)
 	
 	return res;
 }
-#else //!__USE_PROCEDURAL_NOISE__
+#else //!_USE_PROCEDURAL_NOISE_
 const float ppx = 1.0 / 2048.0;
 
 float hash( const in float n ) {
@@ -356,7 +356,7 @@ float noise(in vec3 o)
 {
 	return texture(u_GlowMap, o.xy+o.z * ppx).r;
 }
-#endif //__USE_PROCEDURAL_NOISE__
+#endif //_USE_PROCEDURAL_NOISE_
 
 const mat3 m = mat3( 0.00,  0.80,  0.60,
                     -0.80,  0.36, -0.48,
@@ -374,7 +374,7 @@ float SmoothNoise( vec3 p )
 float pw = (1.0/u_Dimensions.x);
 float ph = (1.0/u_Dimensions.y);
 
-#if defined(USE_REFLECTION) && !defined(__LQ_MODE__)
+#if defined(USE_REFLECTION) && !defined(LQ_MODE)
 
 vec3 Vibrancy ( vec3 origcolor, float vibrancyStrength )
 {
@@ -435,7 +435,7 @@ vec3 AddReflection(vec2 coord, vec3 positionMap, vec3 surfacePoint, vec3 inColor
 
 	return mix(inColor.rgb, landColor.rgb, vec3(landColor.a * u_Local1.a * dt));
 }
-#endif //defined(USE_REFLECTION) && !defined(__LQ_MODE__)
+#endif //defined(USE_REFLECTION) && !defined(LQ_MODE)
 
 // PI is a mathematical constant relating the ratio of a circle's circumference (distance around
 // the edge) to its diameter (distance between two points opposite on the edge).  
@@ -1052,14 +1052,14 @@ void Water( inout vec4 fragColor, vec4 positionMap, vec4 waterMap, vec4 waterMap
 		fragColor.rgb = ContrastSaturationBrightness(fragColor.rgb, CONTRAST_STRENGTH, SATURATION_STRENGTH, BRIGHTNESS_STRENGTH);
 	}
 
-#if defined(USE_REFLECTION) && !defined(__LQ_MODE__)
+#if defined(USE_REFLECTION) && !defined(LQ_MODE)
 	float dt = pow(clamp(dot(reflect(-dir, n), -dir), 0.0, 1.0), 4.0);
 
 	if (!pixelIsUnderWater && u_Local1.g >= 2.0 && dt > 0.0)
 	{
 		fragColor.rgb = AddReflection(var_TexCoords, finalPos, waterMap.xyz, fragColor.rgb, height, dt);
 	}
-#endif //defined(USE_REFLECTION) && !defined(__LQ_MODE__)
+#endif //defined(USE_REFLECTION) && !defined(LQ_MODE)
 
 	float fHeight = waveHeight * 0.05;
 	if (wdepth < fHeight)

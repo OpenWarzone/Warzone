@@ -8,14 +8,8 @@ uniform vec2		u_Dimensions;
 varying vec2		var_TexCoords;
 
 
-#define __FAST_NORMAL_DETAIL__
+#define _FAST_NORMAL_DETAIL_
 
-//#define __ENCODE_NORMALS_RECONSTRUCT_Z__
-#define __ENCODE_NORMALS_STEREOGRAPHIC_PROJECTION__
-//#define __ENCODE_NORMALS_CRY_ENGINE__
-//#define __ENCODE_NORMALS_EQUAL_AREA_PROJECTION__
-
-#ifdef __ENCODE_NORMALS_STEREOGRAPHIC_PROJECTION__
 vec2 EncodeNormal(vec3 n)
 {
 	float scale = 1.7777;
@@ -34,54 +28,12 @@ vec3 DecodeNormal(vec2 enc)
 	float g = 2.0 / dot(nn.xyz, nn.xyz);
 	return vec3(g * nn.xy, g - 1.0);
 }
-#elif defined(__ENCODE_NORMALS_CRY_ENGINE__)
-vec3 DecodeNormal(in vec2 N)
-{
-	vec2 encoded = N * 4.0 - 2.0;
-	float f = dot(encoded, encoded);
-	float g = sqrt(1.0 - f * 0.25);
-	return vec3(encoded * g, 1.0 - f * 0.5);
-}
-vec2 EncodeNormal(in vec3 N)
-{
-	float f = sqrt(8.0 * N.z + 8.0);
-	return N.xy / f + 0.5;
-}
-#elif defined(__ENCODE_NORMALS_EQUAL_AREA_PROJECTION__)
-vec2 EncodeNormal(vec3 n)
-{
-	float f = sqrt(8.0 * n.z + 8.0);
-	return n.xy / f + 0.5;
-}
-vec3 DecodeNormal(vec2 enc)
-{
-	vec2 fenc = enc * 4.0 - 2.0;
-	float f = dot(fenc, fenc);
-	float g = sqrt(1.0 - f / 4.0);
-	vec3 n;
-	n.xy = fenc*g;
-	n.z = 1.0 - f / 2.0;
-	return n;
-}
-#else //__ENCODE_NORMALS_RECONSTRUCT_Z__
-vec3 DecodeNormal(in vec2 N)
-{
-	vec3 norm;
-	norm.xy = N * 2.0 - 1.0;
-	norm.z = sqrt(1.0 - dot(norm.xy, norm.xy));
-	return norm;
-}
-vec2 EncodeNormal(vec3 n)
-{
-	return vec2(n.xy * 0.5 + 0.5);
-}
-#endif //__ENCODE_NORMALS_RECONSTRUCT_Z__
 
 float getHeight(vec2 uv) {
   return length(texture(u_DiffuseMap, uv).rgb) / 3.0;
 }
 
-#ifdef __FAST_NORMAL_DETAIL__
+#ifdef _FAST_NORMAL_DETAIL_
 vec4 normalVector(vec3 color) {
 	vec4 normals = vec4(color.rgb, length(color.rgb) / 3.0);
 	normals.rgb = vec3(length(normals.r - normals.a), length(normals.g - normals.a), length(normals.b - normals.a));
@@ -95,7 +47,7 @@ vec4 normalVector(vec3 color) {
 
 	return vec4(vec3(1.0) - (normalize(pow(N, vec3(4.0))) * 0.5 + 0.5), 1.0 - normals.a);
 }
-#else //!__FAST_NORMAL_DETAIL__
+#else //!_FAST_NORMAL_DETAIL_
 vec4 bumpFromDepth(vec2 uv, vec2 resolution, float scale) {
   vec2 step = 1. / resolution;
     
@@ -119,7 +71,7 @@ vec4 bumpFromDepth(vec2 uv, vec2 resolution, float scale) {
 vec4 normalVector(vec2 coord) {
 	return bumpFromDepth(coord, u_Dimensions, 0.1 /*scale*/);
 }
-#endif //__FAST_NORMAL_DETAIL__
+#endif //_FAST_NORMAL_DETAIL_
 
 
 vec3 TangentFromNormal ( vec3 normal )
@@ -147,26 +99,26 @@ void main(void)
 
 	if (u_Settings0.r == 2.0 || u_Settings0.r >= 4.0)
 	{
-#ifdef __USE_REAL_NORMALMAPS__
+#ifdef USE_REAL_NORMALMAPS
 		vec4 normalDetail = textureLod(u_OverlayMap, var_TexCoords, 0.0);
 
 		if (normalDetail.a < 1.0)
 		{// Don't have real normalmap, make normals for this pixel...
-#ifdef __FAST_NORMAL_DETAIL__
+#ifdef _FAST_NORMAL_DETAIL_
 			vec3 color = textureLod(u_DiffuseMap, var_TexCoords, 0.0).rgb;
 			normalDetail = normalVector(color);
-#else //!__FAST_NORMAL_DETAIL__
+#else //!_FAST_NORMAL_DETAIL_
 			normalDetail = normalVector(var_TexCoords);
-#endif //__FAST_NORMAL_DETAIL__
+#endif //_FAST_NORMAL_DETAIL_
 		}
-#else //!__USE_REAL_NORMALMAPS__
-#ifdef __FAST_NORMAL_DETAIL__
+#else //!USE_REAL_NORMALMAPS
+#ifdef _FAST_NORMAL_DETAIL_
 		vec3 color = textureLod(u_DiffuseMap, var_TexCoords, 0.0).rgb;
 		vec4 normalDetail = normalVector(color);
-#else //!__FAST_NORMAL_DETAIL__
+#else //!_FAST_NORMAL_DETAIL_
 		vec4 normalDetail = normalVector(var_TexCoords);
-#endif //__FAST_NORMAL_DETAIL__
-#endif //__USE_REAL_NORMALMAPS__
+#endif //_FAST_NORMAL_DETAIL_
+#endif //USE_REAL_NORMALMAPS
 
 		normalDetail.rgb = normalize(clamp(normalDetail.rgb, 0.0, 1.0) * 2.0 - 1.0);
 		//normalDetail.rgb *= 0.25;//u_Settings0.g;

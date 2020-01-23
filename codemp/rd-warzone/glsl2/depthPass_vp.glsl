@@ -5,11 +5,11 @@ invariant gl_Position;
 attribute vec2				attr_TexCoord0;
 attribute vec2				attr_TexCoord1;
 
-#ifdef __VBO_PACK_COLOR__
+#ifdef VBO_PACK_COLOR
 attribute float attr_Color;
-#else //!__VBO_PACK_COLOR__
+#else //!VBO_PACK_COLOR
 attribute vec4 attr_Color;
-#endif //__VBO_PACK_COLOR__
+#endif //VBO_PACK_COLOR
 
 attribute vec3				attr_Position;
 attribute vec3				attr_Normal;
@@ -112,9 +112,9 @@ uniform vec4						u_Local20; // bird origin x,y,z, 0.0
 #define SHADER_SKY_DIRECTION		u_Local5.b
 #define SHADER_AURORA_ENABLED		u_Local5.a
 
-#ifdef __CHEAP_VERTS__
+#ifdef CHEAP_VERTS
 uniform int					u_isWorld;
-#endif //__CHEAP_VERTS__
+#endif //CHEAP_VERTS
 
 uniform float				u_Time;
 
@@ -317,19 +317,19 @@ vec4 CalcColor(vec3 position/*, vec3 normal*/)
 {
 	vec4 color;
 
-#ifdef __CHEAP_VERTS__
+#ifdef CHEAP_VERTS
 	if (u_isWorld > 0)
 	{
 		color = vec4(1.0, 1.0, 1.0, u_VertColor.a + u_BaseColor.a);
 	}
 	else
-#endif //__CHEAP_VERTS__
+#endif //CHEAP_VERTS
 	{
-	#ifdef __VBO_PACK_COLOR__
+	#ifdef VBO_PACK_COLOR
 		color = vec4(1.0, 1.0, 1.0, u_VertColor.a * DecodeFloatRGBA(attr_Color).a + u_BaseColor.a);
-	#else //!__VBO_PACK_COLOR__
+	#else //!VBO_PACK_COLOR
 		color = vec4(1.0, 1.0, 1.0, u_VertColor.a * attr_Color.a + u_BaseColor.a);
-	#endif //__VBO_PACK_COLOR__
+	#endif //VBO_PACK_COLOR
 	}
 	
 	if (USE_RGBA > 0.0)

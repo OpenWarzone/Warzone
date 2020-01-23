@@ -110,10 +110,10 @@ uniform vec4						u_Local9; // testvalue0, 1, 2, 3
 
 
 #if defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
-in precise vec3						WorldPos_FS_in;
-in precise vec2						TexCoord_FS_in;
+in  vec3							WorldPos_FS_in;
+in  vec2							TexCoord_FS_in;
 
-in precise vec4						Color_FS_in;
+in  vec4							Color_FS_in;
 
 #define var_VertPos					WorldPos_FS_in
 #define var_TexCoords				TexCoord_FS_in

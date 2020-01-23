@@ -1,10 +1,10 @@
 //#define USE_DETAIL_TEXTURES
-//#define __SPLATS_LOOKUP_ALPHA__			// Meh, waste of lookups... If we do need them at some point, then we can still enable them or add a mapinfo i guess...
-//#define __USE_FULL_SPLAT_BLENDFUNC__		// Meh... fast should be nearly as good...
-#define __HIGH_PASS_SHARPEN__
-#define __USE_REGIONS__
-#define __USE_PROCEDURAL_NOISE__
-#define __USE_DISTANCE_BLEND__
+//#define _SPLATS_LOOKUP_ALPHA_			// Meh, waste of lookups... If we do need them at some point, then we can still enable them or add a mapinfo i guess...
+//#define _USE_FULL_SPLAT_BLENDFUNC_		// Meh... fast should be nearly as good...
+//#define _HIGH_PASS_SHARPEN_
+#define _USE_REGIONS_
+#define _USE_PROCEDURAL_NOISE_
+#define _USE_DISTANCE_BLEND_
 
 
 #define SCREEN_MAPS_ALPHA_THRESHOLD 0.666
@@ -194,20 +194,20 @@ uniform float						u_zFar;
 
 #if defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
 
-in precise vec3				Normal_FS_in;
-in precise vec2				TexCoord_FS_in;
-in precise vec3				WorldPos_FS_in;
-in precise vec3				ViewDir_FS_in;
+in vec3							Normal_FS_in;
+in vec2							TexCoord_FS_in;
+in vec3							WorldPos_FS_in;
+in vec3							ViewDir_FS_in;
 
-in precise vec4				Color_FS_in;
-in precise vec4				PrimaryLightDir_FS_in;
-in precise vec2				TexCoord2_FS_in;
+in vec4							Color_FS_in;
+in vec4							PrimaryLightDir_FS_in;
+in vec2							TexCoord2_FS_in;
 
-in precise vec3				Blending_FS_in;
+in vec3							Blending_FS_in;
 /*flat*/ in float				Slope_FS_in;
 /*flat*/ in float				GrassSlope_FS_in;
 
-in float					TessDepth_FS_in;
+in float						TessDepth_FS_in;
 
 
 vec3	m_Normal 			= normalize(gl_FrontFacing ? -Normal_FS_in.xyz : Normal_FS_in.xyz);
@@ -261,16 +261,10 @@ vec3 m_Normal				= normalize(gl_FrontFacing ? -var_Normal : var_Normal);
 out vec4 out_Glow;
 out vec4 out_Position;
 out vec4 out_Normal;
-#ifdef __USE_REAL_NORMALMAPS__
+#ifdef USE_REAL_NORMALMAPS
 out vec4 out_NormalDetail;
-#endif //__USE_REAL_NORMALMAPS__
+#endif //USE_REAL_NORMALMAPS
 
-//#define __ENCODE_NORMALS_RECONSTRUCT_Z__
-#define __ENCODE_NORMALS_STEREOGRAPHIC_PROJECTION__
-//#define __ENCODE_NORMALS_CRY_ENGINE__
-//#define __ENCODE_NORMALS_EQUAL_AREA_PROJECTION__
-
-#ifdef __ENCODE_NORMALS_STEREOGRAPHIC_PROJECTION__
 vec2 EncodeNormal(vec3 n)
 {
 	float scale = 1.7777;
@@ -289,53 +283,11 @@ vec3 DecodeNormal(vec2 enc)
 	float g = 2.0 / dot(nn.xyz, nn.xyz);
 	return vec3(g * nn.xy, g - 1.0);
 }
-#elif defined(__ENCODE_NORMALS_CRY_ENGINE__)
-vec3 DecodeNormal(in vec2 N)
-{
-	vec2 encoded = N * 4.0 - 2.0;
-	float f = dot(encoded, encoded);
-	float g = sqrt(1.0 - f * 0.25);
-	return vec3(encoded * g, 1.0 - f * 0.5);
-}
-vec2 EncodeNormal(in vec3 N)
-{
-	float f = sqrt(8.0 * N.z + 8.0);
-	return N.xy / f + 0.5;
-}
-#elif defined(__ENCODE_NORMALS_EQUAL_AREA_PROJECTION__)
-vec2 EncodeNormal(vec3 n)
-{
-	float f = sqrt(8.0 * n.z + 8.0);
-	return n.xy / f + 0.5;
-}
-vec3 DecodeNormal(vec2 enc)
-{
-	vec2 fenc = enc * 4.0 - 2.0;
-	float f = dot(fenc, fenc);
-	float g = sqrt(1.0 - f / 4.0);
-	vec3 n;
-	n.xy = fenc*g;
-	n.z = 1.0 - f / 2.0;
-	return n;
-}
-#else //__ENCODE_NORMALS_RECONSTRUCT_Z__
-vec3 DecodeNormal(in vec2 N)
-{
-	vec3 norm;
-	norm.xy = N * 2.0 - 1.0;
-	norm.z = sqrt(1.0 - dot(norm.xy, norm.xy));
-	return norm;
-}
-vec2 EncodeNormal(vec3 n)
-{
-	return vec2(n.xy * 0.5 + 0.5);
-}
-#endif //__ENCODE_NORMALS_RECONSTRUCT_Z__
 
 
 vec3 vLocalSeed;
 
-#ifdef __USE_PROCEDURAL_NOISE__
+#ifdef _USE_PROCEDURAL_NOISE_
 float hash( const in float n ) {
 	return fract(sin(n)*4378.5453);
 }
@@ -394,7 +346,7 @@ float randZeroOne()
 {
 	return SmoothNoise(vec3(vLocalSeed.xy, 0.0) * 0.01); // * 0.01 to smooth over a larger area...
 }
-#else //!__USE_PROCEDURAL_NOISE__
+#else //!_USE_PROCEDURAL_NOISE_
 const float ppx = 1.0 / 2048.0;
 
 float hash( const in float n ) {
@@ -424,11 +376,11 @@ float randZeroOne()
 {
 	return SmoothNoise(vec3(vLocalSeed.xy, 0.0) * 0.01); // * 0.01 to smooth over a larger area...
 }
-#endif //__USE_PROCEDURAL_NOISE__
+#endif //_USE_PROCEDURAL_NOISE_
 
 
-//#define __DEBUG_TESS_CONTROL__
-#ifdef __DEBUG_TESS_CONTROL__
+//#define _DEBUG_TESS_CONTROL_
+#ifdef _DEBUG_TESS_CONTROL_
 #define HASHSCALE1 .1031
 
 vec3 hash(vec3 p3)
@@ -471,7 +423,7 @@ vec3 fbm(in vec3 q)
 #endif
 	return vec3(f);
 }
-#endif //__DEBUG_TESS_CONTROL__
+#endif //_DEBUG_TESS_CONTROL_
 
 void DepthContrast ( inout float depth )
 {
@@ -547,7 +499,7 @@ vec4 GetControlMap( bool isVertical )
 	return control;
 }
 
-#ifdef __USE_FULL_SPLAT_BLENDFUNC__
+#ifdef _USE_FULL_SPLAT_BLENDFUNC_
 vec3 splatblend(vec4 texture1, float a1, vec4 texture2, float a2)
 {
     float depth = 0.2;
@@ -558,9 +510,9 @@ vec3 splatblend(vec4 texture1, float a1, vec4 texture2, float a2)
 
     return ((texture1.rgb * b1) + (texture2.rgb * b2)) / (b1 + b2);
 }
-#endif //__USE_FULL_SPLAT_BLENDFUNC__
+#endif //_USE_FULL_SPLAT_BLENDFUNC_
 
-#if defined(__HIGH_PASS_SHARPEN__)
+#if defined(_HIGH_PASS_SHARPEN_)
 vec3 Enhance(in sampler2D tex, in vec2 uv, vec3 color, float level)
 {
 	vec3 blur = textureLod(tex, uv, level).rgb;
@@ -569,7 +521,7 @@ vec3 Enhance(in sampler2D tex, in vec2 uv, vec3 color, float level)
 	col = col * color;
 	return col;
 }
-#endif //defined(__HIGH_PASS_SHARPEN__)
+#endif //defined(_HIGH_PASS_SHARPEN_)
 
 vec4 GetMapFinal( in sampler2D tex, float scale, inout float depth)
 {
@@ -587,21 +539,21 @@ vec4 GetMapFinal( in sampler2D tex, float scale, inout float depth)
 		tScale *= u_textureScale;
 	}
 
-#ifdef __SPLATS_LOOKUP_ALPHA__
+#ifdef _SPLATS_LOOKUP_ALPHA_
 	xaxis = texture(tex, (m_vertPos.yz * tScale));
 	yaxis = texture(tex, (m_vertPos.xz * tScale));
 	zaxis = texture(tex, (m_vertPos.xy * tScale));
-#else //!__SPLATS_LOOKUP_ALPHA__
+#else //!_SPLATS_LOOKUP_ALPHA_
 	xaxis.rgb = texture(tex, (m_vertPos.yz * tScale)).rgb;
 	yaxis.rgb = texture(tex, (m_vertPos.xz * tScale)).rgb;
 	zaxis.rgb = texture(tex, (m_vertPos.xy * tScale)).rgb;
-#endif //__SPLATS_LOOKUP_ALPHA__
+#endif //_SPLATS_LOOKUP_ALPHA_
 
-#if defined(__HIGH_PASS_SHARPEN__)
+#if defined(_HIGH_PASS_SHARPEN_)
 	xaxis.rgb = Enhance(tex, (m_vertPos.yz * tScale), xaxis.rgb, 8.0 + (gl_FragCoord.z * 8.0));
 	yaxis.rgb = Enhance(tex, (m_vertPos.xz * tScale), yaxis.rgb, 8.0 + (gl_FragCoord.z * 8.0));
 	zaxis.rgb = Enhance(tex, (m_vertPos.xy * tScale), zaxis.rgb, 8.0 + (gl_FragCoord.z * 8.0));
-#endif //defined(__HIGH_PASS_SHARPEN__)
+#endif //defined(_HIGH_PASS_SHARPEN_)
 
 	vec4 color = xaxis * var_Blending.x + yaxis * var_Blending.y + zaxis * var_Blending.z;
 
@@ -615,13 +567,13 @@ vec4 GetMapFinal( in sampler2D tex, float scale, inout float depth)
 
 vec4 GetMap( in sampler2D tex, float scale, inout float depth)
 {
-#ifdef __USE_DISTANCE_BLEND__
+#ifdef _USE_DISTANCE_BLEND_
 	vec4 col1 = GetMapFinal( tex, scale, depth);
 	vec4 col2 = GetMapFinal( tex, scale * 0.0333, depth);
 	return mix(col1, col2, clamp(pow(gl_FragCoord.z, 1024.0), 0.25, 0.75));
-#else //!__USE_DISTANCE_BLEND__
+#else //!_USE_DISTANCE_BLEND_
 	return GetMapFinal( tex, scale, depth);
-#endif //__USE_DISTANCE_BLEND__
+#endif //_USE_DISTANCE_BLEND_
 }
 
 vec4 GetMapLodFinal( in sampler2D tex, float scale, inout float depth, in float lodLevel)
@@ -640,21 +592,21 @@ vec4 GetMapLodFinal( in sampler2D tex, float scale, inout float depth, in float 
 		tScale *= u_textureScale;
 	}
 
-#ifdef __SPLATS_LOOKUP_ALPHA__
+#ifdef _SPLATS_LOOKUP_ALPHA_
 	xaxis = textureLod(tex, (m_vertPos.yz * tScale), lodLevel);
 	yaxis = textureLod(tex, (m_vertPos.xz * tScale), lodLevel);
 	zaxis = textureLod(tex, (m_vertPos.xy * tScale), lodLevel);
-#else //!__SPLATS_LOOKUP_ALPHA__
+#else //!_SPLATS_LOOKUP_ALPHA_
 	xaxis.rgb = textureLod(tex, (m_vertPos.yz * tScale), lodLevel).rgb;
 	yaxis.rgb = textureLod(tex, (m_vertPos.xz * tScale), lodLevel).rgb;
 	zaxis.rgb = textureLod(tex, (m_vertPos.xy * tScale), lodLevel).rgb;
-#endif //__SPLATS_LOOKUP_ALPHA__
+#endif //_SPLATS_LOOKUP_ALPHA_
 
-#if defined(__HIGH_PASS_SHARPEN__)
+#if defined(_HIGH_PASS_SHARPEN_)
 	xaxis.rgb = Enhance(tex, (m_vertPos.yz * tScale), xaxis.rgb, 8.0 + (gl_FragCoord.z * 8.0));
 	yaxis.rgb = Enhance(tex, (m_vertPos.xz * tScale), yaxis.rgb, 8.0 + (gl_FragCoord.z * 8.0));
 	zaxis.rgb = Enhance(tex, (m_vertPos.xy * tScale), zaxis.rgb, 8.0 + (gl_FragCoord.z * 8.0));
-#endif //defined(__HIGH_PASS_SHARPEN__)
+#endif //defined(_HIGH_PASS_SHARPEN_)
 
 	vec4 color = xaxis * var_Blending.x + yaxis * var_Blending.y + zaxis * var_Blending.z;
 
@@ -671,13 +623,13 @@ vec4 GetMapLodFinal( in sampler2D tex, float scale, inout float depth, in float 
 
 vec4 GetMapLod( in sampler2D tex, float scale, inout float depth, in float lodLevel)
 {
-#ifdef __USE_DISTANCE_BLEND__
+#ifdef _USE_DISTANCE_BLEND_
 	vec4 col1 = GetMapLodFinal( tex, scale, depth, lodLevel);
 	vec4 col2 = GetMapLodFinal( tex, scale * 0.0333, depth, lodLevel);
 	return mix(col1, col2, clamp(pow(gl_FragCoord.z, 1024.0), 0.25, 0.75));
-#else //!__USE_DISTANCE_BLEND__
+#else //!_USE_DISTANCE_BLEND_
 	return GetMapLodFinal( tex, scale, depth, lodLevel);
-#endif //__USE_DISTANCE_BLEND__
+#endif //_USE_DISTANCE_BLEND_
 }
 
 vec4 SmoothMix(vec3 color1, vec3 color2, float mixf)
@@ -694,11 +646,11 @@ vec4 GetSplatMap(vec4 inColor, inout float depth)
 		return inColor;
 	}
 
-#ifdef __USE_REGIONS__
+#ifdef _USE_REGIONS_
 	if (USE_REGIONS <= 0.0 && SHADER_HAS_WATEREDGEMAP > 0.0 && m_vertPos.z <= SHADER_WATER_LEVEL)
-#else //!__USE_REGIONS__
+#else //!_USE_REGIONS_
 	if (SHADER_HAS_WATEREDGEMAP > 0.0 && m_vertPos.z <= SHADER_WATER_LEVEL)
-#endif //__USE_REGIONS__
+#endif //_USE_REGIONS_
 	{// Steep maps (water edges)... Underwater doesn't use splats for now... Except if this is using regions...
 		return inColor;
 	}
@@ -753,11 +705,11 @@ vec4 GetSteepMap(vec4 inColor, inout float depth)
 		return inColor;
 	}
 
-#ifdef __USE_REGIONS__
+#ifdef _USE_REGIONS_
 	if (USE_REGIONS <= 0.0 && SHADER_HAS_WATEREDGEMAP > 0.0 && m_vertPos.z <= SHADER_WATER_LEVEL)
-#else //!__USE_REGIONS__
+#else //!_USE_REGIONS_
 	if (SHADER_HAS_WATEREDGEMAP > 0.0 && m_vertPos.z <= SHADER_WATER_LEVEL)
-#endif //__USE_REGIONS__
+#endif //_USE_REGIONS_
 	{// Steep maps (water edges)... Underwater doesn't use splats for now... Except if this is using regions...
 		return inColor;
 	}
@@ -805,7 +757,7 @@ vec4 GetDiffuse2(out float a1)
 	{
 		float scale = SPLATMAP_SCALE;
 
-#ifdef __USE_REGIONS__
+#ifdef _USE_REGIONS_
 		if (USE_REGIONS > 0.0 && (SHADER_HAS_SPLATMAP1 > 0 || SHADER_HAS_SPLATMAP2 > 0 || SHADER_HAS_SPLATMAP3 > 0 || SHADER_HAS_ROADMAP > 0))
 		{// Regions...
 			a1 = 0.0;
@@ -813,7 +765,7 @@ vec4 GetDiffuse2(out float a1)
 			return GetSplatMap(tex, a1);
 		}
 		else
-#endif //__USE_REGIONS__
+#endif //_USE_REGIONS_
 		{// Tri-Planar...
 			if (USE_TRIPLANAR >= 2.0 && (SHADER_HAS_SPLATMAP1 > 0.0 || SHADER_HAS_SPLATMAP2 > 0.0 || SHADER_HAS_SPLATMAP3 > 0.0 || (SHADER_HAS_ROADMAP > 0.0 && IsRoadmapMaterial())))
 			{// Steep maps (using vertex colors)...
@@ -900,11 +852,11 @@ vec4 GetDiffuse(inout float fakeGrassFactor)
 			a1 = clamp(a1, 0.0, 1.0);
 			a1b = clamp(a1b, 0.0, 1.0);
 
-#ifdef __USE_FULL_SPLAT_BLENDFUNC__
+#ifdef _USE_FULL_SPLAT_BLENDFUNC_
 			tex1 = vec4(splatblend(tex1, a1, tex1b, a1b, 1.0);
-#else //!__USE_FULL_SPLAT_BLENDFUNC__
+#else //!_USE_FULL_SPLAT_BLENDFUNC_
 			tex1 = SmoothMix(tex1.rgb, tex1b.rgb, a1);
-#endif //__USE_FULL_SPLAT_BLENDFUNC__
+#endif //_USE_FULL_SPLAT_BLENDFUNC_
 
 			a1 = clamp(max(a1, a1b), 0.0, 1.0);
 
@@ -924,11 +876,11 @@ vec4 GetDiffuse(inout float fakeGrassFactor)
 				vec4 lColb = GetMapLod(u_WaterEdgeMap, SPLATMAP_SCALE_WATEREDGE2, a3b, 16.0);
 				a3 = clamp(a1, 0.0, 1.0);
 				a3b = clamp(a1b, 0.0, 1.0);
-#ifdef __USE_FULL_SPLAT_BLENDFUNC__
+#ifdef _USE_FULL_SPLAT_BLENDFUNC_
 				lCol = vec4(splatblend(lCol, a3, lColb, a3b, 1.0);
-#else //!__USE_FULL_SPLAT_BLENDFUNC__
+#else //!_USE_FULL_SPLAT_BLENDFUNC_
 				lCol = SmoothMix(lCol.rgb, lColb.rgb, a3);
-#endif //__USE_FULL_SPLAT_BLENDFUNC__
+#endif //_USE_FULL_SPLAT_BLENDFUNC_
 
 				float lMix = clamp(a1 * 10.0, 0.0, 1.0);
 
@@ -963,11 +915,11 @@ vec4 GetDiffuse(inout float fakeGrassFactor)
 				vec4 lColb = GetMapLod(u_WaterEdgeMap, SPLATMAP_SCALE_WATEREDGE2, a3b, 16.0);
 				a3 = clamp(a1, 0.0, 1.0);
 				a3b = clamp(a1b, 0.0, 1.0);
-#ifdef __USE_FULL_SPLAT_BLENDFUNC__
+#ifdef _USE_FULL_SPLAT_BLENDFUNC_
 				lCol = vec4(splatblend(lCol, a3, lColb, a3b, 1.0);
-#else //!__USE_FULL_SPLAT_BLENDFUNC__
+#else //!_USE_FULL_SPLAT_BLENDFUNC_
 				lCol = SmoothMix(lCol.rgb, lColb.rgb, a3);
-#endif //__USE_FULL_SPLAT_BLENDFUNC__
+#endif //_USE_FULL_SPLAT_BLENDFUNC_
 
 				float lMix = clamp(pow(lodLevel, 0.5), 0.0, 1.0);
 
@@ -1005,12 +957,12 @@ vec4 GetDiffuse(inout float fakeGrassFactor)
 				tex1.rgb = wetDiffuse.rgb;
 			}
 
-#ifdef __USE_FULL_SPLAT_BLENDFUNC__
+#ifdef _USE_FULL_SPLAT_BLENDFUNC_
 			float a2 = clamp(diffuseA, 0.0, 1.0);
 			diffuse = vec4(splatblend(tex1, a1 * (a1 * mixVal), diffuse, a2 * (1.0 - (a2 * mixVal))), 1.0);
-#else //!__USE_FULL_SPLAT_BLENDFUNC__
+#else //!_USE_FULL_SPLAT_BLENDFUNC_
 			diffuse = SmoothMix(tex1.rgb, diffuse.rgb, max(mixVal, a1 * mixVal));
-#endif //__USE_FULL_SPLAT_BLENDFUNC__
+#endif //_USE_FULL_SPLAT_BLENDFUNC_
 		}
 
 		if (GRASS_ENABLED > 0.0 && FAKE_GRASS_ENABLED > 0.0 && USE_TRIPLANAR > 0.0 && var_GrassSlope < GRASS_MAX_SLOPE)
@@ -1109,9 +1061,9 @@ void main()
 		out_Glow = vec4(0.0);
 		out_Position = vec4(0.0);
 		out_Normal = vec4(0.0);
-#ifdef __USE_REAL_NORMALMAPS__
+#ifdef USE_REAL_NORMALMAPS
 		out_NormalDetail = vec4(0.0);
-#endif //__USE_REAL_NORMALMAPS__
+#endif //USE_REAL_NORMALMAPS
 		return;
 	}
 #endif
@@ -1356,9 +1308,9 @@ void main()
 
 		out_Position = vec4(m_vertPos.xyz, FINAL_MATERIAL);
 		out_Normal = vec4(vec3(EncodeNormal(N.xyz), 1.0), 1.0 );
-#ifdef __USE_REAL_NORMALMAPS__
+#ifdef USE_REAL_NORMALMAPS
 		out_NormalDetail = norm;
-#endif //__USE_REAL_NORMALMAPS__
+#endif //USE_REAL_NORMALMAPS
 	}
 	else
 	{
@@ -1366,8 +1318,8 @@ void main()
 
 		out_Position = vec4(m_vertPos.xyz, FINAL_MATERIAL);
 		out_Normal = vec4( vec3(EncodeNormal(N.xyz), 1.0), 1.0 );
-#ifdef __USE_REAL_NORMALMAPS__
+#ifdef USE_REAL_NORMALMAPS
 		out_NormalDetail = norm;
-#endif //__USE_REAL_NORMALMAPS__
+#endif //USE_REAL_NORMALMAPS
 	}
 }

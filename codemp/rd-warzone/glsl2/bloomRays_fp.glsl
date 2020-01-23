@@ -61,7 +61,7 @@ varying vec2					var_TexCoords;
 #define	BLOOMRAYS_STRENGTH		1.0//u_Local1.a
 #define	BLOOMRAYS_FALLOFF		1.0
 
-#define __BLOOMRAYS_USE_DESATURATE__
+#define _BLOOMRAYS_USE_DESATURATE_
 
 // 9 quads on screen for positions...
 const vec2    lightPositions[9] = vec2[] ( vec2(0.25, 0.25), vec2(0.25, 0.5), vec2(0.25, 0.75), vec2(0.5, 0.25), vec2(0.5, 0.5), vec2(0.5, 0.75), vec2(0.75, 0.25), vec2(0.75, 0.5), vec2(0.75, 0.75) );
@@ -104,10 +104,10 @@ vec3 ProcessBloomRays(vec2 inTC)
 				{// Don't bother with lookups outside screen area...
 					vec4 sample2 = texture(u_GlowMap, tc);
 
-#ifdef __BLOOMRAYS_USE_DESATURATE__
+#ifdef _BLOOMRAYS_USE_DESATURATE_
 					sample2.rgb = mix(sample2.rgb, vec3(1.0) * max(sample2.r, max(sample2.g, sample2.b)) * sample2.a, 0.75); // bend all lights towards white, to even strengths and make the jka colors less, ummm, cartoony... real world light is more grey then white/black.
 					sample2.rgb *= 0.175;
-#endif //__BLOOMRAYS_USE_DESATURATE__
+#endif //_BLOOMRAYS_USE_DESATURATE_
 
 					float grey = (length(sample2.rgb * sample2.a) / 3.0) * 0.01;
 					AddContrast(grey, 1.175, 0.1);

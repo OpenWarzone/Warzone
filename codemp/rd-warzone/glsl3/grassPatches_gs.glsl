@@ -116,10 +116,10 @@ uniform vec4								u_Local21; // WATEREDGE_RANGE_MULTIPLIER, 0.0, 0.0, 0.0
 
 uniform vec3								u_ViewOrigin;
 uniform vec3								u_PlayerOrigin;
-#ifdef __HUMANOIDS_BEND_GRASS__
+#ifdef _HUMANOIDS_BEND_GRASS_
 uniform int									u_HumanoidOriginsNum;
 uniform vec3								u_HumanoidOrigins[MAX_GRASSBEND_HUMANOIDS];
-#endif //__HUMANOIDS_BEND_GRASS__
+#endif //_HUMANOIDS_BEND_GRASS_
 uniform float								u_Time;
 
 uniform vec4								u_MapInfo; // MAP_INFO_SIZE[0], MAP_INFO_SIZE[1], MAP_INFO_SIZE[2], 0.0
@@ -133,12 +133,6 @@ smooth out vec3								vVertPosition;
 smooth out vec2								vVertNormal;
 flat out int								iGrassType;
 
-//#define __ENCODE_NORMALS_RECONSTRUCT_Z__
-#define __ENCODE_NORMALS_STEREOGRAPHIC_PROJECTION__
-//#define __ENCODE_NORMALS_CRY_ENGINE__
-//#define __ENCODE_NORMALS_EQUAL_AREA_PROJECTION__
-
-#ifdef __ENCODE_NORMALS_STEREOGRAPHIC_PROJECTION__
 vec2 EncodeNormal(vec3 n)
 {
 	float scale = 1.7777;
@@ -157,48 +151,6 @@ vec3 DecodeNormal(vec2 enc)
 	float g = 2.0 / dot(nn.xyz, nn.xyz);
 	return vec3(g * nn.xy, g - 1.0);
 }
-#elif defined(__ENCODE_NORMALS_CRY_ENGINE__)
-vec3 DecodeNormal(in vec2 N)
-{
-	vec2 encoded = N * 4.0 - 2.0;
-	float f = dot(encoded, encoded);
-	float g = sqrt(1.0 - f * 0.25);
-	return vec3(encoded * g, 1.0 - f * 0.5);
-}
-vec2 EncodeNormal(in vec3 N)
-{
-	float f = sqrt(8.0 * N.z + 8.0);
-	return N.xy / f + 0.5;
-}
-#elif defined(__ENCODE_NORMALS_EQUAL_AREA_PROJECTION__)
-vec2 EncodeNormal(vec3 n)
-{
-	float f = sqrt(8.0 * n.z + 8.0);
-	return n.xy / f + 0.5;
-}
-vec3 DecodeNormal(vec2 enc)
-{
-	vec2 fenc = enc * 4.0 - 2.0;
-	float f = dot(fenc, fenc);
-	float g = sqrt(1.0 - f / 4.0);
-	vec3 n;
-	n.xy = fenc*g;
-	n.z = 1.0 - f / 2.0;
-	return n;
-}
-#else //__ENCODE_NORMALS_RECONSTRUCT_Z__
-vec3 DecodeNormal(in vec2 N)
-{
-	vec3 norm;
-	norm.xy = N * 2.0 - 1.0;
-	norm.z = sqrt(1.0 - dot(norm.xy, norm.xy));
-	return norm;
-}
-vec2 EncodeNormal(vec3 n)
-{
-	return vec2(n.xy * 0.5 + 0.5);
-}
-#endif //__ENCODE_NORMALS_RECONSTRUCT_Z__
 
 #if 0
 float encode(float4 color)
@@ -560,14 +512,20 @@ void main()
 			iGrassType = 0;
 
 			float fGrassFinalSize = GRASS_HEIGHT * sizeMult * fSizeRandomness * roadMult;
-			fGrassFinalSize /= 1.0 + max(float(length(runx)), float(length(runy)));
+			fGrassFinalSize /= 1.0 + max(length(float(runx)), length(float(runy)));
 
 			/*if (fGrassFinalSize <= GRASS_HEIGHT * 0.05)
 			{
 				return;
 			}*/
 
+
+#ifdef NO_GL400
+			float fWindPower = inWindPower[0];
+#else //!NO_GL400
 			float fWindPower = inWindPower[gl_InvocationID];
+#endif //NO_GL400
+
 			float randDir = sin(randZeroOne()*0.7f)*0.1f;
 
 			vec3 P = grassPos.xyz;
@@ -592,7 +550,7 @@ void main()
 			
 			vVertNormal = EncodeNormal(Nf);
 
-#ifndef __HUMANOIDS_BEND_GRASS__ // Just the player...
+#ifndef _HUMANOIDS_BEND_GRASS_ // Just the player...
 			vec3 playerOffset = vec3(0.0);
 			float distanceToPlayer = distance(u_PlayerOrigin.xy, P.xy);
 			float PLAYER_BEND_CLOSENESS = GRASS_HEIGHT * 1.5;
@@ -602,7 +560,7 @@ void main()
 				dirToPlayer.z = 0.0;
 				playerOffset = dirToPlayer * (PLAYER_BEND_CLOSENESS - distanceToPlayer);
 			}
-#else //__HUMANOIDS_BEND_GRASS__ - Any player/NPC...
+#else //_HUMANOIDS_BEND_GRASS_ - Any player/NPC...
 			int closestHumanoid = -1;
 			float closestHumanoidDistance = distance(u_PlayerOrigin.xy, P.xy);
 
@@ -636,7 +594,7 @@ void main()
 				dirToPlayer.z = 0.0;
 				playerOffset = dirToPlayer * (PLAYER_BEND_CLOSENESS - closestHumanoidDistance);
 			}
-#endif //__HUMANOIDS_BEND_GRASS__
+#endif //_HUMANOIDS_BEND_GRASS_
 
 			vVertPosition = va.xyz;
 			gl_Position = u_ModelViewProjectionMatrix * vec4(vVertPosition, 1.0);

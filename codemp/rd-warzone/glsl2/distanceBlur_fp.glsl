@@ -11,7 +11,7 @@ uniform vec4			u_Local1; // r_testvalue0->value, r_testvalue1->value, r_testvalu
 
 varying vec2			var_TexCoords;
 
-#define __SKY_CHECK__			// This slows the checks a lot... Has to look up double the number of pixels...
+#define _SKY_CHECK_			// This slows the checks a lot... Has to look up double the number of pixels...
 
 #define BLUR_DEPTH_MIN			0.01//0.8//0.55
 #define BLUR_RADIUS_BASE		4.0//3.0//2.0
@@ -31,21 +31,21 @@ vec4 DistantBlur(void)
 		return color;
 	}
 
-#ifdef __SKY_CHECK__
+#ifdef _SKY_CHECK_
 	bool isSky = false;
 
 	if (depth >= 0.999)
 	{
 		isSky = true;
 	}
-#endif //__SKY_CHECK__
+#endif //_SKY_CHECK_
 
 	vec3 origColor = color.rgb;
 
 /*
 	vec2 origMaterial = textureLod(u_PositionMap, var_TexCoords.xy, 0.0).zw;
 
-#ifdef __SKY_CHECK__
+#ifdef _SKY_CHECK_
 	if (origMaterial.y-1.0 == MATERIAL_SKY || origMaterial.y-1.0 == MATERIAL_SUN || origMaterial.y-1.0 <= MATERIAL_NONE)
 	{// Skybox... 
 		if (origMaterial.x >= MAP_WATER_LEVEL)
@@ -54,7 +54,7 @@ vec4 DistantBlur(void)
 			//return color;
 		}
 	}
-#endif //__SKY_CHECK__
+#endif //_SKY_CHECK_
 */
 
 	float d = depth - BLUR_DEPTH_MIN;
@@ -76,12 +76,12 @@ vec4 DistantBlur(void)
 
 	float BLUR_RADIUS = BLUR_RADIUS_BASE * BLUR_DEPTH_MULT;
 
-#ifdef __SKY_CHECK__
+#ifdef _SKY_CHECK_
 	if (isSky)
 	{
 		BLUR_RADIUS = 2.0;
 	}
-#endif //__SKY_CHECK__
+#endif //_SKY_CHECK_
 
 	if (BLUR_RADIUS <= 0.0)
 	{// No point... This would be less then 1 pixel...
@@ -99,7 +99,7 @@ vec4 DistantBlur(void)
 			//float weight = clamp(1.0 / ((length(vec2(x, y)) + 1.0) * 0.666), 0.2, 1.0);
 			float weight = 1.0 - ((length(x) + length(y)) / (BLUR_RADIUS * 2.0));
 
-#ifdef __SKY_CHECK__
+#ifdef _SKY_CHECK_
 			bool pixelIsSky = false;
 
 			if (isSky)
@@ -132,9 +132,9 @@ vec4 DistantBlur(void)
 			{
 				color2 = origColor;
 			}
-#else //!__SKY_CHECK__
+#else //!_SKY_CHECK_
 			vec3 color2 = textureLod(u_DiffuseMap, xy, 0.0).rgb;
-#endif //__SKY_CHECK__
+#endif //_SKY_CHECK_
 
 			color.rgb += (color2.rgb * weight);
 			NUM_BLUR_PIXELS += weight;

@@ -170,7 +170,7 @@ void main()
 		}
 	}
 
-#ifdef __USE_UNDERWATER__
+#ifdef _USE_UNDERWATER_
 	float waterCheckLevel = MAP_WATER_LEVEL - 128.0;
 
 	if (Vert1.z >= waterCheckLevel && Vert2.z >= waterCheckLevel && Vert3.z >= waterCheckLevel)
@@ -178,17 +178,17 @@ void main()
 		gl_TessLevelOuter[0] = gl_TessLevelOuter[1] = gl_TessLevelOuter[2] = gl_TessLevelInner[0] = 0.0;
 		return;
 	}
-#endif //__USE_UNDERWATER__
+#endif //_USE_UNDERWATER_
 
 	vec3 Pos = (Vert1 + Vert2 + Vert3) / 3.0;   //Center of the triangle - copy for later
 
-#ifdef __USE_UNDERWATER__
+#ifdef _USE_UNDERWATER_
 	if (Pos.z >= MAP_WATER_LEVEL)
 	{// Do less grasses underwater...
 		gl_TessLevelOuter[0] = gl_TessLevelOuter[1] = gl_TessLevelOuter[2] = gl_TessLevelInner[0] = 0.0;
 		return;
 	}
-#endif //__USE_UNDERWATER__
+#endif //_USE_UNDERWATER_
 
 	if (!CheckGrassMapPosition(Pos))
 	{
@@ -242,13 +242,13 @@ void main()
 	float uTessLevel = (GRASS_DENSITY * sizeMult > 1.0) ? GRASS_DENSITY * sizeMult : 1.0;
 
 	/*
-#ifndef __USE_UNDERWATER__
+#ifndef _USE_UNDERWATER_
 	if (Pos.z < MAP_WATER_LEVEL)
 	{// Do less grasses underwater...
 		//uTessLevel = max(float(int(uTessLevel / 4.0)), 1.0);
 		uTessLevel = max(float(int(uTessLevel / 2.0)), 1.0);
 	}
-#endif //__USE_UNDERWATER__
+#endif //_USE_UNDERWATER_
 	*/
 
 	// (3)

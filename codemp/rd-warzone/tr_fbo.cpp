@@ -621,24 +621,6 @@ void FBO_Init(void)
 	}
 
 	//
-	// Bloom Area VBO's...
-	//
-	for (int i = 0; i < 8; i++)
-	{
-		tr.bloomAreaRenderFBO[i] = FBO_Create(va("_bloomArea%i", i), tr.bloomAreaRenderFBOImage[i]->width, tr.bloomAreaRenderFBOImage[i]->height);
-		FBO_Bind(tr.bloomAreaRenderFBO[i]);
-		FBO_AttachTextureImage(tr.bloomAreaRenderFBOImage[i], 0);
-		R_CheckFBO(tr.bloomAreaRenderFBO[i]);
-	}
-
-	{
-		tr.bloomAreaRenderFinalFBO = FBO_Create("_bloomAreaFinal", tr.bloomAreaRenderFinalFBOImage->width, tr.bloomAreaRenderFinalFBOImage->height);
-		FBO_Bind(tr.bloomAreaRenderFinalFBO);
-		FBO_AttachTextureImage(tr.bloomAreaRenderFinalFBOImage, 0);
-		R_CheckFBO(tr.bloomAreaRenderFinalFBO);
-	}
-
-	//
 	// Anamorphic FBO's...
 	//
 	{

@@ -720,82 +720,6 @@ void RB_Bloom(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.bloomCombineShader, colorWhite, 0);
 }
 
-void RB_BloomArea(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
-{
-	//
-	// Copy to FBO...
-	//
-
-	/*FBO_t *oldFbo = glState.currentFBO;
-	FBO_Bind(tr.bloomAreaRenderFBO[0]);
-	qglColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-	qglClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-	qglClear(GL_COLOR_BUFFER_BIT);*/
-
-	FBO_BlitFromTexture(tr.blackImage, NULL, NULL, tr.bloomAreaRenderFBO[0], NULL, NULL, colorWhite, 0);
-	FBO_BlitFromTexture(tr.glowFboScaled[0]->colorImage[0], NULL, NULL, tr.bloomAreaRenderFBO[0], NULL, NULL, colorWhite, 0);
-	
-	for (int i = 1; i < 7/*8*/; i++)
-	{
-		/*
-		FBO_Bind(tr.bloomAreaRenderFBO[i]);
-		qglColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-		qglClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-		qglClear(GL_COLOR_BUFFER_BIT);
-		FBO_Bind(oldFbo);*/
-
-		FBO_BlitFromTexture(tr.blackImage, NULL, NULL, tr.bloomAreaRenderFBO[i], NULL, NULL, colorWhite, 0);
-
-		FBO_BlitFromTexture(tr.bloomAreaRenderFBO[i-1]->colorImage[0], NULL, NULL, tr.bloomAreaRenderFBO[i], NULL, NULL, colorWhite, 0);
-	}
-
-	/*
-	FBO_Bind(tr.bloomAreaRenderFinalFBO);
-	qglColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-	qglClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-	qglClear(GL_COLOR_BUFFER_BIT);
-
-	FBO_Bind(oldFbo);
-	*/
-
-	FBO_BlitFromTexture(tr.blackImage, NULL, NULL, tr.bloomAreaRenderFinalFBO, NULL, NULL, colorWhite, 0);
-
-	for (int i = 6/*7*/; i >= 0; i-=2)
-	{
-		FBO_BlitFromTexture(tr.bloomAreaRenderFBO[i]->colorImage[0], NULL, NULL, tr.bloomAreaRenderFinalFBO, NULL, NULL, colorWhite, GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE/*GLS_SRCBLEND_ONE|GLS_DSTBLEND_SRC_COLOR*/);
-	}
-
-
-	//
-	// Combine the screen with the bloom'ed VBO...
-	//
-
-	GLSL_BindProgram(&tr.bloomAreaCombineShader);
-
-	if (tr.bloomAreaCombineShader.isBindless)
-	{
-		GLSL_SetBindlessTexture(&tr.bloomAreaCombineShader, UNIFORM_DIFFUSEMAP, &hdrFbo->colorImage[0], 0);
-		GLSL_SetBindlessTexture(&tr.bloomAreaCombineShader, UNIFORM_NORMALMAP, &tr.bloomAreaRenderFinalFBOImage, 0);
-		GLSL_BindlessUpdate(&tr.bloomAreaCombineShader);
-	}
-	else
-	{
-		GLSL_SetUniformInt(&tr.bloomAreaCombineShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
-		GL_BindToTMU(hdrFbo->colorImage[0], TB_DIFFUSEMAP);
-
-		GLSL_SetUniformInt(&tr.bloomAreaCombineShader, UNIFORM_NORMALMAP, TB_NORMALMAP);
-		GL_BindToTMU(tr.bloomAreaRenderFinalFBOImage, TB_NORMALMAP);
-	}
-
-	{
-		vec4_t local0;
-		VectorSet4(local0, r_testvalue1->value, 0.0, 0.0, 0.0);
-		GLSL_SetUniformVec4(&tr.bloomAreaCombineShader, UNIFORM_LOCAL0, local0);
-	}
-
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.bloomAreaCombineShader, colorWhite, 0);
-}
-
 void RB_CreateAnamorphicImage( void )
 {
 	vec4i_t srcBox;
@@ -2815,7 +2739,7 @@ void RB_FastLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBo
 
 
 	{
-		NUM_CURRENT_EMISSIVE_LIGHTS = r_lowVram->integer ? min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, 8.0)) : min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, MAX_DEFERRED_LIGHTS));
+		NUM_CURRENT_EMISSIVE_LIGHTS = r_lowQualityMode->integer ? min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, 8.0)) : min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, MAX_DEFERRED_LIGHTS));
 
 		float maxDist = 0.0;
 
@@ -2982,6 +2906,8 @@ void GLSL_InitializeLights(shaderProgram_t *program)
 	}
 #endif //__USE_MAP_EMMISSIVE_BLOCK__
 }
+
+extern qboolean ALLOW_GL_430;
 
 void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
@@ -3270,7 +3196,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 #endif //__REALTIME_CUBEMAP__
 
 	{
-		NUM_CURRENT_EMISSIVE_LIGHTS = r_lowVram->integer ? min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, 8.0)) : min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, MAX_DEFERRED_LIGHTS));
+		NUM_CURRENT_EMISSIVE_LIGHTS = r_lowQualityMode->integer ? min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, 8.0)) : min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, MAX_DEFERRED_LIGHTS));
 
 		float maxDist = 8192.0;
 
@@ -3299,51 +3225,69 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 				}
 			}*/
 
-			// Make sure the UBO buffer is set up...
-			GLSL_InitializeLights(shader);
-
-			GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, NUM_CURRENT_EMISSIVE_LIGHTS);
-
-			// Update our struct's data...
-			float maxDistance = maxDist;
-
-			for (int i = 0; i < NUM_CURRENT_EMISSIVE_LIGHTS; i++)
+			if (ALLOW_GL_430)
 			{
-				shader->LightsBlock.lights[i].u_lightPositions2[0] = CLOSEST_LIGHTS_POSITIONS[i][0];
-				shader->LightsBlock.lights[i].u_lightPositions2[1] = CLOSEST_LIGHTS_POSITIONS[i][1];
-				shader->LightsBlock.lights[i].u_lightPositions2[2] = CLOSEST_LIGHTS_POSITIONS[i][2];
-				shader->LightsBlock.lights[i].u_lightPositions2[3] = CLOSEST_LIGHTS_RADIUS[i];
+				// Make sure the UBO buffer is set up...
+				GLSL_InitializeLights(shader);
 
-				shader->LightsBlock.lights[i].u_lightColors[0] = CLOSEST_LIGHTS_COLORS[i][0];
-				shader->LightsBlock.lights[i].u_lightColors[1] = CLOSEST_LIGHTS_COLORS[i][1];
-				shader->LightsBlock.lights[i].u_lightColors[2] = CLOSEST_LIGHTS_COLORS[i][2];
-				shader->LightsBlock.lights[i].u_lightColors[3] = maxDistance;
-			}
+				GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, NUM_CURRENT_EMISSIVE_LIGHTS);
 
-			// Send new data to shader, if it has changed...
-			if (memcmp(&shader->LightsBlock, &shader->LightsBlockPrevious, sizeof(shader->LightsBlock)) != 0)
-			{
-				qglBindBuffer(GL_SHADER_STORAGE_BUFFER, shader->LightsBlockSSBO);
-				qglBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(Lights_t) * NUM_CURRENT_EMISSIVE_LIGHTS, &shader->LightsBlock);
-				memcpy(&shader->LightsBlockPrevious, &shader->LightsBlock, sizeof(shader->LightsBlock));
-			}
+				// Update our struct's data...
+				float maxDistance = maxDist;
 
-			//qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, shader->LightsBindingPoint, shader->LightsBlockSSBO);
+				for (int i = 0; i < NUM_CURRENT_EMISSIVE_LIGHTS; i++)
+				{
+					shader->LightsBlock.lights[i].u_lightPositions2[0] = CLOSEST_LIGHTS_POSITIONS[i][0];
+					shader->LightsBlock.lights[i].u_lightPositions2[1] = CLOSEST_LIGHTS_POSITIONS[i][1];
+					shader->LightsBlock.lights[i].u_lightPositions2[2] = CLOSEST_LIGHTS_POSITIONS[i][2];
+					shader->LightsBlock.lights[i].u_lightPositions2[3] = CLOSEST_LIGHTS_RADIUS[i];
+
+					shader->LightsBlock.lights[i].u_lightColors[0] = CLOSEST_LIGHTS_COLORS[i][0];
+					shader->LightsBlock.lights[i].u_lightColors[1] = CLOSEST_LIGHTS_COLORS[i][1];
+					shader->LightsBlock.lights[i].u_lightColors[2] = CLOSEST_LIGHTS_COLORS[i][2];
+					shader->LightsBlock.lights[i].u_lightColors[3] = maxDistance;
+				}
+
+				// Send new data to shader, if it has changed...
+				if (memcmp(&shader->LightsBlock, &shader->LightsBlockPrevious, sizeof(shader->LightsBlock)) != 0)
+				{
+					qglBindBuffer(GL_SHADER_STORAGE_BUFFER, shader->LightsBlockSSBO);
+					qglBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(Lights_t) * NUM_CURRENT_EMISSIVE_LIGHTS, &shader->LightsBlock);
+					memcpy(&shader->LightsBlockPrevious, &shader->LightsBlock, sizeof(shader->LightsBlock));
+				}
+
+				//qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, shader->LightsBindingPoint, shader->LightsBlockSSBO);
 #ifdef __USE_MAP_EMMISSIVE_BLOCK__
-			GLSL_SetUniformInt(shader, UNIFORM_EMISSIVELIGHTCOUNT, NUM_MAP_GLOW_LOCATIONS);
-			qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, shader->EmissiveLightsBindingPoint, shader->EmissiveLightsBlockSSBO);
+				GLSL_SetUniformInt(shader, UNIFORM_EMISSIVELIGHTCOUNT, NUM_MAP_GLOW_LOCATIONS);
+				qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, shader->EmissiveLightsBindingPoint, shader->EmissiveLightsBlockSSBO);
 #endif //__USE_MAP_EMMISSIVE_BLOCK__
+			}
+			else
+			{// Pathetic hardware... Disable lights...
+				GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, NUM_CURRENT_EMISSIVE_LIGHTS);
+				GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTPOSITIONS2, CLOSEST_LIGHTS_POSITIONS, NUM_CURRENT_EMISSIVE_LIGHTS);
+				GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTCOLORS, CLOSEST_LIGHTS_COLORS, NUM_CURRENT_EMISSIVE_LIGHTS);
+				GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHTDISTANCES, CLOSEST_LIGHTS_RADIUS, NUM_CURRENT_EMISSIVE_LIGHTS);
+				GLSL_SetUniformFloat(shader, UNIFORM_LIGHT_MAX_DISTANCE, (NUM_CURRENT_EMISSIVE_LIGHTS >= r_maxDeferredLights->integer / 2) ? maxDist : 8192.0);
+			}
 		}
 		else
 		{
-			// Make sure the UBO buffer is set up...
-			GLSL_InitializeLights(shader);
+			if (ALLOW_GL_430)
+			{
+				// Make sure the UBO buffer is set up...
+				GLSL_InitializeLights(shader);
 
-			GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, 0);
+				GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, 0);
 #ifdef __USE_MAP_EMMISSIVE_BLOCK__
-			GLSL_SetUniformInt(shader, UNIFORM_EMISSIVELIGHTCOUNT, NUM_MAP_GLOW_LOCATIONS);
-			qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, shader->EmissiveLightsBindingPoint, shader->EmissiveLightsBlockSSBO);
+				GLSL_SetUniformInt(shader, UNIFORM_EMISSIVELIGHTCOUNT, NUM_MAP_GLOW_LOCATIONS);
+				qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, shader->EmissiveLightsBindingPoint, shader->EmissiveLightsBlockSSBO);
 #endif //__USE_MAP_EMMISSIVE_BLOCK__
+			}
+			else
+			{// Pathetic hardware... Disable lights...
+				GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, 0);
+			}
 		}
 	}
 

@@ -267,10 +267,10 @@ void main()
 	vec3 originalRayDir = -normalize(u_ViewOrigin - position.xyz);
 	vec3 vCameraPos = u_ViewOrigin;
 
-//#define __RAIN__
-//#define __SNOW__
+//#define _RAIN_
+//#define _SNOW_
 
-#ifdef __RAIN__
+#ifdef _RAIN_
 	// Twelve layers of rain sheets...
 	float dis = 1.;
 	for (int i = 0; i < 12; i++)
@@ -289,8 +289,8 @@ void main()
 		col += bri*f*0.25;
 		dis += 3.5;
 	}
-#endif //__RAIN__
-#ifdef __SNOW__
+#endif //_RAIN_
+#ifdef _SNOW_
 	// Twelve layers of snow sheets... 4 is plenty it seems
 	float dis = 2.;
 	for (int i = 0; i < 4/*12*/; i++)
@@ -309,7 +309,7 @@ void main()
 		col += bri*f*4.0;
 		dis += 3.5;
 	}
-#endif //__SNOW__
+#endif //_SNOW_
 
 	col = clamp(col, 0.0, 1.0);
 

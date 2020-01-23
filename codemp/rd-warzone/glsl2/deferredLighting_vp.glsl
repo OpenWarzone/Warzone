@@ -1,4 +1,4 @@
-#define __CLOUD_SHADOWS__
+#define _CLOUD_SHADOWS_
 
 attribute vec3	attr_Position;
 attribute vec2	attr_TexCoord0;
@@ -24,7 +24,7 @@ uniform vec4								u_Local8; // NIGHT_SCALE,		CLOUDS_CLOUDCOVER,		CLOUDS_CLOUDS
 varying vec2								var_TexCoords;
 
 
-#ifdef __CLOUD_SHADOWS__
+#ifdef _CLOUD_SHADOWS_
 
 varying float								var_CloudShadow;
 
@@ -171,7 +171,7 @@ float CloudShadows(void)
 
 	return (1.0 - (alpha*0.75));
 }
-#endif //__CLOUD_SHADOWS__
+#endif //_CLOUD_SHADOWS_
 
 void main()
 {
@@ -179,11 +179,11 @@ void main()
 	gl_Position = u_ModelViewProjectionMatrix * vec4(position, 1.0);
 	var_TexCoords = attr_TexCoord0.st;
 
-#ifdef __CLOUD_SHADOWS__
+#ifdef _CLOUD_SHADOWS_
 	if (CLOUDS_SHADOWS_ENABLED == 1.0)
 	{
 		float cShadow = CloudShadows() * 0.5 + 0.5;
 		var_CloudShadow = mix(cShadow, 1.0, clamp(NIGHT_SCALE, 0.0, 1.0)); // Dampen out cloud shadows at sunrise/sunset...
 	}
-#endif //__CLOUD_SHADOWS__
+#endif //_CLOUD_SHADOWS_
 }

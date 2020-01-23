@@ -1924,7 +1924,7 @@ void RB_UpdateCloseLights ( void )
 	float dayNightFactor = mix(MAP_EMISSIVE_RADIUS_SCALE, MAP_EMISSIVE_RADIUS_SCALE_NIGHT, RB_NightScale());
 
 	//int MAX_CLOSE_LIGHTS = MAX_DEFERRED_LIGHTS;
-	int MAX_CLOSE_LIGHTS = r_lowVram->integer ? min(r_maxDeferredLights->integer, 8.0) : min(r_maxDeferredLights->integer, MAX_DEFERRED_LIGHTS);
+	int MAX_CLOSE_LIGHTS = r_lowQualityMode->integer ? min(r_maxDeferredLights->integer, 8.0) : min(r_maxDeferredLights->integer, MAX_DEFERRED_LIGHTS);
 
 	for ( int l = 0 ; l < backEnd.refdef.num_dlights ; l++ )
 	{

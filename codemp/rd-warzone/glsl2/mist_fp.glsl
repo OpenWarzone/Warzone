@@ -102,9 +102,9 @@ flat in vec3		vBasePosition;
 
 out vec4			out_Glow;
 out vec4			out_Normal;
-#ifdef __USE_REAL_NORMALMAPS__
+#ifdef USE_REAL_NORMALMAPS
 out vec4			out_NormalDetail;
-#endif //__USE_REAL_NORMALMAPS__
+#endif //USE_REAL_NORMALMAPS
 out vec4			out_Position;
 
 vec4 GetMap( in sampler2D tex, float scale)
@@ -148,9 +148,9 @@ void main()
 	out_Glow = vec4(0.0);
 	//out_Normal = vec4(vVertNormal.xy, 0.0, 1.0);
 	out_Normal = vec4(0.0);
-#ifdef __USE_REAL_NORMALMAPS__
+#ifdef USE_REAL_NORMALMAPS
 	out_NormalDetail = vec4(0.0);
-#endif //__USE_REAL_NORMALMAPS__
+#endif //USE_REAL_NORMALMAPS
 	//out_Position = vec4(vVertPosition, MATERIAL_PROCEDURALFOLIAGE+1.0);
 	out_Position = vec4(0.0);
 }

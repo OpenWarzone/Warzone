@@ -1,8 +1,8 @@
-#define __HIGH_PASS_SHARPEN__
-#define __CHRISTMAS_LIGHTS__
-//#define __GLASS_TEST__
-//#define __GLASS_TEST2__
-//#define __STEEP_PARALLAX__
+//#define _HIGH_PASS_SHARPEN_
+#define _CHRISTMAS_LIGHTS_
+//#define _GLASS_TEST_
+//#define _GLASS_TEST2_
+//#define _STEEP_PARALLAX_
 
 #define SCREEN_MAPS_ALPHA_THRESHOLD 0.666
 #define SCREEN_MAPS_LEAFS_THRESHOLD 0.001
@@ -154,17 +154,17 @@ uniform float						u_zFar;
 
 #if defined(USE_TESSELLATION)
 
-in precise vec3				Normal_FS_in;
-in precise vec2				TexCoord_FS_in;
-in precise vec2				envTC_FS_in;
-in precise vec3				WorldPos_FS_in;
-in precise vec3				ViewDir_FS_in;
+in vec3						Normal_FS_in;
+in vec2						TexCoord_FS_in;
+in vec2						envTC_FS_in;
+in vec3						WorldPos_FS_in;
+in vec3						ViewDir_FS_in;
 
-in precise vec4				Color_FS_in;
-in precise vec4				PrimaryLightDir_FS_in;
-in precise vec2				TexCoord2_FS_in;
+in vec4						Color_FS_in;
+in vec4						PrimaryLightDir_FS_in;
+in vec2						TexCoord2_FS_in;
 
-in precise vec3				Blending_FS_in;
+in vec3						Blending_FS_in;
 flat in float				Slope_FS_in;
 
 
@@ -217,9 +217,9 @@ vec3 m_Normal				= normalize(gl_FrontFacing ? -var_Normal : var_Normal);
 out vec4 out_Glow;
 out vec4 out_Position;
 out vec4 out_Normal;
-#ifdef __USE_REAL_NORMALMAPS__
+#ifdef USE_REAL_NORMALMAPS
 out vec4 out_NormalDetail;
-#endif //__USE_REAL_NORMALMAPS__
+#endif //USE_REAL_NORMALMAPS
 
 
 const float							fBranchHardiness = 0.001;
@@ -229,12 +229,6 @@ const vec3							vWindDirection = normalize(vec3(1.0, 1.0, 0.0));
 
 vec2 pxSize = vec2(1.0) / u_Dimensions;
 
-//#define __ENCODE_NORMALS_RECONSTRUCT_Z__
-#define __ENCODE_NORMALS_STEREOGRAPHIC_PROJECTION__
-//#define __ENCODE_NORMALS_CRY_ENGINE__
-//#define __ENCODE_NORMALS_EQUAL_AREA_PROJECTION__
-
-#ifdef __ENCODE_NORMALS_STEREOGRAPHIC_PROJECTION__
 vec2 EncodeNormal(vec3 n)
 {
 	float scale = 1.7777;
@@ -253,50 +247,8 @@ vec3 DecodeNormal(vec2 enc)
 	float g = 2.0 / dot(nn.xyz, nn.xyz);
 	return vec3(g * nn.xy, g - 1.0);
 }
-#elif defined(__ENCODE_NORMALS_CRY_ENGINE__)
-vec3 DecodeNormal(in vec2 N)
-{
-	vec2 encoded = N * 4.0 - 2.0;
-	float f = dot(encoded, encoded);
-	float g = sqrt(1.0 - f * 0.25);
-	return vec3(encoded * g, 1.0 - f * 0.5);
-}
-vec2 EncodeNormal(in vec3 N)
-{
-	float f = sqrt(8.0 * N.z + 8.0);
-	return N.xy / f + 0.5;
-}
-#elif defined(__ENCODE_NORMALS_EQUAL_AREA_PROJECTION__)
-vec2 EncodeNormal(vec3 n)
-{
-	float f = sqrt(8.0 * n.z + 8.0);
-	return n.xy / f + 0.5;
-}
-vec3 DecodeNormal(vec2 enc)
-{
-	vec2 fenc = enc * 4.0 - 2.0;
-	float f = dot(fenc, fenc);
-	float g = sqrt(1.0 - f / 4.0);
-	vec3 n;
-	n.xy = fenc*g;
-	n.z = 1.0 - f / 2.0;
-	return n;
-}
-#else //__ENCODE_NORMALS_RECONSTRUCT_Z__
-vec3 DecodeNormal(in vec2 N)
-{
-	vec3 norm;
-	norm.xy = N * 2.0 - 1.0;
-	norm.z = sqrt(1.0 - dot(norm.xy, norm.xy));
-	return norm;
-}
-vec2 EncodeNormal(vec3 n)
-{
-	return vec2(n.xy * 0.5 + 0.5);
-}
-#endif //__ENCODE_NORMALS_RECONSTRUCT_Z__
 
-#ifdef __CHRISTMAS_LIGHTS__
+#ifdef _CHRISTMAS_LIGHTS_
 float hash( const in float n ) {
 	return fract(sin(n)*4378.5453);
 }
@@ -353,7 +305,7 @@ float SmoothNoise( vec3 p, in float seed )
 	return noise(p, seed);
 #endif
 }
-#endif //__CHRISTMAS_LIGHTS__
+#endif //_CHRISTMAS_LIGHTS_
 
 vec2 GetSway ()
 {
@@ -391,7 +343,7 @@ float getdiffuseLight(vec3 n, vec3 l, float p) {
 	return pow(ndotl, p);
 }
 
-#if defined(__HIGH_PASS_SHARPEN__)
+#if defined(_HIGH_PASS_SHARPEN_)
 vec3 Enhance(in sampler2D tex, in vec2 uv, vec3 color, float level)
 {
 	vec3 blur = textureLod(tex, uv, level).xyz;
@@ -400,9 +352,9 @@ vec3 Enhance(in sampler2D tex, in vec2 uv, vec3 color, float level)
 	col = col * color;
 	return col;
 }
-#endif //defined(__HIGH_PASS_SHARPEN__)
+#endif //defined(_HIGH_PASS_SHARPEN_)
 
-#if defined(__LAVA__)
+#if defined(_LAVA_)
 #define time u_Time*0.1
 
 float hash21(in vec2 n){ return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453); }
@@ -496,9 +448,9 @@ void GetLava( out vec4 fragColor, in vec2 uv )
 	col=pow(col,vec3(1.4));
 	fragColor = vec4(col,1.0);
 }
-#endif //defined(__LAVA__)
+#endif //defined(_LAVA_)
 
-#ifdef __GLASS_TEST__
+#ifdef _GLASS_TEST_
 #define SPECULAR_EXPONENT 10.
 #define GLASS_COL vec3(1.)
 #define GLASS_ALPHA .8
@@ -528,10 +480,10 @@ vec4 calc_glass_color(vec3 ro, vec3 rd, float dist, vec3 n, vec3 iXPos) {
     col *= highlights + env_map(n, -rd);
     return vec4(col, alpha);
 }
-#endif //__GLASS_TEST__
+#endif //_GLASS_TEST_
 
 
-#ifdef __STEEP_PARALLAX__
+#ifdef _STEEP_PARALLAX_
 int MinSamples = 1; //! slider[1, 1, 100]
 int MaxSamples = 20; //! slider[20, 20, 256]
 bool UseShadow = false;
@@ -708,7 +660,7 @@ vec3 TangentFromNormal ( vec3 normal )
 	*/
 	return normalize(cross(normal, vec3(0.0, 0.0, 1.0)));
 }
-#endif //__STEEP_PARALLAX__
+#endif //_STEEP_PARALLAX_
 
 void main()
 {
@@ -720,9 +672,9 @@ void main()
 		out_Glow = vec4(0.0);
 		out_Position = vec4(0.0);
 		out_Normal = vec4(0.0);
-#ifdef __USE_REAL_NORMALMAPS__
+#ifdef USE_REAL_NORMALMAPS
 		out_NormalDetail = vec4(0.0);
-#endif //__USE_REAL_NORMALMAPS__
+#endif //USE_REAL_NORMALMAPS
 		return;
 	}
 
@@ -735,7 +687,7 @@ void main()
 		texCoords += vec2(GetSway());
 	}
 
-#ifdef __STEEP_PARALLAX__
+#ifdef _STEEP_PARALLAX_
 	float pShadow = 1.0;
 
 	if (USE_IS2D <= 0.0 && USE_GLOW_BUFFER != 1.0)
@@ -752,22 +704,22 @@ void main()
 		texCoords = parallax.xy;
 		pShadow = parallax.z;
 	}
-#endif //__STEEP_PARALLAX__
+#endif //_STEEP_PARALLAX_
 
 	vec4 diffuse = vec4(0.0);
 
-#if defined(__LAVA__)
+#if defined(_LAVA_)
 	GetLava( diffuse, texCoords );
-#else //!defined(__LAVA__)
-#ifdef __GLASS_TEST__
+#else //!defined(_LAVA_)
+#ifdef _GLASS_TEST_
 	if (SHADER_MATERIAL_TYPE == MATERIAL_DISTORTEDGLASS)
 	{
 		vec3 v = normalize(m_ViewDir);
 		diffuse = calc_glass_color(normalize(u_ViewOrigin), v * u_Local9.r, length(v) * u_Local9.g, (u_Local9.a == 1.0) ? normalize(v * N.xyz) : N.xyz, normalize(m_vertPos) * u_Local9.b);
 	}
 	else
-#endif //__GLASS_TEST__
-#ifdef __GLASS_TEST2__
+#endif //_GLASS_TEST_
+#ifdef _GLASS_TEST2_
 	if (SHADER_MATERIAL_TYPE == MATERIAL_DISTORTEDGLASS)
 	{
 		vec3 E = normalize(m_ViewDir);
@@ -783,11 +735,11 @@ void main()
 		diffuse = (diffuse + texture(u_DiffuseMap, texCoords)) / 2.0;
 	}
 	else
-#endif //__GLASS_TEST2__
+#endif //_GLASS_TEST2_
 	{
 		diffuse = texture(u_DiffuseMap, texCoords);
 
-	#if defined(__HIGH_PASS_SHARPEN__)
+	#if defined(_HIGH_PASS_SHARPEN_)
 		if (USE_IS2D > 0.0 || USE_TEXTURECLAMP > 0.0)
 		{
 			diffuse.rgb = Enhance(u_DiffuseMap, texCoords, diffuse.rgb, 16.0);
@@ -796,13 +748,13 @@ void main()
 		{
 			diffuse.rgb = Enhance(u_DiffuseMap, texCoords, diffuse.rgb, 8.0 + (gl_FragCoord.z * 8.0));
 		}
-	#endif //defined(__HIGH_PASS_SHARPEN__)
+	#endif //defined(_HIGH_PASS_SHARPEN_)
 	}
-#endif //defined(__LAVA__)
+#endif //defined(_LAVA_)
 
-#ifdef __STEEP_PARALLAX__
+#ifdef _STEEP_PARALLAX_
 	diffuse.rgb *= pShadow;
-#endif //__STEEP_PARALLAX__
+#endif //_STEEP_PARALLAX_
 
 	// Alter colors by shader's colormod setting...
 	diffuse.rgb += diffuse.rgb * u_ColorMod.rgb;
@@ -812,7 +764,7 @@ void main()
 	{// Blend the overlay...
 		vec4 overlay = texture(u_OverlayMap, texCoords);
 
-	/*#if defined(__HIGH_PASS_SHARPEN__)
+	/*#if defined(_HIGH_PASS_SHARPEN_)
 		if (USE_IS2D > 0.0 || USE_TEXTURECLAMP > 0.0)
 		{
 			overlay.rgb = Enhance(u_OverlayMap, texCoords, overlay.rgb, 16.0);
@@ -821,7 +773,7 @@ void main()
 		{
 			overlay.rgb = Enhance(u_OverlayMap, texCoords, overlay.rgb, 8.0 + (gl_FragCoord.z * 8.0));
 		}
-	#endif //defined(__HIGH_PASS_SHARPEN__)*/
+	#endif //defined(_HIGH_PASS_SHARPEN_)*/
 
 		// overlay map is always blended by diffuse rgb strength (multiplied by the overlay's alpha to support alphas)...
 		vec3 oStr = clamp(diffuse.rgb * overlay.a * 0.5, 0.0, 1.0);
@@ -832,7 +784,7 @@ void main()
 	{// Blend the overlay...
 		vec4 env = texture(u_EnvironmentMap, m_envTC);
 
-	/*#if defined(__HIGH_PASS_SHARPEN__)
+	/*#if defined(_HIGH_PASS_SHARPEN_)
 		if (USE_IS2D > 0.0 || USE_TEXTURECLAMP > 0.0)
 		{
 			env.rgb = Enhance(u_EnvironmentMap, m_envTC, env.rgb, 16.0);
@@ -841,7 +793,7 @@ void main()
 		{
 			env.rgb = Enhance(u_EnvironmentMap, m_envTC, env.rgb, 8.0 + (gl_FragCoord.z * 8.0));
 		}
-	#endif //defined(__HIGH_PASS_SHARPEN__)*/
+	#endif //defined(_HIGH_PASS_SHARPEN_)*/
 
 		diffuse.rgb = mix(diffuse.rgb, env.rgb, SHADER_ENVMAP_STRENGTH * env.a);
 	}
@@ -850,7 +802,7 @@ void main()
 	gl_FragColor.a = clamp(diffuse.a * var_Color.a, 0.0, 1.0);
 
 
-#ifdef __USE_REAL_NORMALMAPS__
+#ifdef USE_REAL_NORMALMAPS
 	vec4 norm = vec4(0.0);
 
 	if (USE_GLOW_BUFFER != 1.0 && USE_IS2D <= 0.0 && USE_ISDETAIL <= 0.0 && SHADER_HAS_NORMALMAP > 0.0)
@@ -858,13 +810,13 @@ void main()
 		norm = texture(u_NormalMap, texCoords);
 		norm.a = 1.0;
 	}
-#endif //__USE_REAL_NORMALMAPS__
+#endif //USE_REAL_NORMALMAPS
 
 
 	vec3 ambientColor = vec3(0.0);
 	vec3 lightColor = clamp(var_Color.rgb, 0.0, 1.0);
 
-#if !defined(__LAVA__)
+#if !defined(_LAVA_)
 	if (LIGHTMAP_ENABLED)
 	{// TODO: Move to screen space?
 		vec4 lightmapColor = textureLod(u_LightMap, var_TexCoords2.st, 0.0);
@@ -945,11 +897,11 @@ void main()
 			lightColor = clamp(spec * lightColor, 0.0, 1.0);
 		}
 	}
-#endif //!defined(__LAVA__)
+#endif //!defined(_LAVA_)
 
 	gl_FragColor.rgb = diffuse.rgb + ambientColor;
 
-#if !defined(__LAVA__)
+#if !defined(_LAVA_)
 	if (USE_GLOW_BUFFER != 1.0 
 		&& USE_IS2D <= 0.0 
 		&& USE_VERTEX_ANIM <= 0.0
@@ -971,7 +923,7 @@ void main()
 	{
 		gl_FragColor.rgb = gl_FragColor.rgb * u_MapAmbient.rgb;
 	}
-#endif //!defined(__LAVA__)
+#endif //!defined(_LAVA_)
 	
 	gl_FragColor.rgb *= clamp(lightColor, 0.0, 1.0);
 
@@ -1092,7 +1044,7 @@ void main()
 #define glow_const_1 ( 23.0 / 255.0)
 #define glow_const_2 (255.0 / 229.0)
 
-#if defined(__LAVA__)
+#if defined(_LAVA_)
 	float power = length(gl_FragColor.rgb) / 3.0;
 		
 	power = pow(clamp(power*5.0, 0.0, 1.0), 3.0);
@@ -1106,12 +1058,12 @@ void main()
 
 	out_Position = vec4(m_vertPos.xyz, SHADER_MATERIAL_TYPE+1.0);
 	out_Normal = vec4(vec3(EncodeNormal(N.xyz), useDisplacementMapping), 1.0 );
-	#ifdef __USE_REAL_NORMALMAPS__
+	#ifdef USE_REAL_NORMALMAPS
 		out_NormalDetail = norm;
-	#endif //__USE_REAL_NORMALMAPS__
-#else //!defined(__LAVA__)
+	#endif //USE_REAL_NORMALMAPS
+#else //!defined(_LAVA_)
 
-	#ifdef __CHRISTMAS_LIGHTS__
+	#ifdef _CHRISTMAS_LIGHTS_
 		if (SHADER_MATERIAL_TYPE == MATERIAL_GREENLEAVES && ENABLE_CHRISTMAS_EFFECT > 0.0 && gl_FragColor.a >= alphaThreshold)
 		{
 			float mapmult = 0.05;//0.01;
@@ -1127,27 +1079,27 @@ void main()
 
 			out_Position = vec4(m_vertPos.xyz, SHADER_MATERIAL_TYPE+1.0);
 			out_Normal = vec4(vec3(EncodeNormal(N.xyz), 0.0), 1.0 );
-	#ifdef __USE_REAL_NORMALMAPS__
+	#ifdef USE_REAL_NORMALMAPS
 				out_NormalDetail = norm;
-	#endif //__USE_REAL_NORMALMAPS__
+	#endif //USE_REAL_NORMALMAPS
 			return;
 		}
-	#endif //__CHRISTMAS_LIGHTS__
+	#endif //_CHRISTMAS_LIGHTS_
 
 	if (SHADER_MATERIAL_TYPE == 1024.0 || SHADER_MATERIAL_TYPE == 1025.0)
 	{
 		out_Glow = vec4(0.0);
 		out_Position = vec4(0.0);
 		out_Normal = vec4(0.0);
-	#ifdef __USE_REAL_NORMALMAPS__
+	#ifdef USE_REAL_NORMALMAPS
 			out_NormalDetail = vec4(0.0);
-	#endif //__USE_REAL_NORMALMAPS__
+	#endif //USE_REAL_NORMALMAPS
 	}
 	else if (USE_GLOW_BUFFER >= 2.0 && USE_IS2D <= 0.0)
 	{// Merged diffuse+glow stage...
 		vec4 glowColor = max(texture(u_GlowMap, texCoords), 0.0);
 
-	#if defined(__HIGH_PASS_SHARPEN__)
+	#if defined(_HIGH_PASS_SHARPEN_)
 		if (USE_IS2D > 0.0 || USE_TEXTURECLAMP > 0.0)
 		{
 			glowColor.rgb = Enhance(u_GlowMap, texCoords, glowColor.rgb, 16.0);
@@ -1156,7 +1108,7 @@ void main()
 		{
 			glowColor.rgb = Enhance(u_GlowMap, texCoords, glowColor.rgb, 8.0 + (gl_FragCoord.z * 8.0));
 		}
-	#endif //defined(__HIGH_PASS_SHARPEN__)
+	#endif //defined(_HIGH_PASS_SHARPEN_)
 
 		if (SHADER_MATERIAL_TYPE != MATERIAL_GLASS && length(glowColor.rgb) <= 0.0)
 			glowColor.a = 0.0;
@@ -1234,33 +1186,33 @@ void main()
 		{
 			out_Position = vec4(0.0);
 			out_Normal = vec4(0.0);
-	#ifdef __USE_REAL_NORMALMAPS__
+	#ifdef USE_REAL_NORMALMAPS
 				out_NormalDetail = vec4(0.0);
-	#endif //__USE_REAL_NORMALMAPS__
+	#endif //USE_REAL_NORMALMAPS
 		}
 		else if (SHADER_MATERIAL_TYPE == MATERIAL_EFX || SHADER_MATERIAL_TYPE == MATERIAL_GLASS)
 		{
 			out_Position = vec4(0.0);
 			out_Normal = vec4(0.0);
-	#ifdef __USE_REAL_NORMALMAPS__
+	#ifdef USE_REAL_NORMALMAPS
 				out_NormalDetail = vec4(0.0);
-	#endif //__USE_REAL_NORMALMAPS__
+	#endif //USE_REAL_NORMALMAPS
 		}
 		else if (USE_BLEND != 4.0 && gl_FragColor.a >= alphaThreshold || SHADER_MATERIAL_TYPE == 1024.0 || SHADER_MATERIAL_TYPE == 1025.0 || SHADER_MATERIAL_TYPE == MATERIAL_PUDDLE)
 		{
 			out_Position = vec4(m_vertPos.xyz, SHADER_MATERIAL_TYPE+1.0);
 			out_Normal = vec4(vec3(EncodeNormal(N.xyz), 0.0), 1.0 );
-	#ifdef __USE_REAL_NORMALMAPS__
+	#ifdef USE_REAL_NORMALMAPS
 				out_NormalDetail = norm;
-	#endif //__USE_REAL_NORMALMAPS__
+	#endif //USE_REAL_NORMALMAPS
 		}
 		else
 		{
 			out_Position = vec4(0.0);
 			out_Normal = vec4(0.0);
-	#ifdef __USE_REAL_NORMALMAPS__
+	#ifdef USE_REAL_NORMALMAPS
 				out_NormalDetail = vec4(0.0);
-	#endif //__USE_REAL_NORMALMAPS__
+	#endif //USE_REAL_NORMALMAPS
 		}
 	}
 	else if (USE_GLOW_BUFFER > 0.0 && USE_IS2D <= 0.0)
@@ -1296,33 +1248,33 @@ void main()
 		{
 			out_Position = vec4(0.0);
 			out_Normal = vec4(0.0);
-	#ifdef __USE_REAL_NORMALMAPS__
+	#ifdef USE_REAL_NORMALMAPS
 				out_NormalDetail = vec4(0.0);
-	#endif //__USE_REAL_NORMALMAPS__
+	#endif //USE_REAL_NORMALMAPS
 		}
 		else if (SHADER_MATERIAL_TYPE == MATERIAL_EFX || SHADER_MATERIAL_TYPE == MATERIAL_GLASS)
 		{
 			out_Position = vec4(0.0);
 			out_Normal = vec4(0.0);
-	#ifdef __USE_REAL_NORMALMAPS__
+	#ifdef USE_REAL_NORMALMAPS
 				out_NormalDetail = vec4(0.0);
-	#endif //__USE_REAL_NORMALMAPS__
+	#endif //USE_REAL_NORMALMAPS
 		}
 		else if (USE_BLEND != 4.0 && gl_FragColor.a >= alphaThreshold || SHADER_MATERIAL_TYPE == 1024.0 || SHADER_MATERIAL_TYPE == 1025.0 || SHADER_MATERIAL_TYPE == MATERIAL_PUDDLE)
 		{
 			out_Position = vec4(m_vertPos.xyz, SHADER_MATERIAL_TYPE+1.0);
 			out_Normal = vec4(vec3(EncodeNormal(N.xyz), 0.0), 1.0 );
-	#ifdef __USE_REAL_NORMALMAPS__
+	#ifdef USE_REAL_NORMALMAPS
 				out_NormalDetail = vec4(0.0);
-	#endif //__USE_REAL_NORMALMAPS__
+	#endif //USE_REAL_NORMALMAPS
 		}
 		else
 		{
 			out_Position = vec4(0.0);
 			out_Normal = vec4(0.0);
-	#ifdef __USE_REAL_NORMALMAPS__
+	#ifdef USE_REAL_NORMALMAPS
 				out_NormalDetail = vec4(0.0);
-	#endif //__USE_REAL_NORMALMAPS__
+	#endif //USE_REAL_NORMALMAPS
 		}
 	}
 	else
@@ -1333,34 +1285,34 @@ void main()
 		{
 			out_Position = vec4(0.0);
 			out_Normal = vec4(0.0);
-	#ifdef __USE_REAL_NORMALMAPS__
+	#ifdef USE_REAL_NORMALMAPS
 				out_NormalDetail = vec4(0.0);
-	#endif //__USE_REAL_NORMALMAPS__
+	#endif //USE_REAL_NORMALMAPS
 		}
 		else if (SHADER_MATERIAL_TYPE == MATERIAL_EFX || SHADER_MATERIAL_TYPE == MATERIAL_GLASS)
 		{
 			out_Position = vec4(0.0);
 			out_Normal = vec4(0.0);
-	#ifdef __USE_REAL_NORMALMAPS__
+	#ifdef USE_REAL_NORMALMAPS
 				out_NormalDetail = vec4(0.0);
-	#endif //__USE_REAL_NORMALMAPS__
+	#endif //USE_REAL_NORMALMAPS
 		}
 		else if (USE_BLEND != 4.0 && gl_FragColor.a >= alphaThreshold || SHADER_MATERIAL_TYPE == 1024.0 || SHADER_MATERIAL_TYPE == 1025.0 || SHADER_MATERIAL_TYPE == MATERIAL_PUDDLE)
 		{
 			out_Position = vec4(m_vertPos.xyz, SHADER_MATERIAL_TYPE+1.0);
 			out_Normal = vec4(vec3(EncodeNormal(N.xyz), useDisplacementMapping), 1.0 );
-	#ifdef __USE_REAL_NORMALMAPS__
+	#ifdef USE_REAL_NORMALMAPS
 				out_NormalDetail = norm;
-	#endif //__USE_REAL_NORMALMAPS__
+	#endif //USE_REAL_NORMALMAPS
 		}
 		else
 		{
 			out_Position = vec4(0.0);
 			out_Normal = vec4(0.0);
-	#ifdef __USE_REAL_NORMALMAPS__
+	#ifdef USE_REAL_NORMALMAPS
 				out_NormalDetail = vec4(0.0);
-	#endif //__USE_REAL_NORMALMAPS__
+	#endif //USE_REAL_NORMALMAPS
 		}
 	}
-#endif //defined(__LAVA__)
+#endif //defined(_LAVA_)
 }

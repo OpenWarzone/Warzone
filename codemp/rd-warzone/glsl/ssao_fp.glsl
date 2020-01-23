@@ -62,13 +62,13 @@ varying vec2	var_ScreenTex;
 varying vec3	var_Position;
 
 
-#ifdef __USE_REAL_NORMALMAPS__
-	//#define __USE_DETAIL_NORMALS__ // Not needed. Waste of time...
-#endif //__USE_REAL_NORMALMAPS__
+#ifdef USE_REAL_NORMALMAPS
+	//#define _USE_DETAIL_NORMALS_ // Not needed. Waste of time...
+#endif //USE_REAL_NORMALMAPS
 
-#ifdef __USE_DETAIL_NORMALS__
-	#define __FAST_NORMAL_DETAIL__
-#endif //__USE_DETAIL_NORMALS__
+#ifdef _USE_DETAIL_NORMALS_
+	#define _FAST_NORMAL_DETAIL_
+#endif //_USE_DETAIL_NORMALS_
 
 
 #if defined(AO_QUALITY_3)
@@ -83,15 +83,9 @@ varying vec3	var_Position;
 #endif //defined(AO_QUALITY_1)
 
 
-#define __ENABLE_GI__
+#define _ENABLE_GI_
 
 
-//#define __ENCODE_NORMALS_RECONSTRUCT_Z__
-#define __ENCODE_NORMALS_STEREOGRAPHIC_PROJECTION__
-//#define __ENCODE_NORMALS_CRY_ENGINE__
-//#define __ENCODE_NORMALS_EQUAL_AREA_PROJECTION__
-
-#ifdef __ENCODE_NORMALS_STEREOGRAPHIC_PROJECTION__
 vec2 EncodeNormal(vec3 n)
 {
 	float scale = 1.7777;
@@ -110,48 +104,6 @@ vec3 DecodeNormal(vec2 enc)
 	float g = 2.0 / dot(nn.xyz, nn.xyz);
 	return vec3(g * nn.xy, g - 1.0);
 }
-#elif defined(__ENCODE_NORMALS_CRY_ENGINE__)
-vec3 DecodeNormal(in vec2 N)
-{
-	vec2 encoded = N * 4.0 - 2.0;
-	float f = dot(encoded, encoded);
-	float g = sqrt(1.0 - f * 0.25);
-	return vec3(encoded * g, 1.0 - f * 0.5);
-}
-vec2 EncodeNormal(in vec3 N)
-{
-	float f = sqrt(8.0 * N.z + 8.0);
-	return N.xy / f + 0.5;
-}
-#elif defined(__ENCODE_NORMALS_EQUAL_AREA_PROJECTION__)
-vec2 EncodeNormal(vec3 n)
-{
-	float f = sqrt(8.0 * n.z + 8.0);
-	return n.xy / f + 0.5;
-}
-vec3 DecodeNormal(vec2 enc)
-{
-	vec2 fenc = enc * 4.0 - 2.0;
-	float f = dot(fenc, fenc);
-	float g = sqrt(1.0 - f / 4.0);
-	vec3 n;
-	n.xy = fenc*g;
-	n.z = 1.0 - f / 2.0;
-	return n;
-}
-#else //__ENCODE_NORMALS_RECONSTRUCT_Z__
-vec3 DecodeNormal(in vec2 N)
-{
-	vec3 norm;
-	norm.xy = N * 2.0 - 1.0;
-	norm.z = sqrt(1.0 - dot(norm.xy, norm.xy));
-	return norm;
-}
-vec2 EncodeNormal(vec3 n)
-{
-	return vec2(n.xy * 0.5 + 0.5);
-}
-#endif //__ENCODE_NORMALS_RECONSTRUCT_Z__
 
 #if 0
 vec2 toRGB565(in vec3 c)
@@ -291,11 +243,11 @@ float randZeroOne()
 	return fRes;
 }
 
-#ifdef __ENABLE_GI__
+#ifdef _ENABLE_GI_
 float ssao( in vec3 position, in vec2 pixel, in vec3 normal, in float resolution, in float strength, in float minDistance, in float maxDistance, inout vec3 gi )
-#else //!__ENABLE_GI__
+#else //!_ENABLE_GI_
 float ssao( in vec3 position, in vec2 pixel, in vec3 normal, in float resolution, in float strength, in float minDistance, in float maxDistance )
-#endif //__ENABLE_GI__
+#endif //_ENABLE_GI_
 {
     vec2  uv  = pixel;
     float z   = texture2D( u_ScreenDepthMap, uv ).x;		// read eye linear z
@@ -309,9 +261,9 @@ float ssao( in vec3 position, in vec2 pixel, in vec3 normal, in float resolution
 
 	vec2  res = vec2(resolution) / u_Dimensions.xy;
 	float numOcclusions = 0.0;
-#ifdef __ENABLE_GI__
+#ifdef _ENABLE_GI_
 	float GI_RANGE_MULT = 0.25;
-#endif //__ENABLE_GI__
+#endif //_ENABLE_GI_
 
 	vLocalSeed = position;
 
@@ -354,7 +306,7 @@ float ssao( in vec3 position, in vec2 pixel, in vec3 normal, in float resolution
 			}
 		}
 
-#ifdef __ENABLE_GI__
+#ifdef _ENABLE_GI_
 		if (i < NUM_GI_CHECKS)
 		{
 			float fi = float(i+32);
@@ -389,15 +341,15 @@ float ssao( in vec3 position, in vec2 pixel, in vec3 normal, in float resolution
 				gi = max(gi, illum);
 			}
 		}
-#endif //__ENABLE_GI__
+#endif //_ENABLE_GI_
 	}
 
 	float ao = clamp(bl/float(numOcclusions), 0.0, 1.0);
 	ao = mix(ao, 1.0, z);
 
-#ifdef __ENABLE_GI__
+#ifdef _ENABLE_GI_
 	//gi = mix(gi, vec3(0.0), vec3(z));
-#endif //__ENABLE_GI__
+#endif //_ENABLE_GI_
 
     return ao;
 }
@@ -408,47 +360,47 @@ void main( void )
 
 	if (position.a-1.0 == MATERIAL_SKY || position.a-1.0 == MATERIAL_SUN || position.a-1.0 == MATERIAL_GLASS || position.a-1.0 == MATERIAL_NONE)
 	{// Skybox... Skip...
-#ifdef __ENABLE_GI__
+#ifdef _ENABLE_GI_
 		gl_FragColor=vec4(0.0, 0.0, 0.0, 2.0);
-#else //!__ENABLE_GI__
+#else //!_ENABLE_GI_
 		gl_FragColor=vec4(1.0, 0.0, 0.0, 1.0);
-#endif //__ENABLE_GI__
+#endif //_ENABLE_GI_
 		return;
 	}
 
 	vec4 norm = textureLod(u_NormalMap, var_ScreenTex, 0.0);
 	norm.xyz = DecodeNormal(norm.xy);
 
-#ifdef __USE_DETAIL_NORMALS__
+#ifdef _USE_DETAIL_NORMALS_
 	if (u_Local0.r > 0.0)
 	{// Use detail normals...
 		vec4 normalDetail = textureLod(u_OverlayMap, var_ScreenTex, 0.0);
 
 		if (normalDetail.a < 1.0)
 		{// Don't have real normalmap, make normals for this pixel...
-#ifdef __FAST_NORMAL_DETAIL__
+#ifdef _FAST_NORMAL_DETAIL_
 			normalDetail = normalVector(texture(u_DiffuseMap, var_ScreenTex).rgb);
-#else //!__FAST_NORMAL_DETAIL__
+#else //!_FAST_NORMAL_DETAIL_
 			normalDetail = normalVector(var_ScreenTex);
-#endif //__FAST_NORMAL_DETAIL__
+#endif //_FAST_NORMAL_DETAIL_
 		}
 
 		normalDetail.rgb = normalize(clamp(normalDetail.xyz, 0.0, 1.0) * 2.0 - 1.0);
 		norm.rgb = normalize(mix(norm.xyz, normalDetail.xyz, 0.25 * (length(norm.xyz - normalDetail.xyz) / 3.0)));
 	}
-#endif //__USE_DETAIL_NORMALS__
+#endif //_USE_DETAIL_NORMALS_
 
 	vec3 N = normalize(norm.xyz);
 
-#ifdef __ENABLE_GI__
+#ifdef _ENABLE_GI_
 	vec3 gi = vec3(0.0);
 	float msao = ssao( position.xyz, var_ScreenTex, N.xyz, 32.0, 64.0, 0.001, 0.01, gi );
 	float sao = clamp(msao, 0.0, 1.0);
 	//float gif = color2float(gi);
 	gl_FragColor=vec4(gi, 1.0+sao);
-#else //!__ENABLE_GI__
+#else //!_ENABLE_GI_
 	float msao = ssao( position.xyz, var_ScreenTex, N.xyz, 32.0, 64.0, 0.001, 0.01 );
 	float sao = clamp(msao, 0.0, 1.0);
 	gl_FragColor=vec4(sao, 0.0, 0.0, 1.0);
-#endif //__ENABLE_GI__
+#endif //_ENABLE_GI_
 }

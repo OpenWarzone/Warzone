@@ -63,9 +63,9 @@ varying vec2			var_TexCoords;
 #define px (1.0/u_Dimensions.x)
 #define py (1.0/u_Dimensions.y)
 
-#define __FAST__
+#define _FAST_
 
-#ifdef __FAST__
+#ifdef _FAST_
 void main()
 {
 	float numValues = 1.0;
@@ -96,7 +96,7 @@ void main()
 	gl_FragColor = vec4(color, 0.0, 0.0, 1.0);
 }
 
-#else //!__FAST__
+#else //!_FAST_
 float DistFromDepth(float depth)
 {
 	return depth * u_ViewInfo.y;//u_ViewInfo.z;
@@ -202,4 +202,4 @@ void main()
 
 	gl_FragColor = vec4(color, depth, 0.0, 1.0);
 }
-#endif //__FAST__
+#endif //_FAST_
