@@ -562,8 +562,20 @@ void CG_DoSaberTrails(centity_t *cent, clientInfo_t *client, vec3_t org_, vec3_t
 			qboolean inSaberMove = (BG_SaberInIdle(cent->currentState.saberMove) 
 				&& cent->currentState.torsoAnim != BOTH_CC_DEFENCE_SPIN 
 				&& cent->currentState.torsoAnim != BOTH_SINGLE_DEFENCE_SPIN
-				&& cent->currentState.torsoAnim != PAIRED_ATTACKER01
-				&& cent->currentState.torsoAnim != PAIRED_DEFENDER01) ? qfalse : qtrue;
+				&& !(cent->currentState.eFlags & EF_PAIRED_ANIMATION)) ? qfalse : qtrue;
+
+			if (BG_InSaberStandAnim(cent->currentState.torsoAnim))
+			{// Do a trail until we hit the final frame and freeze on it...
+				animation_t *anim = &bgAllAnims[cent->localAnimIndex].anims[cent->currentState.torsoAnim];
+
+				if (anim)
+				{
+					if (cent->pe.torso.frame >= anim->firstFrame && cent->pe.torso.frame < anim->firstFrame + anim->numFrames)
+					{// Currently playing the anim, and it is not yet finished, so add a trail...
+						inSaberMove = qtrue;
+					}
+				}
+			}
 
 			if (inSaberMove) // if we have a stale segment, don't draw until we have a fresh one
 			{

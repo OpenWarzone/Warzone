@@ -691,7 +691,7 @@ typedef enum {
 
 #define	EF_WEAPON_ALT_CHARGE	(1<<16)		// not used
 #define	EF_FROZEN				(1<<17)		// used for freeze grenades
-#define	EF_NOT_USED_4			(1<<18)		// not used
+#define	EF_PAIRED_ANIMATION		(1<<18)		// for paired attack/defend animations
 
 #define	EF_BODYPUSH				(1<<19)		//rww - claiming this for fullbody push effect
 
@@ -723,7 +723,7 @@ typedef enum {
 #define	EF2_BRACKET_ENTITY		(1<<6)		// Draw as bracketed
 #define	EF2_SHIP_DEATH			(1<<7)		// "died in ship" mode
 #define	EF2_NOT_USED_1			(1<<8)		// not used
-#define EF2_NOT_USED			(1<<9)		
+#define EF2_NOT_USED_2			(1<<9)		// not used
 //[SPShield]
 #define EF2_PLAYERHIT			(1<<10)
 //[/SPShield]
@@ -1908,6 +1908,7 @@ qboolean BG_SaberInSpecialAttack( int anim );
 qboolean BG_SaberInKata( int saberMove );
 qboolean BG_InKataAnim(int anim);
 qboolean BG_KickingAnim( int anim );
+qboolean BG_InPairedAnim(int anim);
 int BG_InGrappleMove(int anim);
 int BG_BrokenParryForAttack( int move );
 int BG_BrokenParryForParry( int move );

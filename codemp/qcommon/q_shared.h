@@ -2083,6 +2083,8 @@ typedef struct playerState_s {
 	int			deltaNumBits;
 #endif
 
+	int			pairedEntityNum = 0;
+
 } playerState_t;
 
 typedef struct siegePers_s
@@ -2504,6 +2506,8 @@ typedef struct entityState_s {
 	int			extra_flags;
 
 	int			healFxTime;
+
+	int			pairedEntityNum = 0;
 
 	// Inventory Data...
 	int				inventoryBlank[16] = { { -1 } };

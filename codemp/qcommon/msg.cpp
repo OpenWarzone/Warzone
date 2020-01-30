@@ -803,6 +803,7 @@ netField_t	entityStateFields[] =
 { NETF(nextTransitionAnim), 4 },
 // large use beyond GENTITYNUM_BITS - should use generic1 insead
 { NETF(genericenemyindex), 32 }, //Do not change to GENTITYNUM_BITS, used as a time offset for seeker
+{ NETF(pairedEntityNum), GENTITYNUM_BITS },
 { NETF(eFlags), 32 },
 { NETF(pos.trDuration), 32 },
 // might be able to reduce
@@ -1287,6 +1288,7 @@ netField_t	playerStateFields[] =
 { PSF(fd.saberDrawAnimLevel), 4 },
 { PSF(fd.saberAnimLevelPrevious), 4 },
 { PSF(genericEnemyIndex), 32 }, //NOTE: This isn't just an index all the time, it's often used as a time value, and thus needs 32 bits
+{ PSF(pairedEntityNum), GENTITYNUM_BITS },
 { PSF(events[0]), 10 },			// There is a maximum of 256 events (8 bits transmission, 2 high bits for uniqueness)
 { PSF(events[1]), 10 },			// There is a maximum of 256 events (8 bits transmission, 2 high bits for uniqueness)
 { PSF(customRGBA[0]), 8 }, //0-255
@@ -1528,6 +1530,7 @@ netField_t	pilotPlayerStateFields[] =
 { PSF(fd.saberDrawAnimLevel), 4 },
 { PSF(fd.saberAnimLevelPrevious), 4 },
 { PSF(genericEnemyIndex), 32 }, //NOTE: This isn't just an index all the time, it's often used as a time value, and thus needs 32 bits
+{ PSF(pairedEntityNum), GENTITYNUM_BITS },
 { PSF(customRGBA[0]), 8 }, //0-255
 { PSF(movementDir), 4 },
 { PSF(saberEntityNum), GENTITYNUM_BITS }, //Also used for channel tracker storage, but should never exceed entity number
@@ -1723,6 +1726,7 @@ netField_t	playerStateFields[] =
 { PSF(fd.saberDrawAnimLevel), 4 },
 { PSF(fd.saberAnimLevelPrevious), 4 },
 { PSF(genericEnemyIndex), 32 }, //NOTE: This isn't just an index all the time, it's often used as a time value, and thus needs 32 bits
+{ PSF(pairedEntityNum), GENTITYNUM_BITS },
 { PSF(events[0]), 10 },			// There is a maximum of 256 events (8 bits transmission, 2 high bits for uniqueness)
 { PSF(events[1]), 10 },			// There is a maximum of 256 events (8 bits transmission, 2 high bits for uniqueness)
 { PSF(customRGBA[0]), 8 }, //0-255

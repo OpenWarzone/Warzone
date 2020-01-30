@@ -36,6 +36,11 @@ qboolean NPC_IsCombatPathing(gentity_t *aiEnt)
 #ifdef __USE_NAVLIB__
 	if (aiEnt->client && aiEnt->client->navigation.goal.haveGoal && aiEnt->enemy && aiEnt->enemy->client && ValidEnemy(aiEnt, aiEnt->enemy))
 	{
+		if (aiEnt->client->ps.weapon == WP_SABER && Distance(aiEnt->r.currentOrigin, aiEnt->enemy->r.currentOrigin) > 256.0)
+		{
+			return qfalse;
+		}
+
 		return qtrue;
 	}
 #else //!__USE_NAVLIB__
@@ -615,6 +620,20 @@ void NPC_SetNewGoalAndPath(gentity_t *aiEnt)
 	if (aiEnt->isPadawan)
 	{
 		NPC_SetNewPadawanGoalAndPath(aiEnt);
+		aiEnt->last_move_time = level.time;
+		return;
+	}
+
+	if (aiEnt->enemy && ValidEnemy(aiEnt, aiEnt->enemy))
+	{
+		VectorClear(aiEnt->client->navigation.goal.origin);
+		aiEnt->client->navigation.goal.ent = aiEnt->enemy;
+
+#pragma omp critical
+		{
+			aiEnt->client->navigation.goal.haveGoal = (qboolean)NavlibFindRouteToTarget(aiEnt, aiEnt->client->navigation.goal, qtrue);
+			//trap->Print("PADAWAN DEBUG: %s has a path to his master? %s.\n", aiEnt->client->pers.netname, aiEnt->client->navigation.goal.haveGoal ? "TRUE" : "FALSE");
+		}
 		return;
 	}
 
@@ -623,14 +642,14 @@ void NPC_SetNewGoalAndPath(gentity_t *aiEnt)
 		return;
 	}
 
+	aiEnt->next_pathfind_time = level.time + 10000 + irand(0, 1000);
+
+#ifdef __USE_NAVLIB__
 	if (!G_NavmeshIsLoaded())
 	{
 		return;
 	}
 
-	aiEnt->next_pathfind_time = level.time + 10000 + irand(0, 1000);
-
-#ifdef __USE_NAVLIB__
 	if (NPC_FindGoal(aiEnt))
 	{
 #pragma omp critical
@@ -642,6 +661,8 @@ void NPC_SetNewGoalAndPath(gentity_t *aiEnt)
 		//	trap->Print("%s found a route.\n", aiEnt->client->pers.netname);
 		//else
 		//	trap->Print("%s failed to find a route.\n", aiEnt->client->pers.netname);
+
+		aiEnt->last_move_time = level.time;
 	}
 	return;
 #endif //__USE_NAVLIB__
@@ -683,6 +704,7 @@ void NPC_SetNewGoalAndPath(gentity_t *aiEnt)
 		if (!NPC->parent || !NPC_IsAlive(NPC, NPC->parent))
 		{
 			NPC->parent = NULL;
+			aiEnt->last_move_time = level.time;
 			return; // wait...
 		}
 
@@ -1389,14 +1411,16 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 
 	//G_ClearEnemy(NPC);
 
+#ifndef __USE_NAVLIB__ // Shouldn't need this...
 	if (NPC_GetOffPlayer(NPC))
 	{// Get off of their head!
-		return qtrue;
+		return qfalse;// qtrue;
 	}
+#endif //__USE_NAVLIB__
 
 	if (NPC_MoverCrushCheck(NPC))
 	{// There is a mover gonna crush us... Step back...
-		return qtrue;
+		return qfalse;// qtrue;
 	}
 
 	ucmd->forwardmove = 0;
@@ -1414,131 +1438,16 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 			VectorCopy(NPC->r.currentOrigin, NPC->npc_previous_pos);
 		}
 
-#ifndef __USE_NAVLIB__
-		if (NPC->isPadawan)
-		{
-			if (NPC->nextPadawanWaypointThink < level.time)
-			{
-				NavlibSetNavMesh(NPC->s.number, 0);
-				NPC_SetPadawanGoalAndPath(NPC);
+		NavlibSetNavMesh(NPC->s.number, 0);
 
-				if ((!NPC->parent || NPC_IsAlive(NPC, NPC->parent))
-					&& NPC->client->navigation.goal.haveGoal
-					&& NPC->client->navigation.goal.ent != NPC->parent)
-				{// We have a route, but it not our parent (he/she is dead), go there using normal code below...
-
-				}
-				else if (NPC->client->navigation.goal.haveGoal
-					&& NPC->client->navigation.goal.ent == NPC->parent
-					&& !GoalInRange(NPC, NavlibGetGoalRadius(NPC)))
-				{// Have a goal to our parent... Go there...
-					NavlibSetNavMesh(NPC->s.number, 0);
-#pragma omp critical
-					{
-						NavlibMoveToGoal(NPC);
-					}
-
-					if (NPC_IsCombatPathing(NPC))
-					{// When we have an enemy, look at them while moving (combat pathing)...
-						NPC_FacePosition(NPC, NPC->enemy->r.currentOrigin, qtrue);
-						VectorSubtract(NPC->client->navigation.nav.pos, NPC->r.currentOrigin, NPC->movedir);
-					}
-					else
-					{
-						NPC_FacePosition(NPC, NPC->client->navigation.nav.lookPos, qfalse);
-						VectorSubtract(NPC->client->navigation.nav.pos, NPC->r.currentOrigin, NPC->movedir);
-					}
-
-#ifndef __USE_NAVLIB_INTERNAL_MOVEMENT__
-					if (Distance(NPC->r.currentOrigin, NPC->client->navigation.goal.ent->r.currentOrigin) < 256)
-					{
-						walk = qtrue;
-					}
-
-					if (UQ1_UcmdMoveForDir(NPC, ucmd, NPC->movedir, walk, NPC->client->navigation.nav.pos))
-					{
-						if (NPC->last_move_time < level.time - 2000)
-						{
-							ucmd->upmove = 127;
-
-							if (NPC->s.eType == ET_PLAYER)
-							{
-								trap->EA_Jump(NPC->s.number);
-							}
-						}
-
-						return qtrue;
-					}
-					else if (NPC->bot_strafe_jump_timer > level.time)
-					{
-						ucmd->upmove = 127;
-
-						if (NPC->s.eType == ET_PLAYER)
-						{
-							trap->EA_Jump(NPC->s.number);
-						}
-					}
-					else if (NPC->bot_strafe_left_timer > level.time)
-					{
-						ucmd->rightmove = -127;
-						trap->EA_MoveLeft(NPC->s.number);
-					}
-					else if (NPC->bot_strafe_right_timer > level.time)
-					{
-						ucmd->rightmove = 127;
-						trap->EA_MoveRight(NPC->s.number);
-					}
-
-					if (NPC->last_move_time < level.time - 4000)
-					{
-						NPC->client->navigation.goal.haveGoal = qfalse;
-						VectorClear(NPC->client->navigation.goal.origin);
-						NPC->client->navigation.goal.ent = NULL;
-						return qfalse;
-					}
-
-					if (NPC->last_move_time < level.time - 2000)
-					{
-						ucmd->upmove = 127;
-
-						if (NPC->s.eType == ET_PLAYER)
-						{
-							trap->EA_Jump(NPC->s.number);
-						}
-					}
-#endif //__USE_NAVLIB_INTERNAL_MOVEMENT__
-					return qtrue;
-				}
-				else
-				{// Either hit our goal, or we don't have a route to our parent...
-					if (NPC->client->navigation.goal.haveGoal
-						&& NPC->client->navigation.goal.ent == NPC->parent
-						&& GoalInRange(NPC, NavlibGetGoalRadius(NPC)))
-					{// Hit our parent goal... Wait...
-						NPC->client->navigation.goal.haveGoal = qfalse;
-						VectorClear(NPC->client->navigation.goal.origin);
-						NPC->client->navigation.goal.ent = NULL;
-						//trap->Print("[%s] hit padawan goal!\n", NPC->client->pers.netname);
-						return qfalse;
-					}
-
-					return qfalse;
-				}
-			}
+		if (!NPC->client->navigation.goal.haveGoal || GoalInRange(NPC, NavlibGetGoalRadius(NPC)) || NPC->last_move_time < level.time - 4000)
+		{// Need a new goal...
+			NPC_ClearGoal(NPC);
+			NPC_SetNewGoalAndPath(NPC);
 		}
-#endif //__USE_NAVLIB__
 
-		if (NPC->client->navigation.goal.haveGoal && !GoalInRange(NPC, NavlibGetGoalRadius(NPC)))
+		if (NPC->client->navigation.goal.haveGoal && !GoalInRange(NPC, 96.0/*NavlibGetGoalRadius(NPC)*/))
 		{
-			if (NPC->last_move_time < level.time - 4000)
-			{
-				NPC->client->navigation.goal.haveGoal = qfalse;
-				VectorClear(NPC->client->navigation.goal.origin);
-				NPC->client->navigation.goal.ent = NULL;
-				NPC_SetNewGoalAndPath(NPC);
-			}
-
-			NavlibSetNavMesh(NPC->s.number, 0);
 #pragma omp critical
 			{
 				NavlibMoveToGoal(NPC);
@@ -1601,6 +1510,8 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 							ucmd->rightmove = 0;
 							ucmd->upmove = 0;
 							NPC_PickRandomIdleAnimantion(NPC);
+
+							NPC->last_move_time = level.time;
 
 							//trap->Print("Padawan %s teleported to master.\n", NPC->client->pers.netname);
 
@@ -1672,7 +1583,6 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 				}
 			}
 
-#ifndef __USE_NAVLIB_INTERNAL_MOVEMENT__
 			if (Distance(NPC->r.currentOrigin, NPC->client->navigation.goal.origin) < 256)
 			{
 				walk = qtrue;
@@ -1680,82 +1590,9 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 
 			if (UQ1_UcmdMoveForDir(NPC, ucmd, NPC->movedir, walk, NPC->client->navigation.nav.lookPos))
 			{
-				//if (/*NavlibJump(NPC) || NPC->last_move_time < level.time - 2000 ||*/ DistanceVertical(NPC->client->navigation.nav.lookPos, NPC->r.currentOrigin) > DistanceHorizontal(NPC->client->navigation.nav.lookPos, NPC->r.currentOrigin) * 0.666)
-				//{
-				//	ucmd->upmove = 127;
-				//}
+				NPC->last_move_time = level.time;
 
-				return qtrue;
-			}
-			/*else if (NPC->bot_strafe_jump_timer > level.time)
-			{
-				ucmd->upmove = 127;
-			}*/
-			else if (NPC->bot_strafe_left_timer > level.time)
-			{
-				ucmd->rightmove = -127;
-			}
-			else if (NPC->bot_strafe_right_timer > level.time)
-			{
-				ucmd->rightmove = 127;
-			}
-			//else if (/*NPC->last_move_time < level.time - 2000 ||*/ DistanceVertical(NPC->client->navigation.nav.pos, NPC->r.currentOrigin) > DistanceHorizontal(NPC->client->navigation.nav.pos, NPC->r.currentOrigin) * 0.666)
-			//{
-			//	ucmd->upmove = 127;
-			//}
-#endif //__USE_NAVLIB_INTERNAL_MOVEMENT__
-			return qtrue;
-		}
-		else
-		{// Need a new goal...
-			NavlibSetNavMesh(NPC->s.number, 0);
-
-			if (NPC->client->navigation.goal.haveGoal && GoalInRange(NPC, NavlibGetGoalRadius(NPC)))
-			{
-				NPC_ClearGoal(NPC);
-				//trap->Print("[%s] hit goal!\n", NPC->client->pers.netname);
-			}
-
-			NPC_SetNewGoalAndPath(NPC);
-
-			if (NPC->client->navigation.goal.haveGoal)
-			{
-#pragma omp critical
-				{
-					NavlibMoveToGoal(NPC);
-				}
-
-				if (NPC_IsCombatPathing(NPC))
-				{// When we have an enemy, look at them while moving (combat pathing)...
-					NPC_FacePosition(NPC, NPC->enemy->r.currentOrigin, qtrue);
-					VectorSubtract(NPC->client->navigation.nav.lookPos, NPC->r.currentOrigin, NPC->movedir);
-				}
-				else
-				{
-					NPC_FacePosition(NPC, NPC->client->navigation.nav.lookPos, qfalse);
-					VectorSubtract(NPC->client->navigation.nav.lookPos, NPC->r.currentOrigin, NPC->movedir);
-				}
-
-#ifndef __USE_NAVLIB_INTERNAL_MOVEMENT__
-				if (Distance(NPC->r.currentOrigin, NPC->client->navigation.goal.origin) < 256)
-				{
-					walk = qtrue;
-				}
-
-				if (UQ1_UcmdMoveForDir(NPC, ucmd, NPC->movedir, walk, NPC->client->navigation.nav.lookPos))
-				{
-					return qtrue;
-				}
-				/*else if (NPC->bot_strafe_jump_timer > level.time)
-				{
-					ucmd->upmove = 127;
-
-					if (NPC->s.eType == ET_PLAYER)
-					{
-						trap->EA_Jump(NPC->s.number);
-					}
-				}*/
-				else if (NPC->bot_strafe_left_timer > level.time)
+				if (NPC->bot_strafe_left_timer > level.time)
 				{
 					ucmd->rightmove = -127;
 					trap->EA_MoveLeft(NPC->s.number);
@@ -1765,35 +1602,30 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 					ucmd->rightmove = 127;
 					trap->EA_MoveRight(NPC->s.number);
 				}
-#endif //__USE_NAVLIB_INTERNAL_MOVEMENT__
+
 				return qtrue;
 			}
-			/*else if (NPC->bot_strafe_jump_timer > level.time)
+			else
 			{
-				ucmd->upmove = 127;
-
-				if (NPC->s.eType == ET_PLAYER)
-				{
-					trap->EA_Jump(NPC->s.number);
-				}
-			}*/
-			else if (NPC->bot_strafe_left_timer > level.time)
-			{
-				ucmd->rightmove = -127;
-				trap->EA_MoveLeft(NPC->s.number);
+				//Com_Printf("UQ1_UcmdMoveForDir failed!\n");
 			}
-			else if (NPC->bot_strafe_right_timer > level.time)
-			{
-				ucmd->rightmove = 127;
-				trap->EA_MoveRight(NPC->s.number);
-			}
-
-			return qtrue;
 		}
-
+		
 		ucmd->forwardmove = 0;
 		ucmd->rightmove = 0;
 		ucmd->upmove = 0;
+
+		if (NPC->bot_strafe_left_timer > level.time)
+		{
+			ucmd->rightmove = -127;
+			trap->EA_MoveLeft(NPC->s.number);
+		}
+		else if (NPC->bot_strafe_right_timer > level.time)
+		{
+			ucmd->rightmove = 127;
+			trap->EA_MoveRight(NPC->s.number);
+		}
+
 		NPC_PickRandomIdleAnimantion(NPC);
 		return qfalse;
 	}
@@ -2214,7 +2046,7 @@ qboolean NPC_FollowEnemyRoute(gentity_t *aiEnt)
 
 	if (NPC_MoverCrushCheck(NPC))
 	{// There is a mover gonna crush us... Step back...
-		return qtrue;
+		return qfalse;
 	}
 
 	if ((NPC->client->ps.weapon == WP_SABER || NPC->client->ps.weapon == WP_MELEE)

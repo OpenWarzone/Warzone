@@ -3763,10 +3763,22 @@ void PM_WeaponLightsaber(void)
 	qboolean checkOnlyWeap = qfalse;
 
 	/*if (g_mmoStyleAttacking.integer
-		&& (pm->ps->torsoAnim == PAIRED_ATTACKER01 || pm->ps->torsoAnim == PAIRED_DEFENDER01))
+		&& (pm->ps->eFlags & EF_PAIRED_ANIMATION))
 	{// Don't do any of this stuff...
 		return;
 	}*/
+
+	if (g_mmoStyleAttacking.integer
+		&& (pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL || pm->ps->fd.saberAnimLevelBase == SS_SINGLE)
+		&& !(pm->cmd.buttons & BUTTON_ATTACK)
+		//&& (pm->ps->torsoAnim == BOTH_SABERATTACK_01 || pm->ps->torsoAnim == BOTH_SABERATTACK_02))
+		&& !BG_SaberInSpecial(pm->ps->saberMove)
+		&& pm->ps->saberMove > LS_PUTAWAY)
+		//&& pm->ps->torsoAnim != PM_GetSaberStance())
+	{// Always return to ready when attack is released...
+		PM_SetSaberMove(LS_READY);
+		return;
+	}
 
 #if defined(__SABER_EXPERIMENTAL_BOUNCE__) || defined(__SABER_EXPERIMENTAL_BOUNCE2__)
 	if (PM_SaberBounceRagdollRightContinue())
@@ -6113,7 +6125,7 @@ void PM_SetSaberMove(short newMove)
 	*/
 
 	if (g_mmoStyleAttacking.integer
-		&& (pm->ps->torsoAnim == PAIRED_ATTACKER01 || pm->ps->torsoAnim == PAIRED_DEFENDER01)
+		&& (pm->ps->eFlags & EF_PAIRED_ANIMATION)
 		&& pm->ps->torsoTimer > 0)
 	{// Don't do any of this stuff...
 		pm->cmd.forwardmove = pm->cmd.rightmove = pm->cmd.upmove = 0;
@@ -6200,6 +6212,20 @@ void PM_SetSaberMove(short newMove)
 		pm->ps->nextTransitionAnim = 0;
 	}
 	else if (g_mmoStyleAttacking.integer
+		&& (pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL || pm->ps->fd.saberAnimLevelBase == SS_SINGLE)
+		&& !(pm->cmd.buttons & BUTTON_ATTACK)
+		//&& (pm->ps->torsoAnim == BOTH_SABERATTACK_01 || pm->ps->torsoAnim == BOTH_SABERATTACK_02))
+		&& !BG_SaberInSpecial(pm->ps->saberMove)
+		&& pm->ps->saberMove > LS_PUTAWAY)
+		//&& pm->ps->torsoAnim != PM_GetSaberStance())
+	{// Always return to ready when attack is released...
+		anim = PM_GetSaberStance();
+		parts = SETANIM_TORSO;
+		pm->ps->nextTransitionAnim = 0;
+		pm->ps->weaponTime = pm->ps->torsoTimer = pm->ps->legsTimer = 0;
+		pm->ps->weaponstate = WEAPON_READY;
+	}
+	else if (g_mmoStyleAttacking.integer
 		&& pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL
 		&& (pm->cmd.buttons & BUTTON_ATTACK)
 		&& !BG_SaberInSpecial(newMove)
@@ -6238,8 +6264,6 @@ void PM_SetSaberMove(short newMove)
 		&& (!(pm->cmd.buttons & BUTTON_ATTACK) || pm->ps->saberMove > LS_READY)
 		&& !BG_SaberInSpecial(newMove))
 	{
-		//anim = PM_GetSaberStance();
-		//parts = SETANIM_TORSO;
 		pm->ps->saberMove = newMove = LS_READY;
 	}
 	else if (g_mmoStyleAttacking.integer
@@ -6247,8 +6271,6 @@ void PM_SetSaberMove(short newMove)
 		&& (!(pm->cmd.buttons & BUTTON_ATTACK) || pm->ps->saberMove > LS_READY)
 		&& !BG_SaberInSpecial(newMove))
 	{
-		//anim = PM_GetSaberStance();
-		//parts = SETANIM_TORSO;
 		pm->ps->saberMove = newMove = LS_READY;
 	}
 	/*else if (BG_InSaberLock(pm->ps->torsoAnim))
@@ -6470,7 +6492,7 @@ void PM_SetSaberMove(short newMove)
 
 		int blendTime = 100;
 
-		if (parts & SETANIM_TORSO || parts & SETANIM_BOTH)
+		if ((parts & SETANIM_TORSO) || (parts & SETANIM_BOTH))
 		{
 			blendTime = pm->ps->torsoBlendTime;
 		}

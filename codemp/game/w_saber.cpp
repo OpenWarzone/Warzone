@@ -11531,16 +11531,22 @@ void WP_MMOSaberScriptedMove(gentity_t *attacker, gentity_t *blocker)
 		VectorClear(attacker->client->ps.velocity);
 		int aPMType = attacker->client->ps.pm_type;
 		attacker->client->ps.pm_type = PM_NORMAL; //don't want pm type interfering with our setanim calls.
-		G_SetAnim(attacker, NULL, SETANIM_BOTH, attackerAnimChoice, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART | SETANIM_FLAG_HOLDLESS, 0);
+		G_SetAnim(attacker, &attacker->client->pers.cmd, SETANIM_BOTH, attackerAnimChoice, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART | SETANIM_FLAG_HOLDLESS, 0);
 		attacker->client->ps.pm_type = aPMType;
+
+		attacker->client->ps.eFlags |= EF_PAIRED_ANIMATION;
+		attacker->client->ps.pairedEntityNum = blocker->s.number;
 		/* */
 
 		/* Do the target's death anim and death sound event for this poor sod */
 		VectorClear(blocker->client->ps.velocity);
 		int dPMType = blocker->client->ps.pm_type;
 		blocker->client->ps.pm_type = PM_NORMAL; //don't want pm type interfering with our setanim calls.
-		G_SetAnim(blocker, NULL, SETANIM_BOTH, defenderAnimChoice, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART | SETANIM_FLAG_HOLDLESS, 0);
+		G_SetAnim(blocker, &blocker->client->pers.cmd, SETANIM_BOTH, defenderAnimChoice, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART | SETANIM_FLAG_HOLDLESS, 0);
 		blocker->client->ps.pm_type = dPMType;
+
+		blocker->client->ps.eFlags |= EF_PAIRED_ANIMATION;
+		blocker->client->ps.pairedEntityNum = attacker->s.number;
 		/* */
 
 		if (blocker->s.eType == ET_NPC)
@@ -11557,6 +11563,92 @@ void WP_MMOSaberScriptedMove(gentity_t *attacker, gentity_t *blocker)
 	}
 }
 
+void WP_PairedAnimationClear(gentity_t *self)
+{
+	if (!self || !self->client)
+	{
+		return;
+	}
+
+	// Clear the enemy...
+	gentity_t *enemy = &g_entities[self->client->ps.pairedEntityNum];
+
+	if (enemy && enemy->client)
+	{
+		// Clear our enemy's paired anim info too...
+		enemy->client->ps.eFlags &= ~EF_PAIRED_ANIMATION;
+		enemy->client->ps.pairedEntityNum = enemy->s.number;
+	}
+
+	// Clear our self...
+	self->client->ps.eFlags &= ~EF_PAIRED_ANIMATION;
+	self->client->ps.pairedEntityNum = self->s.number;
+}
+
+qboolean WP_PairedAnimationCheckCompletion(gentity_t *self)
+{
+	if (!self || !self->client)
+	{
+		return qtrue;
+	}
+
+	if ((self->client->ps.eFlags & EF_PAIRED_ANIMATION)
+		&& self->client->ps.pairedEntityNum != self->s.number
+		&& BG_InPairedAnim(self->client->ps.torsoAnim))
+	{// Always continue scripted paired animations... Check if we need to clear the paired animations for this and another entity... Maybe I should move this to ClientThink...
+		gentity_t *enemy = &g_entities[self->client->ps.pairedEntityNum];
+
+		qboolean imAlive = NPC_IsAlive(self, self);
+		qboolean iHaveSaber = (self->client->ps.weapon == WP_SABER) ? qtrue : qfalse;
+		qboolean enemyAlive = (enemy && enemy->client && NPC_IsAlive(self, enemy)) ? qtrue : qfalse;
+		qboolean enemyHasSaber = (enemy && enemy->client && enemy->client->ps.weapon == WP_SABER) ? qtrue : qfalse;
+
+		/*
+		Com_Printf("[self %i - alive %s - hassaber %s] - [enemy %i - alive %s - hassaber %s].\n"
+			, self->s.number, imAlive ? "TRUE" : "FALSE", iHaveSaber ? "TRUE" : "FALSE"
+			, enemy->s.number, enemyAlive ? "TRUE" : "FALSE", enemyHasSaber ? "TRUE" : "FALSE");
+		*/
+
+		if (imAlive && enemyAlive && iHaveSaber && enemyHasSaber)
+		{
+			self->client->pers.cmd.forwardmove = 0;
+			self->client->pers.cmd.rightmove = 0;
+			self->client->pers.cmd.upmove = 0;
+			VectorClear(self->client->ps.velocity);
+			self->beStillTime = level.time + 100;
+
+			enemy->client->pers.cmd.forwardmove = 0;
+			enemy->client->pers.cmd.rightmove = 0;
+			enemy->client->pers.cmd.upmove = 0;
+			VectorClear(enemy->client->ps.velocity);
+			enemy->beStillTime = level.time + 100;
+
+			return qfalse;
+		}
+
+		// Make sure that death anims occur...
+		if (!imAlive)
+		{
+			if (BG_InPairedAnim(self->client->ps.torsoAnim))
+			{
+				self->die;
+			}
+		}
+
+		if (enemy && enemy->client && !enemyAlive)
+		{
+			if (BG_InPairedAnim(enemy->client->ps.torsoAnim))
+			{
+				enemy->die;
+			}
+		}
+	}
+
+	WP_PairedAnimationClear(self);
+
+	return qtrue;
+}
+
 #define __ONLY_ONE_KILL__
 
 #define MMO_SABER_DAMAGE_RANGE		128.0f//96.0f
@@ -11567,6 +11659,11 @@ void WP_MMOSaberUpdate(gentity_t *self)
 {// This is it.. The whole code for a basic MMO style AOE saber/melee-weapon damage system...
 	if (!self || !self->client)
 	{
+		return;
+	}
+
+	if (!WP_PairedAnimationCheckCompletion(self))
+	{// Always continue scripted paired animations...
 		return;
 	}
 
@@ -11609,16 +11706,6 @@ void WP_MMOSaberUpdate(gentity_t *self)
 
 	self->client->killmovePossible = KILLMOVE_NONE;
 
-	if (self->client->ps.torsoAnim == PAIRED_ATTACKER01
-		|| self->client->ps.torsoAnim == PAIRED_DEFENDER01)
-	{// Always continue scripted paired animations...
-		self->client->pers.cmd.forwardmove = 0;
-		self->client->pers.cmd.rightmove = 0;
-		self->client->pers.cmd.upmove = 0;
-		VectorClear(self->client->ps.velocity);
-		self->beStillTime = level.time + 100;
-		return;
-	}
 
 	/* BEGIN: INV SYSTEM SABER DAMAGE */
 	float damageMult = 1.0f;
@@ -11906,7 +11993,7 @@ typedef enum
 
 		if (ent->client->ps.weapon == WP_SABER && (ent->client->pers.cmd.buttons & BUTTON_ALT_ATTACK) && !(ent->client->pers.cmd.buttons & BUTTON_ATTACK))
 		{
-			if (irand(0, 3) == 0)
+			if (irand(0, 20) == 0)
 			{// Blocking randomly blocks some attacks...
 				if (!saberInAOE && numHits <= 1)
 				{

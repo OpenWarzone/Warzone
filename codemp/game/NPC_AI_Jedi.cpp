@@ -1618,7 +1618,7 @@ Jedi_Move
 -------------------------
 */
 
-void Jedi_Move( gentity_t *aiEnt, gentity_t *goal, qboolean retreat )
+qboolean Jedi_Move( gentity_t *aiEnt, gentity_t *goal, qboolean retreat )
 {
 	qboolean	moved;
 	navInfo_t	info;
@@ -1658,6 +1658,8 @@ void Jedi_Move( gentity_t *aiEnt, gentity_t *goal, qboolean retreat )
 	{
 		Jedi_HoldPosition(aiEnt);
 	}
+
+	return moved;
 }
 
 static qboolean Jedi_Hunt( gentity_t *aiEnt)
@@ -8380,6 +8382,8 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 	return qfalse;
 }
 
+//#define __DEBUG_OPTIMAL_RANGE__
+
 qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 {
 	gentity_t	*NPC = aiEnt;
@@ -8395,6 +8399,9 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 
 	if (Jedi_DashAttackContinue(aiEnt))
 	{// Continue any speed attacks we started...
+#ifdef __DEBUG_OPTIMAL_RANGE__
+		Com_Printf("OPTIMAL DEBUG: Dashing\n");
+#endif //__DEBUG_OPTIMAL_RANGE__
 		return qtrue;
 	}
 
@@ -8416,8 +8423,8 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 
 	if (NPC->s.weapon == WP_SABER)
 	{
-		OPTIMAL_MIN_RANGE = 48/*32*/ * NPC->modelScale[2];// g_testvalue1.value; //24
-		OPTIMAL_MAX_RANGE = 256 * NPC->modelScale[2];// g_testvalue2.value;//56;// 40;
+		OPTIMAL_MIN_RANGE = 48 * NPC->modelScale[2];
+		OPTIMAL_MAX_RANGE = 64.0/*256*/ * NPC->modelScale[2];//56;// 40;
 	}
 	else if (NPC->s.weapon == WP_MELEE)
 	{
@@ -8434,61 +8441,80 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 	if (NPC_GetOffPlayer(NPC))
 	{// Get off of their head!
 		//JEDI_Debug(aiEnt, "optimal position (get off player).");
+#ifdef __DEBUG_OPTIMAL_RANGE__
+		Com_Printf("OPTIMAL DEBUG: GetOffPlayer\n");
+#endif //__DEBUG_OPTIMAL_RANGE__
 		return qtrue;
 	}
 	else if (NPC_MoverCrushCheck(NPC))
 	{// There is a mover gonna crush us... Step back...
 		//JEDI_Debug(aiEnt, "optimal position (crusher).");
+#ifdef __DEBUG_OPTIMAL_RANGE__
+		Com_Printf("OPTIMAL DEBUG: Mover\n");
+#endif //__DEBUG_OPTIMAL_RANGE__
 		return qtrue;
 	}
 	else if (diff <= OPTIMAL_RANGE_ALLOWANCE)
 	{// We are at optimal range now...
 		NPC_FacePosition(aiEnt, NPC->enemy->r.currentOrigin, qtrue);
+#ifdef __DEBUG_OPTIMAL_RANGE__
+		Com_Printf("OPTIMAL DEBUG: Allowance\n");
+#endif //__DEBUG_OPTIMAL_RANGE__
 		return qfalse;
 	}
 	else if (dist > OPTIMAL_MAX_RANGE)
 	{// If clear then move stright there...
 		NPC_FacePosition(aiEnt, NPC->enemy->r.currentOrigin, qtrue );
 
-		//qboolean pathClear = Jedi_ClearPathToSpot(aiEnt, aiEnt->enemy->r.currentOrigin, aiEnt->enemy->s.number);
-
-		if (dist < 512.0 && (NPC_IsJedi(aiEnt) || aiEnt->s.weapon == WP_SABER) && Jedi_DashAttack(aiEnt))
+		if (dist >= 384.0 && dist < 512.0 && (NPC_IsJedi(aiEnt) || aiEnt->s.weapon == WP_SABER) && Jedi_DashAttack(aiEnt))
 		{// See if we can use a fast force speed attack on them, and slash or push them over...
-			return qtrue;
-		}
-		else if ((dist > 256 || (dist > 64 && !Jedi_ClearPathToSpot(aiEnt, aiEnt->enemy->r.currentOrigin, aiEnt->enemy->s.number))) && NPC_FollowEnemyRoute(aiEnt))
-		{
-			if (aiEnt->s.weapon == WP_SABER && (aiEnt->enemy->s.weapon != WP_SABER || dist <= 384))
-			{// Do blocking while heading to enemy...
-				aiEnt->client->pers.cmd.buttons &= ~BUTTON_ATTACK;
-				aiEnt->client->pers.cmd.buttons |= BUTTON_ALT_ATTACK;
-			}
-
-			//JEDI_Debug(va("optimal position (too far - routing). Dist %f. Opt %f. Allow %f. Min %f. Max %f.", dist, OPTIMAL_RANGE, OPTIMAL_RANGE_ALLOWANCE, OPTIMAL_MIN_RANGE, OPTIMAL_MAX_RANGE));
+#ifdef __DEBUG_OPTIMAL_RANGE__
+			Com_Printf("OPTIMAL DEBUG: Start Dashing\n");
+#endif //__DEBUG_OPTIMAL_RANGE__
 			return qtrue;
 		}
 		else
 		{
-			Jedi_Advance(aiEnt);
+			if (NPC_FollowEnemyRoute(aiEnt))
+			{
+				/*if (aiEnt->s.weapon == WP_SABER && (aiEnt->enemy->s.weapon != WP_SABER || dist <= 384))
+				{// Do blocking while heading to enemy...
+					aiEnt->client->pers.cmd.buttons &= ~BUTTON_ATTACK;
+					aiEnt->client->pers.cmd.buttons |= BUTTON_ALT_ATTACK;
+				}*/
 
-			if (aiEnt->s.weapon == WP_SABER)
-			{// Do blocking while heading to enemy...
-				aiEnt->client->pers.cmd.buttons &= ~BUTTON_ATTACK;
-				aiEnt->client->pers.cmd.buttons |= BUTTON_ALT_ATTACK;
-			}
-
-			//JEDI_Debug(va("optimal position (too far - combatmove). Dist %f. Opt %f. Allow %f. Min %f. Max %f.", dist, OPTIMAL_RANGE, OPTIMAL_RANGE_ALLOWANCE, OPTIMAL_MIN_RANGE, OPTIMAL_MAX_RANGE));
-			
-			if (dist > 64)
+#ifdef __DEBUG_OPTIMAL_RANGE__
+				Com_Printf("OPTIMAL DEBUG: Routing\n");
+#endif //__DEBUG_OPTIMAL_RANGE__
+				//JEDI_Debug(va("optimal position (too far - routing). Dist %f. Opt %f. Allow %f. Min %f. Max %f.", dist, OPTIMAL_RANGE, OPTIMAL_RANGE_ALLOWANCE, OPTIMAL_MIN_RANGE, OPTIMAL_MAX_RANGE));
 				return qtrue;
+			}
+			else
+			{
+#ifdef __DEBUG_OPTIMAL_RANGE__
+				Com_Printf("OPTIMAL DEBUG: Routing Failed!\n");
+#endif //__DEBUG_OPTIMAL_RANGE__
 
-			return qfalse;
+				/*if (dist <= 256.0)
+				{
+					aiEnt->client->pers.cmd.buttons |= BUTTON_WALKING;
+				}*/
+
+				if (Jedi_Move(aiEnt, aiEnt->enemy, qfalse))
+				{// Try direct...
+					if (aiEnt->s.weapon == WP_SABER && (aiEnt->enemy->s.weapon != WP_SABER || dist <= 384))
+					{// Do blocking while heading to enemy...
+						aiEnt->client->pers.cmd.buttons &= ~BUTTON_ATTACK;
+						aiEnt->client->pers.cmd.buttons |= BUTTON_ALT_ATTACK;
+					}
+
+					return qtrue;
+				}
+
+				return qfalse;
+			}
 		}
 	}
-	/*else if (NPC_IsJedi(aiEnt) || aiEnt->client->ps.weapon == WP_SABER)
-	{// Jedi can skip the min optimal check, they handle their own attack/counters...
-		return qfalse;
-	}*/
 	else if (dist < OPTIMAL_MIN_RANGE)
 	{// If clear then move back a bit...
 		NPC_FacePosition(aiEnt, NPC->enemy->r.currentOrigin, qtrue);
@@ -8507,6 +8533,10 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 		{
 			Jedi_Retreat(aiEnt);
 		}
+
+#ifdef __DEBUG_OPTIMAL_RANGE__
+		Com_Printf("OPTIMAL DEBUG: Too close\n");
+#endif //__DEBUG_OPTIMAL_RANGE__
 
 		//JEDI_Debug(va("optimal position (too close - combatmove). Dist %f. Opt %f. Allow %f. Min %f. Max %f.", dist, OPTIMAL_RANGE, OPTIMAL_RANGE_ALLOWANCE, OPTIMAL_MIN_RANGE, OPTIMAL_MAX_RANGE));
 		return qtrue;
@@ -8826,12 +8856,10 @@ void NPC_BSJedi_Default( gentity_t *aiEnt)
 			return;
 		}*/
 
-		if (aiEnt->s.weapon != WP_SABER || (aiEnt->enemy && aiEnt->s.weapon != WP_SABER))
+		if (aiEnt->s.weapon != WP_SABER)
 		{// Normal non-jedi NPC or enemy... Use normal system...
-			if (NPC_MoveIntoOptimalAttackPosition(aiEnt))
-			{// Just move into optimal range...
-				//return;
-			}
+		 // Move into optimal range...
+			NPC_MoveIntoOptimalAttackPosition(aiEnt);
 
 			if (aiEnt->s.weapon == WP_MELEE)
 			{
@@ -8842,9 +8870,39 @@ void NPC_BSJedi_Default( gentity_t *aiEnt)
 					G_AddVoiceEvent(aiEnt, EV_TAUNT2, 5000 + irand(0, 15000));
 				}
 
-				if (dist > 56.0)
+				if (dist > 64.0)//56.0)
 				{
 					return;
+				}
+			}
+			else if (!NPC_IsJedi(aiEnt) && !NPC_IsBountyHunter(aiEnt))
+			{
+				int choice = irand(0, 5);
+
+				switch (choice)
+				{
+				case 0:
+					ST_Speech(aiEnt, SPEECH_CHASE, 0.8);
+					break;
+				case 1:
+					ST_Speech(aiEnt, SPEECH_COVER, 0.8);
+					break;
+				case 2:
+					ST_Speech(aiEnt, SPEECH_SOUND, 0.8);
+					break;
+				case 3:
+				default:
+					ST_Speech(aiEnt, SPEECH_YELL, 0.8);
+					break;
+				case 4:
+					ST_Speech(aiEnt, SPEECH_OUTFLANK, 0.8);
+					break;
+				case 5:
+					if (random() >= 0.8)
+					{
+						G_AddVoiceEvent(aiEnt, Q_irand(EV_TAUNT1, EV_TAUNT5), 5000 + irand(0, 15000));
+					}
+					break;
 				}
 			}
 
@@ -8852,7 +8910,21 @@ void NPC_BSJedi_Default( gentity_t *aiEnt)
 		}
 		else
 		{// Jedi/Sith. Use attack/counter system...
-			if (Jedi_AttackOrCounter( aiEnt ))
+			float dist = DistanceHorizontal(aiEnt->r.currentOrigin, aiEnt->enemy->r.currentOrigin);
+
+			if (dist > 192.0)
+			{// Don't do attack/counter stuff when too far away...
+				// Move into optimal range...
+				NPC_MoveIntoOptimalAttackPosition(aiEnt);
+
+				/*if (!Jedi_AttackOrCounter(aiEnt))
+				{// In counter mode, hold block...
+					// Do blocking...
+					aiEnt->client->pers.cmd.buttons &= ~BUTTON_ATTACK;
+					aiEnt->client->pers.cmd.buttons |= BUTTON_ALT_ATTACK;
+				}*/
+			}
+			else if (Jedi_AttackOrCounter( aiEnt ))
 			{// Attack...
 				if (NPC_IsDarkJedi(aiEnt))
 				{// Do taunt/anger...
@@ -8888,29 +8960,52 @@ void NPC_BSJedi_Default( gentity_t *aiEnt)
 						G_AddVoiceEvent(aiEnt, Q_irand(EV_TAUNT1, EV_TAUNT5), 5000 + irand(0, 15000));
 					}
 				}
-
-				if (NPC_MoveIntoOptimalAttackPosition(aiEnt))
-				{// Just move into optimal range...
-					return;
+				else if (!NPC_IsJedi(aiEnt) && !NPC_IsBountyHunter(aiEnt))
+				{
+					int choice = irand(0, 5);
+					
+					switch (choice)
+					{
+					case 0:
+						ST_Speech(aiEnt, SPEECH_COVER, 0.8);
+						break;
+					case 1:
+					default:
+						ST_Speech(aiEnt, SPEECH_OUTFLANK, 0.8);
+						break;
+					case 2:
+						ST_Speech(aiEnt, SPEECH_SOUND, 0.8);
+						break;
+					case 3:
+						ST_Speech(aiEnt, SPEECH_YELL, 0.8);
+						break;
+					case 4:
+						ST_Speech(aiEnt, SPEECH_SUSPICIOUS, 0.8);
+						break;
+					case 5:
+						ST_Speech(aiEnt, SPEECH_CHASE, 0.8);
+						break;
+					}
+				}
+				else
+				{
+					G_AddVoiceEvent(aiEnt, Q_irand(EV_TAUNT1, EV_TAUNT5), 5000 + irand(0, 15000));
 				}
 
-				Jedi_Attack(aiEnt);
+				// Move into optimal range...
+				NPC_MoveIntoOptimalAttackPosition(aiEnt);
+				
+				if (dist <= 96.0)
+				{
+					Jedi_Attack(aiEnt);
+				}
 			}
 			else
 			{// Counter...
-				qboolean dualSabers = qfalse;
-				qboolean blockFound = qfalse;
-				int saberNum, bladeNum;
+				qboolean speedEvasion = qfalse;
+				qboolean rollEvasion = qfalse;
 
-				//JEDI_Debug(aiEnt, "counter");
-
-				if (aiEnt->enemy->client->saber[1].model[0]) {
-					dualSabers = qtrue;
-				}
-
-				float dist = DistanceHorizontal(aiEnt->r.currentOrigin, aiEnt->enemy->r.currentOrigin);
-
-				if (dist < 96)
+				if (dist <= 192)
 				{
 					if (aiEnt->npc_counter_avoid_time < level.time + 2000)
 					{
@@ -8922,95 +9017,25 @@ void NPC_BSJedi_Default( gentity_t *aiEnt)
 							aiEnt->npc_counter_avoid_time = level.time;
 					}
 
-					if (aiEnt->npc_counter_avoid_time > level.time)
+					if (dist <= 96 && aiEnt->npc_counter_avoid_time > level.time)
 					{// Only move back when not too far away...
-						if (NPC_IsJedi(aiEnt) || aiEnt->client->ps.weapon == WP_SABER)
-						{// Hmm, can't evade for whatever reason, just move back...
-							if (Jedi_SpeedEvasion(aiEnt))
-							{
-								if (!Jedi_EvasionRoll(aiEnt))
-								{// Hmm, can't evade for whatever reason, just move back...
-									Jedi_Retreat(aiEnt);
-								}
-							}
-						}
-						else
+						if (irand(0,2) <= 1 && Jedi_SpeedEvasion(aiEnt))
 						{
-							Jedi_Retreat(aiEnt);
+							speedEvasion = qtrue;
+						}
+						else if (irand(0, 2) == 0 && Jedi_EvasionRoll(aiEnt))
+						{
+							rollEvasion = qtrue;
 						}
 					}
 				}
 
-				for (saberNum = 0; saberNum < (dualSabers ? MAX_SABERS : 1); saberNum++) 
-				{
-					if (blockFound) break;
+				if (!speedEvasion && !rollEvasion)
+				{// Do blocking...
+					Jedi_Retreat(aiEnt);
 
-					for (bladeNum = 0; bladeNum < aiEnt->enemy->client->saber[saberNum].numBlades; bladeNum++) 
-					{
-						if (blockFound) break;
-
-						if (Jedi_SaberBlock(aiEnt, saberNum, bladeNum))
-						{
-							blockFound = qtrue;
-							break;
-						}
-					}
-				}
-
-				if (!blockFound)
-				{// Try to heal...
-#if 0
-					if ( TIMER_Done( aiEnt, "heal" )
-						&& !Jedi_SaberBusy( aiEnt )
-						&& aiEnt->client->ps.fd.forcePowerLevel[FP_HEAL] > 0
-						&& aiEnt->health > 0
-						&& aiEnt->client->ps.weaponTime <= 0
-						&& aiEnt->client->ps.fd.forcePower >= 25
-						&& aiEnt->client->ps.fd.forcePowerDebounce[FP_HEAL] <= level.time
-						&& WP_ForcePowerUsable(aiEnt, FP_HEAL)
-						&& aiEnt->health <= aiEnt->client->ps.stats[STAT_MAX_HEALTH] / 3
-						&& Q_irand( 0, 2 ) == 2)
-					{// Try to heal...
-						ForceHeal( aiEnt );
-						TIMER_Set( aiEnt, "heal", irand(5000, 10000) );
-
-						if (NPC_IsJedi(aiEnt))
-						{// Do deflect taunt...
-							G_AddVoiceEvent(aiEnt, Q_irand(EV_GLOAT1, EV_GLOAT3), 5000 + irand(0, 15000));
-						}
-					}
-					else if ( TIMER_Done( aiEnt, "drain" )
-						&& !Jedi_SaberBusy( aiEnt )
-						&& aiEnt->client->ps.fd.forcePowerLevel[FP_DRAIN] > 0
-						&& aiEnt->health > 0
-						&& aiEnt->client->ps.forceHandExtend == HANDEXTEND_NONE
-						&& WP_ForcePowerUsable(aiEnt, FP_DRAIN)
-						&& aiEnt->client->ps.weaponTime <= 0
-						&& aiEnt->client->ps.fd.forcePower >= 25
-						&& aiEnt->client->ps.fd.forcePowerDebounce[FP_DRAIN] <= level.time
-						&& aiEnt->health <= aiEnt->client->ps.stats[STAT_MAX_HEALTH] / 3
-						&& NPC_Jedi_EnemyInForceRange(aiEnt)
-						&& Q_irand(0, 2) == 2)
-					{// Try to drain them...
-						NPC_FaceEnemy(aiEnt, qtrue);
-						ForceDrain( aiEnt );
-						TIMER_Set( aiEnt, "drain", irand(5000, 10000) );
-
-						if (NPC_IsJedi(aiEnt))
-						{// Do deflect taunt...
-							G_AddVoiceEvent(aiEnt, Q_irand(EV_GLOAT1, EV_GLOAT3), 5000 + irand(0, 15000));
-						}
-					}
-					else
-#endif
-					{// Check for an evasion method...
-						NPC_CheckEvasion(aiEnt);
-
-						if (NPC_IsJedi(aiEnt))
-						{// Do deflect taunt...
-							G_AddVoiceEvent(aiEnt, Q_irand(EV_DEFLECT1, EV_DEFLECT3), 5000 + irand(0, 15000));
-						}
-					}
+					aiEnt->client->pers.cmd.buttons &= ~BUTTON_ATTACK;
+					aiEnt->client->pers.cmd.buttons |= BUTTON_ALT_ATTACK;
 				}
 			}
 		}

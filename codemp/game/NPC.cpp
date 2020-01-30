@@ -33,7 +33,7 @@ extern void NPC_BSGM_Default(gentity_t *aiEnt);
 extern void NPC_CheckCharmed(gentity_t *aiEnt);
 extern int DOM_GetNearestWP(vec3_t org, int badwp);
 extern int DOM_GetNearWP(vec3_t org, int badwp);
-extern void Jedi_Move( gentity_t *aiEnt, gentity_t *goal, qboolean retreat );
+extern qboolean Jedi_Move( gentity_t *aiEnt, gentity_t *goal, qboolean retreat );
 extern void NPC_EnforceConversationRange ( gentity_t *self );
 extern qboolean NPC_CombatMoveToGoal(gentity_t *aiEnt, qboolean tryStraight, qboolean retreat );
 qboolean UQ_MoveDirClear( gentity_t *aiEnt, int forwardmove, int rightmove, qboolean reset );
@@ -3449,6 +3449,22 @@ qboolean UQ1_UcmdMoveForDir ( gentity_t *self, usercmd_t *cmd, vec3_t dir, qbool
 	float		walkSpeed = 63.0;// 60.5;// 55 * 1.1;//48;//64;//32;//self->NPC->stats.walkSpeed*1.1;
 	gentity_t	*aiEnt = self;
 
+	if (self->beStillTime > level.time)
+	{// Screwed...
+		cmd->upmove = 0;
+		cmd->rightmove = 0;
+		cmd->forwardmove = 0;
+		return qfalse;
+	}
+
+	if (self->NPC->conversationPartner && self->NPC->conversationPartner->NPC)
+	{
+		cmd->upmove = 0;
+		cmd->rightmove = 0;
+		cmd->forwardmove = 0;
+		return qfalse;
+	}
+
 	/*
 	if (self->s.eType == ET_NPC)
 	{
@@ -3513,14 +3529,6 @@ qboolean UQ1_UcmdMoveForDir ( gentity_t *self, usercmd_t *cmd, vec3_t dir, qbool
 		cmd->buttons |= BUTTON_WALKING;
 	}
 
-	if (self->NPC->conversationPartner && self->NPC->conversationPartner->NPC)
-	{
-		cmd->upmove = 0;
-		cmd->rightmove = 0;
-		cmd->forwardmove = 0;
-		return qfalse;
-	}
-
 	AngleVectors(self->client->ps.viewangles/*self->r.currentAngles*/, forward, right, NULL);
 	
 	cmd->upmove = 0;
@@ -3535,6 +3543,39 @@ qboolean UQ1_UcmdMoveForDir ( gentity_t *self, usercmd_t *cmd, vec3_t dir, qbool
 #ifdef __NPC_STRAFE__
 	if (self->s.groundEntityNum != ENTITYNUM_NONE)
 	{// Do avoidance only when not in mid air...
+#ifdef __USE_NAVLIB__ // Navlib should handle these issues...
+		if (self->last_move_time < level.time - 500
+			&& self->bot_strafe_jump_timer <= level.time 
+			&& self->bot_strafe_crouch_timer <= level.time
+			&& self->bot_strafe_left_timer <= level.time
+			&& self->bot_strafe_right_timer <= level.time
+			&& self->beStillTime <= level.time)
+		{
+			NPC_NPCBlockingPath(self, dir);
+		}
+
+		if (self->beStillTime > level.time)
+		{// Screwed...
+			cmd->upmove = 0;
+			cmd->rightmove = 0;
+			cmd->forwardmove = 0;
+			return qfalse;
+		}
+
+		if (self->bot_strafe_jump_timer > level.time)
+		{
+			//trap->Print("DEBUG: self->bot_strafe_jump_timer > level.time\n");
+			cmd->upmove = 127.0;
+			if (aiEnt->s.eType == ET_PLAYER) trap->EA_Jump(aiEnt->s.number);
+			jumping = qtrue;
+		}
+		else if (self->bot_strafe_crouch_timer > level.time)
+		{
+			//trap->Print("DEBUG: self->bot_strafe_crouch_timer > level.time\n");
+			cmd->upmove = -127.0;
+			if (aiEnt->s.eType == ET_PLAYER) trap->EA_Crouch(aiEnt->s.number);
+		}
+#else //!__USE_NAVLIB__ // Navlib should handle these issues...
 		if (self->wpCurrent >= 0) 
 		{// Check path for avoidance needs...
 			NPC_NPCBlockingPath(self, dir);
@@ -3586,6 +3627,7 @@ qboolean UQ1_UcmdMoveForDir ( gentity_t *self, usercmd_t *cmd, vec3_t dir, qbool
 				return qfalse;
 			}
 		}
+#endif //__USE_NAVLIB__
 
 		// If avoidance is needed, adjust our move dir...
 		NPC_AdjustforStrafe(aiEnt, dir, walk, walkSpeed);
@@ -3625,6 +3667,7 @@ qboolean UQ1_UcmdMoveForDir ( gentity_t *self, usercmd_t *cmd, vec3_t dir, qbool
 		cmd->upmove = 127.0;
 	}
 
+#ifndef __USE_NAVLIB__ // Navlib should handle these issues...
 	if (!jumping 
 		&& self->client->ps.groundEntityNum != ENTITYNUM_NONE
 		&& !UQ_MoveDirClear(aiEnt, cmd->forwardmove, cmd->rightmove, qfalse ))
@@ -3633,6 +3676,7 @@ qboolean UQ1_UcmdMoveForDir ( gentity_t *self, usercmd_t *cmd, vec3_t dir, qbool
 		cmd->rightmove = 0;
 		return qfalse;
 	}
+#endif //__USE_NAVLIB__
 
 	if (aiEnt->s.eType == ET_PLAYER)
 	{
@@ -4150,6 +4194,7 @@ qboolean NPC_EscapeWater ( gentity_t *aiEnt )
 }
 
 extern qboolean Boba_DoFlameThrower(gentity_t *self);
+extern qboolean WP_PairedAnimationCheckCompletion(gentity_t *self);
 
 #if	AI_TIMERS
 extern int AITime;
@@ -4243,6 +4288,23 @@ void NPC_Think ( gentity_t *self )//, int msec )
 
 		if (self->client)
 			VectorCopy(self->r.currentOrigin, self->client->ps.origin);
+
+
+		// UQ1: Umm, don't we still need to clientthink, to do death anims through bg code?!?!?!?
+#if 1
+		if (self->client)
+			NPC_GenericFrameCode(self); // this?
+#else
+		if (self->client)
+		{
+			VectorClear(self->client->ps.moveDir);
+
+			//or use client->pers.lastCommand?
+			self->NPC->last_ucmd.serverTime = level.time - 50;
+
+			ClientThink(self->s.number, &self->client->pers.cmd);
+		}
+#endif
 
 		return;
 	}
@@ -4388,14 +4450,8 @@ void NPC_Think ( gentity_t *self )//, int msec )
 			qboolean is_vendor = NPC_IsVendor(self);
 			qboolean use_pathing = qfalse;
 
-			if (self->client->ps.torsoAnim == PAIRED_ATTACKER01
-				|| self->client->ps.torsoAnim == PAIRED_DEFENDER01)
+			if (!WP_PairedAnimationCheckCompletion(self))
 			{// Always continue scripted paired animations...
-				aiEnt->client->pers.cmd.forwardmove = 0;
-				aiEnt->client->pers.cmd.rightmove = 0;
-				aiEnt->client->pers.cmd.upmove = 0;
-				VectorClear(aiEnt->client->ps.velocity);
-				self->beStillTime = level.time + 100;
 				NPC_GenericFrameCode(self);
 				return;
 			}

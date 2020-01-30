@@ -12857,7 +12857,7 @@ void PM_MoveForKata(usercmd_t *ucmd)
 			pm->cmd.forwardmove = 127;
 		}
 	}
-	else if (pm->ps->legsAnim == PAIRED_ATTACKER01 || pm->ps->legsAnim == PAIRED_DEFENDER01)
+	else if (pm->ps->eFlags & EF_PAIRED_ANIMATION)
 	{
 		pm->cmd.rightmove = 0;
 		pm->cmd.upmove = 0;
@@ -13200,8 +13200,7 @@ void PmoveSingle (pmove_t *pmove) {
 			//lock their viewangles during these attacks.
 			PM_SetPMViewAngle(pm->ps, pm->ps->viewangles, &pm->cmd);
 		}
-		else*/ if (pm->ps->torsoAnim == PAIRED_ATTACKER01
-			|| pm->ps->torsoAnim == PAIRED_DEFENDER01)
+		else*/ if (pm->ps->eFlags & EF_PAIRED_ANIMATION)
 		{// Can't move at all while in paired animations...
 			pm->cmd.forwardmove = pm->cmd.rightmove = pm->cmd.upmove = 0;
 			

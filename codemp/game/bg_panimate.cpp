@@ -339,6 +339,17 @@ qboolean BG_SaberInKata(int saberMove)
 	return qfalse;
 }
 
+qboolean BG_InPairedAnim(int anim)
+{
+	switch (anim)
+	{
+	case PAIRED_ATTACKER01:
+	case PAIRED_DEFENDER01:
+		return qtrue;
+	}
+	return qfalse;
+}
+
 qboolean BG_InKataAnim(int anim)
 {
 	switch (anim)
@@ -3318,7 +3329,7 @@ void BG_SaberStartTransAnim(int clientNum, playerState_t *ps, int saberAnimLevel
 	float	tavionanimscale = 1.1f;
 	float	stancescale = BG_GetSpeedMultiplierForStance(saberAnimLevelBase);
 
-	if (ps->torsoAnim == PAIRED_ATTACKER01 || ps->torsoAnim == PAIRED_DEFENDER01)
+	if (ps->eFlags & EF_PAIRED_ANIMATION)
 	{// ALWAYS 1.0f...
 		*animSpeed = 1.0f;
 		return;

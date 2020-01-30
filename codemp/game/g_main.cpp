@@ -4557,6 +4557,9 @@ void G_RunFrame( int levelTime ) {
 
 		if ( i < MAX_CLIENTS )
 		{
+			extern qboolean WP_PairedAnimationCheckCompletion(gentity_t *self);
+			WP_PairedAnimationCheckCompletion(ent);
+
 			G_CheckClientTimeouts ( ent );
 
 			if (ent->client->inSpaceIndex && ent->client->inSpaceIndex != ENTITYNUM_NONE)
@@ -4672,6 +4675,7 @@ void G_RunFrame( int levelTime ) {
 				{
 					extern void WP_MMOSaberUpdate(gentity_t *self);
 					extern void WP_MMODoOldSaberChecks(gentity_t *self, usercmd_t *ucmd);
+					extern qboolean WP_PairedAnimationCheckCompletion(gentity_t *self);
 					WP_MMOSaberUpdate(ent);
 					WP_MMODoOldSaberChecks(ent, &ent->client->pers.cmd);
 				}
@@ -4710,6 +4714,9 @@ void G_RunFrame( int levelTime ) {
 			}
 		}
 #endif //__NPC_DYNAMIC_THREADS__
+
+		extern qboolean WP_PairedAnimationCheckCompletion(gentity_t *self);
+		WP_PairedAnimationCheckCompletion(ent);
 
 #ifdef __NPC_DYNAMIC_THREADS__
 		if (ent->s.eType != ET_NPC)

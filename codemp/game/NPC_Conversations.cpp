@@ -17,7 +17,7 @@
 extern npcStatic_t NPCS;
 
 extern qboolean NPC_FacePosition(gentity_t *aiEnt, vec3_t position, qboolean doPitch );
-extern void Jedi_Move(gentity_t *aiEnt, gentity_t *goal, qboolean retreat );
+extern qboolean Jedi_Move(gentity_t *aiEnt, gentity_t *goal, qboolean retreat );
 
 int			NUM_REGISTERED_CONVO_FILES = 0;
 char		REGISTERED_CONVO_FILES[1024][256];
