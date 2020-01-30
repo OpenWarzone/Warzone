@@ -1214,11 +1214,14 @@ qboolean	HAVE_WILDLIFE = qfalse;
 int next_npc_max_warning_time = 0;
 int next_npc_stats_time = 0;
 
+// Sharing this info with the eventsystem spawner system, so we can skip events that we don't have enough slots to fill...
+int			num_imperial_npcs = 0, num_rebel_npcs = 0, num_mandalorian_npcs = 0, num_merc_npcs = 0, num_pirate_npcs = 0, num_wildlife_npcs = 0;
+
 void G_CheckMinimumNpcs(void) 
 {
 	vmCvar_t	mapname;
 	int			min_imperials, min_rebels, min_mandalorians, min_mercs, min_pirates, min_wildlife;
-	int			num_imperial_npcs = 0, num_rebel_npcs = 0, num_mandalorian_npcs = 0, num_merc_npcs = 0, num_pirate_npcs = 0, num_wildlife_npcs = 0, i;
+	int			i;
 	static int	checkminimumplayers_time;
 	spawnGroup_t group;
 
@@ -1257,6 +1260,13 @@ void G_CheckMinimumNpcs(void)
 	{
 		return;
 	}
+
+	num_imperial_npcs = 0;
+	num_rebel_npcs = 0;
+	num_mandalorian_npcs = 0;
+	num_merc_npcs = 0;
+	num_pirate_npcs = 0;
+	num_wildlife_npcs = 0;
 
 #ifndef __USE_NAVLIB_SPAWNPOINTS__
 	NPC_Patrol_MakeBadList();

@@ -894,6 +894,23 @@ int G_MaxSpawnsPerWave(int wave, eventSize_t eventSize)
 	}
 }
 
+int G_MaxSpawnsInEvent(eventSize_t eventSize)
+{// NOTE: Must be in groups of 4, as this is how the spawnGroups system is set up... TODO: Varying event sizes...
+	int maxSpawns = 4;
+
+	for (int wave = 0; wave < 6; wave++)
+	{
+		int ms = G_MaxSpawnsPerWave(wave, eventSize);
+
+		if (ms > maxSpawns)
+		{
+			maxSpawns = ms;
+		}
+	}
+
+	return maxSpawns;
+}
+
 int G_WaveSpawnCountForEventWave(int eventNum)
 {
 	if (!EVENTS_ENABLED || eventNum < 0 || num_event_areas <= 0)
@@ -1014,41 +1031,105 @@ extern vmCvar_t npc_mercs;
 extern vmCvar_t npc_pirates;
 extern vmCvar_t npc_wildlife;
 
+extern int			num_imperial_npcs, num_rebel_npcs, num_mandalorian_npcs, num_merc_npcs, num_pirate_npcs, num_wildlife_npcs;
+
 qboolean G_EnabledFactionEvent(int eventNum)
 {
-	team_t eventFaction = event_areas_current_team[eventNum];
+	team_t		eventFaction = event_areas_current_team[eventNum];
+	int			largestWave = G_MaxSpawnsInEvent(event_areas_event_size[eventNum]);
+	int			currentCount = event_areas_spawn_count[eventNum];
 
 	switch (eventFaction)
 	{
 	case FACTION_EMPIRE:
 		trap->Cvar_Update(&npc_imperials);
 		if (npc_imperials.integer)
+		{
+			if (currentCount <= 0)
+			{
+				if (num_imperial_npcs + largestWave > npc_imperials.integer)
+				{// Not enough free NPC slots to start this event...
+					return qfalse;
+				}
+			}
+
 			return qtrue;
+		}
 		break;
 	case FACTION_REBEL:
 		trap->Cvar_Update(&npc_rebels);
 		if (npc_rebels.integer)
+		{
+			if (currentCount <= 0)
+			{
+				if (num_rebel_npcs + largestWave > npc_rebels.integer)
+				{// Not enough free NPC slots to start this event...
+					return qfalse;
+				}
+			}
+
 			return qtrue;
+		}
 		break;
 	case FACTION_MANDALORIAN:
 		trap->Cvar_Update(&npc_mandalorians);
 		if (npc_mandalorians.integer)
+		{
+			if (currentCount <= 0)
+			{
+				if (num_mandalorian_npcs + largestWave > npc_mandalorians.integer)
+				{// Not enough free NPC slots to start this event...
+					return qfalse;
+				}
+			}
+
 			return qtrue;
+		}
 		break;
 	case FACTION_MERC:
 		trap->Cvar_Update(&npc_mercs);
 		if (npc_mercs.integer)
+		{
+			if (currentCount <= 0)
+			{
+				if (num_merc_npcs + largestWave > npc_mercs.integer)
+				{// Not enough free NPC slots to start this event...
+					return qfalse;
+				}
+			}
+
 			return qtrue;
+		}
 		break;
 	case FACTION_PIRATES:
 		trap->Cvar_Update(&npc_pirates);
 		if (npc_pirates.integer)
+		{
+			if (currentCount <= 0)
+			{
+				if (num_pirate_npcs + largestWave > npc_pirates.integer)
+				{// Not enough free NPC slots to start this event...
+					return qfalse;
+				}
+			}
+
 			return qtrue;
+		}
 		break;
 	case FACTION_WILDLIFE:
 		trap->Cvar_Update(&npc_wildlife);
 		if (npc_wildlife.integer)
+		{
+			if (currentCount <= 0)
+			{
+				if (num_wildlife_npcs + largestWave > npc_wildlife.integer)
+				{// Not enough free NPC slots to start this event...
+					return qfalse;
+				}
+			}
+
 			return qtrue;
+		}
 		break;
 	case FACTION_SPECTATOR:
 	default:
@@ -1073,18 +1154,45 @@ int G_GetEventMostNeedingSpawns(void)
 	{
 		for (int i = 0; i < num_event_areas; i++)
 		{
+			G_CountEventAreaSpawns();
+
 			int				currentWave = event_areas_spawn_wave[i];
 			int				maxWaveSpawns = G_MaxSpawnsPerWave(currentWave, event_areas_event_size[i]);
+			//int			largestWave = G_MaxSpawnsInEvent(event_areas_event_size[i]);
 			int				currentCount = event_areas_spawn_count[i];
 			qboolean		waitingForWave = event_areas_wave_filled[i];
 			qboolean		hyperspaceIn = (event_areas_ship[i] && event_areas_ship_hyperspace_in_time != 0 && event_areas_ship_hyperspace_in_time[i] >= level.time) ? qtrue : qfalse;
 			qboolean		hyperspaceOut = (event_areas_ship[i] && event_areas_ship_hyperspace_out_time != 0 && event_areas_ship_hyperspace_out_time[i] >= level.time) ? qtrue : qfalse;
 
+#if 1
+			if (waitingForWave || currentCount + 4 > maxWaveSpawns)
+			{
+				continue;
+			}
+
+			if (!G_EnabledFactionEvent(i))
+			{
+				continue;
+			}
+
+			if (hyperspaceIn || hyperspaceOut)
+			{
+				return -1;
+			}
+
+			if (currentWave >= 0)
+			{
+				//Com_Printf("Most needed %i. has %i of %i spawns.\n", i, currentCount, maxWaveSpawns);
+				return i;
+			}
+#else
+			// UQ1: Starts up unfillable events when npc_imperials etc is below the total needed on a map...
 			if (!waitingForWave && !hyperspaceIn && !hyperspaceOut && currentWave >= 0 && G_EnabledFactionEvent(i) && currentCount < leastSpawnsCount && currentCount < maxWaveSpawns)
 			{
 				leastSpawnsEvent = i;
 				leastSpawnsCount = event_areas_spawn_count[i];
 			}
+#endif
 		}
 	}
 
