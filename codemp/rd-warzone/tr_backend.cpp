@@ -1532,7 +1532,7 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 
 	FBO_t *originalFBO = glState.currentFBO;
 
-	for (int type = RENDERPASS_NONE; type < RENDERPASS_MAX; type++)
+	for (int type = RENDERPASS_GEOMETRY; type < RENDERPASS_MAX; type++)
 	{// Redraw the relevant scene objects so that the procedural systems can use the vert points for their stuff...
 		// Skip passes if not currenty enabled...
 		if (type == RENDERPASS_GRASS_PATCHES && !GRASS_PATCHES_ENABLED) continue;
@@ -1545,7 +1545,7 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 		if (type == RENDERPASS_MIST && !MIST_ENABLED) continue;
 
 		if ((tr.viewParms.flags & VPF_DEPTHSHADOW)
-			&& backEnd.renderPass != RENDERPASS_NONE
+			&& backEnd.renderPass != RENDERPASS_GEOMETRY
 			&& backEnd.renderPass != RENDERPASS_VINES)
 		{
 			continue;
@@ -1636,7 +1636,7 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 
 			qboolean doDraw = qtrue;
 
-			if (backEnd.renderPass != RENDERPASS_NONE)
+			if (backEnd.renderPass != RENDERPASS_GEOMETRY)
 			{// Skip any surfs that are not of this renderPass...
 				qboolean isGrassPatches = qfalse;
 				qboolean isGrass = qfalse;
@@ -1646,6 +1646,7 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 				qboolean isVines = qfalse;
 				qboolean isGroundFoliage = qfalse;
 				qboolean isMist = qfalse;
+				qboolean isSky = qfalse;
 
 				if (RB_ShouldUseGeometryGrassPatches(thisShader->materialType))
 				{
@@ -1687,6 +1688,11 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 					isMist = qtrue;
 				}
 
+				if (thisShader->isSky)
+				{
+					isSky = qtrue;
+				}
+
 				if (isGrassPatches && backEnd.renderPass == RENDERPASS_GRASS_PATCHES)
 				{
 					doDraw = qtrue;
@@ -1716,6 +1722,10 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 					doDraw = qtrue;
 				}
 				else if (isMist && backEnd.renderPass == RENDERPASS_MIST)
+				{
+					doDraw = qtrue;
+				}
+				else if (isSky && backEnd.renderPass == RENDERPASS_SKY)
 				{
 					doDraw = qtrue;
 				}
@@ -2638,6 +2648,7 @@ const void	*RB_DrawSurfs( const void *data ) {
 		}
 #endif
 
+#if 0
 		//if (r_drawSunRays->integer)
 		{
 			FBO_t *oldFbo = glState.currentFBO;
@@ -2655,6 +2666,7 @@ const void	*RB_DrawSurfs( const void *data ) {
 
 			FBO_Bind(oldFbo);
 		}
+#endif
 
 		// darken down any stencil shadows
 		RB_ShadowFinish();		

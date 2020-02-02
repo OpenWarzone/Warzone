@@ -2465,6 +2465,11 @@ static int BSPSurfaceCompare(const void *a, const void *b)
 	aa = *(msurface_t **) a;
 	bb = *(msurface_t **) b;
 
+	if (aa->shader->isSky > bb->shader->isSky)
+		return -1;
+	else if (aa->shader->isSky < bb->shader->isSky)
+		return 1;
+
 	//
 	// First fill in the shader's hasAlphaTestBits and hasSplatMaps values...
 	//
@@ -7066,6 +7071,11 @@ void RE_LoadWorldMap(const char *name) {
 
 	tr.world = NULL;
 
+	tr.skyDepthShader = R_FindShader("gfx/skyDepth", lightmapsNone, stylesDefault, qtrue);
+	tr.skyDepthShader->isSky = qtrue;
+
+	tr.purpleShader = R_FindShader("gfx/colors/purple", lightmapsNone, stylesDefault, qtrue);
+
 	// Load any non-solid extra bsp.
 	char strippedName[512] = { 0 };
 	char loadName[512] = { 0 };
@@ -7108,6 +7118,4 @@ void RE_LoadWorldMap(const char *name) {
 	tr.worldMapLoaded = qtrue;
 
 	RT_LoadWorldMapExtras();
-
-	tr.purpleShader = R_FindShader("gfx/colors/purple", lightmapsNone, stylesDefault, qtrue);
 }

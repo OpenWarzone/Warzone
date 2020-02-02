@@ -2219,7 +2219,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	if (!ALLOW_PROCEDURALS_ON_MODELS 
 		&& backEnd.currentEntity != &tr.worldEntity 
 		&& backEnd.currentEntity != &backEnd.entity2D 
-		&& backEnd.renderPass != RENDERPASS_NONE
+		&& backEnd.renderPass != RENDERPASS_GEOMETRY
 		&& backEnd.renderPass != RENDERPASS_POSTPROCESS
 		&& backEnd.renderPass != RENDERPASS_PSHADOWS)
 	{// Rendering of procedurals on model surfaces is disabled by default, but ALLOW_PROCEDURALS_ON_MODELS=1 in the [FIXES] section of mapinfo can be used to override this.
@@ -2250,6 +2250,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	qboolean isCloak = qfalse;
 	qboolean isForcefield = qfalse;
 	qboolean isEmissiveBlack = qfalse;
+	qboolean isSky = qfalse;
 
 	float tessInner = 0.0;
 	float tessOuter = 0.0;
@@ -2378,6 +2379,11 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		{
 			isVines = qtrue;
 		}
+
+		if (tess.shader->isSky || tess.shader == tr.skyDepthShader)
+		{
+			isSky = qtrue;
+		}
 	}
 	else if ((tr.viewParms.flags & VPF_CUBEMAP)
 		|| (tr.viewParms.flags & VPF_DEPTHSHADOW)
@@ -2459,6 +2465,11 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		{
 			isVines = qtrue;
 		}
+
+		if (tess.shader->isSky || tess.shader == tr.skyDepthShader)
+		{
+			isSky = qtrue;
+		}
 	}
 	else
 #endif
@@ -2521,14 +2532,23 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		{
 			isMist = qtrue;
 		}
+
+		if (tess.shader->isSky || tess.shader == tr.skyDepthShader)
+		{
+			isSky = qtrue;
+		}
 	}
 
-	if (backEnd.currentEntity == &backEnd.entity2D && backEnd.renderPass == RENDERPASS_POSTPROCESS)
+	if (backEnd.renderPass == RENDERPASS_GEOMETRY && isSky)
+	{// Sky is done in it's own pass later to reduce screen fill rate on the procedural sky...
+		return;
+	}
+	else if (backEnd.currentEntity == &backEnd.entity2D && backEnd.renderPass == RENDERPASS_POSTPROCESS)
 	{
 
 	}
 	else if ((tr.viewParms.flags & VPF_DEPTHSHADOW)
-		&& backEnd.renderPass != RENDERPASS_NONE
+		&& backEnd.renderPass != RENDERPASS_GEOMETRY
 		&& backEnd.renderPass != RENDERPASS_VINES
 		&& backEnd.renderPass != RENDERPASS_POSTPROCESS)
 	{
@@ -2566,9 +2586,20 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	{
 		return;
 	}
+	else if ((!isSky && backEnd.renderPass == RENDERPASS_SKY) || (isSky && backEnd.renderPass != RENDERPASS_SKY))
+	{
+		return;
+	}
 	else if (backEnd.renderPass == RENDERPASS_PSHADOWS)
 	{
 		return;
+	}
+	else if (backEnd.renderPass == RENDERPASS_POSTPROCESS)
+	{
+		if (isSky || isMist || isVines || isGroundFoliage || isGrass4 || isGrass3 || isGrass2 || isGrass || isGrassPatches)
+		{
+			return;
+		}
 	}
 
 	if (r_tessellation->integer)
@@ -2814,7 +2845,12 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 #define __USE_DETAIL_DEPTH_SKIP__		// Skip drawing detail crap at all in shadow and depth prepasses - they should never be needed...
 #define __LIGHTMAP_IS_DETAIL__			// Lightmap stages are considered detail...
 
-		if (pStage->isWater && r_glslWater->integer && WATER_ENABLED && MAP_WATER_LEVEL < 131000.0 && MAP_WATER_LEVEL > -131000.0)
+		if (IS_DEPTH_PASS && isSky)
+		{
+			sp = &tr.whiteShader;
+			backEnd.pc.c_skyDraws++;
+		}
+		else if (pStage->isWater && r_glslWater->integer && WATER_ENABLED && MAP_WATER_LEVEL < 131000.0 && MAP_WATER_LEVEL > -131000.0)
 		{
 			if (IS_DEPTH_PASS == 1)
 			{
@@ -3199,7 +3235,12 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				useDeform = 1.0;
 			}
 
-			if (tr.viewParms.flags & VPF_DEPTHSHADOW)
+			if (IS_DEPTH_PASS && isSky)
+			{
+				sp = &tr.whiteShader;
+				backEnd.pc.c_skyDraws++;
+			}
+			else if (tr.viewParms.flags & VPF_DEPTHSHADOW)
 			{// No tess on shadow maps...
 				sp = &tr.depthPassShader[0];
 				backEnd.pc.c_depthPassDraws++;
@@ -3449,7 +3490,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 
 		float nightScale = RB_NightScale();
 
-		if (backEnd.renderPass == RENDERPASS_NONE || is2D)
+		if (backEnd.renderPass == RENDERPASS_GEOMETRY || is2D)
 		{
 			{// Set up basic shader settings... This way we can avoid the bind bloat of dumb shader #ifdefs...
 				vec4_t vec;
@@ -3748,7 +3789,11 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		// Texture bindings...
 		//
 
-		if (isGrassPatches && backEnd.renderPass == RENDERPASS_GRASS_PATCHES)
+		if (sp == &tr.whiteShader)
+		{
+
+		}
+		else if (isGrassPatches && backEnd.renderPass == RENDERPASS_GRASS_PATCHES)
 		{// Special extra pass stuff for grass...
 			stateBits = GLS_DEPTHMASK_TRUE | GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_ATEST_GT_0;
 
@@ -5106,7 +5151,11 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		//
 		// do multitexture
 		//
-		if (backEnd.renderPass == RENDERPASS_NONE || is2D)
+		if (sp == &tr.whiteShader)
+		{
+
+		}
+		else if (backEnd.renderPass == RENDERPASS_GEOMETRY || is2D)
 		{
 			if (sp->isBindless)
 			{
@@ -6019,7 +6068,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL8, l8);
 		}
 
-		if (isFakeGrass && backEnd.renderPass == RENDERPASS_NONE && !IS_DEPTH_PASS)
+		if (isFakeGrass && backEnd.renderPass == RENDERPASS_GEOMETRY && !IS_DEPTH_PASS)
 		{// Send shader the avg grass color for above and below ground grasses, so we can draw fake distant grass...
 			vec4_t grassColor, seaGrassColor;
 			VectorClear4(grassColor);

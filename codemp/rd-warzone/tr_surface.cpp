@@ -646,6 +646,33 @@ static void RB_SurfaceVertsAndIndexes( int numVerts, srfVert_t *verts, int numIn
 	glIndex_t      *outIndex;
 	float          *color;
 
+#ifdef __MERGE_DEPTHPASS_DRAWS__
+	if (backEnd.depthFill && !(backEnd.refdef.rdflags & RDF_NOWORLDMODEL))
+	{
+		if (tess.shader->isSky)
+		{
+			//tess.shader = tr.skyDepthShader;
+			tess.shader = tr.purpleShader;
+		}
+		else if (tess.shader == tr.defaultShader || tess.shader->hasAlphaTestBits <= 0 /*|| tess.shader->hasSplatMaps > 0*/)
+		{// In depth pass, set all solid draws to defaultshader, so they can all get merged together...
+		 /*ri->Printf(PRINT_WARNING, "change: [renderpass: %i] Begin shader %s [hasAlphaTestBits: %i] [hasSplatMaps : %i] [isSky : %s].\n"
+		 , (int)backEnd.renderPass
+		 , tess.shader->name
+		 , tess.shader->hasAlphaTestBits
+		 , tess.shader->hasSplatMaps
+		 , tess.shader->isSky ? "true" : "false");*/
+
+			tess.shader = tr.purpleShader;
+		}
+	}
+
+	/*if (backEnd.viewParms.flags & VPF_SHADOWPASS)
+	{// Hmm does help fps, might be an option for distant objects if we had distance info here...
+	tess.shader = tr.purpleShader;
+	}*/
+#endif //__MERGE_DEPTHPASS_DRAWS__
+
 	RB_CheckVBOandIBO(tess.vbo, tess.ibo);
 
 	RB_CHECKOVERFLOW( numVerts, numIndexes );
@@ -751,7 +778,12 @@ static qboolean RB_SurfaceVbo(VBO_t *vbo, IBO_t *ibo, int numVerts, int numIndex
 #ifdef __MERGE_DEPTHPASS_DRAWS__
 	if (backEnd.depthFill && !(backEnd.refdef.rdflags & RDF_NOWORLDMODEL))
 	{
-		if (tess.shader->hasAlphaTestBits <= 0 /*|| tess.shader->hasSplatMaps > 0*/ || tess.shader->isSky)
+		if (tess.shader->isSky)
+		{
+			//tess.shader = tr.skyDepthShader;
+			tess.shader = tr.purpleShader;
+		}
+		else if (tess.shader == tr.defaultShader || tess.shader->hasAlphaTestBits <= 0 /*|| tess.shader->hasSplatMaps > 0*/)
 		{// In depth pass, set all solid draws to defaultshader, so they can all get merged together...
 			/*ri->Printf(PRINT_WARNING, "change: [renderpass: %i] Begin shader %s [hasAlphaTestBits: %i] [hasSplatMaps : %i] [isSky : %s].\n"
 				, (int)backEnd.renderPass

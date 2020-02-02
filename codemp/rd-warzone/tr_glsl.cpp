@@ -76,6 +76,8 @@ extern const char *fallbackShader_ssao_vp;
 extern const char *fallbackShader_ssao_fp;
 extern const char *fallbackShader_texturecolor_vp;
 extern const char *fallbackShader_texturecolor_fp;
+extern const char *fallbackShader_white_vp;
+extern const char *fallbackShader_white_fp;
 extern const char *fallbackShader_tonemap_vp;
 extern const char *fallbackShader_tonemap_fp;
 extern const char *fallbackShader_gaussian_blur_vp;
@@ -3029,6 +3031,11 @@ int GLSL_BeginLoadGPUShaders(void)
 	}
 #endif //__TEXTURECOLOR_SHADER_BINDLESS__
 
+	if (!GLSL_BeginLoadGPUShader(&tr.whiteShader, "white", attribs, qtrue, qfalse, qfalse, qfalse, NULL, qtrue, NULL, fallbackShader_white_vp, fallbackShader_white_fp, NULL, NULL, NULL))
+	{
+		ri->Error(ERR_FATAL, "Could not load white shader!");
+	}
+
 	attribs = ATTR_POSITION | ATTR_TEXCOORD0;// | ATTR_COLOR | ATTR_NORMAL;
 	extradefines[0] = '\0';
 
@@ -4515,6 +4522,20 @@ void GLSL_EndLoadGPUShaders(int startTime)
 	GLSL_SetUniformInt(&tr.textureColorShader, UNIFORM_TEXTUREMAP, TB_DIFFUSEMAP);
 	
 	GLSL_FinishGPUShader(&tr.textureColorShader);
+
+	numEtcShaders++;
+
+
+
+	if (!GLSL_EndLoadGPUShader(&tr.whiteShader))
+	{
+		ri->Error(ERR_FATAL, "Could not load white shader!");
+	}
+
+	GLSL_InitUniforms(&tr.whiteShader);
+
+	GLSL_BindProgram(&tr.whiteShader);
+	GLSL_FinishGPUShader(&tr.whiteShader);
 
 	numEtcShaders++;
 
@@ -6998,6 +7019,8 @@ void GLSL_ShutdownGPUShaders(void)
 	
 	GLSL_BindProgram(NULL);
 
+	GLSL_DeleteGPUShader(&tr.whiteShader);
+
 	GLSL_DeleteGPUShader(&tr.textureColorShader);
 	
 	GLSL_DeleteGPUShader(&tr.weatherShader);
@@ -7173,6 +7196,7 @@ void GLSL_BindProgram(shaderProgram_t * program)
 
 			char from[256] = { 0 };
 			char to[256] = { 0 };
+			char fbo[64] = { 0 };
 
 			if (glState.currentProgram)
 				strcpy(from, glState.currentProgram->name.c_str());
@@ -7184,7 +7208,17 @@ void GLSL_BindProgram(shaderProgram_t * program)
 			else
 				strcpy(to, "NULL");
 
-			ri->Printf(PRINT_WARNING, "Frame: [%i] GLSL_BindProgram: [%i] [%s] -> [%s].\n", SCENE_FRAME_NUMBER, GLSL_BINDS_COUNT, from, to);
+			/*if (glState.currentProgram && !strcmp(from, "white") && !strcmp(to, "depthPass0"))
+			{
+				ForceCrash();
+			}*/
+			
+			if (glState.currentFBO)
+				strcpy(fbo, glState.currentFBO->name);
+			else
+				strcpy(fbo, "NULL");
+
+			ri->Printf(PRINT_WARNING, "Frame: [%i] GLSL_BindProgram: [%i] [%s] -> [%s] (to fbo %s - renderPass %i).\n", SCENE_FRAME_NUMBER, GLSL_BINDS_COUNT, from, to, fbo, backEnd.renderPass);
 		}
 #endif //__DEBUG_GLSL_BINDS__
 

@@ -365,64 +365,29 @@ static float	s_skyTexCoords[SKY_SUBDIVISIONS+1][SKY_SUBDIVISIONS+1][2];
 
 qboolean MOON_INFO_CHANGED = qfalse;
 
-static void DrawSkySide( struct image_s *image, struct image_s *nightImage, const int skyDirection, const int mins[2], const int maxs[2] )
+extern float		DYNAMIC_WEATHER_CLOUDCOVER;
+extern float		DYNAMIC_WEATHER_CLOUDSCALE;
+
+static void DrawSkySide( struct image_s *image, struct image_s *nightImage, const int skyDirection, const int mins[2], const int maxs[2], qboolean merge, int firstVertex)
 {
-	if (backEnd.viewParms.flags & VPF_EMISSIVEMAP)
+	qboolean DEPTH_PASS = qfalse;
+
+	if (backEnd.depthFill
+		|| (tr.viewParms.flags & VPF_DEPTHSHADOW)
+		|| (tr.viewParms.flags & VPF_SHADOWPASS)
+		|| glState.currentFBO == tr.sunShadowFbo[0]
+		|| glState.currentFBO == tr.sunShadowFbo[1]
+		|| glState.currentFBO == tr.sunShadowFbo[2]
+		|| glState.currentFBO == tr.sunShadowFbo[3]
+		|| glState.currentFBO == tr.sunShadowFbo[4]
+		|| glState.currentFBO == tr.renderDepthFbo)
 	{
-		return;
+		DEPTH_PASS = qtrue;
 	}
 
-	tess.numIndexes = 0;
-	tess.firstIndex = 0;
-	tess.numVertexes = 0;
-	tess.minIndex = 0;
-	tess.maxIndex = 0;
-
-
 	int s, t;
-	int firstVertex = tess.numVertexes;
-	//int firstIndex = tess.numIndexes;
-	int minIndex = tess.minIndex;
-	int maxIndex = tess.maxIndex;
 	vec4_t color;
 
-	//tess.numVertexes = 0;
-	//tess.numIndexes = 0;
-	tess.firstIndex = tess.numIndexes;
-
-	extern qboolean		PROCEDURAL_SKY_ENABLED;
-	extern vec3_t		PROCEDURAL_SKY_DAY_COLOR;
-	extern vec4_t		PROCEDURAL_SKY_SUNSET_COLOR;
-	extern vec4_t		PROCEDURAL_SKY_NIGHT_COLOR;
-	extern float		PROCEDURAL_SKY_NIGHT_HDR_MIN;
-	extern float		PROCEDURAL_SKY_NIGHT_HDR_MAX;
-	extern int			PROCEDURAL_SKY_STAR_DENSITY;
-	extern float		PROCEDURAL_SKY_NEBULA_FACTOR;
-	extern float		PROCEDURAL_SKY_NEBULA_SEED;
-	extern float		PROCEDURAL_SKY_PLANETARY_ROTATION;
-
-	extern qboolean		PROCEDURAL_BACKGROUND_HILLS_ENABLED;
-	extern float		PROCEDURAL_BACKGROUND_HILLS_SMOOTHNESS;
-	extern float		PROCEDURAL_BACKGROUND_HILLS_UPDOWN;
-	extern float		PROCEDURAL_BACKGROUND_HILLS_SEED;
-	extern vec3_t		PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR;
-	extern vec3_t		PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR2;
-
-	extern vec3_t		AURORA_COLOR;
-
-	extern qboolean		PROCEDURAL_CLOUDS_ENABLED;
-	extern qboolean		PROCEDURAL_CLOUDS_LAYER;
-	extern float		PROCEDURAL_CLOUDS_CLOUDSCALE;
-	extern float		PROCEDURAL_CLOUDS_SPEED;
-	extern float		PROCEDURAL_CLOUDS_DARK;
-	extern float		PROCEDURAL_CLOUDS_LIGHT;
-	extern float		PROCEDURAL_CLOUDS_CLOUDCOVER;
-	extern float		PROCEDURAL_CLOUDS_CLOUDALPHA;
-	extern float		PROCEDURAL_CLOUDS_SKYTINT;
-
-	extern float		DYNAMIC_WEATHER_CLOUDCOVER;
-	extern float		DYNAMIC_WEATHER_CLOUDSCALE;
-	
 	GL_Bind(PROCEDURAL_SKY_ENABLED ? tr.whiteImage : image );
 	GL_Cull( CT_TWO_SIDED );
 
@@ -468,76 +433,21 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 		}
 	}
 
-	tess.minIndex = firstVertex;
-	tess.maxIndex = tess.numVertexes;
+	if (DEPTH_PASS)
+	{// Drawing 1's instead is fine if we only need depth...
+		RB_UpdateVBOs(ATTR_POSITION);
 
-
-	// FIXME: A lot of this can probably be removed for speed, and refactored into a more convenient function
-	RB_UpdateVBOs(ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL);
-
-	if (backEnd.depthFill)
-	{
-		shaderProgram_t *sp = &tr.shadowFillShader[0];
-		vec4_t vector;
-
-		//RB_UpdateVBOs(ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL);
-		GLSL_VertexAttribsState(ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL);
+		shaderProgram_t *sp = &tr.whiteShader;
+		GL_State(GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO);
+		GLSL_VertexAttribsState(ATTR_POSITION);
 		GLSL_BindProgram(sp);
-
-		{// unused...
-			VectorSet4(vector, 0.0, 0.0, 0.0, 0.0);
-			GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS0, vector); // useTC, useDeform, useRGBA, isTextureClamped
-			GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS1, vector); // useVertexAnim, useSkeletalAnim, blendMode, is2D
-			GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS2, vector); // LIGHTDEF_USE_LIGHTMAP, LIGHTDEF_USE_GLOW_BUFFER, LIGHTDEF_USE_CUBEMAP, LIGHTDEF_USE_TRIPLANAR
-			GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS3, vector); // LIGHTDEF_USE_REGIONS, LIGHTDEF_IS_DETAIL, 0=DetailMapNormal 1=detailMapFromTC 2=detailMapFromWorld, 0.0
-		}
-
-
 		GLSL_SetUniformMatrix16(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
-		GLSL_SetUniformMatrix16(sp, UNIFORM_MODELMATRIX, backEnd.ori.modelMatrix, 1);
-
-
-		if (backEnd.viewParms.flags & VPF_EMISSIVEMAP)
-		{
-			color[0] =
-				color[1] =
-				color[2] = 0.0;
-			color[3] = 1.0f;
-			GLSL_SetUniformVec4(sp, UNIFORM_BASECOLOR, color);
-		}
-		else
-		{
-			color[0] =
-				color[1] =
-				color[2] = backEnd.refdef.colorScale;
-			color[3] = 1.0f;
-			GLSL_SetUniformVec4(sp, UNIFORM_BASECOLOR, color);
-		}
-
-		color[0] =
-			color[1] =
-			color[2] =
-			color[3] = 0.0f;
-		GLSL_SetUniformVec4(sp, UNIFORM_VERTCOLOR, color);
-
-		VectorSet4(vector, 1.0, 0.0, 0.0, 1.0);
-		GLSL_SetUniformVec4(sp, UNIFORM_DIFFUSETEXMATRIX, vector);
-
-		VectorSet4(vector, 0.0, 0.0, 0.0, 0.0);
-		GLSL_SetUniformVec4(sp, UNIFORM_DIFFUSETEXOFFTURB, vector);
-
-		vec2_t scale;
-		scale[0] = scale[1] = 1.0;
-		GLSL_SetUniformVec2(sp, UNIFORM_TEXTURESCALE, scale);
-
-		GLSL_SetUniformFloat(sp, UNIFORM_TIME, tr.refdef.floatTime);
-
-#ifdef __CHEAP_VERTS__
-		GLSL_SetUniformInt(sp, UNIFORM_WORLD, 1);
-#endif //__CHEAP_VERTS__
 	}
 	else
 	{
+		// FIXME: A lot of this can probably be removed for speed, and refactored into a more convenient function
+		RB_UpdateVBOs(ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL);
+
 		int quality = max(min(r_cloudQuality->integer, 4), 0);
 		shaderProgram_t *sp = &tr.skyShader[quality];
 		vec4_t vector;
@@ -785,21 +695,58 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 			GLSL_BindlessUpdate(sp);
 		}
 	}
-
-	backEnd.pc.c_skyDraws++;
-
-	R_DrawElementsVBO(tess.numIndexes - tess.firstIndex, tess.firstIndex, tess.minIndex, tess.maxIndex, tess.numVertexes, qfalse);
-
-	tess.numIndexes = tess.firstIndex;
-	tess.numVertexes = firstVertex;
-	tess.firstIndex = 0;
-	tess.minIndex = minIndex;
-	tess.maxIndex = maxIndex;
 }
 
 static void DrawSkyBox( shader_t *shader )
 {
 	int		i;
+
+	qboolean merge = qfalse;
+
+	if (backEnd.viewParms.flags & VPF_EMISSIVEMAP)
+	{
+		return;
+	}
+
+	if (backEnd.renderPass == RENDERPASS_GEOMETRY)
+	{// Sky is done in it's own pass later to reduce screen fill rate on the procedural sky...
+		return;
+	}
+
+#if 0
+	// FIXME: SHADER_SKY_DIRECTION - change to shader view angles or something??!?!?!?
+	if (PROCEDURAL_SKY_ENABLED
+		|| backEnd.depthFill
+		|| (tr.viewParms.flags & VPF_DEPTHSHADOW)
+		|| (tr.viewParms.flags & VPF_SHADOWPASS)
+		|| glState.currentFBO == tr.sunShadowFbo[0]
+		|| glState.currentFBO == tr.sunShadowFbo[1]
+		|| glState.currentFBO == tr.sunShadowFbo[2]
+		|| glState.currentFBO == tr.sunShadowFbo[3]
+		|| glState.currentFBO == tr.sunShadowFbo[4]
+		|| glState.currentFBO == tr.renderDepthFbo)
+	{// If doing depth passes or drawing a procedural sky, we can merge this all into 1 draw call...
+		merge = qtrue;
+	}
+#endif
+
+	int firstVertex = tess.numVertexes;
+	int firstIndex = tess.numIndexes;
+	int minIndex = tess.minIndex;
+	int maxIndex = tess.maxIndex;
+
+	if (merge)
+	{
+		tess.numIndexes = 0;
+		tess.firstIndex = 0;
+		tess.numVertexes = 0;
+		tess.minIndex = 0;
+		tess.maxIndex = 0;
+
+		firstVertex = 0;
+		minIndex = 0;
+		maxIndex = 0;
+	}
 
 	tr.skyImageShader = shader; // Store sky shader for use with $skyimage - TODO: sky cubemap...
 
@@ -862,11 +809,55 @@ static void DrawSkyBox( shader_t *shader )
 			}
 		}
 
-		DrawSkySide( shader->sky.outerbox[i],
-					shader->sky.outerboxnight[i],
-					i,
-					sky_mins_subd,
-					sky_maxs_subd );
+		if (!merge)
+		{
+			tess.numIndexes = 0;
+			tess.firstIndex = 0;
+			tess.numVertexes = 0;
+			tess.minIndex = 0;
+			tess.maxIndex = 0;
+
+			firstVertex = 0;// tess.numVertexes;
+			minIndex = 0;// tess.minIndex;
+			maxIndex = 0;// tess.maxIndex;
+
+			tess.firstIndex = 0;// tess.numIndexes;
+
+			DrawSkySide(shader->sky.outerbox[i], shader->sky.outerboxnight[i], i, sky_mins_subd, sky_maxs_subd, merge, firstVertex);
+
+			tess.minIndex = firstVertex;
+			tess.maxIndex = tess.numVertexes;
+
+			backEnd.pc.c_skyDraws++;
+
+			R_DrawElementsVBO(tess.numIndexes - tess.firstIndex, tess.firstIndex, tess.minIndex, tess.maxIndex, tess.numVertexes, qfalse);
+
+			tess.numIndexes = tess.firstIndex;
+			tess.numVertexes = firstVertex;
+			tess.firstIndex = 0;
+			tess.minIndex = minIndex;
+			tess.maxIndex = maxIndex;
+		}
+		else
+		{
+			DrawSkySide(shader->sky.outerbox[i], shader->sky.outerboxnight[i], i, sky_mins_subd, sky_maxs_subd, merge, /*firstVertex*/tess.numVertexes);
+		}
+	}
+
+	if (merge)
+	{
+		backEnd.pc.c_skyDraws++;
+
+		tess.minIndex = firstVertex;
+		tess.maxIndex = tess.numVertexes;
+
+		R_DrawElementsVBO(tess.numIndexes - tess.firstIndex, tess.firstIndex, tess.minIndex, tess.maxIndex, tess.numVertexes, qfalse);
+
+		tess.numIndexes = firstIndex;
+		tess.numVertexes = firstVertex;
+		tess.firstIndex = 0;
+		tess.minIndex = minIndex;
+		tess.maxIndex = maxIndex;
 	}
 }
 

@@ -165,7 +165,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // Optimization stuff...
 //
 //#define __SORT_POLYS__							// Sorts polys by shader so when they draw, they get merged...
-#define __MERGE_DEPTHPASS_DRAWS__				// Merges non-alpha draws in depth prepass by using defaultshader for them...
+//#define __MERGE_DEPTHPASS_DRAWS__				// Merges non-alpha draws in depth prepass by using defaultshader for them...
 #define __USE_DEPTHDRAWONLY__
 
 #define __FX_SORTING__
@@ -2931,6 +2931,7 @@ typedef struct {
 
 typedef enum {
 	RENDERPASS_NONE,
+	RENDERPASS_GEOMETRY = RENDERPASS_NONE,
 	RENDERPASS_PSHADOWS,
 	RENDERPASS_GRASS_PATCHES,
 	RENDERPASS_GRASS,
@@ -2940,6 +2941,7 @@ typedef enum {
 	RENDERPASS_GROUNDFOLIAGE,
 	RENDERPASS_VINES,
 	RENDERPASS_MIST,
+	RENDERPASS_SKY,
 	RENDERPASS_MAX,
 	// 2D and stuff is after max...
 	RENDERPASS_POSTPROCESS
@@ -3213,6 +3215,7 @@ typedef struct trGlobals_s {
 	shader_t				*distortionShader;
 	shader_t				*projectionShadowShader;
 	shader_t				*purpleShader;
+	shader_t				*skyDepthShader;
 
 	shader_t				*flareShader;
 	shader_t				*sunShader;
@@ -3254,6 +3257,7 @@ typedef struct trGlobals_s {
 	//
 	// GPU shader programs
 	//
+	shaderProgram_t whiteShader;
 	shaderProgram_t textureColorShader;
 	shaderProgram_t instanceShader;
 	shaderProgram_t instanceVAOShader;
