@@ -11214,6 +11214,59 @@ nextStep:
 
 	VectorCopy(self->client->ps.origin, properOrigin);
 
+#define __OJK_STUFF__
+
+#ifdef __OJK_STUFF__
+	//try to predict the origin based on velocity so it's more like what the client is seeing
+	float fVSpeed = 0;
+	vec3_t addVel;
+	VectorCopy(self->client->ps.velocity, addVel);
+	VectorNormalize(addVel);
+
+	if (self->client->ps.velocity[0] < 0)
+	{
+		fVSpeed += (-self->client->ps.velocity[0]);
+	}
+	else
+	{
+		fVSpeed += self->client->ps.velocity[0];
+	}
+	if (self->client->ps.velocity[1] < 0)
+	{
+		fVSpeed += (-self->client->ps.velocity[1]);
+	}
+	else
+	{
+		fVSpeed += self->client->ps.velocity[1];
+	}
+	if (self->client->ps.velocity[2] < 0)
+	{
+		fVSpeed += (-self->client->ps.velocity[2]);
+	}
+	else
+	{
+		fVSpeed += self->client->ps.velocity[2];
+	}
+
+	//fVSpeed *= 0.08;
+	fVSpeed *= 1.6f / sv_fps.value;
+
+	//Cap it off at reasonable values so the saber box doesn't go flying ahead of us or
+	//something if we get a big speed boost from something.
+	if (fVSpeed > 70)
+	{
+		fVSpeed = 70;
+	}
+	if (fVSpeed < -70)
+	{
+		fVSpeed = -70;
+	}
+
+	properOrigin[0] += addVel[0] * fVSpeed;
+	properOrigin[1] += addVel[1] * fVSpeed;
+	properOrigin[2] += addVel[2] * fVSpeed;
+#endif //__OJK_STUFF__
+
 	properAngles[0] = 0;
 	if (self->s.number < MAX_CLIENTS && self->client->ps.m_iVehicleNum)
 	{
@@ -11431,25 +11484,12 @@ nextStep:
 	}
 
 finishedUpdate:
-	/*
-	if (!BG_SaberInSpecialAttack(self->client->ps.torsoAnim) 
-		&& !BG_InSaberStandAnim(self->client->ps.torsoAnim)
-		&& !(ucmd->buttons & BUTTON_ATTACK) 
-		&& !(ucmd->buttons & BUTTON_ALT_ATTACK))
-	{
-		if (self->client->ps.torsoTimer <= 0)
-		{// Not in a special move? Reset our torso anims as required...
-			int anim = BG_GetSaberStanceForPS(&self->client->ps, ucmd);
-			
-			if (self->client->ps.torsoAnim != anim)
-			{
-				//G_SetAnim(self, ucmd, SETANIM_TORSO, anim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART, 0);
-				G_SetAnim(self, ucmd, SETANIM_TORSO, anim, SETANIM_FLAG_OVERRIDE, 0);
-			}
-		}
+	if (clientOverride)
+	{ //if we get the client instance we don't even need to bother setting anims and stuff
+		return;
 	}
-	*/
-	return;
+
+	G_UpdateClientAnims(self, animSpeedScale);
 }
 
 extern qboolean NPC_IsJedi(gentity_t *self);

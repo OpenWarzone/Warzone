@@ -1476,6 +1476,7 @@ qboolean NPC_CheckEnemyExt( gentity_t *aiEnt, qboolean checkAlerts )
 NPC_FacePosition
 -------------------------
 */
+extern qboolean ATST_FacePosition(gentity_t *aiEnt, vec3_t position, qboolean doPitch);
 
 qboolean NPC_FacePosition( gentity_t *aiEnt, vec3_t position, qboolean doPitch )
 {
@@ -1483,6 +1484,11 @@ qboolean NPC_FacePosition( gentity_t *aiEnt, vec3_t position, qboolean doPitch )
 	vec3_t		angles;
 	float		yawDelta;
 	qboolean	facing = qtrue;
+
+	if (aiEnt->s.NPC_class == CLASS_ATST)
+	{
+		return ATST_FacePosition(aiEnt, position, doPitch);
+	}
 
 	//Get the positions
 	if ( aiEnt->client && (aiEnt->client->NPC_class == CLASS_RANCOR || aiEnt->client->NPC_class == CLASS_WAMPA) )// || NPC->client->NPC_class == CLASS_SAND_CREATURE) )
@@ -1501,6 +1507,18 @@ qboolean NPC_FacePosition( gentity_t *aiEnt, vec3_t position, qboolean doPitch )
 
 	//Find the desired angles
 	GetAnglesForDirection( muzzle, position, angles );
+	
+	if (aiEnt->client && aiEnt->client->NPC_class == CLASS_ATST)
+	{
+		VectorSubtract(angles, aiEnt->s.apos.trBase, angles);
+
+		angles[ROLL] = 0;
+		
+		if (!doPitch)
+		{
+			angles[PITCH] = 0;
+		}
+	}
 
 	if (!doPitch)
 	{
@@ -1508,6 +1526,7 @@ qboolean NPC_FacePosition( gentity_t *aiEnt, vec3_t position, qboolean doPitch )
 		angles[PITCH] = 0;
 		VectorCopy(angles, aiEnt->client->ps.viewangles);
 	}
+	
 
 	aiEnt->NPC->desiredYaw		= AngleNormalize360( angles[YAW] );
 	aiEnt->NPC->desiredPitch	= AngleNormalize360( angles[PITCH] );
@@ -1571,8 +1590,18 @@ qboolean NPC_FaceEntity( gentity_t *aiEnt, gentity_t *ent, qboolean doPitch )
 {
 	vec3_t		entPos;
 
+#if 0
+	if (aiEnt->s.NPC_class == CLASS_ATST)
+	{
+		//Get the positions
+		CalcEntitySpot(ent, SPOT_CHEST, entPos);
+
+		return ATST_FacePosition(aiEnt, entPos, qtrue/*doPitch*/);
+	}
+#endif
+
 	//Get the positions
-	CalcEntitySpot( ent, SPOT_HEAD_LEAN, entPos );
+	CalcEntitySpot(ent, SPOT_HEAD_LEAN, entPos);
 
 	return NPC_FacePosition(aiEnt, entPos, doPitch );
 }
@@ -1583,6 +1612,8 @@ NPC_FaceEnemy
 -------------------------
 */
 
+extern qboolean ATST_FaceEnemy(gentity_t *aiEnt, qboolean doPitch);
+
 qboolean NPC_FaceEnemy( gentity_t *aiEnt, qboolean doPitch )
 {
 	if ( aiEnt == NULL )
@@ -1590,6 +1621,13 @@ qboolean NPC_FaceEnemy( gentity_t *aiEnt, qboolean doPitch )
 
 	if ( aiEnt->enemy == NULL )
 		return qfalse;
+
+#if 0
+	if (aiEnt->s.NPC_class == CLASS_ATST)
+	{
+		return ATST_FaceEnemy(aiEnt, qtrue/*doPitch*/);
+	}
+#endif
 
 	return NPC_FaceEntity(aiEnt, aiEnt->enemy, doPitch );
 }

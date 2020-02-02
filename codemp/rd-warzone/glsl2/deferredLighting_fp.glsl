@@ -2,6 +2,7 @@
 //#define _USE_MAP_EMMISSIVE_BLOCK_
 
 #define _AMBIENT_OCCLUSION_
+//#define _HEIGHTMAP_AO_TEST_
 
 #ifndef LQ_MODE
 	#define _ENHANCED_AO_
@@ -67,6 +68,7 @@ uniform sampler2D							u_NormalMap;		// Flat normals
 uniform sampler2D							u_PositionMap;		// positionMap
 uniform sampler2D							u_WaterPositionMap;	// random2K image
 uniform sampler2D							u_RoadsControlMap;	// Screen Pshadows Map
+uniform sampler2D							u_HeightMap;		// height map
 
 #ifdef USE_REAL_NORMALMAPS
 uniform sampler2D							u_OverlayMap;		// Real normals. Alpha channel 1.0 means enabled...
@@ -86,7 +88,7 @@ uniform sampler2D							u_ShadowMap;		// Screen Shadow Map
 
 #ifndef LQ_MODE
 #ifdef _SSDO_
-	uniform sampler2D							u_HeightMap;		// SSDO Map
+	uniform sampler2D							u_SplatControlMap;	// SSDO Map
 	uniform sampler2D							u_SplatMap1;		// SSDO Illumination Map
 #endif //_SSDO_
 uniform sampler2D							u_WaterEdgeMap;		// tr.shinyImage
@@ -145,7 +147,7 @@ uniform vec4								u_Local5;	// CONTRAST,				SATURATION,						BRIGHTNESS,						
 uniform vec4								u_Local6;	// AO_MINBRIGHT,			AO_MULTBRIGHT,					VIBRANCY,						TRUEHDR_ENABLED
 uniform vec4								u_Local7;	// cubemapEnabled,			r_cubemapCullRange,				PROCEDURAL_SKY_ENABLED,			r_skyLightContribution
 uniform vec4								u_Local8;	// NIGHT_SCALE,				PROCEDURAL_CLOUDS_CLOUDCOVER,	PROCEDURAL_CLOUDS_CLOUDSCALE,	CLOUDS_SHADOWS_ENABLED
-uniform vec4								u_Local11;	// DISPLACEMENT_MAPPING_STRENGTH, COLOR_GRADING_ENABLED,	USE_SSDO, 0.0
+uniform vec4								u_Local11;	// DISPLACEMENT_MAPPING_STRENGTH, COLOR_GRADING_ENABLED,	USE_SSDO,						HAVE_HEIGHTMAP
 
 #ifdef _PROCEDURALS_IN_DEFERRED_SHADER_
 uniform vec4								u_Local9;	// MAP_INFO_PLAYABLE_HEIGHT, PROCEDURAL_MOSS_ENABLED, PROCEDURAL_SNOW_ENABLED, PROCEDURAL_SNOW_ROCK_ONLY
@@ -224,6 +226,7 @@ varying float								var_CloudShadow;
 #define DISPLACEMENT_STRENGTH				u_Local11.r
 #define COLOR_GRADING_ENABLED				u_Local11.g
 #define USE_SSDO							u_Local11.b
+#define HAVE_HEIGHTMAP						u_Local11.a
 
 #define WATER_ENABLED						u_Mins.a
 
@@ -258,6 +261,11 @@ vec4 positionMapAtCoord ( vec2 coord )
 	return textureLod(u_PositionMap, coord, 0.0);
 }
 
+vec2 GetMapTC(vec3 pos)
+{
+	vec2 mapSize = u_Maxs.xy - u_Mins.xy;
+	return (pos.xy - u_Mins.xy) / mapSize;
+}
 
 vec2 RB_PBR_DefaultsForMaterial(float MATERIAL_TYPE)
 {// I probably should use an array of const's instead, but this will do for now...
@@ -746,12 +754,6 @@ float aomap(vec3 p)
     return p.y + dot(sin(p/2. + cos(p.yzx/2. + 3.14159/2.)), vec3(.5)) + n;
 }
 
-vec2 GetMapTC(vec3 pos)
-{
-	vec2 mapSize = u_Maxs.xy - u_Mins.xy;
-	return (pos.xy - u_Mins.xy) / mapSize;
-}
-
 float calculateAO(in vec3 pos, in vec3 nor, in vec2 texCoords)
 {
 	float sca = 0.00013/*2.0*/, occ = 0.0;
@@ -765,6 +767,48 @@ float calculateAO(in vec3 pos, in vec3 nor, in vec2 texCoords)
 
 	return clamp( 1.0 - occ, 0.0, 1.0 );    
 }
+
+#ifdef _HEIGHTMAP_AO_TEST_
+float DistanceField( vec3 pos, float dist )
+{
+	if (pos.x < u_Mins.x || pos.y < u_Mins.y || pos.z < u_Mins.z) return 65536.0;
+	if (pos.x > u_Maxs.x || pos.y > u_Maxs.y || pos.z > u_Maxs.z) return 65536.0;
+
+	float h = textureLod(u_HeightMap, GetMapTC(pos), 1.0).r;
+	
+	h = mix(u_Mins.z, u_Maxs.z, h);
+	return clamp((pos.z - h) / dist, 0.0, 1.0);
+}
+
+float heightMapAO( in vec3 pos, in vec3 nor, vec3 lightDir, float dist )
+{
+	float occ = 0.0;
+    for( int i=0; i<8; i++ )
+    {
+        float h = 0.005 + 0.25*float(i)/7.0;
+        vec3 dir = normalize( sin( float(i)*73.4 + vec3(0.0,2.1,4.2) ));
+        dir = normalize( lightDir/*nor*/ + dir );
+        occ += (h-DistanceField( pos + h*dir, dist ));
+    }
+    return clamp( 1.0 - 9.0*occ/8.0, 0.0, 1.0 );    
+}
+
+float heightMapShadow( in vec3 ro, in vec3 rd, float k )
+{
+    float res = 1.0;
+
+    float t = 0.1;
+    for( int i=0; i<32; i++ )
+    {
+        vec3 pos = ro + rd*t;
+        float h = DistanceField(pos, length(pos));
+        res = min( res, smoothstep(0.0,1.0,8.0*h/t) );
+        t += clamp( h, 0.05, 10.0 );
+		if( res<0.01 ) break;
+    }
+    return clamp(res,0.0,1.0);
+}
+#endif //_HEIGHTMAP_AO_TEST_
 #endif //defined(_AMBIENT_OCCLUSION_)
 
 
@@ -1367,7 +1411,7 @@ void main(void)
 	if (USE_SSDO > 0.0)
 	{
 		useOcclusion = true;
-		occlusion = texture(u_HeightMap, texCoords) * 2.0 - 1.0;
+		occlusion = texture(u_SplatControlMap, texCoords) * 2.0 - 1.0;
 		illumination = texture(u_SplatMap1, texCoords);
 
 		sun_occlusion = 1.0 - clamp(dot(vec4(-sunDir, 1.0), occlusion), 0.0, 1.0);
@@ -1910,10 +1954,30 @@ void main(void)
 		if (AO_TYPE >= 1.0)
 	#endif //defined(_ENHANCED_AO_)
 		{// Fast AO enabled...
-			float ao = calculateAO(sunDir, N * 10000.0, texCoords);
-			float selfShadow = clamp(pow(clamp(dot(-sunDir.rgb, bump.rgb), 0.0, 1.0), 8.0), 0.0, 1.0);
-			ao = clamp(((ao + selfShadow) / 2.0) * AO_MULTBRIGHT + AO_MINBRIGHT, AO_MINBRIGHT, 1.0);
-			outColor.rgb *= ao;
+#ifdef _HEIGHTMAP_AO_TEST_
+			if (HAVE_HEIGHTMAP > 0.0)
+			{
+				float ao = heightMapAO(position.xyz, N.xyz, -sunDir, u_Local3.g);
+
+				if (u_Local3.r > 0.0)
+				{
+					outColor.rgb = vec3(ao);
+				}
+				else
+				{
+					float selfShadow = clamp(pow(clamp(dot(-sunDir.rgb, bump.rgb), 0.0, 1.0), 8.0), 0.0, 1.0);
+					ao = clamp(((ao + selfShadow) / 2.0) * AO_MULTBRIGHT + AO_MINBRIGHT, AO_MINBRIGHT, 1.0);
+					outColor.rgb *= ao;
+				}
+			}
+			else
+#endif //_HEIGHTMAP_AO_TEST_
+			{
+				float ao = calculateAO(sunDir, N * 10000.0, texCoords);
+				float selfShadow = clamp(pow(clamp(dot(-sunDir.rgb, bump.rgb), 0.0, 1.0), 8.0), 0.0, 1.0);
+				ao = clamp(((ao + selfShadow) / 2.0) * AO_MULTBRIGHT + AO_MINBRIGHT, AO_MINBRIGHT, 1.0);
+				outColor.rgb *= ao;
+			}
 		}
 #endif //defined(_AMBIENT_OCCLUSION_)
 
@@ -1968,7 +2032,24 @@ void main(void)
 
 #if defined(_AMBIENT_OCCLUSION_)
 		// Fast AO enabled...
-		float fao = calculateAO(sunDir, N * 10000.0, texCoords);
+		float fao = 1.0;
+
+#ifdef _HEIGHTMAP_AO_TEST_
+		if (HAVE_HEIGHTMAP > 0.0)
+		{
+			fao = heightMapAO(position.xyz, N.xyz, -sunDir, u_Local3.g);
+
+			if (u_Local3.r > 0.0)
+			{
+				outColor.rgb = vec3(fao);
+			}
+		}
+		else
+#endif //_HEIGHTMAP_AO_TEST_
+		{
+			fao = calculateAO(sunDir, N * 10000.0, texCoords);
+		}
+
 		float selfShadow = clamp(pow(clamp(dot(-sunDir.rgb, bump.rgb), 0.0, 1.0), 8.0), 0.0, 1.0);
 		fao = (fao + selfShadow) / 2.0;
 		sao = min(sao, fao);

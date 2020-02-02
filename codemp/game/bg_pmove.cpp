@@ -12429,6 +12429,7 @@ qboolean PM_WeaponOkOnVehicle( int weapon )
 	//case WP_NONE:
 	case WP_MELEE:
 	case WP_SABER:
+	case WP_MODULIZED_WEAPON:
 		return qtrue;
 		break;
 	}

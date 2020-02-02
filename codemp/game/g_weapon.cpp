@@ -5008,6 +5008,8 @@ The down side would be that it does not necessarily look alright from a
 first person perspective.
 ===============
 */
+extern void CalcEntitySpot(const gentity_t *ent, const spot_t spot, vec3_t point);
+
 void CalcMuzzlePoint(gentity_t *ent, vec3_t forward, vec3_t right, vec3_t up, vec3_t muzzlePoint)
 {
 	int weapontype;
@@ -5015,21 +5017,67 @@ void CalcMuzzlePoint(gentity_t *ent, vec3_t forward, vec3_t right, vec3_t up, ve
 
 	if (ent->s.eType == ET_NPC && ent->client->NPC_class == CLASS_ATST)
 	{
-		VectorCopy(ent->s.pos.trBase, muzzlePoint);
-		muzzlePoint[2] += ent->client->ps.standheight - 48.0;
+#if 0
+		//VectorCopy(ent->s.pos.trBase, muzzlePoint);
+		//muzzlePoint[2] += ent->client->ps.standheight - 48.0;
 		
+		CalcEntitySpot(ent, SPOT_ORIGIN, muzzlePoint);
+		muzzlePoint[2] += ent->r.maxs[2] * 0.75f;
+
 		switch (ent->NPC->currentTurret)
 		{
 		default:
 		case 0:
-			VectorMA(muzzlePoint, -16.0, right, muzzlePoint);
+			VectorMA(muzzlePoint, -12.0, right, muzzlePoint);
 			ent->NPC->currentTurret = 1;
 			break;
 		case 1:
-			VectorMA(muzzlePoint, +16.0, right, muzzlePoint);
+			VectorMA(muzzlePoint, +12.0, right, muzzlePoint);
 			ent->NPC->currentTurret = 0;
 			break;
 		}
+#else
+		switch (ent->NPC->currentTurret)
+		{
+		default:
+		case 0:
+			{
+				int bolt = trap->G2API_AddBolt(ent->ghoul2, 0, "*flash1");
+
+				mdxaBone_t	boltMatrix;
+				trap->G2API_GetBoltMatrix(ent->ghoul2, 0, bolt, &boltMatrix, ent->r.currentAngles, ent->r.currentOrigin, level.time, NULL, ent->modelScale);
+
+				vec3_t	muzzle_dir, muzzle_angles;
+				BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, muzzlePoint);
+				//BG_GiveMeVectorFromMatrix(&boltMatrix, NEGATIVE_Y, muzzle_dir);
+
+				//vectoangles(muzzle_dir, muzzle_angles);
+				//AngleVectors(muzzle_angles, forward, right, up);
+				//VectorCopy(muzzle_dir, forward);
+
+				ent->NPC->currentTurret = 1;
+				break;
+			}
+		case 1:
+			{
+				int bolt = trap->G2API_AddBolt(ent->ghoul2, 0, "*flash2");
+
+				mdxaBone_t	boltMatrix;
+				trap->G2API_GetBoltMatrix(ent->ghoul2, 0, bolt, &boltMatrix, ent->r.currentAngles, ent->r.currentOrigin, level.time, NULL, ent->modelScale);
+
+				vec3_t	muzzle_dir, muzzle_angles;
+				BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, muzzlePoint);
+				//BG_GiveMeVectorFromMatrix(&boltMatrix, NEGATIVE_Y, muzzle_dir);
+
+				//vectoangles(muzzle_dir, muzzle_angles);
+				//AngleVectors(muzzle_angles, forward, right, up);
+				//VectorCopy(muzzle_dir, forward);
+
+				ent->NPC->currentTurret = 0;
+				break;
+			}
+		}
+#endif
 
 		SnapVector(muzzlePoint);
 		return;
@@ -6110,6 +6158,9 @@ void FireWeapon(gentity_t *ent, qboolean altFire) {
 
 		if (ent->s.eType == ET_NPC && ent->client->NPC_class == CLASS_ATST)
 		{
+			//void WP_FireTurboLaserMissile(gentity_t *ent, vec3_t start, vec3_t dir)
+			//void WP_FireTurretMissile(gentity_t *ent, vec3_t start, vec3_t dir, qboolean altFire, int damage, int velocity, int mod, gentity_t *ignore)
+
 			//if (altFire)
 			//	WP_FireTurboLaserMissile(ent, muzzle, forward);
 				//WP_FireEmplacedMissile(ent, muzzle, forward, altFire, ent);

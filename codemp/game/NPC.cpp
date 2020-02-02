@@ -1517,7 +1517,7 @@ NPC_BehaviorSet_ATST
 */
 void NPC_BehaviorSet_ATST(gentity_t *aiEnt, int bState)
 {
-	/*
+#if 0
 	switch( bState )
 	{
 	case BS_DEFAULT:
@@ -1533,7 +1533,6 @@ void NPC_BehaviorSet_ATST(gentity_t *aiEnt, int bState)
 			NPC_BehaviorSet_Default(aiEnt, bState );
 		break;
 	}
-	*/
 
 	/*
 	extern void ATST_Attack(gentity_t *aiEnt);
@@ -1543,8 +1542,35 @@ void NPC_BehaviorSet_ATST(gentity_t *aiEnt, int bState)
 	else
 		NPC_BehaviorSet_Default(aiEnt, bState);
 	*/
+#elif 0
+	//aiEnt->client->pers.cmd.buttons |= BUTTON_WALKING;
+	//aiEnt->NPC->forceWalkTime = level.time + 1000;
 
+	switch (bState)
+	{
+	case BS_DEFAULT:
+	case BS_PATROL:
+	case BS_STAND_AND_SHOOT:
+	case BS_HUNT_AND_KILL:
+		NPC_BSATST_Default(aiEnt);
+		break;
+	default:
+		if (NPC_HaveValidEnemy(aiEnt))
+		{
+			NPC_BSATST_Default(aiEnt);
+		}
+		else
+		{
+			//NPC_BehaviorSet_Default(aiEnt, bState);
+			NPC_BehaviorSet_Jedi(aiEnt, bState);
+		}
+		break;
+	}
+#elif 1
+	NPC_BSATST_Default(aiEnt);
+#else
 	NPC_BehaviorSet_Jedi(aiEnt, bState);
+#endif
 }
 
 /*
@@ -3208,7 +3234,7 @@ qboolean NPC_CheckFallPositionOK (gentity_t *NPC, vec3_t position)
 	
 	testPos[2] += 48.0;
 
-	trap->Trace( &tr, testPos, mins, maxs, downPos, NPC->s.number, MASK_PLAYERSOLID, 0, 0, 0 );
+	trap->Trace( &tr, testPos, mins, maxs, downPos, NPC->s.number, MASK_PLAYERSOLID|MASK_WATER, 0, 0, 0 );
 
 	if (tr.entityNum != ENTITYNUM_NONE)
 	{
@@ -3464,6 +3490,57 @@ qboolean UQ1_UcmdMoveForDir ( gentity_t *self, usercmd_t *cmd, vec3_t dir, qbool
 		cmd->forwardmove = 0;
 		return qfalse;
 	}
+
+#if 0
+	if (self->client->NPC_class == CLASS_ATST)
+	{
+		vec3_t	forward, right;
+		float	fDot, rDot;
+
+		AngleVectors(self->r.currentAngles, forward, right, NULL);
+
+		dir[2] = 0;
+		VectorNormalize(dir);
+		//NPCs cheat and store this directly because converting movement into a ucmd loses precision
+		VectorCopy(dir, self->client->ps.moveDir);
+
+		fDot = DotProduct(forward, dir) * 127.0f;
+		rDot = DotProduct(right, dir) * 127.0f;
+		//Must clamp this because DotProduct is not guaranteed to return a number within -1 to 1, and that would be bad when we're shoving this into a signed byte
+		if (fDot > 127.0f)
+		{
+			fDot = 127.0f;
+		}
+		if (fDot < -127.0f)
+		{
+			fDot = -127.0f;
+		}
+		if (rDot > 127.0f)
+		{
+			rDot = 127.0f;
+		}
+		if (rDot < -127.0f)
+		{
+			rDot = -127.0f;
+		}
+		cmd->forwardmove = floor(fDot);
+		cmd->rightmove = floor(rDot);
+
+		/*
+		vec3_t	wishvel;
+		for ( int i = 0 ; i < 3 ; i++ )
+		{
+		wishvel[i] = forward[i]*cmd->forwardmove + right[i]*cmd->rightmove;
+		}
+		VectorNormalize( wishvel );
+		if ( !VectorCompare( wishvel, dir ) )
+		{
+		Com_Printf( "PRECISION LOSS: %s != %s\n", vtos(wishvel), vtos(dir) );
+		}
+		*/
+		return qtrue;
+	}
+#endif
 
 	/*
 	if (self->s.eType == ET_NPC)
@@ -3724,6 +3801,57 @@ qboolean UQ1_UcmdMoveForDir_NoAvoidance ( gentity_t *self, usercmd_t *cmd, vec3_
 		walkSpeed = self->NPC->stats.walkSpeed*1.1;
 	}
 	*/
+
+#if 0
+	if (self->client->NPC_class == CLASS_ATST)
+	{
+		vec3_t	forward, right;
+		float	fDot, rDot;
+
+		AngleVectors(self->r.currentAngles, forward, right, NULL);
+
+		dir[2] = 0;
+		VectorNormalize(dir);
+		//NPCs cheat and store this directly because converting movement into a ucmd loses precision
+		VectorCopy(dir, self->client->ps.moveDir);
+
+		fDot = DotProduct(forward, dir) * 127.0f;
+		rDot = DotProduct(right, dir) * 127.0f;
+		//Must clamp this because DotProduct is not guaranteed to return a number within -1 to 1, and that would be bad when we're shoving this into a signed byte
+		if (fDot > 127.0f)
+		{
+			fDot = 127.0f;
+		}
+		if (fDot < -127.0f)
+		{
+			fDot = -127.0f;
+		}
+		if (rDot > 127.0f)
+		{
+			rDot = 127.0f;
+		}
+		if (rDot < -127.0f)
+		{
+			rDot = -127.0f;
+		}
+		cmd->forwardmove = floor(fDot);
+		cmd->rightmove = floor(rDot);
+
+		/*
+		vec3_t	wishvel;
+		for ( int i = 0 ; i < 3 ; i++ )
+		{
+		wishvel[i] = forward[i]*cmd->forwardmove + right[i]*cmd->rightmove;
+		}
+		VectorNormalize( wishvel );
+		if ( !VectorCompare( wishvel, dir ) )
+		{
+		Com_Printf( "PRECISION LOSS: %s != %s\n", vtos(wishvel), vtos(dir) );
+		}
+		*/
+		return qtrue;
+	}
+#endif
 
 	int waterPlane = 0;
 

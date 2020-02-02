@@ -11845,7 +11845,7 @@ stillDoSaber:
 	//
 	// add the gun / barrel / flash
 	//
-	if (cent->currentState.weapon != WP_EMPLACED_GUN)
+	if (cent->currentState.weapon != WP_EMPLACED_GUN && !(cent->currentState.eType == ET_NPC && cent->currentState.NPC_class == CLASS_ATST))
 	{
 		CG_AddPlayerWeapon(&legs, NULL, cent, ci->team, rootAngles, qtrue);
 	}

@@ -1,8 +1,4 @@
-//#define _HIGH_PASS_SHARPEN_
-#define _CHRISTMAS_LIGHTS_
-//#define _GLASS_TEST_
-//#define _GLASS_TEST2_
-//#define _STEEP_PARALLAX_
+//#define _CHRISTMAS_LIGHTS_
 
 #define SCREEN_MAPS_ALPHA_THRESHOLD 0.666
 #define SCREEN_MAPS_LEAFS_THRESHOLD 0.001
@@ -354,314 +350,6 @@ vec3 Enhance(in sampler2D tex, in vec2 uv, vec3 color, float level)
 }
 #endif //defined(_HIGH_PASS_SHARPEN_)
 
-#if defined(_LAVA_)
-#define time u_Time*0.1
-
-float hash21(in vec2 n){ return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453); }
-mat2 makem2(in float theta){float c = cos(theta);float s = sin(theta);return mat2(c,-s,s,c);}
-//float noise( in vec2 x ){return texture(u_DiffuseMap, x*0.00333/*0.01*/).x;}
-
-#define HASHSCALE1 .1031
-
-float random(vec2 p)
-{
-	vec3 p3 = fract(vec3(p.xyx) * HASHSCALE1);
-	p3 += dot(p3, p3.yzx + 19.19);
-	return fract((p3.x + p3.y) * p3.z);
-}
-
-// 2D Noise based on Morgan McGuire @morgan3d
-// https://www.shadertoy.com/view/4dS3Wd
-float noise(in vec2 st) {
-	vec2 i = floor(st);
-	vec2 f = fract(st);
-
-	// Four corners in 2D of a tile
-	float a = random(i);
-	float b = random(i + vec2(1.0, 0.0));
-	float c = random(i + vec2(0.0, 1.0));
-	float d = random(i + vec2(1.0, 1.0));
-
-	// Smooth Interpolation
-
-	// Cubic Hermine Curve.  Same as SmoothStep()
-	vec2 u = f*f*(3.0 - 2.0*f);
-	// u = smoothstep(0.,1.,f);
-
-	// Mix 4 coorners percentages
-	return mix(a, b, u.x) +
-		(c - a)* u.y * (1.0 - u.x) +
-		(d - b) * u.x * u.y;
-}
-
-vec2 gradn(vec2 p)
-{
-	float ep = .09;
-	float gradx = noise(vec2(p.x+ep,p.y))-noise(vec2(p.x-ep,p.y));
-	float grady = noise(vec2(p.x,p.y+ep))-noise(vec2(p.x,p.y-ep));
-	return vec2(gradx,grady);
-}
-
-float flow(in vec2 p)
-{
-	float z=2.;
-	float rz = 0.;
-	vec2 bp = p;
-	for (float i= 1.;i < 7.;i++ )
-	{
-		//primary flow speed
-		p += time*.6;
-		
-		//secondary flow speed (speed of the perceived flow)
-		bp += time*1.9;
-		
-		//displacement field (try changing time multiplier)
-		vec2 gr = gradn(i*p*.34+time*1.);
-		
-		//rotation of the displacement field
-		gr*=makem2(time*6.-(0.05*p.x+0.03*p.y)*40.);
-		
-		//displace the system
-		p += gr*.5;
-		
-		//add noise octave
-		rz+= (sin(noise(p)*7.)*0.5+0.5)/(z*2.75);
-		
-		//blend factor (blending displaced system with base system)
-		//you could call this advection factor (.5 being low, .95 being high)
-		p = mix(bp,p,.77);
-		
-		//intensity scaling
-		z *= 1.4;
-		//octave scaling
-		p *= 2.;
-		bp *= 1.9;
-	}
-	return rz;
-}
-
-void GetLava( out vec4 fragColor, in vec2 uv )
-{
-	vec2 p = (m_vertPos.xy + m_vertPos.z) * 0.05;
-	float rz = flow(p);
-	vec3 col = vec3(.2,0.07,0.01)/rz;
-	col=pow(col,vec3(1.4));
-	fragColor = vec4(col,1.0);
-}
-#endif //defined(_LAVA_)
-
-#ifdef _GLASS_TEST_
-#define SPECULAR_EXPONENT 10.
-#define GLASS_COL vec3(1.)
-#define GLASS_ALPHA .8
-
-vec3 phong(vec3 n, vec3 l, vec3 eye) {
-    vec3 r = -reflect(l, n);
-    return vec3(pow(max(0., dot(r, eye)), SPECULAR_EXPONENT));
-}
-
-vec3 get_highlights(vec3 n, vec3 iXPos, vec3 rd) {
-    vec3 topl = normalize(u_PrimaryLightOrigin.xyz - iXPos);
-    return phong(n, topl, -rd);
-}
-float get_highlight_alpha(vec3 n, vec3 iXPos, vec3 rd) {
-    return length(get_highlights(n, iXPos, rd));
-}
-
-vec3 env_map(vec3 n, vec3 eye) {
-    vec3 r = -reflect(eye, n);
-    return r * 0.5 + 0.5;
-}
-
-vec4 calc_glass_color(vec3 ro, vec3 rd, float dist, vec3 n, vec3 iXPos) {
-    vec3 col = GLASS_COL;
-    float alpha = GLASS_ALPHA;
-    vec3 highlights = get_highlights(n, iXPos, rd);
-    col *= highlights + env_map(n, -rd);
-    return vec4(col, alpha);
-}
-#endif //_GLASS_TEST_
-
-
-#ifdef _STEEP_PARALLAX_
-int MinSamples = 1; //! slider[1, 1, 100]
-int MaxSamples = 20; //! slider[20, 20, 256]
-bool UseShadow = false;
-
-float SteepHeightScale = 0.005; //! slider[0.005, 0.05, 0.1]
-float ShadowOffset = 0.01; //! slider[0.01, 0.05, 0.5]
-
-#define SQR(x) ((x) * (x))
-
-float GetDisplacementAtCoord(vec2 coord)
-{
-	vec3 col = textureLod(u_DiffuseMap, coord, 1.0).rgb;
-	vec3 col2 = textureLod(u_DiffuseMap, coord, 16.0).rgb;
-	//float diff = distance(col.rgb/3.0, col2.rgb/3.0);
-	float diff = clamp((length(col.rgb)/3.0) - (length(col2.rgb)/3.0), -1.0, 1.0) * 0.5 + 0.5;
-	//return clamp(pow(1.0-diff, 4.0) * 4.0, 0.0, 1.0);
-	return clamp(pow(1.0-diff, 6.0) * 24.0, 0.0, 1.0);
-}
-
-vec2 raymarch(vec2 startPos, vec3 dir) {
-	// Compute initial parallax displacement direction:
-	vec2 parallaxDirection = -normalize(dir.xy);
-
-	// The length of this vector determines the
-	// furthest amount of displacement:
-	float parallaxLength = sqrt(1.0 - SQR(dir.z));
-	//parallaxLength /= dir.z;
-
-	// Compute the actual reverse parallax displacement vector:
-	vec2 parallaxOffset = parallaxDirection * parallaxLength;
-
-	// Need to scale the amount of displacement to account
-	// for different height ranges in height maps.
-	parallaxOffset *= SteepHeightScale;
-
-	// corrected for tangent space. Normal is always z=1 in TS and
-	// v.viewdir is in tangent space as well...
-	int numSteps = int(mix(MaxSamples, MinSamples, dir.z));
-
-	float currHeight = 0.0;
-	float stepSize = 1.0 / float(numSteps);
-	int stepIndex = 0;
-	vec2 texCurrentOffset = startPos;
-	vec2 texOffsetPerStep = stepSize * parallaxOffset;
-
-	vec2 resultTexPos = vec2(texCurrentOffset - (texOffsetPerStep * numSteps));
-
-	float prevHeight = 1.0;
-	float currRayDist = 1.0;
-
-	while (stepIndex < numSteps) {
-		// Determine where along our ray we currently are.
-		currRayDist -= stepSize;
-		texCurrentOffset -= texOffsetPerStep;
-		currHeight = GetDisplacementAtCoord(texCurrentOffset).r;
-
-		// Because we're using heights in the [0..1] range
-		// and the ray is defined in terms of [0..1] scanning
-		// from top-bottom we can simply compare the surface
-		// height against the current ray distance.
-		if (currHeight >= currRayDist) {
-			// Push the counter above the threshold so that
-			// we exit the loop on the next iteration
-			stepIndex = numSteps + 1;
-
-			// We now know the location along the ray of the first
-			// point *BELOW* the surface and the previous point
-			// *ABOVE* the surface:
-			float rayDistAbove = currRayDist + stepSize;
-			float rayDistBelow = currRayDist;
-
-			// We also know the height of the surface before and
-			// after we intersected it:
-			float surfHeightBefore = prevHeight;
-			float surfHeightAfter = currHeight;
-
-			float numerator = rayDistAbove - surfHeightBefore;
-			float denominator = (surfHeightAfter - surfHeightBefore)
-					- (rayDistBelow - rayDistAbove);
-
-			// As the angle between the view direction and the
-			// surface becomes closer to parallel (e.g. grazing
-			// view angles) the denominator will tend towards zero.
-			// When computing the final ray length we'll
-			// get a divide-by-zero and bad things happen.
-			float x = 0.0;
-
-			if (abs(denominator) > 1e-5) {
-				x = numerator / denominator;
-			}
-
-			// Now that we've found the position along the ray
-			// that indicates where the true intersection exists
-			// we can translate this into a texture coordinate
-			// - the intended output of this utility function.
-
-			resultTexPos = mix(texCurrentOffset + texOffsetPerStep, texCurrentOffset, x);
-		} else {
-			++stepIndex;
-			prevHeight = currHeight;
-		}
-	}
-
-	return resultTexPos;
-}
-
-float raymarchShadow(vec2 startPos, vec3 dir) {
-	vec2 parallaxDirection = -normalize(dir.xy);
-
-	float parallaxLength = sqrt(1.0 - SQR(dir.z));
-	//parallaxLength /= dir.z;
-
-	vec2 parallaxOffset = parallaxDirection * parallaxLength;
-	parallaxOffset *= SteepHeightScale;
-
-	int numSteps = int(mix(MaxSamples, MinSamples, dir.z));
-
-	float currHeight = 0.0;
-	float stepSize = 1.0 / float(numSteps);
-	int stepIndex = 0;
-
-	vec2 texCurrentOffset = startPos;
-	vec2 texOffsetPerStep = stepSize * parallaxOffset;
-
-	float initialHeight = GetDisplacementAtCoord(startPos).r + ShadowOffset;
-
-	while (stepIndex < numSteps) {
-		texCurrentOffset += texOffsetPerStep;
-
-		float rayHeight = mix(initialHeight, 1.0, float(stepIndex / numSteps));
-
-		currHeight = GetDisplacementAtCoord(texCurrentOffset).r;
-
-		if (currHeight > rayHeight) {
-			// ray has gone below the height of the surface, therefore
-			// this pixel is occluded...
-			return 0.0;
-		}
-
-		++stepIndex;
-	}
-
-	return 1.0;
-}
-
-vec3 steepParallax(vec3 V, vec3 L, vec3 N, vec2 T) {
-	vec3 result = vec3(1.0);
-	float shadow = 1.0;
-	T = raymarch(T, -V);
-
-	if (UseShadow) {
-		shadow = raymarchShadow(T, -L);
-	}
-
-	return vec3(T, shadow);
-}
-
-vec3 TangentFromNormal ( vec3 normal )
-{
-	/*vec3 tangent;
-	vec3 c1 = cross(normal, vec3(0.0, 0.0, 1.0)); 
-	vec3 c2 = cross(normal, vec3(0.0, 1.0, 0.0)); 
-
-	if( length(c1) > length(c2) )
-	{
-		tangent = c1;
-	}
-	else
-	{
-		tangent = c2;
-	}
-
-	return normalize(tangent);
-	*/
-	return normalize(cross(normal, vec3(0.0, 0.0, 1.0)));
-}
-#endif //_STEEP_PARALLAX_
-
 void main()
 {
 	float dist = distance(m_vertPos.xyz, u_ViewOrigin.xyz);
@@ -687,74 +375,28 @@ void main()
 		texCoords += vec2(GetSway());
 	}
 
-#ifdef _STEEP_PARALLAX_
-	float pShadow = 1.0;
-
-	if (USE_IS2D <= 0.0 && USE_GLOW_BUFFER != 1.0)
-	{
-		vec3 tangent = TangentFromNormal(N);
-		vec3 bitangent = normalize( cross(N, tangent) );
-
-		mat3 tangentToWorld = mat3(tangent, bitangent, N);
-
-		vec3 V = normalize(m_ViewDir*tangentToWorld);
-		vec3 L = normalize(var_PrimaryLightDir.xyz*tangentToWorld);
-
-		vec3 parallax = steepParallax(V, L, N, texCoords);
-		texCoords = parallax.xy;
-		pShadow = parallax.z;
-	}
-#endif //_STEEP_PARALLAX_
-
 	vec4 diffuse = vec4(0.0);
 
-#if defined(_LAVA_)
-	GetLava( diffuse, texCoords );
-#else //!defined(_LAVA_)
-#ifdef _GLASS_TEST_
-	if (SHADER_MATERIAL_TYPE == MATERIAL_DISTORTEDGLASS)
-	{
-		vec3 v = normalize(m_ViewDir);
-		diffuse = calc_glass_color(normalize(u_ViewOrigin), v * u_Local9.r, length(v) * u_Local9.g, (u_Local9.a == 1.0) ? normalize(v * N.xyz) : N.xyz, normalize(m_vertPos) * u_Local9.b);
-	}
-	else
-#endif //_GLASS_TEST_
-#ifdef _GLASS_TEST2_
-	if (SHADER_MATERIAL_TYPE == MATERIAL_DISTORTEDGLASS)
-	{
-		vec3 E = normalize(m_ViewDir);
-		//float dt = 1.0 - max(dot(N, E), 0.05);
-		float _IntersectPower = 1.25;//0.18;
-		float _RimStrength = 1.25;//1.69;
-		float ramp = clamp(min(dist, 16384.0) / 16384.0, 0.0, 1.0);
-		float intersect = (1.0 - ramp) * _IntersectPower;
-		float rim = 1.0 - /*abs(dot(N, E))*/max(dot(N, E), 0.0) * _RimStrength;
-		float glow = max(intersect, rim);
-		vec4 glass = ((vec4(0.3, 0.7, 1.0, 1.0) * glow) + (vec4(0.3, 1.0, 0.6, 1.0) * rim));
-		diffuse = glass * 0.175;
-		diffuse = (diffuse + texture(u_DiffuseMap, texCoords)) / 2.0;
-	}
-	else
-#endif //_GLASS_TEST2_
-	{
-		diffuse = texture(u_DiffuseMap, texCoords);
+	diffuse = texture(u_DiffuseMap, texCoords);
 
 	#if defined(_HIGH_PASS_SHARPEN_)
 		if (USE_IS2D > 0.0 || USE_TEXTURECLAMP > 0.0)
 		{
 			diffuse.rgb = Enhance(u_DiffuseMap, texCoords, diffuse.rgb, 16.0);
 		}
+		/*
+		else if (dist < 4096.0)
+		{
+			//vec2 lodInfo = textureQueryLod(u_DiffuseMap, texCoords);
+			float mixLevel = 1.0 - (dist / 4096.0);
+			diffuse.rgb = mix(diffuse.rgb, Enhance(u_DiffuseMap, texCoords, diffuse.rgb, 8.0 + (gl_FragCoord.z * 8.0)), mixLevel);
+		}
+		*/
 		else
 		{
 			diffuse.rgb = Enhance(u_DiffuseMap, texCoords, diffuse.rgb, 8.0 + (gl_FragCoord.z * 8.0));
 		}
 	#endif //defined(_HIGH_PASS_SHARPEN_)
-	}
-#endif //defined(_LAVA_)
-
-#ifdef _STEEP_PARALLAX_
-	diffuse.rgb *= pShadow;
-#endif //_STEEP_PARALLAX_
 
 	// Alter colors by shader's colormod setting...
 	diffuse.rgb += diffuse.rgb * u_ColorMod.rgb;
@@ -816,7 +458,6 @@ void main()
 	vec3 ambientColor = vec3(0.0);
 	vec3 lightColor = clamp(var_Color.rgb, 0.0, 1.0);
 
-#if !defined(_LAVA_)
 	if (LIGHTMAP_ENABLED)
 	{// TODO: Move to screen space?
 		vec4 lightmapColor = textureLod(u_LightMap, var_TexCoords2.st, 0.0);
@@ -897,11 +538,10 @@ void main()
 			lightColor = clamp(spec * lightColor, 0.0, 1.0);
 		}
 	}
-#endif //!defined(_LAVA_)
 
 	gl_FragColor.rgb = diffuse.rgb + ambientColor;
 
-#if !defined(_LAVA_)
+
 	if (USE_GLOW_BUFFER != 1.0 
 		&& USE_IS2D <= 0.0 
 		&& USE_VERTEX_ANIM <= 0.0
@@ -923,7 +563,6 @@ void main()
 	{
 		gl_FragColor.rgb = gl_FragColor.rgb * u_MapAmbient.rgb;
 	}
-#endif //!defined(_LAVA_)
 	
 	gl_FragColor.rgb *= clamp(lightColor, 0.0, 1.0);
 
@@ -939,21 +578,16 @@ void main()
 	{
 		isDetail = true;
 	}
-	else if (gl_FragColor.a >= alphaThreshold || SHADER_MATERIAL_TYPE == 1024.0 || SHADER_MATERIAL_TYPE == 1025.0 || SHADER_MATERIAL_TYPE == MATERIAL_PUDDLE || USE_IS2D > 0.0)
+	else if (gl_FragColor.a >= alphaThreshold 
+		|| SHADER_MATERIAL_TYPE == 1024.0 
+		|| SHADER_MATERIAL_TYPE == 1025.0 
+		|| SHADER_MATERIAL_TYPE == MATERIAL_PUDDLE 
+		|| SHADER_MATERIAL_TYPE == MATERIAL_EFX 
+		|| SHADER_MATERIAL_TYPE == MATERIAL_GLASS
+		|| SHADER_MATERIAL_TYPE == MATERIAL_DISTORTEDGLASS
+		|| USE_IS2D > 0.0)
 	{
 		
-	}
-	else if (SHADER_MATERIAL_TYPE == MATERIAL_EFX)
-	{
-		//gl_FragColor.a *= u_Local9.r;
-	}
-	else if (SHADER_MATERIAL_TYPE == MATERIAL_GLASS)
-	{
-		//gl_FragColor.a *= u_Local9.r;
-	}
-	else if (SHADER_MATERIAL_TYPE == MATERIAL_DISTORTEDGLASS)
-	{
-
 	}
 	else
 	{
@@ -1041,28 +675,6 @@ void main()
 		gl_FragColor.gb = gl_FragColor.bg;
 	}
 
-#define glow_const_1 ( 23.0 / 255.0)
-#define glow_const_2 (255.0 / 229.0)
-
-#if defined(_LAVA_)
-	float power = length(gl_FragColor.rgb) / 3.0;
-		
-	power = pow(clamp(power*5.0, 0.0, 1.0), 3.0);
-
-	out_Glow = vec4(gl_FragColor.rgb * power, 1.0);
-		
-	if (power > 0.8)
-		out_Glow = out_Glow * vec4(0.2, 0.2, 0.2, 8.0);
-	else
-		out_Glow = vec4(0.0);
-
-	out_Position = vec4(m_vertPos.xyz, SHADER_MATERIAL_TYPE+1.0);
-	out_Normal = vec4(vec3(EncodeNormal(N.xyz), useDisplacementMapping), 1.0 );
-	#ifdef USE_REAL_NORMALMAPS
-		out_NormalDetail = norm;
-	#endif //USE_REAL_NORMALMAPS
-#else //!defined(_LAVA_)
-
 	#ifdef _CHRISTMAS_LIGHTS_
 		if (SHADER_MATERIAL_TYPE == MATERIAL_GREENLEAVES && ENABLE_CHRISTMAS_EFFECT > 0.0 && gl_FragColor.a >= alphaThreshold)
 		{
@@ -1086,6 +698,24 @@ void main()
 		}
 	#endif //_CHRISTMAS_LIGHTS_
 
+	vec4 specularGlow = vec4(0.0);
+
+	if (USE_GLOW_BUFFER != 1.0 && USE_IS2D <= 0.0 && MAP_LIGHTMAP_ENHANCEMENT > 2.0)
+	{// Add specular to bloom...
+		vec3 specLightColor = gl_FragColor.rgb;//u_PrimaryLightColor.rgb * gl_FragColor.rgb;
+
+		vec3 E = normalize(m_ViewDir);
+		vec3 bNorm = normalize(N.xyz + ((diffuse.rgb * 2.0 - 1.0) * -0.25)); // just add some fake bumpiness to it, fast as possible...
+
+		float fre = pow(clamp(dot(bNorm, -E) + 1.0, 0.0, 1.0), 0.3);
+		float spec = clamp(getspecularLight(bNorm, -var_PrimaryLightDir.xyz, E, 16.0) * fre, 0.05, 1.0);
+		specularGlow.rgb = clamp(spec * specLightColor * MAP_LIGHTMAP_MULTIPLIER, 0.0, 1.0);
+		specularGlow.a = spec;
+	}
+
+#define glow_const_1 ( 23.0 / 255.0)
+#define glow_const_2 (255.0 / 229.0)
+
 	if (SHADER_MATERIAL_TYPE == 1024.0 || SHADER_MATERIAL_TYPE == 1025.0)
 	{
 		out_Glow = vec4(0.0);
@@ -1099,7 +729,7 @@ void main()
 	{// Merged diffuse+glow stage...
 		vec4 glowColor = max(texture(u_GlowMap, texCoords), 0.0);
 
-	#if defined(_HIGH_PASS_SHARPEN_)
+	/*#if defined(_HIGH_PASS_SHARPEN_)
 		if (USE_IS2D > 0.0 || USE_TEXTURECLAMP > 0.0)
 		{
 			glowColor.rgb = Enhance(u_GlowMap, texCoords, glowColor.rgb, 16.0);
@@ -1108,7 +738,7 @@ void main()
 		{
 			glowColor.rgb = Enhance(u_GlowMap, texCoords, glowColor.rgb, 8.0 + (gl_FragCoord.z * 8.0));
 		}
-	#endif //defined(_HIGH_PASS_SHARPEN_)
+	#endif //defined(_HIGH_PASS_SHARPEN_)*/
 
 		if (SHADER_MATERIAL_TYPE != MATERIAL_GLASS && length(glowColor.rgb) <= 0.0)
 			glowColor.a = 0.0;
@@ -1169,6 +799,8 @@ void main()
 
 		if (SHADER_MATERIAL_TYPE != MATERIAL_GLASS && SHADER_MATERIAL_TYPE != MATERIAL_BLASTERBOLT && length(glowColor.rgb) <= 0.0)
 			glowColor.a = 0.0;
+
+		glowColor += specularGlow;
 
 		float glowMax = clamp(length(glowColor.rgb) / 3.0, 0.0, 1.0);
 		glowColor.a *= glowMax;
@@ -1236,6 +868,8 @@ void main()
 		if (SHADER_MATERIAL_TYPE != MATERIAL_GLASS && SHADER_MATERIAL_TYPE != MATERIAL_BLASTERBOLT && length(glowColor.rgb) <= 0.0)
 			glowColor.a = 0.0;
 
+		glowColor += specularGlow;
+
 		glowColor.a = clamp(glowColor.a, 0.0, 1.0);
 		out_Glow = glowColor * u_GlowMultiplier;
 
@@ -1279,7 +913,7 @@ void main()
 	}
 	else
 	{
-		out_Glow = vec4(0.0);
+		out_Glow = specularGlow;//vec4(0.0);
 
 		if (isDetail)
 		{
@@ -1314,5 +948,4 @@ void main()
 	#endif //USE_REAL_NORMALMAPS
 		}
 	}
-#endif //defined(_LAVA_)
 }

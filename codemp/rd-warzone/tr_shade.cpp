@@ -1947,7 +1947,7 @@ void RB_UpdateCloseLights ( void )
 			}
 		}
 
-		float	this_weight = dl->radius / distance;
+		float	this_weight = distance / dl->radius;// dl->radius / distance;
 
 		if (this_weight <= 0.05)
 		{// Will be too dark to even notice it, so skip...
@@ -1964,7 +1964,7 @@ void RB_UpdateCloseLights ( void )
 			CLOSEST_LIGHTS[NUM_CLOSE_LIGHTS] = l;
 			VectorCopy(dl->origin, CLOSEST_LIGHTS_POSITIONS[NUM_CLOSE_LIGHTS]);
 			CLOSEST_LIGHTS_RADIUS[NUM_CLOSE_LIGHTS] = dl->radius;
-			CLOSEST_LIGHTS_WEIGHTS[NUM_CLOSE_LIGHTS] = dl->radius / distance;
+			CLOSEST_LIGHTS_WEIGHTS[NUM_CLOSE_LIGHTS] = this_weight;
 			CLOSEST_LIGHTS_HEIGHTSCALES[NUM_CLOSE_LIGHTS] = dl->heightScale;
 			CLOSEST_LIGHTS_COLORS[NUM_CLOSE_LIGHTS][0] = dl->color[0];
 			CLOSEST_LIGHTS_COLORS[NUM_CLOSE_LIGHTS][1] = dl->color[1];

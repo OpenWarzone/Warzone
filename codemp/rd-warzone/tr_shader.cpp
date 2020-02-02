@@ -8743,7 +8743,8 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 			if (StringContainsWord(strippedName, "bark")
 				|| StringContainsWord(strippedName, "trunk")
 				|| StringContainsWord(strippedName, "giant_tree")
-				|| StringContainsWord(strippedName, "vine01"))
+				|| StringContainsWord(strippedName, "vine01")
+				|| StringContainsWord(strippedName, "/palm0"))
 			{
 				sprintf(myShader, uniqueGenericFoliageTreeBarkShader, strippedName, strippedName, "");
 			}

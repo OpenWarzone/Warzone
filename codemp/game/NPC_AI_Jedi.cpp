@@ -8431,6 +8431,11 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 		OPTIMAL_MIN_RANGE = 32 * NPC->modelScale[2];
 		OPTIMAL_MAX_RANGE = 56 * NPC->modelScale[2];
 	}
+	else if (NPC->s.NPC_class == CLASS_ATST)
+	{
+		OPTIMAL_MIN_RANGE = 384;
+		OPTIMAL_MAX_RANGE = 512;
+	}
 
 	OPTIMAL_RANGE = OPTIMAL_MIN_RANGE + ((OPTIMAL_MAX_RANGE - OPTIMAL_MIN_RANGE) / 2.0);
 	OPTIMAL_RANGE_ALLOWANCE = (OPTIMAL_MAX_RANGE - OPTIMAL_MIN_RANGE);

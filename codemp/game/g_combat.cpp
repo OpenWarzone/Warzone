@@ -2827,7 +2827,7 @@ typedef enum
 	KILLMOVE_360_AOE,
 } killMoveType_t;
 */
-		float dist = Distance(attacker->client->ps.origin, self->client->ps.origin);
+		float dist = (attacker && attacker->client) ? Distance(attacker->client->ps.origin, self->client->ps.origin) : 0.0;
 
 		if (attacker 
 			&& attacker->client 

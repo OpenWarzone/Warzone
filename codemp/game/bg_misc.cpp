@@ -1753,10 +1753,15 @@ void BG_PlayerStateToEntityState( playerState_t *ps, entityState_t *s, qboolean 
 
 #ifdef __BANDWIDTH_SAVE__
 #ifdef _GAME
-	if (s->eType == ET_PLAYER)
-	{
+	if (s->eType == ET_PLAYER || (s->eType == ET_NPC && s->NPC_class == CLASS_ATST))
+	{// Make ATST's always accurate...
 		gentity_t *ent = &g_entities[s->number];
 		qboolean FULL_UPDATE = qfalse;
+
+		if (s->eType == ET_NPC && s->NPC_class == CLASS_ATST)
+		{
+			FULL_UPDATE = qtrue;
+		}
 		
 		if (ent->next_full_update <= level.time)
 		{
@@ -2036,10 +2041,15 @@ void BG_PlayerStateToEntityStateExtraPolate( playerState_t *ps, entityState_t *s
 
 #ifdef __BANDWIDTH_SAVE__
 #ifdef _GAME
-	if (s->eType == ET_PLAYER)
+	if (s->eType == ET_PLAYER || (s->eType == ET_NPC && s->NPC_class == CLASS_ATST))
 	{
 		gentity_t *ent = &g_entities[s->number];
 		qboolean FULL_UPDATE = qfalse;
+
+		if (s->eType == ET_NPC && s->NPC_class == CLASS_ATST)
+		{// Make ATST's always accurate...
+			FULL_UPDATE = qtrue;
+		}
 		
 		if (ent->next_full_update <= level.time)
 		{

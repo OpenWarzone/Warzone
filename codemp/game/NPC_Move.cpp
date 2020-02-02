@@ -75,7 +75,11 @@ NPC_CheckCombatMove
 
 QINLINE qboolean NPC_CheckCombatMove(gentity_t *aiEnt)
 {
-	if (aiEnt->client->NPC_class == CLASS_ATST) return qfalse;
+	if (aiEnt->client->NPC_class == CLASS_ATST)
+	{
+		aiEnt->NPC->combatMove = qfalse;
+		return qfalse;
+	}
 
 	//return NPCInfo->combatMove;
 	if ( ( aiEnt->NPC->goalEntity && aiEnt->enemy && aiEnt->NPC->goalEntity == aiEnt->enemy ) || ( aiEnt->NPC->combatMove ) )
@@ -325,6 +329,7 @@ extern qboolean UQ1_UcmdMoveForDir ( gentity_t *self, usercmd_t *cmd, vec3_t dir
 
 void G_UcmdMoveForDir( gentity_t *self, usercmd_t *cmd, vec3_t dir, vec3_t dest )
 {
+#if 0
 	if (self->client->NPC_class == CLASS_ATST)
 	{
 		vec3_t	forward, right;
@@ -373,6 +378,7 @@ void G_UcmdMoveForDir( gentity_t *self, usercmd_t *cmd, vec3_t dir, vec3_t dest 
 		*/
 		return;
 	}
+#endif
 
 	// UQ1: Use my method instead to check for falling, etc...
 	qboolean walk = qfalse;
@@ -450,7 +456,7 @@ qboolean NPC_CombatMoveToGoal(gentity_t *aiEnt, qboolean tryStraight, qboolean r
 	}
 
 	// UQ1: Actually check if this would make us fall!!!
-	if (NPC_CheckFall(aiEnt, dir))
+	if (aiEnt->s.NPC_class != CLASS_ATST && NPC_CheckFall(aiEnt, dir))
 	{
 		int JUMP_RESULT = 0;
 		
@@ -569,18 +575,21 @@ qboolean NPC_CombatMoveToGoal(gentity_t *aiEnt, qboolean tryStraight, qboolean r
 		// Non-Combat move has failed! Force combat move...
 		//
 
-		G_UcmdMoveForDir( aiEnt, &aiEnt->client->pers.cmd, dir, aiEnt->NPC->goalEntity->r.currentOrigin );
-
-		if (aiEnt->s.eType == ET_PLAYER)
+		if (aiEnt->s.NPC_class != CLASS_ATST)
 		{
-			if (aiEnt->client->pers.cmd.buttons & BUTTON_WALKING)
+			G_UcmdMoveForDir(aiEnt, &aiEnt->client->pers.cmd, dir, aiEnt->NPC->goalEntity->r.currentOrigin);
+
+			if (aiEnt->s.eType == ET_PLAYER)
 			{
-				//trap->EA_Action(aiEnt->s.number, 0x0080000);
-				trap->EA_Move(aiEnt->s.number, dir, 5000.0);
-			}
-			else
-			{
-				trap->EA_Move(aiEnt->s.number, dir, 5000.0);
+				if (aiEnt->client->pers.cmd.buttons & BUTTON_WALKING)
+				{
+					//trap->EA_Action(aiEnt->s.number, 0x0080000);
+					trap->EA_Move(aiEnt->s.number, dir, 5000.0);
+				}
+				else
+				{
+					trap->EA_Move(aiEnt->s.number, dir, 5000.0);
+				}
 			}
 		}
 	}
@@ -611,10 +620,12 @@ extern qboolean ATST_MoveToGoal(gentity_t *aiEnt, qboolean tryStraight);
 
 qboolean NPC_MoveToGoal(gentity_t *aiEnt, qboolean tryStraight )
 {
+#if 0
 	if (aiEnt && aiEnt->client && aiEnt->client->NPC_class == CLASS_ATST)
 	{// ATST uses special move stuff to throw enemies in front of it that it hits...
 		return ATST_MoveToGoal(aiEnt, tryStraight);
 	}
+#endif
 
 #if 0
 	float	distance;

@@ -142,11 +142,11 @@ float Navlib::NavlibGetGoalRadius( gentity_t *self )
 	if ( NavlibTargetIsEntity( &self->client->navigation.goal ) )
 	{
 		navlibTargetGoal_t *t = &self->client->navigation.goal;
-		return (RadiusFromBounds2D( t->ent->r.mins, t->ent->r.maxs ) + RadiusFromBounds2D( self->r.mins, self->r.maxs )) * 4.0;
+		return (RadiusFromBounds2D( t->ent->r.mins, t->ent->r.maxs ) + RadiusFromBounds2D( self->r.mins, self->r.maxs )) * 4.0 * navmeshScaleInv;
 	}
 	else
 	{
-		return RadiusFromBounds2D( self->r.mins, self->r.maxs ) * 4.0;
+		return RadiusFromBounds2D( self->r.mins, self->r.maxs ) * 4.0 * navmeshScaleInv;
 	}
 }
 

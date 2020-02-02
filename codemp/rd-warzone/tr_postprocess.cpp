@@ -2911,6 +2911,8 @@ extern qboolean ALLOW_GL_430;
 
 void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
+	qboolean haveHeightMap = qfalse;
+
 	if (r_fastLighting->integer)
 	{
 		RB_FastLighting(hdrFbo, hdrBox, ldrFbo, ldrBox);
@@ -2933,12 +2935,23 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 		GLSL_SetBindlessTexture(shader, UNIFORM_SKYCUBEMAPNIGHT, &tr.skyCubeMapNight, 0);
 		GLSL_SetBindlessTexture(shader, UNIFORM_WATERPOSITIONMAP, &tr.random2KImage[0], 0);
 
+		if (tr.heightMapImage && tr.heightMapImage != tr.defaultImage && tr.heightMapImage != tr.whiteImage)
+		{
+			GLSL_SetBindlessTexture(shader, UNIFORM_HEIGHTMAP, &tr.heightMapImage, 0);
+			haveHeightMap = qtrue;
+		}
+		else if (tr.waterHeightMapImage && tr.waterHeightMapImage != tr.defaultImage && tr.waterHeightMapImage != tr.blackImage)
+		{
+			GLSL_SetBindlessTexture(shader, UNIFORM_HEIGHTMAP, &tr.waterHeightMapImage, 0);
+			haveHeightMap = qtrue;
+		}
+
 		//GLSL_SetBindlessTexture(shader, UNIFORM_DELUXEMAP, &tr.linearDepthImageZfar, 0); // NEEDED IF SSSSS IS TURNED ON
 
 #ifdef __SSDO__
 		if (r_ssdo->integer == 1)
 		{
-			GLSL_SetBindlessTexture(shader, UNIFORM_HEIGHTMAP, &tr.ssdoImage1, 0);
+			GLSL_SetBindlessTexture(shader, UNIFORM_SPLATCONTROLMAP, &tr.ssdoImage1, 0);
 			GLSL_SetBindlessTexture(shader, UNIFORM_SPLATMAP1, &tr.ssdoIlluminationImage, 0);
 		}
 #endif //__SSDO__
@@ -2983,10 +2996,23 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 		GLSL_SetUniformInt(shader, UNIFORM_WATERPOSITIONMAP, TB_WATERPOSITIONMAP);
 		GL_BindToTMU(tr.random2KImage[0], TB_WATERPOSITIONMAP);
 
+		if (tr.heightMapImage && tr.heightMapImage != tr.defaultImage && tr.heightMapImage != tr.whiteImage)
+		{
+			GLSL_SetUniformInt(shader, UNIFORM_HEIGHTMAP, TB_HEIGHTMAP);
+			GL_BindToTMU(tr.heightMapImage, TB_HEIGHTMAP);
+			haveHeightMap = qtrue;
+		}
+		else if (tr.waterHeightMapImage && tr.waterHeightMapImage != tr.defaultImage && tr.waterHeightMapImage != tr.blackImage)
+		{
+			GLSL_SetUniformInt(shader, UNIFORM_HEIGHTMAP, TB_HEIGHTMAP);
+			GL_BindToTMU(tr.waterHeightMapImage, TB_HEIGHTMAP);
+			haveHeightMap = qtrue;
+		}
+
 #ifdef __SSDO__
 		if (r_ssdo->integer == 1)
 		{
-			GLSL_SetUniformInt(shader, UNIFORM_HEIGHTMAP, TB_HEIGHTMAP);
+			GLSL_SetUniformInt(shader, UNIFORM_SPLATCONTROLMAP, TB_HEIGHTMAP);
 			GL_BindToTMU(tr.ssdoImage1, TB_HEIGHTMAP);
 
 			GLSL_SetUniformInt(shader, UNIFORM_SPLATMAP1, TB_SPLATMAP1);
@@ -3424,7 +3450,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 #endif //__SSDO__
 
 	vec4_t local11;
-	VectorSet4(local11, (ENABLE_DISPLACEMENT_MAPPING && r_ssdm->integer) ? DISPLACEMENT_MAPPING_STRENGTH : 0.0, COLOR_GRADING_ENABLED, ssdoEnabled ? 1.0 : 0.0, 0.0);
+	VectorSet4(local11, (ENABLE_DISPLACEMENT_MAPPING && r_ssdm->integer) ? DISPLACEMENT_MAPPING_STRENGTH : 0.0, COLOR_GRADING_ENABLED, ssdoEnabled ? 1.0 : 0.0, haveHeightMap ? 1.0 : 0.0);
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL11, local11);
 
 

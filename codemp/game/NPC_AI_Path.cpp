@@ -1440,13 +1440,13 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 
 		NavlibSetNavMesh(NPC->s.number, 0);
 
-		if (!NPC->client->navigation.goal.haveGoal || GoalInRange(NPC, NavlibGetGoalRadius(NPC)) || NPC->last_move_time < level.time - 4000)
+		if (!NPC->client->navigation.goal.haveGoal || GoalInRange(NPC, /*96.0*/NavlibGetGoalRadius(NPC)) || NPC->last_move_time < level.time - 4000)
 		{// Need a new goal...
 			NPC_ClearGoal(NPC);
 			NPC_SetNewGoalAndPath(NPC);
 		}
 
-		if (NPC->client->navigation.goal.haveGoal && !GoalInRange(NPC, 96.0/*NavlibGetGoalRadius(NPC)*/))
+		if (NPC->client->navigation.goal.haveGoal && !GoalInRange(NPC, /*96.0*/NavlibGetGoalRadius(NPC)))
 		{
 #pragma omp critical
 			{
@@ -1614,17 +1614,6 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 		ucmd->forwardmove = 0;
 		ucmd->rightmove = 0;
 		ucmd->upmove = 0;
-
-		if (NPC->bot_strafe_left_timer > level.time)
-		{
-			ucmd->rightmove = -127;
-			trap->EA_MoveLeft(NPC->s.number);
-		}
-		else if (NPC->bot_strafe_right_timer > level.time)
-		{
-			ucmd->rightmove = 127;
-			trap->EA_MoveRight(NPC->s.number);
-		}
 
 		NPC_PickRandomIdleAnimantion(NPC);
 		return qfalse;

@@ -1,7 +1,6 @@
 //#define USE_DETAIL_TEXTURES
 //#define _SPLATS_LOOKUP_ALPHA_			// Meh, waste of lookups... If we do need them at some point, then we can still enable them or add a mapinfo i guess...
 //#define _USE_FULL_SPLAT_BLENDFUNC_		// Meh... fast should be nearly as good...
-//#define _HIGH_PASS_SHARPEN_
 #define _USE_REGIONS_
 #define _USE_PROCEDURAL_NOISE_
 #define _USE_DISTANCE_BLEND_
@@ -137,6 +136,10 @@ uniform vec3						u_ViewOrigin;
 uniform vec4						u_MapInfo; // MAP_INFO_SIZE[0], MAP_INFO_SIZE[1], MAP_INFO_SIZE[2], 0.0
 uniform vec4						u_Mins;
 uniform vec4						u_Maxs;
+
+uniform vec4						u_PrimaryLightOrigin;
+uniform vec3						u_PrimaryLightColor;
+uniform float						u_PrimaryLightRadius;
 
 uniform vec3						u_ColorMod;
 
@@ -550,6 +553,19 @@ vec4 GetMapFinal( in sampler2D tex, float scale, inout float depth)
 #endif //_SPLATS_LOOKUP_ALPHA_
 
 #if defined(_HIGH_PASS_SHARPEN_)
+	/*
+	float dist = distance(m_vertPos.xyz, u_ViewOrigin.xyz);
+
+	if (dist < 4096.0)
+	{
+		//vec2 lodInfo = textureQueryLod(u_DiffuseMap, texCoords);
+		float mixLevel = 1.0 - (dist / 4096.0);
+
+		xaxis.rgb = mix(xaxis.rgb, Enhance(tex, (m_vertPos.yz * tScale), xaxis.rgb, 8.0 + (gl_FragCoord.z * 8.0)), mixLevel);
+		yaxis.rgb = mix(yaxis.rgb, Enhance(tex, (m_vertPos.xz * tScale), yaxis.rgb, 8.0 + (gl_FragCoord.z * 8.0)), mixLevel);
+		zaxis.rgb = mix(zaxis.rgb, Enhance(tex, (m_vertPos.xy * tScale), zaxis.rgb, 8.0 + (gl_FragCoord.z * 8.0)), mixLevel);
+	}
+	*/
 	xaxis.rgb = Enhance(tex, (m_vertPos.yz * tScale), xaxis.rgb, 8.0 + (gl_FragCoord.z * 8.0));
 	yaxis.rgb = Enhance(tex, (m_vertPos.xz * tScale), yaxis.rgb, 8.0 + (gl_FragCoord.z * 8.0));
 	zaxis.rgb = Enhance(tex, (m_vertPos.xy * tScale), zaxis.rgb, 8.0 + (gl_FragCoord.z * 8.0));
@@ -603,6 +619,19 @@ vec4 GetMapLodFinal( in sampler2D tex, float scale, inout float depth, in float 
 #endif //_SPLATS_LOOKUP_ALPHA_
 
 #if defined(_HIGH_PASS_SHARPEN_)
+	/*
+	float dist = distance(m_vertPos.xyz, u_ViewOrigin.xyz);
+
+	if (dist < 4096.0)
+	{
+		//vec2 lodInfo = textureQueryLod(u_DiffuseMap, texCoords);
+		float mixLevel = 1.0 - (dist / 4096.0);
+
+		xaxis.rgb = mix(xaxis.rgb, Enhance(tex, (m_vertPos.yz * tScale), xaxis.rgb, 8.0 + (gl_FragCoord.z * 8.0)), mixLevel);
+		yaxis.rgb = mix(yaxis.rgb, Enhance(tex, (m_vertPos.xz * tScale), yaxis.rgb, 8.0 + (gl_FragCoord.z * 8.0)), mixLevel);
+		zaxis.rgb = mix(zaxis.rgb, Enhance(tex, (m_vertPos.xy * tScale), zaxis.rgb, 8.0 + (gl_FragCoord.z * 8.0)), mixLevel);
+	}
+	*/
 	xaxis.rgb = Enhance(tex, (m_vertPos.yz * tScale), xaxis.rgb, 8.0 + (gl_FragCoord.z * 8.0));
 	yaxis.rgb = Enhance(tex, (m_vertPos.xz * tScale), yaxis.rgb, 8.0 + (gl_FragCoord.z * 8.0));
 	zaxis.rgb = Enhance(tex, (m_vertPos.xy * tScale), zaxis.rgb, 8.0 + (gl_FragCoord.z * 8.0));
@@ -1189,7 +1218,6 @@ void main()
 		}
 	}
 
-
 	gl_FragColor.rgb = diffuse.rgb + ambientColor;
 
 
@@ -1279,6 +1307,21 @@ void main()
 		}
 	}
 
+	vec4 specularGlow = vec4(0.0);
+
+	if (USE_GLOW_BUFFER != 1.0 && USE_IS2D <= 0.0 && MAP_LIGHTMAP_ENHANCEMENT > 2.0)
+	{// Add specular to bloom...
+		vec3 specLightColor = gl_FragColor.rgb;//u_PrimaryLightColor.rgb * gl_FragColor.rgb;
+
+		vec3 E = normalize(m_ViewDir);
+		vec3 bNorm = normalize(N.xyz + ((diffuse.rgb * 2.0 - 1.0) * -0.25)); // just add some fake bumpiness to it, fast as possible...
+
+		float fre = pow(clamp(dot(bNorm, -E) + 1.0, 0.0, 1.0), 0.3);
+		float spec = clamp(getspecularLight(bNorm, -var_PrimaryLightDir.xyz, E, 16.0) * fre, 0.05, 1.0);
+		specularGlow.rgb = clamp(spec * specLightColor * MAP_LIGHTMAP_MULTIPLIER, 0.0, 1.0);
+		specularGlow.a = spec;
+	}
+
 	if (/*USE_GLOW_BUFFER > 1.0 
 		&&*/ (SHADER_MATERIAL_TYPE == MATERIAL_SKYSCRAPER)
 		&& var_Slope > 0 
@@ -1300,6 +1343,8 @@ void main()
 		glowColor.rgb = clamp((clamp(glowColor.rgb - glow_const_1, 0.0, 1.0)) * glow_const_2, 0.0, 1.0);
 		glowColor.rgb *= SHADER_GLOW_STRENGTH;
 
+		glowColor += specularGlow;
+
 		glowColor.a = clamp(glowColor.a, 0.0, 1.0);
 		out_Glow = glowColor;
 
@@ -1314,7 +1359,7 @@ void main()
 	}
 	else
 	{
-		out_Glow = vec4(0.0);
+		out_Glow = specularGlow;//vec4(0.0);
 
 		out_Position = vec4(m_vertPos.xyz, FINAL_MATERIAL);
 		out_Normal = vec4( vec3(EncodeNormal(N.xyz), 1.0), 1.0 );

@@ -105,7 +105,7 @@ static int R_CullModel( mdvModel_t *model, trRefEntity_t *ent )
 	{
 		if ( ent->e.frame == ent->e.oldframe )
 		{
-			switch ( R_CullLocalPointAndRadius( newFrame->localOrigin, newFrame->radius ) )
+			switch ( R_CullLocalPointAndRadius( newFrame->localOrigin, newFrame->radius * max(ent->e.modelScale[0], max(ent->e.modelScale[1], ent->e.modelScale[2]))) )
 			{
 			case CULL_OUT:
 				tr.pc.c_sphere_cull_md3_out++;
@@ -124,11 +124,11 @@ static int R_CullModel( mdvModel_t *model, trRefEntity_t *ent )
 		{
 			int sphereCull, sphereCullB;
 
-			sphereCull  = R_CullLocalPointAndRadius( newFrame->localOrigin, newFrame->radius );
+			sphereCull  = R_CullLocalPointAndRadius( newFrame->localOrigin, newFrame->radius * max(ent->e.modelScale[0], max(ent->e.modelScale[1], ent->e.modelScale[2])));
 			if ( newFrame == oldFrame ) {
 				sphereCullB = sphereCull;
 			} else {
-				sphereCullB = R_CullLocalPointAndRadius( oldFrame->localOrigin, oldFrame->radius );
+				sphereCullB = R_CullLocalPointAndRadius( oldFrame->localOrigin, oldFrame->radius * max(ent->e.modelScale[0], max(ent->e.modelScale[1], ent->e.modelScale[2])));
 			}
 
 			if ( sphereCull == sphereCullB )

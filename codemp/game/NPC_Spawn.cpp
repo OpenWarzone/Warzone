@@ -974,6 +974,10 @@ void NPC_StandardizeModelScales(gentity_t *ent)
 	{
 		adjustedScale = 130;
 	}
+	else if (ent->s.NPC_class == CLASS_ATST)
+	{
+		adjustedScale = 150;
+	}
 	else if (NPC_IsFollowerGunner(ent))
 	{
 		adjustedScale = 112;
@@ -1039,6 +1043,11 @@ void NPC_StandardizeModelStats(gentity_t *ent)
 	{
 		ent->NPC->stats.health = 1200;
 		ent->client->ps.fd.forcePowerMax = 300;
+	}
+	else if (ent->s.NPC_class == CLASS_ATST)
+	{
+		ent->NPC->stats.health = 1800;
+		ent->client->ps.fd.forcePowerMax = 0;
 	}
 	else if (NPC_IsFollowerGunner(ent))
 	{
@@ -1588,7 +1597,7 @@ void NPC_Begin (gentity_t *ent)
 		ent->client->ps.fd.forcePower = ent->client->ps.fd.forcePowerMax;
 	}
 #else
-	if (!NPC_IsHumanoid(ent))
+	if (!NPC_IsHumanoid(ent) && ent->s.NPC_class != CLASS_ATST)
 	{// Animal or droid... Use original stats...
 		if (ent->NPC->stats.health <= 100) ent->NPC->stats.health = 200; // UQ1: Because not all NPC files have a health value...
 		if (ent->client->ps.fd.forcePowerMax <= 0) ent->client->ps.fd.forcePowerMax = 500;
@@ -2683,36 +2692,36 @@ void SP_NPC_spawner( gentity_t *self)
 		vec3_t	playerMins = {-15, -15, DEFAULT_MINS_2};
 		vec3_t	playerMaxs = {15, 15, DEFAULT_MAXS_2};
 
-		self->s.origin[2] += 32;
+		self->s.origin[2] += 64;
 		VectorCopy(self->s.origin, origin);
 
 		
-		self->s.origin[0] += 64;
-		self->s.origin[1] += 64;
+		self->s.origin[0] += 128;
+		self->s.origin[1] += 128;
 		if (OrgVisibleBox(origin, playerMins, playerMaxs, self->s.origin, -1))
 		{
 			SP_NPC_spawner2( self );
 			VectorCopy(origin, self->s.origin);
 		}
 
-		self->s.origin[0] -= 64;
-		self->s.origin[1] += 64;
+		self->s.origin[0] -= 128;
+		self->s.origin[1] += 128;
 		if (OrgVisibleBox(origin, playerMins, playerMaxs, self->s.origin, -1))
 		{
 			SP_NPC_spawner2(self);
 			VectorCopy(origin, self->s.origin);
 		}
 
-		self->s.origin[0] += 64;
-		self->s.origin[1] -= 64;
+		self->s.origin[0] += 128;
+		self->s.origin[1] -= 128;
 		if (OrgVisibleBox(origin, playerMins, playerMaxs, self->s.origin, -1))
 		{
 			SP_NPC_spawner2(self);
 			VectorCopy(origin, self->s.origin);
 		}
 
-		self->s.origin[0] -= 64;
-		self->s.origin[1] -= 64;
+		self->s.origin[0] -= 128;
+		self->s.origin[1] -= 128;
 		if (OrgVisibleBox(origin, playerMins, playerMaxs, self->s.origin, -1))
 		{
 			if (npc_followers.integer
@@ -2779,19 +2788,19 @@ void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team, int sp
 		vec3_t	playerMins = {-15, -15, DEFAULT_MINS_2};
 		vec3_t	playerMaxs = {15, 15, DEFAULT_MAXS_2};
 
-		self->s.origin[2] += 32;
+		self->s.origin[2] += 64;
 		VectorCopy(self->s.origin, origin);
 
-		self->s.origin[0] += 64;
-		self->s.origin[1] += 64;
+		self->s.origin[0] += 128;
+		self->s.origin[1] += 128;
 		if (OrgVisibleBox(origin, playerMins, playerMaxs, self->s.origin, -1))
 		{
 			SP_NPC_spawner2( self );
 			VectorCopy(origin, self->s.origin);
 		}
 
-		self->s.origin[0] -= 64;
-		self->s.origin[1] += 64;
+		self->s.origin[0] -= 128;
+		self->s.origin[1] += 128;
 		if (OrgVisibleBox(origin, playerMins, playerMaxs, self->s.origin, -1))
 		{
 			if (group.npcCount >= 2) self->NPC_type = group.npcNames[1];
@@ -2800,8 +2809,8 @@ void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team, int sp
 			VectorCopy(origin, self->s.origin);
 		}
 
-		self->s.origin[0] += 64;
-		self->s.origin[1] -= 64;
+		self->s.origin[0] += 128;
+		self->s.origin[1] -= 128;
 		if (OrgVisibleBox(origin, playerMins, playerMaxs, self->s.origin, -1))
 		{
 			if (group.npcCount >= 3) self->NPC_type = group.npcNames[2];
@@ -2810,8 +2819,8 @@ void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team, int sp
 			VectorCopy(origin, self->s.origin);
 		}
 
-		self->s.origin[0] -= 64;
-		self->s.origin[1] -= 64;
+		self->s.origin[0] -= 128;
+		self->s.origin[1] -= 128;
 
 		if (OrgVisibleBox(origin, playerMins, playerMaxs, self->s.origin, -1))
 		{
@@ -2829,8 +2838,8 @@ void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team, int sp
 				|| !Q_stricmpn("Luke", group.npcNames[0], 4)))
 		{// Spawned a jedi. Spawn a padawan for them as well...
 			VectorCopy(origin, self->s.origin);
-			self->s.origin[0] -= 64;
-			self->s.origin[1] -= 64;
+			self->s.origin[0] -= 128;
+			self->s.origin[1] -= 128;
 
 			if (OrgVisibleBox(origin, playerMins, playerMaxs, self->s.origin, -1))
 			{
@@ -2864,8 +2873,8 @@ void SP_NPC_Spawner_Group( spawnGroup_t group, vec3_t position, int team, int sp
 			}
 			
 			VectorCopy(origin, self->s.origin);
-			self->s.origin[0] += 64;
-			self->s.origin[1] += 64;
+			self->s.origin[0] += 128;
+			self->s.origin[1] += 128;
 			self->s.origin[2] += 128;
 
 			if (OrgVisibleBox(origin, playerMins, playerMaxs, self->s.origin, -1))

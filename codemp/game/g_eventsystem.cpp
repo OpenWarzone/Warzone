@@ -8,7 +8,7 @@
 // Defines...
 //
 
-//#define __USE_ALL_IMPERIAL_SHIPS__					// Enables the victory Star Destroyer. It has too many textures and slows loading and renderring more than the others, so i'm disabling it for now...
+#define __USE_ALL_IMPERIAL_SHIPS__					// Enables the victory Star Destroyer. It has too many textures and slows loading and renderring more than the others, so i'm disabling it for now... *FIXED*
 //#define __USE_ALL_REBEL_SHIPS__						// Use all the smaller rebel event ships? I don't think so for now, just use the calamari cruiser... Faster loading and better looking...
 
 //
@@ -399,6 +399,133 @@ void G_CreateSpawnVesselForEventArea(int area)
 		, event_areas[area][0], event_areas[area][1], event_areas[area][2]
 		, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2]);
 	*/
+}
+
+void G_EventModelThink(gentity_t *ent)
+{
+	int area = ent->spawnArea;
+
+	if (event_areas_ship_hyperspace_out_time[area] >= level.time)
+	{// Event is over, unspawn...
+		int time = event_areas_ship_hyperspace_out_time[area] - (level.time - 50);
+
+		if (time <= 200)
+		{// Disappear after 15 seconds...
+			ent->think = G_FreeEntity;
+			ent->nextthink = level.time + 15000;
+		}
+	}
+	else
+	{
+		ent->nextthink = level.time + 1000;
+	}
+}
+
+void G_CreateModelsForEventArea(int area)
+{
+#if 0 // hmm. nothing good to add atm...
+	if (event_areas_ship[area])
+	{// Already spawned the ship for this area...
+		return;
+	}
+
+	team_t team = event_areas_current_team[area];
+
+	if (team < FACTION_EMPIRE || team > FACTION_PIRATES)
+	{// None...
+		return;
+	}
+
+	char modelName[128] = { { 0 } };
+	int modelFrame = 0;
+	int modelScale = 1;
+	int loopSound = 0;
+	float zOffset = 8192.0;
+
+	sprintf(modelName, "models/warzone/ships/isd/isd.3ds");
+	//loopSound = G_SoundIndex("sound/vehicles/shuttle/loop.wav");
+	modelScale = 56;
+	zOffset = 32768.0;
+
+
+	int numModels = 0;
+
+	if (event_areas_event_size[area] == EVENT_SIZE_LARGE)
+	{
+		numModels = 8;
+	}
+	if (event_areas_event_size[area] == EVENT_SIZE_MEDIUM)
+	{
+		numModels = 4;
+	}
+	if (event_areas_event_size[area] == EVENT_SIZE_SMALL)
+	{
+		numModels = 2;
+	}
+
+	for (int i = 0; i < numModels; i++)
+	{
+		gentity_t *ent = G_Spawn();
+
+		VectorSet(ent->r.mins, -512, -512, -512);
+		VectorSet(ent->r.maxs, 512, 512, 512);
+
+		ent->s.eType = ET_SERVERMODEL;
+		ent->classname = miscModelString;
+		ent->model = modelName;
+		ent->s.frame = modelFrame;
+
+		// Mark as not bobbing...
+		ent->s.generic1 = 0;
+
+		ent->s.modelindex = G_ModelIndex(ent->model);
+		ent->s.iModelScale = modelScale; // NOTE: EF_SERVERMODEL does NOT use / 100.0 on scale.
+
+		// No culling on hoverring event ships...
+		//ent->r.svFlags |= SVF_BROADCAST;
+
+		ent->s.eFlags = 0;
+		ent->r.contents = CONTENTS_SOLID;
+		ent->clipmask = MASK_SOLID;
+		ent->s.teamowner = team;
+		ent->s.owner = ENTITYNUM_NONE;
+
+		ent->s.loopSound = loopSound;
+
+		// TODO: Come from sky and hover...
+		ent->nextthink = level.time + 50;
+		ent->think = G_EventModelThink;
+
+
+		VectorCopy(vec3_origin, ent->s.angles);
+		G_SetAngles(ent, ent->s.angles);
+
+		VectorCopy(event_areas[area], ent->move_vector);
+		ent->move_vector[2] += zOffset;
+
+		vec3_t startPos, fwd;
+		//AngleVectors(ent->s.angles, fwd, NULL, NULL);
+		AngleVectors(ent->s.angles, NULL, fwd, NULL); // Because the models are rotated 90 deg lol...
+		VectorNormalize(fwd);
+		VectorMA(ent->move_vector, 1999999.0, fwd, startPos);
+		G_SetOrigin(ent, startPos);
+		VectorCopy(startPos, ent->movedir);
+
+		ent->spawnArea = area;
+
+		event_areas_ship_hyperspace_in_time[area] = level.time + SHIP_HYPERSPACE_TIME;
+
+		trap->LinkEntity((sharedEntity_t *)ent);
+
+		event_areas_ship[area] = ent;
+
+		/*
+		trap->Print("EVENT: Spawned ship %s for team %s above event area %i (position %f %f %f) at %f %f %f.\n", modelName, TeamName(event_areas_current_team[area]), area
+		, event_areas[area][0], event_areas[area][1], event_areas[area][2]
+		, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2]);
+		*/
+	}
+#endif
 }
 
 void G_SaveEventAreas(void)
@@ -1267,32 +1394,14 @@ void FindRandomEventSpawnpoint(int eventArea, vec3_t point)
 	int tries = 0; // Can't let it hang, if the whole map happens to be underwater....
 
 	vec3_t event_position;
-
-#if 0
-	int numPossibleAreas = 0;
-	int possibleAreas[MAX_TEAM_EVENT_AREAS] = { { -1 } };
-
-	// Find a list of valid possible event areas for this team...
-	for (int i = 0; i < num_event_areas; i++)
-	{
-		if (event_areas_current_team[i] == team)
-		{
-			possibleAreas[numPossibleAreas] = i;
-			numPossibleAreas++;
-		}
-	}
-
-	// Select an area at random... (TODO: sort and weight?)
-	int bestArea = possibleAreas[irand(0, numPossibleAreas - 1)];
-#else
 	int bestArea = eventArea;
-#endif
 	VectorCopy(event_areas[bestArea], event_position);
 
 	//trap->Print("EVENT: area %i selected for team %s spawn.\n", bestArea, TeamName(event_areas_current_team[bestArea]));
 
 	// Spawn a ship above this 'in use' event area...
 	G_CreateSpawnVesselForEventArea(bestArea);
+	G_CreateModelsForEventArea(bestArea);
 
 #if defined(__USE_NAVLIB__) || defined(__USE_NAVLIB_SPAWNPOINTS__)
 	if (G_NavmeshIsLoaded())
@@ -1301,14 +1410,14 @@ void FindRandomEventSpawnpoint(int eventArea, vec3_t point)
 
 #pragma omp critical
 		{
-			FindRandomNavmeshPointInRadius(-1, event_position, point, 2048.0);
+			FindRandomNavmeshPointInRadius(-1, event_position, point, 1024.0/*2048.0*/);
 		}
 
 		while (point[2] <= MAP_WATER_LEVEL && tries < 10)
 		{
 #pragma omp critical
 			{
-				FindRandomNavmeshPointInRadius(-1, event_position, point, 2048.0);
+				FindRandomNavmeshPointInRadius(-1, event_position, point, 1024.0/*2048.0*/);
 			}
 			tries++;
 		}
