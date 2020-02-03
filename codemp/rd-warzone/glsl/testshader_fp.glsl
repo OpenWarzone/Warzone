@@ -89,6 +89,8 @@ vec3 DecodeNormal(vec2 enc)
 }
 
 
+vec2 px = vec2(1.0) / u_Dimensions.xy;
+
 
 #if 0
 //
@@ -704,8 +706,11 @@ void main()
 vec3 normal_from_depth(sampler2D tex, vec2 texcoords) 
 {
 	// Delta coordinate of 1 pixel: 0.03125 = 1 (pixel) / 32 (pixels)
-	const vec2 offset1 = vec2(0.0, 0.03125);
-	const vec2 offset2 = vec2(0.03125, 0.0);
+	//const vec2 offset1 = vec2(0.0, 0.03125);
+	//const vec2 offset2 = vec2(0.03125, 0.0);
+
+	vec2 offset1 = vec2(0.0, px.y);
+	vec2 offset2 = vec2(px.x, 0.0);
 	
 	// Fetch depth from depth buffer
 	float depth = texture2D(tex, texcoords).r;
@@ -790,6 +795,12 @@ void main ()
 	
 	// Calculate normal for current pixel
 	pixel_normal = normal_from_depth(u_ScreenDepthMap, var_TexCoords);
+
+	if (u_Local0.r > 0.0)
+	{
+		gl_FragColor = vec4(pixel_normal * 0.5 + 0.5, 1.0);
+		return;
+	}
 
 	// Prepare to accumulate GI
 	gi = vec3(0.0);

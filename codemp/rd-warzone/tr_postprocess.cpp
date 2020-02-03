@@ -1120,6 +1120,7 @@ int			CLOSE_LIST[MAX_WORLD_GLOW_DLIGHTS];
 float		CLOSE_DIST[MAX_WORLD_GLOW_DLIGHTS];
 vec3_t		CLOSE_POS[MAX_WORLD_GLOW_DLIGHTS];
 float		CLOSE_RADIUS[MAX_WORLD_GLOW_DLIGHTS];
+float		CLOSE_WEIGHT[MAX_WORLD_GLOW_DLIGHTS];
 float		CLOSE_HEIGHTSCALES[MAX_WORLD_GLOW_DLIGHTS];
 float		CLOSE_CONEANGLE[MAX_WORLD_GLOW_DLIGHTS];
 vec3_t		CLOSE_CONEDIRECTION[MAX_WORLD_GLOW_DLIGHTS];
@@ -1158,7 +1159,8 @@ void RB_AddGlowShaderLights ( void )
 		{
 			if (!MAP_GLOW_COLORS_AVILABLE[maplight]) continue;
 
-			float distance = Distance(playerOrigin, MAP_GLOW_LOCATIONS[maplight]);
+			//float distance = Distance(playerOrigin, MAP_GLOW_LOCATIONS[maplight]);
+			float distance = Distance(backEnd.refdef.vieworg, MAP_GLOW_LOCATIONS[maplight]);
 
 			// We need to have some sanity... Basic max light range...
 			if (distance > MAX_WORLD_GLOW_DLIGHT_RANGE) continue;
@@ -1174,12 +1176,20 @@ void RB_AddGlowShaderLights ( void )
 				continue;
 			}*/
 
+			float	this_weight = (MAP_GLOW_RADIUSES[maplight] * MAP_GLOW_RADIUSES[maplight]) / (distance * distance);
+
+			/*if (this_weight <= 0.05)
+			{// Will be too dark to even notice it, so skip...
+				continue;
+			}*/
+
 			if (CLOSE_TOTAL < MAX_WORLD_GLOW_DLIGHTS)
 			{// Have free light slots for a new light...
 				CLOSE_LIST[CLOSE_TOTAL] = maplight;
 				CLOSE_DIST[CLOSE_TOTAL] = MAP_GLOW_RADIUSES[maplight];
 				VectorCopy(MAP_GLOW_LOCATIONS[maplight], CLOSE_POS[CLOSE_TOTAL]);
 				CLOSE_RADIUS[CLOSE_TOTAL] = MAP_GLOW_RADIUSES[maplight];
+				CLOSE_WEIGHT[CLOSE_TOTAL] = this_weight;
 				CLOSE_HEIGHTSCALES[CLOSE_TOTAL] = MAP_GLOW_HEIGHTSCALES[maplight];
 				CLOSE_CONEANGLE[CLOSE_TOTAL] = MAP_GLOW_CONEANGLE[maplight];
 				VectorCopy(MAP_GLOW_CONEDIRECTION[maplight], CLOSE_CONEDIRECTION[CLOSE_TOTAL]);
@@ -1188,6 +1198,7 @@ void RB_AddGlowShaderLights ( void )
 			}
 			else
 			{// See if this is closer then one of our other lights...
+#if 1
 				int		farthest_light = 0;
 				float	farthest_distance = CLOSE_DIST[0];
 
@@ -1210,6 +1221,33 @@ void RB_AddGlowShaderLights ( void )
 					CLOSE_CONEANGLE[farthest_light] = MAP_GLOW_CONEANGLE[maplight];
 					VectorCopy(MAP_GLOW_CONEDIRECTION[maplight], CLOSE_CONEDIRECTION[farthest_light]);
 				}
+#else
+				int		worst_light = -1;
+				float	worst_weight = 999999.0;
+
+				for (int i = 0; i < CLOSE_TOTAL; i++)
+				{// Find the most distance light in our current list to replace, if this new option is closer...
+					float		weight = CLOSE_WEIGHT[i];
+
+					if (weight < worst_weight)
+					{// This one is further!
+						worst_light = i;
+						worst_weight = weight;
+					}
+				}
+
+				if (worst_light >= 0 && this_weight > worst_weight)
+				{// This light is better. Replace this one in our array of closest lights...
+					CLOSE_LIST[worst_light] = maplight;
+					CLOSE_DIST[worst_light] = MAP_GLOW_RADIUSES[maplight];
+					VectorCopy(MAP_GLOW_LOCATIONS[maplight], CLOSE_POS[worst_light]);
+					CLOSE_RADIUS[worst_light] = MAP_GLOW_RADIUSES[maplight];
+					CLOSE_WEIGHT[worst_light] = this_weight;
+					CLOSE_HEIGHTSCALES[worst_light] = MAP_GLOW_HEIGHTSCALES[maplight];
+					CLOSE_CONEANGLE[worst_light] = MAP_GLOW_CONEANGLE[maplight];
+					VectorCopy(MAP_GLOW_CONEDIRECTION[maplight], CLOSE_CONEDIRECTION[worst_light]);
+				}
+#endif
 
 				continue;
 			}

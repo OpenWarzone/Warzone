@@ -353,6 +353,7 @@ vec3 Enhance(in sampler2D tex, in vec2 uv, vec3 color, float level)
 void main()
 {
 	float dist = distance(m_vertPos.xyz, u_ViewOrigin.xyz);
+	float leafDistanceAlphaMod = 1.0;
 
 	if (USE_IS2D <= 0.0 && dist > u_zFar && USE_VERTEX_ANIM < 1.0)
 	{// Skip it all...
@@ -383,6 +384,14 @@ void main()
 		if (USE_IS2D > 0.0 || USE_TEXTURECLAMP > 0.0)
 		{
 			diffuse.rgb = Enhance(u_DiffuseMap, texCoords, diffuse.rgb, 16.0);
+		}
+		else if (SHADER_MATERIAL_TYPE == MATERIAL_GREENLEAVES && dist > 16384.0 && diffuse.a < 1.0)
+		{// Try to fill out distant tree leafs, so they puff out and take up more pixels in the background. To both block vis better, and also make trees look less crappy...
+			float lod = mix(2.0, 16.0, clamp((dist-16384.0) / u_zFar, 0.0, 1.0));
+			vec4 lodColor = textureLod(u_DiffuseMap, texCoords, lod);
+			float best = diffuse.a > lodColor.a ? 0.0 : 1.0;
+			diffuse = mix(diffuse, lodColor, best);
+			leafDistanceAlphaMod = lod * 64.0;
 		}
 		/*
 		else if (dist < 4096.0)
@@ -568,7 +577,7 @@ void main()
 
 	if (SHADER_MATERIAL_TYPE == MATERIAL_GREENLEAVES)
 	{// Amp up alphas on tree leafs, etc, so they draw at range instead of being blurred out...
-		gl_FragColor.a = clamp(gl_FragColor.a * LEAF_ALPHA_MULTIPLIER, 0.0, 1.0);
+		gl_FragColor.a = clamp(gl_FragColor.a * LEAF_ALPHA_MULTIPLIER * leafDistanceAlphaMod, 0.0, 1.0);
 	}
 
 	float alphaThreshold = (SHADER_MATERIAL_TYPE == MATERIAL_GREENLEAVES) ? SCREEN_MAPS_LEAFS_THRESHOLD : SCREEN_MAPS_ALPHA_THRESHOLD;

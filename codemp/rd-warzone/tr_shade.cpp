@@ -1947,12 +1947,12 @@ void RB_UpdateCloseLights ( void )
 			}
 		}
 
-		float	this_weight = distance / dl->radius;// dl->radius / distance;
+		float	this_weight = (dl->radius * dl->radius) / (distance * distance);
 
-		if (this_weight <= 0.05)
+		/*if (this_weight <= 0.05)
 		{// Will be too dark to even notice it, so skip...
 			continue;
-		}
+		}*/
 		
 		/*if (r_cullLights->integer && RB_CullPointAndRadius(dl->origin, dl->radius * dayNightFactor * 0.2 * r_debugEmissiveRadiusScale->value) == CULL_OUT)
 		{
@@ -1976,7 +1976,7 @@ void RB_UpdateCloseLights ( void )
 		}
 		else
 		{// See if this is closer then one of our other lights...
-#if 0
+#if 1
 			int		farthest_light = 0;
 			float	farthest_distance = 0.0;
 
@@ -2012,7 +2012,6 @@ void RB_UpdateCloseLights ( void )
 
 			for (int i = 0; i < NUM_CLOSE_LIGHTS; i++)
 			{// Find the most distance light in our current list to replace, if this new option is closer...
-				dlight_t	*thisLight = &backEnd.refdef.dlights[CLOSEST_LIGHTS[i]];
 				float		weight = CLOSEST_LIGHTS_WEIGHTS[i];
 
 				if (weight < worst_weight)
@@ -2056,9 +2055,9 @@ void RB_UpdateCloseLights ( void )
 		CLOSEST_LIGHTS_COLORS[i][2] = CLOSEST_LIGHTS_COLORS[i][2] / colorLength;
 
 		// Desaturate...
-		CLOSEST_LIGHTS_COLORS[i][0] = mix(CLOSEST_LIGHTS_COLORS[i][0], whiteStrength, 0.85);
-		CLOSEST_LIGHTS_COLORS[i][1] = mix(CLOSEST_LIGHTS_COLORS[i][0], whiteStrength, 0.85);
-		CLOSEST_LIGHTS_COLORS[i][2] = mix(CLOSEST_LIGHTS_COLORS[i][0], whiteStrength, 0.85);
+		CLOSEST_LIGHTS_COLORS[i][0] = mix(CLOSEST_LIGHTS_COLORS[i][0], whiteStrength, 0.65/*0.85*/);
+		CLOSEST_LIGHTS_COLORS[i][1] = mix(CLOSEST_LIGHTS_COLORS[i][0], whiteStrength, 0.65/*0.85*/);
+		CLOSEST_LIGHTS_COLORS[i][2] = mix(CLOSEST_LIGHTS_COLORS[i][0], whiteStrength, 0.65/*0.85*/);
 
 		float strength = Q_clamp(0.0, CLOSEST_LIGHTS_WEIGHTS[i], 1.0);
 		CLOSEST_LIGHTS_COLORS[i][0] *= strength;
@@ -2066,6 +2065,7 @@ void RB_UpdateCloseLights ( void )
 		CLOSEST_LIGHTS_COLORS[i][2] *= strength;
 	}
 
+#if 0
 	{// Sort them by screen usage...
 		for (int i = 0; i < NUM_CLOSE_LIGHTS; i++)
 		{
@@ -2114,6 +2114,7 @@ void RB_UpdateCloseLights ( void )
 			}
 		}
 	}
+#endif
 
 #if 0
 	if (r_testvalue0->integer)
