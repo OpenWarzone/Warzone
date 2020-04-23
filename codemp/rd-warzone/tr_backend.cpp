@@ -1535,12 +1535,12 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 	for (int type = RENDERPASS_GEOMETRY; type < RENDERPASS_MAX; type++)
 	{// Redraw the relevant scene objects so that the procedural systems can use the vert points for their stuff...
 		// Skip passes if not currenty enabled...
-		if (type == RENDERPASS_GRASS_PATCHES && !GRASS_PATCHES_ENABLED) continue;
-		if (type == RENDERPASS_GRASS && !GRASS_ENABLED) continue;
-		if (type == RENDERPASS_GRASS2 && !GRASS2_ENABLED) continue;
-		if (type == RENDERPASS_GRASS3 && !GRASS3_ENABLED) continue;
-		if (type == RENDERPASS_GRASS4 && !GRASS4_ENABLED) continue;
-		if (type == RENDERPASS_GROUNDFOLIAGE && !FOLIAGE_ENABLED) continue;
+		if (type == RENDERPASS_GRASS_PATCHES && (!GRASS_PATCHES_ENABLED || r_foliageQuality->value <= 0.0)) continue;
+		if (type == RENDERPASS_GRASS && (!GRASS_ENABLED || r_foliageQuality->value <= 0.0)) continue;
+		if (type == RENDERPASS_GRASS2 && (!GRASS2_ENABLED || r_foliageQuality->value <= 0.0)) continue;
+		if (type == RENDERPASS_GRASS3 && (!GRASS3_ENABLED || r_foliageQuality->value <= 0.0)) continue;
+		if (type == RENDERPASS_GRASS4 && (!GRASS4_ENABLED || r_foliageQuality->value <= 0.0)) continue;
+		if (type == RENDERPASS_GROUNDFOLIAGE && (!FOLIAGE_ENABLED || r_foliageQuality->value <= 0.0)) continue;
 		if (type == RENDERPASS_VINES && !VINES_ENABLED) continue;
 		if (type == RENDERPASS_MIST && !MIST_ENABLED) continue;
 

@@ -57,7 +57,17 @@ void CalcEntitySpot ( const gentity_t *ent, const spot_t spot, vec3_t point )
 
 	case SPOT_CHEST:
 	case SPOT_HEAD:
-		if ( ent->client && VectorLengthSquared( ent->client->renderInfo.eyePoint ) /*&& (ent->client->ps.viewEntity <= 0 || ent->client->ps.viewEntity >= ENTITYNUM_WORLD)*/ )
+		if (ent->s.eType == ET_NPC && ent->s.NPC_class != CLASS_VEHICLE && ent->s.m_iVehicleNum && ent->s.NPC_class == CLASS_STORMTROOPER_ATST_PILOT)
+		{// NPC driving an ATST...
+			VectorCopy(org, point);
+			point[2] += 172.0; //192.0
+		}
+		else if (ent->s.eType == ET_NPC && ent->s.NPC_class != CLASS_VEHICLE && ent->s.m_iVehicleNum && ent->s.NPC_class == CLASS_STORMTROOPER_ATAT_PILOT)
+		{// NPC driving an ATAT...
+			VectorCopy(org, point);
+			point[2] += 384.0;
+		}
+		else if ( ent->client && VectorLengthSquared( ent->client->renderInfo.eyePoint ) /*&& (ent->client->ps.viewEntity <= 0 || ent->client->ps.viewEntity >= ENTITYNUM_WORLD)*/ )
 		{//Actual tag_head eyespot!
 			//FIXME: Stasis aliens may have a problem here...
 			VectorCopy( ent->client->renderInfo.eyePoint, point );
@@ -95,7 +105,17 @@ void CalcEntitySpot ( const gentity_t *ent, const spot_t spot, vec3_t point )
 		break;
 
 	case SPOT_HEAD_LEAN:
-		if ( ent->client && VectorLengthSquared( ent->client->renderInfo.eyePoint ) /*&& (ent->client->ps.viewEntity <= 0 || ent->client->ps.viewEntity >= ENTITYNUM_WORLD*/ )
+		if (ent->s.eType == ET_NPC && ent->s.NPC_class != CLASS_VEHICLE && ent->s.m_iVehicleNum && ent->s.NPC_class == CLASS_STORMTROOPER_ATST_PILOT)
+		{// NPC driving an ATST...
+			VectorCopy(org, point);
+			point[2] += 172.0; //192.0
+		}
+		else if (ent->s.eType == ET_NPC && ent->s.NPC_class != CLASS_VEHICLE && ent->s.m_iVehicleNum && ent->s.NPC_class == CLASS_STORMTROOPER_ATAT_PILOT)
+		{// NPC driving an ATAT...
+			VectorCopy(org, point);
+			point[2] += 384.0;
+		}
+		else if ( ent->client && VectorLengthSquared( ent->client->renderInfo.eyePoint ) /*&& (ent->client->ps.viewEntity <= 0 || ent->client->ps.viewEntity >= ENTITYNUM_WORLD*/ )
 		{//Actual tag_head eyespot!
 			//FIXME: Stasis aliens may have a problem here...
 			VectorCopy( ent->client->renderInfo.eyePoint, point );

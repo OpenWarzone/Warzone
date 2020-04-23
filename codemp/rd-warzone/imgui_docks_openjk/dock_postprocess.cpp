@@ -78,7 +78,7 @@ void DockPostProcess::AddInt(int ID) {
 	{// Single on/off option, use checkbox instead...
 		AddCheckBox(ID);
 	}
-	else if (ImGuiMax[ID] < 8)
+	else if (ImGuiMax[ID] < /*8*/11)
 	{// Use Radio Buttons for low max options...
 		if (ImGuiCvars[ID]->displayInfoSet && ImGuiCvars[ID]->displayName && ImGuiCvars[ID]->displayName[0])
 		{
@@ -156,6 +156,7 @@ void DockPostProcess::UpdateUI() {
 }
 
 void DockPostProcess::MakeCvarList() {
+	AddCvar(r_foliageQuality, 10);
 	AddCvar(r_dynamicGlow, 1);
 	AddCvar(r_bloom, 2);
 	AddCvar(r_anamorphic, 1);

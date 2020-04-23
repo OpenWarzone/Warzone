@@ -2118,23 +2118,71 @@ void ClientThink_real( gentity_t *ent ) {
 	
 	// This code was moved here from clientThink to fix a problem with g_synchronousClients
 	// being set to 1 when in vehicles.
-	if ( ent->s.number < MAX_CLIENTS && ent->client->ps.m_iVehicleNum )
+	if ((ent->s.eType == ET_PLAYER || ent->s.eType == ET_NPC)
+		&& ent->client->ps.m_iVehicleNum > MAX_CLIENTS
+		&& g_entities[ent->client->ps.m_iVehicleNum].m_pVehicle
+		&& g_entities[ent->client->ps.m_iVehicleNum].s.NPC_class == CLASS_VEHICLE)
+	//if (ent->s.number < MAX_CLIENTS && ent->client->ps.m_iVehicleNum)
 	{//driving a vehicle
 		if (g_entities[ent->client->ps.m_iVehicleNum].client)
 		{
 			gentity_t *veh = &g_entities[ent->client->ps.m_iVehicleNum];
 
-			if (veh->m_pVehicle &&
-				veh->m_pVehicle->m_pPilot == (bgEntity_t *)ent)
+			if (veh->m_pVehicle
+				&& veh->s.number > MAX_CLIENTS
+				&& veh->m_pVehicle->m_pPilot == (bgEntity_t *)ent)
 			{ //only take input from the pilot...
-				veh->client->ps.commandTime = ent->client->ps.commandTime;
-				memcpy(&veh->m_pVehicle->m_ucmd, &ent->client->pers.cmd, sizeof(usercmd_t));
-				if ( veh->m_pVehicle->m_ucmd.buttons & BUTTON_TALK )
-				{ //forced input if "chat bubble" is up
-					veh->m_pVehicle->m_ucmd.buttons = BUTTON_TALK;
-					veh->m_pVehicle->m_ucmd.forwardmove = 0;
-					veh->m_pVehicle->m_ucmd.rightmove = 0;
-					veh->m_pVehicle->m_ucmd.upmove = 0;
+				if (ent->s.eType == ET_NPC)
+				{
+					veh->client->ps.commandTime = ent->client->ps.commandTime;
+					memcpy(&veh->m_pVehicle->m_ucmd, &ent->client->pers.cmd, sizeof(usercmd_t));
+					memcpy(&veh->client->pers.cmd, &ent->client->pers.cmd, sizeof(usercmd_t));
+					memcpy(&veh->client->ps.delta_angles, &ent->client->ps.delta_angles, sizeof(ent->client->ps.delta_angles));
+					memcpy(&veh->client->ps.viewangles, &ent->client->ps.viewangles, sizeof(ent->client->ps.viewangles));
+					memcpy(&veh->s.apos.trBase, &ent->s.apos.trBase, sizeof(ent->s.apos.trBase));
+					memcpy(&veh->client->ps.viewangles, &ent->client->ps.viewangles, sizeof(ent->client->ps.viewangles));
+					memcpy(&veh->client->ps.moveDir, &ent->client->ps.moveDir, sizeof(ent->client->ps.moveDir));
+
+					if (ent->s.NPC_class == CLASS_STORMTROOPER_ATST_PILOT || ent->s.NPC_class == CLASS_STORMTROOPER_ATAT_PILOT)
+					{// ATSTs never jump...
+						veh->m_pVehicle->m_ucmd.upmove = 0;
+						veh->client->pers.cmd.upmove = 0;
+					}
+
+					/*
+					trap->Print("ENDFRAME VEH %i: fm %i. rm %i. um %i. VEH UCMD: fm %i. rm %i. um %i. delta_angles %f. cmd_angles %f. viewangles %f. trDelta %f. trBase %f. npc_class %i.\n",
+						veh->s.number, (int)veh->client->pers.cmd.forwardmove, (int)veh->client->pers.cmd.rightmove, (int)veh->client->pers.cmd.upmove,
+						(int)veh->m_pVehicle->m_ucmd.forwardmove, (int)veh->m_pVehicle->m_ucmd.rightmove, (int)veh->m_pVehicle->m_ucmd.upmove,
+						SHORT2ANGLE(veh->client->ps.delta_angles[YAW]), SHORT2ANGLE(veh->client->pers.cmd.angles[YAW]), veh->client->ps.viewangles[YAW], veh->s.apos.trDelta[YAW], veh->s.apos.trBase[YAW],
+						veh->s.NPC_class);
+					trap->Print("ENDFRAME NPC %i: fm %i. rm %i. um %i. delta_angles %f. cmd_angles %f. viewangles %f. trDelta %f. trBase %f. npc_class %i.\n",
+						ent->s.number, (int)ent->client->pers.cmd.forwardmove, (int)ent->client->pers.cmd.rightmove, (int)ent->client->pers.cmd.upmove,
+						SHORT2ANGLE(ent->client->ps.delta_angles[YAW]), SHORT2ANGLE(ent->client->pers.cmd.angles[YAW]), ent->client->ps.viewangles[YAW], ent->s.apos.trDelta[YAW], ent->s.apos.trBase[YAW],
+						ent->s.NPC_class);
+					*/
+
+					/*
+					if (ent->enemy && NPC_IsAlive(ent, ent->enemy))
+					{
+						vec3_t enemyDir, enemyAngles;
+						VectorSubtract(ent->enemy->r.currentOrigin, ent->r.currentOrigin, enemyDir);
+						VectorNormalize(enemyDir);
+						vectoangles(enemyDir, enemyAngles);
+						trap->Print("ENEMY: %i in direction %f.\n", ent->enemy->s.number, enemyAngles[YAW]);
+					}
+					*/
+				}
+				else
+				{
+					veh->client->ps.commandTime = ent->client->ps.commandTime;
+					memcpy(&veh->m_pVehicle->m_ucmd, &ent->client->pers.cmd, sizeof(usercmd_t));
+					if (ent->s.number < MAX_CLIENTS && (veh->m_pVehicle->m_ucmd.buttons & BUTTON_TALK))
+					{ //forced input if "chat bubble" is up
+						veh->m_pVehicle->m_ucmd.buttons = BUTTON_TALK;
+						veh->m_pVehicle->m_ucmd.forwardmove = 0;
+						veh->m_pVehicle->m_ucmd.rightmove = 0;
+						veh->m_pVehicle->m_ucmd.upmove = 0;
+					}
 				}
 			}
 		}
@@ -3776,7 +3824,11 @@ void ClientThink_real( gentity_t *ent ) {
 
 	// This code was moved here from clientThink to fix a problem with g_synchronousClients
 	// being set to 1 when in vehicles.
-	if ( ent->s.number < MAX_CLIENTS && ent->client->ps.m_iVehicleNum )
+	if ((ent->s.eType == ET_PLAYER || ent->s.eType == ET_NPC)
+		&& ent->client->ps.m_iVehicleNum > MAX_CLIENTS
+		&& g_entities[ent->client->ps.m_iVehicleNum].m_pVehicle
+		&& g_entities[ent->client->ps.m_iVehicleNum].s.NPC_class == CLASS_VEHICLE)
+	//if (ent->s.number < MAX_CLIENTS && ent->client->ps.m_iVehicleNum)
 	{//driving a vehicle
 		//run it
 		if (g_entities[ent->client->ps.m_iVehicleNum].inuse && g_entities[ent->client->ps.m_iVehicleNum].client)

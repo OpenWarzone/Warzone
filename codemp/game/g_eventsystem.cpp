@@ -38,6 +38,7 @@ const float				EVENTS_VERSION = 1.0;
 qboolean				event_areas_initialized = qfalse;
 int						num_event_areas = 0;
 vec3_t					event_areas[MAX_TEAM_EVENT_AREAS] = { { 0.0 } };
+qboolean				event_areas_disabled[MAX_TEAM_EVENT_AREAS] = { { qfalse } };
 team_t					event_areas_current_team[MAX_TEAM_EVENT_AREAS] = { { FACTION_SPECTATOR } };
 eventSize_t				event_areas_event_size[MAX_TEAM_EVENT_AREAS] = { { EVENT_SIZE_SMALL } };
 int						event_areas_spawn_count[MAX_TEAM_EVENT_AREAS] = { { 0 } };
@@ -580,6 +581,7 @@ qboolean G_LoadEventAreas(void)
 	for (int i = 0; i < MAX_TEAM_EVENT_AREAS; i++)
 	{
 		VectorClear(event_areas[i]);
+		event_areas_disabled[i] = qfalse;
 		event_areas_event_size[i] = EVENT_SIZE_SMALL;
 		event_areas_spawn_count[i] = 0;
 		event_areas_spawn_wave[i] = 0;
@@ -618,6 +620,33 @@ qboolean G_LoadEventAreas(void)
 		if (CURRENT_FACTION > FACTION_PIRATES)
 		{// Back to the start...
 			CURRENT_FACTION = FACTION_EMPIRE;
+		}
+
+		// Check validity of each of the points, for older files that didn't check for water below...
+		qboolean bad = qfalse;
+
+		if (event_areas[i][2] <= MAP_WATER_LEVEL + 32.0)
+		{
+			bad = qtrue;
+		}
+
+		if (!bad)
+		{
+			if (trap->PointContents(event_areas[i], -1) & CONTENTS_WATER)
+			{
+				bad = qtrue;
+			}
+		}
+
+		if (bad)
+		{
+			trap->Print("^1*** ^3%s^5: Disabled event area ^7%i^5 of old version eventAreas file because it is above water.\n", "EVENTS", i);
+			event_areas_disabled[i] = qtrue;
+			event_areas_current_team[i] = FACTION_SPECTATOR;
+		}
+		else
+		{
+			event_areas_disabled[i] = qfalse;
 		}
 	}
 
@@ -690,6 +719,7 @@ void G_SetupEventAreas(void)
 			for (int i = 0; i < MAX_TEAM_EVENT_AREAS; i++)
 			{
 				VectorClear(event_areas[i]);
+				event_areas_disabled[i] = qfalse;
 				event_areas_event_size[i] = EVENT_SIZE_SMALL;
 				event_areas_spawn_count[i] = 0;
 				event_areas_spawn_wave[i] = 0;
@@ -721,12 +751,28 @@ void G_SetupEventAreas(void)
 					vec3_t org;
 					FindRandomNavmeshSpawnpoint(NULL, org);
 
-					for (int i = 0; i < num_event_areas; i++)
+					if (org[2] <= MAP_WATER_LEVEL + 32.0)
 					{
-						if (Distance(org, event_areas[i]) < DISTANCE_BETWEEN_EVENTS)
+						bad = qtrue;
+					}
+					
+					if (!bad)
+					{
+						for (int i = 0; i < num_event_areas; i++)
+						{
+							if (Distance(org, event_areas[i]) < DISTANCE_BETWEEN_EVENTS)
+							{
+								bad = qtrue;
+								break;
+							}
+						}
+					}
+
+					if (!bad)
+					{
+						if (trap->PointContents(org, -1) & CONTENTS_WATER)
 						{
 							bad = qtrue;
-							break;
 						}
 					}
 
@@ -815,6 +861,7 @@ void G_InitEventAreas(void)
 	event_areas_initialized = qfalse;
 
 	memset(event_areas, 0, sizeof(event_areas));
+	memset(event_areas_disabled, qfalse, sizeof(event_areas_disabled));
 	memset(event_areas_current_team, 0, sizeof(event_areas_current_team));
 	memset(event_areas_event_size, EVENT_SIZE_SMALL, sizeof(event_areas_event_size));
 	memset(event_areas_spawn_count, 0, sizeof(event_areas_spawn_count));
@@ -840,6 +887,7 @@ void G_InitEventAreas(void)
 
 void G_InitEventArea(int eventArea)
 {
+	event_areas_disabled[eventArea] = qfalse;
 	event_areas_event_size[eventArea] = EVENT_SIZE_SMALL;
 	event_areas_spawn_count[eventArea] = 0;
 	event_areas_spawn_wave[eventArea] = 0;
@@ -1162,6 +1210,11 @@ extern int			num_imperial_npcs, num_rebel_npcs, num_mandalorian_npcs, num_merc_n
 
 qboolean G_EnabledFactionEvent(int eventNum)
 {
+	if (event_areas_disabled[eventNum])
+	{
+		return qfalse;
+	}
+
 	team_t		eventFaction = event_areas_current_team[eventNum];
 	int			largestWave = G_MaxSpawnsInEvent(event_areas_event_size[eventNum]);
 	int			currentCount = event_areas_spawn_count[eventNum];
@@ -1281,6 +1334,9 @@ int G_GetEventMostNeedingSpawns(void)
 	{
 		for (int i = 0; i < num_event_areas; i++)
 		{
+			if (event_areas_disabled[i])
+				continue;
+
 			G_CountEventAreaSpawns();
 
 			int				currentWave = event_areas_spawn_wave[i];
@@ -1328,7 +1384,7 @@ int G_GetEventMostNeedingSpawns(void)
 
 team_t G_GetFactionForEvent(int eventNum)
 {
-	if (!EVENTS_ENABLED || num_event_areas <= 0 || eventNum < 0)
+	if (!EVENTS_ENABLED || num_event_areas <= 0 || eventNum < 0 || event_areas_disabled[eventNum])
 	{
 		return FACTION_SPECTATOR;
 	}

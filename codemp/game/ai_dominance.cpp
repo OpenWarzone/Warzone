@@ -667,6 +667,8 @@ void DOM_SetFakeNPCName(gentity_t *ent)
 	switch( ent->s.NPC_class )
 	{
 	case CLASS_STORMTROOPER_ADVANCED:
+	case CLASS_STORMTROOPER_ATST_PILOT:
+	case CLASS_STORMTROOPER_ATAT_PILOT:
 		ent->s.NPC_NAME_ID = irand(100, 999);
 		strcpy(ent->client->pers.netname, va("TA-%i", ent->s.NPC_NAME_ID));
 		break;

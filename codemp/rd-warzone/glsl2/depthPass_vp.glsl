@@ -69,6 +69,7 @@ uniform sampler2D					u_RoadsControlMap;
 
 uniform vec4				u_Settings0; // useTC, useDeform, useRGBA
 uniform vec4				u_Settings1; // useVertexAnim, useSkeletalAnim
+uniform vec4				u_Settings6; // TREE_BRANCH_HARDINESS, TREE_BRANCH_SIZE, TREE_BRANCH_WIND_STRENGTH, 0.0
 
 #define USE_TC				u_Settings0.r
 #define USE_DEFORM			u_Settings0.g
@@ -196,6 +197,28 @@ vec4 DecodeFloatRGBA( float v ) {
 	return enc;
 }
 
+const vec3							vWindDirection		= normalize(vec3(1.0, 1.0, 0.5));
+#define								fBranchHardiness	u_Settings6.r
+#define								fBranchSize			u_Settings6.g
+#define								fWindStrength		u_Settings6.b
+
+vec3 GetSway (vec3 vertPos)
+{
+	// Wind calculation stuff...
+	float fWindPower = 0.5f + sin(vertPos.x / fBranchSize + vertPos.z / fBranchSize + u_Time*(1.2f + fWindStrength / fBranchSize/*20.0f*/));
+
+	if (fWindPower < 0.0f)
+		fWindPower = fWindPower*0.2f;
+	else
+		fWindPower = fWindPower*0.3f;
+
+	fWindPower *= fWindStrength;
+
+	if (USE_VERTEX_ANIM == 1.0 || USE_SKELETAL_ANIM == 1.0)
+		return vertPos + vWindDirection.xyz*fWindPower*fBranchHardiness*fBranchSize*0.125;
+	else
+		return vertPos + vWindDirection.xyz*fWindPower*fBranchHardiness*fBranchSize;
+}
 
 vec3 DeformPosition(const vec3 pos, const vec3 normal, const vec2 st)
 {
@@ -698,6 +721,12 @@ void main()
 	}
 
 #endif //defined(USE_TESSELLATION_3D) && defined(USE_EDGE_TESSELLATION)
+
+
+	if (SHADER_SWAY > 0.0)
+	{// Sway...
+		position.xyz = GetSway(position.xyz);
+	}
 
 	vec2 texCoords = attr_TexCoord0.st;
 

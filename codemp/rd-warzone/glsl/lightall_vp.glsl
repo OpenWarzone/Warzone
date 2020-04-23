@@ -72,6 +72,7 @@ uniform vec4						u_Settings0; // useTC, useDeform, useRGBA, isTextureClamped
 uniform vec4						u_Settings1; // useVertexAnim, useSkeletalAnim, useFog, is2D
 uniform vec4						u_Settings2; // LIGHTDEF_USE_LIGHTMAP, LIGHTDEF_USE_GLOW_BUFFER, LIGHTDEF_USE_CUBEMAP, LIGHTDEF_USE_TRIPLANAR
 uniform vec4						u_Settings3; // LIGHTDEF_USE_REGIONS, LIGHTDEF_IS_DETAIL
+uniform vec4						u_Settings6; // TREE_BRANCH_HARDINESS, TREE_BRANCH_SIZE, TREE_BRANCH_WIND_STRENGTH, 0.0
 
 #define USE_TC						u_Settings0.r
 #define USE_DEFORM					u_Settings0.g
@@ -224,6 +225,28 @@ vec4 DecodeFloatRGBA( float v ) {
 }
 
 
+const vec3							vWindDirection		= normalize(vec3(1.0, 1.0, 0.5));
+#define								fBranchHardiness	u_Settings6.r
+#define								fBranchSize			u_Settings6.g
+#define								fWindStrength		u_Settings6.b
+
+vec3 GetSway (vec3 vertPos)
+{
+	// Wind calculation stuff...
+	float fWindPower = 0.5f + sin(vertPos.x / fBranchSize + vertPos.z / fBranchSize + u_Time*(1.2f + fWindStrength / fBranchSize/*20.0f*/));
+
+	if (fWindPower < 0.0f)
+		fWindPower = fWindPower*0.2f;
+	else
+		fWindPower = fWindPower*0.3f;
+
+	fWindPower *= fWindStrength;
+
+	if (USE_VERTEX_ANIM == 1.0 || USE_SKELETAL_ANIM == 1.0)
+		return vertPos + vWindDirection.xyz*fWindPower*fBranchHardiness*fBranchSize*0.125;
+	else
+		return vertPos + vWindDirection.xyz*fWindPower*fBranchHardiness*fBranchSize;
+}
 
 #define HASHSCALE1 .1031
 
@@ -582,6 +605,11 @@ void main()
 	{
 		position  = attr_Position;
 		normal    = attr_Normal * 2.0 - 1.0;
+	}
+
+	if (SHADER_SWAY > 0.0)
+	{// Sway...
+		position.xyz = GetSway(position.xyz);
 	}
 
 	if (SHADER_MATERIAL_TYPE == MATERIAL_BIRD)

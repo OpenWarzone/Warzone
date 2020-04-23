@@ -1732,9 +1732,16 @@ qboolean	MATERIAL_SPECULAR_CHANGED = qtrue;
 float		MATERIAL_SPECULAR_STRENGTHS[MATERIAL_LAST] = { 0.0 };
 float		MATERIAL_SPECULAR_REFLECTIVENESS[MATERIAL_LAST] = { 0.0 };
 
+char		MAP_REPLACE_SHADERS_ORIGINAL[16][MAX_QPATH] = { { 0 } };
+char		MAP_REPLACE_SHADERS_NEW[16][MAX_QPATH] = { { 0 } };
+
 qboolean	JKA_WEATHER_ENABLED = qfalse;
 qboolean	WZ_WEATHER_ENABLED = qfalse;
 qboolean	WZ_WEATHER_SOUND_ONLY = qfalse;
+
+float		TREE_BRANCH_HARDINESS = 0.035;
+float		TREE_BRANCH_SIZE = 128.0;
+float		TREE_BRANCH_WIND_STRENGTH = 12.0;
 
 extern float	MAP_WATER_LEVEL;
 
@@ -2318,8 +2325,14 @@ void MAPPING_LoadMapInfo(void)
 	JKA_WEATHER_ENABLED = (atoi(IniRead(mapname, "ATMOSPHERICS", "JKA_WEATHER_ENABLED", "0")) > 0) ? qtrue : qfalse;
 	WZ_WEATHER_ENABLED = (atoi(IniRead(mapname, "ATMOSPHERICS", "WZ_WEATHER_ENABLED", "0")) > 0) ? qtrue : qfalse;
 	WZ_WEATHER_SOUND_ONLY = (atoi(IniRead(mapname, "ATMOSPHERICS", "WZ_WEATHER_SOUND_ONLY", "0")) > 0) ? qtrue : qfalse;
-
 	SetupWeather(mapname);
+	
+	//
+	// Trees...
+	//
+	TREE_BRANCH_HARDINESS = atof(IniRead(mapname, "TREES", "TREE_BRANCH_HARDINESS", "0.035"));
+	TREE_BRANCH_SIZE = atof(IniRead(mapname, "TREES", "TREE_BRANCH_SIZE", "16.0"));
+	TREE_BRANCH_WIND_STRENGTH = atof(IniRead(mapname, "TREES", "TREE_BRANCH_WIND_STRENGTH", "16.0"));
 
 	//
 	// Palette...
@@ -3290,6 +3303,17 @@ void MAPPING_LoadMapInfo(void)
 				//ri->Printf(PRINT_ALL, "No waterHeightMap was found.\n");
 				tr.waterHeightMapImage = tr.blackImage;
 			}
+		}
+	}
+
+	{// Load all shader replacements from mapinfo...
+		for (int i = 0; i < 16; i++)
+		{
+			memset(MAP_REPLACE_SHADERS_ORIGINAL[i], 0, sizeof(MAP_REPLACE_SHADERS_ORIGINAL[i]));
+			strcpy(MAP_REPLACE_SHADERS_ORIGINAL[i], IniRead(mapname, "REPLACE_SHADERS", va("repalceShaderOriginal%i", i), ""));
+
+			memset(MAP_REPLACE_SHADERS_NEW[i], 0, sizeof(MAP_REPLACE_SHADERS_NEW[i]));
+			strcpy(MAP_REPLACE_SHADERS_NEW[i], IniRead(mapname, "REPLACE_SHADERS", va("repalceShaderNew%i", i), ""));
 		}
 	}
 

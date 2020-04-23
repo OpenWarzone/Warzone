@@ -70,17 +70,17 @@ vec2 sampleOffset = vec2(1.0/u_Dimensions);
 #if defined(FAST_DOF)
 
 #define iMatsoDOFBokehQuality	4		// [1 to 10] Blur quality as control value over tap count.
-#define DOF_BLURRADIUS 			12.0
+#define DOF_BLURRADIUS 			4.0//12.0
 
 #elif defined(MEDIUM_DOF)
 
 #define iMatsoDOFBokehQuality	6		// [1 to 10] Blur quality as control value over tap count.
-#define DOF_BLURRADIUS 			12.0
+#define DOF_BLURRADIUS 			5.0//12.0
 
 #else //defined(HIGH_DOF)
 
 #define iMatsoDOFBokehQuality	10		// [1 to 10] Blur quality as control value over tap count.
-#define DOF_BLURRADIUS 			12.0
+#define DOF_BLURRADIUS 			6.0
 
 #endif //defined(HIGH_DOF)
 
@@ -114,7 +114,7 @@ vec4 GetMatsoDOFBlur(int axis, vec2 coord, sampler2D SamplerHDRX)
 	}
 	else
 	{
-		depthDiff = pow(depthDiff, 0.75);
+		depthDiff = clamp(pow(depthDiff, 0.75), 0.0, 1.0);
 	}
 
 	// Always use a tiny bit of blur.

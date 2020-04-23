@@ -1633,7 +1633,7 @@ void TryUse( gentity_t *ent )
 		return;
 	}
 
-	if (ent->s.number < MAX_CLIENTS && ent->client && ent->client->ps.m_iVehicleNum)
+	if ((ent->s.number < MAX_CLIENTS || (ent->s.eType == ET_NPC && (ent->s.NPC_class == CLASS_STORMTROOPER_ATST_PILOT || ent->s.NPC_class == CLASS_STORMTROOPER_ATAT_PILOT))) && ent->client && ent->client->ps.m_iVehicleNum)
 	{
 		gentity_t *currentVeh = &g_entities[ent->client->ps.m_iVehicleNum];
 		if (currentVeh->inuse && currentVeh->m_pVehicle)

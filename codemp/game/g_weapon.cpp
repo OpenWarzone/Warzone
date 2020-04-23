@@ -5256,8 +5256,63 @@ void WP_VehWeapSetSolidToOwner(gentity_t *self)
 }
 
 #define VEH_HOMING_MISSILE_THINK_TIME		100
-gentity_t *WP_FireVehicleWeapon(gentity_t *ent, vec3_t start, vec3_t dir, vehWeaponInfo_t *vehWeapon, qboolean alt_fire, qboolean isTurretWeap)
+gentity_t *WP_FireVehicleWeapon(gentity_t *ent, vec3_t start, vec3_t shotDir, vehWeaponInfo_t *vehWeapon, qboolean alt_fire, qboolean isTurretWeap)
 {
+	// Add some aim randomness...
+	vec3_t dir;
+	VectorCopy(shotDir, dir);
+	dir[0] += 0.015 * (random() * 2.0 - 1.0);
+	dir[1] += 0.015 * (random() * 2.0 - 1.0);
+	dir[2] += 0.015 * (random() * 2.0 - 1.0);
+	VectorNormalize(dir);
+
+	int scale = 2;
+
+	if (ent->s.NPC_class == CLASS_STORMTROOPER_ATAT_PILOT)
+		scale = 3;
+
+#if 1
+	// Use 3D bolt system, screw old buggy vehicle weapon shaders...
+	gentity_t	*missile;
+	int i;
+
+	missile = CreateMissile(start, dir, vehWeapon->fSpeed, 10000, ent, qtrue);
+
+	missile->classname = "bowcaster_alt_proj";
+	missile->s.weapon = ent->s.weapon;
+
+	VectorSet(missile->r.maxs, BOWCASTER_SIZE * scale, BOWCASTER_SIZE * scale, BOWCASTER_SIZE * scale);
+	VectorScale(missile->r.maxs, -1, missile->r.mins);
+
+	missile->damage = vehWeapon->iDamage;
+	missile->dflags = DAMAGE_DEATH_KNOCKBACK;
+	missile->methodOfDeath = MOD_BOWCASTER;
+	missile->clipmask = MASK_SHOT | CONTENTS_LIGHTSABER;
+	missile->s.temporaryWeapon = ITEM_CRYSTAL_RED;
+	missile->s.iModelScale = 100 * scale;
+
+	// do we want it to bounce?
+	missile->bounceCount = 0;
+
+	// Splash damage...
+	missile->splashDamage = missile->damage;
+	missile->splashRadius = 64 * scale;
+
+
+	//pilot should own this projectile on server if we have a pilot
+	if (ent->m_pVehicle && ent->m_pVehicle->m_pPilot)
+	{//owned by vehicle pilot
+		missile->r.ownerNum = ent->m_pVehicle->m_pPilot->s.number;
+		missile->parent = &g_entities[ent->m_pVehicle->m_pPilot->s.number];
+	}
+	else
+	{//owned by vehicle?
+		missile->r.ownerNum = ent->s.number;
+		missile->parent = ent;
+	}
+
+	return missile;
+#else
 	gentity_t	*missile = NULL;
 
 	//FIXME: add some randomness...?  Inherent inaccuracy stat of weapon?  Pilot skill?
@@ -5470,6 +5525,7 @@ gentity_t *WP_FireVehicleWeapon(gentity_t *ent, vec3_t start, vec3_t dir, vehWea
 	}
 
 	return missile;
+#endif
 }
 
 //custom routine to not waste tempents horribly -rww

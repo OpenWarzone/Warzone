@@ -114,6 +114,11 @@ void FX_WeaponProjectileThink(centity_t *cent, const struct weaponInfo_s *weapon
 		break;
 	}
 
+	if (weapon == &cg_weapons[WP_TURRET])
+	{
+		bolt3D = cgs.media.redBlasterShot;
+	}
+
 #ifdef __SEND_FULL_WEAPON_INFO_WITH_BOLT__
 	// Also grab all the original weapon info...
 	inventoryItem *gun = BG_GetInventoryItemByID(cent->currentState.boneIndex1);
@@ -130,7 +135,10 @@ void FX_WeaponProjectileThink(centity_t *cent, const struct weaponInfo_s *weapon
 			FX_WeaponBolt3D(cent->lerpOrigin, forward, 1.0f / 16.47f, 1.0f, bolt3D, qtrue);
 			break;
 		default:
-			FX_WeaponBolt3D(cent->lerpOrigin, forward, 1.0f, 1.0f, bolt3D, qtrue);
+			if (cent->currentState.iModelScale > 0)
+				FX_WeaponBolt3D(cent->lerpOrigin, forward, float(cent->currentState.iModelScale) / 100.0f, float(cent->currentState.iModelScale) / 100.0f, bolt3D, qtrue);
+			else
+				FX_WeaponBolt3D(cent->lerpOrigin, forward, 1.0f, 1.0f, bolt3D, qtrue);
 			break;
 		}
 	}
@@ -189,6 +197,11 @@ void FX_WeaponAltProjectileThink(centity_t *cent, const struct weaponInfo_s *wea
 		break;
 	}
 
+	if (weapon == &cg_weapons[WP_TURRET])
+	{
+		bolt3D = cgs.media.redBlasterShot;
+	}
+
 #ifdef __SEND_FULL_WEAPON_INFO_WITH_BOLT__
 	// Also grab all the original weapon info...
 	inventoryItem *gun = BG_GetInventoryItemByID(cent->currentState.boneIndex1);
@@ -205,7 +218,10 @@ void FX_WeaponAltProjectileThink(centity_t *cent, const struct weaponInfo_s *wea
 			FX_WeaponBolt3D(cent->lerpOrigin, forward, 1.25f / 16.47f, 1.25f, bolt3D, qtrue);
 			break;
 		default:
-			FX_WeaponBolt3D(cent->lerpOrigin, forward, 1.25f, 1.25f, bolt3D, qtrue);
+			if (cent->currentState.iModelScale > 0)
+				FX_WeaponBolt3D(cent->lerpOrigin, forward, float(cent->currentState.iModelScale) / 100.0f, float(cent->currentState.iModelScale) / 100.0f, bolt3D, qtrue);
+			else
+				FX_WeaponBolt3D(cent->lerpOrigin, forward, 1.25f, 1.25f, bolt3D, qtrue);
 			break;
 		}
 	}

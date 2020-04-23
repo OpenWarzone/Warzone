@@ -510,7 +510,10 @@ void NPC_StormtrooperFindConversationPartner(gentity_t *aiEnt)
 #ifdef __NPC_CONVERSATIONS__
 	gentity_t	*NPC = aiEnt;
 
-	if (NPC->client->NPC_class != CLASS_STORMTROOPER && NPC->client->NPC_class != CLASS_STORMTROOPER_ADVANCED) return;
+	if (NPC->client->NPC_class != CLASS_STORMTROOPER
+		&& NPC->client->NPC_class != CLASS_STORMTROOPER_ADVANCED 
+		&& NPC->client->NPC_class != CLASS_STORMTROOPER_ATST_PILOT
+		&& NPC->client->NPC_class != CLASS_STORMTROOPER_ATAT_PILOT) return;
 
 	//if (VectorLength(NPC->client->ps.velocity) <= 16)
 	{// I'm not mooving... Conversaion possible...
@@ -527,7 +530,11 @@ void NPC_StormtrooperFindConversationPartner(gentity_t *aiEnt)
 			if (partner->s.eType != ET_NPC) continue;
 			if (!partner->client) continue;
 			if (!partner->NPC) continue;
-			if (partner->client->NPC_class != CLASS_STORMTROOPER && partner->client->NPC_class != CLASS_STORMTROOPER_ADVANCED) continue;
+			if (partner->client->NPC_class != CLASS_STORMTROOPER 
+				&& partner->client->NPC_class != CLASS_STORMTROOPER_ADVANCED 
+				&& partner->client->NPC_class != CLASS_STORMTROOPER_ATST_PILOT
+				&& partner->client->NPC_class != CLASS_STORMTROOPER_ATAT_PILOT)
+				continue;
 			if (partner->NPC->conversationPartner || partner->NPC->conversationReplyTime > level.time)
 #ifdef __SHORT_STORMIE_CONVOS__
 				// Short convos only play one section... So we should be able to use more at a time (and closer together)...
@@ -547,7 +554,11 @@ void NPC_StormtrooperFindConversationPartner(gentity_t *aiEnt)
 			if (partner == NPC) continue;
 			if (partner->s.eType != ET_NPC) continue;
 			if (!partner->client) continue;
-			if (partner->client->NPC_class != CLASS_STORMTROOPER && partner->client->NPC_class != CLASS_STORMTROOPER_ADVANCED) continue;
+			if (partner->client->NPC_class != CLASS_STORMTROOPER 
+				&& partner->client->NPC_class != CLASS_STORMTROOPER_ADVANCED 
+				&& partner->client->NPC_class != CLASS_STORMTROOPER_ATST_PILOT
+				&& partner->client->NPC_class != CLASS_STORMTROOPER_ATAT_PILOT)
+				continue;
 			if (VectorLength(partner->client->ps.velocity) > 16 && Distance(partner->r.currentOrigin, NPC->r.currentOrigin) > 96) continue;
 			if (!partner->NPC) continue;
 
@@ -722,7 +733,10 @@ void NPC_NPCConversation(gentity_t *aiEnt)
 //	vec3_t			origin, angles;
 	char			filename[256];
 
-	if (NPC->client->NPC_class == CLASS_STORMTROOPER || NPC->client->NPC_class == CLASS_STORMTROOPER_ADVANCED)
+	if (NPC->client->NPC_class == CLASS_STORMTROOPER 
+		|| NPC->client->NPC_class == CLASS_STORMTROOPER_ADVANCED 
+		|| NPC->client->NPC_class == CLASS_STORMTROOPER_ATST_PILOT 
+		|| NPC->client->NPC_class == CLASS_STORMTROOPER_ATAT_PILOT)
 	{
 		NPC_StormTrooperConversation(aiEnt);
 		return;
@@ -776,7 +790,10 @@ void NPC_FindConversationPartner(gentity_t *aiEnt)
 
 	NPC->NPC->conversationSearchTime = level.time + 5000 + irand(0, 10000);
 
-	if (NPC->client->NPC_class == CLASS_STORMTROOPER || NPC->client->NPC_class == CLASS_STORMTROOPER_ADVANCED)
+	if (NPC->client->NPC_class == CLASS_STORMTROOPER 
+		|| NPC->client->NPC_class == CLASS_STORMTROOPER_ADVANCED 
+		|| NPC->client->NPC_class == CLASS_STORMTROOPER_ATST_PILOT
+		|| NPC->client->NPC_class == CLASS_STORMTROOPER_ATAT_PILOT)
 	{
 		NPC_StormtrooperFindConversationPartner(aiEnt);
 		return;
@@ -800,7 +817,11 @@ void NPC_FindConversationPartner(gentity_t *aiEnt)
 			if (partner->s.eType != ET_NPC) continue;
 			if (!partner->client) continue;
 			if (!partner->NPC) continue;
-			if (partner->client->NPC_class == CLASS_STORMTROOPER || partner->client->NPC_class == CLASS_STORMTROOPER_ADVANCED) continue;
+			if (partner->client->NPC_class == CLASS_STORMTROOPER 
+				|| partner->client->NPC_class == CLASS_STORMTROOPER_ADVANCED 
+				|| partner->client->NPC_class == CLASS_STORMTROOPER_ATST_PILOT
+				|| partner->client->NPC_class == CLASS_STORMTROOPER_ATAT_PILOT)
+				continue;
 			if (partner->client->NPC_class == NPC->client->NPC_class) continue;
 			//if (!Q_stricmpn(partner->NPC_type, NPC->NPC_type, strlen(partner->NPC_type)-1)) continue; // never talk to the same race... (they would repeat eachother)
 			if (partner->NPC->conversationPartner || partner->NPC->conversationReplyTime > level.time)
@@ -817,7 +838,11 @@ void NPC_FindConversationPartner(gentity_t *aiEnt)
 			if (partner->s.eType != ET_NPC) continue;
 			if (!partner->client) continue;
 			if (!partner->NPC) continue;
-			if (partner->client->NPC_class == CLASS_STORMTROOPER || partner->client->NPC_class == CLASS_STORMTROOPER_ADVANCED) continue;
+			if (partner->client->NPC_class == CLASS_STORMTROOPER 
+				|| partner->client->NPC_class == CLASS_STORMTROOPER_ADVANCED 
+				|| partner->client->NPC_class == CLASS_STORMTROOPER_ATST_PILOT
+				|| partner->client->NPC_class == CLASS_STORMTROOPER_ATAT_PILOT)
+				continue;
 			if (partner->client->NPC_class == NPC->client->NPC_class) continue;
 			//if (!Q_stricmpn(partner->NPC_type, NPC->NPC_type, strlen(partner->NPC_type)-1)) continue; // never talk to the same race... (they would repeat eachother)
 			if (VectorLength(partner->client->ps.velocity) > 16 && Distance(partner->r.currentOrigin, NPC->r.currentOrigin) > 96) continue;

@@ -4143,6 +4143,10 @@ void CG_DrawEnemyStatus( void )
 			case CLASS_STORMTROOPER_ADVANCED:
 				sprintf(str1, "TA-%i", crosshairEnt->currentState.NPC_NAME_ID);	// EVIL. for a number of reasons --eez
 				break;
+			case CLASS_STORMTROOPER_ATAT_PILOT:
+			case CLASS_STORMTROOPER_ATST_PILOT:
+				sprintf(str1, "TA-%i", crosshairEnt->currentState.NPC_NAME_ID);	// EVIL. for a number of reasons --eez
+				break;
 			case CLASS_STORMTROOPER:
 				sprintf(str1, "TK-%i", crosshairEnt->currentState.NPC_NAME_ID);	// EVIL. for a number of reasons --eez
 				break;
@@ -4447,6 +4451,8 @@ void CG_DrawEnemyStatus( void )
 			break;
 		case CLASS_STORMTROOPER:
 		case CLASS_STORMTROOPER_ADVANCED:
+		case CLASS_STORMTROOPER_ATST_PILOT:
+		case CLASS_STORMTROOPER_ATAT_PILOT:
 		case CLASS_SWAMPTROOPER:
 		case CLASS_IMPWORKER:
 		case CLASS_IMPERIAL:
@@ -8662,6 +8668,8 @@ void CG_DrawNPCNames( void )
 				break;
 			case CLASS_STORMTROOPER:
 			case CLASS_STORMTROOPER_ADVANCED:
+			case CLASS_STORMTROOPER_ATST_PILOT:
+			case CLASS_STORMTROOPER_ATAT_PILOT:
 			case CLASS_SWAMPTROOPER:
 			case CLASS_IMPWORKER:
 			case CLASS_IMPERIAL:
@@ -8948,6 +8956,10 @@ void CG_DrawNPCNames( void )
 					sprintf(str1, "PT-%i", cent->currentState.NPC_NAME_ID);	// EVIL. for a number of reasons --eez
 					break;
 				case CLASS_STORMTROOPER_ADVANCED:
+					sprintf(str1, "TA-%i", cent->currentState.NPC_NAME_ID);	// EVIL. for a number of reasons --eez
+					break;
+				case CLASS_STORMTROOPER_ATST_PILOT:
+				case CLASS_STORMTROOPER_ATAT_PILOT:
 					sprintf(str1, "TA-%i", cent->currentState.NPC_NAME_ID);	// EVIL. for a number of reasons --eez
 					break;
 				case CLASS_STORMTROOPER:

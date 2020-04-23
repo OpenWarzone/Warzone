@@ -447,21 +447,23 @@ qboolean NPC_PatrolArea(gentity_t *aiEnt)
 
 			if (UQ1_UcmdMoveForDir(NPC, ucmd, NPC->movedir, walk, NPC->client->navigation.nav.lookPos))
 			{
-				if (NavlibJump(NPC) || NPC->last_move_time < level.time - 2000)
+				/*if (NavlibJump(NPC) || NPC->last_move_time < level.time - 2000) // FIXME: Seems to always trigger...
 				{
 					ucmd->upmove = 127;
+					trap->Print("DEBUG: NavlibJump\n");
 
 					if (NPC->s.eType == ET_PLAYER)
 					{
 						trap->EA_Jump(NPC->s.number);
 					}
-				}
+				}*/
 
 				return qtrue;
 			}
 			else if (NPC->bot_strafe_jump_timer > level.time)
 			{
 				ucmd->upmove = 127;
+				//trap->Print("DEBUG: bot_strafe_jump_timer\n");
 
 				if (NPC->s.eType == ET_PLAYER)
 				{
@@ -479,7 +481,7 @@ qboolean NPC_PatrolArea(gentity_t *aiEnt)
 				trap->EA_MoveRight(NPC->s.number);
 			}
 
-			if (NPC->last_move_time < level.time - 2000)
+			/*if (NPC->last_move_time < level.time - 2000)
 			{
 				ucmd->upmove = 127;
 
@@ -487,7 +489,7 @@ qboolean NPC_PatrolArea(gentity_t *aiEnt)
 				{
 					trap->EA_Jump(NPC->s.number);
 				}
-			}
+			}*/
 #endif //__USE_NAVLIB_INTERNAL_MOVEMENT__
 			return qtrue;
 		}
@@ -690,7 +692,7 @@ qboolean NPC_PatrolArea(gentity_t *aiEnt)
 		return qtrue;
 	}
 
-	if (VectorLength(NPC->client->ps.velocity) < 8 && NPC_RoutingJumpWaypoint(NPC->wpLast, NPC->wpCurrent))
+	if (NPC->wpCurrent >= 0 && NPC->wpCurrent < gWPNum && VectorLength(NPC->client->ps.velocity) < 8 && NPC_RoutingJumpWaypoint(NPC->wpLast, NPC->wpCurrent))
 	{// We need to jump to get to this waypoint...
 		if (NPC_Jump(NPC, gWPArray[NPC->wpCurrent]->origin))
 		{
@@ -699,7 +701,7 @@ qboolean NPC_PatrolArea(gentity_t *aiEnt)
 			return qtrue;
 		}
 	}
-	else if (VectorLength(NPC->client->ps.velocity) < 8)
+	else if (NPC->wpCurrent >= 0 && NPC->wpCurrent < gWPNum && VectorLength(NPC->client->ps.velocity) < 8)
 	{// If this is a new waypoint, we may need to jump to it...
 		NPC_NewWaypointJump(aiEnt);
 	}

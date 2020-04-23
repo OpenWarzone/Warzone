@@ -237,6 +237,8 @@ PAIN_FUNC *NPC_PainFunc( gentity_t *ent )
 		// troopers get special pain
 		case CLASS_STORMTROOPER:
 		case CLASS_STORMTROOPER_ADVANCED:
+		case CLASS_STORMTROOPER_ATST_PILOT:
+		case CLASS_STORMTROOPER_ATAT_PILOT:
 		case CLASS_SWAMPTROOPER:
 			func = NPC_ST_Pain;
 			break;
@@ -1208,6 +1210,8 @@ void NPC_Begin (gentity_t *ent)
 	}
 	else if ( ent->client->NPC_class == CLASS_STORMTROOPER
 		|| ent->client->NPC_class == CLASS_STORMTROOPER_ADVANCED
+		|| ent->client->NPC_class == CLASS_STORMTROOPER_ATST_PILOT
+		|| ent->client->NPC_class == CLASS_STORMTROOPER_ATAT_PILOT
 		|| ent->client->NPC_class == CLASS_SWAMPTROOPER
 		|| ent->client->NPC_class == CLASS_IMPWORKER
 		|| !Q_stricmp( "rodian2", ent->NPC_type ) )
@@ -1639,6 +1643,8 @@ void NPC_Begin (gentity_t *ent)
 			strcpy(ent->client->pers.netname, va("PT-%i", ent->s.NPC_NAME_ID));
 			break;
 		case CLASS_STORMTROOPER_ADVANCED:
+		case CLASS_STORMTROOPER_ATST_PILOT:
+		case CLASS_STORMTROOPER_ATAT_PILOT:
 			ent->s.NPC_NAME_ID = irand(100, 999);
 			strcpy(ent->client->pers.netname, va("TA-%i", ent->s.NPC_NAME_ID));
 			break;
@@ -2269,6 +2275,56 @@ finish:
 	{
 		// Add a random RNG weapon to the npc, a saber or a weapon based on type of npc...
 		BG_CreateRandomNPCInventory(newent);
+	}
+
+	if (newent->s.NPC_class == CLASS_STORMTROOPER_ATST_PILOT || newent->s.NPC_class == CLASS_STORMTROOPER_ATAT_PILOT)
+	{// Spawn his vehicle, and place him in it...
+		gentity_t *myVehicle = G_Spawn();
+		
+		VectorCopy(newent->s.origin, myVehicle->s.origin);
+		if (newent->s.NPC_class == CLASS_STORMTROOPER_ATAT_PILOT)
+			myVehicle->NPC_type = "atat";
+		else
+			myVehicle->NPC_type = "atst_vehicle";
+		myVehicle->s.teamowner = ent->s.teamowner;
+		myVehicle->s.angles[PITCH] = 0;
+		myVehicle->s.angles[YAW] = 0;// irand(0, 359);
+		myVehicle->s.angles[ROLL] = 0;
+		myVehicle->team = NULL;
+		myVehicle->s.eType = ET_NPC_SPAWNER;
+		myVehicle->spawnArea = ent->spawnArea;
+		myVehicle->classname = "NPC_Vehicle";
+		
+		G_SetAngles(myVehicle, myVehicle->s.angles);
+
+		//myVehicle->spawnflags |= NSF_DROP_TO_FLOOR;
+		trace_t		tr;
+		vec3_t		bottom;
+
+		VectorCopy(myVehicle->s.origin, saveOrg);
+		VectorCopy(myVehicle->s.origin, bottom);
+		bottom[2] = MIN_WORLD_COORD;
+		trap->Trace(&tr, myVehicle->s.origin, NULL/*myVehicle->r.mins*/, NULL/*myVehicle->r.maxs*/, bottom, myVehicle->s.number, MASK_SOLID, qfalse, 0, 0);
+		if (!tr.allsolid && !tr.startsolid && tr.fraction < 1.0)
+		{
+			vec3_t neworg;
+			VectorCopy(tr.endpos, neworg);
+			neworg[2] += 25.0;
+			G_SetOrigin(myVehicle, neworg);
+			VectorCopy(neworg, myVehicle->s.origin);
+		}
+
+		gentity_t *ATST = NPC_Spawn_Do(myVehicle);
+
+		if (ATST != NULL)
+		{
+			Vehicle_t *pVeh = ATST->m_pVehicle;
+			pVeh->m_pVehicleInfo->Board(pVeh, (bgEntity_t *)newent);
+			pVeh->m_pVehicleInfo->SetPilot(pVeh, (bgEntity_t *)newent);
+			//trap->Print("NPC %i boarded ATST %i.\n", newent->s.number, ATST->s.number);
+		}
+
+		G_FreeEntity(myVehicle); // Don't need the spawner any more...
 	}
 
 	return newent;

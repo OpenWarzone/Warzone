@@ -2,6 +2,7 @@
 #define SCREEN_MAPS_LEAFS_THRESHOLD 0.001
 //#define SCREEN_MAPS_LEAFS_THRESHOLD 0.9
 
+
 #if defined(USE_BINDLESS_TEXTURES)
 layout(std140) uniform u_bindlessTexturesBlock
 {
@@ -54,6 +55,7 @@ uniform vec4						u_Settings1; // useVertexAnim, useSkeletalAnim, blendMode, is2
 uniform vec4						u_Settings2; // LIGHTDEF_USE_LIGHTMAP, LIGHTDEF_USE_GLOW_BUFFER, LIGHTDEF_USE_CUBEMAP, LIGHTDEF_USE_TRIPLANAR
 uniform vec4						u_Settings3; // LIGHTDEF_USE_REGIONS, LIGHTDEF_IS_DETAIL, 0=DetailMapNormal 1=detailMapFromTC 2=detailMapFromWorld, 0.0
 uniform vec4						u_Settings4; // MAP_LIGHTMAP_MULTIPLIER, MAP_LIGHTMAP_ENHANCEMENT, hasAlphaTestBits, 0.0
+uniform vec4						u_Settings6; // TREE_BRANCH_HARDINESS, TREE_BRANCH_SIZE, TREE_BRANCH_WIND_STRENGTH, 0.0
 
 #define USE_TC						u_Settings0.r
 #define USE_DEFORM					u_Settings0.g
@@ -109,6 +111,16 @@ uniform vec4						u_Local9; // testvalue0, 1, 2, 3
 #define LEAF_ALPHA_MULTIPLIER		u_Local5.a
 
 
+
+// TODO: Make mapinfo setting???
+//#define LEAF_ALPHA_RANGE_LODS_ON_OTHERS
+#define LEAF_ALPHA_RANGE				32768.0
+#define LEAF_ALPHA_RANGE_MIN_LOD		1.0
+#define LEAF_ALPHA_RANGE_MAX_LOD		16.0
+
+
+
+
 #if defined(USE_TESSELLATION) || defined(USE_TESSELLATION_3D)
 in  vec3							WorldPos_FS_in;
 in  vec2							TexCoord_FS_in;
@@ -131,26 +143,6 @@ uniform float						u_Time;
 uniform float						u_zFar;
 
 
-const float							fBranchHardiness = 0.001;
-const float							fBranchSize = 128.0;
-const float							fWindStrength = 12.0;
-const vec3							vWindDirection = normalize(vec3(1.0, 1.0, 0.0));
-
-vec2 GetSway ()
-{
-	// Wind calculation stuff...
-	float fWindPower = 0.5f + sin(var_VertPos.x / fBranchSize + var_VertPos.z / fBranchSize + u_Time*(1.2f + fWindStrength / fBranchSize/*20.0f*/));
-
-	if (fWindPower < 0.0f)
-		fWindPower = fWindPower*0.2f;
-	else
-		fWindPower = fWindPower*0.3f;
-
-	fWindPower *= fWindStrength;
-
-	return vWindDirection.xy*fWindPower*fBranchHardiness;
-}
-
 void main()
 {
 	if (USE_TRIPLANAR > 0.0 || USE_REGIONS > 0.0 || HAS_ALPHA_BITS <= 0.0)
@@ -160,11 +152,6 @@ void main()
 	else
 	{
 		vec2 texCoords = var_TexCoords;
-
-		if (SHADER_SWAY > 0.0)
-		{// Sway...
-			texCoords += vec2(GetSway());
-		}
 
 		if (SHADER_MATERIAL_TYPE == MATERIAL_GREENLEAVES)
 		{
@@ -176,16 +163,16 @@ void main()
 			gl_FragColor = vec4(1.0, 1.0, 1.0, texture(u_DiffuseMap, texCoords).a * var_Color.a);
 		}
 
+#ifndef LEAF_ALPHA_RANGE_LODS_ON_OTHERS
 		if (SHADER_MATERIAL_TYPE == MATERIAL_GREENLEAVES)
+#endif //LEAF_ALPHA_RANGE_LODS_ON_OTHERS
 		{// Amp up alphas on tree leafs, etc, so they draw at range instead of being blurred out...
 			float leafDistanceAlphaMod = 1.0;
 			float dist = distance(var_VertPos.xyz, u_ViewOrigin.xyz);
 
-			if (dist > 16384.0 && gl_FragColor.a < 1.0)
+			if (dist > LEAF_ALPHA_RANGE && gl_FragColor.a < 1.0)
 			{// Try to fill out distant tree leafs, so they puff out and take up more pixels in the background. To both block vis better, and also make trees look less crappy...
-				float leafDistanceAlphaMod = 1.0;
-
-				float lod = mix(2.0, 16.0, clamp((dist-16384.0) / u_zFar, 0.0, 1.0));
+				float lod = mix(LEAF_ALPHA_RANGE_MIN_LOD, LEAF_ALPHA_RANGE_MAX_LOD, clamp((dist-LEAF_ALPHA_RANGE) / u_zFar, 0.0, 1.0));
 				vec4 lodColor = textureLod(u_DiffuseMap, texCoords, lod);
 				float best = gl_FragColor.a > lodColor.a ? 0.0 : 1.0;
 				gl_FragColor = mix(gl_FragColor, lodColor, best);

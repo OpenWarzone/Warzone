@@ -1425,11 +1425,11 @@ void main()
 			vec3 atmos = extra_cheap_atmosphere(skyViewDir, skyViewDir2, skySunDir, sunColorMod);
 
 #ifdef _BACKGROUND_HILLS_
-			if (!ENABLE_TERRAIN || SHADER_SKY_DIRECTION == 5.0 && SHADER_DAY_NIGHT_ENABLED > 0.0 && SHADER_NIGHT_SCALE >= 1.0)
+			if ((!ENABLE_TERRAIN || SHADER_SKY_DIRECTION == 5.0) && SHADER_DAY_NIGHT_ENABLED > 0.0 && SHADER_NIGHT_SCALE >= 1.0)
 			{// At night, just do a black lower sky side...
 				terrainColor = vec4(0.0, 0.0, 0.0, 1.0);
 			}
-			else if (SHADER_SKY_DIRECTION != 4.0 && SHADER_SKY_DIRECTION != 5.0)
+			else if (SHADER_SKY_DIRECTION != 4.0 && SHADER_SKY_DIRECTION != 5.0 && PROCEDURAL_BACKGROUND_HILLS_ENABLED > 0.0)
 			{
 				terrainColor.rgb = mix(atmos, vec3(0.1), clamp(SHADER_NIGHT_SCALE * 2.0, 0.0, 1.0));
 				terrainColor.a = 0.0;

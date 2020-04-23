@@ -2298,6 +2298,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		if (r_foliage->integer
 			&& r_foliageShadows->integer
 			&& GRASS_PATCHES_ENABLED
+			&& r_foliageQuality->value > 0.0
 			&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
 			&& (RB_ShouldUseGeometryGrassPatches(tess.shader->materialType)))
 		{
@@ -2310,6 +2311,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		if (r_foliage->integer
 			&& r_foliageShadows->integer
 			&& GRASS_ENABLED
+			&& r_foliageQuality->value > 0.0
 			&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
 			&& (tess.shader->isGrass || RB_ShouldUseGeometryGrass(tess.shader->materialType)))
 		{
@@ -2324,6 +2326,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		if (r_foliage->integer
 			&& r_foliageShadows->integer
 			&& GRASS2_ENABLED
+			&& r_foliageQuality->value > 0.0
 			&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
 			&& RB_ShouldUseGeometryGrass2(tess.shader->materialType))
 		{
@@ -2336,6 +2339,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		if (r_foliage->integer
 			&& r_foliageShadows->integer
 			&& GRASS3_ENABLED
+			&& r_foliageQuality->value > 0.0
 			&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
 			&& RB_ShouldUseGeometryGrass3(tess.shader->materialType))
 		{
@@ -2348,6 +2352,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		if (r_foliage->integer
 			&& r_foliageShadows->integer
 			&& GRASS4_ENABLED
+			&& r_foliageQuality->value > 0.0
 			&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
 			&& RB_ShouldUseGeometryGrass4(tess.shader->materialType))
 		{
@@ -2360,6 +2365,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		if (r_foliage->integer
 			&& r_foliageShadows->integer
 			&& FOLIAGE_ENABLED
+			&& r_foliageQuality->value > 0.0
 			&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
 			&& (tess.shader->isGroundFoliage || RB_ShouldUseGeometryFoliage(tess.shader->materialType)))
 		{
@@ -2397,6 +2403,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		if (r_foliage->integer
 			&& r_foliageShadows->integer
 			&& GRASS_PATCHES_ENABLED
+			&& r_foliageQuality->value > 0.0
 			&& ((tr.viewParms.flags & VPF_DEPTHSHADOW) || (tr.viewParms.flags & VPF_SHADOWPASS))
 			&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
 			&& (RB_ShouldUseGeometryGrassPatches(tess.shader->materialType)))
@@ -2407,6 +2414,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		if (r_foliage->integer
 			&& r_foliageShadows->integer
 			&& GRASS_ENABLED
+			&& r_foliageQuality->value > 0.0
 			&& ((tr.viewParms.flags & VPF_DEPTHSHADOW) || (tr.viewParms.flags & VPF_SHADOWPASS))
 			&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
 			&& (tess.shader->isGrass || RB_ShouldUseGeometryGrass(tess.shader->materialType)))
@@ -2418,6 +2426,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		if (r_foliage->integer
 			&& r_foliageShadows->integer
 			&& GRASS2_ENABLED
+			&& r_foliageQuality->value > 0.0
 			&& ((tr.viewParms.flags & VPF_DEPTHSHADOW) || (tr.viewParms.flags & VPF_SHADOWPASS))
 			&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
 			&& RB_ShouldUseGeometryGrass2(tess.shader->materialType))
@@ -2428,6 +2437,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		if (r_foliage->integer
 			&& r_foliageShadows->integer
 			&& GRASS3_ENABLED
+			&& r_foliageQuality->value > 0.0
 			&& ((tr.viewParms.flags & VPF_DEPTHSHADOW) || (tr.viewParms.flags & VPF_SHADOWPASS))
 			&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
 			&& RB_ShouldUseGeometryGrass3(tess.shader->materialType))
@@ -2438,6 +2448,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		if (r_foliage->integer
 			&& r_foliageShadows->integer
 			&& GRASS4_ENABLED
+			&& r_foliageQuality->value > 0.0
 			&& ((tr.viewParms.flags & VPF_DEPTHSHADOW) || (tr.viewParms.flags & VPF_SHADOWPASS))
 			&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
 			&& RB_ShouldUseGeometryGrass4(tess.shader->materialType))
@@ -2448,6 +2459,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		if (r_foliage->integer
 			&& r_foliageShadows->integer
 			&& FOLIAGE_ENABLED
+			&& r_foliageQuality->value > 0.0
 			&& ((tr.viewParms.flags & VPF_DEPTHSHADOW) || (tr.viewParms.flags & VPF_SHADOWPASS))
 			&& (glState.currentFBO == tr.sunShadowFbo[0] || glState.currentFBO == tr.sunShadowFbo[1])
 			&& (tess.shader->isGroundFoliage || RB_ShouldUseGeometryFoliage(tess.shader->materialType)))
@@ -2477,6 +2489,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	{
 		if (r_foliage->integer
 			&& GRASS_PATCHES_ENABLED
+			&& r_foliageQuality->value > 0.0
 			&& (RB_ShouldUseGeometryGrassPatches(tess.shader->materialType)))
 		{
 			isGrassPatches = qtrue;
@@ -2484,6 +2497,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 
 		if (r_foliage->integer
 			&& GRASS_ENABLED
+			&& r_foliageQuality->value > 0.0
 			&& (tess.shader->isGrass || RB_ShouldUseGeometryGrass(tess.shader->materialType)))
 		{
 			isGrass = qtrue;
@@ -2493,6 +2507,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 
 		if (r_foliage->integer
 			&& GRASS2_ENABLED
+			&& r_foliageQuality->value > 0.0
 			&& RB_ShouldUseGeometryGrass2(tess.shader->materialType))
 		{
 			isGrass2 = qtrue;
@@ -2500,6 +2515,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 
 		if (r_foliage->integer
 			&& GRASS3_ENABLED
+			&& r_foliageQuality->value > 0.0
 			&& RB_ShouldUseGeometryGrass3(tess.shader->materialType))
 		{
 			isGrass3 = qtrue;
@@ -2507,6 +2523,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 
 		if (r_foliage->integer
 			&& GRASS4_ENABLED
+			&& r_foliageQuality->value > 0.0
 			&& RB_ShouldUseGeometryGrass4(tess.shader->materialType))
 		{
 			isGrass4 = qtrue;
@@ -2514,6 +2531,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		
 		if (r_foliage->integer
 			&& FOLIAGE_ENABLED
+			&& r_foliageQuality->value > 0.0
 			&& (tess.shader->isGroundFoliage || RB_ShouldUseGeometryFoliage(tess.shader->materialType)))
 		{
 			isGroundFoliage = qtrue;
@@ -3663,11 +3681,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 					GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS5, vec);
 				}
 
-				VectorSet4(vec,
-					0.0,
-					0.0,
-					0.0,
-					0.0);
+				VectorSet4(vec, TREE_BRANCH_HARDINESS, TREE_BRANCH_SIZE, TREE_BRANCH_WIND_STRENGTH, 0.0);
 				GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS6, vec);
 
 				if (ignoreCull)
@@ -3847,7 +3861,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			}
 
 			vec4_t l10;
-			VectorSet4(l10, GRASS_PATCHES_DISTANCE, TERRAIN_TESS_OFFSET, GRASS_PATCHES_DENSITY, GRASS_PATCHES_TYPE_UNIFORMALITY);
+			VectorSet4(l10, GRASS_PATCHES_DISTANCE*r_foliageQuality->value, TERRAIN_TESS_OFFSET, GRASS_PATCHES_DENSITY, GRASS_PATCHES_TYPE_UNIFORMALITY);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL10, l10);
 
 			vec4_t l11;
@@ -3986,7 +4000,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			}
 
 			vec4_t l10;
-			VectorSet4(l10, GRASS_DISTANCE, TERRAIN_TESS_OFFSET, GRASS_DENSITY, GRASS_TYPE_UNIFORMALITY);
+			VectorSet4(l10, GRASS_DISTANCE*r_foliageQuality->value, TERRAIN_TESS_OFFSET, GRASS_DENSITY, GRASS_TYPE_UNIFORMALITY);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL10, l10);
 
 			vec4_t l11;
@@ -4126,7 +4140,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			}
 
 			vec4_t l10;
-			VectorSet4(l10, GRASS2_DISTANCE, TERRAIN_TESS_OFFSET, GRASS2_DENSITY, GRASS2_TYPE_UNIFORMALITY);
+			VectorSet4(l10, GRASS2_DISTANCE*r_foliageQuality->value, TERRAIN_TESS_OFFSET, GRASS2_DENSITY, GRASS2_TYPE_UNIFORMALITY);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL10, l10);
 
 			vec4_t l11;
@@ -4265,7 +4279,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			}
 
 			vec4_t l10;
-			VectorSet4(l10, GRASS3_DISTANCE, TERRAIN_TESS_OFFSET, GRASS3_DENSITY, GRASS3_TYPE_UNIFORMALITY);
+			VectorSet4(l10, GRASS3_DISTANCE*r_foliageQuality->value, TERRAIN_TESS_OFFSET, GRASS3_DENSITY, GRASS3_TYPE_UNIFORMALITY);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL10, l10);
 
 			vec4_t l11;
@@ -4404,7 +4418,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			}
 
 			vec4_t l10;
-			VectorSet4(l10, GRASS4_DISTANCE, TERRAIN_TESS_OFFSET, GRASS4_DENSITY, GRASS4_TYPE_UNIFORMALITY);
+			VectorSet4(l10, GRASS4_DISTANCE*r_foliageQuality->value, TERRAIN_TESS_OFFSET, GRASS4_DENSITY, GRASS4_TYPE_UNIFORMALITY);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL10, l10);
 
 			vec4_t l11;
@@ -4544,11 +4558,11 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			}
 
 			vec4_t l10;
-			VectorSet4(l10, FOLIAGE_DISTANCE, TERRAIN_TESS_OFFSET, FOLIAGE_DENSITY, FOLIAGE_TYPE_UNIFORMALITY);
+			VectorSet4(l10, FOLIAGE_DISTANCE*r_foliageQuality->value, TERRAIN_TESS_OFFSET, FOLIAGE_DENSITY, FOLIAGE_TYPE_UNIFORMALITY);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL10, l10);
 
 			vec4_t l11;
-			VectorSet4(l11, FOLIAGE_LOD_START_RANGE, FOLIAGE_MAX_SLOPE, FOLIAGE_TYPE_UNIFORMALITY_SCALER, 0.0);
+			VectorSet4(l11, FOLIAGE_LOD_START_RANGE*r_foliageQuality->value, FOLIAGE_MAX_SLOPE, FOLIAGE_TYPE_UNIFORMALITY_SCALER, 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL11, l11);
 
 			{
@@ -5829,31 +5843,31 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 
 			{
 				vec4_t l12;
-				VectorSet4(l12, GRASS_PATCHES_SIZE_MULTIPLIER_COMMON, GRASS_PATCHES_SIZE_MULTIPLIER_RARE, GRASS_PATCHES_CLUMP_LAYERS, GRASS_PATCHES_LOD_START_RANGE);
+				VectorSet4(l12, GRASS_PATCHES_SIZE_MULTIPLIER_COMMON, GRASS_PATCHES_SIZE_MULTIPLIER_RARE, GRASS_PATCHES_CLUMP_LAYERS, GRASS_PATCHES_LOD_START_RANGE*r_foliageQuality->value);
 				GLSL_SetUniformVec4(sp, UNIFORM_LOCAL12, l12);
 			}
 
 			if (sp->isBindless)
 			{
 				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP, &tr.whiteImage, 0);
-				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP1, (GRASS2_ENABLED && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS2_CONTROL_TEXTURE : &tr.blackImage, 0);
-				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP2, (GRASS3_ENABLED && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS3_CONTROL_TEXTURE : &tr.blackImage, 0);
-				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP3, (GRASS4_ENABLED && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS4_CONTROL_TEXTURE : &tr.blackImage, 0);
+				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP1, (GRASS2_ENABLED && r_foliageQuality->value > 0.0 && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS2_CONTROL_TEXTURE : &tr.blackImage, 0);
+				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP2, (GRASS3_ENABLED && r_foliageQuality->value > 0.0 && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS3_CONTROL_TEXTURE : &tr.blackImage, 0);
+				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP3, (GRASS4_ENABLED && r_foliageQuality->value > 0.0 && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS4_CONTROL_TEXTURE : &tr.blackImage, 0);
 			}
 			else
 			{
 				GL_BindToTMU(tr.whiteImage, TB_STEEPMAP);
-				GL_BindToTMU((GRASS2_ENABLED && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? GRASS2_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP1);
-				GL_BindToTMU((GRASS3_ENABLED && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? GRASS3_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP2);
-				GL_BindToTMU((GRASS4_ENABLED && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? GRASS4_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP3);
+				GL_BindToTMU((GRASS2_ENABLED && r_foliageQuality->value > 0.0 && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? GRASS2_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP1);
+				GL_BindToTMU((GRASS3_ENABLED && r_foliageQuality->value > 0.0 && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? GRASS3_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP2);
+				GL_BindToTMU((GRASS4_ENABLED && r_foliageQuality->value > 0.0 && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? GRASS4_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP3);
 			}
 
 			vec4_t l13;
 			VectorSet4(l13,
 				0.0,
-				(GRASS2_ENABLED && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
-				(GRASS3_ENABLED && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
-				(GRASS4_ENABLED && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0);
+				(GRASS2_ENABLED && r_foliageQuality->value > 0.0 && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
+				(GRASS3_ENABLED && r_foliageQuality->value > 0.0 && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
+				(GRASS4_ENABLED && r_foliageQuality->value > 0.0 && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL13, l13);
 		}
 		else if (isGrass && backEnd.renderPass == RENDERPASS_GRASS)
@@ -5866,31 +5880,31 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 
 			{
 				vec4_t l12;
-				VectorSet4(l12, GRASS_SIZE_MULTIPLIER_COMMON, GRASS_SIZE_MULTIPLIER_RARE, GRASS_SIZE_MULTIPLIER_UNDERWATER, GRASS_LOD_START_RANGE);
+				VectorSet4(l12, GRASS_SIZE_MULTIPLIER_COMMON, GRASS_SIZE_MULTIPLIER_RARE, GRASS_SIZE_MULTIPLIER_UNDERWATER, GRASS_LOD_START_RANGE*r_foliageQuality->value);
 				GLSL_SetUniformVec4(sp, UNIFORM_LOCAL12, l12);
 			}
 
 			if (sp->isBindless)
 			{
-				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP, (GRASS_ENABLED && GRASS_CONTROL_TEXTURE) ? &GRASS_CONTROL_TEXTURE : &tr.whiteImage, 0);
-				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP1, (GRASS2_ENABLED && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS2_CONTROL_TEXTURE : &tr.blackImage, 0);
-				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP2, (GRASS3_ENABLED && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS3_CONTROL_TEXTURE : &tr.blackImage, 0);
-				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP3, (GRASS4_ENABLED && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS4_CONTROL_TEXTURE : &tr.blackImage, 0);
+				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP, (GRASS_ENABLED && r_foliageQuality->value > 0.0 && GRASS_CONTROL_TEXTURE) ? &GRASS_CONTROL_TEXTURE : &tr.whiteImage, 0);
+				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP1, (GRASS2_ENABLED && r_foliageQuality->value > 0.0 && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS2_CONTROL_TEXTURE : &tr.blackImage, 0);
+				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP2, (GRASS3_ENABLED && r_foliageQuality->value > 0.0 && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS3_CONTROL_TEXTURE : &tr.blackImage, 0);
+				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP3, (GRASS4_ENABLED && r_foliageQuality->value > 0.0 && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS4_CONTROL_TEXTURE : &tr.blackImage, 0);
 			}
 			else
 			{
-				GL_BindToTMU((GRASS_ENABLED && GRASS_CONTROL_TEXTURE) ? GRASS_CONTROL_TEXTURE : tr.whiteImage, TB_STEEPMAP);
-				GL_BindToTMU((GRASS2_ENABLED && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? GRASS2_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP1);
-				GL_BindToTMU((GRASS3_ENABLED && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? GRASS3_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP2);
-				GL_BindToTMU((GRASS4_ENABLED && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? GRASS4_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP3);
+				GL_BindToTMU((GRASS_ENABLED && r_foliageQuality->value > 0.0 && GRASS_CONTROL_TEXTURE) ? GRASS_CONTROL_TEXTURE : tr.whiteImage, TB_STEEPMAP);
+				GL_BindToTMU((GRASS2_ENABLED && r_foliageQuality->value > 0.0 && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? GRASS2_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP1);
+				GL_BindToTMU((GRASS3_ENABLED && r_foliageQuality->value > 0.0 && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? GRASS3_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP2);
+				GL_BindToTMU((GRASS4_ENABLED && r_foliageQuality->value > 0.0 && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? GRASS4_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP3);
 			}
 
 			vec4_t l13;
 			VectorSet4(l13,
-				(GRASS_ENABLED && GRASS_CONTROL_TEXTURE && GRASS_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
-				(GRASS2_ENABLED && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
-				(GRASS3_ENABLED && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
-				(GRASS4_ENABLED && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0);
+				(GRASS_ENABLED && r_foliageQuality->value > 0.0 && GRASS_CONTROL_TEXTURE && GRASS_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
+				(GRASS2_ENABLED && r_foliageQuality->value > 0.0 && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
+				(GRASS3_ENABLED && r_foliageQuality->value > 0.0 && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
+				(GRASS4_ENABLED && r_foliageQuality->value > 0.0 && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL13, l13);
 		}
 		else if (isGrass2 && backEnd.renderPass == RENDERPASS_GRASS2)
@@ -5903,30 +5917,30 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 
 			{
 				vec4_t l12;
-				VectorSet4(l12, GRASS2_SIZE_MULTIPLIER_COMMON, GRASS2_SIZE_MULTIPLIER_RARE, GRASS2_SIZE_MULTIPLIER_UNDERWATER, GRASS2_LOD_START_RANGE);
+				VectorSet4(l12, GRASS2_SIZE_MULTIPLIER_COMMON, GRASS2_SIZE_MULTIPLIER_RARE, GRASS2_SIZE_MULTIPLIER_UNDERWATER, GRASS2_LOD_START_RANGE*r_foliageQuality->value);
 				GLSL_SetUniformVec4(sp, UNIFORM_LOCAL12, l12);
 
 				if (sp->isBindless)
 				{
-					GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP, (GRASS2_ENABLED && GRASS2_CONTROL_TEXTURE) ? &GRASS2_CONTROL_TEXTURE : &tr.whiteImage, 0);
-					GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP1, (GRASS_ENABLED && GRASS_CONTROL_TEXTURE && GRASS_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS_CONTROL_TEXTURE : &tr.blackImage, 0);
-					GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP2, (GRASS3_ENABLED && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS3_CONTROL_TEXTURE : &tr.blackImage, 0);
-					GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP3, (GRASS4_ENABLED && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS4_CONTROL_TEXTURE : &tr.blackImage, 0);
+					GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP, (GRASS2_ENABLED && r_foliageQuality->value > 0.0 && GRASS2_CONTROL_TEXTURE) ? &GRASS2_CONTROL_TEXTURE : &tr.whiteImage, 0);
+					GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP1, (GRASS_ENABLED && r_foliageQuality->value > 0.0 && GRASS_CONTROL_TEXTURE && GRASS_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS_CONTROL_TEXTURE : &tr.blackImage, 0);
+					GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP2, (GRASS3_ENABLED && r_foliageQuality->value > 0.0 && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS3_CONTROL_TEXTURE : &tr.blackImage, 0);
+					GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP3, (GRASS4_ENABLED && r_foliageQuality->value > 0.0 && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS4_CONTROL_TEXTURE : &tr.blackImage, 0);
 				}
 				else
 				{
-					GL_BindToTMU((GRASS2_ENABLED && GRASS2_CONTROL_TEXTURE) ? GRASS2_CONTROL_TEXTURE : tr.whiteImage, TB_STEEPMAP);
-					GL_BindToTMU((GRASS_ENABLED && GRASS_CONTROL_TEXTURE && GRASS_CONTROL_TEXTURE != tr.whiteImage) ? GRASS_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP1);
-					GL_BindToTMU((GRASS3_ENABLED && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? GRASS3_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP2);
-					GL_BindToTMU((GRASS4_ENABLED && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? GRASS4_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP3);
+					GL_BindToTMU((GRASS2_ENABLED && r_foliageQuality->value > 0.0 && GRASS2_CONTROL_TEXTURE) ? GRASS2_CONTROL_TEXTURE : tr.whiteImage, TB_STEEPMAP);
+					GL_BindToTMU((GRASS_ENABLED && r_foliageQuality->value > 0.0 && GRASS_CONTROL_TEXTURE && GRASS_CONTROL_TEXTURE != tr.whiteImage) ? GRASS_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP1);
+					GL_BindToTMU((GRASS3_ENABLED && r_foliageQuality->value > 0.0 && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? GRASS3_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP2);
+					GL_BindToTMU((GRASS4_ENABLED && r_foliageQuality->value > 0.0 && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? GRASS4_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP3);
 				}
 
 				vec4_t l13;
 				VectorSet4(l13,
-					(GRASS2_ENABLED && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
-					(GRASS_ENABLED && GRASS_CONTROL_TEXTURE && GRASS_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
-					(GRASS3_ENABLED && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
-					(GRASS4_ENABLED && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0);
+					(GRASS2_ENABLED && r_foliageQuality->value > 0.0 && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
+					(GRASS_ENABLED && r_foliageQuality->value > 0.0 && GRASS_CONTROL_TEXTURE && GRASS_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
+					(GRASS3_ENABLED && r_foliageQuality->value > 0.0 && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
+					(GRASS4_ENABLED && r_foliageQuality->value > 0.0 && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0);
 				GLSL_SetUniformVec4(sp, UNIFORM_LOCAL13, l13);
 			}
 		}
@@ -5940,31 +5954,31 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 
 			{
 				vec4_t l12;
-				VectorSet4(l12, GRASS3_SIZE_MULTIPLIER_COMMON, GRASS3_SIZE_MULTIPLIER_RARE, GRASS3_SIZE_MULTIPLIER_UNDERWATER, GRASS3_LOD_START_RANGE);
+				VectorSet4(l12, GRASS3_SIZE_MULTIPLIER_COMMON, GRASS3_SIZE_MULTIPLIER_RARE, GRASS3_SIZE_MULTIPLIER_UNDERWATER, GRASS3_LOD_START_RANGE*r_foliageQuality->value);
 				GLSL_SetUniformVec4(sp, UNIFORM_LOCAL12, l12);
 			}
 
 			if (sp->isBindless)
 			{
-				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP, (GRASS3_ENABLED && GRASS3_CONTROL_TEXTURE) ? &GRASS3_CONTROL_TEXTURE : &tr.whiteImage, 0);
-				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP1, (GRASS_ENABLED && GRASS_CONTROL_TEXTURE && GRASS_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS_CONTROL_TEXTURE : &tr.blackImage, 0);
-				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP2, (GRASS2_ENABLED && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS2_CONTROL_TEXTURE : &tr.blackImage, 0);
-				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP3, (GRASS4_ENABLED && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS4_CONTROL_TEXTURE : &tr.blackImage, 0);
+				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP, (GRASS3_ENABLED && r_foliageQuality->value > 0.0 && GRASS3_CONTROL_TEXTURE) ? &GRASS3_CONTROL_TEXTURE : &tr.whiteImage, 0);
+				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP1, (GRASS_ENABLED && r_foliageQuality->value > 0.0 && GRASS_CONTROL_TEXTURE && GRASS_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS_CONTROL_TEXTURE : &tr.blackImage, 0);
+				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP2, (GRASS2_ENABLED && r_foliageQuality->value > 0.0 && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS2_CONTROL_TEXTURE : &tr.blackImage, 0);
+				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP3, (GRASS4_ENABLED && r_foliageQuality->value > 0.0 && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS4_CONTROL_TEXTURE : &tr.blackImage, 0);
 			}
 			else
 			{
-				GL_BindToTMU((GRASS3_ENABLED && GRASS3_CONTROL_TEXTURE) ? GRASS3_CONTROL_TEXTURE : tr.whiteImage, TB_STEEPMAP);
-				GL_BindToTMU((GRASS_ENABLED && GRASS_CONTROL_TEXTURE && GRASS_CONTROL_TEXTURE != tr.whiteImage) ? GRASS_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP1);
-				GL_BindToTMU((GRASS2_ENABLED && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? GRASS2_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP2);
-				GL_BindToTMU((GRASS4_ENABLED && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? GRASS4_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP3);
+				GL_BindToTMU((GRASS3_ENABLED && r_foliageQuality->value > 0.0 && GRASS3_CONTROL_TEXTURE) ? GRASS3_CONTROL_TEXTURE : tr.whiteImage, TB_STEEPMAP);
+				GL_BindToTMU((GRASS_ENABLED && r_foliageQuality->value > 0.0 && GRASS_CONTROL_TEXTURE && GRASS_CONTROL_TEXTURE != tr.whiteImage) ? GRASS_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP1);
+				GL_BindToTMU((GRASS2_ENABLED && r_foliageQuality->value > 0.0 && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? GRASS2_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP2);
+				GL_BindToTMU((GRASS4_ENABLED && r_foliageQuality->value > 0.0 && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? GRASS4_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP3);
 			}
 
 			vec4_t l13;
 			VectorSet4(l13,
-				(GRASS3_ENABLED && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
-				(GRASS_ENABLED && GRASS_CONTROL_TEXTURE && GRASS_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
-				(GRASS2_ENABLED && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
-				(GRASS4_ENABLED && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0);
+				(GRASS3_ENABLED && r_foliageQuality->value > 0.0 && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
+				(GRASS_ENABLED && r_foliageQuality->value > 0.0 && GRASS_CONTROL_TEXTURE && GRASS_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
+				(GRASS2_ENABLED && r_foliageQuality->value > 0.0 && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
+				(GRASS4_ENABLED && r_foliageQuality->value > 0.0 && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL13, l13);
 		}
 		else if (isGrass4 && backEnd.renderPass == RENDERPASS_GRASS4)
@@ -5977,31 +5991,31 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 
 			{
 				vec4_t l12;
-				VectorSet4(l12, GRASS4_SIZE_MULTIPLIER_COMMON, GRASS4_SIZE_MULTIPLIER_RARE, GRASS4_SIZE_MULTIPLIER_UNDERWATER, GRASS4_LOD_START_RANGE);
+				VectorSet4(l12, GRASS4_SIZE_MULTIPLIER_COMMON, GRASS4_SIZE_MULTIPLIER_RARE, GRASS4_SIZE_MULTIPLIER_UNDERWATER, GRASS4_LOD_START_RANGE*r_foliageQuality->value);
 				GLSL_SetUniformVec4(sp, UNIFORM_LOCAL12, l12);
 			}
 
 			if (sp->isBindless)
 			{
-				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP, (GRASS4_ENABLED && GRASS4_CONTROL_TEXTURE) ? &GRASS4_CONTROL_TEXTURE : &tr.whiteImage, 0);
-				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP1, (GRASS_ENABLED && GRASS_CONTROL_TEXTURE && GRASS_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS_CONTROL_TEXTURE : &tr.blackImage, 0);
-				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP2, (GRASS2_ENABLED && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS2_CONTROL_TEXTURE : &tr.blackImage, 0);
-				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP3, (GRASS3_ENABLED && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS3_CONTROL_TEXTURE : &tr.blackImage, 0);
+				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP, (GRASS4_ENABLED && r_foliageQuality->value > 0.0 && GRASS4_CONTROL_TEXTURE) ? &GRASS4_CONTROL_TEXTURE : &tr.whiteImage, 0);
+				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP1, (GRASS_ENABLED && r_foliageQuality->value > 0.0 && GRASS_CONTROL_TEXTURE && GRASS_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS_CONTROL_TEXTURE : &tr.blackImage, 0);
+				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP2, (GRASS2_ENABLED && r_foliageQuality->value > 0.0 && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS2_CONTROL_TEXTURE : &tr.blackImage, 0);
+				GLSL_SetBindlessTexture(sp, UNIFORM_STEEPMAP3, (GRASS3_ENABLED && r_foliageQuality->value > 0.0 && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? &GRASS3_CONTROL_TEXTURE : &tr.blackImage, 0);
 			}
 			else
 			{
-				GL_BindToTMU((GRASS4_ENABLED && GRASS4_CONTROL_TEXTURE) ? GRASS4_CONTROL_TEXTURE : tr.whiteImage, TB_STEEPMAP);
-				GL_BindToTMU((GRASS_ENABLED && GRASS_CONTROL_TEXTURE && GRASS_CONTROL_TEXTURE != tr.whiteImage) ? GRASS_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP1);
-				GL_BindToTMU((GRASS2_ENABLED && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? GRASS2_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP2);
-				GL_BindToTMU((GRASS3_ENABLED && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? GRASS3_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP3);
+				GL_BindToTMU((GRASS4_ENABLED && r_foliageQuality->value > 0.0 && GRASS4_CONTROL_TEXTURE) ? GRASS4_CONTROL_TEXTURE : tr.whiteImage, TB_STEEPMAP);
+				GL_BindToTMU((GRASS_ENABLED && r_foliageQuality->value > 0.0 && GRASS_CONTROL_TEXTURE && GRASS_CONTROL_TEXTURE != tr.whiteImage) ? GRASS_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP1);
+				GL_BindToTMU((GRASS2_ENABLED && r_foliageQuality->value > 0.0 && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? GRASS2_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP2);
+				GL_BindToTMU((GRASS3_ENABLED && r_foliageQuality->value > 0.0 && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? GRASS3_CONTROL_TEXTURE : tr.blackImage, TB_STEEPMAP3);
 			}
 
 			vec4_t l13;
 			VectorSet4(l13,
-				(GRASS4_ENABLED && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
-				(GRASS_ENABLED && GRASS_CONTROL_TEXTURE && GRASS_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
-				(GRASS2_ENABLED && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
-				(GRASS3_ENABLED && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0);
+				(GRASS4_ENABLED && r_foliageQuality->value > 0.0 && GRASS4_CONTROL_TEXTURE && GRASS4_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
+				(GRASS_ENABLED && r_foliageQuality->value > 0.0 && GRASS_CONTROL_TEXTURE && GRASS_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
+				(GRASS2_ENABLED && r_foliageQuality->value > 0.0 && GRASS2_CONTROL_TEXTURE && GRASS2_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0,
+				(GRASS3_ENABLED && r_foliageQuality->value > 0.0 && GRASS3_CONTROL_TEXTURE && GRASS3_CONTROL_TEXTURE != tr.whiteImage) ? 1.0 : 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL13, l13);
 		}
 		else if (isGroundFoliage && backEnd.renderPass == RENDERPASS_GROUNDFOLIAGE)
@@ -6014,7 +6028,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 
 			{
 				vec4_t l12;
-				VectorSet4(l12, 0.0, 0.0, 0.0, FOLIAGE_LOD_START_RANGE);
+				VectorSet4(l12, 0.0, 0.0, 0.0, FOLIAGE_LOD_START_RANGE*r_foliageQuality->value);
 				GLSL_SetUniformVec4(sp, UNIFORM_LOCAL12, l12);
 			}
 		}
@@ -6091,13 +6105,13 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL15, seaGrassColor);
 
 			vec4_t vec;
-			VectorSet4(vec, isFakeGrass ? 1.0f : 0.0f, GRASS_DISTANCE, GRASS_MAX_SLOPE, FAKE_GRASS_MINALPHA);
+			VectorSet4(vec, isFakeGrass ? 1.0f : 0.0f, GRASS_DISTANCE*r_foliageQuality->value, GRASS_MAX_SLOPE, FAKE_GRASS_MINALPHA);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL16, vec);
 
 			VectorSet4(vec, FAKE_GRASS_SCALE, FAKE_GRASS_SCALE_UNDERWATER, FAKE_GRASS_COLORMULT, FAKE_GRASS_COLORMULT_UNDERWATER);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL17, vec);
 
-			VectorSet4(vec, FAKE_GRASS_MINALPHA_UNDERWATER, GRASS_HEIGHT*GRASS_SIZE_MULTIPLIER_UNDERWATER, FAKE_GRASS_ENABLED, 0.0);
+			VectorSet4(vec, FAKE_GRASS_MINALPHA_UNDERWATER, GRASS_HEIGHT*GRASS_SIZE_MULTIPLIER_UNDERWATER, (FAKE_GRASS_ENABLED && r_foliageQuality->value > 0.0) ? 1.0 : 0.0, 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL18, vec);
 
 			if (sp->isBindless)

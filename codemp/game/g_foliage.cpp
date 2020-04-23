@@ -36,17 +36,13 @@ float		*FOLIAGE_TREE_SCALE = NULL;
 typedef int		ivec256_t[FOLIAGE_AREA_MAX_FOLIAGES];
 
 int			FOLIAGE_AREAS_COUNT = 0;
-/*int			FOLIAGE_AREAS_LIST_COUNT[FOLIAGE_AREA_MAX];
-int			FOLIAGE_AREAS_LIST[FOLIAGE_AREA_MAX][FOLIAGE_AREA_MAX_FOLIAGES];
-vec3_t		FOLIAGE_AREAS_MINS[FOLIAGE_AREA_MAX];
-vec3_t		FOLIAGE_AREAS_MAXS[FOLIAGE_AREA_MAX];*/
 int			*FOLIAGE_AREAS_LIST_COUNT = NULL;
 ivec256_t	*FOLIAGE_AREAS_LIST = NULL;
 vec3_t		*FOLIAGE_AREAS_MINS = NULL;
 vec3_t		*FOLIAGE_AREAS_MAXS = NULL;
 
-float		FOLIAGE_TREE_RADIUS[16] = { 0 };
-float		FOLIAGE_TREE_BILLBOARD_SIZE[16] = { 0 };
+float		FOLIAGE_TREE_RADIUS[69] = { 0 };
+float		FOLIAGE_TREE_BILLBOARD_SIZE[69] = { 0 };
 
 int IN_RANGE_AREAS_LIST_COUNT = 0;
 int IN_RANGE_AREAS_LIST[1024];
@@ -269,6 +265,15 @@ void FOLIAGE_FreeMemory(void)
 	}
 }
 
+#define		MAX_PLANT_MODELS 69
+
+qboolean	USING_CUSTOM_FOLIAGE = qfalse;
+float		CUSTOM_FOLIAGE_MAX_DISTANCE = 0.0;
+char		CustomFoliageModelsList[69][128] = { 0 };
+float		CUSTOM_FOLIAGE_SCALES[69] = { 0.0 };
+float		CUSTOM_FOLIAGE_COLLISION_RADIUS[69] = { 0.0 };
+float		CUSTOM_FOLIAGE_COLLISION_HEIGHT[69] = { 0.0 };
+
 qboolean FOLIAGE_LoadFoliagePositions( void )
 {
 	fileHandle_t	f;
@@ -299,24 +304,284 @@ qboolean FOLIAGE_LoadFoliagePositions( void )
 	FOLIAGE_TREE_SELECTION = (int *)malloc(fileCount * sizeof(int));
 	FOLIAGE_TREE_SCALE = (float *)malloc(fileCount * sizeof(float));
 
+	char FOLIAGE_MODEL_SELECTION[128] = { 0 };
+
+	strcpy(FOLIAGE_MODEL_SELECTION, IniRead(va("climates/%s.climate", CURRENT_CLIMATE_OPTION), "FOLIAGE", "foliageSet", "default"));
+
+	if (FOLIAGE_MODEL_SELECTION[0] == '\0' || !strcmp(FOLIAGE_MODEL_SELECTION, "default"))
+	{// If it returned default value, check also in mapinfo file...
+		memset(FOLIAGE_MODEL_SELECTION, 0, sizeof(char) * 128);
+		strcpy(FOLIAGE_MODEL_SELECTION, IniRead(va("maps/%s.mapInfo", mapname.string), "FOLIAGE", "FOLIAGE_SET", "default"));
+	}
+
+	if (!Q_stricmp(FOLIAGE_MODEL_SELECTION, "custom"))
+	{
+		//USING_CUSTOM = qtrue;
+
+		//
+		//
+		//
+
+		trap->Print("^1*** ^3%s^5: Map \"^7%s^5\" foliage selection using \"^7custom^5\" foliage set.\n", "FOLIAGE-COLLISION", mapname.string);
+
+		int		customRealNormalTempModelsAdded = 0;
+		int		customRealRareTempModelsAdded = 0;
+		char	customNormalFoliageModelsTempList[69][128] = { 0 };
+		char	customRareFoliageModelsTempList[69][128] = { 0 };
+		float	customNormalFoliageModelsTempScalesList[69] = { 1.0 };
+		float	customRareFoliageModelsTempScalesList[69] = { 1.0 };
+		float	customNormalFoliageModelsTempCollisionRadiusList[69] = { 0.0 };
+		float	customRareFoliageModelsTempCollisionRadiusList[69] = { 0.0 };
+		float	customNormalFoliageModelsTempCollisionHeightList[69] = { 0.0 };
+		float	customRareFoliageModelsTempCollisionHeightList[69] = { 0.0 };
+
+#define		ANY_AREA_MODEL_POSITION		46
+#define		RARE_MODELS_START			47
+
+		strcpy(CustomFoliageModelsList[ANY_AREA_MODEL_POSITION], IniRead(va("maps/%s.mapInfo", mapname.string), "FOLIAGE", "anyAreaFoliageModel", ""));
+		CUSTOM_FOLIAGE_SCALES[ANY_AREA_MODEL_POSITION] = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "FOLIAGE", "anyAreaFoliageModelScale", "1.0"));
+		CUSTOM_FOLIAGE_COLLISION_RADIUS[ANY_AREA_MODEL_POSITION] = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "FOLIAGE", "anyAreaFoliageModelCollisionRadius", "0.0"));
+		CUSTOM_FOLIAGE_COLLISION_HEIGHT[ANY_AREA_MODEL_POSITION] = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "FOLIAGE", "anyAreaFoliageModelCollisionHeight", va("%f", CUSTOM_FOLIAGE_COLLISION_RADIUS[ANY_AREA_MODEL_POSITION])));
+
+		for (i = 0; i < ANY_AREA_MODEL_POSITION; i++)
+		{
+			char temp[128] = { 0 };
+			strcpy(temp, IniRead(va("maps/%s.mapInfo", mapname.string), "FOLIAGE", va("openAreaFoliageModel%i", i), ""));
+			float customScale = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "FOLIAGE", va("openAreaFoliageModelScale%i", i), "1.0"));
+			float customCollisionRadius = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "FOLIAGE", va("openAreaFoliageModelCollisionRadius%i", i), "0.0"));
+			float customCollisionHeight = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "FOLIAGE", va("openAreaFoliageModelCollisionHeight%i", i), va("%f", customCollisionRadius)));
+
+			if (temp && temp[0] != 0 && strlen(temp) > 0)
+			{// Exists...
+			 // Add it to temp list, so we can use randoms from it if they don't add a full list...
+				strcpy(customNormalFoliageModelsTempList[customRealNormalTempModelsAdded], temp);
+				customNormalFoliageModelsTempScalesList[customRealNormalTempModelsAdded] = customScale;
+				customNormalFoliageModelsTempCollisionRadiusList[customRealNormalTempModelsAdded] = customCollisionRadius;
+				customNormalFoliageModelsTempCollisionHeightList[customRealNormalTempModelsAdded] = customCollisionHeight;
+				customRealNormalTempModelsAdded++;
+			}
+		}
+
+		int upto = 0;
+		for (i = RARE_MODELS_START; i < MAX_PLANT_MODELS; i++, upto++)
+		{
+			char temp[128] = { 0 };
+			strcpy(temp, IniRead(va("maps/%s.mapInfo", mapname.string), "FOLIAGE", va("rareFoliageModel%i", upto), ""));
+			float customScale = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "FOLIAGE", va("rareFoliageModelScale%i", upto), "1.0"));
+			float customCollisionRadius = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "FOLIAGE", va("rareFoliageModelCollisionRadius%i", upto), "0.0"));
+			float customCollisionHeight = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "FOLIAGE", va("rareFoliageModelCollisionHeight%i", upto), va("%f", customCollisionRadius)));
+
+			if (temp && temp[0] != 0 && strlen(temp) > 0)
+			{// Exists...
+			 // Add it to temp list, so we can use randoms from it if they don't add a full list...
+				strcpy(customRareFoliageModelsTempList[customRealRareTempModelsAdded], temp);
+				customRareFoliageModelsTempScalesList[customRealRareTempModelsAdded] = customScale;
+				customRareFoliageModelsTempCollisionRadiusList[customRealRareTempModelsAdded] = customCollisionRadius;
+				customRareFoliageModelsTempCollisionHeightList[customRealRareTempModelsAdded] = customCollisionHeight;
+				customRealRareTempModelsAdded++;
+			}
+		}
+
+		// Fill the any area model, if required...
+		if (!(CustomFoliageModelsList[ANY_AREA_MODEL_POSITION] && CustomFoliageModelsList[ANY_AREA_MODEL_POSITION][0] != 0 && strlen(CustomFoliageModelsList[ANY_AREA_MODEL_POSITION]) > 0))
+		{// Sanity check, fallback to using either a rare or a normal model for the anyArea model, if there was none specified...
+			if (customRealRareTempModelsAdded > 0)
+			{// Have rares? Use one...
+				strcpy(CustomFoliageModelsList[ANY_AREA_MODEL_POSITION], customRareFoliageModelsTempList[0]);
+				CUSTOM_FOLIAGE_SCALES[ANY_AREA_MODEL_POSITION] = customRareFoliageModelsTempScalesList[0];
+				CUSTOM_FOLIAGE_COLLISION_RADIUS[ANY_AREA_MODEL_POSITION] = customRareFoliageModelsTempCollisionRadiusList[0];
+				CUSTOM_FOLIAGE_COLLISION_HEIGHT[ANY_AREA_MODEL_POSITION] = customRareFoliageModelsTempCollisionHeightList[0];
+			}
+
+			if (customRealNormalTempModelsAdded > 0)
+			{// Have standards? Use one...
+				strcpy(CustomFoliageModelsList[ANY_AREA_MODEL_POSITION], customNormalFoliageModelsTempList[0]);
+				CUSTOM_FOLIAGE_SCALES[ANY_AREA_MODEL_POSITION] = customNormalFoliageModelsTempScalesList[0];
+				CUSTOM_FOLIAGE_COLLISION_RADIUS[ANY_AREA_MODEL_POSITION] = customNormalFoliageModelsTempCollisionRadiusList[0];
+				CUSTOM_FOLIAGE_COLLISION_HEIGHT[ANY_AREA_MODEL_POSITION] = customNormalFoliageModelsTempCollisionHeightList[0];
+			}
+		}
+
+		//
+		// Fill the final list, from the temp lists...
+		//
+		if (customRealRareTempModelsAdded > 0 && customRealNormalTempModelsAdded > 0)
+		{
+			// Fill Standards...
+			upto = 0;
+
+			for (i = 0; i < ANY_AREA_MODEL_POSITION; i++)
+			{
+				if (!CustomFoliageModelsList[i] || CustomFoliageModelsList[i][0] == 0 || strlen(CustomFoliageModelsList[i]) <= 0)
+				{
+					if (upto >= customRealRareTempModelsAdded - 1)
+					{
+						upto = 0;
+					}
+					else
+					{
+						upto++;
+					}
+
+					strcpy(CustomFoliageModelsList[i], customRareFoliageModelsTempList[upto]);
+					CUSTOM_FOLIAGE_SCALES[i] = customRareFoliageModelsTempScalesList[upto];
+					CUSTOM_FOLIAGE_COLLISION_RADIUS[i] = customRareFoliageModelsTempCollisionRadiusList[upto];
+					CUSTOM_FOLIAGE_COLLISION_HEIGHT[i] = customRareFoliageModelsTempCollisionHeightList[upto];
+				}
+			}
+
+			// Fill Rares...
+			upto = 0;
+
+			for (i = RARE_MODELS_START; i < MAX_PLANT_MODELS; i++)
+			{
+				if (!CustomFoliageModelsList[i] || CustomFoliageModelsList[i][0] == 0 || strlen(CustomFoliageModelsList[i]) <= 0)
+				{
+					if (upto >= customRealNormalTempModelsAdded - 1)
+					{
+						upto = 0;
+					}
+					else
+					{
+						upto++;
+					}
+
+					strcpy(CustomFoliageModelsList[i], customNormalFoliageModelsTempList[upto]);
+					CUSTOM_FOLIAGE_SCALES[i] = customNormalFoliageModelsTempScalesList[upto];
+					CUSTOM_FOLIAGE_COLLISION_RADIUS[i] = customNormalFoliageModelsTempCollisionRadiusList[upto];
+					CUSTOM_FOLIAGE_COLLISION_HEIGHT[i] = customNormalFoliageModelsTempCollisionHeightList[upto];
+				}
+			}
+		}
+		else if (customRealNormalTempModelsAdded > 0)
+		{// Fill All...
+			upto = 0;
+
+			for (i = 0; i < MAX_PLANT_MODELS; i++)
+			{
+				if (!CustomFoliageModelsList[i] || CustomFoliageModelsList[i][0] == 0 || strlen(CustomFoliageModelsList[i]) <= 0)
+				{
+					if (upto >= customRealNormalTempModelsAdded - 1)
+					{
+						upto = 0;
+					}
+					else
+					{
+						upto++;
+					}
+
+					strcpy(CustomFoliageModelsList[i], customNormalFoliageModelsTempList[upto]);
+					CUSTOM_FOLIAGE_SCALES[i] = customNormalFoliageModelsTempScalesList[upto];
+					CUSTOM_FOLIAGE_COLLISION_RADIUS[i] = customNormalFoliageModelsTempCollisionRadiusList[upto];
+					CUSTOM_FOLIAGE_COLLISION_HEIGHT[i] = customNormalFoliageModelsTempCollisionHeightList[upto];
+				}
+			}
+		}
+		else if (customRealRareTempModelsAdded > 0)
+		{// Fill All...
+			upto = 0;
+
+			for (i = 0; i < MAX_PLANT_MODELS; i++)
+			{
+				if (!CustomFoliageModelsList[i] || CustomFoliageModelsList[i][0] == 0 || strlen(CustomFoliageModelsList[i]) <= 0)
+				{
+					if (upto >= customRealRareTempModelsAdded - 1)
+					{
+						upto = 0;
+					}
+					else
+					{
+						upto++;
+					}
+
+					strcpy(CustomFoliageModelsList[i], customRareFoliageModelsTempList[upto]);
+					CUSTOM_FOLIAGE_SCALES[i] = customRareFoliageModelsTempScalesList[upto];
+					CUSTOM_FOLIAGE_COLLISION_RADIUS[i] = customRareFoliageModelsTempCollisionRadiusList[upto];
+					CUSTOM_FOLIAGE_COLLISION_HEIGHT[i] = customRareFoliageModelsTempCollisionHeightList[upto];
+				}
+			}
+		}
+		else if (CustomFoliageModelsList[ANY_AREA_MODEL_POSITION] && CustomFoliageModelsList[ANY_AREA_MODEL_POSITION][0] != 0 && strlen(CustomFoliageModelsList[ANY_AREA_MODEL_POSITION]) > 0)
+		{// Had no rares or normal foliages, but we did have an anyArea model, use that for everything...
+			for (i = 0; i < MAX_PLANT_MODELS; i++)
+			{
+				if (!CustomFoliageModelsList[i] || CustomFoliageModelsList[i][0] == 0 || strlen(CustomFoliageModelsList[i]) <= 0)
+				{
+					strcpy(CustomFoliageModelsList[i], CustomFoliageModelsList[ANY_AREA_MODEL_POSITION]);
+					CUSTOM_FOLIAGE_SCALES[i] = CUSTOM_FOLIAGE_SCALES[ANY_AREA_MODEL_POSITION];
+					CUSTOM_FOLIAGE_COLLISION_RADIUS[i] = CUSTOM_FOLIAGE_COLLISION_RADIUS[ANY_AREA_MODEL_POSITION];
+					CUSTOM_FOLIAGE_COLLISION_HEIGHT[i] = CUSTOM_FOLIAGE_COLLISION_HEIGHT[ANY_AREA_MODEL_POSITION];
+				}
+			}
+		}
+		else
+		{// Had absolutely nothing??? Add standard green grasses everywhere...
+			for (i = 0; i < MAX_PLANT_MODELS; i++)
+			{
+				if (!CustomFoliageModelsList[i] || CustomFoliageModelsList[i][0] == 0 || strlen(CustomFoliageModelsList[i]) <= 0)
+				{
+					strcpy(CustomFoliageModelsList[i], "models/warzone/plants/gcgrass01.md3");
+					CUSTOM_FOLIAGE_SCALES[i] = 1.0;
+					CUSTOM_FOLIAGE_COLLISION_RADIUS[i] = 0.0;
+					CUSTOM_FOLIAGE_COLLISION_HEIGHT[i] = 0.0;
+				}
+			}
+		}
+
+		for (i = 0; i < MAX_PLANT_MODELS; i++)
+		{
+			//trap->Print("^1*** ^3%s^5: Foliage: %i. Model: %s. Radius: %f.\n", "FOLIAGE-COLLISION", i, CustomFoliageModelsList[i], CUSTOM_FOLIAGE_COLLISION_RADIUS[i]);
+
+			if (CustomFoliageModelsList[i] && CustomFoliageModelsList[i][0] != 0 && strlen(CustomFoliageModelsList[i]) > 0 && CUSTOM_FOLIAGE_COLLISION_RADIUS[i] > 0.0 && CUSTOM_FOLIAGE_COLLISION_HEIGHT[i] > 0.0)
+			{// Have at least one foliage set to be solid...
+				USING_CUSTOM_FOLIAGE = qtrue;
+				//trap->Print("^1*** ^3%s^5: USING_CUSTOM_FOLIAGE.\n", "FOLIAGE-COLLISION");
+				break;
+			}
+		}
+	}
+
 	for (i = 0; i < fileCount; i++)
 	{
 		vec3_t	unneededVec3;
 		int		unneededInt;
 		float	unneededFloat;
 
-		trap->FS_Read( &FOLIAGE_POSITIONS[treeCount], sizeof(vec3_t), f );
-		trap->FS_Read( &unneededVec3, sizeof(vec3_t), f );
-		trap->FS_Read( &unneededInt, sizeof(int), f );
-		trap->FS_Read( &unneededFloat, sizeof(float), f );
-		trap->FS_Read( &unneededFloat, sizeof(float), f );
-		trap->FS_Read( &FOLIAGE_TREE_SELECTION[treeCount], sizeof(int), f );
-		trap->FS_Read( &unneededFloat, sizeof(float), f );
-		trap->FS_Read( &FOLIAGE_TREE_SCALE[treeCount], sizeof(float), f );
+		if (USING_CUSTOM_FOLIAGE)
+		{// Plants become trees...
+			trap->FS_Read(&FOLIAGE_POSITIONS[treeCount], sizeof(vec3_t), f);
+			trap->FS_Read(&unneededVec3, sizeof(vec3_t), f);
+			trap->FS_Read(&FOLIAGE_TREE_SELECTION[treeCount], sizeof(int), f); // actually plant selection slot
+			trap->FS_Read(&unneededFloat, sizeof(float), f);
+			trap->FS_Read(&FOLIAGE_TREE_SCALE[treeCount], sizeof(float), f); // actually plant scale slot
+			trap->FS_Read(&unneededInt, sizeof(int), f);
+			trap->FS_Read(&unneededFloat, sizeof(float), f);
+			trap->FS_Read(&unneededFloat, sizeof(float), f);
 
-		if (FOLIAGE_TREE_SELECTION[treeCount] > 0)
-		{// Only keep positions with trees...
-			treeCount++;
+			if (FOLIAGE_TREE_SELECTION[treeCount] > 0 && CUSTOM_FOLIAGE_COLLISION_RADIUS[FOLIAGE_TREE_SELECTION[treeCount]-1] > 0.0)
+			{// Only keep positions with plants, and a colision radius set for it...
+				FOLIAGE_TREE_RADIUS[treeCount] = CUSTOM_FOLIAGE_COLLISION_RADIUS[FOLIAGE_TREE_SELECTION[treeCount]-1];
+				FOLIAGE_TREE_BILLBOARD_SIZE[treeCount] = CUSTOM_FOLIAGE_COLLISION_HEIGHT[FOLIAGE_TREE_SELECTION[treeCount]-1];
+				FOLIAGE_TREE_SCALE[treeCount] = FOLIAGE_TREE_SCALE[treeCount] * CUSTOM_FOLIAGE_SCALES[FOLIAGE_TREE_SELECTION[treeCount] - 1];
+				//trap->Print("^1*** ^3%s^5: Plant ^7%i^5 (type ^7%i^5) has a collision radius of ^7%f^5 (scaled ^7%f^5), a collision height of ^7%f^5 (scaled ^7%f^5), and a scale of ^7%f^5.\n", "FOLIAGE-COLLISION", treeCount, FOLIAGE_TREE_SELECTION[treeCount]-1, FOLIAGE_TREE_RADIUS[treeCount], FOLIAGE_TREE_RADIUS[treeCount]*FOLIAGE_TREE_SCALE[treeCount], FOLIAGE_TREE_BILLBOARD_SIZE[treeCount], FOLIAGE_TREE_BILLBOARD_SIZE[treeCount] * FOLIAGE_TREE_SCALE[treeCount], FOLIAGE_TREE_SCALE[treeCount]);
+				treeCount++;
+			}
+		}
+		else
+		{
+			trap->FS_Read(&FOLIAGE_POSITIONS[treeCount], sizeof(vec3_t), f);
+			trap->FS_Read(&unneededVec3, sizeof(vec3_t), f);
+			trap->FS_Read(&unneededInt, sizeof(int), f);
+			trap->FS_Read(&unneededFloat, sizeof(float), f);
+			trap->FS_Read(&unneededFloat, sizeof(float), f);
+			trap->FS_Read(&FOLIAGE_TREE_SELECTION[treeCount], sizeof(int), f);
+			trap->FS_Read(&unneededFloat, sizeof(float), f);
+			trap->FS_Read(&FOLIAGE_TREE_SCALE[treeCount], sizeof(float), f);
+
+			if (FOLIAGE_TREE_SELECTION[treeCount] > 0)
+			{// Only keep positions with trees...
+				treeCount++;
+			}
 		}
 	}
 
@@ -353,8 +618,8 @@ qboolean FOLIAGE_LoadFoliagePositions( void )
 		return qfalse;
 	}
 
-	trap->Print( "^1*** ^3%s^5: Successfully loaded ^7%i^5 foliage points from foliage file ^7foliage/%s.foliage^5. Found ^7%i^5 trees.\n", "FOLIAGE-COLLISION",
-		fileCount, mapname.string, FOLIAGE_NUM_POSITIONS );
+	trap->Print("^1*** ^3%s^5: Successfully loaded ^7%i^5 foliage points from foliage file ^7foliage/%s.foliage^5. Found ^7%i^5 collision objects.\n", "FOLIAGE-COLLISION",
+		fileCount, mapname.string, FOLIAGE_NUM_POSITIONS);
 
 	FOLIAGE_Setup_Foliage_Areas();
 
@@ -423,9 +688,9 @@ void FOLIAGE_LoadTrees( void )
 
 	if (!FOLIAGE_LOADED)
 	{
+		FOLIAGE_LoadMapClimateInfo();
 		FOLIAGE_LoadFoliagePositions();
 		FOLIAGE_LOADED = qtrue;
-		FOLIAGE_LoadMapClimateInfo();
 	}
 
 	if (FOLIAGE_NUM_POSITIONS <= 0)
@@ -447,10 +712,17 @@ void FOLIAGE_LoadTrees( void )
 	// Read all the tree info from the new .climate ini files...
 	TREE_SCALE_MULTIPLIER = atof(IniRead(va("climates/%s.climate", CURRENT_CLIMATE_OPTION), "TREES", "treeScaleMultiplier", "1.0"));
 
-	for (i = 0; i < 9; i++)
+	if (USING_CUSTOM_FOLIAGE)
+	{// Already should be set up...
+		
+	}
+	else
 	{
-		FOLIAGE_TREE_BILLBOARD_SIZE[i] = atof(IniRead(va("climates/%s.climate", CURRENT_CLIMATE_OPTION), "TREES", va("treeBillboardSize%i", i), "128.0"));
-		FOLIAGE_TREE_RADIUS[i] = atof(IniRead(va("climates/%s.climate", CURRENT_CLIMATE_OPTION), "TREES", va("treeRadius%i", i), "24.0"));
+		for (i = 0; i < 9; i++)
+		{
+			FOLIAGE_TREE_BILLBOARD_SIZE[i] = atof(IniRead(va("climates/%s.climate", CURRENT_CLIMATE_OPTION), "TREES", va("treeBillboardSize%i", i), "128.0"));
+			FOLIAGE_TREE_RADIUS[i] = atof(IniRead(va("climates/%s.climate", CURRENT_CLIMATE_OPTION), "TREES", va("treeRadius%i", i), "24.0"));
+		}
 	}
 
 	/* // Hmm max of 64... this won't work :(

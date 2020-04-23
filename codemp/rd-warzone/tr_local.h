@@ -371,6 +371,8 @@ extern cvar_t	*r_skydome;
 
 extern cvar_t	*r_fur;
 
+extern cvar_t	*r_foliageQuality;
+
 extern cvar_t	*r_foliage;
 extern cvar_t	*r_foliagePasses;
 extern cvar_t	*r_foliageDistance;

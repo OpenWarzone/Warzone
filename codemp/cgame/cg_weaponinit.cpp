@@ -526,6 +526,7 @@ void CG_RegisterWeapon( int weaponNum) {
 		break;
 
 	case WP_TURRET:
+#if 0
 		weaponInfo->flashSound[0]		= NULL_SOUND;
 		weaponInfo->firingSound			= NULL_SOUND;
 		weaponInfo->chargeSound			= NULL_SOUND;
@@ -546,6 +547,54 @@ void CG_RegisterWeapon( int weaponNum) {
 		weaponInfo->altMissileWallImpactfx = trap->FX_RegisterEffect("warzone_modular_weapons/blaster_impact");
 
 		//trap->FX_RegisterEffect("warzone_modular_weapons/blaster_deflect");
+#else
+		weaponInfo->bolt3DShader = cgs.media.redBlasterShot; // Setting this enables 3D bolts for this gun, using this color shader...
+		weaponInfo->bolt3DShaderAlt = cgs.media.redBlasterShot; // Setting this enables 3D bolts for this gun's alt fire, using this color shader...
+		weaponInfo->bolt3DLength = 2.0; // If not set, 1.0 is the default length.
+		weaponInfo->bolt3DLengthAlt = 2.5; // If not set, 1.0 is the default length.
+		weaponInfo->bolt3DWidth = 2.0; // If not set, 1.0 is the default length.
+		weaponInfo->bolt3DWidthAlt = 2.5; // If not set, 1.0 is the default length.
+
+		weaponInfo->selectSound = trap->S_RegisterSound("sound/weapons/select_carbine.mp3");
+		weaponInfo->flashSound[0] = trap->S_RegisterSound("sound/weapons/blasters/bryar_rifle1.mp3");
+		weaponInfo->flashSound[1] = trap->S_RegisterSound("sound/weapons/blasters/bryar_rifle2.mp3");
+		weaponInfo->flashSound[2] = trap->S_RegisterSound("sound/weapons/blasters/bryar_rifle3.mp3");
+		weaponInfo->flashSound[3] = trap->S_RegisterSound("sound/weapons/blasters/bryar_rifle4.mp3");
+		weaponInfo->firingSound = NULL_SOUND;
+		weaponInfo->chargeSound = NULL_SOUND;
+		weaponInfo->muzzleEffect = trap->FX_RegisterEffect("blasters/muzzleflash2_Red_medium");
+		weaponInfo->missileModel = NULL_HANDLE;
+		weaponInfo->missileSound = NULL_SOUND;
+		weaponInfo->missileDlight = 0;
+		weaponInfo->missileHitSound = NULL_SOUND;
+		weaponInfo->missileTrailFunc = FX_WeaponProjectileThink;
+		weaponInfo->powerupShotRenderfx = NULL_FX;
+		weaponInfo->altFlashSound[0] = trap->S_RegisterSound("sound/weapons/blasters/bryar_rifle1.mp3");
+		weaponInfo->altFlashSound[1] = trap->S_RegisterSound("sound/weapons/blasters/bryar_rifle2.mp3");
+		weaponInfo->altFlashSound[2] = trap->S_RegisterSound("sound/weapons/blasters/bryar_rifle3.mp3");
+		weaponInfo->altFlashSound[3] = trap->S_RegisterSound("sound/weapons/blasters/bryar_rifle4.mp3");
+		weaponInfo->altFiringSound = NULL_SOUND;
+		weaponInfo->altChargeSound = NULL_SOUND;
+		weaponInfo->altMuzzleEffect = trap->FX_RegisterEffect("blasters/muzzleflash2_Red_medium");
+		weaponInfo->altMissileModel = NULL_HANDLE;
+		weaponInfo->altMissileSound = NULL_SOUND;
+		weaponInfo->altMissileDlight = 0;
+		weaponInfo->altMissileHitSound = NULL_SOUND;
+		weaponInfo->altMissileTrailFunc = FX_WeaponAltProjectileThink;
+		//  X,	 ,Y	   ,Z	
+		VectorSet(weaponInfo->gunPosition, 10.0, -3.0, -5.4);
+
+		weaponInfo->missileRenderfx = trap->FX_RegisterEffect("blasters/shot_redorange_medium");
+		weaponInfo->altMissileRenderfx = trap->FX_RegisterEffect("blasters/shot_redorange_medium");
+
+		weaponInfo->fleshImpactEffect = trap->FX_RegisterEffect("warzone_modular_weapons/blaster_impact_flesh");
+		weaponInfo->altFleshImpactEffect = trap->FX_RegisterEffect("warzone_modular_weapons/blaster_impact_flesh");
+		weaponInfo->missileWallImpactfx = trap->FX_RegisterEffect("warzone_modular_weapons/blaster_impact");
+		weaponInfo->altMissileWallImpactfx = trap->FX_RegisterEffect("warzone_modular_weapons/blaster_impact");
+
+
+		//trap->FX_RegisterEffect("warzone_modular_weapons/blaster_deflect");
+#endif
 		break;
 	 default:
 		MAKERGB( weaponInfo->flashDlightColor, 1, 1, 1 );

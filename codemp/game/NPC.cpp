@@ -1100,6 +1100,8 @@ qboolean NPC_CanUseAdvancedFighting(gentity_t *aiEnt)
 	case CLASS_SHADOWTROOPER:
 	case CLASS_STORMTROOPER:
 	case CLASS_STORMTROOPER_ADVANCED:
+	case CLASS_STORMTROOPER_ATST_PILOT:
+	case CLASS_STORMTROOPER_ATAT_PILOT:
 	case CLASS_SWAMP:
 	case CLASS_SWAMPTROOPER:
 	case CLASS_TAVION:
@@ -4324,6 +4326,40 @@ qboolean NPC_EscapeWater ( gentity_t *aiEnt )
 extern qboolean Boba_DoFlameThrower(gentity_t *self);
 extern qboolean WP_PairedAnimationCheckCompletion(gentity_t *self);
 
+// Make someone invisible and un-collidable.
+void NPC_Ghost(gentity_t *ent)
+{
+	if (!ent)
+		return;
+
+	// This was introduced to prevent one extra entity from being sent to the clients
+	ent->r.svFlags |= SVF_NOCLIENT;
+
+	ent->s.eFlags |= EF_NODRAW;
+	if (ent->client)
+	{
+		ent->client->ps.eFlags |= EF_NODRAW;
+	}
+	ent->r.contents = 0;
+}
+
+// Make someone visible and collidable.
+void NPC_UnGhost(gentity_t *ent)
+{
+	if (!ent)
+		return;
+
+	// make sure the client is sent again
+	ent->r.svFlags &= ~SVF_NOCLIENT;
+
+	ent->s.eFlags &= ~EF_NODRAW;
+	if (ent->client)
+	{
+		ent->client->ps.eFlags &= ~EF_NODRAW;
+	}
+	ent->r.contents = CONTENTS_BODY;
+}
+
 #if	AI_TIMERS
 extern int AITime;
 #endif//	AI_TIMERS
@@ -4384,7 +4420,7 @@ void NPC_Think ( gentity_t *self )//, int msec )
 		VectorClear( self->client->ps.moveDir );
 	}
 
-	if(!self || !self->NPC || !self->client)
+	if(!self || !self->NPC || !self->client || self->s.number <= 0)
 	{
 		return;
 	}
@@ -4450,7 +4486,7 @@ void NPC_Think ( gentity_t *self )//, int msec )
 	// UQ1: Generic stuff for different NPC types...
 	NPC_CheckTypeStuff(aiEnt);
 
-	if ( self->client->NPC_class == CLASS_VEHICLE)
+	if ( self->client->NPC_class == CLASS_VEHICLE )
 	{
 		if (self->client->ps.m_iVehicleNum)
 		{//we don't think on our own
@@ -4458,7 +4494,7 @@ void NPC_Think ( gentity_t *self )//, int msec )
 #ifndef __NO_ICARUS__
 			trap->ICARUS_MaintainTaskManager(self->s.number);
 #endif //__NO_ICARUS__
-			return;
+			//return;
 		}
 		else
 		{
@@ -4479,9 +4515,13 @@ void NPC_Think ( gentity_t *self )//, int msec )
 	{//Something drastic happened in our script
 		return;
 	}
+	
+	qboolean nearbyPlayers = NPC_CheckNearbyPlayers(self);
 
-	if (!NPC_CheckNearbyPlayers(self))
-	{// Don't think...
+	if (aiEnt->s.NPC_class != CLASS_VEHICLE && !nearbyPlayers)
+	{// Don't think... Dont transmit to clients...
+		NPC_Ghost(aiEnt);
+
 		if (self->npc_deactivated_forced_clientthink_time > level.time)
 		{
 			VectorCopy(self->r.currentOrigin, self->client->ps.origin);
@@ -4495,8 +4535,15 @@ void NPC_Think ( gentity_t *self )//, int msec )
 		VectorCopy(self->r.currentOrigin, self->client->ps.origin);
 		return;
 	}
+	else if (aiEnt->s.NPC_class != CLASS_VEHICLE 
+		&& !(self->client->ps.m_iVehicleNum
+			&& g_entities[self->client->ps.m_iVehicleNum].m_pVehicle
+			&& g_entities[self->client->ps.m_iVehicleNum].s.NPC_class == CLASS_VEHICLE))
+	{// Make sure we unghost and transmit to clients...
+		NPC_UnGhost(aiEnt);
+	}
 
-	if ( aiEnt->NPC->nextBStateThink <= level.time && !aiEnt->s.m_iVehicleNum )//NPCs sitting in Vehicles do NOTHING
+	if ( aiEnt->NPC->nextBStateThink <= level.time /*&& !aiEnt->s.m_iVehicleNum*/ && aiEnt->s.NPC_class != CLASS_VEHICLE)//NPCs sitting in Vehicles do NOTHING - UQ1: Ahh no they don't... maybe need droid check though
 	{
 #if	AI_TIMERS
 		int	startTime = GetTime(0);
@@ -4577,6 +4624,16 @@ void NPC_Think ( gentity_t *self )//, int msec )
 			qboolean is_civilian = NPC_IsCivilian(self);
 			qboolean is_vendor = NPC_IsVendor(self);
 			qboolean use_pathing = qfalse;
+
+			/*
+			if (self->client->ps.m_iVehicleNum
+				&& g_entities[self->client->ps.m_iVehicleNum].m_pVehicle
+				&& g_entities[self->client->ps.m_iVehicleNum].s.NPC_class == CLASS_VEHICLE)
+			{
+				gentity_t *vEnt = &g_entities[self->client->ps.m_iVehicleNum];
+				trap->Print("ATST pilot %i (%i) running think.\n", self->s.number, vEnt->m_pVehicle->m_pPilot->s.number);
+			}
+			*/
 
 			if (!WP_PairedAnimationCheckCompletion(self))
 			{// Always continue scripted paired animations...
@@ -4913,6 +4970,9 @@ void NPC_Think ( gentity_t *self )//, int msec )
 	//must update icarus *every* frame because of certain animation completions in the pmove stuff that can leave a 50ms gap between ICARUS animation commands
 	trap->ICARUS_MaintainTaskManager(self->s.number);
 #endif //__NO_ICARUS__
+
+	//if (aiEnt->s.NPC_class == CLASS_ATST)
+	//	trap->Print("ENDFRAME: delta_angles %f. cmd_angles %f. viewangles %f. trDelta %f. trBase %f.\n", SHORT2ANGLE(aiEnt->client->ps.delta_angles[YAW]), SHORT2ANGLE(aiEnt->client->pers.cmd.angles[YAW]), aiEnt->client->ps.viewangles[YAW], aiEnt->s.apos.trDelta[YAW], aiEnt->s.apos.trBase[YAW]);
 
 	VectorCopy(self->r.currentOrigin, self->client->ps.origin);
 }

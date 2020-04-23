@@ -4344,7 +4344,7 @@ int DetectMaterialType ( const char *name )
 		return MATERIAL_SOLIDMETAL;
 	else if (StringContainsWord(name, "plastic") || StringContainsWord(name, "stormtrooper") || StringContainsWord(name, "snowtrooper") || StringContainsWord(name, "medpac") || StringContainsWord(name, "bacta") || StringContainsWord(name, "helmet") || StringContainsWord(name, "feather"))
 		return MATERIAL_PLASTIC;
-	else if (StringContainsWord(name, "/ships/") || StringContainsWord(name, "engine") || StringContainsWord(name, "mp/flag"))
+	else if (StringContainsWord(name, "/ships/") || StringContainsWord(name, "engine") || StringContainsWord(name, "mp/flag") || StringContainsWord(name, "/atat/"))
 		return MATERIAL_SOLIDMETAL;//MATERIAL_PLASTIC;
 	else if (StringContainsWord(name, "wing") || StringContainsWord(name, "xwbody") || StringContainsWord(name, "tie_"))
 		return MATERIAL_SOLIDMETAL;//MATERIAL_PLASTIC;
@@ -8315,7 +8315,7 @@ qboolean R_AllowGenericShader ( const char *name, const char *text )
 		return qfalse;
 	else if (StringContainsWord(name, "plastic") || StringContainsWord(name, "stormtrooper") || StringContainsWord(name, "snowtrooper") || StringContainsWord(name, "medpac") || StringContainsWord(name, "bacta") || StringContainsWord(name, "helmet"))
 		return qtrue;
-	else if (StringContainsWord(name, "mp/flag") || StringContainsWord(name, "xwing") || StringContainsWord(name, "xwbody") || StringContainsWord(name, "tie_") || StringContainsWord(name, "ship") || StringContainsWord(name, "shuttle") || StringContainsWord(name, "falcon") || StringContainsWord(name, "freight") || StringContainsWord(name, "transport") || StringContainsWord(name, "crate") || StringContainsWord(name, "container") || StringContainsWord(name, "barrel") || StringContainsWord(name, "train") || StringContainsWord(name, "crane") || StringContainsWord(name, "plate") || StringContainsWord(name, "cargo"))
+	else if (StringContainsWord(name, "mp/flag") || StringContainsWord(name, "/atat/") || StringContainsWord(name, "xwing") || StringContainsWord(name, "xwbody") || StringContainsWord(name, "tie_") || StringContainsWord(name, "ship") || StringContainsWord(name, "shuttle") || StringContainsWord(name, "falcon") || StringContainsWord(name, "freight") || StringContainsWord(name, "transport") || StringContainsWord(name, "crate") || StringContainsWord(name, "container") || StringContainsWord(name, "barrel") || StringContainsWord(name, "train") || StringContainsWord(name, "crane") || StringContainsWord(name, "plate") || StringContainsWord(name, "cargo"))
 		return qtrue;
 	else if (StringContainsWord(name, "reborn") || StringContainsWord(name, "trooper"))
 		return qtrue;
@@ -8362,7 +8362,29 @@ most world construction surfaces.
 //#include <mutex>
 //std::mutex findshader_lock;
 
-shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte *styles, qboolean mipRawImage ) {
+const char *R_ReplaceShader(const char *name)
+{
+	//extern char				MAP_REPLACE_SHADERS_ORIGINAL[16][MAX_QPATH];
+	//extern char				MAP_REPLACE_SHADERS_NEW[16][MAX_QPATH];
+
+	for (int i = 0; i < 16; i++)
+	{
+		if (MAP_REPLACE_SHADERS_ORIGINAL[i][0] == 0)
+			continue;
+
+		if (strlen(name) <= 0)
+			continue;
+
+		if (!strcmp(name, MAP_REPLACE_SHADERS_ORIGINAL[i]))
+		{
+			return MAP_REPLACE_SHADERS_NEW[i];
+		}
+	}
+
+	return name;
+}
+
+shader_t *R_FindShader( const char *shaderName, const int *lightmapIndexes, const byte *styles, qboolean mipRawImage ) {
 	char		strippedName[MAX_IMAGE_PATH];
 	int			hash, flags;
 	const char	*shaderText;
@@ -8372,9 +8394,13 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 	char		myShader[1024] = {0};
 #endif //__SHADER_GENERATOR__
 
+	const char *name = R_ReplaceShader(shaderName);
+
+
 	if ( name[0] == 0 ) {
 		return tr.defaultShader;
 	}
+
 
 	// use (fullbright) vertex lighting if the bsp file doesn't have
 	// lightmaps
@@ -8782,7 +8808,7 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 		{
 			sprintf(myShader, uniqueGenericPlayerShader, strippedName, strippedName, shaderCustomMap, strippedName);
 		}
-		else if (StringContainsWord(strippedName, "weapon") || material == MATERIAL_SOLIDMETAL || material == MATERIAL_HOLLOWMETAL)
+		else if (StringContainsWord(strippedName, "weapon") || StringContainsWord(strippedName, "/atat/") || material == MATERIAL_SOLIDMETAL || material == MATERIAL_HOLLOWMETAL)
 		{
 			sprintf(myShader, uniqueGenericMetalShader, strippedName, strippedName, shaderCustomMap, lightMapText);
 		}

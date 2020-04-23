@@ -1612,7 +1612,7 @@ void FOLIAGE_Calc_In_Range_Areas(void)
 
 				if (cg_foliageAreaFOVCheck.integer)
 				{
-					if (minsDist > FOLIAGE_AREA_SIZE && maxsDist > FOLIAGE_AREA_SIZE)
+					if (minsDist > FOLIAGE_AREA_SIZE * 16.0 && maxsDist > FOLIAGE_AREA_SIZE * 16.0)
 					{
 						isClose = qfalse;
 					}
@@ -1623,7 +1623,7 @@ void FOLIAGE_Calc_In_Range_Areas(void)
 					}
 				}
 
-				if (isClose || inFOV || (cg_foliageAreaFOVCheck.integer && (minsDist <= FOLIAGE_AREA_SIZE * 2.0 || maxsDist <= FOLIAGE_AREA_SIZE * 2.0)))
+				if (isClose || inFOV)
 				{
 					if (MAP_HAS_TREES && !isClose && !inFOV)
 					{// Not in our FOV, but close enough that we need the trees. Add to tree list instead, so we can skip grass/plant checking...
@@ -2675,6 +2675,10 @@ void FOLIAGE_DrawGrass(void)
 #define		ANY_AREA_MODEL_POSITION		46
 #define		RARE_MODELS_START			47
 
+			// Can do this one directly...
+			strcpy(CustomFoliageModelsList[ANY_AREA_MODEL_POSITION], IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "FOLIAGE", "anyAreaFoliageModel", ""));
+			CUSTOM_FOLIAGE_SCALES[ANY_AREA_MODEL_POSITION] = 1.0;
+
 			for (i = 0; i < ANY_AREA_MODEL_POSITION; i++)
 			{
 				char temp[128] = { 0 };
@@ -2687,15 +2691,6 @@ void FOLIAGE_DrawGrass(void)
 					strcpy(customNormalFoliageModelsTempList[customRealNormalTempModelsAdded], temp);
 					customNormalFoliageModelsTempScalesList[customRealNormalTempModelsAdded] = customScale;
 					customRealNormalTempModelsAdded++;
-					// And add it to the real list...
-					strcpy(customNormalFoliageModelsTempList[i], temp);
-					CUSTOM_FOLIAGE_SCALES[i] = customScale;
-				}
-				else if (customRealNormalTempModelsAdded > 0)
-				{// Doesn't exist, so pick one from the previously added list...
-					int choice = irand(0, customRealNormalTempModelsAdded - 1);
-					strcpy(CustomFoliageModelsList[i], customNormalFoliageModelsTempList[choice]);
-					CUSTOM_FOLIAGE_SCALES[i] = customNormalFoliageModelsTempScalesList[choice];
 				}
 			}
 
@@ -2712,70 +2707,124 @@ void FOLIAGE_DrawGrass(void)
 					strcpy(customRareFoliageModelsTempList[customRealRareTempModelsAdded], temp);
 					customRareFoliageModelsTempScalesList[customRealRareTempModelsAdded] = customScale;
 					customRealRareTempModelsAdded++;
-					// And add it to the real list...
-					strcpy(customRareFoliageModelsTempList[i], temp);
-					CUSTOM_FOLIAGE_SCALES[i] = customScale;
-				}
-				else if (customRealRareTempModelsAdded > 0)
-				{// Doesn't exist, so pick one from the previously added list...
-					int choice = irand(0, customRealRareTempModelsAdded - 1);
-					strcpy(CustomFoliageModelsList[i], customRareFoliageModelsTempList[choice]);
-					CUSTOM_FOLIAGE_SCALES[i] = customRareFoliageModelsTempScalesList[choice];
 				}
 			}
 
-			strcpy(CustomFoliageModelsList[ANY_AREA_MODEL_POSITION], IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "FOLIAGE", "anyAreaFoliageModel", ""));
-			CUSTOM_FOLIAGE_SCALES[ANY_AREA_MODEL_POSITION] = 1.0;
-
+			// Fill the any area model, if required...
 			if (!(CustomFoliageModelsList[ANY_AREA_MODEL_POSITION] && CustomFoliageModelsList[ANY_AREA_MODEL_POSITION][0] != 0 && strlen(CustomFoliageModelsList[ANY_AREA_MODEL_POSITION]) > 0))
 			{// Sanity check, fallback to using either a rare or a normal model for the anyArea model, if there was none specified...
 				if (customRealRareTempModelsAdded > 0)
 				{// Have rares? Use one...
-					int choice = irand(0, customRealRareTempModelsAdded - 1);
-					strcpy(CustomFoliageModelsList[ANY_AREA_MODEL_POSITION], customRareFoliageModelsTempList[choice]);
-					CUSTOM_FOLIAGE_SCALES[i] = customRareFoliageModelsTempScalesList[choice];
+					strcpy(CustomFoliageModelsList[ANY_AREA_MODEL_POSITION], customRareFoliageModelsTempList[0]);
+					CUSTOM_FOLIAGE_SCALES[ANY_AREA_MODEL_POSITION] = customRareFoliageModelsTempScalesList[0];
 				}
-				else if (customRealNormalTempModelsAdded > 0)
+
+				if (customRealNormalTempModelsAdded > 0)
 				{// Have standards? Use one...
-					int choice = irand(0, customRealNormalTempModelsAdded - 1);
-					strcpy(CustomFoliageModelsList[ANY_AREA_MODEL_POSITION], customNormalFoliageModelsTempList[choice]);
-					CUSTOM_FOLIAGE_SCALES[i] = customNormalFoliageModelsTempScalesList[choice];
+					strcpy(CustomFoliageModelsList[ANY_AREA_MODEL_POSITION], customNormalFoliageModelsTempList[0]);
+					CUSTOM_FOLIAGE_SCALES[ANY_AREA_MODEL_POSITION] = customNormalFoliageModelsTempScalesList[0];
 				}
 			}
 
-			// Sanity check, make sure we have filled all possible slots...
-			if (customRealRareTempModelsAdded > 0)
-			{// Had no Standards? Use Rares...
-				for (i = 0; i < ANY_AREA_MODEL_POSITION; i++, upto++)
+			//
+			// Fill the final list, from the temp lists...
+			//
+			if (customRealRareTempModelsAdded > 0 && customRealNormalTempModelsAdded > 0)
+			{
+				// Fill Standards...
+				upto = 0;
+
+				for (i = 0; i < ANY_AREA_MODEL_POSITION; i++)
 				{
 					if (!CustomFoliageModelsList[i] || CustomFoliageModelsList[i][0] == 0 || strlen(CustomFoliageModelsList[i]) <= 0)
 					{
-						int choice = irand(0, customRealRareTempModelsAdded - 1);
-						strcpy(CustomFoliageModelsList[i], customRareFoliageModelsTempList[choice]);
-						CUSTOM_FOLIAGE_SCALES[i] = customRareFoliageModelsTempScalesList[choice];
+						if (upto >= customRealRareTempModelsAdded - 1)
+						{
+							upto = 0;
+						}
+						else
+						{
+							upto++;
+						}
+
+						strcpy(CustomFoliageModelsList[i], customRareFoliageModelsTempList[upto]);
+						CUSTOM_FOLIAGE_SCALES[i] = customRareFoliageModelsTempScalesList[upto];
+					}
+				}
+
+				// Fill Rares...
+				upto = 0;
+
+				for (i = RARE_MODELS_START; i < MAX_PLANT_MODELS; i++)
+				{
+					if (!CustomFoliageModelsList[i] || CustomFoliageModelsList[i][0] == 0 || strlen(CustomFoliageModelsList[i]) <= 0)
+					{
+						if (upto >= customRealNormalTempModelsAdded - 1)
+						{
+							upto = 0;
+						}
+						else
+						{
+							upto++;
+						}
+
+						strcpy(CustomFoliageModelsList[i], customNormalFoliageModelsTempList[upto]);
+						CUSTOM_FOLIAGE_SCALES[i] = customNormalFoliageModelsTempScalesList[upto];
 					}
 				}
 			}
 			else if (customRealNormalTempModelsAdded > 0)
-			{// Had no Rares? Use Standards...
-				for (i = RARE_MODELS_START; i < MAX_PLANT_MODELS; i++, upto++)
+			{// Fill All...
+				upto = 0;
+
+				for (i = 0; i < MAX_PLANT_MODELS; i++)
 				{
 					if (!CustomFoliageModelsList[i] || CustomFoliageModelsList[i][0] == 0 || strlen(CustomFoliageModelsList[i]) <= 0)
 					{
-						int choice = irand(0, customRealNormalTempModelsAdded - 1);
-						strcpy(CustomFoliageModelsList[i], customNormalFoliageModelsTempList[choice]);
-						CUSTOM_FOLIAGE_SCALES[i] = customNormalFoliageModelsTempScalesList[choice];
+						if (upto >= customRealRareTempModelsAdded - 1)
+						{
+							upto = 0;
+						}
+						else
+						{
+							upto++;
+						}
+
+						strcpy(CustomFoliageModelsList[i], customNormalFoliageModelsTempList[upto]);
+						CUSTOM_FOLIAGE_SCALES[i] = customNormalFoliageModelsTempScalesList[upto];
 					}
 				}
 			}
-			else if (!(CustomFoliageModelsList[ANY_AREA_MODEL_POSITION] && CustomFoliageModelsList[ANY_AREA_MODEL_POSITION][0] != 0 && strlen(CustomFoliageModelsList[ANY_AREA_MODEL_POSITION]) > 0))
+			else if (customRealRareTempModelsAdded > 0)
+			{// Fill All...
+				upto = 0;
+
+				for (i = 0; i < MAX_PLANT_MODELS; i++)
+				{
+					if (!CustomFoliageModelsList[i] || CustomFoliageModelsList[i][0] == 0 || strlen(CustomFoliageModelsList[i]) <= 0)
+					{
+						if (upto >= customRealRareTempModelsAdded - 1)
+						{
+							upto = 0;
+						}
+						else
+						{
+							upto++;
+						}
+
+						strcpy(CustomFoliageModelsList[i], customRareFoliageModelsTempList[upto]);
+						CUSTOM_FOLIAGE_SCALES[i] = customRareFoliageModelsTempScalesList[upto];
+					}
+				}
+			}
+			else if (CustomFoliageModelsList[ANY_AREA_MODEL_POSITION] && CustomFoliageModelsList[ANY_AREA_MODEL_POSITION][0] != 0 && strlen(CustomFoliageModelsList[ANY_AREA_MODEL_POSITION]) > 0)
 			{// Had no rares or normal foliages, but we did have an anyArea model, use that for everything...
 				for (i = 0; i < MAX_PLANT_MODELS; i++)
 				{
 					if (!CustomFoliageModelsList[i] || CustomFoliageModelsList[i][0] == 0 || strlen(CustomFoliageModelsList[i]) <= 0)
 					{
 						strcpy(CustomFoliageModelsList[i], CustomFoliageModelsList[ANY_AREA_MODEL_POSITION]);
-						CUSTOM_FOLIAGE_SCALES[i] = 1.0;
+						CUSTOM_FOLIAGE_SCALES[i] = CUSTOM_FOLIAGE_SCALES[ANY_AREA_MODEL_POSITION];
 					}
 				}
 			}
@@ -2791,15 +2840,11 @@ void FOLIAGE_DrawGrass(void)
 				}
 			}
 
-			if (!(CustomFoliageModelsList[ANY_AREA_MODEL_POSITION] && CustomFoliageModelsList[ANY_AREA_MODEL_POSITION][0] != 0 && strlen(CustomFoliageModelsList[ANY_AREA_MODEL_POSITION]) > 0))
-			{// Sanity check, still nothing for the anyArea model, default to basic grass model...
-				strcpy(CustomFoliageModelsList[ANY_AREA_MODEL_POSITION], "models/warzone/plants/gcgrass01.md3");
-				CUSTOM_FOLIAGE_SCALES[ANY_AREA_MODEL_POSITION] = 1.0;
-			}
-
 			for (i = 0; i < MAX_PLANT_MODELS; i++)
 			{
+				trap->Print("^1*** ^3%s^5: Foliage system registerring mapInfo custom model \"^7%s^5\".\n", "FOLIAGE", CustomFoliageModelsList[i]);
 				FOLIAGE_PLANT_MODELS[i] = trap->R_RegisterModel(CustomFoliageModelsList[i]);
+				FOLIAGE_PLANT_SCALE[i] = CUSTOM_FOLIAGE_SCALES[i];
 			}
 		}
 		else
@@ -3300,10 +3345,10 @@ float RoofHeightAbove(vec3_t org)
 	}
 
 	if (tr.materialType == MATERIAL_TREEBARK
-		|| MaterialIsValidForGrass(tr.materialType)
-		|| tr.materialType == MATERIAL_SAND
+		/*|| MaterialIsValidForGrass(tr.materialType)
+		|| tr.materialType == MATERIAL_SAND*/
 		|| tr.materialType == MATERIAL_ROCK
-		|| (tr.contents & CONTENTS_TRANSLUCENT))
+		/*|| (tr.contents & CONTENTS_TRANSLUCENT)*/)
 	{// Exception for hitting trees...
 		return org[2] + 257.0;
 	}
@@ -3311,9 +3356,44 @@ float RoofHeightAbove(vec3_t org)
 	return tr.endpos[2];
 }
 
+float SkyHeightAbove(vec3_t org)
+{
+	trace_t tr;
+	vec3_t org1, org2;
+	//	float height = 0;
+
+	VectorCopy(org, org1);
+	org1[2] += 16;
+
+	VectorCopy(org, org2);
+	org2[2] = 131072.0f;
+
+	CG_Trace(&tr, org1, NULL, NULL, org2, cg.clientNum, MASK_PLAYERSOLID);
+
+	if (tr.startsolid || tr.allsolid)
+	{
+		//trap->Print("start or allsolid.\n");
+		return -131072.0f;
+	}
+
+	if (tr.materialType == MATERIAL_TREEBARK
+		/*|| MaterialIsValidForGrass(tr.materialType)
+		|| tr.materialType == MATERIAL_SAND*/
+		|| tr.materialType == MATERIAL_ROCK
+		/*|| (tr.contents & CONTENTS_TRANSLUCENT)*/)
+	{// Exception for hitting trees...
+		return org[2] + 257.0;
+	}
+
+	if (tr.surfaceFlags & SURF_SKY)
+		return tr.endpos[2];
+	else
+		return org[2]; // not sky, bad!
+}
+
 qboolean FOLIAGE_IsIndoorLocation(vec3_t origin)
 {
-	if (RoofHeightAbove(origin) - origin[2] <= 256.0)
+	if (/*RoofHeightAbove(origin)*/SkyHeightAbove(origin) - origin[2] <= 256.0)
 	{// This must be indoors...
 		return qtrue;
 	}
@@ -4623,28 +4703,28 @@ void FOLIAGE_FoliageClearBuildings(void)
 		if (!roofAtPoint)
 		{
 			vec3_t o;
-			VectorSet(o, FOLIAGE_POSITIONS[i][0] + 64.0, FOLIAGE_POSITIONS[i][1], FOLIAGE_POSITIONS[i][2] + 16.0);
+			VectorSet(o, FOLIAGE_POSITIONS[i][0] + 64.0, FOLIAGE_POSITIONS[i][1], FOLIAGE_POSITIONS[i][2] + /*16.0*/64.0);
 
 			if (FOLIAGE_IsIndoorLocation(o))
 			{
 				roofAtPoint = qtrue;
 			}
 
-			VectorSet(o, FOLIAGE_POSITIONS[i][0] - 64.0, FOLIAGE_POSITIONS[i][1], FOLIAGE_POSITIONS[i][2] + 16.0);
+			VectorSet(o, FOLIAGE_POSITIONS[i][0] - 64.0, FOLIAGE_POSITIONS[i][1], FOLIAGE_POSITIONS[i][2] + /*16.0*/64.0);
 
 			if (!roofAtPoint && FOLIAGE_IsIndoorLocation(o))
 			{
 				roofAtPoint = qtrue;
 			}
 
-			VectorSet(o, FOLIAGE_POSITIONS[i][0], FOLIAGE_POSITIONS[i][1] + 64.0, FOLIAGE_POSITIONS[i][2] + 16.0);
+			VectorSet(o, FOLIAGE_POSITIONS[i][0], FOLIAGE_POSITIONS[i][1] + 64.0, FOLIAGE_POSITIONS[i][2] + /*16.0*/64.0);
 
 			if (!roofAtPoint && FOLIAGE_IsIndoorLocation(o))
 			{
 				roofAtPoint = qtrue;
 			}
 
-			VectorSet(o, FOLIAGE_POSITIONS[i][0], FOLIAGE_POSITIONS[i][1] - 64.0, FOLIAGE_POSITIONS[i][2] + 16.0);
+			VectorSet(o, FOLIAGE_POSITIONS[i][0], FOLIAGE_POSITIONS[i][1] - 64.0, FOLIAGE_POSITIONS[i][2] + /*16.0*/64.0);
 
 			if (!roofAtPoint && FOLIAGE_IsIndoorLocation(o))
 			{
@@ -4669,6 +4749,83 @@ void FOLIAGE_FoliageClearBuildings(void)
 		{
 			FOLIAGE_PLANT_SELECTION[i] = irand(1, MAX_PLANT_MODELS);
 			if (MAP_HAS_TREES) FOLIAGE_TREE_SELECTION[i] = 0;
+		}
+
+		sprintf(last_node_added_string, "^3%i ^5objects removed. ^3%i ^5total plants.", NUM_REMOVED_OBJECTS, NUM_PLANTS_TOTAL);
+	}
+
+	trap->S_Shutup(qfalse);
+
+	aw_percent_complete = 0.0f;
+
+	trap->Print("^1*** ^3%s^5: Successfully removed ^3%i ^5objects from a total of ^3%i ^5objects....\n", "AUTO-FOLIAGE", NUM_REMOVED_OBJECTS, NUM_PLANTS_TOTAL);
+
+	// Save the generated info to a file for next time...
+	FOLIAGE_SaveFoliagePositions();
+}
+
+
+void FOLIAGE_FoliageClearWater(void)
+{
+	int i = 0;
+	int NUM_REMOVED_OBJECTS = 0;
+	int NUM_PLANTS_TOTAL = 0;
+
+	int previous_time = clock();
+	aw_stage_start_time = clock();
+	aw_percent_complete = 0;
+
+	trap->Print(va("^4*** ^3AUTO-FOLIAGE^4: ^5Cleaning foliage points. This could take a while...\n"));
+	strcpy(task_string1, va("^5Cleaning foliage points. This could take a while..."));
+	trap->UpdateScreen();
+
+	trap->Print(va("^4*** ^3AUTO-FOLIAGE^4: ^5Cleaning foliage points...\n"));
+	strcpy(task_string2, va("^5Cleaning foliage points..."));
+	trap->UpdateScreen();
+
+	strcpy(task_string3, "");
+
+	trap->UpdateScreen();
+
+	trap->S_Shutup(qtrue);
+
+	int numCompleted = 0;
+
+	extern float		MAP_WATER_LEVEL;
+
+	//#pragma omp parallel for schedule(dynamic)
+	for (i = 0; i < FOLIAGE_NUM_POSITIONS; i++)
+	{// Check current list...
+		FOLIAGE_PLANT_SELECTION[i] = 0;
+
+		numCompleted++;
+		aw_percent_complete = (float)((float)numCompleted / (float)FOLIAGE_NUM_POSITIONS) * 100.0;
+
+		if (clock() - previous_time > 50) // update display every 50ms...
+		{
+			previous_time = clock();
+			trap->UpdateScreen();
+		}
+
+		NUM_PLANTS_TOTAL++;
+
+		if (MAP_HAS_TREES && FOLIAGE_TREE_SELECTION[i] > 0 && FOLIAGE_POSITIONS[i][2] > MAP_WATER_LEVEL + 64.0)
+		{// Tree here... Replace...
+			FOLIAGE_TREE_SELECTION[i] = irand(1, NUM_TREE_TYPES);
+			FOLIAGE_PLANT_SELECTION[i] = 0;
+		}
+		else if (FOLIAGE_POSITIONS[i][2] > MAP_WATER_LEVEL + 64.0)
+		{
+			FOLIAGE_PLANT_SELECTION[i] = irand(1, MAX_PLANT_MODELS);
+			if (MAP_HAS_TREES) FOLIAGE_TREE_SELECTION[i] = 0;
+		}
+		else
+		{
+			NUM_REMOVED_OBJECTS++;
+
+			if (MAP_HAS_TREES) FOLIAGE_TREE_SELECTION[i] = 0;
+
+			FOLIAGE_PLANT_SELECTION[i] = 0;
 		}
 
 		sprintf(last_node_added_string, "^3%i ^5objects removed. ^3%i ^5total plants.", NUM_REMOVED_OBJECTS, NUM_PLANTS_TOTAL);
@@ -4798,6 +4955,7 @@ void FOLIAGE_GenerateFoliage(void)
 		trap->Print("^4*** ^3AUTO-FOLIAGE^4: ^3\"clearfxrunners\" ^5- Remove all objects near fx_runner entities.\n");
 		trap->Print("^4*** ^3AUTO-FOLIAGE^4: ^3\"clearbuildings\" ^5- Remove all objects inside buildings.\n");
 		trap->Print("^4*** ^3AUTO-FOLIAGE^4: ^3\"clearroads\" ^5- Remove all objects on roads.\n");
+		trap->Print("^4*** ^3AUTO-FOLIAGE^4: ^3\"clearwater\" ^5- Remove all objects underwater (or near underwater).\n");
 		trap->UpdateScreen();
 		return;
 	}
@@ -5013,6 +5171,10 @@ void FOLIAGE_GenerateFoliage(void)
 	else if (!strcmp(str, "clearbuildings"))
 	{
 		FOLIAGE_FoliageClearBuildings();
+	}
+	else if (!strcmp(str, "clearwater"))
+	{
+		FOLIAGE_FoliageClearWater();
 	}
 	else if (!strcmp(str, "retree"))
 	{

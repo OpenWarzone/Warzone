@@ -146,6 +146,11 @@ qboolean ValidateBoard( Vehicle_t *pVeh, bgEntity_t *pEnt )
 	vec3_t vVehAngles;
 	float fDot;
 
+	if (pEnt->s.eType == ET_NPC && (pEnt->s.NPC_class == CLASS_STORMTROOPER_ATST_PILOT || pEnt->s.NPC_class == CLASS_STORMTROOPER_ATAT_PILOT) && pVeh->m_pPilot == NULL)
+	{
+		return qtrue;
+	}
+
 	if ( pVeh->m_iDieTime>0)
 	{
 		return qfalse;
@@ -284,7 +289,7 @@ qboolean Board( Vehicle_t *pVeh, bgEntity_t *pEnt )
 
 	// Tell everybody their status.
 	// ALWAYS let the player be the pilot.
-	if ( ent->s.number < MAX_CLIENTS )
+	if ( ent->s.number < MAX_CLIENTS || (ent->s.eType == ET_NPC && (ent->s.NPC_class == CLASS_STORMTROOPER_ATST_PILOT || ent->s.NPC_class == CLASS_STORMTROOPER_ATAT_PILOT)) )
 	{
 		pVeh->m_pOldPilot = pVeh->m_pPilot;
 
@@ -406,6 +411,23 @@ qboolean Board( Vehicle_t *pVeh, bgEntity_t *pEnt )
 		{
 			return qfalse;
 		}
+
+#ifdef _GAME
+		if (pEnt->s.eType == ET_NPC && (pEnt->s.NPC_class == CLASS_STORMTROOPER_ATST_PILOT || pEnt->s.NPC_class == CLASS_STORMTROOPER_ATAT_PILOT))
+		{// Always drop to floor when boarding ATST...
+			gentity_t *gParent = (gentity_t *)parent;
+			if ((gParent->spawnflags & 2))
+			{//was being suspended
+				gParent->spawnflags &= ~2;//SUSPENDED - clear this spawnflag, no longer docked, okay to free-fall if not in space
+										  //gParent->client->ps.eFlags &= ~EF_RADAROBJECT;
+				G_Sound(gParent, CHAN_AUTO, G_SoundIndex("sound/vehicles/common/release.wav"));
+				if (gParent->fly_sound_debounce_time)
+				{//we should drop like a rock for a few seconds
+					pVeh->m_iDropTime = level.time + gParent->fly_sound_debounce_time;
+				}
+			}
+		}
+#endif
 	}
 
 	// Make sure the entity knows it's in a vehicle.

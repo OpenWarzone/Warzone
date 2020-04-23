@@ -4,6 +4,7 @@
 #define SCREEN_MAPS_LEAFS_THRESHOLD 0.001
 //#define SCREEN_MAPS_LEAFS_THRESHOLD 0.9
 
+
 #if defined(USE_BINDLESS_TEXTURES)
 layout(std140) uniform u_bindlessTexturesBlock
 {
@@ -69,6 +70,7 @@ uniform vec4						u_Settings2; // LIGHTDEF_USE_LIGHTMAP, LIGHTDEF_USE_GLOW_BUFFE
 uniform vec4						u_Settings3; // LIGHTDEF_USE_REGIONS, LIGHTDEF_IS_DETAIL, 0=DetailMapNormal 1=detailMapFromTC 2=detailMapFromWorld, USE_GLOW_BLEND_MODE
 uniform vec4						u_Settings4; // MAP_LIGHTMAP_MULTIPLIER, MAP_LIGHTMAP_ENHANCEMENT, 0.0, 0.0
 uniform vec4						u_Settings5; // MAP_COLOR_SWITCH_RG, MAP_COLOR_SWITCH_RB, MAP_COLOR_SWITCH_GB, ENABLE_CHRISTMAS_EFFECT
+uniform vec4						u_Settings6; // TREE_BRANCH_HARDINESS, TREE_BRANCH_SIZE, TREE_BRANCH_WIND_STRENGTH, 0.0
 
 #define USE_TC						u_Settings0.r
 #define USE_DEFORM					u_Settings0.g
@@ -148,6 +150,15 @@ uniform float						u_zFar;
 #define LEAF_ALPHA_MULTIPLIER		u_Local5.a
 
 
+
+// TODO: Make mapinfo setting???
+//#define LEAF_ALPHA_RANGE_LODS_ON_OTHERS
+#define LEAF_ALPHA_RANGE				32768.0
+#define LEAF_ALPHA_RANGE_MIN_LOD		1.0
+#define LEAF_ALPHA_RANGE_MAX_LOD		16.0
+
+
+
 #if defined(USE_TESSELLATION)
 
 in vec3						Normal_FS_in;
@@ -217,11 +228,6 @@ out vec4 out_Normal;
 out vec4 out_NormalDetail;
 #endif //USE_REAL_NORMALMAPS
 
-
-const float							fBranchHardiness = 0.001;
-const float							fBranchSize = 128.0;
-const float							fWindStrength = 12.0;
-const vec3							vWindDirection = normalize(vec3(1.0, 1.0, 0.0));
 
 vec2 pxSize = vec2(1.0) / u_Dimensions;
 
@@ -303,20 +309,6 @@ float SmoothNoise( vec3 p, in float seed )
 }
 #endif //_CHRISTMAS_LIGHTS_
 
-vec2 GetSway ()
-{
-	// Wind calculation stuff...
-	float fWindPower = 0.5f + sin(m_vertPos.x / fBranchSize + m_vertPos.z / fBranchSize + u_Time*(1.2f + fWindStrength / fBranchSize/*20.0f*/));
-
-	if (fWindPower < 0.0f)
-		fWindPower = fWindPower*0.2f;
-	else
-		fWindPower = fWindPower*0.3f;
-
-	fWindPower *= fWindStrength;
-
-	return vWindDirection.xy*fWindPower*fBranchHardiness;
-}
 
 vec3 Vibrancy ( vec3 origcolor, float vibrancyStrength )
 {
@@ -371,11 +363,6 @@ void main()
 	vec2 texCoords = m_TexCoords.xy;
 	vec3 N = m_Normal.xyz;
 
-	if (SHADER_SWAY > 0.0)
-	{// Sway...
-		texCoords += vec2(GetSway());
-	}
-
 	vec4 diffuse = vec4(0.0);
 
 	diffuse = texture(u_DiffuseMap, texCoords);
@@ -385,9 +372,13 @@ void main()
 		{
 			diffuse.rgb = Enhance(u_DiffuseMap, texCoords, diffuse.rgb, 16.0);
 		}
-		else if (SHADER_MATERIAL_TYPE == MATERIAL_GREENLEAVES && dist > 16384.0 && diffuse.a < 1.0)
+#ifdef LEAF_ALPHA_RANGE_LODS_ON_OTHERS
+		else if (dist > LEAF_ALPHA_RANGE && diffuse.a < 1.0)
+#else //!LEAF_ALPHA_RANGE_LODS_ON_OTHERS
+		else if (SHADER_MATERIAL_TYPE == MATERIAL_GREENLEAVES && dist > LEAF_ALPHA_RANGE && diffuse.a < 1.0)
+#endif //LEAF_ALPHA_RANGE_LODS_ON_OTHERS
 		{// Try to fill out distant tree leafs, so they puff out and take up more pixels in the background. To both block vis better, and also make trees look less crappy...
-			float lod = mix(2.0, 16.0, clamp((dist-16384.0) / u_zFar, 0.0, 1.0));
+			float lod = mix(LEAF_ALPHA_RANGE_MIN_LOD, LEAF_ALPHA_RANGE_MAX_LOD, clamp((dist-LEAF_ALPHA_RANGE) / u_zFar, 0.0, 1.0));
 			vec4 lodColor = textureLod(u_DiffuseMap, texCoords, lod);
 			float best = diffuse.a > lodColor.a ? 0.0 : 1.0;
 			diffuse = mix(diffuse, lodColor, best);
@@ -575,7 +566,9 @@ void main()
 	
 	gl_FragColor.rgb *= clamp(lightColor, 0.0, 1.0);
 
+#ifndef LEAF_ALPHA_RANGE_LODS_ON_OTHERS
 	if (SHADER_MATERIAL_TYPE == MATERIAL_GREENLEAVES)
+#endif //LEAF_ALPHA_RANGE_LODS_ON_OTHERS
 	{// Amp up alphas on tree leafs, etc, so they draw at range instead of being blurred out...
 		gl_FragColor.a = clamp(gl_FragColor.a * LEAF_ALPHA_MULTIPLIER * leafDistanceAlphaMod, 0.0, 1.0);
 	}
@@ -806,7 +799,7 @@ void main()
 
 		glowColor.rgb *= SHADER_GLOW_STRENGTH;
 
-		if (SHADER_MATERIAL_TYPE != MATERIAL_GLASS && SHADER_MATERIAL_TYPE != MATERIAL_BLASTERBOLT && length(glowColor.rgb) <= 0.0)
+		if (SHADER_MATERIAL_TYPE != MATERIAL_GLASS && SHADER_MATERIAL_TYPE != MATERIAL_BLASTERBOLT && SHADER_MATERIAL_TYPE != MATERIAL_EFX && length(glowColor.rgb) <= 0.0)
 			glowColor.a = 0.0;
 
 		glowColor += specularGlow;
@@ -874,7 +867,7 @@ void main()
 
 		glowColor.rgb *= SHADER_GLOW_STRENGTH;
 
-		if (SHADER_MATERIAL_TYPE != MATERIAL_GLASS && SHADER_MATERIAL_TYPE != MATERIAL_BLASTERBOLT && length(glowColor.rgb) <= 0.0)
+		if (SHADER_MATERIAL_TYPE != MATERIAL_GLASS && SHADER_MATERIAL_TYPE != MATERIAL_BLASTERBOLT && SHADER_MATERIAL_TYPE != MATERIAL_EFX && length(glowColor.rgb) <= 0.0)
 			glowColor.a = 0.0;
 
 		glowColor += specularGlow;
