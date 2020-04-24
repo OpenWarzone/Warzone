@@ -1821,7 +1821,7 @@ gentity_t *NPC_Spawn_Do( gentity_t *ent )
 			myVehicle->s.angles[ROLL] = 0;
 			myVehicle->team = ent->team;
 			myVehicle->s.eType = ET_NPC_SPAWNER;
-			//myVehicle->spawnArea = ent->spawnArea;
+			myVehicle->spawnArea = ent->spawnArea;
 			myVehicle->classname = "NPC_Vehicle";
 
 			G_SetAngles(myVehicle, myVehicle->s.angles);

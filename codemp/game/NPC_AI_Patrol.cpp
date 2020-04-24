@@ -356,7 +356,7 @@ qboolean NPC_PatrolArea(gentity_t *aiEnt)
 	qboolean	onMover1 = qfalse;
 	qboolean	onMover2 = qfalse;
 
-	aiEnt->NPC->combatMove = qtrue;
+	aiEnt->NPC->combatMove = /*aiEnt->NPC->vehicleAI ? qfalse :*/ qtrue;
 
 	if (!NPC_HaveValidEnemy(aiEnt))
 	{
@@ -407,6 +407,8 @@ qboolean NPC_PatrolArea(gentity_t *aiEnt)
 	{
 		if (NPC_IsHumanoid(NPC))
 			NPC_PickRandomIdleAnimantion(NPC);
+
+		//if (aiEnt->NPC->vehicleAI) Com_Printf("DEBUG VEHAI: Waiting1\n");
 		return qtrue;
 	}
 
@@ -423,7 +425,14 @@ qboolean NPC_PatrolArea(gentity_t *aiEnt)
 
 		if (NPC->client->navigation.goal.haveGoal && !GoalInRange(NPC, NavlibGetGoalRadius(NPC)))
 		{
-			if (NPC->last_move_time < level.time - 4000)
+			if (!NPC->NPC->vehicleAI && NPC->last_move_time < level.time - 4000)
+			{
+				NPC->client->navigation.goal.haveGoal = qfalse;
+				VectorClear(NPC->client->navigation.goal.origin);
+				NPC->client->navigation.goal.ent = NULL;
+				NPC_SetNewPatrolGoalAndPath(NPC);
+			}
+			else if (NPC->NPC->vehicleAI && NPC->last_move_time < level.time - 10000)
 			{
 				NPC->client->navigation.goal.haveGoal = qfalse;
 				VectorClear(NPC->client->navigation.goal.origin);
@@ -469,16 +478,20 @@ qboolean NPC_PatrolArea(gentity_t *aiEnt)
 				{
 					trap->EA_Jump(NPC->s.number);
 				}
+
+				//if (aiEnt->NPC->vehicleAI) Com_Printf("DEBUG VEHAI: strafeJump\n");
 			}
 			else if (NPC->bot_strafe_left_timer > level.time)
 			{
 				ucmd->rightmove = -127;
 				trap->EA_MoveLeft(NPC->s.number);
+				//if (aiEnt->NPC->vehicleAI) Com_Printf("DEBUG VEHAI: strafeLeft\n");
 			}
 			else if (NPC->bot_strafe_right_timer > level.time)
 			{
 				ucmd->rightmove = 127;
 				trap->EA_MoveRight(NPC->s.number);
+				//if (aiEnt->NPC->vehicleAI) Com_Printf("DEBUG VEHAI: strafeRight\n");
 			}
 
 			/*if (NPC->last_move_time < level.time - 2000)
@@ -511,6 +524,9 @@ qboolean NPC_PatrolArea(gentity_t *aiEnt)
 
 			if (NPC_IsHumanoid(NPC))
 				NPC_PickRandomIdleAnimantion(NPC);
+
+			//if (aiEnt->NPC->vehicleAI) Com_Printf("DEBUG VEHAI: goalHit\n");
+
 			return qtrue; // next think...
 		}
 		else if (NPC->noWaypointTime > level.time)
@@ -525,6 +541,9 @@ qboolean NPC_PatrolArea(gentity_t *aiEnt)
 
 			if (NPC_IsHumanoid(NPC))
 				NPC_PickRandomIdleAnimantion(NPC);
+
+			//if (aiEnt->NPC->vehicleAI) Com_Printf("DEBUG VEHAI: waiting2\n");
+
 			return qtrue; // next think...
 		}
 		else
@@ -544,7 +563,11 @@ qboolean NPC_PatrolArea(gentity_t *aiEnt)
 			ucmd->forwardmove = 0;
 			ucmd->rightmove = 0;
 			ucmd->upmove = 0;
-			NPC_PickRandomIdleAnimantion(NPC);
+
+			if (NPC_IsHumanoid(NPC))
+				NPC_PickRandomIdleAnimantion(NPC);
+
+			//if (aiEnt->NPC->vehicleAI) Com_Printf("DEBUG VEHAI: newgoal %s\n", NPC->client->navigation.goal.haveGoal ? "TRUE" : "FALSE");
 
 			return qtrue;
 		}
@@ -552,7 +575,10 @@ qboolean NPC_PatrolArea(gentity_t *aiEnt)
 		ucmd->forwardmove = 0;
 		ucmd->rightmove = 0;
 		ucmd->upmove = 0;
-		NPC_PickRandomIdleAnimantion(NPC);
+
+		if (NPC_IsHumanoid(NPC))
+			NPC_PickRandomIdleAnimantion(NPC);
+
 		return qfalse;
 	}
 #endif //__USE_NAVLIB__

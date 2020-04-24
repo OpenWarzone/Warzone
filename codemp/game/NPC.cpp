@@ -3726,6 +3726,31 @@ qboolean UQ1_UcmdMoveForDir ( gentity_t *self, usercmd_t *cmd, vec3_t dir, qbool
 	float forwardmove = speed * DotProduct(forward, dir);
 	float rightmove = speed * DotProduct(right, dir);
 
+	if (self->NPC->vehicleAI)
+	{// Vehicles turn using left/right move, then move forward when facing...
+		if (rightmove > 8)
+		{
+			//cmd->rightmove = ClampChar(127);
+			cmd->rightmove = ClampChar(rightmove);
+			//Com_Printf("DEBUG VUCMD: %i right\n", aiEnt->s.number);
+		}
+		else if (rightmove < -8)
+		{
+			//cmd->rightmove = ClampChar(-127);
+			cmd->rightmove = ClampChar(rightmove);
+			//Com_Printf("DEBUG VUCMD: %i left\n", aiEnt->s.number);
+		}
+		else
+		{
+			//cmd->forwardmove = ClampChar(127);
+			cmd->forwardmove = ClampChar(forwardmove);
+			cmd->rightmove = ClampChar(rightmove);
+			//Com_Printf("DEBUG VUCMD: %i forward\n", aiEnt->s.number);
+		}
+		//ForceCrash()
+		return qtrue;
+	}
+
 	// find optimal magnitude to make speed as high as possible
 	if (Q_fabs(forwardmove) > Q_fabs(rightmove))
 	{
@@ -4079,9 +4104,12 @@ void NPC_ApplyVehicleAI(gentity_t *aiEnt)
 		memcpy(&aiEnt->m_pVehicle->m_ucmd, &aiEnt->client->pers.cmd, sizeof(usercmd_t));
 
 		// Vehicles don't jump...
-		//aiEnt->m_pVehicle->m_ucmd.upmove = 0;
-		//aiEnt->client->pers.cmd.upmove = 0;
-		//trap->Print("vai vel %i %i %i.\n", (int)aiEnt->m_pVehicle->m_ucmd.forwardmove, (int)aiEnt->m_pVehicle->m_ucmd.rightmove, (int)aiEnt->m_pVehicle->m_ucmd.upmove);
+		aiEnt->m_pVehicle->m_ucmd.upmove = 0;
+		aiEnt->client->pers.cmd.upmove = 0;
+		
+		//trap->Print("ucmd f:%i r:%i u:%i. f:%i r:%i u:%i.\n"
+		//	, (int)aiEnt->m_pVehicle->m_ucmd.forwardmove, (int)aiEnt->m_pVehicle->m_ucmd.rightmove, (int)aiEnt->m_pVehicle->m_ucmd.upmove
+		//	, (int)aiEnt->client->pers.cmd.forwardmove, (int)aiEnt->client->pers.cmd.rightmove, (int)aiEnt->client->pers.cmd.upmove);
 	}
 }
 
