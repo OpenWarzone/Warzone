@@ -8445,7 +8445,7 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 		}
 		else if (NPC->s.NPC_class == CLASS_ATAT)
 		{
-			OPTIMAL_MIN_RANGE = 1024;
+			OPTIMAL_MIN_RANGE = 512;
 			OPTIMAL_MAX_RANGE = 2048;
 		}
 
@@ -8457,20 +8457,25 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 			}
 
 			// Try direct...
-			Jedi_Move(aiEnt, aiEnt->enemy, qfalse);
+			//Jedi_Move(aiEnt, aiEnt->enemy, qfalse);
+			Jedi_Advance(aiEnt);
 			return qtrue;
 		}
 		else if (dist < OPTIMAL_MIN_RANGE)
 		{
+			//NPC_FacePosition(aiEnt, NPC->enemy->r.currentOrigin, qtrue);
 			Jedi_Retreat(aiEnt);
 			return qtrue;
 		}
 		
 		// Don't move...
-		NPC->client->pers.cmd.forwardmove = 0;
-		NPC->client->pers.cmd.rightmove = 0;
-		NPC->client->pers.cmd.upmove = 0;
-		NPC_FacePosition(aiEnt, NPC->enemy->r.currentOrigin, qtrue);
+		NPC_ClearGoal(aiEnt);
+		aiEnt->noWaypointTime = level.time + 2000;
+		aiEnt->beStillTime = level.time + 2000;
+		aiEnt->client->pers.cmd.forwardmove = 0;
+		aiEnt->client->pers.cmd.rightmove = 0;
+		aiEnt->client->pers.cmd.upmove = 0;
+		NPC_FacePosition(aiEnt, aiEnt->enemy->r.currentOrigin, qtrue);
 		return qfalse;
 	}
 
