@@ -843,7 +843,8 @@ void G_MissileImpact(gentity_t *ent, trace_t *trace, qboolean HIT_TREE) {
 				if (npc_class == CLASS_SEEKER || npc_class == CLASS_PROBE || npc_class == CLASS_MOUSE ||
 					npc_class == CLASS_GONK || npc_class == CLASS_R2D2 || npc_class == CLASS_R5D2 || npc_class == CLASS_REMOTE ||
 					npc_class == CLASS_MARK1 || npc_class == CLASS_MARK2 || //npc_class == CLASS_PROTOCOL ||//no protocol, looks odd
-					npc_class == CLASS_INTERROGATOR || npc_class == CLASS_ATST || npc_class == CLASS_SENTRY)
+					npc_class == CLASS_INTERROGATOR || npc_class == CLASS_ATST_OLD || npc_class == CLASS_SENTRY ||
+					npc_class == CLASS_ATST || npc_class == CLASS_ATAT)
 				{
 					// special droid only behaviors
 					if (other->client->ps.electrifyTime < level.time + 100)

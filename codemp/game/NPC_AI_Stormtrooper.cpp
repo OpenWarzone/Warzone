@@ -592,7 +592,7 @@ qboolean NPC_CheckEnemyStealth(gentity_t *aiEnt, gentity_t *target )
 		float	realize, cautious;
 		int		contents;
 
-		if ( target->client->NPC_class == CLASS_ATST )
+		if ( target->client->NPC_class == CLASS_ATST_OLD)
 		{//can't miss 'em!
 			G_SetEnemy( aiEnt, target );
 			TIMER_Set( aiEnt, "attackDelay", Q_irand( 500, 2500 ) );

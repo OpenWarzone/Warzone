@@ -19,7 +19,7 @@ typedef enum //# team_e
 typedef enum
 {
 	CLASS_NONE,				// hopefully this will never be used by an npc, just covering all bases
-	CLASS_ATST,				// technically droid...
+	CLASS_ATST_OLD,				// technically droid...
 	CLASS_BARTENDER,
 	CLASS_BESPIN_COP,
 	CLASS_CLAW,
@@ -89,6 +89,9 @@ typedef enum
 	CLASS_REEK,
 	CLASS_NEXU,
 	CLASS_ACKLAY,
+
+	CLASS_ATST,
+	CLASS_ATAT,
 
 	// UQ1: Extras from SP...
 	CLASS_SAND_CREATURE,

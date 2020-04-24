@@ -2596,7 +2596,9 @@ qboolean ForceTelepathyCheckDirectNPCTarget( gentity_t *self, trace_t *tr, qbool
 		switch ( traceEnt->client->NPC_class )
 		{
 		case CLASS_GALAKMECH://cant grip him, he's in armor
-		case CLASS_ATST://much too big to grip!
+		case CLASS_ATST_OLD://much too big to grip!
+		case CLASS_ATST:
+		case CLASS_ATAT:
 		//no droids either
 		case CLASS_PROBE:
 		case CLASS_GONK:
@@ -3417,7 +3419,9 @@ void ForceThrow( gentity_t *self, qboolean pull )
 						}
 					}
 					else if ( ent->client->NPC_class == CLASS_GALAKMECH
+						|| ent->client->NPC_class == CLASS_ATST_OLD
 						|| ent->client->NPC_class == CLASS_ATST
+						|| ent->client->NPC_class == CLASS_ATAT
 						|| ent->client->NPC_class == CLASS_RANCOR )
 					{//can't push ATST or Galak or Rancor
 						continue;

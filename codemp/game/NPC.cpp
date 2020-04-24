@@ -508,7 +508,7 @@ static void NPC_RemoveBodyEffect(gentity_t *NPC)
 	case CLASS_MARK1:
 	case CLASS_MARK2:
 	case CLASS_INTERROGATOR:
-	case CLASS_ATST: // yeah, this is a little weird, but for now I'm listing all droids
+	case CLASS_ATST_OLD: // yeah, this is a little weird, but for now I'm listing all droids
 	//	VectorCopy( NPC->r.currentOrigin, org );
 	//	org[2] -= 16;
 	//	tent = G_TempEntity( org, EV_BOT_EXPLODE );
@@ -1047,7 +1047,7 @@ qboolean NPC_CanUseAdvancedFighting(gentity_t *aiEnt)
 	// Who can evade???
 	switch (aiEnt->client->NPC_class)
 	{
-	//case CLASS_ATST:
+	//case CLASS_ATST_OLD:
 	case CLASS_BARTENDER:
 	case CLASS_BESPIN_COP:		
 	case CLASS_CLAW:
@@ -1762,6 +1762,8 @@ void NPC_RunBehavior( gentity_t *aiEnt, int team, int bState )
 		|| aiEnt->client->NPC_class == CLASS_SHADOWTROOPER
 		|| aiEnt->client->NPC_class == CLASS_JAN
 		|| aiEnt->client->NPC_class == CLASS_PURGETROOPER
+		|| aiEnt->client->NPC_class == CLASS_ATST
+		|| aiEnt->client->NPC_class == CLASS_ATAT
 		|| (aiEnt->client->ps.eFlags & EF_FAKE_NPC_BOT) /* temporary */ )
 	{//jedi
 		NPC_BehaviorSet_Jedi(aiEnt, bState );
@@ -1817,7 +1819,7 @@ void NPC_RunBehavior( gentity_t *aiEnt, int team, int bState )
 	{
 		NPC_BSJedi_Default(aiEnt);
 	}
-	else if (aiEnt->client->NPC_class == CLASS_ATST)
+	else if (aiEnt->client->NPC_class == CLASS_ATST_OLD)
 	{
 		NPC_BehaviorSet_ATST(aiEnt, bState);
 	}
@@ -1835,7 +1837,7 @@ void NPC_RunBehavior( gentity_t *aiEnt, int team, int bState )
 			// special cases for enemy droids
 			switch( aiEnt->client->NPC_class)
 			{
-			case CLASS_ATST:
+			case CLASS_ATST_OLD:
 				NPC_BehaviorSet_ATST(aiEnt, bState );
 				return;
 			case CLASS_PROBE:
@@ -3494,7 +3496,7 @@ qboolean UQ1_UcmdMoveForDir ( gentity_t *self, usercmd_t *cmd, vec3_t dir, qbool
 	}
 
 #if 0
-	if (self->client->NPC_class == CLASS_ATST)
+	if (self->client->NPC_class == CLASS_ATST_OLD)
 	{
 		vec3_t	forward, right;
 		float	fDot, rDot;
@@ -3605,6 +3607,12 @@ qboolean UQ1_UcmdMoveForDir ( gentity_t *self, usercmd_t *cmd, vec3_t dir, qbool
 
 	if (self->NPC->vehicleAI)
 	{
+		walk = qfalse;
+	}
+
+	if (self->s.eType == ET_NPC 
+		&& (self->s.NPC_class == CLASS_ATST /*|| self->s.NPC_class == CLASS_ATAT*/))
+	{// These guys don't walk, they move at full speed...
 		walk = qfalse;
 	}
 
@@ -3726,6 +3734,7 @@ qboolean UQ1_UcmdMoveForDir ( gentity_t *self, usercmd_t *cmd, vec3_t dir, qbool
 	float forwardmove = speed * DotProduct(forward, dir);
 	float rightmove = speed * DotProduct(right, dir);
 
+	/*
 	if (self->NPC->vehicleAI)
 	{// Vehicles turn using left/right move, then move forward when facing...
 		if (rightmove > 8)
@@ -3750,6 +3759,7 @@ qboolean UQ1_UcmdMoveForDir ( gentity_t *self, usercmd_t *cmd, vec3_t dir, qbool
 		//ForceCrash()
 		return qtrue;
 	}
+	*/
 
 	// find optimal magnitude to make speed as high as possible
 	if (Q_fabs(forwardmove) > Q_fabs(rightmove))
@@ -3835,7 +3845,7 @@ qboolean UQ1_UcmdMoveForDir_NoAvoidance ( gentity_t *self, usercmd_t *cmd, vec3_
 	*/
 
 #if 0
-	if (self->client->NPC_class == CLASS_ATST)
+	if (self->client->NPC_class == CLASS_ATST_OLD)
 	{
 		vec3_t	forward, right;
 		float	fDot, rDot;
@@ -3935,6 +3945,12 @@ qboolean UQ1_UcmdMoveForDir_NoAvoidance ( gentity_t *self, usercmd_t *cmd, vec3_
 	else if (self->NPC && self->NPC->forceWalkTime > level.time)
 	{// Retreating NPCs walk backwards, don't run... Because thats annoying as hell to saber users...
 		walk = qtrue;
+	}
+
+	if (self->s.eType == ET_NPC
+		&& (self->s.NPC_class == CLASS_ATST /*|| self->s.NPC_class == CLASS_ATAT*/))
+	{// These guys don't walk, they move at full speed...
+		walk = qfalse;
 	}
 
 	if (self->NPC->vehicleAI)
@@ -4977,6 +4993,8 @@ void NPC_Think ( gentity_t *self )//, int msec )
 			{
 				//trap->Print("NPCBOT DEBUG: NPC is attacking.\n");
 
+				//if (aiEnt->s.NPC_class == CLASS_ATST) trap->Print("NPCBOT DEBUG: ATST NPC is attacking.\n");
+
 				if (NPC_IsCombatPathing(aiEnt))
 				{// If we have combat pathing, use it while we do the other stuff...
 					NPC_FollowRoutes(aiEnt);
@@ -5031,7 +5049,7 @@ void NPC_Think ( gentity_t *self )//, int msec )
 	trap->ICARUS_MaintainTaskManager(self->s.number);
 #endif //__NO_ICARUS__
 
-	//if (aiEnt->s.NPC_class == CLASS_ATST)
+	//if (aiEnt->s.NPC_class == CLASS_ATST_OLD)
 	//	trap->Print("ENDFRAME: delta_angles %f. cmd_angles %f. viewangles %f. trDelta %f. trBase %f.\n", SHORT2ANGLE(aiEnt->client->ps.delta_angles[YAW]), SHORT2ANGLE(aiEnt->client->pers.cmd.angles[YAW]), aiEnt->client->ps.viewangles[YAW], aiEnt->s.apos.trDelta[YAW], aiEnt->s.apos.trBase[YAW]);
 
 	VectorCopy(self->r.currentOrigin, self->client->ps.origin);

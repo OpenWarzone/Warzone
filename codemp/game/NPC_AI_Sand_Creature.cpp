@@ -485,7 +485,7 @@ void SandCreature_CheckMovingEnts(gentity_t *aiEnt)
 			continue;
 		}
 		/*
-		if ( radiusEnts[i]->client && (radiusEnts[i]->client->NPC_class == CLASS_RANCOR || radiusEnts[i]->client->NPC_class == CLASS_ATST ) )
+		if ( radiusEnts[i]->client && (radiusEnts[i]->client->NPC_class == CLASS_RANCOR || radiusEnts[i]->client->NPC_class == CLASS_ATST_OLD ) )
 		{//can't grab rancors or atst's
 			continue;
 		}

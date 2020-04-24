@@ -4162,8 +4162,12 @@ void CG_DrawEnemyStatus( void )
 			case CLASS_IMPERIAL:
 				sprintf(str1, "Commander %s", NPC_NAME_LIST[crosshairEnt->currentState.NPC_NAME_ID].HumanNames);	// EVIL. for a number of reasons --eez
 				break;
-			case CLASS_ATST:				// technically droid...
+			case CLASS_ATST_OLD:				// technically droid...
+			case CLASS_ATST:
 				sprintf(str1, "AT-ST");
+				break;
+			case CLASS_ATAT:
+				sprintf(str1, "AT-AT");
 				break;
 			case CLASS_CLAW:
 				sprintf(str1, "Claw");
@@ -4556,7 +4560,9 @@ void CG_DrawEnemyStatus( void )
 			tclr2[2] = 0.0f;
 			tclr2[3] = 1.0f;
 			break;
+		case CLASS_ATST_OLD:
 		case CLASS_ATST:
+		case CLASS_ATAT:
 			sprintf(str2, "< Vehicle >");
 			tclr[0] = 1.0f;
 			tclr[1] = 0.225f;
@@ -8773,7 +8779,9 @@ void CG_DrawNPCNames( void )
 				tclr2[2] = 0.0f;
 				tclr2[3] = 1.0f;
 				break;
+			case CLASS_ATST_OLD:
 			case CLASS_ATST:
+			case CLASS_ATAT:
 				sprintf(str2, "< Vehicle >");
 				tclr[0] = 1.0f;
 				tclr[1] = 0.225f;
@@ -8977,8 +8985,12 @@ void CG_DrawNPCNames( void )
 				case CLASS_IMPERIAL:
 					sprintf(str1, "Commander %s", NPC_NAME_LIST[cent->currentState.NPC_NAME_ID].HumanNames);	// EVIL. for a number of reasons --eez
 					break;
-				case CLASS_ATST:				// technically droid...
+				case CLASS_ATST_OLD:				// technically droid...
+				case CLASS_ATST:
 					sprintf(str1, "AT-ST");
+					break;
+				case CLASS_ATAT:
+					sprintf(str1, "AT-AT");
 					break;
 				case CLASS_CLAW:
 					sprintf(str1, "Claw");

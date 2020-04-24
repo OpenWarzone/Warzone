@@ -2373,7 +2373,9 @@ void Touch_Item (gentity_t *ent, gentity_t *other, trace_t *trace) {
 	}
 
 
-	if ( other->client->NPC_class == CLASS_ATST ||
+	if ( other->client->NPC_class == CLASS_ATST_OLD ||
+		other->client->NPC_class == CLASS_ATST ||
+		other->client->NPC_class == CLASS_ATAT ||
 		other->client->NPC_class == CLASS_GONK ||
 		other->client->NPC_class == CLASS_MARK1 ||
 		other->client->NPC_class == CLASS_MARK2 ||

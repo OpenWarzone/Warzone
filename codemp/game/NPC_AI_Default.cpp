@@ -66,6 +66,8 @@ qboolean NPC_IsHumanoid ( gentity_t *self )
 	case CLASS_ODDITIES_VENDOR:
 	case CLASS_DRUG_VENDOR:
 	case CLASS_TRAVELLING_VENDOR:
+	case CLASS_ATST:
+	case CLASS_ATAT:
 		// Humanoid...
 		return qtrue;
 		break;
@@ -351,6 +353,8 @@ qboolean NPC_HasGrenades ( gentity_t *self )
 	case CLASS_HK51:
 	case CLASS_NATIVE:
 	case CLASS_NATIVE_GUNNER:
+	case CLASS_ATST:
+	case CLASS_ATAT:
 		// Has Grenades...
 		return qtrue;
 		break;
@@ -376,7 +380,7 @@ void NPC_CheckEvasion(gentity_t *aiEnt)
 	// Who can evade???
 	switch (NPC->client->NPC_class)
 	{
-	//case CLASS_ATST:
+	//case CLASS_ATST_OLD:
 	case CLASS_BARTENDER:
 	case CLASS_BESPIN_COP:		
 	case CLASS_CLAW:

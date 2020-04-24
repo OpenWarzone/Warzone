@@ -392,7 +392,7 @@ qboolean AI_ValidateGroupMember( AIGroupInfo_t *group, gentity_t *member )
 		return qfalse;
 	}
 
-	if ( member->client->NPC_class == CLASS_ATST ||
+	if ( member->client->NPC_class == CLASS_ATST_OLD ||
 		member->client->NPC_class == CLASS_PROBE ||
 		member->client->NPC_class == CLASS_SEEKER ||
 		member->client->NPC_class == CLASS_REMOTE ||

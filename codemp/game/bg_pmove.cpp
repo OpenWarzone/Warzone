@@ -9451,7 +9451,7 @@ static void PM_Weapon( void )
 	{
 		//if ( pm->ps->weapon == WP_MODULIZED_WEAPON && pm->gametype != GT_SIEGE )
 		//if (0)
-		if (pm_entSelf->s.NPC_class == CLASS_VEHICLE || pm_entSelf->s.NPC_class == CLASS_ATST)
+		if (pm_entSelf->s.NPC_class == CLASS_VEHICLE || pm_entSelf->s.NPC_class == CLASS_ATST_OLD || pm_entSelf->s.NPC_class == CLASS_ATST || pm_entSelf->s.NPC_class == CLASS_ATAT)
 		{ //kind of a hack for now
 			PM_AddEvent( EV_FIRE_WEAPON );
 			addTime = weaponData[pm->ps->weapon].fireTime;
@@ -13738,6 +13738,29 @@ void PmoveSingle (pmove_t *pmove) {
 			return;
 		}
 		else 
+#endif
+
+#ifdef _GAME
+		if (gveh->NPC && gveh->NPC->vehicleAI)
+		{
+			bgEntity_t *self = pm_entSelf;// veh;
+
+			if (pm->ps->pm_type == PM_DEAD &&
+				(veh->m_pVehicle->m_ulFlags & VEH_CRASHING))
+			{
+				veh->m_pVehicle->m_ulFlags &= ~VEH_CRASHING;
+			}
+
+			PM_VehicleViewAngles(self->playerState, veh, &veh->m_pVehicle->m_ucmd);
+
+			veh->m_pVehicle->m_pVehicleInfo->Update(veh->m_pVehicle, &veh->m_pVehicle->m_ucmd);
+			veh->m_pVehicle->m_pVehicleInfo->Animate(veh->m_pVehicle);
+
+			veh->m_pVehicle->m_pVehicleInfo->UpdateRider(veh->m_pVehicle, self, &veh->m_pVehicle->m_ucmd);
+
+			//Com_Printf("%i %i %i.\n", (int)veh->m_pVehicle->m_ucmd.forwardmove, (int)veh->m_pVehicle->m_ucmd.rightmove, (int)veh->m_pVehicle->m_ucmd.upmove);
+		}
+		else
 #endif
 		if (!pm->ps->m_iVehicleNum)
 		{ //no one is driving, just update and get out

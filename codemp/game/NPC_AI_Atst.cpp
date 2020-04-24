@@ -251,7 +251,7 @@ qboolean ATST_FacePosition(gentity_t *aiEnt, vec3_t position, qboolean doPitch)
 			, aiEnt->client->ps.viewangles[PITCH], aiEnt->client->ps.viewangles[YAW]);
 	}*/
 
-	if (aiEnt->enemy && aiEnt->enemy->client && aiEnt->enemy->client->NPC_class == CLASS_ATST)
+	if (aiEnt->enemy && aiEnt->enemy->client && aiEnt->enemy->client->NPC_class == CLASS_ATST_OLD)
 	{
 		// FIXME: this is kind of dumb, but it was the easiest way to get it to look sort of ok
 		aiEnt->NPC->desiredYaw += flrand(-5, 5) + sin(level.time * 0.004f) * 7;

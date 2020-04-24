@@ -1007,7 +1007,7 @@ qboolean CG_AllowBackupCombatSounds ( centity_t *self )
 
 	switch (self->currentState.NPC_class)
 	{
-	//case CLASS_ATST:
+	//case CLASS_ATST_OLD:
 	case CLASS_BARTENDER:
 	case CLASS_BESPIN_COP:		
 	//case CLASS_CLAW:

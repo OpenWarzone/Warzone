@@ -577,7 +577,9 @@ void TossClientItems( gentity_t *self ) {
 		|| self->client->NPC_class == CLASS_REMOTE
 		|| self->client->NPC_class == CLASS_SABER_DROID
 		|| self->client->NPC_class == CLASS_VEHICLE
-		|| self->client->NPC_class == CLASS_ATST)
+		|| self->client->NPC_class == CLASS_ATST_OLD
+		|| self->client->NPC_class == CLASS_ATST
+		|| self->client->NPC_class == CLASS_ATAT)
 	{//these NPCs don't drop items.
 		// these things are so small that they shouldn't bother throwing anything
 		return;
@@ -1912,7 +1914,9 @@ void DeathFX( gentity_t *ent )
 		G_PlayEffectID( G_EffectIndex("explosions/probeexplosion1"), effectPos, defaultDir );
 		break;
 
+	case CLASS_ATST_OLD:
 	case CLASS_ATST:
+	case CLASS_ATAT:
 		AngleVectors( ent->r.currentAngles, NULL, right, NULL );
 		VectorMA( ent->r.currentOrigin, 20, right, effectPos );
 		effectPos[2] += 180;
@@ -2135,6 +2139,104 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 		if ( level.intermissiontime )
 		{
 			return;
+		}
+	}
+
+	if (self
+		&& self->s.eType == ET_NPC
+		&& self->s.NPC_class == CLASS_ATST)
+	{// Pilot should get out of the vehicle...
+		gentity_t *myPilot = G_Spawn();
+
+		if (myPilot)
+		{
+			VectorCopy(self->r.currentOrigin, myPilot->s.origin);
+
+			myPilot->NPC_type = "atstpilot";
+
+			myPilot->s.teamowner = self->s.teamowner;
+			myPilot->s.angles[PITCH] = 0;
+			myPilot->s.angles[YAW] = irand(0, 359);
+			myPilot->s.angles[ROLL] = 0;
+			myPilot->team = self->team;
+			myPilot->s.eType = ET_NPC_SPAWNER;
+			myPilot->spawnArea = self->spawnArea;
+			myPilot->classname = "pilotSpawner";
+
+			G_SetAngles(myPilot, myPilot->s.angles);
+
+			//myPilot->spawnflags |= NSF_DROP_TO_FLOOR;
+			trace_t		tr;
+			vec3_t		bottom, saveOrg;
+
+			VectorCopy(myPilot->s.origin, saveOrg);
+			VectorCopy(myPilot->s.origin, bottom);
+			bottom[2] = MIN_WORLD_COORD;
+			trap->Trace(&tr, myPilot->s.origin, NULL/*myPilot->r.mins*/, NULL/*myPilot->r.maxs*/, bottom, myPilot->s.number, MASK_SOLID, qfalse, 0, 0);
+			if (!tr.allsolid && !tr.startsolid && tr.fraction < 1.0)
+			{
+				vec3_t neworg;
+				VectorCopy(tr.endpos, neworg);
+				neworg[2] += 25.0;
+				G_SetOrigin(myPilot, neworg);
+				VectorCopy(neworg, myPilot->s.origin);
+			}
+
+			// Before we replace the ent pointer, make sure the original ent gets freed on the next think... Delayed so group spawners can still use the entity for extra spawns this frame...
+			myPilot->think = G_FreeEntity;
+			myPilot->nextthink = level.time + 100;
+
+			extern gentity_t *NPC_Spawn_Do(gentity_t *ent);
+			NPC_Spawn_Do(myPilot);
+		}
+	}
+
+	if (self
+		&& self->s.eType == ET_NPC
+		&& self->s.NPC_class == CLASS_ATAT)
+	{// Pilot should get out of the vehicle...
+		gentity_t *myPilot = G_Spawn();
+
+		if (myPilot)
+		{
+			VectorCopy(self->r.currentOrigin, myPilot->s.origin);
+
+			myPilot->NPC_type = "atatpilot";
+
+			myPilot->s.teamowner = self->s.teamowner;
+			myPilot->s.angles[PITCH] = 0;
+			myPilot->s.angles[YAW] = irand(0, 359);
+			myPilot->s.angles[ROLL] = 0;
+			myPilot->team = self->team;
+			myPilot->s.eType = ET_NPC_SPAWNER;
+			myPilot->spawnArea = self->spawnArea;
+			myPilot->classname = "pilotSpawner";
+
+			G_SetAngles(myPilot, myPilot->s.angles);
+
+			//myPilot->spawnflags |= NSF_DROP_TO_FLOOR;
+			trace_t		tr;
+			vec3_t		bottom, saveOrg;
+
+			VectorCopy(myPilot->s.origin, saveOrg);
+			VectorCopy(myPilot->s.origin, bottom);
+			bottom[2] = MIN_WORLD_COORD;
+			trap->Trace(&tr, myPilot->s.origin, NULL/*myPilot->r.mins*/, NULL/*myPilot->r.maxs*/, bottom, myPilot->s.number, MASK_SOLID, qfalse, 0, 0);
+			if (!tr.allsolid && !tr.startsolid && tr.fraction < 1.0)
+			{
+				vec3_t neworg;
+				VectorCopy(tr.endpos, neworg);
+				neworg[2] += 25.0;
+				G_SetOrigin(myPilot, neworg);
+				VectorCopy(neworg, myPilot->s.origin);
+			}
+
+			// Before we replace the ent pointer, make sure the original ent gets freed on the next think... Delayed so group spawners can still use the entity for extra spawns this frame...
+			myPilot->think = G_FreeEntity;
+			myPilot->nextthink = level.time + 100;
+
+			extern gentity_t *NPC_Spawn_Do(gentity_t *ent);
+			NPC_Spawn_Do(myPilot);
 		}
 	}
 
@@ -3970,7 +4072,7 @@ qboolean G_GetHitLocFromSurfName( gentity_t *ent, const char *surfName, int *hit
 		footRBolt = trap->G2API_AddBolt(ent->ghoul2, 0, "*r_leg_foot");
 	}
 
-	if ( ent->client && (ent->client->NPC_class == CLASS_ATST) )
+	if ( ent->client && (ent->client->NPC_class == CLASS_ATST_OLD /*|| ent->client->NPC_class == CLASS_ATST*/) )
 	{
 		//FIXME: almost impossible to hit these... perhaps we should
 		//		check for splashDamage and do radius damage to these parts?
@@ -5908,7 +6010,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 				}
 				else if ( client->NPC_class == CLASS_PROBE || client->NPC_class == CLASS_INTERROGATOR ||
 							client->NPC_class == CLASS_MARK1 || client->NPC_class == CLASS_MARK2 || client->NPC_class == CLASS_SENTRY ||
-							client->NPC_class == CLASS_ATST )
+							client->NPC_class == CLASS_ATST_OLD )
 				{
 					// DEMP2 does way more damage to these guys.
 					take *= 5;

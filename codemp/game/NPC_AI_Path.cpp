@@ -1378,7 +1378,14 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 	qboolean	onMover1 = qfalse;
 	qboolean	onMover2 = qfalse;
 
-	aiEnt->NPC->combatMove = qtrue;
+	if (aiEnt->client->NPC_class == CLASS_ATST_OLD || aiEnt->client->NPC_class == CLASS_ATST || aiEnt->client->NPC_class == CLASS_ATAT)
+	{
+		aiEnt->NPC->combatMove = qfalse;
+	}
+	else
+	{
+		aiEnt->NPC->combatMove = qtrue;
+	}
 
 	if ( !NPC_HaveValidEnemy(aiEnt) )
 	{
@@ -2020,7 +2027,14 @@ qboolean NPC_FollowEnemyRoute(gentity_t *aiEnt)
 	qboolean	onMover1 = qfalse;
 	qboolean	onMover2 = qfalse;
 
-	aiEnt->NPC->combatMove = qtrue;
+	if (aiEnt->client->NPC_class == CLASS_ATST_OLD || aiEnt->client->NPC_class == CLASS_ATST || aiEnt->client->NPC_class == CLASS_ATAT)
+	{
+		aiEnt->NPC->combatMove = qfalse;
+	}
+	else
+	{
+		aiEnt->NPC->combatMove = qtrue;
+	}
 
 	if ( !NPC_HaveValidEnemy(aiEnt) )
 	{

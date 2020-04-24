@@ -1585,7 +1585,7 @@ static int NPC_GetRunSpeed( gentity_t *ent )
 	case CLASS_MARK1:
 	case CLASS_MARK2:
 	case CLASS_PROTOCOL:
-	case CLASS_ATST: // hmm, not really your average droid
+	case CLASS_ATST_OLD: // hmm, not really your average droid
 	case CLASS_MOUSE:
 	case CLASS_SEEKER:
 	case CLASS_REMOTE:
@@ -2057,7 +2057,7 @@ void ClientThink_real( gentity_t *ent ) {
 		if ( npc_class == CLASS_SEEKER || npc_class == CLASS_PROBE || npc_class == CLASS_MOUSE || npc_class == CLASS_REMOTE ||
 				npc_class == CLASS_GONK || npc_class == CLASS_R2D2 || npc_class == CLASS_R5D2 ||
 				npc_class == CLASS_PROTOCOL || npc_class == CLASS_MARK1 || npc_class == CLASS_MARK2 ||
-				npc_class == CLASS_INTERROGATOR || npc_class == CLASS_ATST || npc_class == CLASS_SENTRY )
+				npc_class == CLASS_INTERROGATOR || npc_class == CLASS_ATST_OLD || npc_class == CLASS_SENTRY )
 		{// Make sure it's marked as a droid...
 			ent->NPC->stats.gender = GENDER_DROID;
 		}
@@ -3345,8 +3345,7 @@ void ClientThink_real( gentity_t *ent ) {
 		VectorCopy(ent->r.mins, pmove.mins);
 		VectorCopy(ent->r.maxs, pmove.maxs);
 #if 1
-		if (ent->s.NPC_class == CLASS_VEHICLE &&
-			ent->m_pVehicle )
+		if (ent->s.NPC_class == CLASS_VEHICLE && (ent->m_pVehicle || (ent->NPC && ent->NPC->vehicleAI)) )
 		{
 			if ( ent->m_pVehicle->m_pPilot)
 			{ //vehicles want to use their last pilot ucmd I guess
@@ -3368,6 +3367,28 @@ void ClientThink_real( gentity_t *ent ) {
 				assert(g_entities[ent->m_pVehicle->m_pPilot->s.number].client);
 				pmove.cmd.buttons = (g_entities[ent->m_pVehicle->m_pPilot->s.number].client->pers.cmd.buttons&(BUTTON_ATTACK|BUTTON_ALT_ATTACK));
 			}
+			else if (ent->NPC && ent->NPC->vehicleAI)
+			{
+				if ((level.time - ent->m_pVehicle->m_ucmd.serverTime) > 2000)
+				{ //Previous owner disconnected, maybe
+					ent->m_pVehicle->m_ucmd.serverTime = level.time;
+					ent->client->ps.commandTime = level.time - 100;
+					msec = 100;
+				}
+
+				memcpy(&pmove.cmd, &ent->m_pVehicle->m_ucmd, sizeof(usercmd_t));
+
+				//trap->Print("%i %i %i\n", (int)pmove.cmd.forwardmove, (int)pmove.cmd.rightmove, (int)pmove.cmd.upmove);
+
+				//no veh can strafe
+				pmove.cmd.rightmove = 0;
+				//no crouching or jumping!
+				pmove.cmd.upmove = 0;
+
+				//NOTE: button presses were getting lost!
+				pmove.cmd.buttons = ent->client->pers.cmd.buttons & (BUTTON_ATTACK | BUTTON_ALT_ATTACK);
+			}
+
 			if ( ent->m_pVehicle->m_pVehicleInfo->type == VH_WALKER )
 			{
 				if ( ent->client->ps.groundEntityNum != ENTITYNUM_NONE )

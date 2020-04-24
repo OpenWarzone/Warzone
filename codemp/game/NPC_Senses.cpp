@@ -253,7 +253,7 @@ qboolean InVisrange (gentity_t *aiEnt, gentity_t *ent )
 	float	visrange = (aiEnt->NPC->stats.visrange * aiEnt->NPC->stats.visrange);
 	float	visrange2 = (1024 * 1024);
 
-	if (visrange2 < visrange) visrange = visrange2;
+	if (visrange < visrange2) visrange = visrange2;
 #else //!__MMO__
 	float	visrange = (aiEnt->NPC->stats.visrange * aiEnt->NPC->stats.visrange);
 #endif //__MMO__

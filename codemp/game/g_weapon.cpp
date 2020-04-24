@@ -1734,7 +1734,7 @@ static void WP_ModulatedWeaponFire(gentity_t *ent, int damage, float velocity, f
 			missile->s.weapon = ent->s.weapon;// WP_REPEATER;
 
 			missile->damage = damage;
-			missile->dflags = DAMAGE_DEATH_KNOCKBACK;
+			missile->dflags = explosion ? DAMAGE_DEATH_KNOCKBACK : DAMAGE_NORMAL;
 			missile->methodOfDeath = MOD_REPEATER;
 			missile->clipmask = MASK_SHOT | CONTENTS_LIGHTSABER;
 
@@ -1790,8 +1790,8 @@ static void WP_ModulatedWeaponFire(gentity_t *ent, int damage, float velocity, f
 			VectorScale(missile->r.maxs, -1, missile->r.mins);
 
 			missile->damage = damage;
-			missile->dflags = DAMAGE_DEATH_KNOCKBACK;
-			missile->methodOfDeath = MOD_BOWCASTER;
+			missile->dflags = explosion ? DAMAGE_DEATH_KNOCKBACK : DAMAGE_NORMAL;
+			missile->methodOfDeath = MOD_BLASTER;
 			missile->clipmask = MASK_SHOT | CONTENTS_LIGHTSABER;
 
 			if (ent->client)
@@ -5015,7 +5015,70 @@ void CalcMuzzlePoint(gentity_t *ent, vec3_t forward, vec3_t right, vec3_t up, ve
 	int weapontype;
 	vec3_t muzzleOffPoint;
 
-	if (ent->s.eType == ET_NPC && ent->client->NPC_class == CLASS_ATST)
+	if (ent->s.eType == ET_NPC && ent->client->NPC_class == CLASS_ATAT)
+	{
+		// l_turbo_gun, r_turbo_gun, l_laser, r_laser, *muzzle1, *muzzle2, *muzzle3, *muzzle4, *driver
+		switch (ent->NPC->currentTurret)
+		{
+		default:
+		case 0:
+		{
+			int bolt = trap->G2API_AddBolt(ent->ghoul2, 0, "*muzzle1");
+
+			mdxaBone_t	boltMatrix;
+			trap->G2API_GetBoltMatrix(ent->ghoul2, 0, bolt, &boltMatrix, ent->r.currentAngles, ent->r.currentOrigin, level.time, NULL, ent->modelScale);
+
+			vec3_t	muzzle_dir, muzzle_angles;
+			BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, muzzlePoint);
+
+			ent->NPC->currentTurret = 1;
+			break;
+		}
+		case 1:
+		{
+			int bolt = trap->G2API_AddBolt(ent->ghoul2, 0, "*muzzle2");
+
+			mdxaBone_t	boltMatrix;
+			trap->G2API_GetBoltMatrix(ent->ghoul2, 0, bolt, &boltMatrix, ent->r.currentAngles, ent->r.currentOrigin, level.time, NULL, ent->modelScale);
+
+			vec3_t	muzzle_dir, muzzle_angles;
+			BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, muzzlePoint);
+
+			ent->NPC->currentTurret = 2;
+			break;
+		}
+		case 2:
+		{
+			int bolt = trap->G2API_AddBolt(ent->ghoul2, 0, "*muzzle3");
+
+			mdxaBone_t	boltMatrix;
+			trap->G2API_GetBoltMatrix(ent->ghoul2, 0, bolt, &boltMatrix, ent->r.currentAngles, ent->r.currentOrigin, level.time, NULL, ent->modelScale);
+
+			vec3_t	muzzle_dir, muzzle_angles;
+			BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, muzzlePoint);
+
+			ent->NPC->currentTurret = 3;
+			break;
+		}
+		case 3:
+		{
+			int bolt = trap->G2API_AddBolt(ent->ghoul2, 0, "*muzzle4");
+
+			mdxaBone_t	boltMatrix;
+			trap->G2API_GetBoltMatrix(ent->ghoul2, 0, bolt, &boltMatrix, ent->r.currentAngles, ent->r.currentOrigin, level.time, NULL, ent->modelScale);
+
+			vec3_t	muzzle_dir, muzzle_angles;
+			BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, muzzlePoint);
+
+			ent->NPC->currentTurret = 0;
+			break;
+		}
+		}
+
+		SnapVector(muzzlePoint);
+		return;
+	}
+	else if (ent->s.eType == ET_NPC && (ent->client->NPC_class == CLASS_ATST_OLD || ent->client->NPC_class == CLASS_ATST))
 	{
 #if 0
 		//VectorCopy(ent->s.pos.trBase, muzzlePoint);
@@ -5049,11 +5112,6 @@ void CalcMuzzlePoint(gentity_t *ent, vec3_t forward, vec3_t right, vec3_t up, ve
 
 				vec3_t	muzzle_dir, muzzle_angles;
 				BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, muzzlePoint);
-				//BG_GiveMeVectorFromMatrix(&boltMatrix, NEGATIVE_Y, muzzle_dir);
-
-				//vectoangles(muzzle_dir, muzzle_angles);
-				//AngleVectors(muzzle_angles, forward, right, up);
-				//VectorCopy(muzzle_dir, forward);
 
 				ent->NPC->currentTurret = 1;
 				break;
@@ -5067,11 +5125,6 @@ void CalcMuzzlePoint(gentity_t *ent, vec3_t forward, vec3_t right, vec3_t up, ve
 
 				vec3_t	muzzle_dir, muzzle_angles;
 				BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, muzzlePoint);
-				//BG_GiveMeVectorFromMatrix(&boltMatrix, NEGATIVE_Y, muzzle_dir);
-
-				//vectoangles(muzzle_dir, muzzle_angles);
-				//AngleVectors(muzzle_angles, forward, right, up);
-				//VectorCopy(muzzle_dir, forward);
 
 				ent->NPC->currentTurret = 0;
 				break;
@@ -5269,6 +5322,8 @@ gentity_t *WP_FireVehicleWeapon(gentity_t *ent, vec3_t start, vec3_t shotDir, ve
 	int scale = 2;
 
 	if (ent->s.NPC_class == CLASS_STORMTROOPER_ATAT_PILOT)
+		scale = 3;
+	else if (ent->s.eType == ET_NPC && ent->client->NPC_class == CLASS_ATAT)
 		scale = 3;
 
 #if 1
@@ -6161,7 +6216,7 @@ void FireWeapon(gentity_t *ent, qboolean altFire) {
 
 			AngleVectors(vehTurnAngles, forward, vright, up);
 		}
-		else if (ent->s.eType == ET_NPC && ent->client->NPC_class == CLASS_ATST)
+		else if (ent->s.eType == ET_NPC && ent->client->NPC_class == CLASS_ATST_OLD)
 		{// ATST's are just fucking wierd...
 			vec3_t angles;
 			/*
@@ -6184,7 +6239,9 @@ void FireWeapon(gentity_t *ent, qboolean altFire) {
 		CalcMuzzlePoint(ent, forward, vright, up, muzzle);
 
 		if (ent->s.eType == ET_NPC
+			&& ent->client->NPC_class != CLASS_ATST_OLD
 			&& ent->client->NPC_class != CLASS_ATST
+			&& ent->client->NPC_class != CLASS_ATAT
 			&& ent->s.weapon != WP_SABER
 			&& ent->enemy
 			&& Distance(ent->enemy->r.currentOrigin, ent->r.currentOrigin) <= 72)
@@ -6212,7 +6269,8 @@ void FireWeapon(gentity_t *ent, qboolean altFire) {
 		// If an NPC is nearby then make them cower in place...
 		NPC_CivilianCowerPoint(ent, ent->r.currentOrigin);
 
-		if (ent->s.eType == ET_NPC && ent->client->NPC_class == CLASS_ATST)
+		if (ent->s.eType == ET_NPC 
+			&& (ent->client->NPC_class == CLASS_ATST_OLD || ent->client->NPC_class == CLASS_ATST))
 		{
 			//void WP_FireTurboLaserMissile(gentity_t *ent, vec3_t start, vec3_t dir)
 			//void WP_FireTurretMissile(gentity_t *ent, vec3_t start, vec3_t dir, qboolean altFire, int damage, int velocity, int mod, gentity_t *ignore)
@@ -6221,7 +6279,22 @@ void FireWeapon(gentity_t *ent, qboolean altFire) {
 			//	WP_FireTurboLaserMissile(ent, muzzle, forward);
 				//WP_FireEmplacedMissile(ent, muzzle, forward, altFire, ent);
 			//else
-				WP_FireBlaster(ent, altFire, weaponData[ent->client->ps.weapon].boltSpeed, weaponData[ent->client->ps.weapon].dmg, 0.5, ent->s.weapon);
+			//	WP_FireBlaster(ent, altFire, weaponData[ent->client->ps.weapon].boltSpeed, weaponData[ent->client->ps.weapon].dmg, 0.5, ent->s.weapon);
+			vehWeaponInfo_t wp = { { 0 } };
+			wp.fSpeed = 3400;
+			wp.iDamage = 10;
+			WP_FireVehicleWeapon(ent, muzzle, forward, &wp, altFire, qfalse);
+			//trap->Print("ATST firing muzzle %f %f %f. fwd %f %f %f.\n", muzzle[0], muzzle[1], muzzle[2], forward[0], forward[1], forward[2]);
+			return;
+		}
+		else if (ent->s.eType == ET_NPC && ent->client->NPC_class == CLASS_ATAT)
+		{
+			//gentity_t *WP_FireVehicleWeapon(gentity_t *ent, vec3_t start, vec3_t shotDir, vehWeaponInfo_t *vehWeapon, qboolean alt_fire, qboolean isTurretWeap)
+			//WP_FireBlaster(ent, altFire, weaponData[ent->client->ps.weapon].boltSpeed, weaponData[ent->client->ps.weapon].dmg, 0.5, ent->s.weapon);
+			vehWeaponInfo_t wp = { { 0 } };
+			wp.fSpeed = 3400;
+			wp.iDamage = 10;
+			WP_FireVehicleWeapon(ent, muzzle, forward, &wp, altFire, qfalse);
 			return;
 		}
 

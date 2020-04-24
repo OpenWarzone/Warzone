@@ -895,7 +895,7 @@ void Boba_FireDecide( gentity_t *aiEnt )
 
 	ENEMY_IS_BREAKABLE = NPC_EntityIsBreakable(aiEnt, aiEnt->enemy);
 
-	if (!CanShoot (aiEnt->enemy, aiEnt ))
+	if (aiEnt->s.NPC_class != CLASS_ATST && !CanShoot (aiEnt->enemy, aiEnt ))
 	{// UQ1: Umm, how about we actually check if we can hit them first???
 		return;
 	}
@@ -907,6 +907,7 @@ void Boba_FireDecide( gentity_t *aiEnt )
 	else if ( !ENEMY_IS_BREAKABLE
 		&& Distance(aiEnt->enemy->r.currentOrigin, aiEnt->r.currentOrigin) <= 64 
 		&& aiEnt->client->ps.weapon != WP_SABER
+		&& aiEnt->s.NPC_class != CLASS_ATST
 		&& !NPC_IsBountyHunter(aiEnt)) // BOBA kicks like a jedi now...
 	{// Close range - switch to melee... TODO: Make jedi/sith kick...
 		if (aiEnt->next_rifle_butt_time > level.time)
@@ -925,6 +926,7 @@ void Boba_FireDecide( gentity_t *aiEnt )
 	else if ( ENEMY_IS_BREAKABLE
 		&& Distance(aiEnt->enemy->breakableOrigin, aiEnt->r.currentOrigin) <= 64 
 		&& aiEnt->client->ps.weapon != WP_SABER
+		&& aiEnt->s.NPC_class != CLASS_ATST
 		&& !NPC_IsBountyHunter(aiEnt)) // BOBA kicks like a jedi now...
 	{// Close range - switch to melee... TODO: Make jedi/sith kick...
 		if (aiEnt->next_rifle_butt_time > level.time)
@@ -940,7 +942,7 @@ void Boba_FireDecide( gentity_t *aiEnt )
 			return;
 		}
 	}
-	else if (aiEnt->client->ps.weapon == WP_MODULIZED_WEAPON)
+	else if (aiEnt->client->ps.weapon == WP_MODULIZED_WEAPON || aiEnt->s.NPC_class == CLASS_ATST || aiEnt->s.NPC_class == CLASS_ATAT)
 	{// UQ1: How about I add a default for them??? :)
 		if ( aiEnt->health < aiEnt->client->pers.maxHealth*0.5f && (NPC_IsJedi(aiEnt) || NPC_IsBountyHunter(aiEnt) || aiEnt->s.eType == ET_PLAYER) )
 		{
@@ -1066,7 +1068,7 @@ void Boba_FireDecide( gentity_t *aiEnt )
 			//NPC_AimAdjust( aiEnt, -1 );//adjust aim worse longer we cannot see enemy
 		}
 
-		if ( aiEnt->client->ps.weapon == WP_NONE )
+		if ( aiEnt->client->ps.weapon == WP_NONE && aiEnt->s.NPC_class != CLASS_ATST)
 		{
 			shoot = qfalse;
 		}
@@ -8054,8 +8056,10 @@ void Default_SelectBestWeapon( gentity_t *aiEnt)
 	{
 		if (aiEnt->client && aiEnt->client->ps.weapon > WP_NONE)
 			primaryWeapon = aiEnt->client->ps.weapon;
-		else
+		else if (aiEnt->s.weapon > WP_NONE)
 			primaryWeapon = aiEnt->s.weapon;
+		else
+			primaryWeapon = aiEnt->s.weapon = aiEnt->client->ps.primaryWeapon = WP_MODULIZED_WEAPON;
 	}
 
 	if ( temporaryWeapon > WP_NONE
@@ -8431,10 +8435,43 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 		OPTIMAL_MIN_RANGE = 32 * NPC->modelScale[2];
 		OPTIMAL_MAX_RANGE = 56 * NPC->modelScale[2];
 	}
-	else if (NPC->s.NPC_class == CLASS_ATST)
+
+	if (NPC->s.NPC_class == CLASS_ATST_OLD || NPC->s.NPC_class == CLASS_ATST || NPC->s.NPC_class == CLASS_ATAT)
 	{
-		OPTIMAL_MIN_RANGE = 384;
-		OPTIMAL_MAX_RANGE = 512;
+		if (NPC->s.NPC_class == CLASS_ATST_OLD || NPC->s.NPC_class == CLASS_ATST)
+		{
+			OPTIMAL_MIN_RANGE = 512;
+			OPTIMAL_MAX_RANGE = 1024;
+		}
+		else if (NPC->s.NPC_class == CLASS_ATAT)
+		{
+			OPTIMAL_MIN_RANGE = 1024;
+			OPTIMAL_MAX_RANGE = 2048;
+		}
+
+		if (dist > OPTIMAL_MAX_RANGE)
+		{
+			if (NPC_FollowEnemyRoute(aiEnt))
+			{
+				return qtrue;
+			}
+
+			// Try direct...
+			Jedi_Move(aiEnt, aiEnt->enemy, qfalse);
+			return qtrue;
+		}
+		else if (dist < OPTIMAL_MIN_RANGE)
+		{
+			Jedi_Retreat(aiEnt);
+			return qtrue;
+		}
+		
+		// Don't move...
+		NPC->client->pers.cmd.forwardmove = 0;
+		NPC->client->pers.cmd.rightmove = 0;
+		NPC->client->pers.cmd.upmove = 0;
+		NPC_FacePosition(aiEnt, NPC->enemy->r.currentOrigin, qtrue);
+		return qfalse;
 	}
 
 	OPTIMAL_RANGE = OPTIMAL_MIN_RANGE + ((OPTIMAL_MAX_RANGE - OPTIMAL_MIN_RANGE) / 2.0);

@@ -770,7 +770,7 @@ static QINLINE void G_G2NPCAngles(gentity_t *ent, matrix3_t legs, vec3_t angles)
 		if ( (ent->client->NPC_class == CLASS_PROBE )
 			|| (ent->client->NPC_class == CLASS_R2D2 )
 			|| (ent->client->NPC_class == CLASS_R5D2)
-			|| (ent->client->NPC_class == CLASS_ATST) )
+			|| (ent->client->NPC_class == CLASS_ATST_OLD) )
 		{
 			vec3_t	trailingLegsAngles;
 
@@ -805,7 +805,7 @@ static QINLINE void G_G2NPCAngles(gentity_t *ent, matrix3_t legs, vec3_t angles)
 
 			lookAngles[1] = 0;
 
-			if ( ent->client->NPC_class == CLASS_ATST )
+			if ( ent->client->NPC_class == CLASS_ATST_OLD )
 			{//body pitch
 				NPC_SetBoneAngles(ent, thoracicBone, lookAngles);
 				//BG_G2SetBoneAngles( cent, ent, ent->thoracicBone, lookAngles, BONE_ANGLES_POSTMULT,POSITIVE_X, NEGATIVE_Y, NEGATIVE_Z, cgs.model_draw);
@@ -813,7 +813,7 @@ static QINLINE void G_G2NPCAngles(gentity_t *ent, matrix3_t legs, vec3_t angles)
 
 			VectorCopy( viewAngles, lookAngles );
 
-			if ( ent && ent->client && ent->client->NPC_class == CLASS_ATST )
+			if ( ent && ent->client && ent->client->NPC_class == CLASS_ATST_OLD )
 			{
 				//CG_ATSTLegsYaw( cent, trailingLegsAngles );
 				AnglesToAxis( trailingLegsAngles, legs );
@@ -840,7 +840,7 @@ static QINLINE void G_G2NPCAngles(gentity_t *ent, matrix3_t legs, vec3_t angles)
 				*/
 			}
 
-	//			if ( ent && ent->client && ent->client->NPC_class == CLASS_ATST )
+	//			if ( ent && ent->client && ent->client->NPC_class == CLASS_ATST_OLD )
 	//			{
 	//				looking = qfalse;
 	//			}
@@ -881,7 +881,7 @@ static QINLINE void G_G2NPCAngles(gentity_t *ent, matrix3_t legs, vec3_t angles)
 			{//Remember current lookAngles next time
 				VectorCopy( lookAngles, ent->client->renderInfo.lastHeadAngles );
 			}
-			if ( ent->client->NPC_class == CLASS_ATST )
+			if ( ent->client->NPC_class == CLASS_ATST_OLD )
 			{
 				VectorCopy( ent->client->ps.viewangles, lookAngles );
 				lookAngles[0] = lookAngles[2] = 0;
@@ -4862,7 +4862,7 @@ void WP_SaberSpecificDoHit(gentity_t *self, int saberNum, int bladeNum, gentity_
 		if (npc_class == CLASS_SEEKER || npc_class == CLASS_PROBE || npc_class == CLASS_MOUSE || npc_class == CLASS_REMOTE ||
 			npc_class == CLASS_GONK || npc_class == CLASS_R2D2 || npc_class == CLASS_R5D2 ||
 			npc_class == CLASS_PROTOCOL || npc_class == CLASS_MARK1 || npc_class == CLASS_MARK2 ||
-			npc_class == CLASS_INTERROGATOR || npc_class == CLASS_ATST || npc_class == CLASS_SENTRY)
+			npc_class == CLASS_INTERROGATOR || npc_class == CLASS_ATST_OLD || npc_class == CLASS_SENTRY)
 		{ //don't make "blood" sparks for droids.
 			isDroid = qtrue;
 		}
@@ -4953,7 +4953,7 @@ void WP_SaberDoHit( gentity_t *self, int saberNum, int bladeNum )
 			if ( npc_class == CLASS_SEEKER || npc_class == CLASS_PROBE || npc_class == CLASS_MOUSE || npc_class == CLASS_REMOTE ||
 					npc_class == CLASS_GONK || npc_class == CLASS_R2D2 || npc_class == CLASS_R5D2 ||
 					npc_class == CLASS_PROTOCOL || npc_class == CLASS_MARK1 || npc_class == CLASS_MARK2 ||
-					npc_class == CLASS_INTERROGATOR || npc_class == CLASS_ATST || npc_class == CLASS_SENTRY )
+					npc_class == CLASS_INTERROGATOR || npc_class == CLASS_ATST_OLD || npc_class == CLASS_SENTRY )
 			{ //don't make "blood" sparks for droids.
 				isDroid = qtrue;
 			}
@@ -5086,7 +5086,9 @@ void WP_SaberRadiusDamage( gentity_t *ent, vec3_t point, float radius, int damag
 				{//do knockback
 					if ( radiusEnt->client
 						&& radiusEnt->client->NPC_class != CLASS_RANCOR
+						&& radiusEnt->client->NPC_class != CLASS_ATST_OLD
 						&& radiusEnt->client->NPC_class != CLASS_ATST
+						&& radiusEnt->client->NPC_class != CLASS_ATAT
 						&& !(radiusEnt->flags&FL_NO_KNOCKBACK) )//don't throw them back
 					{
 						float knockbackStr = knockBack*dist/radius;

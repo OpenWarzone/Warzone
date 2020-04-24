@@ -657,7 +657,7 @@ qboolean	PM_SlideMove( qboolean gravity ) {
 	vec3_t		maxs, mins;
 
 	/*if (pm_entSelf 
-		&& (((pm_entSelf->s.eType == ET_NPC || pm_entSelf->s.eType == ET_PLAYER) && pm_entSelf->s.NPC_class != CLASS_VEHICLE && pm_entSelf->s.NPC_class != CLASS_RANCOR && pm_entSelf->s.NPC_class != CLASS_ATST && !pm_entSelf->m_pVehicle) || (pm_entSelf->s.eFlags & EF_FAKE_NPC_BOT)))
+		&& (((pm_entSelf->s.eType == ET_NPC || pm_entSelf->s.eType == ET_PLAYER) && pm_entSelf->s.NPC_class != CLASS_VEHICLE && pm_entSelf->s.NPC_class != CLASS_RANCOR && pm_entSelf->s.NPC_class != CLASS_ATST_OLD && !pm_entSelf->m_pVehicle) || (pm_entSelf->s.eFlags & EF_FAKE_NPC_BOT)))
 	{// UQ1: Non-vehicle NPCs should use smaller trace size for easier navigation...
 		maxs[0] = 10;
 		maxs[1] = 10;
@@ -967,7 +967,7 @@ void PM_StepSlideMove( qboolean gravity ) {
 
 	/*
 	if (pm_entSelf 
-		&& (((pm_entSelf->s.eType == ET_NPC || pm_entSelf->s.eType == ET_PLAYER) && pm_entSelf->s.NPC_class != CLASS_VEHICLE && pm_entSelf->s.NPC_class != CLASS_RANCOR && pm_entSelf->s.NPC_class != CLASS_ATST && !pm_entSelf->m_pVehicle) || (pm_entSelf->s.eFlags & EF_FAKE_NPC_BOT)))
+		&& (((pm_entSelf->s.eType == ET_NPC || pm_entSelf->s.eType == ET_PLAYER) && pm_entSelf->s.NPC_class != CLASS_VEHICLE && pm_entSelf->s.NPC_class != CLASS_RANCOR && pm_entSelf->s.NPC_class != CLASS_ATST_OLD && !pm_entSelf->m_pVehicle) || (pm_entSelf->s.eFlags & EF_FAKE_NPC_BOT)))
 	{// UQ1: Non-vehicle NPCs should use smaller trace size for easier navigation...
 		maxs[0] = 10;
 		maxs[1] = 10;
@@ -1030,7 +1030,7 @@ void PM_StepSlideMove( qboolean gravity ) {
 	{
 		// apply ground friction, even if on ladder
 		if (pEnt &&
-			(pEnt->s.NPC_class == CLASS_ATST ||
+			(pEnt->s.NPC_class == CLASS_ATST_OLD || pEnt->s.NPC_class == CLASS_ATST || pEnt->s.NPC_class == CLASS_ATAT ||
 			(pEnt->s.NPC_class == CLASS_VEHICLE && pEnt->m_pVehicle && pEnt->m_pVehicle->m_pVehicleInfo->type == VH_WALKER) ) )
 		{//AT-STs can step high
 			up[2] += 66.0f;
@@ -1146,7 +1146,7 @@ void PM_StepSlideMove( qboolean gravity ) {
 			&& isGiant
 			&& trace.entityNum < MAX_CLIENTS
 			&& pEnt
-			&& pEnt->s.NPC_class == CLASS_ATST
+			&& pEnt->s.NPC_class == CLASS_ATST_OLD
 			&& OnSameTeam( pEnt, traceEnt) )
 		{//NPC AT-ST's don't step up on allies
 			VectorCopy (start_o, pm->ps->origin);

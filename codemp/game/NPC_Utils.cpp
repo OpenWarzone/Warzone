@@ -57,7 +57,17 @@ void CalcEntitySpot ( const gentity_t *ent, const spot_t spot, vec3_t point )
 
 	case SPOT_CHEST:
 	case SPOT_HEAD:
-		if (ent->s.eType == ET_NPC && ent->s.NPC_class != CLASS_VEHICLE && ent->s.m_iVehicleNum && ent->s.NPC_class == CLASS_STORMTROOPER_ATST_PILOT)
+		if (ent->s.eType == ET_NPC && ent->s.NPC_class == CLASS_ATAT)
+		{
+			VectorCopy(org, point);
+			point[2] += 384.0; //192.0
+		}
+		else if (ent->s.eType == ET_NPC && ent->s.NPC_class == CLASS_ATST)
+		{
+			VectorCopy(org, point);
+			point[2] += 172.0; //192.0
+		}
+		else if (ent->s.eType == ET_NPC && ent->s.NPC_class != CLASS_VEHICLE && ent->s.m_iVehicleNum && ent->s.NPC_class == CLASS_STORMTROOPER_ATST_PILOT)
 		{// NPC driving an ATST...
 			VectorCopy(org, point);
 			point[2] += 172.0; //192.0
@@ -71,9 +81,13 @@ void CalcEntitySpot ( const gentity_t *ent, const spot_t spot, vec3_t point )
 		{//Actual tag_head eyespot!
 			//FIXME: Stasis aliens may have a problem here...
 			VectorCopy( ent->client->renderInfo.eyePoint, point );
-			if ( ent->client->NPC_class == CLASS_ATST )
+			if ( ent->client->NPC_class == CLASS_ATST_OLD || ent->client->NPC_class == CLASS_ATST )
 			{//adjust up some
 				point[2] += 28;//magic number :)
+			}
+			if (ent->client->NPC_class == CLASS_ATAT)
+			{//adjust up some
+				point[2] += 96;// 28;//magic number :)
 			}
 			if ( ent->NPC )
 			{//always aim from the center of my bbox, so we don't wiggle when we lean forward or backwards
@@ -97,15 +111,29 @@ void CalcEntitySpot ( const gentity_t *ent, const spot_t spot, vec3_t point )
 		}
 		if ( spot == SPOT_CHEST && ent->client )
 		{
-			if ( ent->client->NPC_class != CLASS_ATST )
+			if ( ent->client->NPC_class != CLASS_ATST_OLD )
 			{//adjust up some
 				point[2] -= ent->r.maxs[2]*0.2f;
+			}
+			if (ent->client->NPC_class != CLASS_ATST)
+			{//adjust up some
+				point[2] -= ent->r.maxs[2] * 0.2f;
 			}
 		}
 		break;
 
 	case SPOT_HEAD_LEAN:
-		if (ent->s.eType == ET_NPC && ent->s.NPC_class != CLASS_VEHICLE && ent->s.m_iVehicleNum && ent->s.NPC_class == CLASS_STORMTROOPER_ATST_PILOT)
+		if (ent->s.eType == ET_NPC && ent->s.NPC_class == CLASS_ATAT)
+		{
+			VectorCopy(org, point);
+			point[2] += 384.0; //192.0
+		}
+		else if (ent->s.eType == ET_NPC && ent->s.NPC_class == CLASS_ATST)
+		{
+			VectorCopy(org, point);
+			point[2] += 172.0; //192.0
+		}
+		else if (ent->s.eType == ET_NPC && ent->s.NPC_class != CLASS_VEHICLE && ent->s.m_iVehicleNum && ent->s.NPC_class == CLASS_STORMTROOPER_ATST_PILOT)
 		{// NPC driving an ATST...
 			VectorCopy(org, point);
 			point[2] += 172.0; //192.0
@@ -119,9 +147,13 @@ void CalcEntitySpot ( const gentity_t *ent, const spot_t spot, vec3_t point )
 		{//Actual tag_head eyespot!
 			//FIXME: Stasis aliens may have a problem here...
 			VectorCopy( ent->client->renderInfo.eyePoint, point );
-			if ( ent->client->NPC_class == CLASS_ATST )
+			if ( ent->client->NPC_class == CLASS_ATST_OLD || ent->client->NPC_class == CLASS_ATST )
 			{//adjust up some
 				point[2] += 28;//magic number :)
+			}
+			if ( ent->client->NPC_class == CLASS_ATAT )
+			{//adjust up some
+				point[2] += 96;//magic number :)
 			}
 			if ( ent->NPC )
 			{//always aim from the center of my bbox, so we don't wiggle when we lean forward or backwards
@@ -1314,12 +1346,13 @@ int NPC_FindNearestEnemy( gentity_t *ent )
 	float		distance;
 	int			numEnts = 0;
 	int			i;
+	float		maxRange = (ent->s.NPC_class == CLASS_ATST || ent->s.NPC_class == CLASS_ATAT) ? 6000.0 : 3192.0;//aiEnt->NPC->stats.visrange;
 
 	//Setup the bbox to search in
 	for ( i = 0; i < 3; i++ )
 	{
-		mins[i] = ent->r.currentOrigin[i] - 3192.0;//aiEnt->NPC->stats.visrange;
-		maxs[i] = ent->r.currentOrigin[i] + 3192.0;//aiEnt->NPC->stats.visrange;
+		mins[i] = ent->r.currentOrigin[i] - maxRange;
+		maxs[i] = ent->r.currentOrigin[i] + maxRange;
 	}
 
 	//Get a number of entities in a given space
@@ -1505,7 +1538,7 @@ qboolean NPC_FacePosition( gentity_t *aiEnt, vec3_t position, qboolean doPitch )
 	float		yawDelta;
 	qboolean	facing = qtrue;
 
-	if (aiEnt->s.NPC_class == CLASS_ATST)
+	if (aiEnt->s.NPC_class == CLASS_ATST_OLD)
 	{
 		return ATST_FacePosition(aiEnt, position, doPitch);
 	}
@@ -1527,8 +1560,8 @@ qboolean NPC_FacePosition( gentity_t *aiEnt, vec3_t position, qboolean doPitch )
 
 	//Find the desired angles
 	GetAnglesForDirection( muzzle, position, angles );
-	
-	if (aiEnt->client && aiEnt->client->NPC_class == CLASS_ATST)
+
+	if (aiEnt->client && aiEnt->client->NPC_class == CLASS_ATST_OLD)
 	{
 		VectorSubtract(angles, aiEnt->s.apos.trBase, angles);
 
@@ -1546,12 +1579,41 @@ qboolean NPC_FacePosition( gentity_t *aiEnt, vec3_t position, qboolean doPitch )
 		angles[PITCH] = 0;
 		VectorCopy(angles, aiEnt->client->ps.viewangles);
 	}
+
+
+	if (aiEnt->client && aiEnt->client->NPC_class == CLASS_ATST)
+	{
+		char *craniumBone = "cranium";
+
+		vec3_t lookAngles;
+		VectorCopy(angles, lookAngles);
+		lookAngles[YAW] -= aiEnt->client->ps.viewangles[YAW];
+
+		NPC_SetBoneAngles(aiEnt, craniumBone, lookAngles);
+	}
+	else if (aiEnt->client && aiEnt->client->NPC_class == CLASS_ATAT)
+	{
+		char *craniumBone = "cranium";
+
+		vec3_t lookAngles;
+
+		// YAW
+		lookAngles[PITCH] = angles[YAW] - aiEnt->client->ps.viewangles[YAW];
+		
+		//lookAngles[ROLL] = angles[PITCH] - aiEnt->client->ps.viewangles[PITCH];
+		lookAngles[ROLL] = 0;
+		lookAngles[YAW] = 0;
+
+		NPC_SetBoneAngles(aiEnt, craniumBone, lookAngles);
+	}
 	
 
 	aiEnt->NPC->desiredYaw		= AngleNormalize360( angles[YAW] );
 	aiEnt->NPC->desiredPitch	= AngleNormalize360( angles[PITCH] );
 
-	if ( aiEnt->enemy && aiEnt->enemy->client && aiEnt->enemy->client->NPC_class == CLASS_ATST )
+	if ( aiEnt->enemy 
+		&& aiEnt->enemy->client
+		&& (aiEnt->enemy->client->NPC_class == CLASS_ATST_OLD || aiEnt->enemy->client->NPC_class == CLASS_ATST || aiEnt->enemy->client->NPC_class == CLASS_ATAT) )
 	{
 		// FIXME: this is kind of dumb, but it was the easiest way to get it to look sort of ok
 		aiEnt->NPC->desiredYaw	+= flrand( -5, 5 ) + sin( level.time * 0.004f ) * 7;
@@ -1611,7 +1673,7 @@ qboolean NPC_FaceEntity( gentity_t *aiEnt, gentity_t *ent, qboolean doPitch )
 	vec3_t		entPos;
 
 #if 0
-	if (aiEnt->s.NPC_class == CLASS_ATST)
+	if (aiEnt->s.NPC_class == CLASS_ATST_OLD)
 	{
 		//Get the positions
 		CalcEntitySpot(ent, SPOT_CHEST, entPos);
@@ -1643,7 +1705,7 @@ qboolean NPC_FaceEnemy( gentity_t *aiEnt, qboolean doPitch )
 		return qfalse;
 
 #if 0
-	if (aiEnt->s.NPC_class == CLASS_ATST)
+	if (aiEnt->s.NPC_class == CLASS_ATST_OLD)
 	{
 		return ATST_FaceEnemy(aiEnt, qtrue/*doPitch*/);
 	}

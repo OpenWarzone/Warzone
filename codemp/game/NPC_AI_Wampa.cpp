@@ -218,7 +218,7 @@ void Wampa_Slash(gentity_t *aiEnt, int boltIndex, qboolean backhand )
 				AngleVectors( angs, pushDir, NULL, NULL );
 				if ( radiusEnt->client->NPC_class != CLASS_WAMPA
 					&& radiusEnt->client->NPC_class != CLASS_RANCOR
-					&& radiusEnt->client->NPC_class != CLASS_ATST )
+					&& radiusEnt->client->NPC_class != CLASS_ATST_OLD )
 				{
 					G_Throw( radiusEnt, pushDir, 65 );
 					if ( BG_KnockDownable(&radiusEnt->client->ps) &&

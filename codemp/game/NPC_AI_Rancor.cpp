@@ -230,7 +230,7 @@ void Rancor_Swing(gentity_t *aiEnt, qboolean tryGrab )
 				&& aiEnt->count != 1 //don't have one in hand or in mouth already - FIXME: allow one in hand and any number in mouth!
 				&& radiusEnt->client->NPC_class != CLASS_RANCOR
 				&& radiusEnt->client->NPC_class != CLASS_GALAKMECH
-				&& radiusEnt->client->NPC_class != CLASS_ATST
+				&& radiusEnt->client->NPC_class != CLASS_ATST_OLD
 				&& radiusEnt->client->NPC_class != CLASS_GONK
 				&& radiusEnt->client->NPC_class != CLASS_R2D2
 				&& radiusEnt->client->NPC_class != CLASS_R5D2
@@ -360,7 +360,7 @@ void Rancor_Smash(gentity_t *aiEnt)
 			if ( radiusEnt->health > 0
 				&& radiusEnt->client
 				&& radiusEnt->client->NPC_class != CLASS_RANCOR
-				&& radiusEnt->client->NPC_class != CLASS_ATST
+				&& radiusEnt->client->NPC_class != CLASS_ATST_OLD
 				&& radiusEnt->client->NPC_class != CLASS_REEK
 				&& radiusEnt->client->NPC_class != CLASS_ACKLAY)
 			{

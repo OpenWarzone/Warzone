@@ -409,7 +409,7 @@ void	Clcmd_EntityList_f (void) {
 stringID_table_t ClassTable[] =
 {
 	ENUM2STRING(CLASS_NONE),				// hopefully this will never be used by an npc), just covering all bases
-	ENUM2STRING(CLASS_ATST),				// technically droid...
+	ENUM2STRING(CLASS_ATST_OLD),				// technically droid...
 	ENUM2STRING(CLASS_BARTENDER),
 	ENUM2STRING(CLASS_BESPIN_COP),
 	ENUM2STRING(CLASS_CLAW),
@@ -479,6 +479,9 @@ stringID_table_t ClassTable[] =
 	ENUM2STRING(CLASS_REEK),
 	ENUM2STRING(CLASS_NEXU),
 	ENUM2STRING(CLASS_ACKLAY),
+
+	ENUM2STRING(CLASS_ATST),
+	ENUM2STRING(CLASS_ATAT),
 
 	// UQ1: Extras from SP...
 	ENUM2STRING(CLASS_SAND_CREATURE),

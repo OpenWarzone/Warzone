@@ -75,7 +75,7 @@ NPC_CheckCombatMove
 
 QINLINE qboolean NPC_CheckCombatMove(gentity_t *aiEnt)
 {
-	if (aiEnt->client->NPC_class == CLASS_ATST)
+	if (aiEnt->client->NPC_class == CLASS_ATST_OLD || aiEnt->client->NPC_class == CLASS_ATST || aiEnt->client->NPC_class == CLASS_ATAT)
 	{
 		aiEnt->NPC->combatMove = qfalse;
 		return qfalse;
@@ -330,7 +330,7 @@ extern qboolean UQ1_UcmdMoveForDir ( gentity_t *self, usercmd_t *cmd, vec3_t dir
 void G_UcmdMoveForDir( gentity_t *self, usercmd_t *cmd, vec3_t dir, vec3_t dest )
 {
 #if 0
-	if (self->client->NPC_class == CLASS_ATST)
+	if (self->client->NPC_class == CLASS_ATST_OLD)
 	{
 		vec3_t	forward, right;
 		float	fDot, rDot;
@@ -456,7 +456,10 @@ qboolean NPC_CombatMoveToGoal(gentity_t *aiEnt, qboolean tryStraight, qboolean r
 	}
 
 	// UQ1: Actually check if this would make us fall!!!
-	if (aiEnt->s.NPC_class != CLASS_ATST && NPC_CheckFall(aiEnt, dir))
+	if (aiEnt->s.NPC_class != CLASS_ATST_OLD
+		&& aiEnt->s.NPC_class != CLASS_ATST
+		&& aiEnt->s.NPC_class != CLASS_ATAT
+		&& NPC_CheckFall(aiEnt, dir))
 	{
 		int JUMP_RESULT = 0;
 		
@@ -575,7 +578,9 @@ qboolean NPC_CombatMoveToGoal(gentity_t *aiEnt, qboolean tryStraight, qboolean r
 		// Non-Combat move has failed! Force combat move...
 		//
 
-		if (aiEnt->s.NPC_class != CLASS_ATST)
+		if (aiEnt->s.NPC_class != CLASS_ATST_OLD
+			&& aiEnt->s.NPC_class != CLASS_ATST
+			&& aiEnt->s.NPC_class != CLASS_ATAT)
 		{
 			G_UcmdMoveForDir(aiEnt, &aiEnt->client->pers.cmd, dir, aiEnt->NPC->goalEntity->r.currentOrigin);
 
@@ -621,7 +626,7 @@ extern qboolean ATST_MoveToGoal(gentity_t *aiEnt, qboolean tryStraight);
 qboolean NPC_MoveToGoal(gentity_t *aiEnt, qboolean tryStraight )
 {
 #if 0
-	if (aiEnt && aiEnt->client && aiEnt->client->NPC_class == CLASS_ATST)
+	if (aiEnt && aiEnt->client && aiEnt->client->NPC_class == CLASS_ATST_OLD)
 	{// ATST uses special move stuff to throw enemies in front of it that it hits...
 		return ATST_MoveToGoal(aiEnt, tryStraight);
 	}
@@ -741,7 +746,14 @@ qboolean NPC_SlideMoveToGoal(gentity_t *aiEnt)
 	float	saveYaw = aiEnt->client->ps.viewangles[YAW];
 	qboolean ret;
 
-	aiEnt->NPC->combatMove = qtrue;
+	if (aiEnt->client->NPC_class == CLASS_ATST_OLD || aiEnt->client->NPC_class == CLASS_ATST || aiEnt->client->NPC_class == CLASS_ATAT)
+	{
+		aiEnt->NPC->combatMove = qfalse;
+	}
+	else
+	{
+		aiEnt->NPC->combatMove = qtrue;
+	}
 
 	ret = NPC_MoveToGoal( aiEnt, qtrue );
 
