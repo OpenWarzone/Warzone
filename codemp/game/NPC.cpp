@@ -3603,6 +3603,11 @@ qboolean UQ1_UcmdMoveForDir ( gentity_t *self, usercmd_t *cmd, vec3_t dir, qbool
 		walk = qtrue;
 	}
 
+	if (self->NPC->vehicleAI)
+	{
+		walk = qfalse;
+	}
+
 	if (walk)
 	{
 		cmd->buttons |= BUTTON_WALKING;
@@ -3907,6 +3912,11 @@ qboolean UQ1_UcmdMoveForDir_NoAvoidance ( gentity_t *self, usercmd_t *cmd, vec3_
 		walk = qtrue;
 	}
 
+	if (self->NPC->vehicleAI)
+	{
+		walk = qfalse;
+	}
+
 	if (walk)
 	{
 		cmd->buttons |= BUTTON_WALKING;
@@ -4062,6 +4072,19 @@ void NPC_CheckTypeStuff ( gentity_t *aiEnt)
 extern void Jedi_AdjustSaberAnimLevel(gentity_t *self, int newLevel);
 extern void ClientThink_real(gentity_t *ent);
 
+void NPC_ApplyVehicleAI(gentity_t *aiEnt)
+{
+	if (aiEnt->NPC->vehicleAI && aiEnt->s.NPC_class == CLASS_VEHICLE)
+	{
+		memcpy(&aiEnt->m_pVehicle->m_ucmd, &aiEnt->client->pers.cmd, sizeof(usercmd_t));
+
+		// Vehicles don't jump...
+		//aiEnt->m_pVehicle->m_ucmd.upmove = 0;
+		//aiEnt->client->pers.cmd.upmove = 0;
+		//trap->Print("vai vel %i %i %i.\n", (int)aiEnt->m_pVehicle->m_ucmd.forwardmove, (int)aiEnt->m_pVehicle->m_ucmd.rightmove, (int)aiEnt->m_pVehicle->m_ucmd.upmove);
+	}
+}
+
 void NPC_GenericFrameCode ( gentity_t *self )
 {
 	gentity_t *aiEnt = self;
@@ -4116,6 +4139,8 @@ void NPC_GenericFrameCode ( gentity_t *self )
 	// run the bot through the server like it was a real client
 	//=== Save the ucmd for the second no-think Pmove ============================
 	aiEnt->client->pers.cmd.serverTime = level.time - 50;
+
+	NPC_ApplyVehicleAI(aiEnt);
 
 	memcpy( &aiEnt->NPC->last_ucmd, &aiEnt->client->pers.cmd, sizeof( usercmd_t ) );
 
@@ -4543,12 +4568,17 @@ void NPC_Think ( gentity_t *self )//, int msec )
 		NPC_UnGhost(aiEnt);
 	}
 
+#ifdef __NPC_VEHICLE_PILOTS__
 	if ( aiEnt->NPC->nextBStateThink <= level.time /*&& !aiEnt->s.m_iVehicleNum*/ && aiEnt->s.NPC_class != CLASS_VEHICLE)//NPCs sitting in Vehicles do NOTHING - UQ1: Ahh no they don't... maybe need droid check though
+#else //!__NPC_VEHICLE_PILOTS__
+	if (aiEnt->NPC->nextBStateThink <= level.time 
+		&& !aiEnt->s.m_iVehicleNum 
+		&& (aiEnt->s.NPC_class != CLASS_VEHICLE || aiEnt->NPC->vehicleAI))//NPCs sitting in Vehicles do NOTHING
+#endif //__NPC_VEHICLE_PILOTS__
 	{
 #if	AI_TIMERS
 		int	startTime = GetTime(0);
 #endif//	AI_TIMERS
-
 
 #define NPC_FAST_THINK_RANGE 2048.0
 
@@ -4619,7 +4649,7 @@ void NPC_Think ( gentity_t *self )//, int msec )
 #endif //__LOW_THINK_AI__
 
 		//nextthink is set before this so something in here can override it
-		if (self->s.NPC_class != CLASS_VEHICLE && !self->m_pVehicle)
+		if ((self->s.NPC_class != CLASS_VEHICLE && !self->m_pVehicle) || aiEnt->NPC->vehicleAI)
 		{ //ok, let's not do this at all for vehicles.
 			qboolean is_civilian = NPC_IsCivilian(self);
 			qboolean is_vendor = NPC_IsVendor(self);
@@ -4956,6 +4986,8 @@ void NPC_Think ( gentity_t *self )//, int msec )
 
 		//or use client->pers.lastCommand?
 		aiEnt->NPC->last_ucmd.serverTime = level.time - 50;
+
+		NPC_ApplyVehicleAI(aiEnt);
 
 		ClientThink(aiEnt->s.number, &aiEnt->client->pers.cmd);
 #else //__LOW_THINK_AI__

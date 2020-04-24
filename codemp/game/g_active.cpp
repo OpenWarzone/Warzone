@@ -2118,11 +2118,14 @@ void ClientThink_real( gentity_t *ent ) {
 	
 	// This code was moved here from clientThink to fix a problem with g_synchronousClients
 	// being set to 1 when in vehicles.
+#ifdef __NPC_VEHICLE_PILOTS__
 	if ((ent->s.eType == ET_PLAYER || ent->s.eType == ET_NPC)
 		&& ent->client->ps.m_iVehicleNum > MAX_CLIENTS
 		&& g_entities[ent->client->ps.m_iVehicleNum].m_pVehicle
 		&& g_entities[ent->client->ps.m_iVehicleNum].s.NPC_class == CLASS_VEHICLE)
-	//if (ent->s.number < MAX_CLIENTS && ent->client->ps.m_iVehicleNum)
+#else //!__NPC_VEHICLE_PILOTS__
+	if (ent->s.number < MAX_CLIENTS && ent->client->ps.m_iVehicleNum)
+#endif //__NPC_VEHICLE_PILOTS__
 	{//driving a vehicle
 		if (g_entities[ent->client->ps.m_iVehicleNum].client)
 		{
@@ -2132,16 +2135,20 @@ void ClientThink_real( gentity_t *ent ) {
 				&& veh->s.number > MAX_CLIENTS
 				&& veh->m_pVehicle->m_pPilot == (bgEntity_t *)ent)
 			{ //only take input from the pilot...
-				if (ent->s.eType == ET_NPC)
+#if 0
+				if (ent->s.eType == ET_NPC && veh->s.eType == ET_NPC && veh->s.NPC_class == CLASS_VEHICLE && veh->m_pVehicle->m_pPilot->s.number > MAX_CLIENTS)
 				{
 					veh->client->ps.commandTime = ent->client->ps.commandTime;
 					memcpy(&veh->m_pVehicle->m_ucmd, &ent->client->pers.cmd, sizeof(usercmd_t));
-					memcpy(&veh->client->pers.cmd, &ent->client->pers.cmd, sizeof(usercmd_t));
-					memcpy(&veh->client->ps.delta_angles, &ent->client->ps.delta_angles, sizeof(ent->client->ps.delta_angles));
-					memcpy(&veh->client->ps.viewangles, &ent->client->ps.viewangles, sizeof(ent->client->ps.viewangles));
-					memcpy(&veh->s.apos.trBase, &ent->s.apos.trBase, sizeof(ent->s.apos.trBase));
-					memcpy(&veh->client->ps.viewangles, &ent->client->ps.viewangles, sizeof(ent->client->ps.viewangles));
-					memcpy(&veh->client->ps.moveDir, &ent->client->ps.moveDir, sizeof(ent->client->ps.moveDir));
+					//memcpy(&veh->client->pers.cmd, &ent->client->pers.cmd, sizeof(usercmd_t));
+
+					for (int i = 0; i < 3; i++)
+					{
+						veh->client->ps.delta_angles[i] = ent->client->ps.delta_angles[i];
+						veh->client->ps.viewangles[i] = ent->client->ps.viewangles[i];
+						veh->s.apos.trBase[i] = ent->s.apos.trBase[i];
+						veh->client->ps.moveDir[i] = ent->client->ps.moveDir[i];
+					}
 
 					if (ent->s.NPC_class == CLASS_STORMTROOPER_ATST_PILOT || ent->s.NPC_class == CLASS_STORMTROOPER_ATAT_PILOT)
 					{// ATSTs never jump...
@@ -2173,6 +2180,7 @@ void ClientThink_real( gentity_t *ent ) {
 					*/
 				}
 				else
+#endif
 				{
 					veh->client->ps.commandTime = ent->client->ps.commandTime;
 					memcpy(&veh->m_pVehicle->m_ucmd, &ent->client->pers.cmd, sizeof(usercmd_t));
@@ -3662,6 +3670,7 @@ void ClientThink_real( gentity_t *ent ) {
 	if (isNPC)
 	{
 		ent->s.eType = ET_NPC;
+		//ent->s.number = ent - g_entities; // UQ1: Fix for NPC Vehicles loosing their s.number value in BG_PlayerStateToEntityState*
 	}
 
 	SendPendingPredictableEvents( &ent->client->ps );
@@ -3824,20 +3833,32 @@ void ClientThink_real( gentity_t *ent ) {
 
 	// This code was moved here from clientThink to fix a problem with g_synchronousClients
 	// being set to 1 when in vehicles.
+#ifdef __NPC_VEHICLE_PILOTS__
 	if ((ent->s.eType == ET_PLAYER || ent->s.eType == ET_NPC)
 		&& ent->client->ps.m_iVehicleNum > MAX_CLIENTS
 		&& g_entities[ent->client->ps.m_iVehicleNum].m_pVehicle
 		&& g_entities[ent->client->ps.m_iVehicleNum].s.NPC_class == CLASS_VEHICLE)
-	//if (ent->s.number < MAX_CLIENTS && ent->client->ps.m_iVehicleNum)
+#else //!__NPC_VEHICLE_PILOTS__
+	if (ent->s.number < MAX_CLIENTS && ent->client->ps.m_iVehicleNum)
+#endif //__NPC_VEHICLE_PILOTS__
 	{//driving a vehicle
-		//run it
-		if (g_entities[ent->client->ps.m_iVehicleNum].inuse && g_entities[ent->client->ps.m_iVehicleNum].client)
-		{
-			ClientThink(ent->client->ps.m_iVehicleNum, &g_entities[ent->client->ps.m_iVehicleNum].m_pVehicle->m_ucmd);
-		}
-		else
-		{ //vehicle no longer valid?
-			ent->client->ps.m_iVehicleNum = 0;
+		gentity_t *veh = &g_entities[ent->client->ps.m_iVehicleNum];
+
+		if (veh
+			&& veh->m_pVehicle
+			//&& veh->s.number > MAX_CLIENTS
+			&& veh - g_entities > MAX_CLIENTS
+			&& veh->m_pVehicle->m_pPilot == (bgEntity_t *)ent)
+		{// Only take input from the pilot...
+			//run it
+			if (veh->inuse && veh->client)
+			{
+				ClientThink(/*veh->s.number*/veh - g_entities, &veh->m_pVehicle->m_ucmd);
+			}
+			else
+			{ //vehicle no longer valid?
+				ent->client->ps.m_iVehicleNum = 0;
+			}
 		}
 	}
 

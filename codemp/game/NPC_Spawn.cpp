@@ -1789,6 +1789,7 @@ gentity_t *NPC_Spawn_Do( gentity_t *ent )
 	gentity_t	*newent = NULL;
 	int			index;
 	vec3_t		saveOrg;
+	qboolean	spawningVehicleAI = qfalse;
 
 /*	//Do extra code for stasis spawners
 	if ( Q_stricmp( ent->classname, "NPC_Stasis" ) == 0 )
@@ -1797,6 +1798,63 @@ gentity_t *NPC_Spawn_Do( gentity_t *ent )
 			return;
 	}
 */
+
+#ifndef __NPC_VEHICLE_PILOTS__
+	// Override these with their vehicle spawner... Use ent->alt_fire on spawner to spawn the actual trooper on vehicle death...
+	if (!ent->alt_fire
+		&& (StringContainsWord(ent->NPC_type, "atstpilot") || StringContainsWord(ent->NPC_type, "atatpilot")))
+	{// Spawn his vehicle, and place him in it...
+		gentity_t *myVehicle = G_Spawn();
+
+		if (myVehicle)
+		{
+			VectorCopy(ent->s.origin, myVehicle->s.origin);
+
+			if (StringContainsWord(ent->NPC_type, "atatpilot"))
+				myVehicle->NPC_type = "atat";
+			else
+				myVehicle->NPC_type = "atst_vehicle";
+
+			myVehicle->s.teamowner = ent->s.teamowner;
+			myVehicle->s.angles[PITCH] = 0;
+			myVehicle->s.angles[YAW] = 0;// irand(0, 359);
+			myVehicle->s.angles[ROLL] = 0;
+			myVehicle->team = ent->team;
+			myVehicle->s.eType = ET_NPC_SPAWNER;
+			//myVehicle->spawnArea = ent->spawnArea;
+			myVehicle->classname = "NPC_Vehicle";
+
+			G_SetAngles(myVehicle, myVehicle->s.angles);
+
+			//myVehicle->spawnflags |= NSF_DROP_TO_FLOOR;
+			trace_t		tr;
+			vec3_t		bottom;
+
+			VectorCopy(myVehicle->s.origin, saveOrg);
+			VectorCopy(myVehicle->s.origin, bottom);
+			bottom[2] = MIN_WORLD_COORD;
+			trap->Trace(&tr, myVehicle->s.origin, NULL/*myVehicle->r.mins*/, NULL/*myVehicle->r.maxs*/, bottom, myVehicle->s.number, MASK_SOLID, qfalse, 0, 0);
+			if (!tr.allsolid && !tr.startsolid && tr.fraction < 1.0)
+			{
+				vec3_t neworg;
+				VectorCopy(tr.endpos, neworg);
+				neworg[2] += 25.0;
+				G_SetOrigin(myVehicle, neworg);
+				VectorCopy(neworg, myVehicle->s.origin);
+			}
+
+			// Before we replace the ent pointer, make sure the original ent gets freed on the next think... Delayed so group spawners can still use the entity for extra spawns this frame...
+			ent->think = G_FreeEntity;
+			ent->nextthink = level.time + 100;
+
+			// Override the ent pointer with this new vehicle spawn entitiy...
+			ent = myVehicle;
+			spawningVehicleAI = qtrue;
+
+			//trap->Print("npc overridden with AI %s.\n", ent->NPC_type);
+		}
+	}
+#endif //__NPC_VEHICLE_PILOTS__
 
 	//Test for drop to floor
 	if ( ent->spawnflags & NSF_DROP_TO_FLOOR )
@@ -1834,7 +1892,9 @@ gentity_t *NPC_Spawn_Do( gentity_t *ent )
 		//return NULL;
 
 		//get rid of the spawner, too, I guess
-		G_FreeEntity(ent);
+		//G_FreeEntity(ent); // UQ1: Delay it...
+		ent->think = G_FreeEntity;
+		ent->nextthink = level.time + 100;
 		return NULL;
 	}
 
@@ -1850,7 +1910,7 @@ gentity_t *NPC_Spawn_Do( gentity_t *ent )
 	newent->NPC = New_NPC_t(newent->s.number);
 	if ( newent->NPC == NULL )
 	{
-		Com_Printf ( S_COLOR_RED"ERROR: NPC G_Alloc NPC failed\n" );
+		Com_Printf ( S_COLOR_RED"ERROR: NPC Alloc NPC failed\n" );
 		//goto finish;
 
 		G_FreeEntity(newent);
@@ -1860,7 +1920,7 @@ gentity_t *NPC_Spawn_Do( gentity_t *ent )
 	}
 
 	//newent->client = (gclient_s *)G_Alloc (sizeof(gclient_s));
-	G_CreateFakeClient(newent->s.number, newent);
+	G_CreateFakeClient(newent - g_entities/*newent->s.number*/, newent);
 
 #if 0
 	newent->NPC->tempGoal = G_Spawn();
@@ -1879,7 +1939,7 @@ gentity_t *NPC_Spawn_Do( gentity_t *ent )
 
 	if ( newent->client == NULL )
 	{
-		Com_Printf ( S_COLOR_RED"ERROR: NPC BG_Alloc client failed\n" );
+		Com_Printf ( S_COLOR_RED"ERROR: NPC Alloc client failed\n" );
 		//goto finish;
 
 		G_FreeEntity(newent);
@@ -1935,9 +1995,12 @@ gentity_t *NPC_Spawn_Do( gentity_t *ent )
 
  		if ( iVehIndex == VEHICLE_NONE )
 		{
+			Com_Printf(S_COLOR_RED "ERROR: Couldn't spawn NPC %s. No vehicle index.\n", ent->NPC_type);
 			G_FreeEntity( newent );
 			//get rid of the spawner, too, I guess
-			G_FreeEntity( ent );
+			//G_FreeEntity( ent );
+			ent->think = G_FreeEntity;
+			ent->nextthink = level.time + 100;
 			return NULL;
 		}
 		// NOTE: If you change/add any of these, update NPC_Spawn_f for the new vehicle you
@@ -1967,7 +2030,9 @@ gentity_t *NPC_Spawn_Do( gentity_t *ent )
 				Com_Printf ( S_COLOR_RED "ERROR: Couldn't spawn NPC %s\n", ent->NPC_type );
 				G_FreeEntity( newent );
 				//get rid of the spawner, too, I guess
-				G_FreeEntity( ent );
+				//G_FreeEntity( ent );
+				ent->think = G_FreeEntity;
+				ent->nextthink = level.time + 100;
 				return NULL;
 		}
 
@@ -2032,7 +2097,9 @@ gentity_t *NPC_Spawn_Do( gentity_t *ent )
 		Com_Printf ( S_COLOR_RED "ERROR: Couldn't spawn NPC %s\n", ent->NPC_type );
 		G_FreeEntity( newent );
 		//get rid of the spawner, too, I guess
-		G_FreeEntity( ent );
+		//G_FreeEntity( ent );
+		ent->think = G_FreeEntity;
+		ent->nextthink = level.time + 100;
 		return NULL;
 	}
 
@@ -2277,55 +2344,75 @@ finish:
 		BG_CreateRandomNPCInventory(newent);
 	}
 
+#ifdef __NPC_VEHICLE_PILOTS__
 	if (newent->s.NPC_class == CLASS_STORMTROOPER_ATST_PILOT || newent->s.NPC_class == CLASS_STORMTROOPER_ATAT_PILOT)
 	{// Spawn his vehicle, and place him in it...
 		gentity_t *myVehicle = G_Spawn();
 		
-		VectorCopy(newent->s.origin, myVehicle->s.origin);
-		if (newent->s.NPC_class == CLASS_STORMTROOPER_ATAT_PILOT)
-			myVehicle->NPC_type = "atat";
-		else
-			myVehicle->NPC_type = "atst_vehicle";
-		myVehicle->s.teamowner = ent->s.teamowner;
-		myVehicle->s.angles[PITCH] = 0;
-		myVehicle->s.angles[YAW] = 0;// irand(0, 359);
-		myVehicle->s.angles[ROLL] = 0;
-		myVehicle->team = NULL;
-		myVehicle->s.eType = ET_NPC_SPAWNER;
-		myVehicle->spawnArea = ent->spawnArea;
-		myVehicle->classname = "NPC_Vehicle";
-		
-		G_SetAngles(myVehicle, myVehicle->s.angles);
-
-		//myVehicle->spawnflags |= NSF_DROP_TO_FLOOR;
-		trace_t		tr;
-		vec3_t		bottom;
-
-		VectorCopy(myVehicle->s.origin, saveOrg);
-		VectorCopy(myVehicle->s.origin, bottom);
-		bottom[2] = MIN_WORLD_COORD;
-		trap->Trace(&tr, myVehicle->s.origin, NULL/*myVehicle->r.mins*/, NULL/*myVehicle->r.maxs*/, bottom, myVehicle->s.number, MASK_SOLID, qfalse, 0, 0);
-		if (!tr.allsolid && !tr.startsolid && tr.fraction < 1.0)
+		if (myVehicle)
 		{
-			vec3_t neworg;
-			VectorCopy(tr.endpos, neworg);
-			neworg[2] += 25.0;
-			G_SetOrigin(myVehicle, neworg);
-			VectorCopy(neworg, myVehicle->s.origin);
+			//trap->Print("myVehicle %i.\n", myVehicle->s.number);
+
+			VectorCopy(newent->s.origin, myVehicle->s.origin);
+			if (newent->s.NPC_class == CLASS_STORMTROOPER_ATAT_PILOT)
+				myVehicle->NPC_type = "atat";
+			else
+				myVehicle->NPC_type = "atst_vehicle";
+			myVehicle->s.teamowner = ent->s.teamowner;
+			myVehicle->s.angles[PITCH] = 0;
+			myVehicle->s.angles[YAW] = 0;// irand(0, 359);
+			myVehicle->s.angles[ROLL] = 0;
+			myVehicle->team = NULL;
+			myVehicle->s.eType = ET_NPC_SPAWNER;
+			//myVehicle->spawnArea = ent->spawnArea;
+			myVehicle->classname = "NPC_Vehicle";
+
+			G_SetAngles(myVehicle, myVehicle->s.angles);
+
+			//myVehicle->spawnflags |= NSF_DROP_TO_FLOOR;
+			trace_t		tr;
+			vec3_t		bottom;
+
+			VectorCopy(myVehicle->s.origin, saveOrg);
+			VectorCopy(myVehicle->s.origin, bottom);
+			bottom[2] = MIN_WORLD_COORD;
+			trap->Trace(&tr, myVehicle->s.origin, NULL/*myVehicle->r.mins*/, NULL/*myVehicle->r.maxs*/, bottom, myVehicle->s.number, MASK_SOLID, qfalse, 0, 0);
+			if (!tr.allsolid && !tr.startsolid && tr.fraction < 1.0)
+			{
+				vec3_t neworg;
+				VectorCopy(tr.endpos, neworg);
+				neworg[2] += 25.0;
+				G_SetOrigin(myVehicle, neworg);
+				VectorCopy(neworg, myVehicle->s.origin);
+			}
+
+			gentity_t *ATST = NPC_Spawn_Do(myVehicle);
+
+			if (ATST != NULL)
+			{
+				//trap->Print("ATST %i.\n", ATST->s.number);
+
+				Vehicle_t *pVeh = ATST->m_pVehicle;
+				pVeh->m_pVehicleInfo->Board(pVeh, (bgEntity_t *)newent);
+				pVeh->m_pVehicleInfo->SetPilot(pVeh, (bgEntity_t *)newent);
+				//trap->Print("NPC %i boarded ATST %i.\n", newent->s.number, ATST->s.number);
+			}
+
+			//trap->Print("myVehicle %i.\n", myVehicle->s.number);
+
+			//G_FreeEntity(myVehicle); // Don't need the spawner any more...
+			myVehicle->think = G_FreeEntity;
+			myVehicle->nextthink = level.time + 100;
 		}
-
-		gentity_t *ATST = NPC_Spawn_Do(myVehicle);
-
-		if (ATST != NULL)
-		{
-			Vehicle_t *pVeh = ATST->m_pVehicle;
-			pVeh->m_pVehicleInfo->Board(pVeh, (bgEntity_t *)newent);
-			pVeh->m_pVehicleInfo->SetPilot(pVeh, (bgEntity_t *)newent);
-			//trap->Print("NPC %i boarded ATST %i.\n", newent->s.number, ATST->s.number);
-		}
-
-		G_FreeEntity(myVehicle); // Don't need the spawner any more...
 	}
+#else //!__NPC_VEHICLE_PILOTS__
+	if (spawningVehicleAI)
+	{
+		newent->NPC->vehicleAI = qtrue;
+	}
+#endif //__NPC_VEHICLE_PILOTS__
+
+	//trap->Print("newent %i.\n", newent->s.number);
 
 	return newent;
 }

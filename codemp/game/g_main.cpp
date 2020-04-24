@@ -4187,6 +4187,12 @@ void G_RunFrame( int levelTime ) {
 #endif
 	FRAME_TIME = trap->Milliseconds();
 
+	/*for (int i = 0; i < ENTITYNUM_MAX_NORMAL; i++)
+	{
+		gentity_t *ent = &g_entities[i];
+		ent->s.number = ent - g_entities;
+	}*/
+
 #ifdef __NPC_DYNAMIC_THREADS__
 	//active_thread_mutex[0].lock();
 	//active_thread_mutex[1].lock();

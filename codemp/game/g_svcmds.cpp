@@ -294,7 +294,7 @@ void	Svcmd_EntityList_f (void) {
 		if ( !check->inuse ) {
 			continue;
 		}
-		trap->Print("%3i:", e);
+		trap->Print("%4i (%4i):", e, check->s.number);
 		switch ( check->s.eType ) {
 		case ET_GENERAL:
 			trap->Print("ET_GENERAL          ");

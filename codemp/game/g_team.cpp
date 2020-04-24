@@ -198,7 +198,53 @@ OnSameTeam
 ==============
 */
 
-qboolean OnSameTeam(gentity_t *ent1, gentity_t *ent2) {
+qboolean OnSameTeam(gentity_t *firstentity, gentity_t *secondentity) {
+	gentity_t *ent1 = firstentity;
+	gentity_t *ent2 = secondentity;
+	qboolean ent1ispilot = qfalse;
+	qboolean ent2ispilot = qfalse;
+	qboolean ent1issaber = qfalse;
+	qboolean ent2issaber = qfalse;
+
+	if (!firstentity || !secondentity) {
+		return qtrue;
+	}
+
+	if (!firstentity->client || !secondentity->client) {
+		return qfalse;
+	}
+
+	if (firstentity->s.eType == ET_NPC && firstentity->s.NPC_class == CLASS_VEHICLE && firstentity->m_pVehicle && firstentity->m_pVehicle->m_pPilot)
+	{// If an entity is a piloted vehicle, then use the pilot instead of the vehicle itself...
+		ent1 = (gentity_t *)firstentity->m_pVehicle->m_pPilot;
+		ent1ispilot = qtrue;
+	}
+
+	if (secondentity->s.eType == ET_NPC && secondentity->s.NPC_class == CLASS_VEHICLE && secondentity->m_pVehicle && secondentity->m_pVehicle->m_pPilot)
+	{// If an entity is a piloted vehicle, then use the pilot instead of the vehicle itself...
+		ent2 = (gentity_t *)secondentity->m_pVehicle->m_pPilot;
+		ent2ispilot = qtrue;
+	}
+
+	if (firstentity->r.contents == CONTENTS_LIGHTSABER && !strcmp(firstentity->classname, "lightsaber"))
+	{// A lightsaber entitiy checking teams, use the owner...
+		ent1 = &g_entities[firstentity->r.ownerNum];
+		ent1issaber = qtrue;
+	}
+
+	if (secondentity->r.contents == CONTENTS_LIGHTSABER && !strcmp(secondentity->classname, "lightsaber"))
+	{// A lightsaber entitiy checking teams, use the owner...
+		ent2 = &g_entities[secondentity->r.ownerNum];
+		ent2issaber = qtrue;
+	}
+
+	//
+	// Now check team vs team...
+	//
+	if (!ent1 || !ent2) {
+		return qtrue;
+	}
+
 	if (!ent1->client || !ent2->client) {
 		return qfalse;
 	}
@@ -218,7 +264,7 @@ qboolean OnSameTeam(gentity_t *ent1, gentity_t *ent2) {
 		return qtrue;
 	}
 
-	if (ent2->parent && ent1 == ent2->parent)
+	if (!ent1ispilot && !ent2ispilot && ent2->parent && ent1 == ent2->parent)
 	{
 		return qtrue;
 	}
@@ -228,7 +274,7 @@ qboolean OnSameTeam(gentity_t *ent1, gentity_t *ent2) {
 		return qtrue;
 	}
 
-	if (ent1->parent && ent2 == ent1->parent)
+	if (!ent1ispilot && !ent2ispilot && ent1->parent && ent2 == ent1->parent)
 	{
 		return qtrue;
 	}
@@ -243,35 +289,25 @@ qboolean OnSameTeam(gentity_t *ent1, gentity_t *ent2) {
 		return qfalse;
 	}
 
-	if (ent1->s.eType == ET_NPC && ent1->s.NPC_class == CLASS_VEHICLE )
+	if (ent1->s.eType == ET_NPC && ent1->s.NPC_class == CLASS_VEHICLE && !ent1->m_pVehicle->m_pPilot)
+	{// An unpiloted vehicle can not be an enemy...
+		return qtrue;
+	}
+
+	if (ent2->s.eType == ET_NPC && ent2->s.NPC_class == CLASS_VEHICLE && !ent2->m_pVehicle->m_pPilot)
+	{// An unpiloted vehicle can not be an enemy...
+		return qtrue;
+	}
+
+	/*if (!ent1ispilot && ent1->s.eType == ET_NPC && ent1->m_pVehicle)
 	{
 		return qtrue;
 	}
 
-	if (ent2->s.eType == ET_NPC && ent2->s.NPC_class == CLASS_VEHICLE )
+	if (!ent2ispilot && ent2->s.eType == ET_NPC && ent2->m_pVehicle)
 	{
 		return qtrue;
-	}
-
-	if (ent1->s.eType == ET_NPC && ent1->client && ent1->client->NPC_class == CLASS_VEHICLE)
-	{
-		return qtrue;
-	}
-
-	if (ent2->s.eType == ET_NPC && ent2->client && ent2->client->NPC_class == CLASS_VEHICLE)
-	{
-		return qtrue;
-	}
-
-	if (ent1->s.eType == ET_NPC && ent1->m_pVehicle)
-	{
-		return qtrue;
-	}
-
-	if (ent2->s.eType == ET_NPC && ent2->m_pVehicle)
-	{
-		return qtrue;
-	}
+	}*/
 
 	if (NPC_IsAnimalEnemyFaction(ent1) && !NPC_IsAnimalEnemyFaction(ent2))
 	{
@@ -303,9 +339,11 @@ qboolean OnSameTeam(gentity_t *ent1, gentity_t *ent2) {
 
 	if (ent1->s.eType == ET_NPC
 		&& ent2->s.eType == ET_NPC
+		&& ent1->s.NPC_class != CLASS_VEHICLE
+		&& ent2->s.NPC_class != CLASS_VEHICLE
 		&& ent1->client->sess.sessionTeam == FACTION_FREE
 		&& ent2->client->sess.sessionTeam == FACTION_FREE)
-	{ //NPCs don't do normal team rules
+	{// NPCs don't do normal team rules
 		return qfalse;
 	}
 
@@ -314,9 +352,18 @@ qboolean OnSameTeam(gentity_t *ent1, gentity_t *ent2) {
 		return qfalse;
 	}
 
-	if (ent1->client->sess.sessionTeam == ent2->client->sess.sessionTeam) 
+	if (ent1->client->sess.sessionTeam == ent2->client->sess.sessionTeam)
 	{
-		return qtrue;
+		/*if (ent1->s.number == 0 || ent2->s.number == 0)
+		{
+			extern stringID_table_t ClassTable[];
+			trap->Print("ent1 %i team %s, npc_class %s. ent2 %i team %s, npc_class %s.\n", ent1->s.number, TeamName(ent1->client->sess.sessionTeam), ClassTable[ent1->s.NPC_class].name, ent2->s.number, TeamName(ent2->client->sess.sessionTeam), ClassTable[ent2->s.NPC_class].name);
+			ForceCrash()
+		}*/
+		//else
+		{
+			return qtrue;
+		}
 	}
 
 	return qfalse;

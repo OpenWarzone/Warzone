@@ -151,7 +151,7 @@ qboolean ValidateBoard( Vehicle_t *pVeh, bgEntity_t *pEnt )
 		return qtrue;
 	}
 
-	if ( pVeh->m_iDieTime>0)
+	if ( pVeh->m_iDieTime>0 )
 	{
 		return qfalse;
 	}

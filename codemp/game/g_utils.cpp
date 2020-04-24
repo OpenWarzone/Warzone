@@ -441,7 +441,7 @@ void G_CreateFakeClient(int entNum, gentity_t *ent)
 		gClPtrs[entNum] = (gclient_t *) G_Alloc(sizeof(gclient_t), "G_CreateFakeClient");
 	}
 	ent->client = gClPtrs[entNum];
-	ent->s.number = entNum;
+	//ent->s.number = entNum;
 }
 
 //call this on game shutdown to run through and get rid of all the lingering client pointers.

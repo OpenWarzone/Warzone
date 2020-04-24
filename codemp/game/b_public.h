@@ -118,6 +118,8 @@ typedef struct
 	int			timeOfDeath;			//FIXME do we really need both of these
 	gentity_t	*touchedByPlayer;
 
+	qboolean	vehicleAI;
+
 	visibility_t	enemyLastVisibility;
 
 	int			aimTime;

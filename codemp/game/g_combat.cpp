@@ -2138,6 +2138,19 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 		}
 	}
 
+#if 1
+	if (self
+		&& self->s.eType == ET_NPC
+		&& self->s.NPC_class == CLASS_VEHICLE
+		&& self->health <= 0
+		&& self->m_pVehicle
+		&& self->m_pVehicle->m_pVehicleInfo
+		&& (self->m_pVehicle->m_pVehicleInfo->type == VH_WALKER || self->m_pVehicle->m_pVehicleInfo->type == VH_SPEEDER || self->m_pVehicle->m_pVehicleInfo->type == VH_ANIMAL))
+	{// Eject everyone from the land vehicle before it dies...
+		self->m_pVehicle->m_pVehicleInfo->EjectAll(self->m_pVehicle);
+	}
+#endif
+
 	if (self->s.eType == ET_NPC &&
 		self->s.NPC_class == CLASS_VEHICLE &&
 		self->m_pVehicle &&
@@ -4783,6 +4796,8 @@ int G_CheckCritDamage ( gentity_t *targ, gentity_t *attacker, int mod)
 	return DAMAGE_STANDARD;
 }
 
+//#define __DEBUG_VEHICLE_DAMAGE__
+
 void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_t dir, vec3_t point, int damage, int dflags, int mod ) {
 	gclient_t	*client;
 	int			take, asave, subamt = 0, knockback;
@@ -4791,6 +4806,13 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 
 	if (!targ)
 		return;
+
+#ifdef __DEBUG_VEHICLE_DAMAGE__
+	if (targ->s.eType == ET_NPC && targ->s.NPC_class == CLASS_VEHICLE)
+	{
+		trap->Print("1. Vehicle takes %i damage. health %i or %i.\n", damage, targ->health, targ->maxHealth);
+	}
+#endif //__DEBUG_VEHICLE_DAMAGE__
 
 	/*if (mod == MOD_SABER)
 	{// Quick hack to increase saber damage to match player/npc healths...
@@ -4803,6 +4825,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 	if (targ
 		&& targ->client
 		&& targ->s.eType == ET_NPC 
+		&& targ->s.NPC_class != CLASS_VEHICLE
 		&& attacker != targ
 		&& mod != MOD_CRUSH
 		&& mod != MOD_FALLING
@@ -4855,7 +4878,8 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 
 	if (targ
 		&& targ->client
-		&& targ->s.eType == ET_NPC 
+		&& targ->s.eType == ET_NPC
+		&& targ->s.NPC_class != CLASS_VEHICLE
 		&& attacker 
 		&& attacker->s.eType == ET_PLAYER
 		&& OnSameTeam( targ, attacker)
@@ -4869,6 +4893,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 	if (targ
 		&& targ->client
 		&& targ->s.eType == ET_NPC 
+		&& targ->s.NPC_class != CLASS_VEHICLE
 		&& attacker 
 		&& attacker->s.eType == ET_NPC
 		&& mod != MOD_CRUSH
@@ -4879,11 +4904,27 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 		return;
 	}
 
+#ifdef __DEBUG_VEHICLE_DAMAGE__
+	if (targ->s.eType == ET_NPC && targ->s.NPC_class == CLASS_VEHICLE)
+	{
+		trap->Print("2. Vehicle takes %i damage. health %i or %i.\n", damage, targ->health, targ->maxHealth);
+	}
+#endif //__DEBUG_VEHICLE_DAMAGE__
+
+
 	if (targ && targ->damageRedirect)
 	{
 		G_Damage(&g_entities[targ->damageRedirectTo], inflictor, attacker, dir, point, damage, dflags, mod);
 		return;
 	}
+
+#ifdef __DEBUG_VEHICLE_DAMAGE__
+	if (targ->s.eType == ET_NPC && targ->s.NPC_class == CLASS_VEHICLE)
+	{
+		trap->Print("3. Vehicle takes %i damage. health %i or %i.\n", damage, targ->health, targ->maxHealth);
+	}
+#endif //__DEBUG_VEHICLE_DAMAGE__
+
 
 	//
 	// BEGIN - Critical damage and miss system...
@@ -5041,9 +5082,25 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 		return;
 	}
 
+#ifdef __DEBUG_VEHICLE_DAMAGE__
+	if (targ->s.eType == ET_NPC && targ->s.NPC_class == CLASS_VEHICLE)
+	{
+		trap->Print("4. Vehicle takes %i damage. health %i or %i.\n", damage, targ->health, targ->maxHealth);
+	}
+#endif //__DEBUG_VEHICLE_DAMAGE__
+
+
 	if (!targ->takedamage) {
 		return;
 	}
+
+#ifdef __DEBUG_VEHICLE_DAMAGE__
+	if (targ->s.eType == ET_NPC && targ->s.NPC_class == CLASS_VEHICLE)
+	{
+		trap->Print("5. Vehicle takes %i damage. health %i or %i.\n", damage, targ->health, targ->maxHealth);
+	}
+#endif //__DEBUG_VEHICLE_DAMAGE__
+
 
 	if ( (targ->flags&FL_SHIELDED) && mod != MOD_SABER  && !targ->client)
 	{//magnetically protected, this thing can only be damaged by lightsabers
@@ -5058,10 +5115,11 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 	if ( targ->client )
 	{//don't take damage when in a walker, or fighter
 		//unless the walker/fighter is dead!!! -rww
-		if ( targ->client->ps.clientNum < MAX_CLIENTS && targ->client->ps.m_iVehicleNum )
+		if ( (targ->client->ps.clientNum < MAX_CLIENTS || targ->s.eType == ET_NPC) && targ->client->ps.m_iVehicleNum )
 		{
 			gentity_t *veh = &g_entities[targ->client->ps.m_iVehicleNum];
-			if ( veh->m_pVehicle && veh->health > 0 )
+
+			if ( veh && veh->m_pVehicle && veh->health > 0 )
 			{
 				if ( veh->m_pVehicle->m_pVehicleInfo->type == VH_WALKER ||
 					 veh->m_pVehicle->m_pVehicleInfo->type == VH_FIGHTER)
@@ -5074,6 +5132,14 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 			}
 		}
 	}
+
+#ifdef __DEBUG_VEHICLE_DAMAGE__
+	if (targ->s.eType == ET_NPC && targ->s.NPC_class == CLASS_VEHICLE)
+	{
+		trap->Print("6. Vehicle takes %i damage. health %i or %i.\n", damage, targ->health, targ->maxHealth);
+	}
+#endif //__DEBUG_VEHICLE_DAMAGE__
+
 
 	if ((targ->flags & FL_DMG_BY_HEAVY_WEAP_ONLY))
 	{ //only take damage from explosives and such
@@ -5119,6 +5185,14 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 		}
 	}
 
+#ifdef __DEBUG_VEHICLE_DAMAGE__
+	if (targ->s.eType == ET_NPC && targ->s.NPC_class == CLASS_VEHICLE)
+	{
+		trap->Print("7. Vehicle takes %i damage. health %i or %i.\n", damage, targ->health, targ->maxHealth);
+	}
+#endif //__DEBUG_VEHICLE_DAMAGE__
+
+
 	if (targ && targ->client && targ->client->ps.duelInProgress)
 	{
 		if (attacker && attacker->client && attacker->s.number != targ->client->ps.duelIndex)
@@ -5141,6 +5215,14 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 			return;
 		}
 	}
+
+#ifdef __DEBUG_VEHICLE_DAMAGE__
+	if (targ->s.eType == ET_NPC && targ->s.NPC_class == CLASS_VEHICLE)
+	{
+		trap->Print("8. Vehicle takes %i damage. health %i or %i.\n", damage, targ->health, targ->maxHealth);
+	}
+#endif //__DEBUG_VEHICLE_DAMAGE__
+
 
 	if ( !(dflags & DAMAGE_NO_PROTECTION) )
 	{//rage overridden by no_protection
@@ -5182,6 +5264,14 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 		damage = damage * max / 100;
 	}*/
 
+#ifdef __DEBUG_VEHICLE_DAMAGE__
+	if (targ->s.eType == ET_NPC && targ->s.NPC_class == CLASS_VEHICLE)
+	{
+		trap->Print("9. Vehicle takes %i damage. health %i or %i.\n", damage, targ->health, targ->maxHealth);
+	}
+#endif //__DEBUG_VEHICLE_DAMAGE__
+
+
 	if ( !(dflags&DAMAGE_NO_HIT_LOC) )
 	{//see if we should modify it by damage location
 		if (targ->inuse && (targ->client || targ->s.eType == ET_NPC) &&
@@ -5213,6 +5303,14 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 			return;
 		}
 	}
+
+#ifdef __DEBUG_VEHICLE_DAMAGE__
+	if (targ->s.eType == ET_NPC && targ->s.NPC_class == CLASS_VEHICLE)
+	{
+		trap->Print("10. Vehicle takes %i damage. health %i or %i.\n", damage, targ->health, targ->maxHealth);
+	}
+#endif //__DEBUG_VEHICLE_DAMAGE__
+
 
 	if ( !dir ) {
 		dflags |= DAMAGE_NO_KNOCKBACK;
@@ -5377,15 +5475,23 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 
 		// if TF_NO_FRIENDLY_FIRE is set, don't do damage to the target
 		// if the attacker was on the same team
-		if ( targ != attacker)
+		if ( targ != attacker )
 		{
 			if (OnSameTeam (targ, attacker))
 			{
 				if ( !g_friendlyFire.integer )
 				{
+/*#ifdef __DEBUG_VEHICLE_DAMAGE__
+					if (targ->s.eType == ET_NPC && targ->s.NPC_class == CLASS_VEHICLE)
+					{
+						trap->Print("OnSameTeam (targ, attacker)\n");
+						ForceCrash()
+					}
+#endif //__DEBUG_VEHICLE_DAMAGE__*/
 					return;
 				}
 			}
+#if 0
 			else if (attacker && attacker->inuse &&
 				!attacker->client && attacker->activator &&
 				targ != attacker->activator &&
@@ -5399,8 +5505,6 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 					}
 				}
 			}
-
-			
 			else if (targ->inuse && targ->client &&
 				level.gametype >= GT_TEAM &&
 				attacker->s.number >= MAX_CLIENTS &&
@@ -5410,6 +5514,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 			{ //things allied with my team should't hurt me.. I guess
 				return;
 			}
+#endif
 		}
 
 		if (level.gametype == GT_JEDIMASTER && !g_friendlyFire.integer &&
@@ -5454,6 +5559,14 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 		}
 	}
 
+#ifdef __DEBUG_VEHICLE_DAMAGE__
+	if (targ->s.eType == ET_NPC && targ->s.NPC_class == CLASS_VEHICLE)
+	{
+		trap->Print("11. Vehicle takes %i damage. health %i or %i.\n", damage, targ->health, targ->maxHealth);
+	}
+#endif //__DEBUG_VEHICLE_DAMAGE__
+
+
 	//check for teamnodmg
 	//NOTE: non-client objects hitting clients (and clients hitting clients) purposely doesn't obey this teamnodmg (for emplaced guns)
 	if ( attacker && !targ->client )
@@ -5491,6 +5604,14 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 			}
 		}
 	}
+
+#ifdef __DEBUG_VEHICLE_DAMAGE__
+	if (targ->s.eType == ET_NPC && targ->s.NPC_class == CLASS_VEHICLE)
+	{
+		trap->Print("12. Vehicle takes %i damage. health %i or %i.\n", damage, targ->health, targ->maxHealth);
+	}
+#endif //__DEBUG_VEHICLE_DAMAGE__
+
 
 	#ifdef BASE_COMPAT
 		// battlesuit protects from all radius damage (but takes knockback)
@@ -6185,6 +6306,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 	if (g_gametype.integer >= GT_TEAM 
 		&& targ 
 		&& targ->client
+		&& targ->s.NPC_class != CLASS_VEHICLE
 		&& attacker 
 		&& attacker->client
 		&& (targ->s.eType == ET_PLAYER || attacker->s.eType == ET_PLAYER)
@@ -6226,6 +6348,17 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_
 				attacker->padawan->enemy = targ;
 			}
 		}
+	}
+
+	if (targ 
+		&& targ->s.eType == ET_NPC 
+		&& targ->s.NPC_class == CLASS_VEHICLE
+		&& targ->health <= 0
+		&& targ->m_pVehicle
+		&& targ->m_pVehicle->m_pVehicleInfo
+		&& (targ->m_pVehicle->m_pVehicleInfo->type == VH_WALKER || targ->m_pVehicle->m_pVehicleInfo->type == VH_SPEEDER || targ->m_pVehicle->m_pVehicleInfo->type == VH_ANIMAL))
+	{// Eject everyone from the land vehicle before it dies...
+		targ->m_pVehicle->m_pVehicleInfo->EjectAll(targ->m_pVehicle);
 	}
 }
 

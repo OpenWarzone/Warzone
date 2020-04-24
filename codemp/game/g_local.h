@@ -21,6 +21,14 @@
 typedef struct gentity_s gentity_t;
 typedef struct gclient_s gclient_t;
 
+//
+// Use to force a crash instead of assert for debugging optimized release builds...
+//
+#define ForceCrash() { gentity_t *blah = NULL; blah->localAnimIndex = 1; }
+//
+//
+//
+
 //npc stuff
 #include "b_public.h"
 
