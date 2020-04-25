@@ -4169,6 +4169,9 @@ void CG_DrawEnemyStatus( void )
 			case CLASS_ATAT:
 				sprintf(str1, "AT-AT");
 				break;
+			case CLASS_ATPT:
+				sprintf(str1, "AT-PT");
+				break;
 			case CLASS_CLAW:
 				sprintf(str1, "Claw");
 				break;
@@ -4563,6 +4566,7 @@ void CG_DrawEnemyStatus( void )
 		case CLASS_ATST_OLD:
 		case CLASS_ATST:
 		case CLASS_ATAT:
+		case CLASS_ATPT:
 			sprintf(str2, "< Vehicle >");
 			tclr[0] = 1.0f;
 			tclr[1] = 0.225f;
@@ -8782,6 +8786,7 @@ void CG_DrawNPCNames( void )
 			case CLASS_ATST_OLD:
 			case CLASS_ATST:
 			case CLASS_ATAT:
+			case CLASS_ATPT:
 				sprintf(str2, "< Vehicle >");
 				tclr[0] = 1.0f;
 				tclr[1] = 0.225f;
@@ -8991,6 +8996,9 @@ void CG_DrawNPCNames( void )
 					break;
 				case CLASS_ATAT:
 					sprintf(str1, "AT-AT");
+					break;
+				case CLASS_ATPT:
+					sprintf(str1, "AT-PT");
 					break;
 				case CLASS_CLAW:
 					sprintf(str1, "Claw");

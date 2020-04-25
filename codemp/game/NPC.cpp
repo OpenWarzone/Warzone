@@ -1763,6 +1763,7 @@ void NPC_RunBehavior( gentity_t *aiEnt, int team, int bState )
 		|| aiEnt->client->NPC_class == CLASS_JAN
 		|| aiEnt->client->NPC_class == CLASS_PURGETROOPER
 		|| aiEnt->client->NPC_class == CLASS_ATST
+		|| aiEnt->client->NPC_class == CLASS_ATPT
 		|| aiEnt->client->NPC_class == CLASS_ATAT
 		|| (aiEnt->client->ps.eFlags & EF_FAKE_NPC_BOT) /* temporary */ )
 	{//jedi
@@ -3611,7 +3612,7 @@ qboolean UQ1_UcmdMoveForDir ( gentity_t *self, usercmd_t *cmd, vec3_t dir, qbool
 	}
 
 	if (self->s.eType == ET_NPC 
-		&& (self->s.NPC_class == CLASS_ATST /*|| self->s.NPC_class == CLASS_ATAT*/))
+		&& (self->s.NPC_class == CLASS_ATST || self->s.NPC_class == CLASS_ATPT /*|| self->s.NPC_class == CLASS_ATAT*/))
 	{// These guys don't walk, they move at full speed...
 		walk = qfalse;
 	}
@@ -3948,7 +3949,7 @@ qboolean UQ1_UcmdMoveForDir_NoAvoidance ( gentity_t *self, usercmd_t *cmd, vec3_
 	}
 
 	if (self->s.eType == ET_NPC
-		&& (self->s.NPC_class == CLASS_ATST /*|| self->s.NPC_class == CLASS_ATAT*/))
+		&& (self->s.NPC_class == CLASS_ATST || self->s.NPC_class == CLASS_ATPT /*|| self->s.NPC_class == CLASS_ATAT*/))
 	{// These guys don't walk, they move at full speed...
 		walk = qfalse;
 	}

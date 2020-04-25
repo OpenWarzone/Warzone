@@ -1746,6 +1746,105 @@ void BG_CreateRandomNPCInventory(gentity_t *ent)
 
 		//trap->Print("NPC %i given saber %u (%s). mod1 %u mod2 %u mod3 %u.\n", entityNum, ps->inventoryItems[0], newItem->getName(), ps->inventoryMod1[0], ps->inventoryMod2[0], ps->inventoryMod3[0]);
 	}
+	else if (ent->s.eType == ET_NPC && ent->s.NPC_class == CLASS_ATPT)
+	{// For AT-PT weapon consistancy... Scout repeater based weapon...
+		inventoryItem *newItem = NULL;
+
+		while (!newItem)
+		{
+			newItem = BG_CreatePlayerInventoryItem(ps, 0, 39, SABER_MODELTYPE_DEFAULT, irand_big(QUALITY_PURPLE, QUALITY_GOLD), crystal, WEAPON_STAT1_FIRE_RATE_MODIFIER, WEAPON_STAT2_CRITICAL_CHANCE_MODIFIER, WEAPON_STAT3_SHOT_REPEATING);
+		}
+
+		// Add random mods...
+		uint16_t weaponQuality = Q_clamp(QUALITY_GREY, newItem->getQuality() - 2, QUALITY_GOLD);
+
+		// Always equip the 1st inventory slot...
+		ps->inventoryEquipped[0] = 0;
+
+		if (newItem->getQuality() >= QUALITY_PURPLE)
+		{
+			inventoryItem *stat1 = BG_FindBaseInventoryItem(34, SABER_MODELTYPE_DEFAULT, irand_big(weaponQuality, QUALITY_GOLD), -1, WEAPON_STAT1_FIRE_RATE_MODIFIER, 0, 0);
+			ps->inventoryMod1[0] = stat1->getItemID();
+
+			if (newItem->getQuality() >= QUALITY_ORANGE)
+			{
+				inventoryItem *stat2 = BG_FindBaseInventoryItem(34, SABER_MODELTYPE_DEFAULT, irand_big(weaponQuality, QUALITY_GOLD), -1, 0, WEAPON_STAT2_CRITICAL_CHANCE_MODIFIER, 0);
+				ps->inventoryMod2[0] = stat2->getItemID();
+
+				if (newItem->getQuality() >= QUALITY_GOLD)
+				{
+					inventoryItem *stat3 = BG_FindBaseInventoryItem(34, SABER_MODELTYPE_DEFAULT, irand_big(weaponQuality, QUALITY_GOLD), -1, 0, 0, WEAPON_STAT3_SHOT_REPEATING);
+					ps->inventoryMod3[0] = stat3->getItemID();
+				}
+			}
+		}
+	}
+	else if (ent->s.eType == ET_NPC && ent->s.NPC_class == CLASS_ATST)
+	{// For AT-ST weapon consistancy... Explosive bolt based weapon...
+		inventoryItem *newItem = NULL;
+
+		while (!newItem)
+		{
+			newItem = BG_CreatePlayerInventoryItem(ps, 0, 39, SABER_MODELTYPE_DEFAULT, irand_big(QUALITY_PURPLE, QUALITY_GOLD), crystal, WEAPON_STAT1_VELOCITY_MODIFIER, WEAPON_STAT2_CRITICAL_POWER_MODIFIER, WEAPON_STAT3_SHOT_EXPLOSIVE);
+		}
+
+		// Add random mods...
+		uint16_t weaponQuality = Q_clamp(QUALITY_GREY, newItem->getQuality() - 2, QUALITY_GOLD);
+
+		// Always equip the 1st inventory slot...
+		ps->inventoryEquipped[0] = 0;
+
+		if (newItem->getQuality() >= QUALITY_PURPLE)
+		{
+			inventoryItem *stat1 = BG_FindBaseInventoryItem(34, SABER_MODELTYPE_DEFAULT, irand_big(weaponQuality, QUALITY_GOLD), -1, WEAPON_STAT1_VELOCITY_MODIFIER, 0, 0);
+			ps->inventoryMod1[0] = stat1->getItemID();
+
+			if (newItem->getQuality() >= QUALITY_ORANGE)
+			{
+				inventoryItem *stat2 = BG_FindBaseInventoryItem(34, SABER_MODELTYPE_DEFAULT, irand_big(weaponQuality, QUALITY_GOLD), -1, 0, WEAPON_STAT2_CRITICAL_POWER_MODIFIER, 0);
+				ps->inventoryMod2[0] = stat2->getItemID();
+
+				if (newItem->getQuality() >= QUALITY_GOLD)
+				{
+					inventoryItem *stat3 = BG_FindBaseInventoryItem(34, SABER_MODELTYPE_DEFAULT, irand_big(weaponQuality, QUALITY_GOLD), -1, 0, 0, WEAPON_STAT3_SHOT_EXPLOSIVE);
+					ps->inventoryMod3[0] = stat3->getItemID();
+				}
+			}
+		}
+	}
+	else if (ent->s.eType == ET_NPC && ent->s.NPC_class == CLASS_ATST)
+	{// For AT-AT weapon consistancy... Heavy explosive bolt based weapon...
+		inventoryItem *newItem = NULL;
+
+		while (!newItem)
+		{
+			newItem = BG_CreatePlayerInventoryItem(ps, 0, 39, SABER_MODELTYPE_DEFAULT, irand_big(QUALITY_PURPLE, QUALITY_GOLD), crystal, WEAPON_STAT1_HEAT_ACCUMULATION_MODIFIER, WEAPON_STAT2_FIRE_DAMAGE_MODIFIER, WEAPON_STAT3_SHOT_EXPLOSIVE);
+		}
+
+		// Add random mods...
+		uint16_t weaponQuality = Q_clamp(QUALITY_GREY, newItem->getQuality() - 2, QUALITY_GOLD);
+
+		// Always equip the 1st inventory slot...
+		ps->inventoryEquipped[0] = 0;
+
+		if (newItem->getQuality() >= QUALITY_PURPLE)
+		{
+			inventoryItem *stat1 = BG_FindBaseInventoryItem(34, SABER_MODELTYPE_DEFAULT, irand_big(weaponQuality, QUALITY_GOLD), -1, WEAPON_STAT1_HEAT_ACCUMULATION_MODIFIER, 0, 0);
+			ps->inventoryMod1[0] = stat1->getItemID();
+
+			if (newItem->getQuality() >= QUALITY_ORANGE)
+			{
+				inventoryItem *stat2 = BG_FindBaseInventoryItem(34, SABER_MODELTYPE_DEFAULT, irand_big(weaponQuality, QUALITY_GOLD), -1, 0, WEAPON_STAT2_CRITICAL_POWER_MODIFIER, 0);
+				ps->inventoryMod2[0] = stat2->getItemID();
+
+				if (newItem->getQuality() >= QUALITY_GOLD)
+				{
+					inventoryItem *stat3 = BG_FindBaseInventoryItem(34, SABER_MODELTYPE_DEFAULT, irand_big(weaponQuality, QUALITY_GOLD), -1, 0, 0, WEAPON_STAT3_SHOT_EXPLOSIVE);
+					ps->inventoryMod3[0] = stat3->getItemID();
+				}
+			}
+		}
+	}
 	else
 	{
 		inventoryItem *newItem = NULL;

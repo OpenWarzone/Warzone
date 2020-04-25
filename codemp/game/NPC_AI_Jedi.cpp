@@ -942,7 +942,7 @@ void Boba_FireDecide( gentity_t *aiEnt )
 			return;
 		}
 	}
-	else if (aiEnt->client->ps.weapon == WP_MODULIZED_WEAPON || aiEnt->s.NPC_class == CLASS_ATST || aiEnt->s.NPC_class == CLASS_ATAT)
+	else if (aiEnt->client->ps.weapon == WP_MODULIZED_WEAPON || aiEnt->s.NPC_class == CLASS_ATST || aiEnt->s.NPC_class == CLASS_ATPT || aiEnt->s.NPC_class == CLASS_ATAT)
 	{// UQ1: How about I add a default for them??? :)
 		if ( aiEnt->health < aiEnt->client->pers.maxHealth*0.5f && (NPC_IsJedi(aiEnt) || NPC_IsBountyHunter(aiEnt) || aiEnt->s.eType == ET_PLAYER) )
 		{
@@ -8436,9 +8436,9 @@ qboolean NPC_MoveIntoOptimalAttackPosition ( gentity_t *aiEnt)
 		OPTIMAL_MAX_RANGE = 56 * NPC->modelScale[2];
 	}
 
-	if (NPC->s.NPC_class == CLASS_ATST_OLD || NPC->s.NPC_class == CLASS_ATST || NPC->s.NPC_class == CLASS_ATAT)
+	if (NPC->s.NPC_class == CLASS_ATST_OLD || NPC->s.NPC_class == CLASS_ATST || NPC->s.NPC_class == CLASS_ATPT || NPC->s.NPC_class == CLASS_ATAT)
 	{
-		if (NPC->s.NPC_class == CLASS_ATST_OLD || NPC->s.NPC_class == CLASS_ATST)
+		if (NPC->s.NPC_class == CLASS_ATST_OLD || NPC->s.NPC_class == CLASS_ATST || NPC->s.NPC_class == CLASS_ATPT)
 		{
 			OPTIMAL_MIN_RANGE = 512;
 			OPTIMAL_MAX_RANGE = 1024;

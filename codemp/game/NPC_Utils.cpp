@@ -67,6 +67,11 @@ void CalcEntitySpot ( const gentity_t *ent, const spot_t spot, vec3_t point )
 			VectorCopy(org, point);
 			point[2] += 172.0; //192.0
 		}
+		else if (ent->s.eType == ET_NPC && ent->s.NPC_class == CLASS_ATPT)
+		{
+			VectorCopy(org, point);
+			point[2] += 128.0; //192.0
+		}
 		else if (ent->s.eType == ET_NPC && ent->s.NPC_class != CLASS_VEHICLE && ent->s.m_iVehicleNum && ent->s.NPC_class == CLASS_STORMTROOPER_ATST_PILOT)
 		{// NPC driving an ATST...
 			VectorCopy(org, point);
@@ -81,7 +86,7 @@ void CalcEntitySpot ( const gentity_t *ent, const spot_t spot, vec3_t point )
 		{//Actual tag_head eyespot!
 			//FIXME: Stasis aliens may have a problem here...
 			VectorCopy( ent->client->renderInfo.eyePoint, point );
-			if ( ent->client->NPC_class == CLASS_ATST_OLD || ent->client->NPC_class == CLASS_ATST )
+			if ( ent->client->NPC_class == CLASS_ATST_OLD || ent->client->NPC_class == CLASS_ATST || ent->client->NPC_class == CLASS_ATPT)
 			{//adjust up some
 				point[2] += 28;//magic number :)
 			}
@@ -133,6 +138,11 @@ void CalcEntitySpot ( const gentity_t *ent, const spot_t spot, vec3_t point )
 			VectorCopy(org, point);
 			point[2] += 172.0; //192.0
 		}
+		else if (ent->s.eType == ET_NPC && ent->s.NPC_class == CLASS_ATPT)
+		{
+			VectorCopy(org, point);
+			point[2] += 128.0; //192.0
+		}
 		else if (ent->s.eType == ET_NPC && ent->s.NPC_class != CLASS_VEHICLE && ent->s.m_iVehicleNum && ent->s.NPC_class == CLASS_STORMTROOPER_ATST_PILOT)
 		{// NPC driving an ATST...
 			VectorCopy(org, point);
@@ -148,6 +158,10 @@ void CalcEntitySpot ( const gentity_t *ent, const spot_t spot, vec3_t point )
 			//FIXME: Stasis aliens may have a problem here...
 			VectorCopy( ent->client->renderInfo.eyePoint, point );
 			if ( ent->client->NPC_class == CLASS_ATST_OLD || ent->client->NPC_class == CLASS_ATST )
+			{//adjust up some
+				point[2] += 28;//magic number :)
+			}
+			if (ent->client->NPC_class == CLASS_ATPT)
 			{//adjust up some
 				point[2] += 28;//magic number :)
 			}
@@ -1346,7 +1360,7 @@ int NPC_FindNearestEnemy( gentity_t *ent )
 	float		distance;
 	int			numEnts = 0;
 	int			i;
-	float		maxRange = (ent->s.NPC_class == CLASS_ATST || ent->s.NPC_class == CLASS_ATAT) ? 6000.0 : 3192.0;//aiEnt->NPC->stats.visrange;
+	float		maxRange = (ent->s.NPC_class == CLASS_ATST || ent->s.NPC_class == CLASS_ATPT || ent->s.NPC_class == CLASS_ATAT) ? 6000.0 : 3192.0;//aiEnt->NPC->stats.visrange;
 
 	//Setup the bbox to search in
 	for ( i = 0; i < 3; i++ )
@@ -1591,6 +1605,16 @@ qboolean NPC_FacePosition( gentity_t *aiEnt, vec3_t position, qboolean doPitch )
 
 		NPC_SetBoneAngles(aiEnt, craniumBone, lookAngles);
 	}
+	else if (aiEnt->client && aiEnt->client->NPC_class == CLASS_ATPT)
+	{
+		char *craniumBone = "cranium";
+
+		vec3_t lookAngles;
+		VectorCopy(angles, lookAngles);
+		lookAngles[YAW] -= aiEnt->client->ps.viewangles[YAW];
+
+		NPC_SetBoneAngles(aiEnt, craniumBone, lookAngles);
+	}
 	else if (aiEnt->client && aiEnt->client->NPC_class == CLASS_ATAT)
 	{
 		char *craniumBone = "cranium";
@@ -1613,7 +1637,7 @@ qboolean NPC_FacePosition( gentity_t *aiEnt, vec3_t position, qboolean doPitch )
 
 	if ( aiEnt->enemy 
 		&& aiEnt->enemy->client
-		&& (aiEnt->enemy->client->NPC_class == CLASS_ATST_OLD || aiEnt->enemy->client->NPC_class == CLASS_ATST || aiEnt->enemy->client->NPC_class == CLASS_ATAT) )
+		&& (aiEnt->enemy->client->NPC_class == CLASS_ATST_OLD || aiEnt->enemy->client->NPC_class == CLASS_ATST || aiEnt->enemy->client->NPC_class == CLASS_ATPT || aiEnt->enemy->client->NPC_class == CLASS_ATAT) )
 	{
 		// FIXME: this is kind of dumb, but it was the easiest way to get it to look sort of ok
 		aiEnt->NPC->desiredYaw	+= flrand( -5, 5 ) + sin( level.time * 0.004f ) * 7;

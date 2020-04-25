@@ -67,6 +67,7 @@ qboolean NPC_IsHumanoid ( gentity_t *self )
 	case CLASS_DRUG_VENDOR:
 	case CLASS_TRAVELLING_VENDOR:
 	case CLASS_ATST:
+	case CLASS_ATPT:
 	case CLASS_ATAT:
 		// Humanoid...
 		return qtrue;
@@ -354,6 +355,7 @@ qboolean NPC_HasGrenades ( gentity_t *self )
 	case CLASS_NATIVE:
 	case CLASS_NATIVE_GUNNER:
 	case CLASS_ATST:
+	case CLASS_ATPT:
 	case CLASS_ATAT:
 		// Has Grenades...
 		return qtrue;

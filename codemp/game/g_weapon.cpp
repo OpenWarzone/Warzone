@@ -5020,59 +5020,122 @@ void CalcMuzzlePoint(gentity_t *ent, vec3_t forward, vec3_t right, vec3_t up, ve
 		// l_turbo_gun, r_turbo_gun, l_laser, r_laser, *muzzle1, *muzzle2, *muzzle3, *muzzle4, *driver
 		switch (ent->NPC->currentTurret)
 		{
-		default:
-		case 0:
-		{
-			int bolt = trap->G2API_AddBolt(ent->ghoul2, 0, "*muzzle1");
+			default:
+			case 0:
+			{
+				int bolt = trap->G2API_AddBolt(ent->ghoul2, 0, "*muzzle1");
 
-			mdxaBone_t	boltMatrix;
-			trap->G2API_GetBoltMatrix(ent->ghoul2, 0, bolt, &boltMatrix, ent->r.currentAngles, ent->r.currentOrigin, level.time, NULL, ent->modelScale);
+				mdxaBone_t	boltMatrix;
+				trap->G2API_GetBoltMatrix(ent->ghoul2, 0, bolt, &boltMatrix, ent->r.currentAngles, ent->r.currentOrigin, level.time, NULL, ent->modelScale);
 
-			vec3_t	muzzle_dir, muzzle_angles;
-			BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, muzzlePoint);
+				vec3_t	muzzle_dir, muzzle_angles;
+				BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, muzzlePoint);
 
-			ent->NPC->currentTurret = 1;
-			break;
+				ent->NPC->currentTurret = 1;
+				break;
+			}
+			case 1:
+			{
+				int bolt = trap->G2API_AddBolt(ent->ghoul2, 0, "*muzzle2");
+
+				mdxaBone_t	boltMatrix;
+				trap->G2API_GetBoltMatrix(ent->ghoul2, 0, bolt, &boltMatrix, ent->r.currentAngles, ent->r.currentOrigin, level.time, NULL, ent->modelScale);
+
+				vec3_t	muzzle_dir, muzzle_angles;
+				BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, muzzlePoint);
+
+				ent->NPC->currentTurret = 2;
+				break;
+			}
+			case 2:
+			{
+				int bolt = trap->G2API_AddBolt(ent->ghoul2, 0, "*muzzle3");
+
+				mdxaBone_t	boltMatrix;
+				trap->G2API_GetBoltMatrix(ent->ghoul2, 0, bolt, &boltMatrix, ent->r.currentAngles, ent->r.currentOrigin, level.time, NULL, ent->modelScale);
+
+				vec3_t	muzzle_dir, muzzle_angles;
+				BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, muzzlePoint);
+
+				ent->NPC->currentTurret = 3;
+				break;
+			}
+			case 3:
+			{
+				int bolt = trap->G2API_AddBolt(ent->ghoul2, 0, "*muzzle4");
+
+				mdxaBone_t	boltMatrix;
+				trap->G2API_GetBoltMatrix(ent->ghoul2, 0, bolt, &boltMatrix, ent->r.currentAngles, ent->r.currentOrigin, level.time, NULL, ent->modelScale);
+
+				vec3_t	muzzle_dir, muzzle_angles;
+				BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, muzzlePoint);
+
+				ent->NPC->currentTurret = 0;
+				break;
+			}
 		}
-		case 1:
+
+		SnapVector(muzzlePoint);
+		return;
+	}
+	else if (ent->s.eType == ET_NPC && ent->client->NPC_class == CLASS_ATPT)
+	{
+		// *muzzle1, *muzzle2, *muzzle3, *weapon
+		switch (ent->NPC->currentTurret)
 		{
-			int bolt = trap->G2API_AddBolt(ent->ghoul2, 0, "*muzzle2");
+			default:
+			case 0:
+			{
+				int bolt = trap->G2API_AddBolt(ent->ghoul2, 0, "*muzzle1");
 
-			mdxaBone_t	boltMatrix;
-			trap->G2API_GetBoltMatrix(ent->ghoul2, 0, bolt, &boltMatrix, ent->r.currentAngles, ent->r.currentOrigin, level.time, NULL, ent->modelScale);
+				mdxaBone_t	boltMatrix;
+				trap->G2API_GetBoltMatrix(ent->ghoul2, 0, bolt, &boltMatrix, ent->r.currentAngles, ent->r.currentOrigin, level.time, NULL, ent->modelScale);
 
-			vec3_t	muzzle_dir, muzzle_angles;
-			BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, muzzlePoint);
+				vec3_t	muzzle_dir, muzzle_angles;
+				BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, muzzlePoint);
 
-			ent->NPC->currentTurret = 2;
-			break;
-		}
-		case 2:
-		{
-			int bolt = trap->G2API_AddBolt(ent->ghoul2, 0, "*muzzle3");
+				ent->NPC->currentTurret = 1;
+				break;
+			}
+			case 1:
+			{
+				int bolt = trap->G2API_AddBolt(ent->ghoul2, 0, "*muzzle2");
 
-			mdxaBone_t	boltMatrix;
-			trap->G2API_GetBoltMatrix(ent->ghoul2, 0, bolt, &boltMatrix, ent->r.currentAngles, ent->r.currentOrigin, level.time, NULL, ent->modelScale);
+				mdxaBone_t	boltMatrix;
+				trap->G2API_GetBoltMatrix(ent->ghoul2, 0, bolt, &boltMatrix, ent->r.currentAngles, ent->r.currentOrigin, level.time, NULL, ent->modelScale);
 
-			vec3_t	muzzle_dir, muzzle_angles;
-			BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, muzzlePoint);
+				vec3_t	muzzle_dir, muzzle_angles;
+				BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, muzzlePoint);
 
-			ent->NPC->currentTurret = 3;
-			break;
-		}
-		case 3:
-		{
-			int bolt = trap->G2API_AddBolt(ent->ghoul2, 0, "*muzzle4");
+				ent->NPC->currentTurret = 2;
+				break;
+			}
+			case 2:
+			{
+				int bolt = trap->G2API_AddBolt(ent->ghoul2, 0, "*muzzle3");
 
-			mdxaBone_t	boltMatrix;
-			trap->G2API_GetBoltMatrix(ent->ghoul2, 0, bolt, &boltMatrix, ent->r.currentAngles, ent->r.currentOrigin, level.time, NULL, ent->modelScale);
+				mdxaBone_t	boltMatrix;
+				trap->G2API_GetBoltMatrix(ent->ghoul2, 0, bolt, &boltMatrix, ent->r.currentAngles, ent->r.currentOrigin, level.time, NULL, ent->modelScale);
 
-			vec3_t	muzzle_dir, muzzle_angles;
-			BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, muzzlePoint);
+				vec3_t	muzzle_dir, muzzle_angles;
+				BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, muzzlePoint);
 
-			ent->NPC->currentTurret = 0;
-			break;
-		}
+				ent->NPC->currentTurret = 0;// 3;
+				break;
+			}
+			case 3:
+			{
+				int bolt = trap->G2API_AddBolt(ent->ghoul2, 0, "*weapon");
+
+				mdxaBone_t	boltMatrix;
+				trap->G2API_GetBoltMatrix(ent->ghoul2, 0, bolt, &boltMatrix, ent->r.currentAngles, ent->r.currentOrigin, level.time, NULL, ent->modelScale);
+
+				vec3_t	muzzle_dir, muzzle_angles;
+				BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, muzzlePoint);
+
+				ent->NPC->currentTurret = 0;
+				break;
+			}
 		}
 
 		SnapVector(muzzlePoint);
@@ -5102,8 +5165,8 @@ void CalcMuzzlePoint(gentity_t *ent, vec3_t forward, vec3_t right, vec3_t up, ve
 #else
 		switch (ent->NPC->currentTurret)
 		{
-		default:
-		case 0:
+			default:
+			case 0:
 			{
 				int bolt = trap->G2API_AddBolt(ent->ghoul2, 0, "*flash1");
 
@@ -5116,9 +5179,35 @@ void CalcMuzzlePoint(gentity_t *ent, vec3_t forward, vec3_t right, vec3_t up, ve
 				ent->NPC->currentTurret = 1;
 				break;
 			}
-		case 1:
+			case 1:
 			{
 				int bolt = trap->G2API_AddBolt(ent->ghoul2, 0, "*flash2");
+
+				mdxaBone_t	boltMatrix;
+				trap->G2API_GetBoltMatrix(ent->ghoul2, 0, bolt, &boltMatrix, ent->r.currentAngles, ent->r.currentOrigin, level.time, NULL, ent->modelScale);
+
+				vec3_t	muzzle_dir, muzzle_angles;
+				BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, muzzlePoint);
+
+				ent->NPC->currentTurret = 2;
+				break;
+			}
+			case 2:
+			{
+				int bolt = trap->G2API_AddBolt(ent->ghoul2, 0, "*flash3");
+
+				mdxaBone_t	boltMatrix;
+				trap->G2API_GetBoltMatrix(ent->ghoul2, 0, bolt, &boltMatrix, ent->r.currentAngles, ent->r.currentOrigin, level.time, NULL, ent->modelScale);
+
+				vec3_t	muzzle_dir, muzzle_angles;
+				BG_GiveMeVectorFromMatrix(&boltMatrix, ORIGIN, muzzlePoint);
+
+				ent->NPC->currentTurret = 3;
+				break;
+			}
+			case 3:
+			{
+				int bolt = trap->G2API_AddBolt(ent->ghoul2, 0, "*flash4");
 
 				mdxaBone_t	boltMatrix;
 				trap->G2API_GetBoltMatrix(ent->ghoul2, 0, bolt, &boltMatrix, ent->r.currentAngles, ent->r.currentOrigin, level.time, NULL, ent->modelScale);
@@ -5321,9 +5410,7 @@ gentity_t *WP_FireVehicleWeapon(gentity_t *ent, vec3_t start, vec3_t shotDir, ve
 
 	int scale = 2;
 
-	if (ent->s.NPC_class == CLASS_STORMTROOPER_ATAT_PILOT)
-		scale = 3;
-	else if (ent->s.eType == ET_NPC && ent->client->NPC_class == CLASS_ATAT)
+	if (ent->s.eType == ET_NPC && ent->client->NPC_class == CLASS_ATAT)
 		scale = 3;
 
 #if 1
@@ -5334,7 +5421,7 @@ gentity_t *WP_FireVehicleWeapon(gentity_t *ent, vec3_t start, vec3_t shotDir, ve
 	missile = CreateMissile(start, dir, vehWeapon->fSpeed, 10000, ent, qtrue);
 
 	missile->classname = "bowcaster_alt_proj";
-	missile->s.weapon = ent->s.weapon;
+	missile->s.weapon = WP_MODULIZED_WEAPON;
 
 	VectorSet(missile->r.maxs, BOWCASTER_SIZE * scale, BOWCASTER_SIZE * scale, BOWCASTER_SIZE * scale);
 	VectorScale(missile->r.maxs, -1, missile->r.mins);
@@ -5847,7 +5934,7 @@ void FireVehicleWeapon(gentity_t *ent, qboolean alt_fire)
 	vehWeaponInfo_t *vehWeapon = NULL;
 	qboolean	clearRocketLockEntity = qfalse;
 
-	trap->Print("VWEAPON_DEBUG: Fire!\n");
+	//trap->Print("VWEAPON_DEBUG: Fire!\n");
 
 	if (!pVeh)
 	{
@@ -6055,7 +6142,7 @@ void FireVehicleWeapon(gentity_t *ent, qboolean alt_fire)
 						//NOTE: just need MAX_VEHICLE_MUZZLES bits for this... should be cool since it's currently 12 and we're sending it in 16 bits
 						muzzlesFired |= (1 << i);
 
-						trap->Print("VWEAPON_DEBUG: Fired!\n");
+						//trap->Print("VWEAPON_DEBUG: Fired!\n");
 						missile = WP_FireVehicleWeapon(ent, start, dir, vehWeapon, alt_fire, qfalse);
 						if (vehWeapon->fHoming)
 						{//clear the rocket lock entity *after* all muzzles have fired
@@ -6241,6 +6328,7 @@ void FireWeapon(gentity_t *ent, qboolean altFire) {
 		if (ent->s.eType == ET_NPC
 			&& ent->client->NPC_class != CLASS_ATST_OLD
 			&& ent->client->NPC_class != CLASS_ATST
+			&& ent->client->NPC_class != CLASS_ATPT
 			&& ent->client->NPC_class != CLASS_ATAT
 			&& ent->s.weapon != WP_SABER
 			&& ent->enemy
@@ -6272,14 +6360,6 @@ void FireWeapon(gentity_t *ent, qboolean altFire) {
 		if (ent->s.eType == ET_NPC 
 			&& (ent->client->NPC_class == CLASS_ATST_OLD || ent->client->NPC_class == CLASS_ATST))
 		{
-			//void WP_FireTurboLaserMissile(gentity_t *ent, vec3_t start, vec3_t dir)
-			//void WP_FireTurretMissile(gentity_t *ent, vec3_t start, vec3_t dir, qboolean altFire, int damage, int velocity, int mod, gentity_t *ignore)
-
-			//if (altFire)
-			//	WP_FireTurboLaserMissile(ent, muzzle, forward);
-				//WP_FireEmplacedMissile(ent, muzzle, forward, altFire, ent);
-			//else
-			//	WP_FireBlaster(ent, altFire, weaponData[ent->client->ps.weapon].boltSpeed, weaponData[ent->client->ps.weapon].dmg, 0.5, ent->s.weapon);
 			vehWeaponInfo_t wp = { { 0 } };
 			wp.fSpeed = 3400;
 			wp.iDamage = 10;
@@ -6287,14 +6367,22 @@ void FireWeapon(gentity_t *ent, qboolean altFire) {
 			//trap->Print("ATST firing muzzle %f %f %f. fwd %f %f %f.\n", muzzle[0], muzzle[1], muzzle[2], forward[0], forward[1], forward[2]);
 			return;
 		}
-		else if (ent->s.eType == ET_NPC && ent->client->NPC_class == CLASS_ATAT)
+		else if (ent->s.eType == ET_NPC && ent->client->NPC_class == CLASS_ATPT)
 		{
-			//gentity_t *WP_FireVehicleWeapon(gentity_t *ent, vec3_t start, vec3_t shotDir, vehWeaponInfo_t *vehWeapon, qboolean alt_fire, qboolean isTurretWeap)
-			//WP_FireBlaster(ent, altFire, weaponData[ent->client->ps.weapon].boltSpeed, weaponData[ent->client->ps.weapon].dmg, 0.5, ent->s.weapon);
 			vehWeaponInfo_t wp = { { 0 } };
 			wp.fSpeed = 3400;
 			wp.iDamage = 10;
 			WP_FireVehicleWeapon(ent, muzzle, forward, &wp, altFire, qfalse);
+			//trap->Print("ATPT firing muzzle %f %f %f. fwd %f %f %f.\n", muzzle[0], muzzle[1], muzzle[2], forward[0], forward[1], forward[2]);
+			return;
+		}
+		else if (ent->s.eType == ET_NPC && ent->client->NPC_class == CLASS_ATAT)
+		{
+			vehWeaponInfo_t wp = { { 0 } };
+			wp.fSpeed = 3400;
+			wp.iDamage = 10;
+			WP_FireVehicleWeapon(ent, muzzle, forward, &wp, altFire, qfalse);
+			//trap->Print("ATAT firing muzzle %f %f %f. fwd %f %f %f.\n", muzzle[0], muzzle[1], muzzle[2], forward[0], forward[1], forward[2]);
 			return;
 		}
 

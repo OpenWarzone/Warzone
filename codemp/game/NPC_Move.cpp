@@ -75,7 +75,7 @@ NPC_CheckCombatMove
 
 QINLINE qboolean NPC_CheckCombatMove(gentity_t *aiEnt)
 {
-	if (aiEnt->client->NPC_class == CLASS_ATST_OLD || aiEnt->client->NPC_class == CLASS_ATST || aiEnt->client->NPC_class == CLASS_ATAT)
+	if (aiEnt->client->NPC_class == CLASS_ATST_OLD || aiEnt->client->NPC_class == CLASS_ATST || aiEnt->client->NPC_class == CLASS_ATPT || aiEnt->client->NPC_class == CLASS_ATAT)
 	{
 		aiEnt->NPC->combatMove = qfalse;
 		return qfalse;
@@ -458,6 +458,7 @@ qboolean NPC_CombatMoveToGoal(gentity_t *aiEnt, qboolean tryStraight, qboolean r
 	// UQ1: Actually check if this would make us fall!!!
 	if (aiEnt->s.NPC_class != CLASS_ATST_OLD
 		&& aiEnt->s.NPC_class != CLASS_ATST
+		&& aiEnt->s.NPC_class != CLASS_ATPT
 		&& aiEnt->s.NPC_class != CLASS_ATAT
 		&& NPC_CheckFall(aiEnt, dir))
 	{
@@ -580,6 +581,7 @@ qboolean NPC_CombatMoveToGoal(gentity_t *aiEnt, qboolean tryStraight, qboolean r
 
 		if (aiEnt->s.NPC_class != CLASS_ATST_OLD
 			&& aiEnt->s.NPC_class != CLASS_ATST
+			&& aiEnt->s.NPC_class != CLASS_ATPT
 			&& aiEnt->s.NPC_class != CLASS_ATAT)
 		{
 			G_UcmdMoveForDir(aiEnt, &aiEnt->client->pers.cmd, dir, aiEnt->NPC->goalEntity->r.currentOrigin);
@@ -746,7 +748,7 @@ qboolean NPC_SlideMoveToGoal(gentity_t *aiEnt)
 	float	saveYaw = aiEnt->client->ps.viewangles[YAW];
 	qboolean ret;
 
-	if (aiEnt->client->NPC_class == CLASS_ATST_OLD || aiEnt->client->NPC_class == CLASS_ATST || aiEnt->client->NPC_class == CLASS_ATAT)
+	if (aiEnt->client->NPC_class == CLASS_ATST_OLD || aiEnt->client->NPC_class == CLASS_ATST || aiEnt->client->NPC_class == CLASS_ATPT || aiEnt->client->NPC_class == CLASS_ATAT)
 	{
 		aiEnt->NPC->combatMove = qfalse;
 	}

@@ -289,6 +289,7 @@ PAIN_FUNC *NPC_PainFunc( gentity_t *ent )
 			break;
 		case CLASS_ATST_OLD:
 		case CLASS_ATST:
+		case CLASS_ATPT:
 		case CLASS_ATAT:
 			func = NPC_ATST_Pain;
 			break;
@@ -608,12 +609,14 @@ void NPC_SetMiscDefaultData( gentity_t *ent )
 
 	if ( ent->client->NPC_class == CLASS_ATST_OLD 
 		//|| ent->client->NPC_class == CLASS_ATST
+		//|| ent->client->NPC_class == CLASS_ATPT 
 		//|| ent->client->NPC_class == CLASS_ATAT 
 		|| ent->client->NPC_class == CLASS_MARK1 ) // chris/steve/kevin requested that the mark1 be shielded also
 	{
 		ent->flags |= (FL_SHIELDED|FL_NO_KNOCKBACK);
 	}
 	else if (ent->client->NPC_class == CLASS_ATST
+		|| ent->client->NPC_class == CLASS_ATPT
 		|| ent->client->NPC_class == CLASS_ATAT) // chris/steve/kevin requested that the mark1 be shielded also
 	{// UQ1: Screw shielded. Let the lasors do damage to them as well... Might add damage reduction, or an explosive weapon only check, to them later though...
 		ent->flags |= (FL_NO_KNOCKBACK);
@@ -1056,9 +1059,19 @@ void NPC_StandardizeModelStats(gentity_t *ent)
 		ent->NPC->stats.health = 1200;
 		ent->client->ps.fd.forcePowerMax = 300;
 	}
-	else if (ent->s.NPC_class == CLASS_ATST_OLD || ent->s.NPC_class == CLASS_ATAT)
+	else if (ent->s.NPC_class == CLASS_ATAT)
 	{
 		ent->NPC->stats.health = 1800;
+		ent->client->ps.fd.forcePowerMax = 0;
+	}
+	else if (ent->s.NPC_class == CLASS_ATST_OLD || ent->s.NPC_class == CLASS_ATST)
+	{
+		ent->NPC->stats.health = 1800;
+		ent->client->ps.fd.forcePowerMax = 0;
+	}
+	else if (ent->s.NPC_class == CLASS_ATPT)
+	{
+		ent->NPC->stats.health = 1200;
 		ent->client->ps.fd.forcePowerMax = 0;
 	}
 	else if (NPC_IsFollowerGunner(ent))
@@ -1225,6 +1238,7 @@ void NPC_Begin (gentity_t *ent)
 		|| ent->client->NPC_class == CLASS_SWAMPTROOPER
 		|| ent->client->NPC_class == CLASS_IMPWORKER
 		|| ent->client->NPC_class == CLASS_ATST
+		|| ent->client->NPC_class == CLASS_ATPT
 		|| ent->client->NPC_class == CLASS_ATAT
 		|| !Q_stricmp( "rodian2", ent->NPC_type ) )
 	{//tweak yawspeed for these NPCs based on difficulty
@@ -1616,6 +1630,7 @@ void NPC_Begin (gentity_t *ent)
 	if (!NPC_IsHumanoid(ent) 
 		&& ent->s.NPC_class != CLASS_ATST_OLD 
 		&& ent->s.NPC_class != CLASS_ATST
+		&& ent->s.NPC_class != CLASS_ATPT
 		&& ent->s.NPC_class != CLASS_ATAT)
 	{// Animal or droid... Use original stats...
 		if (ent->NPC->stats.health <= 100) ent->NPC->stats.health = 200; // UQ1: Because not all NPC files have a health value...

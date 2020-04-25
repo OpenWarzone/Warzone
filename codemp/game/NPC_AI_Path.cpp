@@ -1378,7 +1378,7 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 	qboolean	onMover1 = qfalse;
 	qboolean	onMover2 = qfalse;
 
-	if (aiEnt->client->NPC_class == CLASS_ATST_OLD || aiEnt->client->NPC_class == CLASS_ATST || aiEnt->client->NPC_class == CLASS_ATAT)
+	if (aiEnt->client->NPC_class == CLASS_ATST_OLD || aiEnt->client->NPC_class == CLASS_ATST || aiEnt->client->NPC_class == CLASS_ATPT || aiEnt->client->NPC_class == CLASS_ATAT)
 	{
 		aiEnt->NPC->combatMove = qfalse;
 	}
@@ -2027,7 +2027,7 @@ qboolean NPC_FollowEnemyRoute(gentity_t *aiEnt)
 	qboolean	onMover1 = qfalse;
 	qboolean	onMover2 = qfalse;
 
-	if (aiEnt->client->NPC_class == CLASS_ATST_OLD || aiEnt->client->NPC_class == CLASS_ATST || aiEnt->client->NPC_class == CLASS_ATAT)
+	if (aiEnt->client->NPC_class == CLASS_ATST_OLD || aiEnt->client->NPC_class == CLASS_ATST || aiEnt->client->NPC_class == CLASS_ATPT || aiEnt->client->NPC_class == CLASS_ATAT)
 	{
 		aiEnt->NPC->combatMove = qfalse;
 	}

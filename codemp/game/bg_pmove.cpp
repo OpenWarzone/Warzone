@@ -9451,7 +9451,7 @@ static void PM_Weapon( void )
 	{
 		//if ( pm->ps->weapon == WP_MODULIZED_WEAPON && pm->gametype != GT_SIEGE )
 		//if (0)
-		if (pm_entSelf->s.NPC_class == CLASS_VEHICLE || pm_entSelf->s.NPC_class == CLASS_ATST_OLD || pm_entSelf->s.NPC_class == CLASS_ATST || pm_entSelf->s.NPC_class == CLASS_ATAT)
+		if (pm_entSelf->s.NPC_class == CLASS_VEHICLE || pm_entSelf->s.NPC_class == CLASS_ATST_OLD || pm_entSelf->s.NPC_class == CLASS_ATST || pm_entSelf->s.NPC_class == CLASS_ATAT || pm_entSelf->s.NPC_class == CLASS_ATPT)
 		{ //kind of a hack for now
 			PM_AddEvent( EV_FIRE_WEAPON );
 			addTime = weaponData[pm->ps->weapon].fireTime;

@@ -579,6 +579,7 @@ void TossClientItems( gentity_t *self ) {
 		|| self->client->NPC_class == CLASS_VEHICLE
 		|| self->client->NPC_class == CLASS_ATST_OLD
 		|| self->client->NPC_class == CLASS_ATST
+		|| self->client->NPC_class == CLASS_ATPT
 		|| self->client->NPC_class == CLASS_ATAT)
 	{//these NPCs don't drop items.
 		// these things are so small that they shouldn't bother throwing anything
@@ -1917,6 +1918,7 @@ void DeathFX( gentity_t *ent )
 	case CLASS_ATST_OLD:
 	case CLASS_ATST:
 	case CLASS_ATAT:
+	case CLASS_ATPT:
 		AngleVectors( ent->r.currentAngles, NULL, right, NULL );
 		VectorMA( ent->r.currentOrigin, 20, right, effectPos );
 		effectPos[2] += 180;
@@ -2144,7 +2146,7 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 
 	if (self
 		&& self->s.eType == ET_NPC
-		&& self->s.NPC_class == CLASS_ATST)
+		&& (self->s.NPC_class == CLASS_ATST || self->s.NPC_class == CLASS_ATPT))
 	{// Pilot should get out of the vehicle...
 		gentity_t *myPilot = G_Spawn();
 

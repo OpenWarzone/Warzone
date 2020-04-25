@@ -91,6 +91,7 @@ typedef enum
 	CLASS_ACKLAY,
 
 	CLASS_ATST,
+	CLASS_ATPT,
 	CLASS_ATAT,
 
 	// UQ1: Extras from SP...

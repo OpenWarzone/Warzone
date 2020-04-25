@@ -2726,6 +2726,7 @@ static void CG_PlayerFootsteps( centity_t *cent, footstepType_t footStepType )
 	if ( cent->currentState.NPC_class != CLASS_ATST_OLD
 		&& cent->currentState.NPC_class != CLASS_ATST
 		&& cent->currentState.NPC_class != CLASS_ATAT
+		&& cent->currentState.NPC_class != CLASS_ATPT
 		&& cent->currentState.NPC_class != CLASS_CLAW
 		&& cent->currentState.NPC_class != CLASS_FISH
 		&& cent->currentState.NPC_class != CLASS_FLIER2
@@ -8362,6 +8363,9 @@ static void CG_ForceElectrocution( centity_t *cent, const vec3_t origin, vec3_t 
 		case CLASS_ATST:
 			fxOrg[2] += 120;
 			break;
+		case CLASS_ATPT:
+			fxOrg[2] += 100;
+			break;
 		case CLASS_ATAT:
 			fxOrg[2] += 220;
 			break;
@@ -11852,7 +11856,7 @@ stillDoSaber:
 	// add the gun / barrel / flash
 	//
 	if (cent->currentState.weapon != WP_EMPLACED_GUN 
-		&& !(cent->currentState.eType == ET_NPC && (cent->currentState.NPC_class == CLASS_ATST_OLD || cent->currentState.NPC_class == CLASS_ATST || cent->currentState.NPC_class == CLASS_ATAT)))
+		&& !(cent->currentState.eType == ET_NPC && (cent->currentState.NPC_class == CLASS_ATST_OLD || cent->currentState.NPC_class == CLASS_ATST || cent->currentState.NPC_class == CLASS_ATAT || cent->currentState.NPC_class == CLASS_ATPT)))
 	{
 		CG_AddPlayerWeapon(&legs, NULL, cent, ci->team, rootAngles, qtrue);
 	}
