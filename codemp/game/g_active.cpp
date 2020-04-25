@@ -1586,6 +1586,9 @@ static int NPC_GetRunSpeed( gentity_t *ent )
 	case CLASS_MARK2:
 	case CLASS_PROTOCOL:
 	case CLASS_ATST_OLD: // hmm, not really your average droid
+	case CLASS_ATST:
+	case CLASS_ATPT:
+	case CLASS_ATAT:
 	case CLASS_MOUSE:
 	case CLASS_SEEKER:
 	case CLASS_REMOTE:
@@ -2057,7 +2060,7 @@ void ClientThink_real( gentity_t *ent ) {
 		if ( npc_class == CLASS_SEEKER || npc_class == CLASS_PROBE || npc_class == CLASS_MOUSE || npc_class == CLASS_REMOTE ||
 				npc_class == CLASS_GONK || npc_class == CLASS_R2D2 || npc_class == CLASS_R5D2 ||
 				npc_class == CLASS_PROTOCOL || npc_class == CLASS_MARK1 || npc_class == CLASS_MARK2 ||
-				npc_class == CLASS_INTERROGATOR || npc_class == CLASS_ATST_OLD || npc_class == CLASS_SENTRY )
+				npc_class == CLASS_INTERROGATOR || npc_class == CLASS_ATST_OLD || npc_class == CLASS_ATST || npc_class == CLASS_ATPT || npc_class == CLASS_ATAT || npc_class == CLASS_SENTRY )
 		{// Make sure it's marked as a droid...
 			ent->NPC->stats.gender = GENDER_DROID;
 		}

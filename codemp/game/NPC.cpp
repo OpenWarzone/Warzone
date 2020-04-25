@@ -3615,6 +3615,7 @@ qboolean UQ1_UcmdMoveForDir ( gentity_t *self, usercmd_t *cmd, vec3_t dir, qbool
 		&& (self->s.NPC_class == CLASS_ATST || self->s.NPC_class == CLASS_ATPT /*|| self->s.NPC_class == CLASS_ATAT*/))
 	{// These guys don't walk, they move at full speed...
 		walk = qfalse;
+		cmd->buttons &= ~BUTTON_WALKING;
 	}
 
 	if (walk)
@@ -3948,15 +3949,16 @@ qboolean UQ1_UcmdMoveForDir_NoAvoidance ( gentity_t *self, usercmd_t *cmd, vec3_
 		walk = qtrue;
 	}
 
+	if (self->NPC->vehicleAI)
+	{
+		walk = qfalse;
+	}
+
 	if (self->s.eType == ET_NPC
 		&& (self->s.NPC_class == CLASS_ATST || self->s.NPC_class == CLASS_ATPT /*|| self->s.NPC_class == CLASS_ATAT*/))
 	{// These guys don't walk, they move at full speed...
 		walk = qfalse;
-	}
-
-	if (self->NPC->vehicleAI)
-	{
-		walk = qfalse;
+		cmd->buttons &= ~BUTTON_WALKING;
 	}
 
 	if (walk)
@@ -4173,6 +4175,14 @@ void NPC_GenericFrameCode ( gentity_t *self )
 	}
 #endif //__NPCS_USE_BG_ANIMS__
 
+	if ((aiEnt->s.NPC_class == CLASS_ATST || aiEnt->s.NPC_class == CLASS_ATPT || aiEnt->s.NPC_class == CLASS_ATAT)
+		&& (int)aiEnt->client->pers.cmd.forwardmove == 0
+		&& (int)aiEnt->client->pers.cmd.rightmove == 0
+		&& (int)aiEnt->client->pers.cmd.upmove == 0)
+	{
+		NPC_SetAnim(aiEnt, SETANIM_BOTH, BOTH_STAND1, SETANIM_FLAG_NORMAL);
+	}
+
 	NPC_CheckAttackHold(aiEnt);
 	NPC_ApplyScriptFlags(aiEnt);
 
@@ -4185,7 +4195,7 @@ void NPC_GenericFrameCode ( gentity_t *self )
 	//=== Save the ucmd for the second no-think Pmove ============================
 	aiEnt->client->pers.cmd.serverTime = level.time - 50;
 
-	NPC_ApplyVehicleAI(aiEnt);
+	//NPC_ApplyVehicleAI(aiEnt);
 
 	memcpy( &aiEnt->NPC->last_ucmd, &aiEnt->client->pers.cmd, sizeof( usercmd_t ) );
 
@@ -5001,6 +5011,9 @@ void NPC_Think ( gentity_t *self )//, int msec )
 					NPC_FollowRoutes(aiEnt);
 				}
 
+				//if (aiEnt->s.NPC_class == CLASS_ATST || aiEnt->s.NPC_class == CLASS_ATPT || aiEnt->s.NPC_class == CLASS_ATAT) trap->Print("NPCBOT DEBUG: AT** NPC UCMD: %i %i %i.\n"
+				//	, (int)aiEnt->client->pers.cmd.forwardmove, (int)aiEnt->client->pers.cmd.rightmove, (int)aiEnt->client->pers.cmd.upmove);
+
 				NPC_ExecuteBState( self );
 				NPC_GenericFrameCode( self );
 			}
@@ -5034,7 +5047,7 @@ void NPC_Think ( gentity_t *self )//, int msec )
 		//or use client->pers.lastCommand?
 		aiEnt->NPC->last_ucmd.serverTime = level.time - 50;
 
-		NPC_ApplyVehicleAI(aiEnt);
+		//NPC_ApplyVehicleAI(aiEnt);
 
 		ClientThink(aiEnt->s.number, &aiEnt->client->pers.cmd);
 #else //__LOW_THINK_AI__
