@@ -1071,7 +1071,7 @@ void CreateSpawnpointsFromNavmesh(void)
 			gentity_t *spawnpoint = G_Spawn();
 			spawnpoint->classname = "team_CTF_bluespawn";
 			VectorCopy(BLUE_SPAWNPOINTS[n], spawnpoint->s.origin);
-			spawnpoint->s.origin[2] += 32.0;
+			spawnpoint->s.origin[2] += 64.0;
 			spawnpoint->s.angles[PITCH] = spawnpoint->s.angles[ROLL] = 0;
 			spawnpoint->s.angles[YAW] = irand(0, 360);
 			spawnpoint->noWaypointTime = 1; // Don't send auto-generated spawnpoints to client...
@@ -1084,7 +1084,7 @@ void CreateSpawnpointsFromNavmesh(void)
 			gentity_t *spawnpoint = G_Spawn();
 			spawnpoint->classname = "team_CTF_redspawn";
 			VectorCopy(RED_SPAWNPOINTS[n], spawnpoint->s.origin);
-			spawnpoint->s.origin[2] += 32.0;
+			spawnpoint->s.origin[2] += 64.0;
 			spawnpoint->s.angles[PITCH] = spawnpoint->s.angles[ROLL] = 0;
 			spawnpoint->s.angles[YAW] = irand(0, 360);
 			spawnpoint->noWaypointTime = 1; // Don't send auto-generated spawnpoints to client...
@@ -1161,7 +1161,7 @@ void CreateSpawnpointsFromNavmesh(void)
 				gentity_t	*spawnpoint = G_Spawn();
 				spawnpoint->classname = "info_player_deathmatch";
 				VectorCopy(SPAWNPOINTS[n], spawnpoint->s.origin);
-				spawnpoint->s.origin[2] += 32.0;
+				spawnpoint->s.origin[2] += 64.0;
 				spawnpoint->s.angles[PITCH] = spawnpoint->s.angles[ROLL] = 0;
 				spawnpoint->s.angles[YAW] = irand(0, 360);
 				spawnpoint->noWaypointTime = 1; // Don't send auto-generated spawnpoints to client...
