@@ -50,6 +50,146 @@ void CP_FindCombatPointWaypoints( void );
 
 extern qboolean G_PointInBounds( vec3_t point, vec3_t mins, vec3_t maxs );
 
+
+
+
+qboolean		EVENTS_ENABLED = qfalse;
+float			EVENT_BUFFER = 32768.0;
+float			EVENT_TRACE_SIZE = 1024.0;
+
+qboolean		WATER_ENABLED = qfalse;
+float			MAP_WATER_LEVEL = -999999.9;
+
+qboolean		TOWN_FORCEFIELD_ENABLED = qfalse;
+vec3_t			TOWN_FORCEFIELD_ORIGIN;
+vec3_t			TOWN_FORCEFIELD_RADIUS_3D;
+float			TOWN_FORCEFIELD_RADIUS;
+
+qboolean MAPPING_LoadMapInfo(void)
+{
+	vmCvar_t		mapname;
+	const char		*climateName = NULL;
+	trap->Cvar_Register(&mapname, "mapname", "", CVAR_ROM | CVAR_SERVERINFO);
+
+	TOWN_FORCEFIELD_ENABLED = qfalse;
+
+	EVENTS_ENABLED = (atoi(IniRead(va("maps/%s.mapInfo", mapname.string), "EVENTS", "ENABLE_EVENTS", "0")) > 0) ? qtrue : qfalse;
+	EVENT_BUFFER = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "EVENTS", "EVENT_BUFFER", "32768.0"));
+	EVENT_TRACE_SIZE = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "EVENTS", "EVENT_TRACE_SIZE", "1024.0"));
+
+	WATER_ENABLED = (atoi(IniRead(va("maps/%s.mapInfo", mapname.string), "WATER", "WATER_ENABLED", "0")) > 0) ? qtrue : qfalse;
+
+	if (WATER_ENABLED)
+	{
+		MAP_WATER_LEVEL = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "WATER", "MAP_WATER_LEVEL", "-999999.9"));
+	}
+	else
+	{
+		MAP_WATER_LEVEL = -999999.9;
+	}
+
+	TOWN_FORCEFIELD_ORIGIN[0] = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "TOWN", "TOWN_FORCEFIELD_ORIGIN_X", "999999.9"));
+	TOWN_FORCEFIELD_ORIGIN[1] = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "TOWN", "TOWN_FORCEFIELD_ORIGIN_Y", "999999.9"));
+	TOWN_FORCEFIELD_ORIGIN[2] = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "TOWN", "TOWN_FORCEFIELD_ORIGIN_Z", "999999.9"));
+
+	TOWN_FORCEFIELD_RADIUS_3D[0] = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "TOWN", "TOWN_FORCEFIELD_RADIUS_X", "999999.9"));
+	TOWN_FORCEFIELD_RADIUS_3D[1] = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "TOWN", "TOWN_FORCEFIELD_RADIUS_Y", "999999.9"));
+	TOWN_FORCEFIELD_RADIUS_3D[2] = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "TOWN", "TOWN_FORCEFIELD_RADIUS_Z", "999999.9"));
+
+	if (TOWN_FORCEFIELD_ORIGIN[0] < 999990.0
+		&& TOWN_FORCEFIELD_ORIGIN[1] < 999990.0
+		&& TOWN_FORCEFIELD_ORIGIN[2] < 999990.0
+		&& TOWN_FORCEFIELD_RADIUS_3D[0] < 999990.0
+		&& TOWN_FORCEFIELD_RADIUS_3D[1] < 999990.0
+		&& TOWN_FORCEFIELD_RADIUS_3D[2] < 999990.0)
+	{
+		TOWN_FORCEFIELD_RADIUS = max(TOWN_FORCEFIELD_RADIUS_3D[0], TOWN_FORCEFIELD_RADIUS_3D[1]);
+		TOWN_FORCEFIELD_ENABLED = qtrue;
+
+		//trap->Print("^1*** ^3%s^5: Town forcefield added at %i %i %i (radius %i %i %i).\n", "GAME-MAPINFO"
+		//	, int(TOWN_FORCEFIELD_ORIGIN[0]), int(TOWN_FORCEFIELD_ORIGIN[1]), int(TOWN_FORCEFIELD_ORIGIN[2])
+		//	, int(TOWN_FORCEFIELD_RADIUS_3D[0]), int(TOWN_FORCEFIELD_RADIUS_3D[1]), int(TOWN_FORCEFIELD_RADIUS_3D[2]));
+	}
+
+	return qtrue;
+}
+
+int IsBelowWaterPlane(vec3_t pos, float viewHeight)
+{// Mimics the PM_SetWaterLevel levels for the warzone map water planes...
+	float npcUnderwaterHeight = viewHeight - MINS_Z;
+	float npcSwimHeight = npcUnderwaterHeight / 2;
+
+	if (pos[2] + MINS_Z + npcUnderwaterHeight <= MAP_WATER_LEVEL)
+	{
+		return 3;
+	}
+	else if (pos[2] + MINS_Z + npcSwimHeight <= MAP_WATER_LEVEL)
+	{
+		return 2;
+	}
+	else if (pos[2] <= MAP_WATER_LEVEL)
+	{
+		return 1;
+	}
+
+	return 0;
+}
+
+#if defined(__USE_NAVLIB__) || defined(__USE_NAVLIB_SPAWNPOINTS__)
+void FindRandomNavmeshSpawnpoint(gentity_t *self, vec3_t point)
+{
+	int tries = 0; // Can't let it hang, if the whole map happens to be underwater....
+
+	NavlibFindRandomPointOnMesh(self, point);
+
+	while (point[2] <= MAP_WATER_LEVEL && tries < 10)
+	{
+		NavlibFindRandomPointOnMesh(self, point);
+		tries++;
+	}
+}
+
+bool FindRandomNavmeshPointInRadius(int npcEntityNum, const vec3_t origin, vec3_t point, float radius)
+{
+	int tries = 0; // Can't let it hang, if the whole map happens to be underwater....
+
+	NavlibFindRandomPointInRadius(npcEntityNum, origin, point, radius);
+
+	while (point[2] <= MAP_WATER_LEVEL && tries < 10)
+	{
+		NavlibFindRandomPointInRadius(npcEntityNum, origin, point, radius);
+		tries++;
+	}
+
+	if (tries >= 10)
+		return false;
+
+	return true;
+}
+
+void FindRandomNavmeshPatrolPoint(int npcEntityNum, vec3_t point)
+{
+	int tries = 0; // Can't let it hang, if the whole map happens to be underwater....
+
+	gentity_t *npc = &g_entities[npcEntityNum];
+
+	if (!npc)
+	{// Should never be used this way, but return a completely random point.
+		FindRandomNavmeshSpawnpoint(NULL, point);
+		return;
+	}
+
+	NavlibFindRandomPointInRadius(npcEntityNum, npc->spawn_pos, point, /*256.0*/1024.0);
+
+	while (point[2] <= MAP_WATER_LEVEL && tries < 10)
+	{
+		NavlibFindRandomPointInRadius(npcEntityNum, npc->spawn_pos, point, /*256.0*/1024.0);
+		tries++;
+	}
+}
+#endif //defined(__USE_NAVLIB__) || defined(__USE_NAVLIB_SPAWNPOINTS__)
+
+
 /*
 ================
 G_FindTeams
@@ -538,9 +678,480 @@ qboolean SaveSpawnpointPositions( qboolean IsTeam, int NUM_BLUE_POSITIONS, vec3_
 	return qfalse;	
 }
 
+/*
+qboolean		TOWN_FORCEFIELD_ENABLED = qfalse;
+vec3_t			TOWN_FORCEFIELD_ORIGIN;
+vec3_t			TOWN_FORCEFIELD_RADIUS_3D;
+float			TOWN_FORCEFIELD_RADIUS;
+
+#if defined(__USE_NAVLIB__) || defined(__USE_NAVLIB_SPAWNPOINTS__)
+void FindRandomNavmeshSpawnpoint(gentity_t *self, vec3_t point)
+bool FindRandomNavmeshPointInRadius(int npcEntityNum, const vec3_t origin, vec3_t point, float radius)
+*/
+
+void G_FindSky(vec3_t org)
+{
+	trace_t tr;
+	vec3_t up, testorg, bestorg;
+	VectorCopy(org, testorg);
+	VectorCopy(org, up);
+	up[2] += 1048576.0;
+
+	VectorClear(bestorg);
+	
+	bool notSky = true;
+	
+	while (notSky)
+	{
+		trap->Trace(&tr, testorg, NULL, NULL, up, -1, CONTENTS_SOLID, 0, 0, 0);
+
+		testorg[2] = tr.endpos[2] + 8.0;
+
+		if (tr.fraction >= 1.0)
+		{
+			break;
+		}
+
+		VectorCopy(tr.endpos, bestorg);
+		bestorg[2] -= 128.0;
+	}
+
+	VectorCopy(bestorg, org);
+}
+
+void G_FindGround(vec3_t org)
+{
+	trace_t tr;
+	vec3_t up, testorg, bestorg;
+	VectorCopy(org, testorg);
+	VectorCopy(org, up);
+	up[2] -= 1048576.0;
+
+	VectorClear(bestorg);
+
+	bool notGround = true;
+
+	while (notGround)
+	{
+		trap->Trace(&tr, testorg, NULL, NULL, up, -1, CONTENTS_SOLID, 0, 0, 0);
+
+		testorg[2] = tr.endpos[2] - 8.0;
+
+		if (tr.fraction >= 1.0)
+		{
+			break;
+		}
+
+		if (tr.contents & CONTENTS_SOLID)
+		{
+			VectorCopy(tr.endpos, bestorg);
+			break;
+		}
+	}
+
+	org[2] = tr.endpos[2];
+}
+
+#if defined(__USE_NAVLIB__)
+void CreateSpawnpointsFromNavmesh(void)
+{
+	trap->Print("^1*** ^3%s^5: Generating spawnpoints.\n", "AUTO-SPAWNPOINTS");
+
+	if (g_gametype.integer >= GT_TEAM)
+	{// Create team spawnpoints...
+		int			blue_count = 0;
+		int			red_count = 0;
+		vec3_t		BLUE_SPAWNPOINTS[64] = { 0 };
+		vec3_t		RED_SPAWNPOINTS[64] = { 0 };
+
+		if (TOWN_FORCEFIELD_ENABLED)
+		{// Create all spawnpoints in town, when there is one specified in mapinfo...
+			bool createBlue = true;
+			bool createRed = true;
+
+			int blueFails = 0;
+			int redFails = 0;
+
+			while (createBlue || createRed)
+			{
+				if (blue_count < 64)
+				{
+					vec3_t point, offDir;
+					offDir[0] = random() * 2.0 - 1.0;
+					offDir[1] = random() * 2.0 - 1.0;
+					offDir[2] = 0.0;
+					VectorNormalize(offDir);
+					VectorCopy(TOWN_FORCEFIELD_ORIGIN, point);
+					VectorMA(point, (TOWN_FORCEFIELD_RADIUS * 0.5) - 1024.0, offDir, point);
+					bool found = FindRandomNavmeshPointInRadius(-1, point, BLUE_SPAWNPOINTS[blue_count], 512.0);
+					//Com_Printf("ff %f %f %f. p %f %f %f.\n", TOWN_FORCEFIELD_ORIGIN[0], TOWN_FORCEFIELD_ORIGIN[1], TOWN_FORCEFIELD_ORIGIN[2], point[0], point[1], point[2]);
+
+					/*if (found)
+					{
+						if (Distance(BLUE_SPAWNPOINTS[blue_count], TOWN_FORCEFIELD_ORIGIN) < TOWN_FORCEFIELD_RADIUS - 1024.0)
+						{// We want spawnpoints near the edge radius of the force field, so that players don't spawn inside duel area of cantina...
+							found = false;
+						}
+					}*/
+
+					if (found)
+					{
+						for (int z = 0; z < blue_count; z++)
+						{
+							if (Distance(BLUE_SPAWNPOINTS[blue_count], BLUE_SPAWNPOINTS[z]) < 64.0)
+							{
+								found = false;
+								break;
+							}
+						}
+					}
+
+					if (found)
+					{
+						for (int z = 0; z < red_count; z++)
+						{
+							if (Distance(BLUE_SPAWNPOINTS[blue_count], RED_SPAWNPOINTS[z]) < 64.0)
+							{
+								found = false;
+								break;
+							}
+						}
+					}
+
+					if (found)
+					{
+						G_FindSky(BLUE_SPAWNPOINTS[blue_count]);
+						if (VectorLength(BLUE_SPAWNPOINTS[blue_count]) == 0) found = false;
+
+						if (found)
+						{
+							G_FindGround(BLUE_SPAWNPOINTS[blue_count]);
+							if (VectorLength(BLUE_SPAWNPOINTS[blue_count]) == 0) found = false;
+						}
+					}
+					
+					if (!found)
+					{
+						blueFails++;
+					}
+					else
+					{// Found one, reset the fails count...
+						blueFails = 0;
+						blue_count++;
+					}
+
+					if (blueFails >= 8192)
+					{
+						createBlue = false;
+						break;
+					}
+				}
+				else
+				{
+					createBlue = false;
+				}
+
+				if (red_count < 64)
+				{
+					//bool found = FindRandomNavmeshPointInRadius(-1, TOWN_FORCEFIELD_ORIGIN, RED_SPAWNPOINTS[red_count], TOWN_FORCEFIELD_RADIUS);
+					vec3_t point, offDir;
+					offDir[0] = random() * 2.0 - 1.0;
+					offDir[1] = random() * 2.0 - 1.0;
+					offDir[2] = 0.0;
+					VectorNormalize(offDir);
+					VectorCopy(TOWN_FORCEFIELD_ORIGIN, point);
+					VectorMA(point, (TOWN_FORCEFIELD_RADIUS * 0.5) - 1024.0, offDir, point);
+					bool found = FindRandomNavmeshPointInRadius(-1, point, RED_SPAWNPOINTS[red_count], 512.0);
+
+					/*if (found)
+					{
+						if (Distance(RED_SPAWNPOINTS[red_count], TOWN_FORCEFIELD_ORIGIN) < TOWN_FORCEFIELD_RADIUS - 1024.0)
+						{// We want spawnpoints near the edge radius of the force field, so that players don't spawn inside duel area of cantina...
+							found = false;
+						}
+					}*/
+
+					if (found)
+					{
+						for (int z = 0; z < red_count; z++)
+						{
+							if (Distance(RED_SPAWNPOINTS[red_count], RED_SPAWNPOINTS[z]) < 64.0)
+							{
+								found = false;
+								break;
+							}
+						}
+					}
+
+					if (found)
+					{
+						for (int z = 0; z < blue_count; z++)
+						{
+							if (Distance(RED_SPAWNPOINTS[red_count], BLUE_SPAWNPOINTS[z]) < 64.0)
+							{
+								found = false;
+								break;
+							}
+						}
+					}
+
+					if (found)
+					{
+						G_FindSky(RED_SPAWNPOINTS[red_count]);
+						if (VectorLength(RED_SPAWNPOINTS[red_count]) == 0) found = false;
+
+						if (found)
+						{
+							G_FindGround(RED_SPAWNPOINTS[red_count]);
+							if (VectorLength(RED_SPAWNPOINTS[red_count]) == 0) found = false;
+						}
+					}
+
+					if (!found)
+					{
+						redFails++;
+					}
+					else
+					{// Found one, reset the fails count...
+						redFails = 0;
+						red_count++;
+					}
+
+					if (redFails >= 8192)
+					{
+						createRed = false;
+						break;
+					}
+				}
+				else
+				{
+					createRed = false;
+				}
+			}
+		}
+		else
+		{// No town? Use random spawnpoints from navmesh...
+			bool createBlue = true;
+			bool createRed = true;
+
+			int blueFails = 0;
+			int redFails = 0;
+
+			while (createBlue || createRed)
+			{
+				if (blue_count < 64)
+				{
+					FindRandomNavmeshSpawnpoint(NULL, BLUE_SPAWNPOINTS[blue_count]);
+					bool found = (VectorLength(BLUE_SPAWNPOINTS[blue_count]) == 0) ? false : true;
+
+					if (found)
+					{
+						for (int z = 0; z < blue_count; z++)
+						{
+							if (Distance(BLUE_SPAWNPOINTS[blue_count], BLUE_SPAWNPOINTS[z]) < 64.0)
+							{
+								found = false;
+								break;
+							}
+						}
+					}
+
+					if (found)
+					{
+						for (int z = 0; z < red_count; z++)
+						{
+							if (Distance(BLUE_SPAWNPOINTS[blue_count], RED_SPAWNPOINTS[z]) < 64.0)
+							{
+								found = false;
+								break;
+							}
+						}
+					}
+
+					if (!found)
+					{
+						blueFails++;
+					}
+					else
+					{// Found one, reset the fails count...
+						blueFails = 0;
+						blue_count++;
+					}
+
+					if (blueFails >= 32)
+					{
+						createBlue = false;
+						break;
+					}
+				}
+				else
+				{
+					createBlue = false;
+				}
+
+				if (red_count < 64)
+				{
+					FindRandomNavmeshSpawnpoint(NULL, RED_SPAWNPOINTS[red_count]);
+					bool found = (VectorLength(RED_SPAWNPOINTS[red_count]) == 0) ? false : true;
+
+					if (found)
+					{
+						for (int z = 0; z < red_count; z++)
+						{
+							if (Distance(RED_SPAWNPOINTS[red_count], RED_SPAWNPOINTS[z]) < 64.0)
+							{
+								found = false;
+								break;
+							}
+						}
+					}
+
+					if (found)
+					{
+						for (int z = 0; z < blue_count; z++)
+						{
+							if (Distance(RED_SPAWNPOINTS[red_count], BLUE_SPAWNPOINTS[z]) < 64.0)
+							{
+								found = false;
+								break;
+							}
+						}
+					}
+
+					if (!found)
+					{
+						redFails++;
+					}
+					else
+					{// Found one, reset the fails count...
+						redFails = 0;
+						red_count++;
+					}
+
+					if (redFails >= 32)
+					{
+						createRed = false;
+						break;
+					}
+				}
+				else
+				{
+					createRed = false;
+				}
+			}
+		}
+
+		// We now have lists for each team... Make the spawnpoints...
+		for (int n = 0; n < blue_count; n++)
+		{
+			gentity_t *spawnpoint = G_Spawn();
+			spawnpoint->classname = "team_CTF_bluespawn";
+			VectorCopy(BLUE_SPAWNPOINTS[n], spawnpoint->s.origin);
+			spawnpoint->s.origin[2] += 32.0;
+			spawnpoint->s.angles[PITCH] = spawnpoint->s.angles[ROLL] = 0;
+			spawnpoint->s.angles[YAW] = irand(0, 360);
+			spawnpoint->noWaypointTime = 1; // Don't send auto-generated spawnpoints to client...
+			SP_info_player_deathmatch(spawnpoint);
+			//trap->Print("Created blue spawn at %f %f %f.\n", spawnpoint->s.origin[0], spawnpoint->s.origin[1], spawnpoint->s.origin[2]);
+		}
+
+		for (int n = 0; n < red_count; n++)
+		{
+			gentity_t *spawnpoint = G_Spawn();
+			spawnpoint->classname = "team_CTF_redspawn";
+			VectorCopy(RED_SPAWNPOINTS[n], spawnpoint->s.origin);
+			spawnpoint->s.origin[2] += 32.0;
+			spawnpoint->s.angles[PITCH] = spawnpoint->s.angles[ROLL] = 0;
+			spawnpoint->s.angles[YAW] = irand(0, 360);
+			spawnpoint->noWaypointTime = 1; // Don't send auto-generated spawnpoints to client...
+			SP_info_player_deathmatch(spawnpoint);
+			//trap->Print("Created red spawn at %f %f %f.\n", spawnpoint->s.origin[0], spawnpoint->s.origin[1], spawnpoint->s.origin[2]);
+		}
+
+		trap->Print("^1*** ^3%s^5: Generated %i extra blue spawnpoints and %i extra red spawnpoints.\n", "AUTO-SPAWNPOINTS", blue_count, red_count);
+
+		if (blue_count > 0 && red_count > 0)
+			SaveSpawnpointPositions(qtrue, blue_count, BLUE_SPAWNPOINTS, red_count, RED_SPAWNPOINTS);
+	}
+	else
+	{// Non-team spawnpoints...
+		bool	create = true;
+		int		fails = 0;
+		int		count = 0;
+		vec3_t	SPAWNPOINTS[64] = { 0 };
+
+		while (create)
+		{
+			if (count < 64)
+			{
+				FindRandomNavmeshSpawnpoint(NULL, SPAWNPOINTS[count]);
+				bool found = (VectorLength(SPAWNPOINTS[count]) == 0) ? false : true;
+
+				if (found)
+				{
+					for (int z = 0; z < count; z++)
+					{
+						if (Distance(SPAWNPOINTS[count], SPAWNPOINTS[z]) < 64.0)
+						{
+							found = false;
+							break;
+						}
+					}
+				}
+
+				if (!found)
+				{
+					fails++;
+				}
+				else
+				{// Found one, reset the fails count...
+					fails = 0;
+					count++;
+				}
+
+				if (fails >= 32)
+				{
+					create = false;
+					break;
+				}
+			}
+			else
+			{
+				create = false;
+			}
+
+			for (int n = 0; n < count; n++)
+			{
+				gentity_t	*spawnpoint = G_Spawn();
+				spawnpoint->classname = "info_player_deathmatch";
+				VectorCopy(SPAWNPOINTS[n], spawnpoint->s.origin);
+				spawnpoint->s.origin[2] += 32.0;
+				spawnpoint->s.angles[PITCH] = spawnpoint->s.angles[ROLL] = 0;
+				spawnpoint->s.angles[YAW] = irand(0, 360);
+				spawnpoint->noWaypointTime = 1; // Don't send auto-generated spawnpoints to client...
+				SP_info_player_deathmatch(spawnpoint);
+			}
+		}
+
+		trap->Print("^1*** ^3%s^5: Generated %i extra ffa spawnpoints.\n", "AUTO-SPAWNPOINTS", count);
+
+		SaveSpawnpointPositions(qfalse, count, SPAWNPOINTS, 0, (vec3_t*)NULL);
+	}
+}
+#endif //defined(__USE_NAVLIB__)
+
 void CreateSpawnpoints( void )
 {// UQ1: Create extra spawnpoints based on gametype from waypoint locations...
 	if (LoadSpawnpointPositions((qboolean)(g_gametype.integer >= GT_TEAM))) return; // Loaded from file...
+
+#if defined(__USE_NAVLIB__)
+	if (G_NavmeshIsLoaded())
+	{// Use navmesh to generate them...
+		CreateSpawnpointsFromNavmesh();
+		return;
+	}
+#endif //defined(__USE_NAVLIB__)
+
 	if (gWPNum <= 0) return; // No waypoints to use...
 
 	if (g_gametype.integer >= GT_TEAM)
@@ -819,113 +1430,6 @@ void CreateSpawnpoints( void )
 		SaveSpawnpointPositions( qfalse, count, SPAWNPOINTS, 0, (vec3_t*)NULL );
 	}
 }
-
-
-qboolean		EVENTS_ENABLED = qfalse;
-float			EVENT_BUFFER = 32768.0;
-float			EVENT_TRACE_SIZE = 1024.0;
-
-qboolean		WATER_ENABLED = qfalse;
-float			MAP_WATER_LEVEL = -999999.9;
-
-qboolean MAPPING_LoadMapInfo(void)
-{
-	vmCvar_t		mapname;
-	const char		*climateName = NULL;
-	trap->Cvar_Register(&mapname, "mapname", "", CVAR_ROM | CVAR_SERVERINFO);
-
-	EVENTS_ENABLED = (atoi(IniRead(va("maps/%s.mapInfo", mapname.string), "EVENTS", "ENABLE_EVENTS", "0")) > 0) ? qtrue : qfalse;
-	EVENT_BUFFER = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "EVENTS", "EVENT_BUFFER", "32768.0"));
-	EVENT_TRACE_SIZE = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "EVENTS", "EVENT_TRACE_SIZE", "1024.0"));
-
-	WATER_ENABLED = (atoi(IniRead(va("maps/%s.mapInfo", mapname.string), "WATER", "WATER_ENABLED", "0")) > 0) ? qtrue : qfalse;
-
-	if (WATER_ENABLED)
-	{
-		MAP_WATER_LEVEL = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "WATER", "MAP_WATER_LEVEL", "-999999.9"));
-	}
-	else
-	{
-		MAP_WATER_LEVEL = -999999.9;
-	}
-
-	return qtrue;
-}
-
-int IsBelowWaterPlane(vec3_t pos, float viewHeight)
-{// Mimics the PM_SetWaterLevel levels for the warzone map water planes...
-	float npcUnderwaterHeight = viewHeight - MINS_Z;
-	float npcSwimHeight = npcUnderwaterHeight / 2;
-
-	if (pos[2] + MINS_Z + npcUnderwaterHeight <= MAP_WATER_LEVEL)
-	{
-		return 3;
-	}
-	else if (pos[2] + MINS_Z + npcSwimHeight <= MAP_WATER_LEVEL)
-	{
-		return 2;
-	}
-	else if (pos[2] <= MAP_WATER_LEVEL)
-	{
-		return 1;
-	}
-
-	return 0;
-}
-
-#if defined(__USE_NAVLIB__) || defined(__USE_NAVLIB_SPAWNPOINTS__)
-void FindRandomNavmeshSpawnpoint(gentity_t *self, vec3_t point)
-{
-	int tries = 0; // Can't let it hang, if the whole map happens to be underwater....
-
-	NavlibFindRandomPointOnMesh(self, point);
-
-	while (point[2] <= MAP_WATER_LEVEL && tries < 10)
-	{
-		NavlibFindRandomPointOnMesh(self, point);
-		tries++;
-	}
-}
-
-bool FindRandomNavmeshPointInRadius(int npcEntityNum, const vec3_t origin, vec3_t point, float radius)
-{
-	int tries = 0; // Can't let it hang, if the whole map happens to be underwater....
-
-	NavlibFindRandomPointInRadius(npcEntityNum, origin, point, radius);
-
-	while (point[2] <= MAP_WATER_LEVEL && tries < 10)
-	{
-		NavlibFindRandomPointInRadius(npcEntityNum, origin, point, radius);
-		tries++;
-	}
-
-	if (tries >= 10)
-		return false;
-
-	return true;
-}
-
-void FindRandomNavmeshPatrolPoint(int npcEntityNum, vec3_t point)
-{
-	int tries = 0; // Can't let it hang, if the whole map happens to be underwater....
-
-	gentity_t *npc = &g_entities[npcEntityNum];
-
-	if (!npc)
-	{// Should never be used this way, but return a completely random point.
-		FindRandomNavmeshSpawnpoint(NULL, point);
-		return;
-	}
-
-	NavlibFindRandomPointInRadius(npcEntityNum, npc->spawn_pos, point, /*256.0*/1024.0);
-
-	while (point[2] <= MAP_WATER_LEVEL && tries < 10)
-	{
-		NavlibFindRandomPointInRadius(npcEntityNum, npc->spawn_pos, point, /*256.0*/1024.0);
-		tries++;
-	}
-}
-#endif //defined(__USE_NAVLIB__) || defined(__USE_NAVLIB_SPAWNPOINTS__)
 
 /*
 ============

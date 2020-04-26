@@ -135,7 +135,7 @@ void FOLIAGE_Setup_Foliage_Areas( void )
 
 	FOLIAGE_AREAS_COUNT = areaNum;
 
-	trap->Print("Generated %i foliage areas. %i total foliages.\n", FOLIAGE_AREAS_COUNT, FOLIAGE_NUM_POSITIONS);
+	trap->Print("^1*** ^3FOLIAGE-COLLISION^5: Generated ^7%i^5 foliage areas. ^7%i^5 total foliages...\n", FOLIAGE_AREAS_COUNT, FOLIAGE_NUM_POSITIONS);
 }
 
 int FOLIAGE_AreaNumForOrg( vec3_t moveOrg )
@@ -741,5 +741,29 @@ void FOLIAGE_LoadTrees( void )
 	}
 #endif //__USE_NAVLIB__
 	*/
+
+#ifdef __USE_NAVLIB__
+	if (G_NavmeshIsLoaded())
+	{// Block all the points on the navmesh...
+		trap->Print("^1*** ^3FOLIAGE-COLLISION^5: Blocking collision objects on navmesh...\n");
+
+		for (i = 0; i < FOLIAGE_NUM_POSITIONS; i++)
+		{
+			if (FOLIAGE_TREE_SELECTION[i] > 0)
+			{// Only keep positions with trees...
+				vec3_t	mins, maxs;
+				int		THIS_TREE_TYPE = FOLIAGE_TREE_SELECTION[i] - 1;
+				float	TREE_RADIUS = FOLIAGE_TREE_RADIUS[THIS_TREE_TYPE] * FOLIAGE_TREE_SCALE[i] * TREE_SCALE_MULTIPLIER;
+				float	TREE_HEIGHT = FOLIAGE_TREE_SCALE[i] * 2.5 * FOLIAGE_TREE_BILLBOARD_SIZE[FOLIAGE_TREE_SELECTION[i] - 1] * TREE_SCALE_MULTIPLIER;
+				
+				VectorSet(mins, -(TREE_RADIUS * 0.5), -(TREE_RADIUS * 0.5), -32.0);
+				VectorSet(maxs, TREE_RADIUS * 0.5, TREE_RADIUS * 0.5, TREE_HEIGHT);
+
+				//Com_Printf("Blocking tree at %f %f %f on navmesh size mins %f %f %f, maxs %f %f %f.\n", FOLIAGE_POSITIONS[i][0], FOLIAGE_POSITIONS[i][1], FOLIAGE_POSITIONS[i][2], mins[0], mins[1], mins[2], maxs[0], maxs[1], maxs[2]);
+				G_NavlibDisableArea(FOLIAGE_POSITIONS[i], mins, maxs);
+			}
+		}
+	}
+#endif //__USE_NAVLIB__
 }
 

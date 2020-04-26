@@ -841,102 +841,59 @@ void R_ShowTime(void)
 
 void RB_UpdateDayNightCycle()
 {
-	int nowTime = ri->Milliseconds();
-
+	//
+	// Day/Night Cycle - Now using actual server time...
+	//
 	if (DAY_NIGHT_UPDATE_TIME == 0)
-	{// Init stuff...
+	{// Init base ambient color stuff...
 		VectorCopy4(tr.refdef.sunAmbCol, DAY_NIGHT_AMBIENT_COLOR_ORIGINAL);
-
-		if (DAY_NIGHT_START_TIME != 0.0)
-		{// Mapinfo custom start time.
-			DAY_NIGHT_CURRENT_TIME = DAY_NIGHT_START_TIME / 24.0;
-		}
-		else
-		{
-			DAY_NIGHT_CURRENT_TIME = 9.0 / 24.0; // Start at 9am...
-		}
+		DAY_NIGHT_UPDATE_TIME = 1;
 	}
 
-	if (DAY_NIGHT_UPDATE_TIME < nowTime)
-	{
-		vec4_t sunColor;
+	int milli = double(tr.refdef.time) * /*32768.0*/16384.0 * r_dayNightCycleSpeed->value; // roughly matches old speed...
 
-		DAY_NIGHT_CURRENT_TIME += (r_dayNightCycleSpeed->value * ri->Cvar_VariableValue("timescale") * DAY_NIGHT_CYCLE_SPEED);
+	// Hours
+	int hr = (milli / (1000 * 60 * 60)) % 24;
 
-		float Time24h = DAY_NIGHT_CURRENT_TIME*24.0;
+	// Minutes
+	int min = (milli / (1000 * 60)) % 60;
 
-		if (Time24h > 24.0)
-		{
-			DAY_NIGHT_CURRENT_TIME = 0.0;
-			Time24h = 0.0;
-		}
+	// Seconds
+	int sec = (milli / 1000) % 60;
 
+	// Convert server time into a 24 hour version float...
+	DAY_NIGHT_24H_TIME = (float)hr + ((float)min / 60.0) + ((float)sec / 60.0 / 60.0);
+	
+	// Convert 24h server time into 0.0 -> 1.0 float intervals.
+	DAY_NIGHT_CURRENT_TIME = DAY_NIGHT_24H_TIME / 24.0;
 
-		// We need to match up real world 24 type time to sun direction... Offset...
-		float adjustedTime24h = Time24h + 4.0;
-		if (adjustedTime24h > 24.0) adjustedTime24h = adjustedTime24h - 24.0;
-		float sTime = (adjustedTime24h / 24.0);
-		DAY_NIGHT_SUN_DIRECTION = (sTime - 0.5) * 6.283185307179586476925286766559;
-		
-		// Moon is directly opposed to sun dir...
-		adjustedTime24h = Time24h + 16.0;
-		if (adjustedTime24h > 24.0) adjustedTime24h = adjustedTime24h - 24.0;
-		sTime = (adjustedTime24h / 24.0);
-		DAY_NIGHT_MOON_DIRECTION = (sTime - 0.5) * 6.283185307179586476925286766559;
+	//
+	// End of day/night cycle calculations...
+	//
 
 
-#if 0
-		float nightScale = RB_NightScale();
+	// We need to match up real world 24 type time to sun direction... Offset...
+	float adjustedTime24h = DAY_NIGHT_24H_TIME + 4.0;
+	if (adjustedTime24h > 24.0) adjustedTime24h = adjustedTime24h - 24.0;
+	float sTime = (adjustedTime24h / 24.0);
+	DAY_NIGHT_SUN_DIRECTION = (sTime - 0.5) * 6.283185307179586476925286766559;
 
-		//if (Time24h < 6.0 || Time24h > 22.0)
-		if (nightScale >= 1.0)
-		{// Night time...
-			VectorSet4(sunColor, 0.0, 0.0, 0.0, 0.0);
-			sunColor[0] *= DAY_NIGHT_AMBIENT_COLOR_ORIGINAL[0];
-			sunColor[1] *= DAY_NIGHT_AMBIENT_COLOR_ORIGINAL[1];
-			sunColor[2] *= DAY_NIGHT_AMBIENT_COLOR_ORIGINAL[2];
-			sunColor[3] = 1.0;
-		}
-		else
-		{// Day time...
-			//if (Time24h < 8.0)
-			if (nightScale > 0.0 && nightScale < 1.0)
-			{// Morning color... More red/yellow...
-				DAY_NIGHT_AMBIENT_SCALE = 8.0 - Time24h;
-				VectorSet4(sunColor, 1.0, (0.5 - (DAY_NIGHT_AMBIENT_SCALE * 0.5)) + 0.5, 1.0 - DAY_NIGHT_AMBIENT_SCALE, 1.0);
-				sunColor[0] *= DAY_NIGHT_AMBIENT_COLOR_ORIGINAL[0];
-				sunColor[1] *= DAY_NIGHT_AMBIENT_COLOR_ORIGINAL[1];
-				sunColor[2] *= DAY_NIGHT_AMBIENT_COLOR_ORIGINAL[2];
-				sunColor[3] = 1.0;
-			}
-			/*else if (Time24h > 18.0)
-			{// Evening color... More red/yellow...
-				DAY_NIGHT_AMBIENT_SCALE = Time24h - 18.0;
-				VectorSet4(sunColor, 1.0, (0.5 - (DAY_NIGHT_AMBIENT_SCALE * 0.5)) + 0.5, 1.0 - DAY_NIGHT_AMBIENT_SCALE, 1.0);
-				sunColor[0] *= DAY_NIGHT_AMBIENT_COLOR_ORIGINAL[0];
-				sunColor[1] *= DAY_NIGHT_AMBIENT_COLOR_ORIGINAL[1];
-				sunColor[2] *= DAY_NIGHT_AMBIENT_COLOR_ORIGINAL[2];
-				sunColor[3] = 1.0;
-			}*/
-			else
-			{// Full bright - day...
-				VectorCopy4(DAY_NIGHT_AMBIENT_COLOR_ORIGINAL, sunColor);
-				sunColor[3] = 1.0;
-			}
-		}
-#else
-		VectorCopy4(DAY_NIGHT_AMBIENT_COLOR_ORIGINAL, sunColor);
-		sunColor[3] = 1.0;
-#endif
+	// Moon is directly opposed to sun dir...
+	adjustedTime24h = DAY_NIGHT_24H_TIME + 16.0;
+	if (adjustedTime24h > 24.0) adjustedTime24h = adjustedTime24h - 24.0;
+	sTime = (adjustedTime24h / 24.0);
+	DAY_NIGHT_MOON_DIRECTION = (sTime - 0.5) * 6.283185307179586476925286766559;
 
-		VectorCopy4(sunColor, DAY_NIGHT_AMBIENT_COLOR_CURRENT);
 
-		DAY_NIGHT_24H_TIME = Time24h;
+	vec4_t sunColor;
+	VectorCopy4(DAY_NIGHT_AMBIENT_COLOR_ORIGINAL, sunColor);
+	sunColor[3] = 1.0;
 
-		//ri->Printf(PRINT_WARNING, "Day/Night timer is %.4f. Sun dir %.4f.\n", Time24h, DAY_NIGHT_SUN_DIRECTION);
+	VectorCopy4(sunColor, DAY_NIGHT_AMBIENT_COLOR_CURRENT);
 
-		DAY_NIGHT_UPDATE_TIME = nowTime + 50;
-	}
+	//ri->Printf(PRINT_WARNING, "Day/Night timer is %.4f (%.4f). Sun dir %.4f.\n", DAY_NIGHT_24H_TIME, DAY_NIGHT_CURRENT_TIME, DAY_NIGHT_SUN_DIRECTION);
+
+
 
 	VectorCopy4(DAY_NIGHT_AMBIENT_COLOR_CURRENT, tr.refdef.sunAmbCol);
 	VectorCopy4(tr.refdef.sunAmbCol, tr.refdef.sunCol);
@@ -988,43 +945,6 @@ void RB_UpdateDayNightCycle()
 		SUN_VISIBLE = qfalse;
 		return;
 	}
-
-#if 0
-	if (!Volumetric_Visible(backEnd.refdef.vieworg, SUN_POSITION, qtrue))
-	{// Trace to actual position failed... Try above...
-		vec3_t tmpOrg;
-		vec3_t eyeOrg;
-		vec3_t tmpRoof;
-		vec3_t eyeRoof;
-
-		// Calculate ceiling heights at both positions...
-		//Volumetric_RoofHeight(SUN_POSITION);
-		//VectorCopy(VOLUMETRIC_ROOF, tmpRoof);
-		//Volumetric_RoofHeight(backEnd.refdef.vieworg);
-		//VectorCopy(VOLUMETRIC_ROOF, eyeRoof);
-
-		VectorSet(tmpRoof, SUN_POSITION[0], SUN_POSITION[1], SUN_POSITION[2] + 512.0);
-		VectorSet(eyeRoof, backEnd.refdef.vieworg[0], backEnd.refdef.vieworg[1], backEnd.refdef.vieworg[2] + 128.0);
-
-		VectorSet(tmpOrg, tmpRoof[0], SUN_POSITION[1], SUN_POSITION[2]);
-		VectorSet(eyeOrg, backEnd.refdef.vieworg[0], backEnd.refdef.vieworg[1], backEnd.refdef.vieworg[2]);
-		if (!Volumetric_Visible(eyeOrg, tmpOrg, qtrue))
-		{// Trace to above position failed... Try trace from above viewer...
-			VectorSet(tmpOrg, SUN_POSITION[0], SUN_POSITION[1], SUN_POSITION[2]);
-			VectorSet(eyeOrg, eyeRoof[0], backEnd.refdef.vieworg[1], backEnd.refdef.vieworg[2]);
-			if (!Volumetric_Visible(eyeOrg, tmpOrg, qtrue))
-			{// Trace from above viewer failed... Try trace from above, to above...
-				VectorSet(tmpOrg, tmpRoof[0], SUN_POSITION[1], SUN_POSITION[2]);
-				VectorSet(eyeOrg, eyeRoof[0], backEnd.refdef.vieworg[1], backEnd.refdef.vieworg[2]);
-				if (!Volumetric_Visible(eyeOrg, tmpOrg, qtrue))
-				{// Trace from/to above viewer failed...
-					SUN_VISIBLE = qfalse;
-					return; // Can't see this...
-				}
-			}
-		}
-	}
-#endif
 
 	SUN_VISIBLE = qtrue;
 }
