@@ -968,6 +968,18 @@ void CreateSpawnpointsFromNavmesh(void)
 						}
 					}
 
+					if (found)
+					{
+						G_FindSky(BLUE_SPAWNPOINTS[blue_count]);
+						if (VectorLength(BLUE_SPAWNPOINTS[blue_count]) == 0) found = false;
+
+						if (found)
+						{
+							G_FindGround(BLUE_SPAWNPOINTS[blue_count]);
+							if (VectorLength(BLUE_SPAWNPOINTS[blue_count]) == 0) found = false;
+						}
+					}
+
 					if (!found)
 					{
 						blueFails++;
@@ -1015,6 +1027,18 @@ void CreateSpawnpointsFromNavmesh(void)
 								found = false;
 								break;
 							}
+						}
+					}
+
+					if (found)
+					{
+						G_FindSky(RED_SPAWNPOINTS[red_count]);
+						if (VectorLength(RED_SPAWNPOINTS[red_count]) == 0) found = false;
+
+						if (found)
+						{
+							G_FindGround(RED_SPAWNPOINTS[red_count]);
+							if (VectorLength(RED_SPAWNPOINTS[red_count]) == 0) found = false;
 						}
 					}
 
@@ -1096,6 +1120,18 @@ void CreateSpawnpointsFromNavmesh(void)
 							found = false;
 							break;
 						}
+					}
+				}
+
+				if (found)
+				{
+					G_FindSky(SPAWNPOINTS[count]);
+					if (VectorLength(SPAWNPOINTS[count]) == 0) found = false;
+
+					if (found)
+					{
+						G_FindGround(SPAWNPOINTS[count]);
+						if (VectorLength(SPAWNPOINTS[count]) == 0) found = false;
 					}
 				}
 
