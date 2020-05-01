@@ -452,6 +452,8 @@ extern cvar_t  *r_occlusion;
 extern cvar_t  *r_occlusionDebug;
 extern cvar_t  *r_areaVisDebug;
 
+extern cvar_t  *r_zFarOcclusion;
+
 extern cvar_t  *r_ext_draw_range_elements;
 extern cvar_t  *r_ext_multi_draw_arrays;
 extern cvar_t  *r_ext_texture_float;
@@ -3140,6 +3142,8 @@ typedef struct trGlobals_s {
 	image_t					*HeightmapImage;
 #endif //__RENDER_HEIGHTMAP__
 	image_t					*genericDepthImage;
+	image_t					*zfarDepthImage;
+	image_t					*zfarNullImage;
 	image_t					*waterDepthImage;
 	image_t					*pshadowMaps[MAX_DRAWN_PSHADOWS];
 	image_t					*textureScratchImage[2];
@@ -3366,6 +3370,8 @@ typedef struct trGlobals_s {
 	//shaderProgram_t ssrShader;
 	//shaderProgram_t ssrCombineShader;
 	shaderProgram_t testshaderShader;
+	shaderProgram_t zFarDepthShader;
+	shaderProgram_t zFarCopyShader;
 	
 
 	image_t        *anamorphicRenderFBOImage;
@@ -3400,6 +3406,7 @@ typedef struct trGlobals_s {
 	
 	FBO_t			*depthAdjustFbo;
 	FBO_t			*genericDepthFbo;
+	FBO_t			*zfarDepthFbo;
 
 	FBO_t		   *ssaoFbo;
 	image_t        *ssaoImage;
@@ -3590,6 +3597,8 @@ extern cvar_t	*r_gamma;
 extern  cvar_t  *r_occlusion;
 extern cvar_t  *r_occlusionDebug;
 extern cvar_t  *r_areaVisDebug;
+
+extern cvar_t  *r_zFarOcclusion;
 
 extern  cvar_t  *r_ext_draw_range_elements;
 extern  cvar_t  *r_ext_multi_draw_arrays;
@@ -4806,6 +4815,18 @@ OCCLUSION QUERY
 qboolean RB_CheckOcclusion(mnode_t *node);
 void RB_OcclusionCulling(void);
 void RB_CheckOcclusions(void);
+
+
+/*
+============================================================
+
+zFar Culling System
+
+============================================================
+*/
+
+void RB_zFarCullingEndFrame(void);
+void RB_zFarCullingBeginFrame(void);
 
 
 /*

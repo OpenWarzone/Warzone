@@ -845,28 +845,16 @@ static int R_GCullModel( trRefEntity_t *ent ) {
 		return CULL_OUT;
 	}
 
+#if 0 // This is buggy...
 	// scale the radius if need be
-	float largestScale = ent->e.modelScale[0];
-
-	if (ent->e.modelScale[1] > largestScale)
-	{
-		largestScale = ent->e.modelScale[1];
-	}
-	if (ent->e.modelScale[2] > largestScale)
-	{
-		largestScale = ent->e.modelScale[2];
-	}
-	if (!largestScale)
-	{
-		largestScale = 1;
-	}
+	float largestScale = max(max(ent->e.modelScale[0], max(ent->e.modelScale[1], ent->e.modelScale[2])), 1.0);
 
 	// cull bounding sphere 
-  	switch ( R_CullLocalPointAndRadius( vec3_origin,  ent->e.radius * largestScale) )
-  	{
-  	case CULL_OUT:
-  		tr.pc.c_sphere_cull_md3_out++;
-  		return CULL_OUT;
+	switch (R_CullLocalPointAndRadius(vec3_origin, ent->e.radius * largestScale))
+	{
+	case CULL_OUT:
+		tr.pc.c_sphere_cull_md3_out++;
+		return CULL_OUT;
 
 	case CULL_IN:
 		tr.pc.c_sphere_cull_md3_in++;
@@ -875,7 +863,9 @@ static int R_GCullModel( trRefEntity_t *ent ) {
 	case CULL_CLIP:
 		tr.pc.c_sphere_cull_md3_clip++;
 		return CULL_IN;
- 	}
+	}
+#endif
+	
 	return CULL_IN;
 }
 
@@ -936,20 +926,7 @@ static int G2_ComputeLOD( trRefEntity_t *ent, const model_t *currentModel, int l
 	}
 
 	// scale the radius if need be
-	float largestScale = ent->e.modelScale[0];
-
-	if (ent->e.modelScale[1] > largestScale)
-	{
-		largestScale = ent->e.modelScale[1];
-	}
-	if (ent->e.modelScale[2] > largestScale)
-	{
-		largestScale = ent->e.modelScale[2];
-	}
-	if (!largestScale)
-	{
-		largestScale = 1;
-	}
+	float largestScale = max(max(ent->e.modelScale[0], max(ent->e.modelScale[1], ent->e.modelScale[2])), 1.0);
 
 	if ( ( projectedRadius = ProjectRadius( 0.75*largestScale*ent->e.radius, ent->e.origin ) ) != 0 )	//we reduce the radius to make the LOD match other model types which use the actual bound box size
  	{

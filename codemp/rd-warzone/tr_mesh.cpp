@@ -103,9 +103,11 @@ static int R_CullModel( mdvModel_t *model, trRefEntity_t *ent )
 	// cull bounding sphere ONLY if this is not an upscaled entity
 	if ( !ent->e.nonNormalizedAxes )
 	{
+		float scale = max(max(ent->e.modelScale[0], max(ent->e.modelScale[1], ent->e.modelScale[2])), 1.0);
+
 		if ( ent->e.frame == ent->e.oldframe )
 		{
-			switch ( R_CullLocalPointAndRadius( newFrame->localOrigin, newFrame->radius * max(ent->e.modelScale[0], max(ent->e.modelScale[1], ent->e.modelScale[2]))) )
+			switch ( R_CullLocalPointAndRadius( newFrame->localOrigin, newFrame->radius * scale ) )
 			{
 			case CULL_OUT:
 				tr.pc.c_sphere_cull_md3_out++;
@@ -124,11 +126,12 @@ static int R_CullModel( mdvModel_t *model, trRefEntity_t *ent )
 		{
 			int sphereCull, sphereCullB;
 
-			sphereCull  = R_CullLocalPointAndRadius( newFrame->localOrigin, newFrame->radius * max(ent->e.modelScale[0], max(ent->e.modelScale[1], ent->e.modelScale[2])));
+			sphereCull  = R_CullLocalPointAndRadius( newFrame->localOrigin, newFrame->radius * scale );
+
 			if ( newFrame == oldFrame ) {
 				sphereCullB = sphereCull;
 			} else {
-				sphereCullB = R_CullLocalPointAndRadius( oldFrame->localOrigin, oldFrame->radius * max(ent->e.modelScale[0], max(ent->e.modelScale[1], ent->e.modelScale[2])));
+				sphereCullB = R_CullLocalPointAndRadius( oldFrame->localOrigin, oldFrame->radius * scale );
 			}
 
 			if ( sphereCull == sphereCullB )
@@ -158,6 +161,11 @@ static int R_CullModel( mdvModel_t *model, trRefEntity_t *ent )
 	for (i = 0 ; i < 3 ; i++) {
 		bounds[0][i] = oldFrame->bounds[0][i] < newFrame->bounds[0][i] ? oldFrame->bounds[0][i] : newFrame->bounds[0][i];
 		bounds[1][i] = oldFrame->bounds[1][i] > newFrame->bounds[1][i] ? oldFrame->bounds[1][i] : newFrame->bounds[1][i];
+
+		// UQ1: ahh, also consider model scale for anything > scale 1.0x... anything < 1.0x scale assume 1.0x scale to reduce culling errors...
+		float scale = (ent->e.modelScale[i] > 1.0) ? ent->e.modelScale[i] : 1.0;
+		bounds[0][i] *= ent->e.modelScale[i] * scale;
+		bounds[1][i] *= ent->e.modelScale[i] * scale;
 	}
 
 	switch ( R_CullLocalBox( bounds ) )

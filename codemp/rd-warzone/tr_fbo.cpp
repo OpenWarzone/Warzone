@@ -1060,6 +1060,18 @@ void FBO_Init(void)
 	}
 
 	//
+	// UQ1's zFarDepth FBO...
+	//
+	{
+		tr.zfarDepthFbo = FBO_Create("_zfarDepth", tr.zfarDepthImage->width, tr.zfarDepthImage->height);
+		FBO_Bind(tr.zfarDepthFbo);
+		FBO_AttachTextureImage(tr.zfarDepthImage, 0);
+		//R_AttachFBOTextureDepth(tr.zfarDepthImage->texnum);
+		FBO_SetupDrawBuffers();
+		R_CheckFBO(tr.zfarDepthFbo);
+	}
+
+	//
 	// UQ1's depthAdjust FBO (for depth buffer modification)...
 	//
 	{

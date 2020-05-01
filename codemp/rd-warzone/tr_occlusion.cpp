@@ -581,3 +581,168 @@ void RB_OcclusionCulling(void)
 		}
 	}
 }
+
+void FBO_BlitFromDepthTexture(struct image_s *src, FBO_t *dst, struct shaderProgram_s *shaderProgram)
+{
+	vec4i_t dstBox, srcBox;
+	vec4_t color;
+	vec4_t quadVerts[4];
+	vec2_t texCoords[4];
+	vec2_t invTexRes;
+	FBO_t *oldFbo = glState.currentFBO;
+	matrix_t projection;
+	int width, height;
+
+	if (!src)
+		return;
+
+	VectorSet4(srcBox, 0, 0, src->width, src->height);
+	VectorSet4(dstBox, 0, glConfig.vidHeight * r_superSampleMultiplier->value, glConfig.vidWidth * r_superSampleMultiplier->value, 0);
+	VectorCopy4(colorWhite, color);
+
+	if (!shaderProgram)
+	{
+		shaderProgram = &tr.textureColorShader;
+	}
+
+	FBO_Bind(dst);
+
+	if (glState.currentFBO)
+	{
+		width = glState.currentFBO->width;
+		height = glState.currentFBO->height;
+	}
+	else
+	{
+		width = glConfig.vidWidth;
+		height = glConfig.vidHeight;
+	}
+
+	qglViewport(0, 0, width, height);
+	qglScissor(0, 0, width, height);
+
+	Matrix16Ortho(0, width, height, 0, 0, 1, projection);
+
+	qglDisable(GL_CULL_FACE);
+
+	VectorSet4(quadVerts[0], dstBox[0], dstBox[1], 0, 1);
+	VectorSet4(quadVerts[1], dstBox[2], dstBox[1], 0, 1);
+	VectorSet4(quadVerts[2], dstBox[2], dstBox[3], 0, 1);
+	VectorSet4(quadVerts[3], dstBox[0], dstBox[3], 0, 1);
+
+	texCoords[0][0] = srcBox[0] / (float)src->width; texCoords[0][1] = 1.0f - srcBox[1] / (float)src->height;
+	texCoords[1][0] = srcBox[2] / (float)src->width; texCoords[1][1] = 1.0f - srcBox[1] / (float)src->height;
+	texCoords[2][0] = srcBox[2] / (float)src->width; texCoords[2][1] = 1.0f - srcBox[3] / (float)src->height;
+	texCoords[3][0] = srcBox[0] / (float)src->width; texCoords[3][1] = 1.0f - srcBox[3] / (float)src->height;
+
+	invTexRes[0] = 1.0f / width;
+	invTexRes[1] = 1.0f / height;
+
+	GL_State(0);
+
+	GLSL_BindProgram(shaderProgram);
+
+#ifdef __TEXTURECOLOR_SHADER_BINDLESS__
+	if (shaderProgram->isBindless)
+	{
+		GLSL_SetBindlessTexture(shaderProgram, UNIFORM_DIFFUSEMAP, &src, 0);
+		GLSL_BindlessUpdate(shaderProgram);
+
+		GLSL_SetBindlessTexture(shaderProgram, UNIFORM_SCREENDEPTHMAP, &tr.renderDepthImage, 0);
+		GLSL_BindlessUpdate(shaderProgram);
+	}
+	else
+	{
+		GLSL_SetUniformInt(shaderProgram, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+		GL_BindToTMU(src, TB_DIFFUSEMAP);
+
+		GLSL_SetUniformInt(shaderProgram, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
+		GL_BindToTMU(tr.renderDepthImage, TB_LIGHTMAP);
+	}
+#else //!__TEXTURECOLOR_SHADER_BINDLESS__
+	GL_BindToTMU(src, TB_DIFFUSEMAP);
+#endif //__TEXTURECOLOR_SHADER_BINDLESS__
+
+	GLSL_SetUniformMatrix16(shaderProgram, UNIFORM_MODELVIEWPROJECTIONMATRIX, projection, 1);
+	GLSL_SetUniformVec4(shaderProgram, UNIFORM_COLOR, color);
+	GLSL_SetUniformVec2(shaderProgram, UNIFORM_INVTEXRES, invTexRes);
+
+	{
+		vec4_t loc;
+		VectorSet4(loc, r_testvalue0->value, r_testvalue1->value, r_testvalue2->value, r_testvalue3->value);
+		GLSL_SetUniformVec4(shaderProgram, UNIFORM_LOCAL0, loc);
+	}
+
+	RB_InstantQuad2(quadVerts, texCoords); //, color, shaderProgram, invTexRes);
+
+	FBO_Bind(oldFbo);
+}
+
+void RB_zFarCullingEndFrame(void)
+{
+	if (r_zFarOcclusion->integer)
+	{
+		FBO_BlitFromDepthTexture(tr.zfarNullImage, tr.zfarDepthFbo, &tr.zFarDepthShader);
+	}
+}
+
+void RB_zFarCullingBeginFrame(void)
+{//tr.zfarDepthImage
+	if (r_zFarOcclusion->integer)
+	{
+		// Copy the precious max depth to renderDepthFbo...
+		//FBO_BlitFromTexture(tr.zfarDepthImage, NULL, NULL, tr.renderDepthFbo, NULL, NULL, colorWhite, 0);
+
+		shaderProgram_t *shader = &tr.zFarCopyShader;
+
+		FBO_Bind(tr.renderDepthFbo);
+
+		qglEnable(GL_DEPTH_TEST);
+		qglDepthMask(GL_TRUE);
+		//qglDepthFunc(GL_ALWAYS);
+
+		GLSL_BindProgram(shader);
+
+		if (shader->isBindless)
+		{
+			GLSL_SetBindlessTexture(shader, UNIFORM_SCREENDEPTHMAP, &tr.zfarDepthImage, 0);
+			GLSL_BindlessUpdate(shader);
+		}
+		else
+		{
+			GLSL_SetUniformInt(shader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
+			GL_BindToTMU(tr.zfarDepthImage, TB_LIGHTMAP);
+		}
+
+		{
+			vec4_t loc;
+			VectorSet4(loc, r_testvalue0->value, r_testvalue1->value, r_testvalue2->value, r_testvalue3->value);
+			GLSL_SetUniformVec4(shader, UNIFORM_LOCAL0, loc);
+		}
+
+		GLSL_SetUniformMatrix16(shader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
+
+		GL_State(GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_DEPTHFUNC_LESS | GLS_DEPTHMASK_TRUE);
+		qglColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+		GL_Cull(CT_TWO_SIDED);
+		GL_SetDepthRange(0, 1);
+
+		vec2_t texCoords[4];
+
+		VectorSet2(texCoords[0], 0.0f, 0.0f);
+		VectorSet2(texCoords[1], 1.0f, 0.0f);
+		VectorSet2(texCoords[2], 1.0f, 1.0f);
+		VectorSet2(texCoords[3], 0.0f, 1.0f);
+
+		vec4_t quadVerts[4];
+
+		VectorSet4(quadVerts[0], -1, 1, 0, 1);
+		VectorSet4(quadVerts[1], 1, 1, 0, 1);
+		VectorSet4(quadVerts[2], 1, -1, 0, 1);
+		VectorSet4(quadVerts[3], -1, -1, 0, 1);
+
+		RB_InstantQuad2(quadVerts, texCoords);
+
+		FBO_Bind(tr.renderFbo);
+	}
+}

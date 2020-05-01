@@ -208,6 +208,10 @@ extern const char *fallbackShader_distanceBlur_vp;
 extern const char *fallbackShader_distanceBlur_fp;
 extern const char *fallbackShader_dofFocusDepth_vp;
 extern const char *fallbackShader_dofFocusDepth_fp;
+extern const char *fallbackShader_zFarDepth_vp;
+extern const char *fallbackShader_zFarDepth_fp;
+extern const char *fallbackShader_zFarCopy_vp;
+extern const char *fallbackShader_zFarCopy_fp;
 extern const char *fallbackShader_bloomRays_vp;
 extern const char *fallbackShader_bloomRays_fp;
 extern const char *fallbackShader_fogPost_vp;
@@ -4312,6 +4316,24 @@ int GLSL_BeginLoadGPUShaders(void)
 	attribs = ATTR_POSITION | ATTR_TEXCOORD0;
 	extradefines[0] = '\0';
 
+	if (!GLSL_BeginLoadGPUShader(&tr.zFarDepthShader, "zFarDepth", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_zFarDepth_vp, fallbackShader_zFarDepth_fp, NULL, NULL, NULL))
+	{
+		ri->Error(ERR_FATAL, "Could not load zFarDepth shader!");
+	}
+
+
+	attribs = ATTR_POSITION | ATTR_TEXCOORD0;
+	extradefines[0] = '\0';
+
+	if (!GLSL_BeginLoadGPUShader(&tr.zFarCopyShader, "zFarCopy", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_zFarCopy_vp, fallbackShader_zFarCopy_fp, NULL, NULL, NULL))
+	{
+		ri->Error(ERR_FATAL, "Could not load zFarCopy shader!");
+	}
+
+
+	attribs = ATTR_POSITION | ATTR_TEXCOORD0;
+	extradefines[0] = '\0';
+
 	if (!GLSL_BeginLoadGPUShader(&tr.dofFocusDepthShader, "dofFocusDepth", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_dofFocusDepth_vp, fallbackShader_dofFocusDepth_fp, NULL, NULL, NULL))
 	{
 		ri->Error(ERR_FATAL, "Could not load dofFocusDepth shader!");
@@ -6380,6 +6402,47 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 
 
+	if (!GLSL_EndLoadGPUShader(&tr.zFarDepthShader))
+	{
+		ri->Error(ERR_FATAL, "Could not load zFarDepth shader!");
+	}
+
+	GLSL_InitUniforms(&tr.zFarDepthShader);
+
+	GLSL_BindProgram(&tr.zFarDepthShader);
+
+	GLSL_SetUniformInt(&tr.zFarDepthShader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
+
+#if defined(_DEBUG)
+	GLSL_FinishGPUShader(&tr.zFarDepthShader);
+#endif
+
+	numEtcShaders++;
+
+
+
+
+	if (!GLSL_EndLoadGPUShader(&tr.zFarCopyShader))
+	{
+		ri->Error(ERR_FATAL, "Could not load zFarCopy shader!");
+	}
+
+	GLSL_InitUniforms(&tr.zFarCopyShader);
+
+	GLSL_BindProgram(&tr.zFarCopyShader);
+
+	GLSL_SetUniformInt(&tr.zFarCopyShader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
+
+#if defined(_DEBUG)
+	GLSL_FinishGPUShader(&tr.zFarCopyShader);
+#endif
+
+	numEtcShaders++;
+
+
+
+
+
 	/*
 	for (i = 0; i < 4; i++)
 	{
@@ -7159,6 +7222,8 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.distanceBlurShader[2]);
 	GLSL_DeleteGPUShader(&tr.distanceBlurShader[3]);*/
 	GLSL_DeleteGPUShader(&tr.dofFocusDepthShader);
+	GLSL_DeleteGPUShader(&tr.zFarDepthShader);
+	GLSL_DeleteGPUShader(&tr.zFarCopyShader);
 	GLSL_DeleteGPUShader(&tr.fogPostShader);
 	GLSL_DeleteGPUShader(&tr.colorCorrectionShader);
 	GLSL_DeleteGPUShader(&tr.showNormalsShader);

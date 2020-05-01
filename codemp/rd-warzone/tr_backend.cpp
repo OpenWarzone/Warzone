@@ -931,6 +931,15 @@ void RB_BeginDrawingView (void) {
 
 	qglClear( clearBits );
 
+	if (/*!backEnd.depthFill
+		&&*/ !(backEnd.viewParms.flags & VPF_SHADOWPASS)
+		&& !(backEnd.viewParms.flags & VPF_SHADOWMAP)
+		&& !(tr.renderCubeFbo != NULL && backEnd.viewParms.targetFbo == tr.renderCubeFbo)
+		&& !(tr.renderSkyFbo != NULL && backEnd.viewParms.targetFbo == tr.renderSkyFbo))
+	{
+		RB_zFarCullingBeginFrame();
+	}
+
 	if (backEnd.viewParms.targetFbo == NULL)
 	{
 		// Clear the glow target
@@ -2863,6 +2872,15 @@ const void *RB_ClearDepth(const void *data)
 
 	qglClear(GL_DEPTH_BUFFER_BIT);
 
+	if (/*!backEnd.depthFill
+		&&*/ !(backEnd.viewParms.flags & VPF_SHADOWPASS)
+		&& !(backEnd.viewParms.flags & VPF_SHADOWMAP)
+		&& !(tr.renderCubeFbo != NULL && backEnd.viewParms.targetFbo == tr.renderCubeFbo)
+		&& !(tr.renderSkyFbo != NULL && backEnd.viewParms.targetFbo == tr.renderSkyFbo))
+	{
+		RB_zFarCullingBeginFrame();
+	}
+
 #if 0
 	// if we're doing MSAA, clear the depth texture for the resolve buffer
 	if (tr.msaaResolveFbo)
@@ -4082,6 +4100,21 @@ const void *RB_PostProcess(const void *data)
 		FBO_BlitFromTexture(tr.waterReflectionRenderImage, NULL, NULL, NULL, dstBox, NULL, NULL, 0);
 	}
 #endif
+
+	DEBUG_StartTimer("zFarCulling", qtrue);
+	RB_zFarCullingEndFrame();
+	DEBUG_EndTimer(qtrue);
+
+#if 0
+	{
+		ivec4_t dstBox;
+		VectorSet4(dstBox, 512 + 0, glConfig.vidHeight - 128, 128, 128);
+		FBO_BlitFromTexture(tr.zfarDepthImage, NULL, NULL, NULL, dstBox, NULL, NULL, 0);
+		VectorSet4(dstBox, 512 + 128, glConfig.vidHeight - 128, 128, 128);
+		FBO_BlitFromTexture(tr.renderDepthImage, NULL, NULL, NULL, dstBox, NULL, NULL, 0);
+	}
+#endif
+
 
 	DEBUG_StartTimer("OcclusionCulling", qtrue);
 	RB_OcclusionCulling();
