@@ -6148,30 +6148,51 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			vec4_t l21;
 			VectorSet4(l21, WATEREDGE_RANGE_MULTIPLIER, GRASS_TYPE_UNIFORMALITY_WATER, GRASS_UNDERWATER, 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL21, l21);
+
+			vec4_t l22;
+			VectorSet4(l22, TOWN_RADIUS, TOWN_ORIGIN[0], TOWN_ORIGIN[1], TOWN_ORIGIN[2]);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL22, l22);
 		}
 		else if (isGrass2 && backEnd.renderPass == RENDERPASS_GRASS2)
 		{
 			vec4_t l21;
 			VectorSet4(l21, WATEREDGE_RANGE_MULTIPLIER, GRASS_TYPE_UNIFORMALITY_WATER, GRASS2_UNDERWATER, 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL21, l21);
+
+			vec4_t l22;
+			VectorSet4(l22, TOWN_RADIUS, TOWN_ORIGIN[0], TOWN_ORIGIN[1], TOWN_ORIGIN[2]);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL22, l22);
 		}
 		else if (isGrass3 && backEnd.renderPass == RENDERPASS_GRASS3)
 		{
 			vec4_t l21;
 			VectorSet4(l21, WATEREDGE_RANGE_MULTIPLIER, GRASS_TYPE_UNIFORMALITY_WATER, GRASS3_UNDERWATER, 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL21, l21);
+
+			vec4_t l22;
+			VectorSet4(l22, TOWN_RADIUS, TOWN_ORIGIN[0], TOWN_ORIGIN[1], TOWN_ORIGIN[2]);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL22, l22);
 		}
 		else if (isGrass4 && backEnd.renderPass == RENDERPASS_GRASS4)
 		{
 			vec4_t l21;
 			VectorSet4(l21, WATEREDGE_RANGE_MULTIPLIER, GRASS_TYPE_UNIFORMALITY_WATER, GRASS4_UNDERWATER, 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL21, l21);
+
+			vec4_t l22;
+			VectorSet4(l22, TOWN_RADIUS, TOWN_ORIGIN[0], TOWN_ORIGIN[1], TOWN_ORIGIN[2]);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL22, l22);
 		}
 		else
 		{
 			vec4_t l21;
 			VectorSet4(l21, WATEREDGE_RANGE_MULTIPLIER, 0.0, 0.0, 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL21, l21);
+
+			vec4_t l22;
+			//VectorSet4(l22, 0.0, 0.0, 0.0, 0.0);
+			VectorSet4(l22, TOWN_RADIUS, TOWN_ORIGIN[0], TOWN_ORIGIN[1], TOWN_ORIGIN[2]);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL22, l22);
 		}
 
 		if (sp == &tr.lightAllSplatShader[0] || sp == &tr.lightAllSplatShader[1] || sp == &tr.lightAllSplatShader[2] || sp == &tr.lightAllSplatShader[3])

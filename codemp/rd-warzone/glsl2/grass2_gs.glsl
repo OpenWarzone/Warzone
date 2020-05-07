@@ -76,6 +76,7 @@ uniform vec4								u_Local11; // GRASS_WIDTH_REPEATS, GRASS_MAX_SLOPE, GRASS_TY
 uniform vec4								u_Local12; // GRASS_SIZE_MULTIPLIER_COMMON, GRASS_SIZE_MULTIPLIER_RARE, GRASS_SIZE_MULTIPLIER_UNDERWATER, GRASS_LOD_START_RANGE
 uniform vec4								u_Local13; // HAVE_GRASS_CONTROL, HAVE_GRASS_CONTROL1, HAVE_GRASS_CONTROL2, HAVE_GRASS_CONTROL3
 uniform vec4								u_Local21; // WATEREDGE_RANGE_MULTIPLIER, GRASS_TYPE_UNIFORMALITY_WATER, GRASS_UNDERWATER, 0.0
+uniform vec4								u_Local22; // TOWN_RADIUS, TOWN_ORIGIN[0], TOWN_ORIGIN[1], TOWN_ORIGIN[2]
 
 #define SHADER_MAP_SIZE						u_Local1.r
 #define SHADER_SWAY							u_Local1.g
@@ -119,6 +120,9 @@ uniform vec4								u_Local21; // WATEREDGE_RANGE_MULTIPLIER, GRASS_TYPE_UNIFORM
 #define WATEREDGE_RANGE_MULTIPLIER			u_Local21.r
 #define GRASS_TYPE_UNIFORM_WATER			u_Local21.g //0.66
 #define GRASS_UNDERWATER					u_Local21.b
+
+#define TOWN_RADIUS							u_Local22.r
+#define TOWN_ORIGIN							u_Local22.gba
 
 #define MAP_WATER_LEVEL						SHADER_WATER_LEVEL // TODO: Use water map
 
@@ -463,6 +467,14 @@ void main()
 		}
 	}
 #endif
+
+	if (TOWN_RADIUS > 0.0 
+		&& distance(Vert1.xy, TOWN_ORIGIN.xy) < TOWN_RADIUS
+		&& distance(Vert2.xy, TOWN_ORIGIN.xy) < TOWN_RADIUS
+		&& distance(Vert3.xy, TOWN_ORIGIN.xy) < TOWN_RADIUS)
+	{// Most likely this whole vert is in the town area, skip the grass here for campfires and so it doesnt grow inside buildings...
+		return;
+	}
 
 	if (!CheckGrassMapPosition(vGrassFieldPos))
 	{

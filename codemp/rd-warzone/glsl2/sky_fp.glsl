@@ -340,6 +340,15 @@ vec3 Enhance(in sampler2D tex, in vec2 uv, vec3 color, float level)
 
 //#define RAY_TRACE_STEPS 55
 
+// NEW SETTINGS POSSIBILITY
+//#define RAY_TRACE_STEPS 2 -> 4
+//#define CLOUD_LOWER 39900.0
+//#define CLOUD_UPPER 40000.0
+
+//#define RAY_TRACE_STEPS int(u_Local9.r)//8
+//#define CLOUD_LOWER u_Local9.g//2800.0
+//#define CLOUD_UPPER u_Local9.b//26800.0
+
 #if defined(CLOUD_QUALITY4)
 	#define RAY_TRACE_STEPS 8
 	#define CLOUD_LOWER 2800.0

@@ -22,6 +22,9 @@ extern float			DISPLACEMENT_MAPPING_STRENGTH;
 extern qboolean			MAP_REFLECTION_ENABLED;
 extern qboolean			ENABLE_CHRISTMAS_EFFECT;
 
+extern vec3_t			TOWN_ORIGIN;
+extern float			TOWN_RADIUS;
+
 extern float			SPLATMAP_CONTROL_SCALE;
 extern float			STANDARD_SPLATMAP_STEEPANGLE;
 extern float			STANDARD_SPLATMAP_STEEPPCURVE;
