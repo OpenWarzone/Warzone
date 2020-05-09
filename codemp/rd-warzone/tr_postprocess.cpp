@@ -1259,7 +1259,6 @@ void RB_AddGlowShaderLights ( void )
 		{
 			if (MAP_GLOW_COLORS_AVILABLE[CLOSE_LIST[i]])
 			{
-				vec4_t glowColor = { 0 };
 				float strength = 1.0 - Q_clamp(0.0, Distance(CLOSE_POS[i], playerOrigin) / MAX_WORLD_GLOW_DLIGHT_RANGE, 1.0);
 				float radius = CLOSE_RADIUS[i] * strength * dayNightFactor * 0.2 * r_debugEmissiveRadiusScale->value;
 
@@ -1268,11 +1267,18 @@ void RB_AddGlowShaderLights ( void )
 					continue;
 				}
 
-				VectorCopy4(MAP_GLOW_COLORS[CLOSE_LIST[i]], glowColor);
-				VectorScale(glowColor, r_debugEmissiveColorScale->value, glowColor);
-				VectorCopy4(glowColor, CLOSE_COLORS[i]);
+				if (r_debugEmissiveLights->integer)
+				{
+					vec4_t glowColor;
+					VectorScale(MAP_GLOW_COLORS[CLOSE_LIST[i]], r_debugEmissiveColorScale->value, glowColor);
+					VectorCopy4(glowColor, CLOSE_COLORS[i]);
+				}
+				else
+				{
+					VectorCopy4(MAP_GLOW_COLORS[CLOSE_LIST[i]], CLOSE_COLORS[i]);
+				}
 				
-				RE_AddDynamicLightToScene(CLOSE_POS[i], radius, glowColor[0], glowColor[1], glowColor[2], qfalse, qtrue, CLOSE_HEIGHTSCALES[i], CLOSE_CONEANGLE[i], CLOSE_CONEDIRECTION[i]);
+				RE_AddDynamicLightToScene(CLOSE_POS[i], radius, CLOSE_COLORS[i][0], CLOSE_COLORS[i][1], CLOSE_COLORS[i][2], qfalse, qtrue, CLOSE_HEIGHTSCALES[i], CLOSE_CONEANGLE[i], CLOSE_CONEDIRECTION[i]);
 				backEnd.refdef.num_dlights++;
 			}
 		}
@@ -3327,7 +3333,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 #endif //__USE_MAP_EMMISSIVE_BLOCK__
 			}
 			else
-			{// Pathetic hardware... Disable lights...
+			{// Pathetic hardware...
 				GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, NUM_CURRENT_EMISSIVE_LIGHTS);
 				GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTPOSITIONS2, CLOSEST_LIGHTS_POSITIONS, NUM_CURRENT_EMISSIVE_LIGHTS);
 				GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTCOLORS, CLOSEST_LIGHTS_COLORS, NUM_CURRENT_EMISSIVE_LIGHTS);
@@ -3349,7 +3355,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 #endif //__USE_MAP_EMMISSIVE_BLOCK__
 			}
 			else
-			{// Pathetic hardware... Disable lights...
+			{// Pathetic hardware...
 				GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, 0);
 			}
 		}
@@ -4157,9 +4163,9 @@ void RB_FogPostShader(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrB
 	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.fogPostShader, colorWhite, 0);
 }
 
-void RB_FastBlur(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
+void RB_SoftShadows(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	shaderProgram_t *shader = &tr.fastBlurShader;
+	shaderProgram_t *shader = &tr.softShadowsShader;
 
 	GLSL_BindProgram(shader);
 
@@ -4204,34 +4210,44 @@ void RB_FastBlur(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 
 	GLSL_SetUniformFloatxX(shader, UNIFORM_SHADOWZFAR, tr.refdef.sunShadowCascadeZfar, 5);
 
-	float direction = 0.0;
-
-	//for (int pass = 0; pass < r_testvalue0->integer; pass++)
-	int pass = 0;
+	if (1) // 2 passes, looks much nicer but uses a bit more frame time...
 	{
-		{// Blur X...
-			direction = 0.0;
+		float direction = 0.0;
 
-			{
-				vec4_t loc;
-				VectorSet4(loc, SHADOW_SOFT_WIDTH, SHADOW_SOFT_STEP, direction, 0.0);
-				GLSL_SetUniformVec4(shader, UNIFORM_SETTINGS0, loc);
+		//for (int pass = 0; pass < r_testvalue0->integer; pass++)
+		int pass = 0;
+		{
+			{// Blur X...
+				direction = 0.0;
+
+				{
+					vec4_t loc;
+					VectorSet4(loc, SHADOW_SOFT_WIDTH, SHADOW_SOFT_STEP, direction, 0.0);
+					GLSL_SetUniformVec4(shader, UNIFORM_SETTINGS0, loc);
+				}
+
+				FBO_Blit(pass == 0 ? tr.screenShadowFbo : tr.screenShadowBlurFbo, NULL, NULL, tr.screenShadowBlurTempFbo, NULL, shader, colorWhite, 0);
 			}
 
-			FBO_Blit(pass == 0 ? tr.screenShadowFbo : tr.screenShadowBlurFbo, NULL, NULL, tr.screenShadowBlurTempFbo, NULL, shader, colorWhite, 0);
-		}
+			{// Blur Y...
+				direction = 1.0;
 
-		{// Blur Y...
-			direction = 1.0;
+				{
+					vec4_t loc;
+					VectorSet4(loc, SHADOW_SOFT_WIDTH, SHADOW_SOFT_STEP, direction, 0.0);
+					GLSL_SetUniformVec4(shader, UNIFORM_SETTINGS0, loc);
+				}
 
-			{
-				vec4_t loc;
-				VectorSet4(loc, SHADOW_SOFT_WIDTH, SHADOW_SOFT_STEP, direction, 0.0);
-				GLSL_SetUniformVec4(shader, UNIFORM_SETTINGS0, loc);
+				FBO_Blit(tr.screenShadowBlurTempFbo, NULL, NULL, tr.screenShadowBlurFbo, NULL, shader, colorWhite, 0);
 			}
-
-			FBO_Blit(tr.screenShadowBlurTempFbo, NULL, NULL, tr.screenShadowBlurFbo, NULL, shader, colorWhite, 0);
 		}
+	}
+	else
+	{
+		vec4_t loc;
+		VectorSet4(loc, SHADOW_SOFT_WIDTH, SHADOW_SOFT_STEP, 0.0, 0.0);
+		GLSL_SetUniformVec4(shader, UNIFORM_SETTINGS0, loc);
+		FBO_Blit(tr.screenShadowFbo, NULL, NULL, tr.screenShadowBlurFbo, NULL, shader, colorWhite, 0);
 	}
 }
 

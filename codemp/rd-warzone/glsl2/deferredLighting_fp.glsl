@@ -1493,8 +1493,6 @@ void main(void)
 			|| (position.a - 1.0 == MATERIAL_DIRT)
 			|| (position.a - 1.0 == MATERIAL_MUD))
 		{
-			// Hmm. this really should check for splat mapped pixels, but I dont have buffer room, and dont want to add a new screen buffer
-			// unless I must... For now i'll use materials that generally get splat mapped, but should not be used indoors...
 			wetness = WETNESS;
 
 #if defined(_SCREEN_SPACE_REFLECTIONS_)
@@ -1548,9 +1546,17 @@ void main(void)
 	else if (wetness > 0.0) cubeReflectionFactor += cubeReflectionFactor*0.333;
 #endif //defined(_CUBEMAPS_) && defined(REALTIME_CUBEMAPS)
 
+	//float origColorStrength = 1.0;
+	//if (u_Local3.r > 0.0)
+	//	origColorStrength = clamp(getSpecialSauce(color.rgb), 0.0, 1.0);
+	//else if (u_Local3.g > 0.0)
+	//	origColorStrength = clamp(getSpecialSauce(color.rgb) * u_Local3.g, 0.0, 1.0);
+	//else if (u_Local3.b > 0.0)
+	//	origColorStrength = clamp((clamp(max(color.r, max(color.g, color.b)), 0.0, 1.0) * 0.75 + 0.25) * u_Local3.b, 0.0, 1.0);
+	//else
+	//	origColorStrength = clamp(max(color.r, max(color.g, color.b)), 0.0, 1.0) * 0.75 + 0.25;
 
-
-	float origColorStrength = clamp(max(color.r, max(color.g, color.b)), 0.0, 1.0) * 0.75 + 0.25;
+	float origColorStrength = clamp(getSpecialSauce(color.rgb) * 0.25, 0.0, 1.0);
 
 
 	//
@@ -1652,14 +1658,6 @@ void main(void)
 
 	if (specularReflectivePower > 0.0)
 	{// If this pixel is ging to get any specular reflection, generate (PBR would instead look up image buffer) specular color, and grab any cubeMap lighting as well...
-/*
-		// Construct generic specular map by creating a greyscale, contrasted, saturation removed, color from the screen color... Then multiply by the material's default specular modifier...
-#define spec_cont_1 ( 16.0 / 255.0)
-#define spec_cont_2 (255.0 / 192.0)
-			specularColor = clamp((clamp(outColor.rgb - spec_cont_1, 0.0, 1.0)) * spec_cont_2, 0.0, 1.0);
-			specularColor = clamp(Vibrancy( specularColor.rgb, 1.0 ), 0.0, 1.0);
-*/
-
 #ifndef LQ_MODE
 #if defined(_CUBEMAPS_)
 #ifdef REALTIME_CUBEMAPS
@@ -1848,7 +1846,7 @@ void main(void)
 								vec3 lightColor = lights[li].u_lightColors.rgb;
 								float selfShadow = clamp(pow(clamp(dot(-lightDir.rgb, lightingNormal.rgb), 0.0, 1.0), 8.0) * 0.6 + 0.6, 0.0, 1.0);
 
-								lightColor = lightColor * power * origColorStrength * maxLightsScale * MAP_EMISSIVE_COLOR_SCALE;
+								lightColor = lightColor * power * origColorStrength * maxLightsScale/* * MAP_EMISSIVE_COLOR_SCALE*/;
 
 								float lightSpecularPower = mix(0.1, 0.5, clamp(lightsReflectionFactor, 0.0, 1.0)) * clamp(lightStrength * phongFactor, 0.0, 1.0);
 
@@ -1861,7 +1859,7 @@ void main(void)
 								}
 #endif //LQ_MODE
 
-								addedLight.rgb = max(addedLight.rgb, blinn_phong(position.xyz, outColor.rgb, lightingNormal, E, lightDir, clamp(lightColor, 0.0, 1.0), lightSpecularPower, lightPos, wetness) * lightFade * selfShadow * light_occlusion);
+								addedLight.rgb = max(addedLight.rgb, blinn_phong(position.xyz, outColor.rgb, lightingNormal, E, lightDir, lightColor/*clamp(lightColor, 0.0, 1.0)*/, lightSpecularPower, lightPos, wetness) * lightFade * selfShadow * light_occlusion);
 
 								if (position.a - 1.0 == MATERIAL_GREENLEAVES || position.a - 1.0 == MATERIAL_PROCEDURALFOLIAGE)
 								{// Light bleeding through tree leaves...
@@ -1876,7 +1874,7 @@ void main(void)
 				}
 
 				addedLight.rgb *= lightsReflectionFactor; // More grey colors get more colorization from ..
-				outColor.rgb = outColor.rgb + max(addedLight * PshadowValue, vec3(0.0));
+				outColor.rgb = outColor.rgb + max(addedLight * PshadowValue * MAP_EMISSIVE_COLOR_SCALE, vec3(0.0));
 			}
 		}
 #else //!USE_LIGHTS_SSBO
@@ -1911,12 +1909,12 @@ void main(void)
 
 						if (lightStrength > 0.0)
 						{
-							vec3 lightColor = (u_lightColors[li].rgb / length(u_lightColors[li].rgb)) * MAP_EMISSIVE_COLOR_SCALE * maxLightsScale;
+							vec3 lightColor = (u_lightColors[li].rgb / length(u_lightColors[li].rgb)) /** MAP_EMISSIVE_COLOR_SCALE*/ * maxLightsScale;
 							float selfShadow = clamp(pow(clamp(dot(-lightDir.rgb, bump.rgb), 0.0, 1.0), 8.0) * 0.6 + 0.6, 0.0, 1.0);
 
 							float lightSpecularPower = mix(0.1, 0.5, clamp(lightsReflectionFactor, 0.0, 1.0)) * clamp(lightStrength * phongFactor, 0.0, 1.0);
 
-							addedLight.rgb += blinn_phong(position.xyz, outColor.rgb, bump, E, lightDir, clamp(lightColor, 0.0, 1.0), lightSpecularPower, lightPos, wetness) * lightFade * selfShadow;
+							addedLight.rgb += blinn_phong(position.xyz, outColor.rgb, bump, E, lightDir, lightColor/*clamp(lightColor, 0.0, 1.0)*/, lightSpecularPower, lightPos, wetness) * lightFade * selfShadow;
 
 							if (position.a - 1.0 == MATERIAL_GREENLEAVES || position.a - 1.0 == MATERIAL_PROCEDURALFOLIAGE)
 							{// Light bleeding through tree leaves...
@@ -1930,7 +1928,7 @@ void main(void)
 				}
 			}
 
-			outColor.rgb = outColor.rgb + max(addedLight * 0.5 * PshadowValue, vec3(0.0));
+			outColor.rgb = outColor.rgb + max(addedLight * 0.5 * PshadowValue * MAP_EMISSIVE_COLOR_SCALE, vec3(0.0));
 		}
 #endif //USE_LIGHTS_SSBO
 	}

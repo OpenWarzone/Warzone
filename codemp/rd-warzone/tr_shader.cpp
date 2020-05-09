@@ -7356,6 +7356,20 @@ static shader_t *FinishShader(void) {
 			}
 		}
 	}
+	else if (StringContainsWord(shader.name, "gfx/flames/particle_fire"))
+	{// For fires, override the default glow strength...
+		shader.glowStrength = 0.00375;// 0.015;
+	}
+	else if (shader.glowStrength == 1.0
+		&& StringContainsWord(shader.name, "neon"))
+	{// For fires, override the default glow strength...
+		shader.glowStrength = 0.2;
+	}
+	else if (shader.glowStrength == 1.0
+		&& StringContainsWord(shader.name, "rooftop/screen"))
+	{// For fires, override the default glow strength...
+		shader.glowStrength = 0.2;
+	}
 
 #if 0
 	int firstLightmapStage;

@@ -3374,7 +3374,7 @@ const void *RB_PostProcess(const void *data)
 		if (SHADOW_SOFT)
 		{// When not at night, don't bother to blur shadows...
 			DEBUG_StartTimer("Soft Shadow", qtrue);
-			RB_FastBlur(tr.screenShadowFbo, NULL, tr.screenShadowBlurFbo, NULL);
+			RB_SoftShadows(tr.screenShadowFbo, NULL, tr.screenShadowBlurFbo, NULL);
 			DEBUG_EndTimer(qtrue);
 		}
 
@@ -3600,7 +3600,7 @@ const void *RB_PostProcess(const void *data)
 			//if (!r_lowQualityMode->integer)
 			{
 				DEBUG_StartTimer("Screen Blur Fast", qtrue);
-				RB_FastBlur(currentFbo, srcBox, currentOutFbo, dstBox);
+				RB_SoftShadows(currentFbo, srcBox, currentOutFbo, dstBox);
 				RB_SwapFBOs(&currentFbo, &currentOutFbo);
 				DEBUG_EndTimer(qtrue);
 			}

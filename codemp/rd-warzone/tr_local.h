@@ -1902,6 +1902,7 @@ typedef enum
 	UNIFORM_LOCAL20,
 	UNIFORM_LOCAL21,
 	UNIFORM_LOCAL22,
+	UNIFORM_LOCAL23,
 
 	UNIFORM_MOON_COUNT,
 	UNIFORM_MOON_INFOS,
@@ -3354,7 +3355,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t volumeLightShader[3];
 	shaderProgram_t volumeLightInvertedShader[3];
 	shaderProgram_t volumeLightCombineShader;
-	shaderProgram_t fastBlurShader;
+	shaderProgram_t softShadowsShader;
 	shaderProgram_t shadowBlurShader;
 	shaderProgram_t bloomRaysShader;
 	shaderProgram_t distanceBlurShader[4];

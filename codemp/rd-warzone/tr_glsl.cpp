@@ -443,6 +443,7 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_Local20", GLSL_VEC4, 1 },
 	{ "u_Local21", GLSL_VEC4, 1 },
 	{ "u_Local22", GLSL_VEC4, 1 },
+	{ "u_Local23", GLSL_VEC4, 1 },
 
 	{ "u_MoonCount", GLSL_INT, 1 },
 	{ "u_MoonInfos", GLSL_VEC4, 4 },
@@ -4040,7 +4041,7 @@ int GLSL_BeginLoadGPUShaders(void)
 	attribs = ATTR_POSITION | ATTR_TEXCOORD0;
 	extradefines[0] = '\0';
 
-	if (!GLSL_BeginLoadGPUShader(&tr.fastBlurShader, "fastBlur", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_fastBlur_vp, fallbackShader_fastBlur_fp, NULL, NULL, NULL))
+	if (!GLSL_BeginLoadGPUShader(&tr.softShadowsShader, "fastBlur", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_fastBlur_vp, fallbackShader_fastBlur_fp, NULL, NULL, NULL))
 	{
 		ri->Error(ERR_FATAL, "Could not load fastBlur shader!");
 	}
@@ -6324,20 +6325,20 @@ void GLSL_EndLoadGPUShaders(int startTime)
 
 
 
-	if (!GLSL_EndLoadGPUShader(&tr.fastBlurShader))
+	if (!GLSL_EndLoadGPUShader(&tr.softShadowsShader))
 	{
 		ri->Error(ERR_FATAL, "Could not load fastBlur shader!");
 	}
 
-	GLSL_InitUniforms(&tr.fastBlurShader);
+	GLSL_InitUniforms(&tr.softShadowsShader);
 
-	GLSL_BindProgram(&tr.fastBlurShader);
+	GLSL_BindProgram(&tr.softShadowsShader);
 
-	GLSL_SetUniformInt(&tr.fastBlurShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
-	GLSL_SetUniformInt(&tr.fastBlurShader, UNIFORM_SCREENDEPTHMAP, TB_HEIGHTMAP);
+	GLSL_SetUniformInt(&tr.softShadowsShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+	GLSL_SetUniformInt(&tr.softShadowsShader, UNIFORM_SCREENDEPTHMAP, TB_HEIGHTMAP);
 
 #if defined(_DEBUG)
-	GLSL_FinishGPUShader(&tr.fastBlurShader);
+	GLSL_FinishGPUShader(&tr.softShadowsShader);
 #endif
 
 	numEtcShaders++;
@@ -7215,7 +7216,7 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.volumeLightShader[1]);
 	GLSL_DeleteGPUShader(&tr.volumeLightShader[2]);
 	GLSL_DeleteGPUShader(&tr.volumeLightCombineShader);
-	GLSL_DeleteGPUShader(&tr.fastBlurShader);
+	GLSL_DeleteGPUShader(&tr.softShadowsShader);
 	//GLSL_DeleteGPUShader(&tr.shadowBlurShader);
 	GLSL_DeleteGPUShader(&tr.bloomRaysShader);
 	/*GLSL_DeleteGPUShader(&tr.distanceBlurShader[0]);

@@ -24,6 +24,7 @@ extern qboolean			ENABLE_CHRISTMAS_EFFECT;
 
 extern vec3_t			TOWN_ORIGIN;
 extern float			TOWN_RADIUS;
+extern float			TOWN_FORCEFIELD_ALPHAMULT;
 
 extern float			SPLATMAP_CONTROL_SCALE;
 extern float			STANDARD_SPLATMAP_STEEPANGLE;
@@ -240,6 +241,9 @@ extern float			GRASS_SIZE_MULTIPLIER_COMMON;
 extern float			GRASS_SIZE_MULTIPLIER_RARE;
 extern float			GRASS_SIZE_MULTIPLIER_UNDERWATER;
 extern float			GRASS_LOD_START_RANGE;
+extern float			GRASS_PATCH_DENSITY;
+extern float			GRASS_PATCH_SCALE;
+extern vec2_t			GRASS_PATCH_OFFSET;
 extern image_t			*GRASS_CONTROL_TEXTURE;
 extern qboolean			FAKE_GRASS_ENABLED;
 extern float			FAKE_GRASS_SCALE;
@@ -266,6 +270,9 @@ extern float			GRASS2_SIZE_MULTIPLIER_COMMON;
 extern float			GRASS2_SIZE_MULTIPLIER_RARE;
 extern float			GRASS2_SIZE_MULTIPLIER_UNDERWATER;
 extern float			GRASS2_LOD_START_RANGE;
+extern float			GRASS2_PATCH_DENSITY;
+extern float			GRASS2_PATCH_SCALE;
+extern vec2_t			GRASS2_PATCH_OFFSET;
 extern image_t			*GRASS2_CONTROL_TEXTURE;
 
 extern qboolean			GRASS3_ENABLED;
@@ -285,6 +292,9 @@ extern float			GRASS3_SIZE_MULTIPLIER_COMMON;
 extern float			GRASS3_SIZE_MULTIPLIER_RARE;
 extern float			GRASS3_SIZE_MULTIPLIER_UNDERWATER;
 extern float			GRASS3_LOD_START_RANGE;
+extern float			GRASS3_PATCH_DENSITY;
+extern float			GRASS3_PATCH_SCALE;
+extern vec2_t			GRASS3_PATCH_OFFSET;
 extern image_t			*GRASS3_CONTROL_TEXTURE;
 
 extern qboolean			GRASS4_ENABLED;
@@ -304,6 +314,9 @@ extern float			GRASS4_SIZE_MULTIPLIER_COMMON;
 extern float			GRASS4_SIZE_MULTIPLIER_RARE;
 extern float			GRASS4_SIZE_MULTIPLIER_UNDERWATER;
 extern float			GRASS4_LOD_START_RANGE;
+extern float			GRASS4_PATCH_DENSITY;
+extern float			GRASS4_PATCH_SCALE;
+extern vec2_t			GRASS4_PATCH_OFFSET;
 extern image_t			*GRASS4_CONTROL_TEXTURE;
 
 extern qboolean			FOLIAGE_ENABLED;

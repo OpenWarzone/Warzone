@@ -77,6 +77,7 @@ uniform vec4								u_Local12; // GRASS_SIZE_MULTIPLIER_COMMON, GRASS_SIZE_MULTI
 uniform vec4								u_Local13; // HAVE_GRASS_CONTROL, HAVE_GRASS_CONTROL1, HAVE_GRASS_CONTROL2, HAVE_GRASS_CONTROL3
 uniform vec4								u_Local21; // WATEREDGE_RANGE_MULTIPLIER, GRASS_TYPE_UNIFORMALITY_WATER, GRASS_UNDERWATER, 0.0
 uniform vec4								u_Local22; // TOWN_RADIUS, TOWN_ORIGIN[0], TOWN_ORIGIN[1], TOWN_ORIGIN[2]
+uniform vec4								u_Local23; // GRASS_PATCH_DENSITY, GRASS_PATCH_SCALE, GRASS_PATCH_OFFSET[0], GRASS_PATCH_OFFSET[1]
 
 #define SHADER_MAP_SIZE						u_Local1.r
 #define SHADER_SWAY							u_Local1.g
@@ -123,6 +124,10 @@ uniform vec4								u_Local22; // TOWN_RADIUS, TOWN_ORIGIN[0], TOWN_ORIGIN[1], T
 
 #define TOWN_RADIUS							u_Local22.r
 #define TOWN_ORIGIN							u_Local22.gba
+
+#define GRASS_PATCH_DENSITY					u_Local23.r
+#define GRASS_PATCH_SCALE					u_Local23.g
+#define GRASS_PATCH_OFFSET					u_Local23.ba
 
 #define MAP_WATER_LEVEL						SHADER_WATER_LEVEL // TODO: Use water map
 
@@ -376,9 +381,55 @@ bool CheckAltGrass(vec2 tc)
 	return false;
 }
 
+
+//
+//
+//
+
+float CGPhash( vec2 p ) {
+    float h = dot(p,vec2(127.1,311.7));	
+	return fract(sin(h)*4378.5453);
+}
+
+float CGPnoise( in vec2 p ) {
+	vec2 i = floor( p );
+	vec2 f = fract( p );	
+	vec2 u = f*f*(3.0-2.0*f);
+	return -1.0+2.0*mix( 
+				mix( CGPhash( i + vec2(0.0,0.0) ), CGPhash( i + vec2(1.0,0.0) ), u.x),
+				mix( CGPhash( i + vec2(0.0,1.0) ), CGPhash( i + vec2(1.0,1.0) ), u.x), 
+				u.y);
+}
+
+const mat2 CGPmat = mat2( 0.00,  0.80,  -0.80,  0.36);
+
+float CheckGrassPatchNoise( vec2 p )
+{
+    float f;
+    f  = 0.5000*CGPnoise( p ); p = CGPmat*p*2.02;
+    f += 0.2500*CGPnoise( p ); 
+	
+    return f * (1.0 / (0.5000 + 0.2500));
+}
+
+bool CheckGrassPatch(vec2 tc)
+{
+	float nz = CheckGrassPatchNoise((tc + GRASS_PATCH_OFFSET) * GRASS_PATCH_SCALE * 1000.0);
+	return step(clamp(1.0-GRASS_PATCH_DENSITY, 0.0, 1.0), nz) == 1.0 ? true : false;
+}
+
+//
+//
+//
+
 bool CheckGrassMapPosition(vec3 pos)
 {
 	vec2 tc = GetMapTC(pos);
+
+	if (GRASS_PATCH_DENSITY < 1.0 && !CheckGrassPatch(tc))
+	{
+		return false;
+	}
 
 	if (HAVE_GRASS_CONTROL <= 0)
 	{

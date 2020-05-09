@@ -57,47 +57,6 @@ extern qboolean		ENABLE_CHRISTMAS_EFFECT;
 
 extern float		DYNAMIC_WEATHER_PUDDLE_STRENGTH;
 
-extern qboolean		GRASS_ENABLED;
-extern int			GRASS_UNDERWATER;
-extern qboolean		GRASS_RARE_PATCHES_ONLY;
-extern int			GRASS_WIDTH_REPEATS;
-extern int			GRASS_DENSITY;
-extern float		GRASS_HEIGHT;
-extern int			GRASS_DISTANCE;
-extern float		GRASS_MAX_SLOPE;
-extern float		GRASS_TYPE_UNIFORMALITY;
-extern float		GRASS_TYPE_UNIFORMALITY_SCALER;
-extern float		GRASS_DISTANCE_FROM_ROADS;
-extern float		GRASS_SURFACE_MINIMUM_SIZE;
-extern float		GRASS_SURFACE_SIZE_DIVIDER;
-extern float		GRASS_SIZE_MULTIPLIER_COMMON;
-extern float		GRASS_SIZE_MULTIPLIER_RARE;
-extern float		GRASS_SIZE_MULTIPLIER_UNDERWATER;
-extern float		GRASS_LOD_START_RANGE;
-
-extern qboolean		FOLIAGE_ENABLED;
-extern int			FOLIAGE_DENSITY;
-extern float		FOLIAGE_HEIGHT;
-extern int			FOLIAGE_DISTANCE;
-extern float		FOLIAGE_MAX_SLOPE;
-extern float		FOLIAGE_SURFACE_MINIMUM_SIZE;
-extern float		FOLIAGE_SURFACE_SIZE_DIVIDER;
-extern float		FOLIAGE_LOD_START_RANGE;
-extern float		FOLIAGE_TYPE_UNIFORMALITY;
-extern float		FOLIAGE_TYPE_UNIFORMALITY_SCALER;
-extern float		FOLIAGE_DISTANCE_FROM_ROADS;
-
-extern qboolean		VINES_ENABLED;
-extern int			VINES_WIDTH_REPEATS;
-extern int			VINES_DENSITY;
-extern float		VINES_HEIGHT;
-extern int			VINES_DISTANCE;
-extern float		VINES_MIN_SLOPE;
-extern float		VINES_TYPE_UNIFORMALITY;
-extern float		VINES_TYPE_UNIFORMALITY_SCALER;
-extern float		VINES_SURFACE_MINIMUM_SIZE;
-extern float		VINES_SURFACE_SIZE_DIVIDER;
-
 extern float		WATER_WAVE_HEIGHT;
 
 extern qboolean		TERRAIN_TESSELLATION_ENABLED;
@@ -1998,7 +1957,7 @@ void RB_UpdateCloseLights ( void )
 				CLOSEST_LIGHTS[farthest_light] = l;
 				VectorCopy(dl->origin, CLOSEST_LIGHTS_POSITIONS[farthest_light]);
 				CLOSEST_LIGHTS_RADIUS[farthest_light] = dl->radius;
-				CLOSEST_LIGHTS_WEIGHTS[farthest_light] = dl->radius / distance;
+				CLOSEST_LIGHTS_WEIGHTS[farthest_light] = (dl->radius * dl->radius) / (distance * distance);
 				CLOSEST_LIGHTS_HEIGHTSCALES[farthest_light] = dl->heightScale;
 				CLOSEST_LIGHTS_COLORS[farthest_light][0] = dl->color[0];
 				CLOSEST_LIGHTS_COLORS[farthest_light][1] = dl->color[1];
@@ -2055,9 +2014,9 @@ void RB_UpdateCloseLights ( void )
 		CLOSEST_LIGHTS_COLORS[i][2] = CLOSEST_LIGHTS_COLORS[i][2] / colorLength;
 
 		// Desaturate...
-		CLOSEST_LIGHTS_COLORS[i][0] = mix(CLOSEST_LIGHTS_COLORS[i][0], whiteStrength, 0.65/*0.85*/);
-		CLOSEST_LIGHTS_COLORS[i][1] = mix(CLOSEST_LIGHTS_COLORS[i][0], whiteStrength, 0.65/*0.85*/);
-		CLOSEST_LIGHTS_COLORS[i][2] = mix(CLOSEST_LIGHTS_COLORS[i][0], whiteStrength, 0.65/*0.85*/);
+		CLOSEST_LIGHTS_COLORS[i][0] = mix(CLOSEST_LIGHTS_COLORS[i][0], whiteStrength, 0.5/*0.65*//*0.85*/);
+		CLOSEST_LIGHTS_COLORS[i][1] = mix(CLOSEST_LIGHTS_COLORS[i][1], whiteStrength, 0.5/*0.65*//*0.85*/);
+		CLOSEST_LIGHTS_COLORS[i][2] = mix(CLOSEST_LIGHTS_COLORS[i][2], whiteStrength, 0.5/*0.65*//*0.85*/);
 
 		float strength = Q_clamp(0.0, CLOSEST_LIGHTS_WEIGHTS[i], 1.0);
 		CLOSEST_LIGHTS_COLORS[i][0] *= strength;
@@ -5833,7 +5792,13 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			}
 		}
 
-		if (isGrassPatches && backEnd.renderPass == RENDERPASS_GRASS_PATCHES)
+		if (sp == &tr.forcefieldShader)
+		{
+			vec4_t l6;
+			VectorSet4(l6, TOWN_FORCEFIELD_ALPHAMULT, 0.0, 0.0, 0.0);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL6, l6);
+		}
+		else if (isGrassPatches && backEnd.renderPass == RENDERPASS_GRASS_PATCHES)
 		{
 			{
 				vec4_t l8;
@@ -6152,6 +6117,11 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			vec4_t l22;
 			VectorSet4(l22, TOWN_RADIUS, TOWN_ORIGIN[0], TOWN_ORIGIN[1], TOWN_ORIGIN[2]);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL22, l22);
+
+			vec4_t l23;
+			VectorSet4(l23, GRASS_PATCH_DENSITY, GRASS_PATCH_SCALE, GRASS_PATCH_OFFSET[0], GRASS_PATCH_OFFSET[1]);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL23, l23);
+
 		}
 		else if (isGrass2 && backEnd.renderPass == RENDERPASS_GRASS2)
 		{
@@ -6162,6 +6132,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			vec4_t l22;
 			VectorSet4(l22, TOWN_RADIUS, TOWN_ORIGIN[0], TOWN_ORIGIN[1], TOWN_ORIGIN[2]);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL22, l22);
+
+			vec4_t l23;
+			VectorSet4(l23, GRASS2_PATCH_DENSITY, GRASS2_PATCH_SCALE, GRASS2_PATCH_OFFSET[0], GRASS2_PATCH_OFFSET[1]);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL23, l23);
 		}
 		else if (isGrass3 && backEnd.renderPass == RENDERPASS_GRASS3)
 		{
@@ -6172,6 +6146,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			vec4_t l22;
 			VectorSet4(l22, TOWN_RADIUS, TOWN_ORIGIN[0], TOWN_ORIGIN[1], TOWN_ORIGIN[2]);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL22, l22);
+
+			vec4_t l23;
+			VectorSet4(l23, GRASS3_PATCH_DENSITY, GRASS3_PATCH_SCALE, GRASS3_PATCH_OFFSET[0], GRASS3_PATCH_OFFSET[1]);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL23, l23);
 		}
 		else if (isGrass4 && backEnd.renderPass == RENDERPASS_GRASS4)
 		{
@@ -6182,6 +6160,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			vec4_t l22;
 			VectorSet4(l22, TOWN_RADIUS, TOWN_ORIGIN[0], TOWN_ORIGIN[1], TOWN_ORIGIN[2]);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL22, l22);
+
+			vec4_t l23;
+			VectorSet4(l23, GRASS4_PATCH_DENSITY, GRASS4_PATCH_SCALE, GRASS4_PATCH_OFFSET[0], GRASS4_PATCH_OFFSET[1]);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL23, l23);
 		}
 		else
 		{

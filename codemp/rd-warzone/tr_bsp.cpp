@@ -5597,8 +5597,8 @@ static void R_SetupMapGlowsAndWaterPlane( world_t *world )
 	// Add vibrancy to all the emissive lighting, and normalize to 0-1 values...
 	for (int i = 0; i < NUM_MAP_GLOW_LOCATIONS; i++)
 	{
+		/*
 		// Add vibrancy...
-		//R_AddLightVibrancy(MAP_GLOW_COLORS[i], 0.1);
 		R_AddLightVibrancy(MAP_GLOW_COLORS[i], 0.5);
 
 		VectorNormalize(MAP_GLOW_COLORS[i]);
@@ -5610,6 +5610,34 @@ static void R_SetupMapGlowsAndWaterPlane( world_t *world )
 		MAP_GLOW_COLORS[i][0] = Q_clamp(0.0, MAP_GLOW_COLORS[i][0], 1.0);
 		MAP_GLOW_COLORS[i][1] = Q_clamp(0.0, MAP_GLOW_COLORS[i][1], 1.0);
 		MAP_GLOW_COLORS[i][2] = Q_clamp(0.0, MAP_GLOW_COLORS[i][2], 1.0);
+		*/
+		
+		
+		vec4_t origcolor;
+		VectorCopy4(MAP_GLOW_COLORS[i], origcolor);
+
+		vec3_t normalized;
+		VectorCopy(MAP_GLOW_COLORS[i], normalized);
+		
+		// Add vibrancy...
+		R_AddLightVibrancy(normalized, 0.5);
+		VectorNormalize(normalized);
+		normalized[0] = Q_clamp(0.0, normalized[0], 1.0);
+		normalized[1] = Q_clamp(0.0, normalized[1], 1.0);
+		normalized[2] = Q_clamp(0.0, normalized[2], 1.0);
+
+		MAP_GLOW_COLORS[i][0] = mix(MAP_GLOW_COLORS[i][0], normalized[0], 0.35);
+		MAP_GLOW_COLORS[i][1] = mix(MAP_GLOW_COLORS[i][1], normalized[1], 0.35);
+		MAP_GLOW_COLORS[i][2] = mix(MAP_GLOW_COLORS[i][2], normalized[2], 0.35);
+
+		/*
+		ri->Printf(PRINT_WARNING, "Light %i (at %i %i %i) - colorOriginal %f %f %f %f - colorNormalized %f %f %f %f - colorFinal %f %f %f %f.\n"
+			, i
+			, (int)MAP_GLOW_LOCATIONS[i][0], (int)MAP_GLOW_LOCATIONS[i][1], (int)MAP_GLOW_LOCATIONS[i][2]
+			, origcolor[0], origcolor[1], origcolor[2], origcolor[3]
+			, normalized[0], normalized[1], normalized[2], origcolor[2]
+			, MAP_GLOW_COLORS[i][0], MAP_GLOW_COLORS[i][1], MAP_GLOW_COLORS[i][2], MAP_GLOW_COLORS[i][3]);
+		*/
 	}
 
 	ri->Printf(PRINT_WARNING, "^1*** ^3%s^5: Selected %i surfaces for glow lights.\n", "LIGHTING", NUM_MAP_GLOW_LOCATIONS);

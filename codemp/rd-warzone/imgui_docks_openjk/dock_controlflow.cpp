@@ -34,7 +34,7 @@ void DockControlFlow::imgui() {
 		//showCvar("RB_Underwater",r_underwater); // commented out in RB_PostProcess too
 		showCvar("RB_MagicDetail"                                              , r_magicdetail     );
 		showCvar("Screen RB_GaussianBlur()"                                    , r_screenBlurSlow  );
-		showCvar("Screen RB_FastBlur()"                                        , r_screenBlurFast  );
+		showCvar("Screen RB_SoftShadows()"                                        , r_screenBlurFast  );
 		//showCvar("RB_HBAO"                                                     , r_hbao            );
 		showCvar("RB_SSDM (ENABLE_DISPLACEMENT_MAPPING)"                       , r_ssdm            );
 		showCvar("RB_WaterPost"                                                , r_glslWater       );

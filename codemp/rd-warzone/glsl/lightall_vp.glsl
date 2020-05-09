@@ -572,6 +572,7 @@ void main()
 	}
 	else if (USE_SKELETAL_ANIM == 1.0)
 	{
+#if 0
 		vec4 position4 = vec4(0.0);
 		vec4 normal4 = vec4(0.0);
 		vec4 originalPosition = vec4(attr_Position, 1.0);
@@ -600,6 +601,16 @@ void main()
 
 		position = position4.xyz;
 		normal = normalize(normal4.xyz);
+#else
+		mat4 influence =
+		u_BoneMatrices[int(attr_BoneIndexes[0])] * attr_BoneWeights[0] +
+		u_BoneMatrices[int(attr_BoneIndexes[1])] * attr_BoneWeights[1] +
+		u_BoneMatrices[int(attr_BoneIndexes[2])] * attr_BoneWeights[2] +
+		u_BoneMatrices[int(attr_BoneIndexes[3])] * attr_BoneWeights[3];
+
+		position = vec4(influence * vec4(attr_Position, 1.0)).xyz;
+		normal = normalize(influence * vec4(attr_Normal, 0.0)).xyz;
+#endif
 	}
 	else
 	{

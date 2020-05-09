@@ -89,6 +89,7 @@ uniform vec4						u_Local2; // hasSteepMap, hasWaterEdgeMap, haveNormalMap, SHAD
 uniform vec4						u_Local3; // hasSplatMap1, hasSplatMap2, hasSplatMap3, hasSplatMap4
 uniform vec4						u_Local4; // stageNum, glowStrength, r_showsplat, glowVibrancy
 uniform vec4						u_Local5; // SHADER_HAS_OVERLAY, SHADER_ENVMAP_STRENGTH, 0.0, LEAF_ALPHA_MULTIPLIER
+uniform vec4						u_Local6; // TOWN_FORCEFIELD_ALPHAMULT, 0.0, 0.0, 0.0
 uniform vec4						u_Local9; // testvalue0, 1, 2, 3
 
 uniform vec2						u_Dimensions;
@@ -96,6 +97,8 @@ uniform vec3						u_ViewOrigin;
 uniform float						u_Time;
 
 #define SHADER_MATERIAL_TYPE		u_Local1.a
+
+#define TOWN_FORCEFIELD_ALPHAMULT	u_Local6.r
 
 varying vec2						var_TexCoords;
 varying vec3						var_Normal;
@@ -185,7 +188,7 @@ float _DistortTimeFactor = 1.195;//0.195;
 void main()
 {
 	float rim = 1.0 - length(dot(m_Normal, m_ViewDir)) * _RimStrength;
-	float glow = rim;//max(intersect, rim);
+	float glow = max(_IntersectPower, rim);//rim;//max(intersect, rim);
 
 	vec3 offset = m_ViewDir.xyz * 0.125;
 	vec2 off;
@@ -196,7 +199,7 @@ void main()
 
 	gl_FragColor = color * 0.5 + glow * 0.25;
 	gl_FragColor.rgb *= vec3(0.75, 0.75, 1.75);
-	gl_FragColor.a = glow * 0.3 + 0.25;
+	gl_FragColor.a = clamp(glow * TOWN_FORCEFIELD_ALPHAMULT * 0.3 + 0.25, 0.0, 1.0);
 	
 	//
 	// Hit FX...
