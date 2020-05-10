@@ -485,6 +485,7 @@ if(BuildMPEngine)
 			"${MPDir}/win32/win_syscon.cpp"
 			"${MPDir}/win32/win_wndproc.cpp"
 			"${MPDir}/win32/Warzone.rc"
+			"${MPDir}/sys/win_manifest.manifest"
 			)
 		source_group("win32" FILES ${MPEngineWin32Files})
 		set(MPEngineFiles ${MPEngineFiles} ${MPEngineWin32Files})
