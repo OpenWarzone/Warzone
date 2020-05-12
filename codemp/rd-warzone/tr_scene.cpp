@@ -850,7 +850,7 @@ void RB_UpdateDayNightCycle()
 		DAY_NIGHT_UPDATE_TIME = 1;
 	}
 
-	int milli = double(tr.refdef.time) * /*32768.0*/16384.0 * r_dayNightCycleSpeed->value; // roughly matches old speed...
+	int milli = (double(tr.refdef.time) * 16384.0 * r_dayNightCycleSpeed->value) + (DAY_NIGHT_START_TIME * 1000.0 * 60 * 60); // roughly matches old speed...
 
 	// Hours
 	int hr = (milli / (1000 * 60 * 60)) % 24;

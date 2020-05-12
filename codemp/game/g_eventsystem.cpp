@@ -745,11 +745,32 @@ void G_SetupEventAreas(void)
 			{
 				int tries = 0;
 
-				while (num_event_areas < MAX_TEAM_EVENT_AREAS && tries < MAX_TEAM_EVENT_AREA_TRIES)
+#pragma omp parallel for schedule(dynamic)
+				for (int attempt = 0; attempt < 4096; attempt++)
+				//while (num_event_areas < MAX_TEAM_EVENT_AREAS && tries < MAX_TEAM_EVENT_AREA_TRIES)
 				{
+					if (!(num_event_areas < MAX_TEAM_EVENT_AREAS))
+						continue;
+
 					qboolean bad = qfalse;
 					vec3_t org;
 					FindRandomNavmeshSpawnpoint(NULL, org);
+
+					extern void G_FindSky(vec3_t org);
+					G_FindSky(org);
+					//trap->Print("sky at %f %f %f.\n", org[0], org[1], org[2]);
+					if (VectorLength(org) == 0) 
+						bad = qtrue;
+
+					if (!bad)
+					{
+						extern void G_FindGround(vec3_t org);
+
+						G_FindGround(org);
+						//trap->Print("ground at %f %f %f.\n", org[0], org[1], org[2]);
+						if (VectorLength(org) == 0) 
+							bad = qtrue;
+					}
 
 					if (org[2] <= MAP_WATER_LEVEL + 32.0)
 					{
@@ -780,26 +801,32 @@ void G_SetupEventAreas(void)
 					{
 						if (!HasSkyVisibility(org))
 						{
-							trap->Print("EVENT AREA GENERATOR: Attempt %i of %i. %f %f %f failed trace. %i areas found so far.\n", tries, MAX_TEAM_EVENT_AREA_TRIES, org[0], org[1], org[2], num_event_areas);
+#pragma omp critical(__SHOW_PROGRESS__)
+							{
+								trap->Print("EVENT AREA GENERATOR: Attempt %i of %i. %f %f %f failed trace. %i areas found so far.\n", tries, MAX_TEAM_EVENT_AREA_TRIES, org[0], org[1], org[2], num_event_areas);
+							}
 							continue;
 						}
 						else
 						{
-							trap->Print("EVENT AREA GENERATOR: Attempt %i of %i. %f %f %f SUCCEEDED trace. %i areas found so far.\n", tries, MAX_TEAM_EVENT_AREA_TRIES, org[0], org[1], org[2], num_event_areas+1);
+#pragma omp critical(__SHOW_PROGRESS__)
+							{
+								trap->Print("EVENT AREA GENERATOR: Attempt %i of %i. %f %f %f SUCCEEDED trace. %i areas found so far.\n", tries, MAX_TEAM_EVENT_AREA_TRIES, org[0], org[1], org[2], num_event_areas + 1);
+							}
 						}
-#if 0
-						if (!IsSpawnpointReachable(org))
+
+#pragma omp critical(__ADD_EVENT_AREA__)
 						{
-							//trap->Print("%f %f %f -> %f %f %f is NOT pathable. padawan is at %f %f %f.\n", org[0], org[1], org[2], gameSpawnPoint[0], gameSpawnPoint[1], gameSpawnPoint[2], testerPadawan->r.currentOrigin[0], testerPadawan->r.currentOrigin[1], testerPadawan->r.currentOrigin[2]);
-							continue;
+							VectorCopy(org, event_areas[num_event_areas]);
+							num_event_areas++;
 						}
-						else
+					}
+					else
+					{
+#pragma omp critical(__SHOW_PROGRESS__)
 						{
-							trap->Print("%f %f %f -> %f %f %f is pathable. padawan is at %f %f %f.\n", org[0], org[1], org[2], gameSpawnPoint[0], gameSpawnPoint[1], gameSpawnPoint[2], testerPadawan->r.currentOrigin[0], testerPadawan->r.currentOrigin[1], testerPadawan->r.currentOrigin[2]);
+							trap->Print("EVENT AREA GENERATOR: Attempt %i of %i. %f %f %f failed position. %i areas found so far.\n", tries, MAX_TEAM_EVENT_AREA_TRIES, org[0], org[1], org[2], num_event_areas);
 						}
-#endif
-						VectorCopy(org, event_areas[num_event_areas]);
-						num_event_areas++;
 					}
 
 					tries++;
@@ -836,18 +863,15 @@ void G_SetupEventAreas(void)
 				}
 			}
 
-			G_SaveEventAreas();
-
-			trap->Print("^1*** ^3%s^5: Generated ^3%i ^5event areas for this map.\n", "EVENTS", num_event_areas);
+			if (num_event_areas > 0)
+			{
+				G_SaveEventAreas();
+				trap->Print("^1*** ^3%s^5: Generated ^3%i ^5event areas for this map.\n", "EVENTS", num_event_areas);
+			}
 		}
 		else
 		{
 			trap->Print("^1*** ^3%s^5: Loaded ^3%i ^5event areas for this map.\n", "EVENTS", num_event_areas);
-
-			/*for (int i = 0; i < num_event_areas; i++)
-			{
-				trap->Print("Area %i is at %f %f %f.\n", i, event_areas[i][0], event_areas[i][1], event_areas[i][2]);
-			}*/
 		}
 
 		event_areas_initialized = qtrue;

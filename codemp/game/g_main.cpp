@@ -544,6 +544,8 @@ qboolean LoadSpawnpointPositions( qboolean IsTeam )
 		{
 			trap->FS_Read( &BLUE_SPAWNPOINTS[i], sizeof(vec3_t), f );
 
+			//trap->Print("Blue %i - %f %f %f.\n", i, BLUE_SPAWNPOINTS[i][0], BLUE_SPAWNPOINTS[i][1], BLUE_SPAWNPOINTS[i][2]);
+
 			{
 				gentity_t *spawnpoint = G_Spawn();
 				spawnpoint->classname = "team_CTF_bluespawn";
@@ -559,6 +561,8 @@ qboolean LoadSpawnpointPositions( qboolean IsTeam )
 		for (i = 0; i < NUM_RED_POSITIONS; i++)
 		{
 			trap->FS_Read( &RED_SPAWNPOINTS[i], sizeof(vec3_t), f );
+
+			//trap->Print("Red %i - %f %f %f.\n", i, RED_SPAWNPOINTS[i][0], RED_SPAWNPOINTS[i][1], RED_SPAWNPOINTS[i][2]);
 
 			{
 				gentity_t *spawnpoint = G_Spawn();
@@ -699,24 +703,9 @@ void G_FindSky(vec3_t org)
 
 	VectorClear(bestorg);
 	
-	bool notSky = true;
-	
-	while (notSky)
-	{
-		trap->Trace(&tr, testorg, NULL, NULL, up, -1, CONTENTS_SOLID, 0, 0, 0);
-
-		testorg[2] = tr.endpos[2] + 8.0;
-
-		if (tr.fraction >= 1.0)
-		{
-			break;
-		}
-
-		VectorCopy(tr.endpos, bestorg);
-		bestorg[2] -= 128.0;
-	}
-
-	VectorCopy(bestorg, org);
+	trap->Trace(&tr, up, NULL, NULL, testorg, -1, CONTENTS_SOLID, 0, 0, 0);
+	VectorCopy(tr.endpos, org);
+	org[2] -= 128.0;
 }
 
 void G_FindGround(vec3_t org)
@@ -747,6 +736,12 @@ void G_FindGround(vec3_t org)
 			VectorCopy(tr.endpos, bestorg);
 			break;
 		}
+	}
+
+	if (tr.endpos[2] <= MAP_WATER_LEVEL)
+	{
+		VectorSet(org, 0, 0, 0);
+		return;
 	}
 
 	org[2] = tr.endpos[2];
@@ -1070,8 +1065,8 @@ void CreateSpawnpointsFromNavmesh(void)
 		{
 			gentity_t *spawnpoint = G_Spawn();
 			spawnpoint->classname = "team_CTF_bluespawn";
+			BLUE_SPAWNPOINTS[n][2] += 128.0;
 			VectorCopy(BLUE_SPAWNPOINTS[n], spawnpoint->s.origin);
-			spawnpoint->s.origin[2] += 64.0;
 			spawnpoint->s.angles[PITCH] = spawnpoint->s.angles[ROLL] = 0;
 			spawnpoint->s.angles[YAW] = irand(0, 360);
 			spawnpoint->noWaypointTime = 1; // Don't send auto-generated spawnpoints to client...
@@ -1083,8 +1078,8 @@ void CreateSpawnpointsFromNavmesh(void)
 		{
 			gentity_t *spawnpoint = G_Spawn();
 			spawnpoint->classname = "team_CTF_redspawn";
+			RED_SPAWNPOINTS[n][2] += 128.0;
 			VectorCopy(RED_SPAWNPOINTS[n], spawnpoint->s.origin);
-			spawnpoint->s.origin[2] += 64.0;
 			spawnpoint->s.angles[PITCH] = spawnpoint->s.angles[ROLL] = 0;
 			spawnpoint->s.angles[YAW] = irand(0, 360);
 			spawnpoint->noWaypointTime = 1; // Don't send auto-generated spawnpoints to client...
@@ -1155,18 +1150,18 @@ void CreateSpawnpointsFromNavmesh(void)
 			{
 				create = false;
 			}
+		}
 
-			for (int n = 0; n < count; n++)
-			{
-				gentity_t	*spawnpoint = G_Spawn();
-				spawnpoint->classname = "info_player_deathmatch";
-				VectorCopy(SPAWNPOINTS[n], spawnpoint->s.origin);
-				spawnpoint->s.origin[2] += 64.0;
-				spawnpoint->s.angles[PITCH] = spawnpoint->s.angles[ROLL] = 0;
-				spawnpoint->s.angles[YAW] = irand(0, 360);
-				spawnpoint->noWaypointTime = 1; // Don't send auto-generated spawnpoints to client...
-				SP_info_player_deathmatch(spawnpoint);
-			}
+		for (int n = 0; n < count; n++)
+		{
+			gentity_t	*spawnpoint = G_Spawn();
+			spawnpoint->classname = "info_player_deathmatch";
+			SPAWNPOINTS[n][2] += 128.0;
+			VectorCopy(SPAWNPOINTS[n], spawnpoint->s.origin);
+			spawnpoint->s.angles[PITCH] = spawnpoint->s.angles[ROLL] = 0;
+			spawnpoint->s.angles[YAW] = irand(0, 360);
+			spawnpoint->noWaypointTime = 1; // Don't send auto-generated spawnpoints to client...
+			SP_info_player_deathmatch(spawnpoint);
 		}
 
 		trap->Print("^1*** ^3%s^5: Generated %i extra ffa spawnpoints.\n", "AUTO-SPAWNPOINTS", count);

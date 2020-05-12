@@ -415,7 +415,7 @@ void CG_UpdateCamera(void)
 	sprintf(val2, "%i", hRange);
 	trap->Cvar_Set("cg_thirdPersonVertOffset", val2);
 
-	if (cg.snap->ps.eFlags & EF_PAIRED_ANIMATION)
+	if (cg.snap && cg.snap->ps.eFlags & EF_PAIRED_ANIMATION)
 	{
 #define CAMERA_MOVE_SPEED 0.5
 		wantedCameraAngle = (currentCameraAngle - cg_entities[cg.snap->ps.clientNum].lerpAngles[YAW]) + float(double(cg.time) * 0.0333);//360.0 - cg_entities[cg.snap->ps.clientNum].lerpAngles[YAW];
