@@ -589,6 +589,7 @@ int NPC_CheckAlertEvents( gentity_t *aiEnt, qboolean checkSight, qboolean checkS
 
 qboolean G_CheckForDanger( gentity_t *self, int alertEvent )
 {//FIXME: more bStates need to call this?
+#if 0
 	if ( alertEvent == -1 )
 	{
 		return qfalse;
@@ -616,6 +617,7 @@ qboolean G_CheckForDanger( gentity_t *self, int alertEvent )
 			}
 		}
 	}
+#endif
 	return qfalse;
 }
 qboolean NPC_CheckForDanger( gentity_t *aiEnt, int alertEvent )

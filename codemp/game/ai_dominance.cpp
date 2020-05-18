@@ -107,7 +107,6 @@ extern void NPC_Think(gentity_t *self);
 extern void GLua_NPCEV_OnThink(gentity_t *self);
 extern qboolean NPC_UpdateAngles(qboolean doPitch, qboolean doYaw);
 extern void NPC_Begin(gentity_t *ent);
-extern void NPC_ExecuteBState(gentity_t *self);
 extern void NPC_Precache ( gentity_t *spawner );
 extern char *G_ValidateUserinfo( const char *userinfo );
 extern qboolean DOM_NPC_ClearPathToSpot( gentity_t *NPC, vec3_t dest, int impactEntNum );

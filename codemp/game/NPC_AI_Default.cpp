@@ -501,6 +501,7 @@ void NPC_CheckEvasion(gentity_t *aiEnt)
 	}
 }
 
+#if 0
 /*
 void NPC_LostEnemyDecideChase(void)
 
@@ -648,7 +649,7 @@ qboolean NPC_StandTrackAndShoot (gentity_t *NPC, qboolean canDuck)
 
 	return faced;
 }
-
+#endif
 
 void NPC_BSIdle( gentity_t *aiEnt )
 {
@@ -668,6 +669,7 @@ void NPC_BSIdle( gentity_t *aiEnt )
 	aiEnt->client->pers.cmd.buttons |= BUTTON_WALKING;
 }
 
+#if 0
 void NPC_BSRun (gentity_t *aiEnt)
 {
 	//FIXME if there is no nav data, we need to do something else
@@ -1169,6 +1171,7 @@ void NPC_BSShoot(gentity_t *aiEnt)
 
 	WeaponThink(aiEnt, qtrue);
 }
+#endif
 
 /*
 void NPC_BSPatrol( void )
@@ -1217,6 +1220,7 @@ void NPC_BSPatrol( gentity_t *aiEnt)
 	aiEnt->client->pers.cmd.buttons |= BUTTON_WALKING;
 }
 
+#if 0
 /*
 void NPC_BSDefault(void)
 	uses various scriptflags to determine how an npc should behave
@@ -1476,3 +1480,4 @@ void NPC_BSDefault( gentity_t *aiEnt)
 	//update angles
 	NPC_UpdateAngles(aiEnt, qtrue, qtrue );
 }
+#endif

@@ -60,17 +60,17 @@ void CalcEntitySpot ( const gentity_t *ent, const spot_t spot, vec3_t point )
 		if (ent->s.eType == ET_NPC && ent->s.NPC_class == CLASS_ATAT)
 		{
 			VectorCopy(org, point);
-			point[2] += 384.0; //192.0
+			point[2] += 448.0;// 384.0; //192.0
 		}
 		else if (ent->s.eType == ET_NPC && ent->s.NPC_class == CLASS_ATST)
 		{
 			VectorCopy(org, point);
-			point[2] += 172.0; //192.0
+			point[2] += 256.0;// 220.0;// 172.0; //192.0
 		}
 		else if (ent->s.eType == ET_NPC && ent->s.NPC_class == CLASS_ATPT)
 		{
 			VectorCopy(org, point);
-			point[2] += 128.0; //192.0
+			point[2] += 176.0;// 128.0; //192.0
 		}
 		else if (ent->s.eType == ET_NPC && ent->s.NPC_class != CLASS_VEHICLE && ent->s.m_iVehicleNum && ent->s.NPC_class == CLASS_STORMTROOPER_ATST_PILOT)
 		{// NPC driving an ATST...
@@ -131,17 +131,17 @@ void CalcEntitySpot ( const gentity_t *ent, const spot_t spot, vec3_t point )
 		if (ent->s.eType == ET_NPC && ent->s.NPC_class == CLASS_ATAT)
 		{
 			VectorCopy(org, point);
-			point[2] += 384.0; //192.0
+			point[2] += 448.0;// 384.0; //192.0
 		}
 		else if (ent->s.eType == ET_NPC && ent->s.NPC_class == CLASS_ATST)
 		{
 			VectorCopy(org, point);
-			point[2] += 172.0; //192.0
+			point[2] += 256.0;// 220.0;// 172.0; //192.0
 		}
 		else if (ent->s.eType == ET_NPC && ent->s.NPC_class == CLASS_ATPT)
 		{
 			VectorCopy(org, point);
-			point[2] += 128.0; //192.0
+			point[2] += 176.0;// 128.0; //192.0
 		}
 		else if (ent->s.eType == ET_NPC && ent->s.NPC_class != CLASS_VEHICLE && ent->s.m_iVehicleNum && ent->s.NPC_class == CLASS_STORMTROOPER_ATST_PILOT)
 		{// NPC driving an ATST...
@@ -1050,7 +1050,7 @@ qboolean ValidEnemy( gentity_t *self, gentity_t *ent )
 		return qfalse;
 	}
 
-	if (npc_pathing.integer == 0 && VectorLength(ent->spawn_pos) != 0 && Distance(ent->spawn_pos, self->r.currentOrigin) > 6000.0)
+	if (npc_pathing.integer == 0 && VectorLength(ent->spawn_pos) != 0 && Distance(ent->spawn_pos, self->r.currentOrigin) > 12000.0/*6000.0*/)
 	{
 #ifdef __DEBUG_VALIDENEMY__
 		if (ent->s.eType == ET_PLAYER)
@@ -1174,7 +1174,7 @@ qboolean ValidEnemy( gentity_t *self, gentity_t *ent )
 		}
 		else if (ent->enemy->enemy == ent->enemy && ent->enemy == ent)
 		{// Because things seem to default to the player entity, and not NULL after respawns... This should bypass this craziness...
-
+			G_ClearEnemy(ent);
 		}
 		else if (ent->enemy->enemy == ent && NPC_IsAlive(ent, ent->enemy->enemy))
 		{
@@ -1360,7 +1360,7 @@ int NPC_FindNearestEnemy( gentity_t *ent )
 	float		distance;
 	int			numEnts = 0;
 	int			i;
-	float		maxRange = (ent->s.NPC_class == CLASS_ATST || ent->s.NPC_class == CLASS_ATPT || ent->s.NPC_class == CLASS_ATAT) ? 6000.0 : 3192.0;//aiEnt->NPC->stats.visrange;
+	float		maxRange = 6000.0;// (ent->s.NPC_class == CLASS_ATST || ent->s.NPC_class == CLASS_ATPT || ent->s.NPC_class == CLASS_ATAT) ? 6000.0 : 3192.0;//aiEnt->NPC->stats.visrange;
 
 	//Setup the bbox to search in
 	for ( i = 0; i < 3; i++ )
@@ -1381,8 +1381,10 @@ int NPC_FindNearestEnemy( gentity_t *ent )
 			continue;
 
 		//Must be valid
-		if ( ValidEnemy( ent, radEnt ) == qfalse )
+		if (!ValidEnemy(ent, radEnt))
+		{
 			continue;
+		}
 
 		if (EntIsGlass(radEnt))
 		{
@@ -1401,9 +1403,9 @@ int NPC_FindNearestEnemy( gentity_t *ent )
 		//Found one closer to us
 		if ( distance < nearestDist )
 		{
-			//Must be visible
-			if ( NPC_TargetVisible( ent, radEnt ) == qfalse )
-				continue;
+			//Must be visible - UQ1: meh, screw it, let them path...
+			//if ( NPC_TargetVisible( ent, radEnt ) == qfalse )
+			//	continue;
 
 			nearestEntID = radEnt->s.number;
 			nearestDist = distance;
@@ -1435,8 +1437,10 @@ gentity_t *NPC_PickEnemyExt( gentity_t *aiEnt, qboolean checkAlerts )
 	int entID = NPC_FindNearestEnemy( aiEnt );
 
 	//If we have a valid enemy, use it
-	if ( entID >= 0 && entID != aiEnt->s.number )
+	if (entID >= 0 && entID != aiEnt->s.number)
+	{
 		return &g_entities[entID];
+	}
 
 	if ( checkAlerts )
 	{
@@ -1455,12 +1459,16 @@ gentity_t *NPC_PickEnemyExt( gentity_t *aiEnt, qboolean checkAlerts )
 			{
 				//If it's the player, attack him
 				//OJKFIXME: clientnum 0
-				if ( event->owner == &g_entities[0] )
+				if (event->owner && event->owner->s.eType == ET_PLAYER && ValidEnemy(aiEnt, event->owner))
+				{
 					return event->owner;
+				}
 
 				//If it's on our team, then take its enemy as well
-				if ( ( event->owner->client ) && ( event->owner->client->playerTeam == aiEnt->client->playerTeam ) )
+				if (event->owner && event->owner->client && ValidEnemy(aiEnt, event->owner->enemy))
+				{
 					return event->owner->enemy;
+				}
 			}
 		}
 	}
@@ -1490,20 +1498,27 @@ qboolean NPC_FindEnemy( gentity_t *aiEnt, qboolean checkAlerts )
 	//we can't pick up any enemies for now
 	if( aiEnt->NPC->confusionTime > level.time )
 	{
+		G_ClearEnemy(aiEnt);
 		return qfalse;
 	}
 
+#if 0
 	if (aiEnt->enemy)
 	{// In case we get mixed up somewhere... the whole playerTeam thing, *sigh*
 		if (!ValidEnemy(aiEnt, aiEnt->enemy))
 		{
-			aiEnt->enemy = NULL;
+			G_ClearEnemy(aiEnt);
 		}
 	}
 
 	//If we've gotten here alright, then our target it still valid
-	if ( aiEnt->enemy && ValidEnemy(aiEnt, aiEnt->enemy ) )
+	if (aiEnt->enemy && ValidEnemy(aiEnt, aiEnt->enemy) && aiEnt->next_enemy_check_time > level.time)
+	{
 		return qtrue;
+	}
+#else
+	G_ClearEnemy(aiEnt);
+#endif
 
 	newenemy = NPC_PickEnemyExt(aiEnt, checkAlerts );
 
@@ -1525,12 +1540,7 @@ NPC_CheckEnemyExt
 
 qboolean NPC_CheckEnemyExt( gentity_t *aiEnt, qboolean checkAlerts )
 {
-	if (!aiEnt || !NPC_IsAlive(aiEnt, aiEnt))
-	{
-		return qfalse;
-	}
-
-	if (aiEnt->enemy && NPC_IsAlive(aiEnt, aiEnt->enemy) && ValidEnemy(aiEnt, aiEnt->enemy))
+	if (aiEnt->enemy && ValidEnemy(aiEnt, aiEnt->enemy))
 	{
 		return qtrue;
 	}
@@ -1543,8 +1553,6 @@ qboolean NPC_CheckEnemyExt( gentity_t *aiEnt, qboolean checkAlerts )
 NPC_FacePosition
 -------------------------
 */
-extern qboolean ATST_FacePosition(gentity_t *aiEnt, vec3_t position, qboolean doPitch);
-
 qboolean NPC_FacePosition( gentity_t *aiEnt, vec3_t position, qboolean doPitch )
 {
 	vec3_t		muzzle;
@@ -1552,10 +1560,13 @@ qboolean NPC_FacePosition( gentity_t *aiEnt, vec3_t position, qboolean doPitch )
 	float		yawDelta;
 	qboolean	facing = qtrue;
 
+#if 0
 	if (aiEnt->s.NPC_class == CLASS_ATST_OLD)
 	{
+		extern qboolean ATST_FacePosition(gentity_t *aiEnt, vec3_t position, qboolean doPitch);
 		return ATST_FacePosition(aiEnt, position, doPitch);
 	}
+#endif
 
 	//Get the positions
 	if ( aiEnt->client && (aiEnt->client->NPC_class == CLASS_RANCOR || aiEnt->client->NPC_class == CLASS_WAMPA) )// || NPC->client->NPC_class == CLASS_SAND_CREATURE) )
@@ -1695,16 +1706,6 @@ NPC_FaceEntity
 qboolean NPC_FaceEntity( gentity_t *aiEnt, gentity_t *ent, qboolean doPitch )
 {
 	vec3_t		entPos;
-
-#if 0
-	if (aiEnt->s.NPC_class == CLASS_ATST_OLD)
-	{
-		//Get the positions
-		CalcEntitySpot(ent, SPOT_CHEST, entPos);
-
-		return ATST_FacePosition(aiEnt, entPos, qtrue/*doPitch*/);
-	}
-#endif
 
 	//Get the positions
 	CalcEntitySpot(ent, SPOT_HEAD_LEAN, entPos);

@@ -403,18 +403,19 @@ qboolean NPC_PatrolArea(gentity_t *aiEnt)
 	ucmd->rightmove = 0;
 	ucmd->upmove = 0;
 	
-	if (NPC->noWaypointTime > level.time)
+	/*if (NPC->noWaypointTime > level.time)
 	{
 		if (NPC_IsHumanoid(NPC))
 			NPC_PickRandomIdleAnimantion(NPC);
 
-		//if (aiEnt->NPC->vehicleAI) Com_Printf("DEBUG VEHAI: Waiting1\n");
-		return qtrue;
-	}
+		return qfalse;
+	}*/
 
 #ifdef __USE_NAVLIB__
 	if (G_NavmeshIsLoaded())
 	{
+		NavlibSetNavMesh(NPC->s.number, 0);
+
 		qboolean walk = qtrue;
 
 		if (DistanceHorizontal(NPC->r.currentOrigin, NPC->npc_previous_pos) > 3)
@@ -423,50 +424,88 @@ qboolean NPC_PatrolArea(gentity_t *aiEnt)
 			VectorCopy(NPC->r.currentOrigin, NPC->npc_previous_pos);
 		}
 
-		if (NPC->client->navigation.goal.haveGoal && !GoalInRange(NPC, NavlibGetGoalRadius(NPC)))
+		if (!NPC->client->navigation.goal.haveGoal)
 		{
-			if (!NPC->NPC->vehicleAI && NPC->last_move_time < level.time - 4000)
+			NPC->client->navigation.goal.haveGoal = qfalse;
+			VectorClear(NPC->client->navigation.goal.origin);
+			NPC->client->navigation.goal.ent = NULL;
+			NPC_SetNewPatrolGoalAndPath(NPC);
+
+			if (NPC->client->navigation.goal.haveGoal)
 			{
-				NPC->client->navigation.goal.haveGoal = qfalse;
-				VectorClear(NPC->client->navigation.goal.origin);
-				NPC->client->navigation.goal.ent = NULL;
-				NPC_SetNewPatrolGoalAndPath(NPC);
+				NPC->last_move_time = level.time;
 			}
-			else if (NPC->NPC->vehicleAI && NPC->last_move_time < level.time - 10000)
+			else
+			{
+				ucmd->forwardmove = 0;
+				ucmd->rightmove = 0;
+				ucmd->upmove = 0;
+
+				NPC->client->navigation.goal.haveGoal = qfalse;
+				VectorClear(NPC->client->navigation.goal.origin);
+				NPC->client->navigation.goal.ent = NULL;
+
+				if (NPC_IsHumanoid(NPC))
+					NPC_PickRandomIdleAnimantion(NPC);
+
+				//if (aiEnt->NPC->vehicleAI) Com_Printf("DEBUG VEHAI: waiting2\n");
+
+				return qtrue; // next think...
+			}
+		}
+
+		qboolean goalInRange = qfalse;
+
+		if (NPC->client->navigation.goal.haveGoal)
+		{
+			float goalHitDistance = max(128.0, NavlibGetGoalRadius(NPC));
+
+			if (NPC->client->navigation.goal.ent)
+			{
+				float goalDist = DistanceHorizontal(NPC->client->navigation.goal.ent->r.currentOrigin, NPC->r.currentOrigin);
+				goalInRange = (goalDist <= goalHitDistance) ? qtrue : qfalse;
+			}
+			else
+			{
+				float goalDist = DistanceHorizontal(NPC->client->navigation.goal.origin, NPC->r.currentOrigin);
+				goalInRange = (goalDist <= goalHitDistance) ? qtrue : qfalse;
+			}
+		}
+
+		if (NPC->client->navigation.goal.haveGoal && !goalInRange)
+		{
+			if (NPC->last_move_time < level.time - 2000)
 			{
 				NPC->client->navigation.goal.haveGoal = qfalse;
 				VectorClear(NPC->client->navigation.goal.origin);
 				NPC->client->navigation.goal.ent = NULL;
-				NPC_SetNewPatrolGoalAndPath(NPC);
+				
+				ucmd->forwardmove = 0;
+				ucmd->rightmove = 0;
+				ucmd->upmove = 0;
+
+				if (NPC_IsHumanoid(NPC))
+					NPC_PickRandomIdleAnimantion(NPC);
+
+				return qtrue;
 			}
 
-			NavlibSetNavMesh(NPC->s.number, 0);
 #pragma omp critical
 			{
 				NavlibMoveToGoal(NPC);
 			}
+
 			NPC_FacePosition(NPC, NPC->client->navigation.nav.lookPos, qfalse);
 			VectorSubtract(NPC->client->navigation.nav.lookPos, NPC->r.currentOrigin, NPC->movedir);
 
 #ifndef __USE_NAVLIB_INTERNAL_MOVEMENT__
-			if (Distance(NPC->r.currentOrigin, NPC->client->navigation.goal.origin) < 256)
+			if (DistanceHorizontal(NPC->r.currentOrigin, NPC->client->navigation.goal.origin) < 256)
 			{
 				walk = qtrue;
 			}
 
 			if (UQ1_UcmdMoveForDir(NPC, ucmd, NPC->movedir, walk, NPC->client->navigation.nav.lookPos))
 			{
-				/*if (NavlibJump(NPC) || NPC->last_move_time < level.time - 2000) // FIXME: Seems to always trigger...
-				{
-					ucmd->upmove = 127;
-					trap->Print("DEBUG: NavlibJump\n");
-
-					if (NPC->s.eType == ET_PLAYER)
-					{
-						trap->EA_Jump(NPC->s.number);
-					}
-				}*/
-
 				return qtrue;
 			}
 			else if (NPC->bot_strafe_jump_timer > level.time)
@@ -480,85 +519,34 @@ qboolean NPC_PatrolArea(gentity_t *aiEnt)
 				}
 
 				//if (aiEnt->NPC->vehicleAI) Com_Printf("DEBUG VEHAI: strafeJump\n");
+				return qtrue;
 			}
 			else if (NPC->bot_strafe_left_timer > level.time)
 			{
 				ucmd->rightmove = -127;
 				trap->EA_MoveLeft(NPC->s.number);
 				//if (aiEnt->NPC->vehicleAI) Com_Printf("DEBUG VEHAI: strafeLeft\n");
+				return qtrue;
 			}
 			else if (NPC->bot_strafe_right_timer > level.time)
 			{
 				ucmd->rightmove = 127;
 				trap->EA_MoveRight(NPC->s.number);
 				//if (aiEnt->NPC->vehicleAI) Com_Printf("DEBUG VEHAI: strafeRight\n");
+				return qtrue;
 			}
-
-			/*if (NPC->last_move_time < level.time - 2000)
-			{
-				ucmd->upmove = 127;
-
-				if (NPC->s.eType == ET_PLAYER)
-				{
-					trap->EA_Jump(NPC->s.number);
-				}
-			}*/
 #endif //__USE_NAVLIB_INTERNAL_MOVEMENT__
-			return qtrue;
-		}
-		else if (NPC->noWaypointTime <= level.time && NPC->client->navigation.goal.haveGoal)
-		{// We're at our goal! Find a new goal... Assign a wait time, before we do...
-#ifdef ___AI_PATHING_DEBUG___
-			trap->Print("PATHING DEBUG: HIT GOAL!\n");
-#endif //___AI_PATHING_DEBUG___
-			NPC_ClearPathData(NPC);
-			NPC->noWaypointTime = level.time + 10000; // Idle at least 10 seconds at this point before finding a new patrol position...
-			ucmd->forwardmove = 0;
-			ucmd->rightmove = 0;
-			ucmd->upmove = 0;
 
-			NPC->client->navigation.goal.haveGoal = qfalse;
-			VectorClear(NPC->client->navigation.goal.origin);
-			NPC->client->navigation.goal.ent = NULL;
-			//trap->Print("[%s] hit goal!\n", NPC->client->pers.netname);
-
-			if (NPC_IsHumanoid(NPC))
-				NPC_PickRandomIdleAnimantion(NPC);
-
-			//if (aiEnt->NPC->vehicleAI) Com_Printf("DEBUG VEHAI: goalHit\n");
-
-			return qtrue; // next think...
-		}
-		else if (NPC->noWaypointTime > level.time)
-		{// Waiting before we move again...
-			ucmd->forwardmove = 0;
-			ucmd->rightmove = 0;
-			ucmd->upmove = 0;
-
-			NPC->client->navigation.goal.haveGoal = qfalse;
-			VectorClear(NPC->client->navigation.goal.origin);
-			NPC->client->navigation.goal.ent = NULL;
-
-			if (NPC_IsHumanoid(NPC))
-				NPC_PickRandomIdleAnimantion(NPC);
-
-			//if (aiEnt->NPC->vehicleAI) Com_Printf("DEBUG VEHAI: waiting2\n");
-
-			return qtrue; // next think...
+			return qfalse;
 		}
 		else
 		{// Need a new goal...
-			NavlibSetNavMesh(NPC->s.number, 0);
-
-			if (NPC->client->navigation.goal.haveGoal && GoalInRange(NPC, NavlibGetGoalRadius(NPC)))
-			{
-				NPC->client->navigation.goal.haveGoal = qfalse;
-				VectorClear(NPC->client->navigation.goal.origin);
-				NPC->client->navigation.goal.ent = NULL;
-				//trap->Print("[%s] hit goal!\n", NPC->client->pers.netname);
-			}
-
 			NPC_SetNewPatrolGoalAndPath(NPC);
+
+			if (NPC->client->navigation.goal.haveGoal)
+			{
+				NPC->last_move_time = level.time;
+			}
 
 			ucmd->forwardmove = 0;
 			ucmd->rightmove = 0;

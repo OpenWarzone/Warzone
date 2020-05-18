@@ -619,13 +619,13 @@ qboolean G_SecurityDroidMelee(gentity_t *self)
 
 	if (didSpecialMove)
 	{
-		Com_Printf("K2SO did special melee\n");
+		//Com_Printf("K2SO did special melee\n");
 		TIMER_Set(self, "k2sopunch", irand(9000, 25000));
 		return qtrue;
 	}
 	else
 	{
-		Com_Printf("K2SO did not do special melee\n");
+		//Com_Printf("K2SO did not do special melee\n");
 		TIMER_Set(self, "k2sopunch", irand(1000, 2500));
 		return qfalse;
 	}
@@ -819,6 +819,7 @@ void Boba_FireFlameThrower( gentity_t *self )
 			VectorSubtract(ent->r.currentOrigin, self->client->ps.origin, dir);
 			VectorNormalize(dir);
 			G_Damage(ent, self, self, dir, ent->r.currentOrigin, damage, DAMAGE_NO_ARMOR | DAMAGE_NO_KNOCKBACK |/*DAMAGE_NO_HIT_LOC|*/DAMAGE_IGNORE_TEAM, (type == 0) ? MOD_LAVA : MOD_STUN_BATON);
+			G_AddVoiceEvent(self, Q_irand(EV_GLOAT1, EV_GLOAT3), 5000 + irand(0, 15000));
 		}
 	}
 
@@ -845,6 +846,8 @@ qboolean Boba_StartFlameThrower( gentity_t *self )
 		TIMER_Set(self, "flameTime", flameTime);
 
 		Boba_FireFlameThrower(self);
+
+		G_AddVoiceEvent(self, Q_irand(EV_COMBAT1, EV_COMBAT3), 5000 + irand(0, 2000));
 
 		return qtrue;
 	}
@@ -895,36 +898,55 @@ void Boba_FireDecide( gentity_t *aiEnt )
 
 	ENEMY_IS_BREAKABLE = NPC_EntityIsBreakable(aiEnt, aiEnt->enemy);
 
-	if (aiEnt->s.NPC_class != CLASS_ATST && !CanShoot (aiEnt->enemy, aiEnt ))
+	if (ENEMY_IS_BREAKABLE)
+	{
+		enemyDist = DistanceSquared(aiEnt->r.currentOrigin, aiEnt->enemy->breakableOrigin);
+		VectorSubtract(aiEnt->enemy->breakableOrigin, aiEnt->r.currentOrigin, enemyDir);
+	}
+	else
+	{
+		enemyDist = DistanceSquared(aiEnt->r.currentOrigin, aiEnt->enemy->r.currentOrigin);
+		VectorSubtract(aiEnt->enemy->r.currentOrigin, aiEnt->r.currentOrigin, enemyDir);
+	}
+	
+	float enemyDistNotSq = Distance(aiEnt->enemy->r.currentOrigin, aiEnt->r.currentOrigin);
+
+	VectorNormalize(enemyDir);
+	AngleVectors(aiEnt->client->ps.viewangles, shootDir, NULL, NULL);
+	dot = DotProduct(enemyDir, shootDir);
+
+	if (dot > 0.5f || (enemyDist * (1.0f - dot)) < 10000)
+	{//enemy is in front of me or they're very close and not behind me
+		enemyInFOV = qtrue;
+	}
+
+	if (aiEnt->s.NPC_class != CLASS_ATST && !CanShoot(aiEnt->enemy, aiEnt ))
 	{// UQ1: Umm, how about we actually check if we can hit them first???
 		return;
 	}
 
-	if (aiEnt->s.NPC_class == CLASS_K2SO && G_SecurityDroidMelee(aiEnt))
+	if (aiEnt->s.NPC_class == CLASS_K2SO && enemyInFOV && enemyDistNotSq <= 96 && G_SecurityDroidMelee(aiEnt))
 	{// Punch the crap outa dem!
+		G_AddVoiceEvent(aiEnt, Q_irand(EV_TAUNT1, EV_TAUNT3), 5000 + irand(0, 15000));
 		return;
 	}
-	else if ( !ENEMY_IS_BREAKABLE
-		&& Distance(aiEnt->enemy->r.currentOrigin, aiEnt->r.currentOrigin) <= 64 
-		&& aiEnt->client->ps.weapon != WP_SABER
-		&& aiEnt->s.NPC_class != CLASS_ATST
-		&& !NPC_IsBountyHunter(aiEnt)) // BOBA kicks like a jedi now...
-	{// Close range - switch to melee... TODO: Make jedi/sith kick...
-		if (aiEnt->next_rifle_butt_time > level.time)
-		{// Wait for anim to play out...
+	else if (aiEnt->s.NPC_class == CLASS_K2SO && enemyInFOV && enemyDistNotSq <= 72.0)
+	{// Punch the crap outa dem!
+		if (!TIMER_Done(aiEnt, "k2soFastPunch"))
+		{
 			return;
 		}
-		else
-		{// Hit them again...
-			aiEnt->NPC->scriptFlags &= ~SCF_ALT_FIRE;
-			NPC_SetAnim( aiEnt, SETANIM_BOTH, BOTH_MELEE2, SETANIM_FLAG_OVERRIDE|SETANIM_FLAG_HOLD ); // UQ1: Better anim?????
-			WP_FireMelee(aiEnt, qfalse);
-			aiEnt->next_rifle_butt_time = level.time + 10000;
-			return;
-		}
+
+		aiEnt->NPC->scriptFlags &= ~SCF_ALT_FIRE;
+		int anim = irand(BOTH_MELEE1, BOTH_MELEE2);
+		NPC_SetAnim(aiEnt, SETANIM_BOTH, anim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD); // UQ1: Better anim?????
+		WP_FireMelee(aiEnt, (anim == BOTH_MELEE2) ? qtrue : qfalse);
+
+		TIMER_Set(aiEnt, "k2soFastPunch", irand(200, 300));
+		G_AddVoiceEvent(aiEnt, Q_irand(EV_COMBAT1, EV_COMBAT3), 5000 + irand(0, 3000));
+		return;
 	}
-	else if ( ENEMY_IS_BREAKABLE
-		&& Distance(aiEnt->enemy->breakableOrigin, aiEnt->r.currentOrigin) <= 64 
+	else if (enemyDistNotSq <= 64.0
 		&& aiEnt->client->ps.weapon != WP_SABER
 		&& aiEnt->s.NPC_class != CLASS_ATST
 		&& !NPC_IsBountyHunter(aiEnt)) // BOBA kicks like a jedi now...
@@ -935,9 +957,15 @@ void Boba_FireDecide( gentity_t *aiEnt )
 		}
 		else
 		{// Hit them again...
+			/*aiEnt->NPC->scriptFlags &= ~SCF_ALT_FIRE;
+			NPC_SetAnim(aiEnt, SETANIM_BOTH, BOTH_MELEE2, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD); // UQ1: Better anim?????
+			WP_FireMelee(aiEnt, qfalse);*/
 			aiEnt->NPC->scriptFlags &= ~SCF_ALT_FIRE;
-			NPC_SetAnim( aiEnt, SETANIM_BOTH, BOTH_MELEE2, SETANIM_FLAG_OVERRIDE|SETANIM_FLAG_HOLD ); // UQ1: Better anim?????
-			WP_FireMelee(aiEnt, qfalse);
+			int anim = irand(BOTH_MELEE1, BOTH_MELEE2);
+			NPC_SetAnim(aiEnt, SETANIM_BOTH, anim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD); // UQ1: Better anim?????
+			WP_FireMelee(aiEnt, (anim == BOTH_MELEE2) ? qtrue : qfalse);
+
+			G_AddVoiceEvent(aiEnt, Q_irand(EV_TAUNT1, EV_TAUNT3), 5000 + irand(0, 15000));
 			aiEnt->next_rifle_butt_time = level.time + 10000;
 			return;
 		}
@@ -967,29 +995,10 @@ void Boba_FireDecide( gentity_t *aiEnt )
 			aiEnt->NPC->burstSpacing = irand(500, 750);//attack debounce
 		}
 	}
-	
+
 
 	VectorClear( impactPos );
 
-	if (ENEMY_IS_BREAKABLE)
-	{
-		enemyDist = DistanceSquared( aiEnt->r.currentOrigin, aiEnt->enemy->breakableOrigin );
-		VectorSubtract( aiEnt->enemy->breakableOrigin, aiEnt->r.currentOrigin, enemyDir );
-	}
-	else
-	{
-		enemyDist = DistanceSquared( aiEnt->r.currentOrigin, aiEnt->enemy->r.currentOrigin );
-		VectorSubtract( aiEnt->enemy->r.currentOrigin, aiEnt->r.currentOrigin, enemyDir );
-	}
-
-	VectorNormalize( enemyDir );
-	AngleVectors( aiEnt->client->ps.viewangles, shootDir, NULL, NULL );
-	dot = DotProduct( enemyDir, shootDir );
-
-	if ( dot > 0.5f ||( enemyDist * (1.0f-dot)) < 10000 )
-	{//enemy is in front of me or they're very close and not behind me
-		enemyInFOV = qtrue;
-	}
 
 	if ( !ENEMY_IS_BREAKABLE
 		&& (NPC_IsBountyHunter(aiEnt) || aiEnt->s.NPC_class == CLASS_K2SO)
@@ -1000,7 +1009,7 @@ void Boba_FireDecide( gentity_t *aiEnt )
 		shoot = qfalse;
 		return;
 	}
-	else if (WeaponIsSniperCharge(aiEnt->client->ps.weapon) && Distance(aiEnt->r.currentOrigin, aiEnt->enemy->r.currentOrigin) >= 512.0)
+	/*else if (WeaponIsSniperCharge(aiEnt->client->ps.weapon) && Distance(aiEnt->r.currentOrigin, aiEnt->enemy->r.currentOrigin) >= 512.0)
 	{//sniping... should be assumed
 		if ( !(aiEnt->NPC->scriptFlags & SCF_ALT_FIRE) )
 		{//use primary fire
@@ -1010,7 +1019,7 @@ void Boba_FireDecide( gentity_t *aiEnt )
 			NPC_UpdateAngles(aiEnt, qtrue, qtrue );
 			return;
 		}
-	}
+	}*/
 
 	//can we see our target?
 	if ( TIMER_Done( aiEnt, "nextAttackDelay" ) && TIMER_Done( aiEnt, "flameTime" ) )
@@ -4764,10 +4773,10 @@ gentity_t *Jedi_FindEnemyInCone( gentity_t *self, gentity_t *fallback, float min
 			continue;
 		}
 
-		if ( !trap->InPVS( check->r.currentOrigin, self->r.currentOrigin ) )
+		/*if ( !trap->InPVS( check->r.currentOrigin, self->r.currentOrigin ) )
 		{//can't potentially see them
 			continue;
-		}
+		}*/
 
 		VectorSubtract( check->r.currentOrigin, self->r.currentOrigin, dir );
 		dist = VectorNormalize( dir );
@@ -4778,11 +4787,11 @@ gentity_t *Jedi_FindEnemyInCone( gentity_t *self, gentity_t *fallback, float min
 		}
 
 		//really should have a clear LOS to this thing...
-		trap->Trace( &tr, self->r.currentOrigin, vec3_origin, vec3_origin, check->r.currentOrigin, self->s.number, MASK_SHOT, qfalse, 0, 0 );
+		/*trap->Trace( &tr, self->r.currentOrigin, vec3_origin, vec3_origin, check->r.currentOrigin, self->s.number, MASK_SHOT, qfalse, 0, 0 );
 		if ( tr.fraction < 1.0f && tr.entityNum != check->s.number )
 		{//must have clear shot
 			continue;
-		}
+		}*/
 
 		if ( dist < bestDist )
 		{//closer than our last best one
@@ -4790,6 +4799,8 @@ gentity_t *Jedi_FindEnemyInCone( gentity_t *self, gentity_t *fallback, float min
 			enemy = check;
 		}
 	}
+
+	self->next_enemy_check_time = level.time + irand(200, 500);
 	return enemy;
 }
 
@@ -7048,6 +7059,8 @@ qboolean Jedi_CanPullBackSaber( gentity_t *self )
 
 	return qtrue;
 }
+
+#if 0
 /*
 -------------------------
 NPC_BSJedi_FollowLeader
@@ -7236,7 +7249,7 @@ void NPC_BSJedi_FollowLeader( gentity_t *aiEnt)
 		NPC_BSFollowLeader(aiEnt);
 	}
 }
-
+#endif
 
 /*
 -------------------------

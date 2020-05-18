@@ -553,6 +553,7 @@ void NPC_BSWampa_Default(gentity_t *aiEnt)
 			{
 				if ( ValidEnemy(aiEnt, aiEnt->enemy ) == qfalse )
 				{
+#if 0
 					TIMER_Remove( aiEnt, "lookForNewEnemy" );//make them look again right now
 					if ( !aiEnt->enemy->inuse || level.time - aiEnt->enemy->s.time > Q_irand( 10000, 15000 ) )
 					{//it's been a while since the enemy died, or enemy is completely gone, get bored with him
@@ -572,6 +573,9 @@ void NPC_BSWampa_Default(gentity_t *aiEnt)
 						}
 						return;
 					}
+#else
+					return;
+#endif
 				}
 				if ( TIMER_Done( aiEnt, "lookForNewEnemy" ) )
 				{
@@ -604,6 +608,7 @@ void NPC_BSWampa_Default(gentity_t *aiEnt)
 
 			TIMER_Set( aiEnt, "idlenoise", Q_irand( 2000, 4000 ) );
 		}
+#if 0
 		if ( (aiEnt->spawnflags&2) )
 		{//search around me if I don't have an enemy
 			if ( aiEnt->NPC->homeWp == WAYPOINT_NONE )
@@ -637,6 +642,7 @@ void NPC_BSWampa_Default(gentity_t *aiEnt)
 			}
 		}
 		else
+#endif
 		{
 			if ( aiEnt->NPC->scriptFlags & SCF_LOOK_FOR_ENEMIES )
 			{

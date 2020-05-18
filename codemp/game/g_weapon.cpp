@@ -6325,6 +6325,8 @@ void FireWeapon(gentity_t *ent, qboolean altFire) {
 		
 		CalcMuzzlePoint(ent, forward, vright, up, muzzle);
 
+		extern void NPC_SetAnim(gentity_t *ent, int setAnimParts, int anim, int setAnimFlags);
+
 		if (ent->s.eType == ET_NPC
 			&& ent->client->NPC_class != CLASS_ATST_OLD
 			&& ent->client->NPC_class != CLASS_ATST
@@ -6334,7 +6336,10 @@ void FireWeapon(gentity_t *ent, qboolean altFire) {
 			&& ent->enemy
 			&& Distance(ent->enemy->r.currentOrigin, ent->r.currentOrigin) <= 72)
 		{// UQ1: Added... At close range NPCs can hit you with their rifle butt...
-			WP_FireMelee(ent, (qboolean)irand(0, 1) /*altFire*/);
+			ent->NPC->scriptFlags &= ~SCF_ALT_FIRE;
+			int anim = irand(BOTH_MELEE1, BOTH_MELEE2);
+			NPC_SetAnim(ent, SETANIM_BOTH, anim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD); // UQ1: Better anim?????
+			WP_FireMelee(ent, (anim == BOTH_MELEE2) ? qtrue : qfalse);
 			return;
 		}
 		else if (ent->s.eType == ET_PLAYER
@@ -6342,7 +6347,9 @@ void FireWeapon(gentity_t *ent, qboolean altFire) {
 			&& ent->client
 			&& (ent->client->pers.cmd.buttons & BUTTON_SPECIALBUTTON2))
 		{// UQ1: Added... At close range players can hit you with their rifle butt...
-			WP_FireMelee(ent, qfalse);
+			int anim = irand(BOTH_MELEE1, BOTH_MELEE2);
+			NPC_SetAnim(ent, SETANIM_BOTH, anim, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD); // UQ1: Better anim?????
+			WP_FireMelee(ent, (anim == BOTH_MELEE2) ? qtrue : qfalse);
 			return;
 		}
 		else if (ent->s.eType == ET_PLAYER
@@ -6350,6 +6357,7 @@ void FireWeapon(gentity_t *ent, qboolean altFire) {
 			&& ent->client
 			&& (ent->client->pers.cmd.buttons & BUTTON_SPECIALBUTTON1))
 		{// UQ1: Added... At close range players can kick you...
+			NPC_SetAnim(ent, SETANIM_BOTH, BOTH_A7_KICK_F, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD); // UQ1: Better anim?????
 			WP_FireMelee(ent, qtrue);
 			return;
 		}

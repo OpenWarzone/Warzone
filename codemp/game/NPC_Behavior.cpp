@@ -19,6 +19,8 @@ extern qboolean PM_InKnockDown( playerState_t *ps );
 
 extern void NPC_AimAdjust( gentity_t *aiEnt, int change );
 extern qboolean NPC_SomeoneLookingAtMe(gentity_t *ent);
+
+#if 0
 /*
  void NPC_BSAdvanceFight (void)
 
@@ -179,6 +181,7 @@ void NPC_BSAdvanceFight (gentity_t *aiEnt )
 #endif //__NO_ICARUS__
 	}
 }
+#endif
 
 void Disappear(gentity_t *self)
 {
@@ -209,6 +212,7 @@ void BeamOut (gentity_t *self)
 	//self->r.svFlags |= SVF_BEAMING; //this appears unused in SP as well
 }
 
+#if 0
 void NPC_BSCinematic(gentity_t *aiEnt)
 {
 
@@ -1800,3 +1804,4 @@ void NPC_BSEmplaced(gentity_t *aiEnt)
 		}
 	}
 }
+#endif

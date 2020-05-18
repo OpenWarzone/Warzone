@@ -2450,6 +2450,29 @@ finish:
 	}
 #endif //__NPC_VEHICLE_PILOTS__
 
+	// For walkers, move the bbox up a bit, resulting in their legs digging into the ground a bit to look better on slopes...
+	switch (newent->s.NPC_class)
+	{
+	case CLASS_ATPT:
+		newent->r.mins[2] += 32.0;
+		newent->r.maxs[2] += 32.0;
+		break;
+	case CLASS_ATST:
+		newent->r.mins[2] += 48.0;
+		newent->r.maxs[2] += 48.0;
+		break;
+	case CLASS_ATAT:
+		newent->r.mins[2] += 64.0;
+		newent->r.maxs[2] += 64.0;
+		break;
+	case CLASS_RANCOR:
+		newent->r.mins[2] += 32.0;
+		newent->r.maxs[2] += 32.0;
+		break;
+	default:
+		break;
+	}
+
 	//trap->Print("newent %i.\n", newent->s.number);
 
 	return newent;

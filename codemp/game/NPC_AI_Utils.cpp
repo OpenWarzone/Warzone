@@ -13,6 +13,7 @@ qboolean AI_ValidateGroupMember( AIGroupInfo_t *group, gentity_t *member );
 
 extern void G_TestLine(vec3_t start, vec3_t end, int color, int time);
 
+#if 0
 /*
 -------------------------
 AI_GetGroupSize
@@ -1119,3 +1120,4 @@ gentity_t *AI_DistributeAttack( gentity_t *attacker, gentity_t *enemy, team_t te
 
 	return NULL;
 }
+#endif

@@ -72,6 +72,8 @@ void NPC_ClearGoal(gentity_t *aiEnt)
 	VectorClear(aiEnt->client->navigation.goal.origin);
 #endif //__USE_NAVLIB__
 
+	aiEnt->last_move_time = level.time;
+
 	if ( !aiEnt->NPC->lastGoalEntity )
 	{
 		SetGoal(aiEnt, NULL, 0.0 );

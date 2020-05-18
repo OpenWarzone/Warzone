@@ -1,12 +1,5 @@
 #include "b_local.h"
 
-#define	ATST_VALID_ATTACK_CONE		2.0f	//Degrees
-
-void ATST_Patrol(gentity_t *aiEnt);
-
-extern void G_SoundOnEnt(gentity_t *ent, soundChannel_t channel, const char *soundPath);
-extern qboolean NPC_MoveIntoOptimalAttackPosition(gentity_t *aiEnt);
-
 /*
 -------------------------
 NPC_ATST_Precache
@@ -51,6 +44,14 @@ void NPC_ATST_Pain(gentity_t *self, gentity_t *attacker, int damage)
 	G_ATSTCheckPain(self, attacker, damage);
 	NPC_Pain(self, attacker, damage);
 }
+
+#if 0
+#define	ATST_VALID_ATTACK_CONE		2.0f	//Degrees
+
+void ATST_Patrol(gentity_t *aiEnt);
+
+extern void G_SoundOnEnt(gentity_t *ent, soundChannel_t channel, const char *soundPath);
+extern qboolean NPC_MoveIntoOptimalAttackPosition(gentity_t *aiEnt);
 
 qboolean ATST_UpdateAngles(gentity_t *aiEnt, qboolean doPitch, qboolean doYaw)
 {
@@ -597,3 +598,4 @@ void NPC_BSATST_Default(gentity_t *aiEnt)
 
 	//gentity_t *G_ScreenShake(vec3_t org, gentity_t *target, float intensity, int duration, qboolean global)
 }
+#endif

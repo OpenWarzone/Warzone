@@ -37,6 +37,8 @@ void G_ClearEnemy (gentity_t *self)
 		self->NPC->helpCallTime = 0;
 	}
 
+	self->next_enemy_check_time = 0; // Let them check for a new enemy, isntantly...
+
 	self->enemy = NULL;
 }
 
@@ -71,6 +73,7 @@ G_TeamEnemy
 
 qboolean G_TeamEnemy( gentity_t *self )
 {//FIXME: Probably a better way to do this, is a linked list of your teammates already available?
+#if 0
 	int	i;
 	gentity_t	*ent;
 
@@ -117,6 +120,9 @@ qboolean G_TeamEnemy( gentity_t *self )
 	}
 
 	return qfalse;
+#else
+	return ValidEnemy(self, self->enemy);
+#endif
 }
 
 void G_AttackDelay( gentity_t *self, gentity_t *enemy )
@@ -240,18 +246,13 @@ void G_SetEnemy( gentity_t *self, gentity_t *enemy )
 	}
 #endif// _DEBUG
 
-//	if ( enemy->client && enemy->client->playerTeam == TEAM_DISGUISE )
-//	{//unmask the player
-//		enemy->client->playerTeam = TEAM_PLAYER;
-//	}
-
-	if ( self->client && self->NPC && enemy->client && enemy->client->playerTeam == self->client->playerTeam )
+	/*if ( self->client && self->NPC && enemy->client && enemy->client->playerTeam == self->client->playerTeam )
 	{//Probably a damn script!
 		if ( self->NPC->charmedTime > level.time )
 		{//Probably a damn script!
 			return;
 		}
-	}
+	}*/
 
 	if ( self->NPC && self->client && self->client->ps.weapon == WP_SABER )
 	{
@@ -270,15 +271,31 @@ void G_SetEnemy( gentity_t *self, gentity_t *enemy )
 			G_ForceSaberOn(self);
 		}
 
+		if (self->NPC)
+		{
+#ifdef __USE_NAVLIB__
+			if (self->client->navigation.goal.haveGoal && self->client->navigation.goal.ent != enemy)
+			{// Also clear their entity goal...
+				self->client->navigation.goal.haveGoal = qfalse;
+				self->client->navigation.goal.ent = NULL;
+
+				if (self->enemy && DistanceHorizontal(self->r.currentOrigin, self->enemy->r.currentOrigin) <= 512.0)
+				{// Also clear their origin goal, if it is close to enemy pos...
+					VectorClear(self->client->navigation.goal.origin);
+				}
+			}
+#endif //__USE_NAVLIB__
+		}
+
 		//FIXME: Have to do this to prevent alert cascading
 		G_ClearEnemy( self );
 		self->enemy = enemy;
 
 		//Special case- if player is being hunted by his own people, set their enemy team correctly
-		if ( self->client->playerTeam == NPCTEAM_PLAYER && enemy->s.number >= 0 && enemy->s.number < MAX_CLIENTS )
+		/*if ( self->client->playerTeam == NPCTEAM_PLAYER && enemy->s.number >= 0 && enemy->s.number < MAX_CLIENTS )
 		{
 			self->client->enemyTeam = NPCTEAM_PLAYER;
-		}
+		}*/
 
 		//If have an anger script, run that instead of yelling
 		if( G_ActivateBehavior( self, BSET_ANGER ) )
@@ -303,11 +320,11 @@ void G_SetEnemy( gentity_t *self, gentity_t *enemy )
 			}
 		}
 
-		if ( self->s.weapon == WP_MODULIZED_WEAPON
-			|| self->s.weapon == WP_THERMAL) //rwwFIXMEFIXME: Blaster pistol useable by npcs?
+		if ( self->s.weapon == WP_MODULIZED_WEAPON || self->s.weapon == WP_THERMAL) //rwwFIXMEFIXME: Blaster pistol useable by npcs?
 		{//Hmm, how about sniper and bowcaster?
 			//When first get mad, aim is bad
 			//Hmm, base on game difficulty, too?  Rank?
+#if 0
 			if ( self->client->playerTeam == NPCTEAM_PLAYER )
 			{
 				G_AimSet( self, Q_irand( self->NPC->stats.aim - (5*(g_npcspskill.integer)), self->NPC->stats.aim - g_npcspskill.integer ) );
@@ -329,16 +346,36 @@ void G_SetEnemy( gentity_t *self, gentity_t *enemy )
 
 				G_AimSet( self, Q_irand( self->NPC->stats.aim - (maxErr*(3-g_npcspskill.integer)), self->NPC->stats.aim - (minErr*(3-g_npcspskill.integer)) ) );
 			}
+#else
+			int minErr = 3;
+			int maxErr = 12;
+			if (self->client->NPC_class == CLASS_IMPWORKER)
+			{
+				minErr = 15;
+				maxErr = 30;
+				G_AimSet(self, Q_irand(self->NPC->stats.aim - (maxErr*(3 - g_npcspskill.integer)), self->NPC->stats.aim - (minErr*(3 - g_npcspskill.integer))));
+			}
+			else if (self->client->NPC_class == CLASS_STORMTROOPER && self->NPC && self->NPC->rank <= RANK_CREWMAN)
+			{
+				minErr = 5;
+				maxErr = 15;
+				G_AimSet(self, Q_irand(self->NPC->stats.aim - (maxErr*(3 - g_npcspskill.integer)), self->NPC->stats.aim - (minErr*(3 - g_npcspskill.integer))));
+			}
+			else
+			{
+				G_AimSet(self, Q_irand(self->NPC->stats.aim - (5 * (g_npcspskill.integer)), self->NPC->stats.aim - g_npcspskill.integer));
+			}
+#endif
 		}
 
 		//Alert anyone else in the area
-		if ( Q_stricmp( "desperado", self->NPC_type ) != 0 && Q_stricmp( "paladin", self->NPC_type ) != 0 )
+		/*if ( Q_stricmp( "desperado", self->NPC_type ) != 0 && Q_stricmp( "paladin", self->NPC_type ) != 0 )
 		{//special holodeck enemies exception
 			if ( self->client->ps.fd.forceGripBeingGripped < level.time )
 			{//gripped people can't call for help
 				G_AngerAlert( self );
 			}
-		}
+		}*/
 
 		//Stormtroopers don't fire right away!
 		G_AttackDelay( self, enemy );
@@ -793,6 +830,7 @@ Added: If can't shoot center, try head, if not, see if it's close enough to try 
 */
 qboolean CanShoot ( gentity_t *ent, gentity_t *shooter )
 {
+#if 0
 	trace_t		tr;
 	vec3_t		muzzle;
 	vec3_t		spot, diff;
@@ -873,6 +911,9 @@ qboolean CanShoot ( gentity_t *ent, gentity_t *shooter )
 
 	// he's just in the wrong place, go ahead
 	return qtrue;
+#else
+	return (ValidEnemy(shooter, ent)) ? qtrue : qfalse;
+#endif
 }
 
 
@@ -883,7 +924,7 @@ Added: hacks for scripted NPCs
 */
 void NPC_CheckPossibleEnemy( gentity_t *aiEnt, gentity_t *other, visibility_t vis )
 {
-
+#if 0
 	// is he is already our enemy?
 	if ( other == aiEnt->enemy )
 		return;
@@ -927,6 +968,12 @@ void NPC_CheckPossibleEnemy( gentity_t *aiEnt, gentity_t *other, visibility_t vi
 		aiEnt->NPC->enemyLastHeardTime = level.time;
 		VectorCopy( other->r.currentOrigin, aiEnt->NPC->enemyLastHeardLocation );
 	}
+#else
+	if (ValidEnemy(aiEnt, other))
+	{// Probably don't even need this, but ok...
+		G_SetEnemy(aiEnt, other);
+	}
+#endif
 }
 
 
@@ -984,6 +1031,7 @@ float NPC_MaxDistSquaredForWeapon (gentity_t *aiEnt)
 
 qboolean NPC_EnemyTooFar(gentity_t *aiEnt, gentity_t *enemy, float dist, qboolean toShoot)
 {
+#if 0
 	vec3_t	vec;
 
 	if ( !toShoot )
@@ -1003,6 +1051,7 @@ qboolean NPC_EnemyTooFar(gentity_t *aiEnt, gentity_t *enemy, float dist, qboolea
 
 	if(dist > NPC_MaxDistSquaredForWeapon(aiEnt))
 		return qtrue;
+#endif
 
 	return qfalse;
 }
@@ -1026,6 +1075,7 @@ FIXME: this should go through the snapshot and find the closest enemy
 */
 gentity_t *NPC_PickEnemy( gentity_t *aiEnt, gentity_t *closestTo, int enemyTeam, qboolean checkVis, qboolean findPlayersFirst, qboolean findClosest )
 {
+#if 0
 	int			num_choices = 0;
 	int			choice[128];//FIXME: need a different way to determine how many choices?
 	gentity_t	*newenemy = NULL;
@@ -1317,6 +1367,9 @@ gentity_t *NPC_PickEnemy( gentity_t *aiEnt, gentity_t *closestTo, int enemyTeam,
 	}
 
 	return &g_entities[ choice[rand() % num_choices] ];
+#else
+	return aiEnt->enemy;
+#endif
 }
 
 /*
@@ -1327,6 +1380,7 @@ gentity_t *NPC_PickAlly ( void )
 
 gentity_t *NPC_PickAlly ( gentity_t *aiEnt, qboolean facingEachOther, float range, qboolean ignoreGroup, qboolean movingOnly )
 {
+#if 0
 	gentity_t	*ally = NULL;
 	gentity_t	*closestAlly = NULL;
 	int			entNum;
@@ -1342,8 +1396,7 @@ gentity_t *NPC_PickAlly ( gentity_t *aiEnt, qboolean facingEachOther, float rang
 		{
 			if ( ally->health > 0 )
 			{
-				if ( ally->client && ( ally->client->playerTeam == aiEnt->client->playerTeam ||
-					 aiEnt->client->playerTeam == NPCTEAM_ENEMY ) )// && ally->client->playerTeam == TEAM_DISGUISE ) ) )
+				if ( ally->client && OnSameTeam(aiEnt, ally) )
 				{//if on same team or if player is disguised as your team
 					if ( ignoreGroup )
 					{
@@ -1359,10 +1412,10 @@ gentity_t *NPC_PickAlly ( gentity_t *aiEnt, qboolean facingEachOther, float rang
 						}
 					}
 
-					if(!trap->InPVS(ally->r.currentOrigin, aiEnt->r.currentOrigin))
+					/*if(!trap->InPVS(ally->r.currentOrigin, aiEnt->r.currentOrigin))
 					{
 						continue;
-					}
+					}*/
 
 					if ( movingOnly && ally->client && aiEnt->client )
 					{//They have to be moving relative to each other
@@ -1401,7 +1454,7 @@ gentity_t *NPC_PickAlly ( gentity_t *aiEnt, qboolean facingEachOther, float rang
 							//I am facing him
 						}
 
-						if ( NPC_CheckVisibility (aiEnt, ally, CHECK_360|CHECK_VISRANGE ) >= VIS_360 )
+						//if ( NPC_CheckVisibility (aiEnt, ally, CHECK_360|CHECK_VISRANGE ) >= VIS_360 )
 						{
 							bestDist = relDist;
 							closestAlly = ally;
@@ -1414,10 +1467,14 @@ gentity_t *NPC_PickAlly ( gentity_t *aiEnt, qboolean facingEachOther, float rang
 
 
 	return closestAlly;
+#else
+	return NULL;
+#endif
 }
 
 gentity_t *NPC_CheckEnemy( gentity_t *aiEnt, qboolean findNew, qboolean tooFarOk, qboolean setEnemy )
 {
+#if 0
 	qboolean	forcefindNew = qfalse;
 	gentity_t	*closestTo;
 	gentity_t	*newEnemy = NULL;
@@ -1632,6 +1689,9 @@ gentity_t *NPC_CheckEnemy( gentity_t *aiEnt, qboolean findNew, qboolean tooFarOk
 		}
 	}
 	return newEnemy;
+#else
+	return aiEnt->enemy;
+#endif
 }
 
 /*
@@ -1642,6 +1702,7 @@ NPC_ClearShot
 
 qboolean NPC_ClearShot( gentity_t *aiEnt, gentity_t *ent )
 {
+#if 0
 	vec3_t	muzzle;
 	trace_t	tr;
 
@@ -1673,6 +1734,9 @@ qboolean NPC_ClearShot( gentity_t *aiEnt, gentity_t *ent )
 		return qtrue;
 
 	return qfalse;
+#else
+	return (ValidEnemy(aiEnt, ent)) ? qtrue : qfalse;
+#endif
 }
 
 /*
@@ -1683,6 +1747,7 @@ NPC_ShotEntity
 
 int NPC_ShotEntity( gentity_t *aiEnt, gentity_t *ent, vec3_t impactPos )
 {
+#if 0
 	vec3_t	muzzle;
 	vec3_t targ;
 	trace_t	tr;
@@ -1735,6 +1800,9 @@ int NPC_ShotEntity( gentity_t *aiEnt, gentity_t *ent, vec3_t impactPos )
 	}
 */
 	return tr.entityNum;
+#else
+	return (ValidEnemy(aiEnt, ent)) ? ent->s.number : qfalse;
+#endif
 }
 
 qboolean NPC_EvaluateShot( gentity_t *aiEnt, int hit, qboolean glassOK )
@@ -1795,6 +1863,7 @@ qboolean NPC_CheckDefend (gentity_t *aiEnt, float scale)
 //NOTE: BE SURE TO CHECK PVS BEFORE THIS!
 qboolean NPC_CheckCanAttack (gentity_t *aiEnt, float attack_scale, qboolean stationary)
 {
+#if 0
 	vec3_t		delta, forward;
 	vec3_t		angleToEnemy;
 	vec3_t		hitspot, muzzle, diff, enemy_org;//, enemy_head;
@@ -1995,6 +2064,9 @@ qboolean NPC_CheckCanAttack (gentity_t *aiEnt, float attack_scale, qboolean stat
 	}
 
 	return attack_ok;
+#else
+	return qtrue;
+#endif
 }
 //========================================================================================
 //OLD id-style hunt and kill

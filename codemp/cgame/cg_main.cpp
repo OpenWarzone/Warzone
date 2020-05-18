@@ -146,6 +146,7 @@ vec3_t			MAP_INFO_MAXS;
 
 vec3_t			TOWN_FORCEFIELD_ORIGIN;
 vec3_t			TOWN_FORCEFIELD_RADIUS;
+char			TOWN_MAP_ICON[256] = { { 0 } };
 
 extern void CG_ForcefieldCreate(vec3_t origin, vec3_t radius, int team, int health, qboolean isTown);
 extern void CG_ForcefieldDropTownShield(void);
@@ -186,6 +187,10 @@ qboolean MAPPING_LoadMapInfo(void)
 	TOWN_FORCEFIELD_RADIUS[0] = atof(IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "TOWN", "TOWN_FORCEFIELD_RADIUS_X", "999999.9"));
 	TOWN_FORCEFIELD_RADIUS[1] = atof(IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "TOWN", "TOWN_FORCEFIELD_RADIUS_Y", "999999.9"));
 	TOWN_FORCEFIELD_RADIUS[2] = atof(IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "TOWN", "TOWN_FORCEFIELD_RADIUS_Z", "999999.9"));
+
+
+	strcpy(TOWN_MAP_ICON, IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "TOWN", "TOWN_MAP_ICON", "gfx/radarIcons/iconTown"));
+
 
 	trap->Print("^1*** ^3%s^5: Birds are %s. Birds count is %i.\n", "CGAME-MAPINFO", BIRDS_ENABLED ? "Enabled" : "Disabled", BIRDS_ENABLED ? BIRDS_COUNT : 0);
 

@@ -2637,7 +2637,7 @@ static qboolean Q3_SetBState( int entID, const char *bs_name )
 		if ( bSID == BS_SEARCH || bSID == BS_WANDER )
 		{
 			//FIXME: Reimplement
-
+#if 0
 			if( ent->waypoint != WAYPOINT_NONE )
 			{
 				NPC_BSSearchStart( ent, ent->waypoint, bSID );
@@ -2664,6 +2664,7 @@ static qboolean Q3_SetBState( int entID, const char *bs_name )
 					return qtrue;
 				}
 			}
+#endif
 		}
 
 

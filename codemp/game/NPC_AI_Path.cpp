@@ -634,6 +634,7 @@ void NPC_SetNewGoalAndPath(gentity_t *aiEnt)
 			aiEnt->client->navigation.goal.haveGoal = (qboolean)NavlibFindRouteToTarget(aiEnt, aiEnt->client->navigation.goal, qtrue);
 			//trap->Print("PADAWAN DEBUG: %s has a path to his master? %s.\n", aiEnt->client->pers.netname, aiEnt->client->navigation.goal.haveGoal ? "TRUE" : "FALSE");
 		}
+		aiEnt->last_move_time = level.time;
 		return;
 	}
 
@@ -1590,7 +1591,11 @@ qboolean NPC_FollowRoutes(gentity_t *aiEnt)
 				}
 			}
 
-			if (Distance(NPC->r.currentOrigin, NPC->client->navigation.goal.origin) < 256)
+			if (!NPC->client->navigation.goal.ent && Distance(NPC->r.currentOrigin, NPC->client->navigation.goal.origin) < 256)
+			{
+				walk = qtrue;
+			}
+			else if (NPC->client->navigation.goal.ent && Distance(NPC->r.currentOrigin, NPC->client->navigation.goal.ent->r.currentOrigin) < 256)
 			{
 				walk = qtrue;
 			}

@@ -851,63 +851,15 @@ void NPC_HandleAIFlags (gentity_t *aiEnt)
 		}
 		*/
 
+#if 0
 		if ( aiEnt->NPC->goalEntity && aiEnt->NPC->goalEntity == aiEnt->enemy )
 		{//We can't nav to our enemy
 			//Drop enemy and see if we should search for him
 			NPC_LostEnemyDecideChase(aiEnt);
 		}
+#endif
 	}
 
-	//MRJ Request:
-	/*
-	if ( NPCInfo->aiFlags & NPCAI_GREET_ALLIES && !NPC->enemy )//what if "enemy" is the greetEnt?
-	{//If no enemy, look for teammates to greet
-		//FIXME: don't say hi to the same guy over and over again.
-		if ( NPCInfo->greetingDebounceTime < level.time )
-		{//Has been at least 2 seconds since we greeted last
-			if ( !NPCInfo->greetEnt )
-			{//Find a teammate whom I'm facing and who is facing me and within 128
-				NPCInfo->greetEnt = NPC_PickAlly( qtrue, 128, qtrue, qtrue );
-			}
-
-			if ( NPCInfo->greetEnt && !Q_irand(0, 5) )
-			{//Start greeting someone
-				qboolean	greeted = qfalse;
-
-				//TODO:  If have a greetscript, run that instead?
-
-				//FIXME: make them greet back?
-				if( !Q_irand( 0, 2 ) )
-				{//Play gesture anim (press gesture button?)
-					greeted = qtrue;
-					NPC_SetAnim( NPC, SETANIM_TORSO, Q_irand( BOTH_GESTURE1, BOTH_GESTURE3 ), SETANIM_FLAG_NORMAL|SETANIM_FLAG_HOLD );
-					//NOTE: play full-body gesture if not moving?
-				}
-
-				if( !Q_irand( 0, 2 ) )
-				{//Play random voice greeting sound
-					greeted = qtrue;
-					//FIXME: need NPC sound sets
-
-					//G_AddVoiceEvent( NPC, Q_irand(EV_GREET1, EV_GREET3), 2000 );
-				}
-
-				if( !Q_irand( 0, 1 ) )
-				{//set looktarget to them for a second or two
-					greeted = qtrue;
-					NPC_TempLookTarget( NPC, NPCInfo->greetEnt->s.number, 1000, 3000 );
-				}
-
-				if ( greeted )
-				{//Did at least one of the things above
-					//Don't greet again for 2 - 4 seconds
-					NPCInfo->greetingDebounceTime = level.time + Q_irand( 2000, 4000 );
-					NPCInfo->greetEnt = NULL;
-				}
-			}
-		}
-	}
-	*/
 	//been told to play a victory sound after a delay
 	if ( aiEnt->NPC->greetingDebounceTime && aiEnt->NPC->greetingDebounceTime < level.time )
 	{
@@ -948,12 +900,14 @@ void NPC_AvoidWallsAndCliffs (gentity_t *aiEnt)
 
 void NPC_CheckAttackScript(gentity_t *aiEnt)
 {
+#ifndef __NO_ICARUS__
 	if(!(aiEnt->client->pers.cmd.buttons & BUTTON_ATTACK))
 	{
 		return;
 	}
 
 	G_ActivateBehavior(aiEnt, BSET_ATTACK);
+#endif //__NO_ICARUS__
 }
 
 float NPC_MaxDistSquaredForWeapon (gentity_t *aiEnt);
@@ -968,59 +922,25 @@ void NPC_CheckAttackHold(gentity_t *aiEnt)
 		return;
 	}
 
-/*	if ( ( NPC->client->ps.weapon == WP_BORG_ASSIMILATOR ) || ( NPC->client->ps.weapon == WP_BORG_DRILL ) )
-	{//FIXME: don't keep holding this if can't hit enemy?
+	if (aiEnt->enemy && !ValidEnemy(aiEnt, aiEnt->enemy))
+		return;
 
-		// If they don't have shields ( been disabled) they shouldn't hold their attack anim.
-		if ( !(NPC->NPC->aiFlags & NPCAI_SHIELDS) )
-		{
-			NPCInfo->attackHoldTime = 0;
-			return;
-		}
-
-		VectorSubtract(NPC->enemy->r.currentOrigin, NPC->r.currentOrigin, vec);
-		if( VectorLengthSquared(vec) > NPC_MaxDistSquaredForWeapon() )
-		{
-			NPCInfo->attackHoldTime = 0;
-			PM_SetTorsoAnimTimer(NPC, &NPC->client->ps.torsoAnimTimer, 0);
-		}
-		else if( NPCInfo->attackHoldTime && NPCInfo->attackHoldTime > level.time )
-		{
-			ucmd.buttons |= BUTTON_ATTACK;
-		}
-		else if ( ( NPCInfo->attackHold ) && ( ucmd.buttons & BUTTON_ATTACK ) )
-		{
-			NPCInfo->attackHoldTime = level.time + NPCInfo->attackHold;
-			PM_SetTorsoAnimTimer(NPC, &NPC->client->ps.torsoAnimTimer, NPCInfo->attackHold);
-		}
-		else
-		{
-			NPCInfo->attackHoldTime = 0;
-			PM_SetTorsoAnimTimer(NPC, &NPC->client->ps.torsoAnimTimer, 0);
-		}
+	VectorSubtract(aiEnt->enemy->r.currentOrigin, aiEnt->r.currentOrigin, vec);
+	if( VectorLengthSquared(vec) > NPC_MaxDistSquaredForWeapon(aiEnt) )
+	{
+		aiEnt->NPC->attackHoldTime = 0;
 	}
-	else*/
-	{//everyone else...?  FIXME: need to tie this into AI somehow?
-		if (aiEnt->enemy && !ValidEnemy(aiEnt, aiEnt->enemy))
-			return;
-
-		VectorSubtract(aiEnt->enemy->r.currentOrigin, aiEnt->r.currentOrigin, vec);
-		if( VectorLengthSquared(vec) > NPC_MaxDistSquaredForWeapon(aiEnt) )
-		{
-			aiEnt->NPC->attackHoldTime = 0;
-		}
-		else if( aiEnt->NPC->attackHoldTime && aiEnt->NPC->attackHoldTime > level.time )
-		{
-			aiEnt->client->pers.cmd.buttons |= BUTTON_ATTACK;
-		}
-		else if ( ( aiEnt->NPC->attackHold ) && ( aiEnt->client->pers.cmd.buttons & BUTTON_ATTACK ) )
-		{
-			aiEnt->NPC->attackHoldTime = level.time + aiEnt->NPC->attackHold;
-		}
-		else
-		{
-			aiEnt->NPC->attackHoldTime = 0;
-		}
+	else if( aiEnt->NPC->attackHoldTime && aiEnt->NPC->attackHoldTime > level.time )
+	{
+		aiEnt->client->pers.cmd.buttons |= BUTTON_ATTACK;
+	}
+	else if ( ( aiEnt->NPC->attackHold ) && ( aiEnt->client->pers.cmd.buttons & BUTTON_ATTACK ) )
+	{
+		aiEnt->NPC->attackHoldTime = level.time + aiEnt->NPC->attackHold;
+	}
+	else
+	{
+		aiEnt->NPC->attackHoldTime = 0;
 	}
 }
 
@@ -1124,6 +1044,7 @@ qboolean NPC_CanUseAdvancedFighting(gentity_t *aiEnt)
 	return qtrue;
 }
 
+#if 0
 /*
 -------------------------
 NPC_BehaviorSet_Charmed
@@ -1640,6 +1561,7 @@ void NPC_BehaviorSet_Rancor(gentity_t *aiEnt, int bState)
 		break;
 	}
 }
+#endif
 
 void ST_SelectBestWeapon( gentity_t *aiEnt )
 {
@@ -1711,6 +1633,7 @@ void Rocketer_SelectBestWeapon( gentity_t *aiEnt)
 	}
 }
 
+#if 0
 /*
 -------------------------
 NPC_RunBehavior
@@ -2114,13 +2037,13 @@ void NPC_ExecuteBState ( gentity_t *self )//, int msec )
 	//FIXME: don't walk off ledges unless we can get to our goal faster that way, or that's our goal's surface
 	//NPCPredict();
 
-	if ( aiEnt->enemy )
+	/*if ( aiEnt->enemy )
 	{
 		if ( !aiEnt->enemy->inuse )
 		{//just in case bState doesn't catch this
 			G_ClearEnemy( aiEnt );
 		}
-	}
+	}*/
 
 	if ( aiEnt->client->ps.saberLockTime && aiEnt->client->ps.saberLockEnemy != ENTITYNUM_NONE )
 	{
@@ -2160,6 +2083,7 @@ void NPC_ExecuteBState ( gentity_t *self )//, int msec )
 		}
 	}
 }
+#endif
 
 void NPC_CheckInSolid( gentity_t *aiEnt )
 {
@@ -4710,16 +4634,6 @@ void NPC_Think ( gentity_t *self )//, int msec )
 			qboolean is_vendor = NPC_IsVendor(self);
 			qboolean use_pathing = qfalse;
 
-			/*
-			if (self->client->ps.m_iVehicleNum
-				&& g_entities[self->client->ps.m_iVehicleNum].m_pVehicle
-				&& g_entities[self->client->ps.m_iVehicleNum].s.NPC_class == CLASS_VEHICLE)
-			{
-				gentity_t *vEnt = &g_entities[self->client->ps.m_iVehicleNum];
-				trap->Print("ATST pilot %i (%i) running think.\n", self->s.number, vEnt->m_pVehicle->m_pPilot->s.number);
-			}
-			*/
-
 			if (!WP_PairedAnimationCheckCompletion(self))
 			{// Always continue scripted paired animations...
 				NPC_GenericFrameCode(self);
@@ -4744,45 +4658,44 @@ void NPC_Think ( gentity_t *self )//, int msec )
 
 			NPC_DoPadawanStuff(aiEnt); // check any padawan stuff we might need to do...
 
-			if (is_civilian) 
+			if (!is_civilian)
+			{
+				if (NPC_FindEnemy(aiEnt, qtrue))
+				{// UQ1: Ummmm sounds please!
+					if (NPC_IsJedi(self))
+					{
+						G_AddVoiceEvent(self, Q_irand(EV_JDETECTED1, EV_JDETECTED3), 15000 + irand(0, 30000));
+					}
+					else if (NPC_IsBountyHunter(self))
+					{
+						G_AddVoiceEvent(self, Q_irand(EV_DETECTED1, EV_DETECTED5), 15000 + irand(0, 30000));
+					}
+					else
+					{
+						if (irand(0, 1) == 1)
+							ST_Speech(self, SPEECH_DETECTED, 0);
+						else if (irand(0, 1) == 1)
+							ST_Speech(self, SPEECH_CHASE, 0);
+						else
+							ST_Speech(self, SPEECH_SIGHT, 0);
+					}
+
+					//if (!self->enemy->enemy || (self->enemy->enemy && !ValidEnemy(self, self->enemy->enemy)))
+					//{// Make me their enemy if they have none too...
+					//	self->enemy->enemy = self;
+					//}
+				}
+
+				self->next_enemy_check_time = level.time + irand(200, 500);
+			}
+			else
 			{
 				G_ClearEnemy(self);
 			}
 
-			if ((!self->enemy || !NPC_IsAlive(self, self->enemy)) && !is_civilian && self->next_enemy_check_time < level.time)
-			{
-				NPC_FindEnemy(aiEnt, qtrue );
+			qboolean haveValidEnemy = (self->enemy && ValidEnemy(self, self->enemy)) ? qtrue : qfalse;
 
-				if (self->enemy && NPC_IsAlive(self, self->enemy))
-				{// UQ1: Ummmm sounds please!
-					if (NPC_IsJedi(self))
-					{
-						G_AddVoiceEvent( self, Q_irand( EV_JDETECTED1, EV_JDETECTED3 ), 15000 + irand(0, 30000) );
-					}
-					else if (NPC_IsBountyHunter(self))
-					{
-						G_AddVoiceEvent( self, Q_irand( EV_DETECTED1, EV_DETECTED5 ), 15000 + irand(0, 30000) );
-					}
-					else
-					{
-						if (irand(0,1) == 1)
-							ST_Speech( self, SPEECH_DETECTED, 0 );
-						else if (irand(0,1) == 1)
-							ST_Speech( self, SPEECH_CHASE, 0 );
-						else
-							ST_Speech( self, SPEECH_SIGHT, 0 );
-					}
-
-					if (!self->enemy->enemy || (self->enemy->enemy && !NPC_IsAlive(self, self->enemy->enemy)))
-					{// Make me their enemy if they have none too...
-						self->enemy->enemy = self;
-					}
-				}
-
-				self->next_enemy_check_time = level.time + irand(2000, 5000);
-			}
-
-			if (!self->isPadawan && !self->enemy && !self->NPC->conversationPartner)
+			if (!self->isPadawan && !haveValidEnemy && !self->NPC->conversationPartner)
 			{// Let's look for someone to chat to, shall we???
 				NPC_FindConversationPartner(aiEnt);
 			}
@@ -4806,7 +4719,7 @@ void NPC_Think ( gentity_t *self )//, int msec )
 
 				//trap->Print("Master %s replying to padawan comment.\n", self->client->pers.netname);
 
-				if (!self->enemy || !ValidEnemy(aiEnt, self->enemy))
+				if (!haveValidEnemy)
 				{// Also look and animate if we have no enemy...
 					vec3_t origin, angles;
 
@@ -4815,14 +4728,14 @@ void NPC_Think ( gentity_t *self )//, int msec )
 					VectorSubtract( origin, self->r.currentOrigin, self->move_vector );
 					vectoangles( self->move_vector, angles );
 					G_SetAngles(self, angles);
-					VectorCopy(angles, self->client->ps.viewangles);
+					//VectorCopy(angles, self->client->ps.viewangles);
 					NPC_FacePosition(aiEnt, origin, qfalse );
 					NPC_ConversationAnimation(self);
 					self->beStillTime = level.time + 5000;
 				}
 			}
 
-			if (self->beStillTime > level.time && (!self->enemy || !ValidEnemy(aiEnt, self->enemy)))
+			if (self->beStillTime > level.time && !haveValidEnemy)
 			{// Just idle...
 				if (self->padawan && NPC_IsAlive(self, self->padawan))
 				{// Look at our padawan...
@@ -4831,19 +4744,27 @@ void NPC_Think ( gentity_t *self )//, int msec )
 					VectorSubtract( origin, self->r.currentOrigin, self->move_vector );
 					vectoangles( self->move_vector, angles );
 					G_SetAngles(self, angles);
-					VectorCopy(angles, self->client->ps.viewangles);
+					//VectorCopy(angles, self->client->ps.viewangles);
 					NPC_FacePosition(aiEnt, origin, qfalse );
 				}
 
 				aiEnt->client->pers.cmd.forwardmove = 0;
 				aiEnt->client->pers.cmd.rightmove = 0;
 				aiEnt->client->pers.cmd.upmove = 0;
-				NPC_GenericFrameCode( self );
+				
+				// Always run the generic frame code at the end...
+				NPC_GenericFrameCode(self);
 				return;
 			}
 
-			if (!self->enemy)
+			if (!haveValidEnemy)
 			{
+				if (aiEnt->s.weapon == WP_SABER)
+				{// Deactivate sabers when not in combat...
+					extern void WP_DeactivateSaber(gentity_t *self, qboolean clearLength);
+					WP_DeactivateSaber(aiEnt, qfalse);
+				}
+
 				//
 				// Civilian NPC cowerring...
 				//
@@ -4861,6 +4782,8 @@ void NPC_Think ( gentity_t *self )//, int msec )
 
 				if (self->npc_cower_time > level.time && !self->npc_cower_runaway)
 				{// A civilian NPC that is cowering in place...
+					//trap->Print("NPCBOT DEBUG: NPC is panicing.\n");
+
 					if ( TIMER_Done( aiEnt, "flee" ) && TIMER_Done( aiEnt, "panic" ) )
 					{// We finished running away, now cower in place...
 						aiEnt->client->pers.cmd.forwardmove = 0;
@@ -4881,104 +4804,68 @@ void NPC_Think ( gentity_t *self )//, int msec )
 						}
 					}
 
-					NPC_GenericFrameCode( self );
+					// Always run the generic frame code at the end...
+					NPC_GenericFrameCode(self);
 				}
 				//
 				// Hacking/Using something...
 				//
 				else if (self->client->isHacking)
 				{// Hacking/using something... Look at it and wait...
+					//trap->Print("NPCBOT DEBUG: NPC is hacking.\n");
+
 					gentity_t *HACK_TARGET = &g_entities[self->client->isHacking];
 
 					if (HACK_TARGET) NPC_FaceEntity(aiEnt, HACK_TARGET, qtrue);
 
 					if (!(aiEnt->client->pers.cmd.buttons & BUTTON_USE))
+					{
 						aiEnt->client->pers.cmd.buttons |= BUTTON_USE;
+					}
 
-					NPC_GenericFrameCode( self );
+					// Always run the generic frame code at the end...
+					NPC_GenericFrameCode(self);
 				}
 				//
 				// Conversations...
 				//
 				else if (!self->isPadawan && self->NPC->conversationPartner)
 				{// Chatting with another NPC... Stay still!
+					//trap->Print("NPCBOT DEBUG: Padawan NPC is chatting to his master.\n");
+
 					NPC_EnforceConversationRange(self);
 					NPC_FacePosition(aiEnt, self->NPC->conversationPartner->r.currentOrigin, qfalse );
 					NPC_NPCConversation(aiEnt);
-					NPC_GenericFrameCode( self );
+
+					// Always run the generic frame code at the end...
+					NPC_GenericFrameCode(self);
 				}
 				//
 				// Pathfinding...
 				//
 				else if (NPC_PadawanMove(aiEnt))
 				{
-					NPC_GenericFrameCode( self );
+					//trap->Print("NPCBOT DEBUG: Padawan NPC is following routes.\n");
+
+					// Always run the generic frame code at the end...
+					NPC_GenericFrameCode(self);
 				}
-#ifdef __USE_NAV_PATHING__
-				else if (!self->isPadawan && use_pathing && !self->enemy)
-				{
-					
-					//if (!self->waypoint)
-					//	self->waypoint = trap->Nav_GetNearestNode((sharedEntity_t *)self, self->waypoint, 0x00000002/*NF_CLEAR_PATH*/, -1/*WAYPOINT_NONE*/);
-
-					//if (!self->longTermGoal)
-						//self->longTermGoal = trap->Nav_GetNearestNode((sharedEntity_t *)self, self->waypoint, 0x00000002/*NF_CLEAR_PATH*/, -1/*WAYPOINT_NONE*/);
-					//	self->longTermGoal = irand(0, trap->Nav_GetNumNodes()-1);
-					
-					//self->wpCurrent = trap->Nav_GetBestNode(self->waypoint, self->longTermGoal);
-					//if (!self->wpCurrent) self->wpCurrent = trap->Nav_GetBestNodeAltRoute( self->waypoint, self->longTermGoal, &self->pathsize, -1 );
-
-					if (!aiEnt->NPC->goalEntity && self->npc_dumb_route_time < level.time) 
-					{
-						int i = 0;
-						qboolean found = qfalse;
-
-						for (i = 0; i < ENTITYNUM_MAX_NORMAL; i++)
-						{
-							gentity_t *ent = &g_entities[i];
-
-							if (!ent) continue;
-							if (!ent->inuse) continue;
-							if (ent->s.eType != ET_PLAYER && ent->s.eType != ET_NPC && ent->s.eType != ET_ITEM) continue;
-							if (OnSameTeam(self, ent)) continue;
-							
-							//if (irand(0, 3) < 1)
-							{
-								found = qtrue;
-								break;
-							}
-						}
-
-						if (found)
-						{
-							aiEnt->NPC->goalEntity = &g_entities[i];
-							//trap->Print("NPC %s found a goal.\n", self->NPC_type);
-						}
-
-						self->npc_dumb_route_time = level.time + 5000;
-					}
-
-					if (aiEnt->NPC->goalEntity)
-					{
-						//trap->Print("NPC %s following path.\n", self->NPC_type);
-						NPC_SlideMoveToGoal(aiEnt);
-					}
-				}
-#else //!__USE_NAV_PATHING__
 				else if (!self->isPadawan && use_pathing && NPC_FollowRoutes(aiEnt))
 				{
 					//trap->Print("NPCBOT DEBUG: NPC is following routes.\n");
-					NPC_GenericFrameCode( self );
+					
+					// Always run the generic frame code at the end...
+					NPC_GenericFrameCode(self);
 				}
-
-#endif //__USE_NAV_PATHING__
 				//
 				// Patroling...
 				//
 				else if (!self->isPadawan && !use_pathing && NPC_PatrolArea(aiEnt))
 				{
 					//trap->Print("NPCBOT DEBUG: NPC is patroling.\n");
-					NPC_GenericFrameCode( self );
+
+					// Always run the generic frame code at the end...
+					NPC_GenericFrameCode(self);
 				}
 				else
 				{
@@ -4997,35 +4884,83 @@ void NPC_Think ( gentity_t *self )//, int msec )
 						}
 					}
 
-					NPC_GenericFrameCode( self );
+					// Always run the generic frame code at the end...
+					NPC_GenericFrameCode(self);
 				}
 			}
 			else
 			{
-				//trap->Print("NPCBOT DEBUG: NPC is attacking.\n");
-
-				//if (aiEnt->s.NPC_class == CLASS_ATST) trap->Print("NPCBOT DEBUG: ATST NPC is attacking.\n");
-
-				if (NPC_IsCombatPathing(aiEnt))
+				if (NPC_IsCombatPathing(aiEnt) && NPC_FollowRoutes(aiEnt))
 				{// If we have combat pathing, use it while we do the other stuff...
-					NPC_FollowRoutes(aiEnt);
+					extern void Boba_FireDecide(gentity_t *aiEnt);
+					Boba_FireDecide(aiEnt);
+				}
+				else
+				{
+					NPC_FaceEnemy(aiEnt, qtrue);
+
+					// NPCs with an enemy run botstates...
+					//NPC_ExecuteBState(self);
+
+					switch (aiEnt->s.NPC_class)
+					{
+					case CLASS_GALAKMECH:
+						NPC_BSGM_Default(aiEnt);
+						break;
+					case CLASS_HOWLER:
+						NPC_BSHowler_Default(aiEnt);
+						break;
+					case CLASS_PROBE:
+						NPC_BSImperialProbe_Default(aiEnt);
+						break;
+					case CLASS_INTERROGATOR:
+						NPC_BSInterrogator_Default(aiEnt);
+						break;
+					case CLASS_MARK1:
+						NPC_BSMark1_Default(aiEnt);
+						break;
+					case CLASS_MARK2:
+						NPC_BSMark2_Default(aiEnt);
+						break;
+					case CLASS_MINEMONSTER:
+						NPC_BSMineMonster_Default(aiEnt);
+						break;
+					case CLASS_REMOTE:
+						extern void NPC_BSRemote_Default(gentity_t *aiEnt);
+						NPC_BSRemote_Default(aiEnt);
+						break;
+					case CLASS_RANCOR:
+						NPC_BSRancor_Default(aiEnt);
+						break;
+					case CLASS_SABER_DROID:
+						extern void NPC_BSSD_Default(gentity_t *aiEnt);
+						NPC_BSSD_Default(aiEnt);
+						break;
+					case CLASS_SAND_CREATURE:
+						extern void NPC_BSSandCreature_Default(gentity_t *aiEnt);
+						NPC_BSSandCreature_Default(aiEnt);
+						break;
+					case CLASS_SEEKER:
+						extern void NPC_BSSeeker_Default(gentity_t *aiEnt);
+						NPC_BSSeeker_Default(aiEnt);
+						break;
+					case CLASS_SENTRY:
+						extern void NPC_BSSentry_Default(gentity_t *aiEnt);
+						NPC_BSSentry_Default(aiEnt);
+						break;
+					case CLASS_WAMPA:
+						extern void NPC_BSWampa_Default(gentity_t *aiEnt);
+						NPC_BSWampa_Default(aiEnt);
+						break;
+					default:
+						NPC_BSJedi_Default(aiEnt);
+						break;
+					}
 				}
 
-				//if (aiEnt->s.NPC_class == CLASS_ATST || aiEnt->s.NPC_class == CLASS_ATPT || aiEnt->s.NPC_class == CLASS_ATAT) trap->Print("NPCBOT DEBUG: AT** NPC UCMD: %i %i %i.\n"
-				//	, (int)aiEnt->client->pers.cmd.forwardmove, (int)aiEnt->client->pers.cmd.rightmove, (int)aiEnt->client->pers.cmd.upmove);
-
-				NPC_ExecuteBState( self );
+				// Always run the generic frame code at the end...
 				NPC_GenericFrameCode( self );
 			}
-		}
-		else
-		{
-			//trap->Print("NPCBOT DEBUG: NPC is movetogoal.\n");
-			// UQ1: Always force move to any goal they might have...
-			//NPC_MoveToGoal( aiEnt, qtrue );
-			//if (UpdateGoal(aiEnt))
-			//	if (!NPC_MoveToGoal( qfalse ))
-			//		NPC_MoveToGoal( qtrue );
 		}
 
 		aiEnt->NPC->last_ucmd.serverTime = level.time;

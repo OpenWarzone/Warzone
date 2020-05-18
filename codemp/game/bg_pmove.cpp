@@ -5747,8 +5747,25 @@ void PM_FootSlopeTrace( float *pDiff, float *pInterval )
 {
 #ifdef __SKIP_POINTLESS_NPC_TRACES__
 	if (pm->ps->clientNum >= MAX_CLIENTS)
-	{
-		return;
+	{// TODO: Track down why these don't call these functions...
+		switch (pm_entSelf->s.NPC_class)
+		{
+		case CLASS_ATPT:
+			//Com_Printf("ATPT doing slope trace.\n");
+			break;
+		case CLASS_ATST:
+			//Com_Printf("ATST doing slope trace.\n");
+			break;
+		case CLASS_ATAT:
+			//Com_Printf("ATAT doing slope trace.\n");
+			break;
+		case CLASS_RANCOR:
+			//Com_Printf("RANCOR doing slope trace.\n");
+			break;
+		default:
+			return;
+			break;
+		}
 	}
 #endif //__SKIP_POINTLESS_NPC_TRACES__
 
@@ -5924,6 +5941,28 @@ qboolean PM_AdjustStandAnimForSlope( void )
 	int		destAnim;
 	int		legsAnim;
 	#define SLOPERECALCVAR pm->ps->slopeRecalcTime //this is purely convenience
+
+	if (pm->ps->clientNum >= MAX_CLIENTS)
+	{
+		// *sigh* not triggerring, todo: track this down...
+		switch (pm_entSelf->s.NPC_class)
+		{
+		case CLASS_ATPT:
+			//Com_Printf("PM_AdjustStandAnimForSlope: ATPT G2: %s. footbolts: %s.\n", pm->ghoul2 ? "TRUE" : "FALSE", (pm->g2Bolts_LFoot == -1 || pm->g2Bolts_RFoot == -1) ? "TRUE" : "FALSE");
+			break;
+		case CLASS_ATST:
+			//Com_Printf("PM_AdjustStandAnimForSlope: ATST G2: %s. footbolts: %s.\n", pm->ghoul2 ? "TRUE" : "FALSE", (pm->g2Bolts_LFoot == -1 || pm->g2Bolts_RFoot == -1) ? "TRUE" : "FALSE");
+			break;
+		case CLASS_ATAT:
+			//Com_Printf("PM_AdjustStandAnimForSlope: ATAT G2: %s. footbolts: %s.\n", pm->ghoul2 ? "TRUE" : "FALSE", (pm->g2Bolts_LFoot == -1 || pm->g2Bolts_RFoot == -1) ? "TRUE" : "FALSE");
+			break;
+		case CLASS_RANCOR:
+			//Com_Printf("PM_AdjustStandAnimForSlope: RANCOR G2: %s. footbolts: %s.\n", pm->ghoul2 ? "TRUE" : "FALSE", (pm->g2Bolts_LFoot == -1 || pm->g2Bolts_RFoot == -1) ? "TRUE" : "FALSE");
+			break;
+		default:
+			break;
+		}
+	}
 
 	if (!pm->ghoul2)
 	{ //probably just changed models and not quite in sync yet
@@ -9508,12 +9547,12 @@ static void PM_Weapon( void )
 
 					if ((pm->ps->shotsRemaining & ~SHOTS_TOGGLEBIT) == 1)
 					{
-						addTimeGun = 100 * (1.0 - currentGun->getBasicStat3Value()); // Apply the power of the stat/mod as well...
+						addTimeGun = 200 * (1.0 - currentGun->getBasicStat3Value()); // Apply the power of the stat/mod as well...
 						shotsRemainingRepeater = SHOTS_TOGGLEBIT;
 					}
 					else
 					{
-						addTimeGun = 25 * (1.0 - currentGun->getBasicStat3Value()); // Apply the power of the stat/mod as well...
+						addTimeGun = 125 * (1.0 - currentGun->getBasicStat3Value()); // Apply the power of the stat/mod as well...
 						shotsRemainingRepeater = (pm->ps->shotsRemaining - 1) & ~SHOTS_TOGGLEBIT;
 					}
 					break;
@@ -9546,12 +9585,12 @@ static void PM_Weapon( void )
 
 					if ((pm->ps->shotsRemaining & ~SHOTS_TOGGLEBIT) == 1)
 					{
-						addTimeMod = 100 * (1.0 - currentGunMod3->getBasicStat3Value()); // Apply the power of the stat/mod as well...
+						addTimeMod = 200 * (1.0 - currentGunMod3->getBasicStat3Value()); // Apply the power of the stat/mod as well...
 						shotsRemainingRepeater = SHOTS_TOGGLEBIT;
 					}
 					else
 					{
-						addTimeMod = 25 * (1.0 - currentGunMod3->getBasicStat3Value()); // Apply the power of the stat/mod as well...
+						addTimeMod = 125 * (1.0 - currentGunMod3->getBasicStat3Value()); // Apply the power of the stat/mod as well...
 						shotsRemainingRepeater = (pm->ps->shotsRemaining - 1) & ~SHOTS_TOGGLEBIT;
 					}
 					break;
@@ -9643,12 +9682,12 @@ static void PM_Weapon( void )
 
 				if ((pm->ps->shotsRemaining & ~SHOTS_TOGGLEBIT) == 1)
 				{
-					addTimeGun = 150 * (1.0 - currentGun->getBasicStat3Value()); // Apply the power of the stat/mod as well...
+					addTimeGun = 200 * (1.0 - currentGun->getBasicStat3Value()); // Apply the power of the stat/mod as well...
 					shotsRemainingRepeater = SHOTS_TOGGLEBIT;
 				}
 				else
 				{
-					addTimeGun = 35 * (1.0 - currentGun->getBasicStat3Value()); // Apply the power of the stat/mod as well...
+					addTimeGun = 125 * (1.0 - currentGun->getBasicStat3Value()); // Apply the power of the stat/mod as well...
 					shotsRemainingRepeater = (pm->ps->shotsRemaining - 1) & ~SHOTS_TOGGLEBIT;
 				}
 				break;
@@ -9681,12 +9720,12 @@ static void PM_Weapon( void )
 
 				if ((pm->ps->shotsRemaining & ~SHOTS_TOGGLEBIT) == 1)
 				{
-					addTimeMod = 150 * (1.0 - currentGunMod3->getBasicStat3Value()); // Apply the power of the stat/mod as well...
+					addTimeMod = 200 * (1.0 - currentGunMod3->getBasicStat3Value()); // Apply the power of the stat/mod as well...
 					shotsRemainingRepeater = SHOTS_TOGGLEBIT;
 				}
 				else
 				{
-					addTimeMod = 35 * (1.0 - currentGunMod3->getBasicStat3Value()); // Apply the power of the stat/mod as well...
+					addTimeMod = 125 * (1.0 - currentGunMod3->getBasicStat3Value()); // Apply the power of the stat/mod as well...
 					shotsRemainingRepeater = (pm->ps->shotsRemaining - 1) & ~SHOTS_TOGGLEBIT;
 				}
 				break;
@@ -10292,7 +10331,7 @@ void PM_AdjustAttackStates( pmove_t *pmove )
 				case WEAPON_STAT3_SHOT_WIDE:
 					break;
 				case WEAPON_STAT3_SHOT_REPEATING: // Burst...
-					burstShots += 3; /* STOISS: a complete guess... */
+					burstShots += (pmove->ps->eFlags & EF_ALT_FIRING) ? 2 : 1; /* STOISS: a complete guess... */
 					break;
 				}
 			}
@@ -10309,7 +10348,7 @@ void PM_AdjustAttackStates( pmove_t *pmove )
 				case WEAPON_STAT3_SHOT_WIDE:
 					break;
 				case WEAPON_STAT3_SHOT_REPEATING: // Burst...
-					burstShots += 3; /* STOISS: a complete guess... */
+					burstShots += (pmove->ps->eFlags & EF_ALT_FIRING) ? 2 : 1; /* STOISS: a complete guess... */
 					break;
 				}
 			}
@@ -13967,9 +14006,7 @@ void PmoveSingle (pmove_t *pmove) {
 	PM_Use();
 
 	if (!pm->ps->m_iVehicleNum &&
-		(pm->ps->clientNum < MAX_CLIENTS ||
-		!pm_entSelf ||
-		pm_entSelf->s.NPC_class != CLASS_VEHICLE))
+		(pm->ps->clientNum < MAX_CLIENTS || !pm_entSelf || pm_entSelf->s.NPC_class != CLASS_VEHICLE))
 	{ //don't do this if we're on a vehicle, or we are one
 		// footstep events / legs animations
 		PM_Footsteps();

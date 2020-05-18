@@ -8,7 +8,7 @@
 // Defines...
 //
 
-#define __USE_ALL_IMPERIAL_SHIPS__					// Enables the victory Star Destroyer. It has too many textures and slows loading and renderring more than the others, so i'm disabling it for now... *FIXED*
+//#define __USE_ALL_IMPERIAL_SHIPS__					// Enables the victory Star Destroyer. It has too many textures and slows loading and renderring more than the others, so i'm disabling it for now... *FIXED*
 //#define __USE_ALL_REBEL_SHIPS__						// Use all the smaller rebel event ships? I don't think so for now, just use the calamari cruiser... Faster loading and better looking...
 
 //
@@ -128,10 +128,10 @@ void G_EventModelPrecache(void)
 
 	G_ModelIndex("models/warzone/ships/isd/isd.3ds");
 	G_ModelIndex("models/warzone/ships/isd2/isd2.3ds");
-	G_ModelIndex("models/warzone/ships/dominator/dominator.3ds");
 	G_ModelIndex("models/warzone/ships/knight/knight.3ds");
 #ifdef __USE_ALL_IMPERIAL_SHIPS__
 	G_ModelIndex("models/warzone/ships/victory/victory.3ds");
+	G_ModelIndex("models/warzone/ships/dominator/dominator.3ds"); // zfar issues
 #endif //__USE_ALL_IMPERIAL_SHIPS__
 	
 	G_ModelIndex("models/warzone/ships/calamari/calamari.3ds");
@@ -190,7 +190,7 @@ void G_CreateSpawnVesselForEventArea(int area)
 #ifdef __USE_ALL_IMPERIAL_SHIPS__
 			int choice = irand(0, 4);
 #else //!__USE_ALL_IMPERIAL_SHIPS__
-			int choice = irand(0, 3);
+			int choice = irand(0, 2);
 #endif //__USE_ALL_IMPERIAL_SHIPS__
 
 			if (choice == 0)
@@ -211,17 +211,6 @@ void G_CreateSpawnVesselForEventArea(int area)
 			}
 			else if (choice == 2)
 			{
-				sprintf(modelName, "models/warzone/ships/dominator/dominator.3ds");
-				loopSound = G_SoundIndex("sound/vehicles/shuttle/loop.wav");
-				modelScale = 64;
-				zOffset = 49152.0;
-				event_areas_event_size[area] = EVENT_SIZE_MEDIUM;
-			}
-			else
-#ifdef __USE_ALL_IMPERIAL_SHIPS__
-				if (choice == 3)
-#endif //__USE_ALL_IMPERIAL_SHIPS__
-			{
 				sprintf(modelName, "models/warzone/ships/knight/knight.3ds");
 				loopSound = G_SoundIndex("sound/vehicles/shuttle/loop.wav");
 				modelScale = 112;
@@ -229,6 +218,14 @@ void G_CreateSpawnVesselForEventArea(int area)
 				event_areas_event_size[area] = EVENT_SIZE_LARGE;
 			}
 #ifdef __USE_ALL_IMPERIAL_SHIPS__
+			else if (choice == 3)
+			{
+				sprintf(modelName, "models/warzone/ships/dominator/dominator.3ds");
+				loopSound = G_SoundIndex("sound/vehicles/shuttle/loop.wav");
+				modelScale = 64;
+				zOffset = 49152.0;
+				event_areas_event_size[area] = EVENT_SIZE_MEDIUM;
+			}
 			else
 			{
 				sprintf(modelName, "models/warzone/ships/victory/victory.3ds");
@@ -1431,15 +1428,41 @@ qboolean WildlifeSpawnpointTooCloseToEvent(vec3_t pos)
 	return qfalse;
 }
 
+extern void G_FindSky(vec3_t org);
+extern void G_FindGround(vec3_t org);
+
 void FindRandomWildlifeSpawnpoint(vec3_t point)
 {
 	int tries = 0; // Can't let it hang, if the whole map happens to be underwater....
 
 	NavlibFindRandomPointOnMesh(NULL, point);
 
-	while ((point[2] <= MAP_WATER_LEVEL || WildlifeSpawnpointTooCloseToEvent(point)) && tries < 10)
+	bool found = qtrue;
+
+	G_FindSky(point);
+	if (VectorLength(point) == 0) found = false;
+
+	if (found)
 	{
+		G_FindGround(point);
+		if (VectorLength(point) == 0) found = false;
+	}
+
+	while ((!found || point[2] <= MAP_WATER_LEVEL || WildlifeSpawnpointTooCloseToEvent(point)) && tries < 10)
+	{
+		found = qtrue;
+
 		NavlibFindRandomPointOnMesh(NULL, point);
+
+		G_FindSky(point);
+		if (VectorLength(point) == 0) found = false;
+
+		if (found)
+		{
+			G_FindGround(point);
+			if (VectorLength(point) == 0) found = false;
+		}
+
 		tries++;
 	}
 }
@@ -1493,12 +1516,35 @@ void FindRandomEventSpawnpoint(int eventArea, vec3_t point)
 			FindRandomNavmeshPointInRadius(-1, event_position, point, 1024.0/*2048.0*/);
 		}
 
-		while (point[2] <= MAP_WATER_LEVEL && tries < 10)
+		bool found = qtrue;
+
+		G_FindSky(point);
+		if (VectorLength(point) == 0) found = false;
+
+		if (found)
 		{
+			G_FindGround(point);
+			if (VectorLength(point) == 0) found = false;
+		}
+
+		while ((!found || point[2] <= MAP_WATER_LEVEL) && tries < 10)
+		{
+			found = qtrue;
+
 #pragma omp critical
 			{
 				FindRandomNavmeshPointInRadius(-1, event_position, point, 1024.0/*2048.0*/);
 			}
+
+			G_FindSky(point);
+			if (VectorLength(point) == 0) found = false;
+
+			if (found)
+			{
+				G_FindGround(point);
+				if (VectorLength(point) == 0) found = false;
+			}
+
 			tries++;
 		}
 	}

@@ -4890,7 +4890,7 @@ static float CG_DrawEnemyInfo ( float y )
 	clientInfo_t	*ci;
 	int				xOffset = 0;
 
-	CG_DrawMyStatus();
+	//CG_DrawMyStatus();
 
 	if (!cg.snap)
 	{
@@ -5135,9 +5135,10 @@ static float CG_DrawFPS( float y ) {
 	int				fps = cgs.currentFPS;
 
 	s = va( "%ifps", fps );
-	w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
+	w = CG_DrawStrlen(s) * SMALLCHAR_WIDTH;//BIGCHAR_WIDTH;
 
-	CG_DrawBigString( 635 - w + xOffset, y + 2, s, 1.0F);
+	//CG_DrawBigString( 635 - w + xOffset, y + 2, s, 1.0F);
+	CG_DrawSmallString(635 - w + xOffset, y + 2 /*+ SMALLCHAR_HEIGHT + 2*/, s, 1.0F);
 
 	return y + BIGCHAR_HEIGHT + 4;
 }
@@ -5194,7 +5195,10 @@ CG_DrawRadar
 =====================
 */
 
-float	cg_radarRange = 16384.0f;// 2500.0f;
+float	cg_radarRange = 32768.0f;//16384.0f;// 2500.0f;
+
+#define __RADAR_DRAW_TOWN__
+#define __RADAR_DRAW_EVENTS__
 
 #define RADAR_RADIUS			40
 #define RADAR_X					(595 - RADAR_RADIUS)
@@ -5352,10 +5356,10 @@ float CG_DrawRadar(float y)
 #define ELEVATION_DIFFERENCE_LIMIT 25		// Change to adjust when it starts drawing the elevation versions of the "CLOSE" ones.
 #endif
 		//for outdoor big maps
-#define RADAR_FAR_RANGE	16384//2500//600			// Adjust this one to adjust when the radar picks up a target AT ALL. Will show the outside tic.
-#define RADAR_CLOSE_RANGE 4096//800//300			// Adjust this for switching from the Far away indicator to the close-by one. The weak highlight, but full tic.
-#define RADAR_REALLY_CLOSE_RANGE 1024//400//100	// Adjust this one for the distance to draw the strong full tic. Needs to be smaller than the one above
-#define RADAR_RIGHT_HERE 256//100	//50				// Draw the center piece at this distance
+#define RADAR_FAR_RANGE	32768//16384			// Adjust this one to adjust when the radar picks up a target AT ALL. Will show the outside tic.
+#define RADAR_CLOSE_RANGE 6000//4096			// Adjust this for switching from the Far away indicator to the close-by one. The weak highlight, but full tic.
+#define RADAR_REALLY_CLOSE_RANGE 1024			// Adjust this one for the distance to draw the strong full tic. Needs to be smaller than the one above
+#define RADAR_RIGHT_HERE 256//100	//50		// Draw the center piece at this distance
 #define ELEVATION_DIFFERENCE_LIMIT 25		// Change to adjust when it starts drawing the elevation versions of the "CLOSE" ones.
 			// actualDist will be used to figure out which image to show. Or to skip if the enemy is too far away.
 			if (actualDist <= RADAR_FAR_RANGE) // Skip if not within radar range.
@@ -5962,6 +5966,168 @@ float CG_DrawRadar(float y)
 		}
 	}
 
+#ifdef __RADAR_DRAW_EVENTS__
+	// Draw all of the radar entities.  Draw them backwards so players are drawn last
+	for (i = 0; i < MAX_GENTITIES; i++)
+	{
+		vec3_t		dirLook;
+		vec3_t		dirPlayer;
+		float		angleLook;
+		float		anglePlayer;
+		float		angle;
+		float		distance, actualDist, zScale;
+		centity_t*	cent = &cg_entities[i];
+
+		if (cent->currentState.eType != ET_SERVERMODEL) continue;
+		if (cent->currentState.generic1 == 2) continue; // it's in hyperspace still
+
+		// Get the distances first
+		VectorSubtract(cg.predictedPlayerState.origin, cent->lerpOrigin, dirPlayer);
+		dirPlayer[2] = 0;
+		actualDist = distance = VectorNormalize(dirPlayer);
+
+		//distance = cg_radarRange; // town is always at max distance on radar...
+		//distance = Q_clamp(0.0, distance / 524288.0, 1.0);
+		//distance = Q_clamp(0.0, distance / 1048576.0, 1.0);
+		distance = Q_clamp(0.0, distance / cg_radarRange, 1.0);
+		distance *= RADAR_RADIUS;
+
+		AngleVectors(cg.predictedPlayerState.viewangles, dirLook, NULL, NULL);
+
+		dirLook[2] = 0;
+		anglePlayer = atan2(dirPlayer[0], dirPlayer[1]);
+		VectorNormalize(dirLook);
+		angleLook = atan2(dirLook[0], dirLook[1]);
+		angle = angleLook - anglePlayer;
+
+
+		float  x;
+		float  ly;
+		qhandle_t shader;
+
+		x = (float)RADAR_X + (float)RADAR_RADIUS + (float)sin(angle) * distance;
+		ly = y + (float)RADAR_RADIUS + (float)cos(angle) * distance;
+
+		arrowBaseScale = 9.0f;
+		shader = 0;
+		zScale = 1.0f;
+
+		//we want to scale the thing up/down based on the relative Z (up/down) positioning
+		if (cent->lerpOrigin[2] > cg.predictedPlayerState.origin[2])
+		{ //higher, scale up (between 16 and 24)
+			float dif = (cent->lerpOrigin[2] - cg.predictedPlayerState.origin[2]);
+
+			//max out to 1.5x scale at 512 units above local player's height
+			dif /= 1024.0f;
+			if (dif > 0.5f)
+			{
+				dif = 0.5f;
+			}
+			zScale += dif;
+		}
+		else if (cent->lerpOrigin[2] < cg.predictedPlayerState.origin[2])
+		{ //lower, scale down (between 16 and 8)
+			float dif = (cg.predictedPlayerState.origin[2] - cent->lerpOrigin[2]);
+
+			//half scale at 512 units below local player's height
+			dif /= 1024.0f;
+			if (dif > 0.5f)
+			{
+				dif = 0.5f;
+			}
+			zScale -= dif;
+		}
+
+		arrowBaseScale *= zScale;
+
+		switch (cent->currentState.teamowner)
+		{
+		case FACTION_EMPIRE:
+			shader = trap->R_RegisterShader("gfx/radarIcons/factionIconImperial");
+			break;
+		case FACTION_REBEL:
+			shader = trap->R_RegisterShader("gfx/radarIcons/factionIconRebel");
+			break;
+		case FACTION_MANDALORIAN:
+			shader = trap->R_RegisterShader("gfx/radarIcons/factionIconMandalorian");
+			break;
+		case FACTION_MERC:
+			shader = trap->R_RegisterShader("gfx/radarIcons/factionIconIvaxSyndicate");
+			break;
+		case FACTION_PIRATES:
+			shader = trap->R_RegisterShader("gfx/radarIcons/factionIconKouhun");
+			break;
+		case FACTION_WILDLIFE:
+		default:
+			continue;
+			break;
+		}
+
+		float centerIcon = (arrowBaseScale * 0.2);
+
+		if (shader)
+		{
+			CG_DrawPic(((x - 4) - centerIcon) + xOffset, (ly - centerIcon) - 4, arrowBaseScale, arrowBaseScale, shader);
+		}
+	}
+#endif //__RADAR_DRAW_EVENTS__
+
+#ifdef __RADAR_DRAW_TOWN__
+	extern vec3_t			TOWN_FORCEFIELD_ORIGIN;
+	extern vec3_t			TOWN_FORCEFIELD_RADIUS;
+	extern char				TOWN_MAP_ICON[256];
+
+	if (TOWN_FORCEFIELD_ORIGIN[0] < 999990.0
+		&& TOWN_FORCEFIELD_ORIGIN[1] < 999990.0
+		&& TOWN_FORCEFIELD_ORIGIN[2] < 999990.0
+		&& TOWN_FORCEFIELD_RADIUS[0] < 999990.0
+		&& TOWN_FORCEFIELD_RADIUS[1] < 999990.0
+		&& TOWN_FORCEFIELD_RADIUS[2] < 999990.0)
+	{
+		vec3_t		dirPlayer, dirLook;
+		float		actualDist, distance, anglePlayer, angleLook, angle, zScale;
+
+		// Get the distances first
+		VectorSubtract(cg.predictedPlayerState.origin, TOWN_FORCEFIELD_ORIGIN, dirPlayer);
+		dirPlayer[2] = 0;
+		actualDist = distance = VectorNormalize(dirPlayer);
+
+		//distance = 1.0; // town is always at max distance on radar...
+		distance = Q_clamp(0.0, distance / cg_radarRange, 1.0);
+		distance *= RADAR_RADIUS;
+
+		AngleVectors(cg.predictedPlayerState.viewangles, dirLook, NULL, NULL);
+
+		dirLook[2] = 0;
+		anglePlayer = atan2(dirPlayer[0], dirPlayer[1]);
+		VectorNormalize(dirLook);
+		angleLook = atan2(dirLook[0], dirLook[1]);
+		angle = angleLook - anglePlayer;
+
+		float  x;
+		float  ly;
+		qhandle_t shader;
+
+		x = (float)RADAR_X + (float)RADAR_RADIUS + (float)sin(angle) * distance;
+		ly = y + (float)RADAR_RADIUS + (float)cos(angle) * distance;
+
+		arrowBaseScale = 24.0;// cg_testvalue0.value;//9.0f;
+		shader = 0;
+		zScale = 1.0f;
+
+		arrowBaseScale *= zScale;
+
+		shader = trap->R_RegisterShader(TOWN_MAP_ICON);
+
+		float centerIcon = (arrowBaseScale * 0.3);
+
+		if (shader)
+		{
+			CG_DrawPic(((x - 4) - centerIcon) + xOffset, (ly - centerIcon) - 4, arrowBaseScale, arrowBaseScale, shader);
+		}
+	}
+#endif //__RADAR_DRAW_TOWN__
+
 	arrowBaseScale = 80.0f;
 
 	arrow_w = arrowBaseScale * RADAR_RADIUS / 128;
@@ -6207,10 +6373,10 @@ static float CG_DrawTeamOverlay( float y, qboolean right, qboolean upper ) {
 }
 
 
-static void CG_DrawPowerupIcons(int y)
+static int CG_DrawPowerupIcons(int y)
 {
 	int j;
-	int ico_size = 64;
+	int ico_size = 24;// 64;
 	//int y = ico_size/2;
 	int xOffset = 0;
 	gitem_t	*item;
@@ -6219,7 +6385,7 @@ static void CG_DrawPowerupIcons(int y)
 
 	if (!cg.snap)
 	{
-		return;
+		return y;
 	}
 
 	y += 16;
@@ -6264,6 +6430,8 @@ static void CG_DrawPowerupIcons(int y)
 			}
 		}
 	}
+
+	return y;
 }
 
 
@@ -6276,20 +6444,14 @@ CG_DrawUpperRight
 static void CG_DrawUpperRight( void ) {
 	float	y = 0;
 
-	trap->R_SetColor( colorTable[CT_WHITE] );
-
-	if ( cgs.gametype >= GT_TEAM && cg_drawTeamOverlay.integer == 1 ) {
-		y = CG_DrawTeamOverlay( y, qtrue, qtrue );
-	}
-	if ( cg_drawSnapshot.integer ) {
-		y = CG_DrawSnapshot( y );
-	}
+	trap->R_SetColor(colorTable[CT_WHITE]);
 
 	if ( cg_drawFPS.integer ) {
 		y = CG_DrawFPS( y );
 	}
-	if ( cg_drawTimer.integer ) {
-		y = CG_DrawTimer( y );
+	else
+	{// UQ1: Still move the radar down, so the icons at the top are not cut off...
+		y += BIGCHAR_HEIGHT + 4;
 	}
 
 	if ( ( cgs.gametype >= GT_TEAM || cg.predictedPlayerState.m_iVehicleNum )
@@ -6298,11 +6460,24 @@ static void CG_DrawUpperRight( void ) {
 		y = CG_DrawRadar ( y );
 	}
 
-	y = CG_DrawEnemyInfo ( y );
+	y = CG_DrawPowerupIcons(y);
 
-	y = CG_DrawMiniScoreboard ( y );
+	trap->R_SetColor(colorTable[CT_WHITE]);
 
-	CG_DrawPowerupIcons(y);
+	if (cgs.gametype >= GT_TEAM && cg_drawTeamOverlay.integer == 1) {
+		y = CG_DrawTeamOverlay(y, qtrue, qtrue);
+	}
+
+	if (cg_drawSnapshot.integer) {
+		y = CG_DrawSnapshot(y);
+	}
+
+	y = CG_DrawEnemyInfo(y);
+
+	//y = CG_DrawMiniScoreboard ( y ); // UQ1: Disabled...
+	//y += 15; // UQ1: But still move down...
+
+	CG_DrawMyStatus();
 
 //[AUTOWAYPOINT]
 	if (aw_percent_complete > 0)

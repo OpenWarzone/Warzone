@@ -34,6 +34,8 @@ extern qboolean NPC_CanUseAdvancedFighting(gentity_t *aiEnt);
 #define	REALIZE_THRESHOLD	0.6f
 #define CAUTIOUS_THRESHOLD	( REALIZE_THRESHOLD * 0.75 )
 
+#if 0
+
 qboolean NPC_CheckPlayerTeamStealth(gentity_t *aiEnt);
 
 static qboolean enemyLOS;
@@ -45,6 +47,7 @@ static qboolean move;
 static qboolean shoot;
 static float	enemyDist;
 static vec3_t	impactPos;
+#endif
 
 int groupSpeechDebounceTime[FACTION_NUM_FACTIONS];//used to stop several group AI from speaking all at once
 
@@ -56,6 +59,7 @@ enum
 	LSTATE_INVESTIGATE,
 };
 
+#if 0
 void ST_AggressionAdjust( gentity_t *self, int change )
 {
 	int	upper_threshold, lower_threshold;
@@ -83,6 +87,7 @@ void ST_AggressionAdjust( gentity_t *self, int change )
 		self->NPC->stats.aggression = lower_threshold;
 	}
 }
+#endif
 
 void ST_ClearTimers( gentity_t *ent )
 {
@@ -243,6 +248,7 @@ void ST_Speech( gentity_t *self, int speechType, float failChance )
 	self->NPC->blockedSpeechDebounceTime = level.time + 2000;
 }
 
+#if 0
 void ST_MarkToCover( gentity_t *self )
 {
 	if ( !self || !self->NPC )
@@ -270,12 +276,13 @@ void ST_StartFlee( gentity_t *self, gentity_t *enemy, vec3_t dangerPoint, int da
 		ST_Speech( self, SPEECH_COVER, 0 );//FIXME: flee sound?
 	}
 }
+#endif
+
 /*
 -------------------------
 NPC_ST_Pain
 -------------------------
 */
-
 void NPC_ST_Pain(gentity_t *self, gentity_t *attacker, int damage)
 {
 	self->NPC->localState = LSTATE_UNDERFIRE;
@@ -292,6 +299,7 @@ void NPC_ST_Pain(gentity_t *self, gentity_t *attacker, int damage)
 	}
 }
 
+#if 0
 /*
 -------------------------
 ST_HoldPosition
@@ -515,6 +523,7 @@ void NPC_BSST_Sleep(gentity_t *aiEnt)
 		return;
 	}
 }
+#endif
 
 /*
 -------------------------
@@ -797,6 +806,8 @@ qboolean NPC_CheckPlayerTeamStealth(gentity_t *aiEnt)
 	}
 	return qfalse;
 }
+
+#if 0
 /*
 -------------------------
 NPC_ST_InvestigateEvent
@@ -2790,3 +2801,4 @@ void NPC_BSST_Default(gentity_t *aiEnt)
 		}
 	}
 }
+#endif

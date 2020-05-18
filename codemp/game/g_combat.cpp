@@ -2468,9 +2468,11 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 		NPC_FreeCombatPoint( self, self->NPC->combatPoint, qfalse );
 		if ( self->NPC->group )
 		{
+#if 0
 			//lastInGroup = (self->NPC->group->numGroup < 2);
 			AI_GroupMemberKilled( self );
 			AI_DeleteSelfFromGroup( self );
+#endif
 		}
 
 		if ( self->NPC->tempGoal )

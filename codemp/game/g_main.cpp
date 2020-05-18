@@ -4839,7 +4839,9 @@ void G_RunFrame( int levelTime ) {
 		NAV_CheckCalcPaths();
 	}
 
+#if 0
 	AI_UpdateGroups();
+#endif
 
 	if (g_allowNPC.integer)
 	{
