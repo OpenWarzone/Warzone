@@ -1162,8 +1162,19 @@ void NPC_Begin (gentity_t *ent)
 	VectorCopy( ent->s.angles, spawn_angles);
 	spawn_angles[YAW] = ent->NPC->desiredYaw;
 
+	extern qboolean			TOWN_FORCEFIELD_ENABLED;
+	extern vec3_t			TOWN_FORCEFIELD_ORIGIN;
+
 	// UQ1: Mark every NPC's spawn position. For patrolling that spot and stuff...
-	VectorCopy(ent->client->ps.origin, ent->spawn_pos);
+	if (TOWN_FORCEFIELD_ENABLED && NPC_IsCivilian(ent))
+	{// Civilians spawn_pos is set at the cantina, so they hang around it...
+		VectorCopy(TOWN_FORCEFIELD_ORIGIN, ent->spawn_pos);
+		ent->spawn_pos[2] = ent->client->ps.origin[2] + 32.0;
+	}
+	else
+	{
+		VectorCopy(ent->client->ps.origin, ent->spawn_pos);
+	}
 
 	// UQ1: Give them a name (for kills)...
 	//strcpy(ent->client->pers.netname, va("a %s NPC", ent->NPC_type));
@@ -2376,7 +2387,7 @@ finish:
 	// Init conversation search timer... So that they do not find a partner instantly...
 	newent->NPC->conversationSearchTime = level.time + 10000 + irand(0, 10000);
 
-	if (!newent->m_pVehicle)
+	if (!newent->m_pVehicle && !NPC_IsCivilian(newent))
 	{
 		// Add a random RNG weapon to the npc, a saber or a weapon based on type of npc...
 		BG_CreateRandomNPCInventory(newent);

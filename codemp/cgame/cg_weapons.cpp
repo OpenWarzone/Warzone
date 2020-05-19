@@ -444,6 +444,15 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 		return;
 	}
 
+	if (cent->currentState.NPC_class == CLASS_CIVILIAN
+		|| cent->currentState.NPC_class == CLASS_CIVILIAN_R2D2
+		|| cent->currentState.NPC_class == CLASS_CIVILIAN_R5D2
+		|| cent->currentState.NPC_class == CLASS_CIVILIAN_PROTOCOL
+		|| cent->currentState.NPC_class == CLASS_CIVILIAN_WEEQUAY)
+	{// These guys never have a weapon...
+		return;
+	}
+
 	if (cg.predictedPlayerState.pm_type == PM_SPECTATOR &&
 		cent->currentState.number == cg.predictedPlayerState.clientNum)
 	{ //spectator mode, don't draw it...

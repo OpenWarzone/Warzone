@@ -179,12 +179,29 @@ void FindRandomNavmeshPatrolPoint(int npcEntityNum, vec3_t point)
 		return;
 	}
 
-	NavlibFindRandomPointInRadius(npcEntityNum, npc->spawn_pos, point, /*256.0*/1024.0);
-
-	while (point[2] <= MAP_WATER_LEVEL && tries < 10)
+	if (NPC_IsCivilian(npc))
 	{
-		NavlibFindRandomPointInRadius(npcEntityNum, npc->spawn_pos, point, /*256.0*/1024.0);
-		tries++;
+		extern qboolean			TOWN_FORCEFIELD_ENABLED;
+		extern vec3_t			TOWN_FORCEFIELD_ORIGIN;
+
+		if (TOWN_FORCEFIELD_ENABLED)
+		{
+			NavlibFindRandomPointInRadius(npcEntityNum, TOWN_FORCEFIELD_ORIGIN, point, 4096.0);
+		}
+		else
+		{
+			NavlibFindRandomPointInRadius(npcEntityNum, npc->spawn_pos, point, 1024.0);
+		}
+	}
+	else
+	{
+		NavlibFindRandomPointInRadius(npcEntityNum, npc->spawn_pos, point, 1024.0);
+
+		/*while (point[2] <= MAP_WATER_LEVEL && tries < 10)
+		{
+			NavlibFindRandomPointInRadius(npcEntityNum, npc->spawn_pos, point, 1024.0);
+			tries++;
+		}*/
 	}
 }
 #endif //defined(__USE_NAVLIB__) || defined(__USE_NAVLIB_SPAWNPOINTS__)

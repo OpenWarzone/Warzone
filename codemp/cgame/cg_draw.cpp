@@ -5195,10 +5195,11 @@ CG_DrawRadar
 =====================
 */
 
-float	cg_radarRange = 32768.0f;//16384.0f;// 2500.0f;
+float	cg_radarRange = 16384.0f;// 2500.0f;
 
 #define __RADAR_DRAW_TOWN__
 #define __RADAR_DRAW_EVENTS__
+#define __RADAR_DRAW_BOSSES__
 
 #define RADAR_RADIUS			40
 #define RADAR_X					(595 - RADAR_RADIUS)
@@ -5280,6 +5281,16 @@ float CG_DrawRadar(float y)
 
 		// Don't show friendly targets.
 		if (cent->currentState.teamowner == cgs.clientinfo[cg.clientNum].team) continue;
+
+		if (cent->currentState.eType == ET_NPC
+			&& (cent->currentState.NPC_class == CLASS_CIVILIAN
+				|| cent->currentState.NPC_class == CLASS_CIVILIAN_R2D2
+				|| cent->currentState.NPC_class == CLASS_CIVILIAN_R5D2
+				|| cent->currentState.NPC_class == CLASS_CIVILIAN_PROTOCOL
+				|| cent->currentState.NPC_class == CLASS_CIVILIAN_WEEQUAY))
+		{// These guys never have a weapon...
+			continue;
+		}
 
 		if (cent->currentState.eType == ET_PLAYER || cent->currentState.eType == ET_NPC)
 		{
@@ -5967,7 +5978,6 @@ float CG_DrawRadar(float y)
 	}
 
 #ifdef __RADAR_DRAW_EVENTS__
-	// Draw all of the radar entities.  Draw them backwards so players are drawn last
 	for (i = 0; i < MAX_GENTITIES; i++)
 	{
 		vec3_t		dirLook;
@@ -6071,6 +6081,145 @@ float CG_DrawRadar(float y)
 		}
 	}
 #endif //__RADAR_DRAW_EVENTS__
+
+#ifdef __RADAR_DRAW_BOSSES__
+	for (i = MAX_CLIENTS; i < MAX_GENTITIES; i++)
+	{
+		vec3_t		dirLook;
+		vec3_t		dirPlayer;
+		float		angleLook;
+		float		anglePlayer;
+		float		angle;
+		float		distance, actualDist, zScale;
+		centity_t*	cent = &cg_entities[i];
+
+		if (cent->currentState.eType != ET_NPC) continue;
+		if (!cent->currentValid) continue;
+
+		// Don't show friendly targets.
+		if (cent->currentState.teamowner == cgs.clientinfo[cg.clientNum].team) continue;
+
+		switch (cent->currentState.NPC_class)
+		{
+		case CLASS_SABER_DROID:
+		case CLASS_ASSASSIN_DROID:
+		case CLASS_HAZARD_TROOPER:
+		case CLASS_ALORA:
+		case CLASS_DESANN:
+		case CLASS_JEDI:
+		case CLASS_KYLE:
+		case CLASS_LUKE:
+		case CLASS_MORGANKATARN:
+		case CLASS_REBORN:
+		case CLASS_INQUISITOR:
+		case CLASS_SHADOWTROOPER:
+		case CLASS_TAVION:
+			//case CLASS_PURGETROOPER: // more of an elite...
+			break;
+		default:
+			continue;
+			break;
+		}
+
+		if (cent->currentState.eFlags & EF_DEAD) continue;
+		if (cent->playerState->pm_type == PM_DEAD) continue;
+		if (cent->currentState.eType == ET_FREED) continue;
+
+		if (cent->currentState.eType == ET_NPC)
+		{
+			if (!cent->npcClient || !cent->npcClient->ghoul2Model) continue;
+			if (!cent->npcClient->infoValid) continue;
+			if (!cent->ghoul2)  continue;
+		}
+
+		if (cent->currentState.eType == ET_PLAYER)
+		{
+			if (!cent->ghoul2) continue;
+			if (cent->playerState->persistant[PERS_TEAM] == FACTION_SPECTATOR) continue;
+		}
+
+		clientInfo_t *ci = NULL;
+
+		if (cent->currentState.number < MAX_CLIENTS)
+		{
+			ci = &cgs.clientinfo[cent->currentState.number];
+		}
+		else
+		{
+			ci = cent->npcClient;
+		}
+
+		if (!ci) continue;
+		if (!ci->infoValid) continue;
+
+														// Get the distances first
+		VectorSubtract(cg.predictedPlayerState.origin, cent->lerpOrigin, dirPlayer);
+		dirPlayer[2] = 0;
+		actualDist = distance = VectorNormalize(dirPlayer);
+
+		distance = Q_clamp(0.0, distance / cg_radarRange, 1.0);
+		distance *= RADAR_RADIUS;
+
+		AngleVectors(cg.predictedPlayerState.viewangles, dirLook, NULL, NULL);
+
+		dirLook[2] = 0;
+		anglePlayer = atan2(dirPlayer[0], dirPlayer[1]);
+		VectorNormalize(dirLook);
+		angleLook = atan2(dirLook[0], dirLook[1]);
+		angle = angleLook - anglePlayer;
+
+
+		float  x;
+		float  ly;
+		qhandle_t shader;
+
+		x = (float)RADAR_X + (float)RADAR_RADIUS + (float)sin(angle) * distance;
+		ly = y + (float)RADAR_RADIUS + (float)cos(angle) * distance;
+
+		arrowBaseScale = 9.0f;
+		shader = 0;
+		zScale = 1.0f;
+
+#if 0
+		//we want to scale the thing up/down based on the relative Z (up/down) positioning
+		if (cent->lerpOrigin[2] > cg.predictedPlayerState.origin[2])
+		{ //higher, scale up (between 16 and 24)
+			float dif = (cent->lerpOrigin[2] - cg.predictedPlayerState.origin[2]);
+
+			//max out to 1.5x scale at 512 units above local player's height
+			dif /= 1024.0f;
+			if (dif > 0.5f)
+			{
+				dif = 0.5f;
+			}
+			zScale += dif;
+		}
+		else if (cent->lerpOrigin[2] < cg.predictedPlayerState.origin[2])
+		{ //lower, scale down (between 16 and 8)
+			float dif = (cg.predictedPlayerState.origin[2] - cent->lerpOrigin[2]);
+
+			//half scale at 512 units below local player's height
+			dif /= 1024.0f;
+			if (dif > 0.5f)
+			{
+				dif = 0.5f;
+			}
+			zScale -= dif;
+		}
+#endif
+
+		arrowBaseScale *= zScale;
+
+		shader = trap->R_RegisterShader("gfx/radarIcons/iconBoss");
+
+		float centerIcon = (arrowBaseScale * 0.2);
+
+		if (shader)
+		{
+			CG_DrawPic(((x - 4) - centerIcon) + xOffset, (ly - centerIcon) - 4, arrowBaseScale, arrowBaseScale, shader);
+		}
+	}
+#endif //__RADAR_DRAW_BOSSES__
 
 #ifdef __RADAR_DRAW_TOWN__
 	extern vec3_t			TOWN_FORCEFIELD_ORIGIN;

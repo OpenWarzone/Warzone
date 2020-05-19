@@ -202,6 +202,29 @@ void main()
 
 	vec2 tc = vTexCoord;
 
+	/* BEGIN: Fake AO effect calculation */
+	float aoColorMult = 1.0;
+
+	if (vTexCoord.y < 0.25)
+	{// 0.0 -> 0.25
+		aoColorMult = 1.0 - (vTexCoord.y / 0.25);
+	}
+	else if (vTexCoord.y < 0.5)
+	{// 0.25 -> 0.5
+		aoColorMult = 1.0 - ((vTexCoord.y - 0.25) / 0.25);
+	}
+	else if (vTexCoord.y < 0.75)
+	{// 0.5 -> 0.75
+		aoColorMult = 1.0 - ((vTexCoord.y - 0.5) / 0.25);
+	}
+	else
+	{// 0.75 -> 1.0
+		aoColorMult = 1.0 - ((vTexCoord.y - 0.75) / 0.25);
+	}
+
+	aoColorMult = clamp(pow(aoColorMult + 0.4, 2.25), 0.0, 1.0);
+	/* END: Fake AO effect calculation */
+
 	if (GRASS_WIDTH_REPEATS > 0.0) tc.x *= (GRASS_WIDTH_REPEATS * 2.0);
 
 #if defined(_USE_UNDERWATER_)
@@ -281,6 +304,10 @@ void main()
 	}
 #endif //defined(_USE_UNDERWATER_)
 
+	/* Apply fake AO effect */
+	diffuse.rgb *= aoColorMult;
+
+
 	if (MAP_COLOR_SWITCH_RG > 0.0)
 	{
 		diffuse.rg = diffuse.gr;
@@ -310,10 +337,10 @@ void main()
 	{
 		float CULL_RANGE = MAX_RANGE;
 
-		if (vVertPosition.z < SHADER_WATER_LEVEL)
+		/*if (vVertPosition.z < SHADER_WATER_LEVEL)
 		{
-			CULL_RANGE = MAX_RANGE * 1.0/*2.0*/;
-		}
+			CULL_RANGE = MAX_RANGE;
+		}*/
 
 		// Screen-door transparancy on distant and extremely close grasses...
 		float dist = distance(vVertPosition, u_ViewOrigin);

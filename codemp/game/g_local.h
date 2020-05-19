@@ -623,6 +623,11 @@ struct gentity_s {
 	int				saberDefenseLastValidTime = 0;
 
 
+	int				enemyNextShootableCheck = 0;
+	int				enemyLastShootableTime = 0;
+	gentity_t		*enemyLastShootable = NULL;
+
+
 	int				spawnArea = -1;
 };
 
@@ -1956,6 +1961,7 @@ int G_WaveSpawnCountForEventWave(int eventNum);
 team_t G_GetFactionForEvent(int eventNum);
 spawnGroupRarity_t G_GetRarityForEventWave(int eventNum);
 void FindRandomEventSpawnpoint(int eventArea, vec3_t point);
+qboolean G_IsOutsideEventArea(gentity_t *NPC);
 
 
 //

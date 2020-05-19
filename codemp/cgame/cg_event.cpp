@@ -1655,55 +1655,65 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 
 	case EV_FOOTSTEP:
 		DEBUGNAME("EV_FOOTSTEP");
-		if (cg_footsteps.integer) {
-			footstep_t	soundType;
-			switch( es->eventParm )
-			{
-			case MATERIAL_MUD:
-				soundType = FOOTSTEP_MUDWALK;
-				break;
-			case MATERIAL_DIRT:
-				soundType = FOOTSTEP_DIRTWALK;
-				break;
-			case MATERIAL_SAND:
-				soundType = FOOTSTEP_SANDWALK;
-				break;
-			case MATERIAL_SNOW:
-				soundType = FOOTSTEP_SNOWWALK;
-				break;
-			case MATERIAL_SHORTGRASS:
-			case MATERIAL_LONGGRASS:
-				soundType = FOOTSTEP_GRASSWALK;
-				break;
-			case MATERIAL_SOLIDMETAL:
-				soundType = FOOTSTEP_METALWALK;
-				break;
-			case MATERIAL_HOLLOWMETAL:
-				soundType = FOOTSTEP_PIPEWALK;
-				break;
-			case MATERIAL_GRAVEL:
-				soundType = FOOTSTEP_GRAVELWALK;
-				break;
-			case MATERIAL_CARPET:
-			case MATERIAL_FABRIC:
-			case MATERIAL_CANVAS:
-			case MATERIAL_RUBBER:
-			case MATERIAL_PLASTIC:
-				soundType = FOOTSTEP_RUGWALK;
-				break;
-			case MATERIAL_SOLIDWOOD:
-			case MATERIAL_TREEBARK:
-			case MATERIAL_HOLLOWWOOD:
-			case MATERIAL_POLISHEDWOOD:
-				soundType = FOOTSTEP_WOODWALK;
-				break;
+		{
+			extern int DEFAULT_FOOTSTEP_MATERIAL;
+			qboolean soundOverride = qfalse;
 
-			default:
-				soundType = FOOTSTEP_STONEWALK;
-				break;
+			if (DEFAULT_FOOTSTEP_MATERIAL > 0 && es->eventParm == MATERIAL_CONCRETE)
+			{// If mapinfo specified an override, and this is defaultsolid (concrete)...
+				soundOverride = qtrue;
 			}
 
-			trap->S_StartSound (NULL, es->number, CHAN_BODY, cgs.media.footsteps[ soundType ][rand()&3] );
+			if (cg_footsteps.integer) {
+				footstep_t	soundType;
+				switch (soundOverride ? DEFAULT_FOOTSTEP_MATERIAL : es->eventParm)
+				{
+				case MATERIAL_MUD:
+					soundType = FOOTSTEP_MUDWALK;
+					break;
+				case MATERIAL_DIRT:
+					soundType = FOOTSTEP_DIRTWALK;
+					break;
+				case MATERIAL_SAND:
+					soundType = FOOTSTEP_SANDWALK;
+					break;
+				case MATERIAL_SNOW:
+					soundType = FOOTSTEP_SNOWWALK;
+					break;
+				case MATERIAL_SHORTGRASS:
+				case MATERIAL_LONGGRASS:
+					soundType = FOOTSTEP_GRASSWALK;
+					break;
+				case MATERIAL_SOLIDMETAL:
+					soundType = FOOTSTEP_METALWALK;
+					break;
+				case MATERIAL_HOLLOWMETAL:
+					soundType = FOOTSTEP_PIPEWALK;
+					break;
+				case MATERIAL_GRAVEL:
+					soundType = FOOTSTEP_GRAVELWALK;
+					break;
+				case MATERIAL_CARPET:
+				case MATERIAL_FABRIC:
+				case MATERIAL_CANVAS:
+				case MATERIAL_RUBBER:
+				case MATERIAL_PLASTIC:
+					soundType = FOOTSTEP_RUGWALK;
+					break;
+				case MATERIAL_SOLIDWOOD:
+				case MATERIAL_TREEBARK:
+				case MATERIAL_HOLLOWWOOD:
+				case MATERIAL_POLISHEDWOOD:
+					soundType = FOOTSTEP_WOODWALK;
+					break;
+
+				default:
+					soundType = FOOTSTEP_STONEWALK;
+					break;
+				}
+
+				trap->S_StartSound(NULL, es->number, CHAN_BODY, cgs.media.footsteps[soundType][rand() & 3]);
+			}
 		}
 		break;
 	case EV_FOOTSTEP_METAL:

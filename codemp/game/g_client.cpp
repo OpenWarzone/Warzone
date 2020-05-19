@@ -2182,13 +2182,14 @@ void G_CheckSaber(gentity_t *ent)
 		{
 			if (saber->getModelType() == SABER_MODELTYPE_ELECTROSTAFF)
 			{
-				if (Q_stricmp(ent->client->saber[0].model, "electrostaff"))
+				if (Q_stricmp(ent->client->pers.saber1, "electrostaff"))
 				{
 					if (ent->s.eType == ET_NPC)
 					{
 						WP_SaberParseParms("electrostaff", &ent->client->saber[0]);
 						ent->s.npcSaber1 = G_ModelIndex(va("@%s", "electrostaff"));
 						ent->s.npcSaber2 = G_ModelIndex(va("@%s", "none"));
+						Q_strncpyz(ent->client->pers.saber1, "electrostaff", sizeof(ent->client->pers.saber1));
 					}
 					else
 					{
@@ -2200,13 +2201,14 @@ void G_CheckSaber(gentity_t *ent)
 			}
 			else
 			{
-				if (Q_stricmp(ent->client->saber[0].model, "dual_1"))
+				if (Q_stricmp(ent->client->pers.saber1, "dual_1"))
 				{
 					if (ent->s.eType == ET_NPC)
 					{
 						WP_SaberParseParms("dual_1", &ent->client->saber[0]);
 						ent->s.npcSaber1 = G_ModelIndex(va("@%s", "dual_1"));
 						ent->s.npcSaber2 = G_ModelIndex(va("@%s", "none"));
+						Q_strncpyz(ent->client->pers.saber1, "dual_1", sizeof(ent->client->pers.saber1));
 					}
 					else
 					{
@@ -2219,13 +2221,14 @@ void G_CheckSaber(gentity_t *ent)
 		}
 		else
 		{
-			if (Q_stricmp(ent->client->saber[0].model, "single_16"))
+			if (Q_stricmp(ent->client->pers.saber1, "single_16"))
 			{
 				if (ent->s.eType == ET_NPC)
 				{
 					WP_SaberParseParms("single_16", &ent->client->saber[0]);
 					ent->s.npcSaber1 = G_ModelIndex(va("@%s", "single_16"));
 					ent->s.npcSaber2 = G_ModelIndex(va("@%s", "none"));
+					Q_strncpyz(ent->client->pers.saber1, "single_16", sizeof(ent->client->pers.saber1));
 				}
 				else
 				{
@@ -2238,13 +2241,14 @@ void G_CheckSaber(gentity_t *ent)
 	}
 	else
 	{
-		if (Q_stricmp(ent->client->saber[0].model, "single_16"))
+		if (Q_stricmp(ent->client->pers.saber1, "single_16"))
 		{
 			if (ent->s.eType == ET_NPC)
 			{
 				WP_SaberParseParms("single_16", &ent->client->saber[0]);
 				ent->s.npcSaber1 = G_ModelIndex(va("@%s", "single_16"));
 				ent->s.npcSaber2 = G_ModelIndex(va("@%s", "none"));
+				Q_strncpyz(ent->client->pers.saber1, "single_16", sizeof(ent->client->pers.saber1));
 			}
 			else
 			{

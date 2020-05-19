@@ -3401,7 +3401,7 @@ qboolean UQ1_UcmdMoveForDir ( gentity_t *self, usercmd_t *cmd, vec3_t dir, qbool
 {
 	vec3_t		forward, right;
 	qboolean	jumping = qfalse;
-	float		walkSpeed = 63.0;// 60.5;// 55 * 1.1;//48;//64;//32;//self->NPC->stats.walkSpeed*1.1;
+	float		walkSpeed = 32.0;// 63.0;// 60.5;// 55 * 1.1;//48;//64;//32;//self->NPC->stats.walkSpeed*1.1;
 	gentity_t	*aiEnt = self;
 
 	if (self->beStillTime > level.time)
@@ -3760,7 +3760,7 @@ qboolean UQ1_UcmdMoveForDir ( gentity_t *self, usercmd_t *cmd, vec3_t dir, qbool
 qboolean UQ1_UcmdMoveForDir_NoAvoidance ( gentity_t *self, usercmd_t *cmd, vec3_t dir, qboolean walk, vec3_t dest )
 {
 	vec3_t		forward, right;
-	float		walkSpeed = 63.0;// 60.5;// 55 * 1.1;//48;//64;//32;//self->NPC->stats.walkSpeed*1.1;
+	float		walkSpeed = 32.0;// 63.0;// 60.5;// 55 * 1.1;//48;//64;//32;//self->NPC->stats.walkSpeed*1.1;
 	gentity_t	*aiEnt = self;
 
 	/*
@@ -4660,6 +4660,23 @@ void NPC_Think ( gentity_t *self )//, int msec )
 
 			if (!is_civilian)
 			{
+				if (G_IsOutsideEventArea(self))
+				{// This NPC has left it's event area and needs to return home...
+					G_ClearEnemy(self);
+
+					// Screw pathing, just TP home...
+					NPC_ClearGoal(self);
+					TeleportNPC(self, self->spawn_pos, vec3_origin);
+
+					self->client->pers.cmd.forwardmove = 0;
+					self->client->pers.cmd.rightmove = 0;
+					self->client->pers.cmd.upmove = 0;
+
+					// Always run the generic frame code at the end...
+					NPC_GenericFrameCode(self);
+					return;
+				}
+
 				if (NPC_FindEnemy(aiEnt, qtrue))
 				{// UQ1: Ummmm sounds please!
 					if (NPC_IsJedi(self))
@@ -4755,6 +4772,12 @@ void NPC_Think ( gentity_t *self )//, int msec )
 				// Always run the generic frame code at the end...
 				NPC_GenericFrameCode(self);
 				return;
+			}
+
+			if (is_civilian)
+			{
+				aiEnt->s.weapon = aiEnt->client->ps.weapon = WP_NONE;
+				haveValidEnemy = qfalse;
 			}
 
 			if (!haveValidEnemy)

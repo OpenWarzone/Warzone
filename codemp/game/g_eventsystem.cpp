@@ -997,13 +997,13 @@ int G_MaxSpawnsPerWave(int wave, eventSize_t eventSize)
 		{
 		case EVENT_SIZE_SMALL:
 		default:
-			return 4;
+			return 8;// 4;
 			break;
 		case EVENT_SIZE_MEDIUM:
-			return 8;
+			return 16;// 8;
 			break;
 		case EVENT_SIZE_LARGE:
-			return 12;
+			return 24;// 12;
 			break;
 		}
 		break;
@@ -1013,13 +1013,13 @@ int G_MaxSpawnsPerWave(int wave, eventSize_t eventSize)
 		{
 		case EVENT_SIZE_SMALL:
 		default:
-			return 8;
+			return 12;// 8;
 			break;
 		case EVENT_SIZE_MEDIUM:
-			return 12;
+			return 20;// 12;
 			break;
 		case EVENT_SIZE_LARGE:
-			return 16;
+			return 32;// 16;
 			break;
 		}
 		break;
@@ -1029,13 +1029,13 @@ int G_MaxSpawnsPerWave(int wave, eventSize_t eventSize)
 		{
 		case EVENT_SIZE_SMALL:
 		default:
-			return 8;
+			return 12;// 8;
 			break;
 		case EVENT_SIZE_MEDIUM:
-			return 12;
+			return 20;// 12;
 			break;
 		case EVENT_SIZE_LARGE:
-			return 16;
+			return 32;// 16;
 			break;
 		}
 		break;
@@ -1045,13 +1045,13 @@ int G_MaxSpawnsPerWave(int wave, eventSize_t eventSize)
 		{
 		case EVENT_SIZE_SMALL:
 		default:
-			return 8;
+			return 12;// 8;
 			break;
 		case EVENT_SIZE_MEDIUM:
-			return 12;
+			return 20;// 12;
 			break;
 		case EVENT_SIZE_LARGE:
-			return 16;
+			return 32;// 16;
 			break;
 		}
 		break;
@@ -1061,13 +1061,13 @@ int G_MaxSpawnsPerWave(int wave, eventSize_t eventSize)
 		{
 		case EVENT_SIZE_SMALL:
 		default:
-			return 8;
+			return 12;// 8;
 			break;
 		case EVENT_SIZE_MEDIUM:
-			return 12;
+			return 20;// 12;
 			break;
 		case EVENT_SIZE_LARGE:
-			return 16;
+			return 32;// 16;
 			break;
 		}
 		break;
@@ -1077,13 +1077,13 @@ int G_MaxSpawnsPerWave(int wave, eventSize_t eventSize)
 		{
 		case EVENT_SIZE_SMALL:
 		default:
-			return 8;
+			return 12;// 8;
 			break;
 		case EVENT_SIZE_MEDIUM:
-			return 12;
+			return 20;// 12;
 			break;
 		case EVENT_SIZE_LARGE:
-			return 16;
+			return 32;// 16;
 			break;
 		}
 		break;
@@ -1562,4 +1562,14 @@ void FindRandomEventSpawnpoint(int eventArea, vec3_t point)
 			VectorCopy(spawn->s.origin, point);
 		}
 	}
+}
+
+qboolean G_IsOutsideEventArea(gentity_t *NPC)
+{
+	if (NPC->spawnArea > 0 && Distance(NPC->r.currentOrigin, event_areas[NPC->spawnArea]) > EVENT_BUFFER * 0.5)
+	{// It is outside of it's spawn area...
+		return qtrue;
+	}
+
+	return qfalse;
 }

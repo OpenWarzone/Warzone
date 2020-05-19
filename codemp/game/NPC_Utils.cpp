@@ -1360,7 +1360,7 @@ int NPC_FindNearestEnemy( gentity_t *ent )
 	float		distance;
 	int			numEnts = 0;
 	int			i;
-	float		maxRange = 6000.0;// (ent->s.NPC_class == CLASS_ATST || ent->s.NPC_class == CLASS_ATPT || ent->s.NPC_class == CLASS_ATAT) ? 6000.0 : 3192.0;//aiEnt->NPC->stats.visrange;
+	float		maxRange = (ent->s.NPC_class == CLASS_ATST || ent->s.NPC_class == CLASS_ATPT || ent->s.NPC_class == CLASS_ATAT) ? 6000.0 : 4096.0;//aiEnt->NPC->stats.visrange;
 
 	//Setup the bbox to search in
 	for ( i = 0; i < 3; i++ )

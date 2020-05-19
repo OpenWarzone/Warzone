@@ -1001,11 +1001,24 @@ void G_CheckVendorNPCs( void )
 #endif //0
 }
 
+extern qboolean			WATER_ENABLED;
+extern float			MAP_WATER_LEVEL;
+
+extern qboolean			TOWN_FORCEFIELD_ENABLED;
+extern vec3_t			TOWN_FORCEFIELD_ORIGIN;
+extern vec3_t			TOWN_FORCEFIELD_RADIUS_3D;
+extern float			TOWN_FORCEFIELD_RADIUS;
+
 void G_CheckCivilianNPCs( void )
 {
 	int		botplayers = 0;
 	int		minplayers = 0;
 	int		i = 0;
+
+	if (!TOWN_FORCEFIELD_ENABLED)
+	{// No town to put civilians in...
+		return;
+	}
 
 	trap->Cvar_Update(&npc_civilians);
 	minplayers = npc_civilians.integer;
@@ -1035,27 +1048,92 @@ void G_CheckCivilianNPCs( void )
 	if (botplayers < minplayers)
 	{
 		gentity_t	*npc = NULL;
-		int			waypoint = G_SelectVillageSpawnpoint();
+		vec3_t		spawnOrg;
 		int			random = irand(0,36);
 		int			tries = 0;
 
-		while (gWPArray[waypoint]->inuse == false || gWPArray[waypoint]->wpIsBad == true || Warzone_SpawnpointNearMoverEntityLocation(gWPArray[waypoint]->origin)
-#ifndef __WAYPOINTS_PRECHECKED__
-			|| !Warzone_CheckBelowWaypoint(waypoint) || !Warzone_CheckRoutingFrom( waypoint )
-#endif //__WAYPOINTS_PRECHECKED__
-			)
-		{
-			gWPArray[waypoint]->inuse = false; // set it bad!
 
-			if (tries > 10)
+#ifdef __USE_NAVLIB__
+		if (G_NavmeshIsLoaded())
+		{// Find a navmesh spawnpoint in the town...
+			extern void G_FindSky(vec3_t org);
+			extern void G_FindGround(vec3_t org);
+
+			VectorSet(spawnOrg, 0.0, 0.0, 0.0);
+
+			vec3_t point, offDir;
+			offDir[0] = random() * 2.0 - 1.0;
+			offDir[1] = random() * 2.0 - 1.0;
+			offDir[2] = 0.0;
+			VectorNormalize(offDir);
+			VectorCopy(TOWN_FORCEFIELD_ORIGIN, point);
+			VectorMA(point, (TOWN_FORCEFIELD_RADIUS * 0.5) - 1024.0, offDir, point);
+			bool found = FindRandomNavmeshPointInRadius(-1, point, spawnOrg, 512.0);
+
+			G_FindSky(spawnOrg);
+			if (VectorLength(spawnOrg) == 0) found = false;
+
+			if (found)
 			{
-				return; // Try again on next check...
+				G_FindGround(spawnOrg);
+				if (VectorLength(spawnOrg) == 0) found = false;
 			}
 
-			// Find a new one... This is probably a bad waypoint...
-			waypoint = G_SelectVillageSpawnpoint();
+			while ((!found || spawnOrg[2] <= MAP_WATER_LEVEL) && tries < 3)
+			{
+				offDir[0] = random() * 2.0 - 1.0;
+				offDir[1] = random() * 2.0 - 1.0;
+				offDir[2] = 0.0;
+				VectorNormalize(offDir);
+				VectorCopy(TOWN_FORCEFIELD_ORIGIN, point);
+				VectorMA(point, (TOWN_FORCEFIELD_RADIUS * 0.5) - 1024.0, offDir, point);
+				found = FindRandomNavmeshPointInRadius(-1, point, spawnOrg, 512.0);
 
-			tries++;
+				G_FindSky(spawnOrg);
+				if (VectorLength(spawnOrg) == 0) found = false;
+
+				if (found)
+				{
+					G_FindGround(spawnOrg);
+					if (VectorLength(spawnOrg) == 0) found = false;
+				}
+
+				tries++;
+			}
+
+			if (!found)
+			{// Try again next check...
+				//Com_Printf("Town spawnpoint failed.\n");
+				return;
+			}
+
+			//Com_Printf("Town spawnpoint found at %f %f %f.\n", spawnOrg[0], spawnOrg[1], spawnOrg[2]);
+		}
+		else
+#endif //__USE_NAVLIB__
+		{
+			int			waypoint = G_SelectVillageSpawnpoint();
+
+			while (gWPArray[waypoint]->inuse == false || gWPArray[waypoint]->wpIsBad == true || Warzone_SpawnpointNearMoverEntityLocation(gWPArray[waypoint]->origin)
+#ifndef __WAYPOINTS_PRECHECKED__
+				|| !Warzone_CheckBelowWaypoint(waypoint) || !Warzone_CheckRoutingFrom(waypoint)
+#endif //__WAYPOINTS_PRECHECKED__
+				)
+			{
+				gWPArray[waypoint]->inuse = false; // set it bad!
+
+				if (tries > 10)
+				{
+					return; // Try again on next check...
+				}
+
+				// Find a new one... This is probably a bad waypoint...
+				waypoint = G_SelectVillageSpawnpoint();
+
+				tries++;
+			}
+
+			VectorCopy(gWPArray[waypoint]->origin, spawnOrg);
 		}
 
 		npc = G_Spawn();
@@ -1175,7 +1253,7 @@ void G_CheckCivilianNPCs( void )
 			break;
 		}
 
-		VectorCopy(gWPArray[waypoint]->origin, npc->s.origin);
+		VectorCopy(spawnOrg, npc->s.origin);
 		npc->s.origin[2]+=32; // Drop down...
 
 		npc->s.angles[PITCH] = 0;

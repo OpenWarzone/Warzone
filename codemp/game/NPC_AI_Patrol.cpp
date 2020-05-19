@@ -237,10 +237,12 @@ int NPC_FindPatrolGoalNavLib(gentity_t *NPC)
 		return 0;
 	}
 
+
 #pragma omp critical
 	{
 		FindRandomNavmeshPatrolPoint(NPC->s.number, NPC->client->navigation.goal.origin);
 	}
+
 /*#pragma omp critical
 	{
 		FindRandomNavmeshPointInRadius(NPC->s.number, NPC->r.currentOrigin, NPC->client->navigation.goal.origin, 2048.0);

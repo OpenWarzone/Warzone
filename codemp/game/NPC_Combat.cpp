@@ -403,6 +403,12 @@ void ChangeWeapon( gentity_t *ent, int newWeapon )
 		return;
 	}
 
+	if (NPC_IsCivilian(ent))
+	{
+		ent->s.weapon = ent->client->ps.weapon = ent->client->ps.primaryWeapon = ent->client->pers.cmd.weapon = WP_NONE;
+		return;
+	}
+
 	ent->client->ps.weapon = newWeapon;
 	ent->client->pers.cmd.weapon = newWeapon;
 
@@ -547,6 +553,12 @@ void ChangeWeapon( gentity_t *ent, int newWeapon )
 
 void NPC_ChangeWeapon( gentity_t *aiEnt, int newWeapon )
 {
+	if (NPC_IsCivilian(aiEnt))
+	{
+		aiEnt->s.weapon = aiEnt->client->ps.weapon = aiEnt->client->ps.primaryWeapon = aiEnt->client->pers.cmd.weapon = WP_NONE;
+		return;
+	}
+
 	if (aiEnt) // UQ1: We also need to be able to set weapons at map loading...
 	{
 		if (aiEnt->next_weapon_switch > level.time) return;
@@ -910,6 +922,110 @@ qboolean CanShoot ( gentity_t *ent, gentity_t *shooter )
 	}
 
 	// he's just in the wrong place, go ahead
+	return qtrue;
+#elif 1
+	// Cache these checks, so we can save a bunch of CPU time on the server...
+	if (shooter->enemyLastShootable == ent && shooter->enemyNextShootableCheck > level.time)
+	{// Current enemy is still the same one visible a moment ago...
+		if (shooter->enemyLastShootableTime > level.time - 2000)
+		{// We can still shoot this one...
+			return qtrue;
+		}
+		else
+		{
+			return qfalse;
+		}
+	}
+
+	// New enemy, or we need to do a new check...
+	shooter->enemyNextShootableCheck = level.time + 2000;
+
+	trace_t		tr;
+	vec3_t		muzzle;
+	vec3_t		spot, diff;
+	gentity_t	*traceEnt;
+	qboolean	IS_BREAKABLE = NPC_EntityIsBreakable(shooter, ent);
+
+	if (ent && !ValidEnemy(shooter, ent))
+	{
+		return qfalse;
+	}
+
+	CalcEntitySpot(shooter, SPOT_WEAPON, muzzle);
+	CalcEntitySpot(ent, SPOT_ORIGIN, spot);		//FIXME preferred target locations for some weapons (feet for R/L)
+
+	trap->Trace(&tr, muzzle, NULL, NULL, spot, shooter->s.number, MASK_SHOT, qfalse, 0, 0);
+	traceEnt = &g_entities[tr.entityNum];
+
+	// point blank, baby!
+	if (!IS_BREAKABLE && tr.startsolid && (shooter->NPC) && (shooter->NPC->touchedByPlayer))
+	{
+		traceEnt = shooter->NPC->touchedByPlayer;
+	}
+
+	if (!IS_BREAKABLE && ShotThroughGlass(&tr, ent, spot, MASK_SHOT))
+	{
+		traceEnt = &g_entities[tr.entityNum];
+	}
+
+	if (IS_BREAKABLE && tr.fraction > 0.8)
+	{// Close enough...
+		shooter->enemyLastShootableTime = level.time;
+		return qtrue;
+	}
+
+	// shot is dead on
+	if (traceEnt == ent)
+	{
+		shooter->enemyLastShootableTime = level.time;
+		return qtrue;
+	}
+	//MCG - Begin
+	else
+	{//ok, can't hit them in center, try their head
+		CalcEntitySpot(ent, SPOT_HEAD, spot);
+		trap->Trace(&tr, muzzle, NULL, NULL, spot, shooter->s.number, MASK_SHOT, qfalse, 0, 0);
+		traceEnt = &g_entities[tr.entityNum];
+		if (traceEnt == ent)
+		{
+			shooter->enemyLastShootableTime = level.time;
+			return qtrue;
+		}
+	}
+
+	//Actually, we should just check to fire in dir we're facing and if it's close enough,
+	//and we didn't hit someone on our own team, shoot
+	VectorSubtract(spot, tr.endpos, diff);
+	if (VectorLength(diff) < random() * 32)
+	{
+		shooter->enemyLastShootableTime = level.time;
+		return qtrue;
+	}
+	//MCG - End
+	// shot would hit a non-client
+	if (!traceEnt->client)
+	{
+		return qfalse;
+	}
+
+	// shot is blocked by another player
+
+	// he's already dead, so go ahead
+	if (traceEnt->health <= 0)
+	{
+		shooter->enemyLastShootableTime = level.time;
+		return qtrue;
+	}
+
+	// don't deliberately shoot a teammate
+	if (traceEnt->client && !ValidEnemy(shooter, traceEnt))
+	{
+		return qfalse;
+	}
+
+	// he's just in the wrong place, go ahead
+	shooter->enemyLastShootable = traceEnt; // change our lastShootable to this new guy...
+	shooter->enemyLastShootableTime = level.time;
 	return qtrue;
 #else
 	return (ValidEnemy(shooter, ent)) ? qtrue : qfalse;

@@ -1627,6 +1627,7 @@ inventoryItem *BG_CreatePlayerInventoryItem(playerState_t *ps, int psSlot /* -1 
 }
 
 extern void G_CheckSaber(gentity_t *ent);
+extern qboolean NPC_IsCivilian(gentity_t *NPC);
 
 void BG_CreateRandomNPCInventory(gentity_t *ent)
 {
@@ -1638,6 +1639,11 @@ void BG_CreateRandomNPCInventory(gentity_t *ent)
 	if (!ent->client)
 	{
 		trap->Print("BG_CreateRandomNPCInventory: NPC %i has no client structure.\n", ent->s.number);
+		return;
+	}
+
+	if (NPC_IsCivilian(ent))
+	{// No inventory for civs...
 		return;
 	}
 

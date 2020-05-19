@@ -2536,8 +2536,16 @@ static void _PlayerFootStep( const vec3_t origin,
 		return;
 	}
 
+	extern int DEFAULT_FOOTSTEP_MATERIAL;
+	qboolean soundOverride = qfalse;
+
+	if (DEFAULT_FOOTSTEP_MATERIAL > 0 && trace.materialType == MATERIAL_CONCRETE)
+	{// If mapinfo specified an override, and this is defaultsolid (concrete)...
+		soundOverride = qtrue;
+	}
+
 	//check for foot-steppable surface flag
-	switch( trace.materialType)
+	switch( soundOverride ? DEFAULT_FOOTSTEP_MATERIAL : trace.materialType )
 	{
 		case MATERIAL_MUD:
 			bMark = qtrue;
@@ -5064,6 +5072,7 @@ Returns the Z component of the surface being shadowed
 */
 #define	SHADOW_DISTANCE		128
 static qboolean CG_PlayerShadow( centity_t *cent, float *shadowPlane ) {
+#if 0
 	vec3_t		end, mins = {-15, -15, 0}, maxs = {15, 15, 2};
 	trace_t		trace;
 	float		alpha;
@@ -5158,6 +5167,9 @@ static qboolean CG_PlayerShadow( centity_t *cent, float *shadowPlane ) {
 		cent->pe.legs.yawAngle, alpha,alpha,alpha,1, qfalse, radius, qtrue );
 
 	return qtrue;
+#else
+	return qfalse;
+#endif
 }
 
 

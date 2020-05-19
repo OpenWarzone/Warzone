@@ -148,12 +148,36 @@ vec3_t			TOWN_FORCEFIELD_ORIGIN;
 vec3_t			TOWN_FORCEFIELD_RADIUS;
 char			TOWN_MAP_ICON[256] = { { 0 } };
 
+int				DEFAULT_FOOTSTEP_MATERIAL = 0;
+
 extern void CG_ForcefieldCreate(vec3_t origin, vec3_t radius, int team, int health, qboolean isTown);
 extern void CG_ForcefieldDropTownShield(void);
+
+const char *materialNames[MATERIAL_LAST] =
+{
+	MATERIALS
+};
 
 qboolean MAPPING_LoadMapInfo(void)
 {
 	trap->Print("^1*** ^3%s^5: Loading mapInfo file ^7maps/%s.mapInfo^5.\n", "CGAME-MAPINFO", cgs.currentmapname);
+
+	DEFAULT_FOOTSTEP_MATERIAL = 0;
+	char defaultFootstepMaterial[64] = { 0 };
+	strcpy(defaultFootstepMaterial, IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "EFFECTS", "DEFAULT_FOOTSTEP_MATERIAL", ""));
+
+	if (defaultFootstepMaterial && defaultFootstepMaterial[0] && defaultFootstepMaterial[0] != '\0' && strlen(defaultFootstepMaterial) > 1)
+	{
+		for (int i = 0; i < MATERIAL_LAST; i++)
+		{
+			if (!Q_stricmp(defaultFootstepMaterial, materialNames[i]))
+			{// Got one, add it to the allowed list...
+				DEFAULT_FOOTSTEP_MATERIAL = i;
+				trap->Print("^1*** ^3%s^5: Default footstep material for this map set to ^7%s^5.\n", "CGAME-MAPINFO", defaultFootstepMaterial);
+				break;
+			}
+		}
+	}
 
 	BIRDS_ENABLED = (atoi(IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "BIRDS", "BIRDS_ENABLED", "0")) > 0) ? qtrue : qfalse;
 	BIRDS_COUNT = atoi(IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "BIRDS", "BIRDS_COUNT", "0"));
@@ -192,7 +216,7 @@ qboolean MAPPING_LoadMapInfo(void)
 	strcpy(TOWN_MAP_ICON, IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "TOWN", "TOWN_MAP_ICON", "gfx/radarIcons/iconTown"));
 
 
-	trap->Print("^1*** ^3%s^5: Birds are %s. Birds count is %i.\n", "CGAME-MAPINFO", BIRDS_ENABLED ? "Enabled" : "Disabled", BIRDS_ENABLED ? BIRDS_COUNT : 0);
+	trap->Print("^1*** ^3%s^5: Birds are ^7%s^5. Birds count is ^7%i^5.\n", "CGAME-MAPINFO", BIRDS_ENABLED ? "Enabled" : "Disabled", BIRDS_ENABLED ? BIRDS_COUNT : 0);
 
 	if (TOWN_FORCEFIELD_ORIGIN[0] < 999990.0
 		&& TOWN_FORCEFIELD_ORIGIN[1] < 999990.0
@@ -207,7 +231,7 @@ qboolean MAPPING_LoadMapInfo(void)
 		// Create a new town forcefield...
 		CG_ForcefieldCreate(TOWN_FORCEFIELD_ORIGIN, TOWN_FORCEFIELD_RADIUS, FACTION_REBEL, -999999.9, qtrue);
 
-		trap->Print("^1*** ^3%s^5: Town forcefield added at %i %i %i (radius %i %i %i).\n", "CGAME-MAPINFO"
+		trap->Print("^1*** ^3%s^5: Town forcefield added at ^7%i %i %i^5 (radius ^7%i %i %i^5).\n", "CGAME-MAPINFO"
 			, int(TOWN_FORCEFIELD_ORIGIN[0]), int(TOWN_FORCEFIELD_ORIGIN[1]), int(TOWN_FORCEFIELD_ORIGIN[2])
 			, int(TOWN_FORCEFIELD_RADIUS[0]), int(TOWN_FORCEFIELD_RADIUS[1]), int(TOWN_FORCEFIELD_RADIUS[2]));
 	}
