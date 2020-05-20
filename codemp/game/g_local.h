@@ -1958,6 +1958,7 @@ void G_UpdateSpawnAreaWaves(void);
 int G_GetEventMostNeedingSpawns(void);
 int G_SpawnCountForEvent(int eventNum);
 int G_WaveSpawnCountForEventWave(int eventNum);
+int G_MaxSpawnsInEvent(int eventNum);
 team_t G_GetFactionForEvent(int eventNum);
 spawnGroupRarity_t G_GetRarityForEventWave(int eventNum);
 void FindRandomEventSpawnpoint(int eventArea, vec3_t point);

@@ -2152,7 +2152,13 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 
 		if (myPilot)
 		{
+			extern void G_FindSky(vec3_t org);
+			extern void G_FindGround(vec3_t org);
+
+			vec3_t saveOrg;
+
 			VectorCopy(self->r.currentOrigin, myPilot->s.origin);
+			VectorCopy(myPilot->s.origin, saveOrg);
 
 			myPilot->NPC_type = "atstpilot";
 
@@ -2167,21 +2173,26 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 
 			G_SetAngles(myPilot, myPilot->s.angles);
 
-			//myPilot->spawnflags |= NSF_DROP_TO_FLOOR;
-			trace_t		tr;
-			vec3_t		bottom, saveOrg;
+			bool found = true;
 
-			VectorCopy(myPilot->s.origin, saveOrg);
-			VectorCopy(myPilot->s.origin, bottom);
-			bottom[2] = MIN_WORLD_COORD;
-			trap->Trace(&tr, myPilot->s.origin, NULL/*myPilot->r.mins*/, NULL/*myPilot->r.maxs*/, bottom, myPilot->s.number, MASK_SOLID, qfalse, 0, 0);
-			if (!tr.allsolid && !tr.startsolid && tr.fraction < 1.0)
+			/* Try to use FindSky/FindGround first, like other spawnpoints do... */
+			G_FindSky(myPilot->s.origin);
+			if (VectorLength(myPilot->s.origin) == 0) found = false;
+
+			if (found)
 			{
-				vec3_t neworg;
-				VectorCopy(tr.endpos, neworg);
-				neworg[2] += 25.0;
-				G_SetOrigin(myPilot, neworg);
-				VectorCopy(neworg, myPilot->s.origin);
+				G_FindGround(myPilot->s.origin);
+				if (VectorLength(myPilot->s.origin) == 0) found = false;
+			}
+
+			if (!found)
+			{// Using Findsky/FindGround failed, use original ATST's spot, but add some extra height to it...
+				VectorCopy(saveOrg, myPilot->s.origin);
+				myPilot->s.origin[2] += 128.0;
+			}
+			else
+			{
+				myPilot->s.origin[2] += 128.0;
 			}
 
 			// Before we replace the ent pointer, make sure the original ent gets freed on the next think... Delayed so group spawners can still use the entity for extra spawns this frame...

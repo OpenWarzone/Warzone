@@ -41,7 +41,7 @@ void TeleportNPC( gentity_t *player, vec3_t origin, vec3_t angles ) {
 #endif //0
 
 	// unlink to make sure it can't possibly interfere with G_KillBox
-	trap->UnlinkEntity ((sharedEntity_t *)player);
+	//trap->UnlinkEntity ((sharedEntity_t *)player);
 
 	VectorCopy ( origin, player->client->ps.origin );
 	player->client->ps.origin[2] += 1;

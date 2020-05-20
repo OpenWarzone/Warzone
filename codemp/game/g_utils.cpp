@@ -1144,13 +1144,15 @@ gentity_t *G_SoundTempEntity( vec3_t origin, int event, int channel ) {
 	return e;
 }
 
+#ifdef __16_BIT_HEALTH__ // Fuck this shit, just made health and maxhealth 32 bits in net code...
+#define HEALTH_NET_MAX 32768.0 //1000 -- UQ1: WTF.. It's 16 bits, thats -32768 -> 32768, where the hell did 1000 come from?!?!?!?!?!?
 
 //scale health down below 1024 to fit in health bits
 void G_ScaleNetHealth(gentity_t *self)
 {
 	int maxHealth = self->maxHealth;
 
-    if (maxHealth < 1000)
+    if (maxHealth < HEALTH_NET_MAX)
 	{ //it's good then
 		self->s.maxhealth = maxHealth;
 		self->s.health = self->health;
@@ -1163,8 +1165,8 @@ void G_ScaleNetHealth(gentity_t *self)
 	}
 
 	//otherwise, scale it down
-	self->s.maxhealth = (maxHealth/100);
-	self->s.health = (self->health/100);
+	self->s.maxhealth = (maxHealth / HEALTH_NET_MAX);
+	self->s.health = (self->health / HEALTH_NET_MAX);
 
 	if (self->s.health < 0)
 	{ //don't let it wrap around
@@ -1177,7 +1179,21 @@ void G_ScaleNetHealth(gentity_t *self)
 		self->s.health = 1;
 	}
 }
+#else //!__16_BIT_HEALTH__
+void G_ScaleNetHealth(gentity_t *self)
+{
+	if (self->s.health < 0)
+	{ //don't let it wrap around
+		self->s.health = 0;
+	}
 
+	if (self->health > 0 &&
+		self->s.health <= 0)
+	{ //don't let it scale to 0 if the thing is still not "dead"
+		self->s.health = 1;
+	}
+}
+#endif //__16_BIT_HEALTH__
 
 
 /*

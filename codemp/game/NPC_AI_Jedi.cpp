@@ -8795,6 +8795,7 @@ void NPC_CallForHelpSpeech(gentity_t *aiEnt)
 
 void NPC_CallForHelp(gentity_t *aiEnt)
 {
+#if 0
 	if (aiEnt->isPadawan)
 		return;
 
@@ -8842,6 +8843,7 @@ void NPC_CallForHelp(gentity_t *aiEnt)
 			return;
 		}
 	}
+#endif
 }
 
 void NPC_BSJedi_Default( gentity_t *aiEnt)

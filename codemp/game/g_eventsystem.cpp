@@ -1090,7 +1090,7 @@ int G_MaxSpawnsPerWave(int wave, eventSize_t eventSize)
 	}
 }
 
-int G_MaxSpawnsInEvent(eventSize_t eventSize)
+int G_MaxSpawnsForEventSize(eventSize_t eventSize)
 {// NOTE: Must be in groups of 4, as this is how the spawnGroups system is set up... TODO: Varying event sizes...
 	int maxSpawns = 4;
 
@@ -1105,6 +1105,17 @@ int G_MaxSpawnsInEvent(eventSize_t eventSize)
 	}
 
 	return maxSpawns;
+	//return 32; // Screw it, make sure there are always 32 (the max possible) slots free...
+}
+
+int G_MaxSpawnsInEvent(int eventNum)
+{
+	if (!EVENTS_ENABLED || eventNum < 0 || num_event_areas <= 0)
+	{
+		return 0;
+	}
+
+	return G_MaxSpawnsForEventSize(event_areas_event_size[eventNum]);
 }
 
 int G_WaveSpawnCountForEventWave(int eventNum)
@@ -1215,7 +1226,7 @@ void G_PrintEventAreaInfo(void)
 			int maxWaveSpawns = G_MaxSpawnsPerWave(currentWave, event_areas_event_size[i]);
 			int currentCount = event_areas_spawn_count[i];
 
-			trap->Print("^5Area ^7%i^5 (wave ^7%i^5) has ^7%i^5/^7%i^5 spawned NPCs.\n", i, currentWave, currentCount, maxWaveSpawns);
+			trap->Print("^5Area ^7%i^5 (faction ^7%s^5) (wave ^7%i^5) has ^7%i^5/^7%i^5 spawned NPCs.\n", i, TeamName(event_areas_current_team[i]), currentWave, currentCount, maxWaveSpawns);
 		}
 	}
 }
@@ -1237,8 +1248,13 @@ qboolean G_EnabledFactionEvent(int eventNum)
 	}
 
 	team_t		eventFaction = event_areas_current_team[eventNum];
-	int			largestWave = G_MaxSpawnsInEvent(event_areas_event_size[eventNum]);
+	int			largestWave = G_MaxSpawnsForEventSize(event_areas_event_size[eventNum]);
 	int			currentCount = event_areas_spawn_count[eventNum];
+
+	if (G_WaveSpawnCountForEventWave(eventNum) - currentCount < 4)
+	{
+		return qfalse;
+	}
 
 	switch (eventFaction)
 	{
@@ -1334,7 +1350,7 @@ qboolean G_EnabledFactionEvent(int eventNum)
 		break;
 	case FACTION_SPECTATOR:
 	default:
-		return qtrue;
+		return qfalse;// qtrue;
 		break;
 	}
 
@@ -1362,7 +1378,7 @@ int G_GetEventMostNeedingSpawns(void)
 
 			int				currentWave = event_areas_spawn_wave[i];
 			int				maxWaveSpawns = G_MaxSpawnsPerWave(currentWave, event_areas_event_size[i]);
-			//int			largestWave = G_MaxSpawnsInEvent(event_areas_event_size[i]);
+			int				largestWave = G_MaxSpawnsForEventSize(event_areas_event_size[i]);
 			int				currentCount = event_areas_spawn_count[i];
 			qboolean		waitingForWave = event_areas_wave_filled[i];
 			qboolean		hyperspaceIn = (event_areas_ship[i] && event_areas_ship_hyperspace_in_time != 0 && event_areas_ship_hyperspace_in_time[i] >= level.time) ? qtrue : qfalse;

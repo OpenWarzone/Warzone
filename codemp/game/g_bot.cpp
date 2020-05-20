@@ -1295,6 +1295,71 @@ int next_npc_stats_time = 0;
 // Sharing this info with the eventsystem spawner system, so we can skip events that we don't have enough slots to fill...
 int			num_imperial_npcs = 0, num_rebel_npcs = 0, num_mandalorian_npcs = 0, num_merc_npcs = 0, num_pirate_npcs = 0, num_wildlife_npcs = 0;
 
+void G_CheckWildlifeSpawns(void)
+{
+	//
+	// Spawn the WILDLIFE team...
+	//
+	if (HAVE_WILDLIFE)
+	{
+		vmCvar_t	mapname;
+		trap->Cvar_Register(&mapname, "mapname", "", CVAR_SERVERINFO | CVAR_ROM);
+
+		if (num_wildlife_npcs + 4 < npc_wildlife.integer)
+		{
+			spawnGroup_t group;
+			int			random = irand(0, 22);
+			int			tries = 0;
+			vec3_t		position;
+			int			SPAWN_TEAM = FACTION_WILDLIFE;
+
+#ifdef __ALL_JEDI_NPCS__
+			group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_BOSS);
+			if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_BOSS);
+#else //!__ALL_JEDI_NPCS__
+			if (random >= 16)
+			{
+				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_SPAM);
+				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_SPAM);
+			}
+			else if (random >= 11)
+			{
+				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_COMMON);
+				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_COMMON);
+			}
+			else if (random >= 7)
+			{
+				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_OFFICER);
+				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_OFFICER);
+			}
+			else if (random >= 4)
+			{// Officers/Specials...
+				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_ELITE);
+				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_ELITE);
+			}
+			else if (random >= 1)
+			{// Jedi...
+				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_BOSS);
+				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_BOSS);
+			}
+			else
+			{
+				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_SPAM);
+				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_SPAM);
+			}
+#endif //__ALL_JEDI_NPCS__
+
+			// Wildlife always spawn at random waypoints (for now)...
+			FindRandomNavmeshSpawnpoint(NULL, position);
+			position[2] += 32; // Drop down...
+
+			if (VectorLength(position) != 32)
+			{
+				SP_NPC_Spawner_Group(group, position, SPAWN_TEAM, -1);
+			}
+		}
+	}
+}
 void G_CheckMinimumNpcs(void) 
 {
 	vmCvar_t	mapname;
@@ -1329,15 +1394,16 @@ void G_CheckMinimumNpcs(void)
 
 	// only check once each 1 seconds - NPCs can spawn faster then bots... If i use a 1ms extra on these, it should offset their thinks
 	// to spread them out and reduce the occurances of npcs all thinking on the same frames all the time...
-	if (level.numConnectedClients > 0 && checkminimumnpcs_time > level.time - 1001) 
+	//if (level.numConnectedClients > 0 && checkminimumnpcs_time > level.time - 1001) 
+	if (/*level.numConnectedClients > 0 &&*/ checkminimumnpcs_time > level.time - 101)
 	{
 		return;
 	}
 
-	if (level.numConnectedClients <= 0 && checkminimumnpcs_time > level.time - 51) 
+	/*if (level.numConnectedClients <= 0 && checkminimumnpcs_time > level.time - 51) 
 	{
 		return;
-	}
+	}*/
 
 	num_imperial_npcs = 0;
 	num_rebel_npcs = 0;
@@ -1393,99 +1459,6 @@ void G_CheckMinimumNpcs(void)
 		return;
 	}
 
-	// Find the event that needs new spawns the most...
-	int						EVENT_COUNT = G_GetEventsCount();
-	int						EVENT_AREA_ID = -1;
-	team_t					EVENT_SPAWN_FACTION = FACTION_WILDLIFE;
-	spawnGroupRarity_t		EVENT_SPAWN_QUALITY = RARITY_SPAM;
-	int						EVENT_SPAWN_SPAWNCOUNT = 0;
-	int						EVENT_SPAWN_WAVECOUNT = 4;
-	qboolean				skipSpawning = qfalse;
-
-	//Com_Printf("EVENT_COUNT %i.\n", EVENT_COUNT);
-
-	if (EVENT_COUNT <= 0)
-	{// Wait until event areas have been all set up...
-		return;
-	}
-
-	qboolean isEventSpawn = qfalse;
-	qboolean spawnEmpire = qfalse;
-	qboolean spawnRebel = qfalse;
-	qboolean spawnMandalorian = qfalse;
-	qboolean spawnMerc = qfalse;
-	qboolean spawnPirate = qfalse;
-	qboolean spawnWildlife = qtrue; // Is always allowed...
-
-	if (EVENT_COUNT > 0)
-	{
-		// Update event area spawn waves...
-		G_UpdateSpawnAreaWaves();
-
-		// Update event area spawn counts before spawning anything new...
-		G_CountEventAreaSpawns();
-
-		EVENT_AREA_ID = G_GetEventMostNeedingSpawns();
-
-		if (EVENT_AREA_ID >= 0)
-		{
-			EVENT_SPAWN_FACTION = G_GetFactionForEvent(EVENT_AREA_ID);
-			EVENT_SPAWN_QUALITY = G_GetRarityForEventWave(EVENT_AREA_ID);
-			EVENT_SPAWN_SPAWNCOUNT = G_SpawnCountForEvent(EVENT_AREA_ID);
-			EVENT_SPAWN_WAVECOUNT = G_WaveSpawnCountForEventWave(EVENT_AREA_ID);
-
-			if (EVENT_SPAWN_SPAWNCOUNT + 4 > EVENT_SPAWN_WAVECOUNT)
-			{// Event is already full...
-				skipSpawning = qtrue;
-			}
-			else
-			{
-				//Com_Printf("EVENT_SPAWN_SPAWNCOUNT %i. EVENT_SPAWN_WAVECOUNT %i.\n", EVENT_SPAWN_SPAWNCOUNT, EVENT_SPAWN_WAVECOUNT);
-
-				switch (EVENT_SPAWN_FACTION)
-				{
-				case FACTION_EMPIRE:
-					spawnEmpire = qtrue;
-					isEventSpawn = qtrue;
-					break;
-				case FACTION_REBEL:
-					spawnRebel = qtrue;
-					isEventSpawn = qtrue;
-					break;
-				case FACTION_MANDALORIAN:
-					spawnMandalorian = qtrue;
-					isEventSpawn = qtrue;
-					break;
-				case FACTION_MERC:
-					spawnMerc = qtrue;
-					isEventSpawn = qtrue;
-					break;
-				case FACTION_PIRATES:
-					spawnPirate = qtrue;
-					isEventSpawn = qtrue;
-					break;
-				case FACTION_WILDLIFE:
-				case FACTION_FREE:
-				case FACTION_SPECTATOR:
-					isEventSpawn = qfalse;
-					break;
-				}
-			}
-		}
-		else
-		{
-			skipSpawning = qtrue;
-		}
-	}
-	else
-	{// Event system not running on this map? Allow any...
-		spawnEmpire = qtrue;
-		spawnRebel = qtrue;
-		spawnMandalorian = qtrue;
-		spawnMerc = qtrue;
-		spawnPirate = qtrue;
-	}
-
 	for (i = level.maxclients; i < MAX_GENTITIES; i++)
 	{
 		gentity_t *npc = &g_entities[i];
@@ -1501,7 +1474,7 @@ void G_CheckMinimumNpcs(void)
 
 		if (NPC_IsCivilian(npc)) continue;
 		if (NPC_IsVendor(npc)) continue;
-		
+
 		if (npc->client->sess.sessionTeam == FACTION_EMPIRE)
 			num_imperial_npcs++;
 		else if (npc->client->sess.sessionTeam == FACTION_REBEL)
@@ -1516,12 +1489,10 @@ void G_CheckMinimumNpcs(void)
 			num_wildlife_npcs++;
 	}
 
-	if (EVENT_SPAWN_SPAWNCOUNT + 4 > EVENT_SPAWN_WAVECOUNT)
-	{// Event is already full...
-		skipSpawning = qtrue;
-	}
+	// First handle any wildlife spawning... since these guys don't use events...
+	G_CheckWildlifeSpawns();
 
-	if (((g_consoleNPCStats.integer && dedicated.integer) || g_consoleNPCStats.integer == 2) 
+	if (((g_consoleNPCStats.integer && dedicated.integer) || g_consoleNPCStats.integer == 2)
 		&& next_npc_stats_time <= level.time)
 	{
 		// g_consoleNPCStats 0 disables npc stats display in console.
@@ -1534,8 +1505,20 @@ void G_CheckMinimumNpcs(void)
 		next_npc_stats_time = level.time + 10000;
 	}
 
-	if (skipSpawning)
-	{// We only wanted the console log above...
+	// Find the event that needs new spawns the most...
+	int						EVENT_COUNT = G_GetEventsCount();
+	int						EVENT_AREA_ID = -1;
+	team_t					EVENT_SPAWN_FACTION = FACTION_WILDLIFE;
+	spawnGroupRarity_t		EVENT_SPAWN_QUALITY = RARITY_SPAM;
+	int						EVENT_SPAWN_SPAWNCOUNT = 0;
+	int						EVENT_SPAWN_WAVECOUNT = 4;
+	int						EVENT_MAX_SPAWNS = 0;
+	qboolean				skipSpawning = qfalse;
+
+	//Com_Printf("EVENT_COUNT %i.\n", EVENT_COUNT);
+
+	if (EVENT_COUNT <= 0)
+	{// Wait until event areas have been all set up...
 		return;
 	}
 
@@ -1556,527 +1539,223 @@ void G_CheckMinimumNpcs(void)
 		SPAWN_FACTIONS_CHECKED = qtrue;
 	}
 
-	//
-	// Spawn the IMPERIAL team...
-	//
-	if (spawnEmpire && num_imperial_npcs + 4 <= min_imperials)
+	qboolean isEventSpawn = qfalse;
+	qboolean spawnEmpire = qfalse;
+	qboolean spawnRebel = qfalse;
+	qboolean spawnMandalorian = qfalse;
+	qboolean spawnMerc = qfalse;
+	qboolean spawnPirate = qfalse;
+	qboolean spawnWildlife = qtrue; // Is always allowed...
+
+	// Update event area spawn waves...
+	G_UpdateSpawnAreaWaves();
+
+	// Update event area spawn counts before spawning anything new...
+	G_CountEventAreaSpawns();
+
+	EVENT_AREA_ID = G_GetEventMostNeedingSpawns();
+
+	if (EVENT_AREA_ID >= 0)
 	{
-#ifndef __USE_NAVLIB_SPAWNPOINTS__
-		int			waypoint = G_SelectWildernessSpawnpoint();
-#endif //__USE_NAVLIB_SPAWNPOINTS__
-		int			random = irand(0, 22);
-		int			tries = 0;
-		vec3_t		position;
-		int			SPAWN_TEAM = FACTION_EMPIRE;
+		EVENT_SPAWN_FACTION = G_GetFactionForEvent(EVENT_AREA_ID);
+		EVENT_SPAWN_QUALITY = G_GetRarityForEventWave(EVENT_AREA_ID);
+		EVENT_SPAWN_SPAWNCOUNT = G_SpawnCountForEvent(EVENT_AREA_ID);
+		EVENT_SPAWN_WAVECOUNT = G_WaveSpawnCountForEventWave(EVENT_AREA_ID);
+		EVENT_MAX_SPAWNS = G_MaxSpawnsInEvent(EVENT_AREA_ID);
+
+		//trap->Print("G_GetEventMostNeedingSpawns: %i. Faction: %s. Count: %i / %i (%i).\n", EVENT_AREA_ID, TeamName(EVENT_SPAWN_FACTION), EVENT_SPAWN_SPAWNCOUNT, EVENT_SPAWN_WAVECOUNT, EVENT_MAX_SPAWNS);
+
+		if (EVENT_SPAWN_SPAWNCOUNT + 4 > EVENT_SPAWN_WAVECOUNT)
+		{// Event is already full...
+			return;
+		}
+		else
+		{
+			//Com_Printf("EVENT_SPAWN_SPAWNCOUNT %i. EVENT_SPAWN_WAVECOUNT %i.\n", EVENT_SPAWN_SPAWNCOUNT, EVENT_SPAWN_WAVECOUNT);
+
+			switch (EVENT_SPAWN_FACTION)
+			{
+			case FACTION_EMPIRE:
+				spawnEmpire = qtrue;
+				isEventSpawn = qtrue;
+				break;
+			case FACTION_REBEL:
+				spawnRebel = qtrue;
+				isEventSpawn = qtrue;
+				break;
+			case FACTION_MANDALORIAN:
+				spawnMandalorian = qtrue;
+				isEventSpawn = qtrue;
+				break;
+			case FACTION_MERC:
+				spawnMerc = qtrue;
+				isEventSpawn = qtrue;
+				break;
+			case FACTION_PIRATES:
+				spawnPirate = qtrue;
+				isEventSpawn = qtrue;
+				break;
+			case FACTION_WILDLIFE:
+			case FACTION_FREE:
+			case FACTION_SPECTATOR:
+				return;
+				break;
+			}
+		}
+
+		//
+		// Spawn the IMPERIAL team...
+		//
+		if (spawnEmpire)
+		{
+			vec3_t		position;
+			int			SPAWN_TEAM = FACTION_EMPIRE;
 
 #ifdef __ALL_JEDI_NPCS__
-		group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_BOSS);
-		if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_BOSS);
+			group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_BOSS);
+			if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_BOSS);
 #else //!__ALL_JEDI_NPCS__
-		if (EVENT_COUNT > 0)
-		{
 			group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), EVENT_SPAWN_QUALITY);
 			if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), EVENT_SPAWN_QUALITY);
-		}
-		else if (random >= 16)
-		{
-			group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_SPAM);
-			if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_SPAM);
-		}
-		else if (random >= 11)
-		{
-			group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_COMMON);
-			if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_COMMON);
-		}
-		else if (random >= 7)
-		{
-			group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_OFFICER);
-			if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_OFFICER);
-		}
-		else if (random >= 4)
-		{// Officers/Specials...
-			group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_ELITE);
-			if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_ELITE);
-		}
-		else if (random >= 1)
-		{// Jedi...
-			group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_BOSS);
-			if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_BOSS);
-		}
-		else
-		{
-			group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_SPAM);
-			if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_SPAM);
-		}
 #endif //__ALL_JEDI_NPCS__
 
-		if (npc_pathing.integer && g_gametype.integer >= GT_TEAM)
-		{// New War Zone Instances (not JKG style)... Get CTF spawnpoints...
-			gentity_t spawnPoint;
-			spawnPoint = *SelectCTFSpawnPoint((team_t)SPAWN_TEAM, 0, position, position, qtrue);
-			VectorCopy(spawnPoint.s.origin, position);
-			position[2] += 32; // Drop down...
-		}
-		else
-		{// Imperials always spawn at random waypoints (for now)...
-#ifdef __USE_NAVLIB_SPAWNPOINTS__
-			// With navlib they get their own areas...
-			FindRandomEventSpawnpoint(EVENT_AREA_ID, position);
-			//trap->Print("imp spawnpoint %f %f %f. num_imperial_npcs %i. min_imperials %i. EVENT_SPAWN_SPAWNCOUNT %i. EVENT_SPAWN_WAVECOUNT %i.\n", position[0], position[1], position[2], num_imperial_npcs, min_imperials, EVENT_SPAWN_SPAWNCOUNT, EVENT_SPAWN_WAVECOUNT);
-#else //!__USE_NAVLIB_SPAWNPOINTS__
-			while (gWPArray[waypoint]->inuse == false || gWPArray[waypoint]->wpIsBad == true || WAYPOINT_PARTOL_BAD_LIST[waypoint])
-			{
-				gWPArray[waypoint]->inuse = false; // set it bad!
-
-				if (tries > 10)
-				{
-					return; // Try again on next check...
-				}
-
-				// Find a new one... This is probably a bad waypoint...
-				waypoint = G_SelectWildernessSpawnpoint();
-
-				tries++;
+			if (npc_pathing.integer && g_gametype.integer >= GT_TEAM)
+			{// New War Zone Instances (not JKG style)... Get CTF spawnpoints...
+				gentity_t spawnPoint;
+				spawnPoint = *SelectCTFSpawnPoint((team_t)SPAWN_TEAM, 0, position, position, qtrue);
+				VectorCopy(spawnPoint.s.origin, position);
+				position[2] += 32; // Drop down...
+			}
+			else
+			{// Imps...
+				FindRandomEventSpawnpoint(EVENT_AREA_ID, position);
+				//trap->Print("imp spawnpoint %f %f %f. num_imperial_npcs %i. min_imperials %i. EVENT_SPAWN_SPAWNCOUNT %i. EVENT_SPAWN_WAVECOUNT %i.\n", position[0], position[1], position[2], num_imperial_npcs, min_imperials, EVENT_SPAWN_SPAWNCOUNT, EVENT_SPAWN_WAVECOUNT);
+				position[2] += 32; // Drop down...
 			}
 
-			VectorCopy(gWPArray[waypoint]->origin, position);
-#endif //__USE_NAVLIB_SPAWNPOINTS__
-			position[2] += 32; // Drop down...
+			if (VectorLength(position) != 32)
+			{
+				SP_NPC_Spawner_Group(group, position, SPAWN_TEAM, EVENT_AREA_ID);
+			}
 		}
 
-		if (VectorLength(position) != 32)
+		//
+		// Spawn the REBEL team...
+		//
+		if (spawnRebel)
 		{
-			SP_NPC_Spawner_Group(group, position, SPAWN_TEAM, EVENT_AREA_ID);
-		}
-	}
-
-	//
-	// Spawn the REBEL team...
-	//
-	if (spawnRebel && num_rebel_npcs + 4 <= min_rebels)
-	{
-#ifndef __USE_NAVLIB_SPAWNPOINTS__
-		int			waypoint = G_SelectWildernessSpawnpoint();
-#endif //__USE_NAVLIB_SPAWNPOINTS__
-		int			random = irand(0, 22);
-		int			tries = 0;
-		vec3_t		position;
-		int			SPAWN_TEAM = FACTION_REBEL;
+			vec3_t		position;
+			int			SPAWN_TEAM = FACTION_REBEL;
 
 #ifdef __ALL_JEDI_NPCS__
-		group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_BOSS);
-		if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_BOSS);
+			group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_BOSS);
+			if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_BOSS);
 #else //!__ALL_JEDI_NPCS__
-		if (EVENT_COUNT > 0)
-		{
 			group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), EVENT_SPAWN_QUALITY);
 			if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), EVENT_SPAWN_QUALITY);
-		}
-		else if (random >= 16)
-		{
-			group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_SPAM);
-			if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_SPAM);
-		}
-		else if (random >= 11)
-		{
-			group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_COMMON);
-			if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_COMMON);
-		}
-		else if (random >= 7)
-		{
-			group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_OFFICER);
-			if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_OFFICER);
-		}
-		else if (random >= 4)
-		{// Officers/Specials...
-			group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_ELITE);
-			if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_ELITE);
-		}
-		else if (random >= 1)
-		{// Jedi...
-			group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_BOSS);
-			if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_BOSS);
-		}
-		else
-		{
-			group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_SPAM);
-			if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_SPAM);
-		}
 #endif //__ALL_JEDI_NPCS__
 
-		if (npc_pathing.integer && g_gametype.integer >= GT_TEAM)
-		{// New War Zone Instances (not JKG style)... Get CTF spawnpoints...
-			gentity_t spawnPoint;
-			spawnPoint = *SelectCTFSpawnPoint((team_t)SPAWN_TEAM, 0, position, position, qtrue);
-			VectorCopy(spawnPoint.s.origin, position);
-			position[2] += 32; // Drop down...
-		}
-		else
-		{// Rebels...
-#ifdef __USE_NAVLIB_SPAWNPOINTS__
-		 // With navlib they get their own areas...
-			FindRandomEventSpawnpoint(EVENT_AREA_ID, position);
-			//trap->Print("reb spawnpoint %f %f %f\n", position[0], position[1], position[2]);
-#else //!__USE_NAVLIB_SPAWNPOINTS__
-			while (gWPArray[waypoint]->inuse == false || gWPArray[waypoint]->wpIsBad == true || WAYPOINT_PARTOL_BAD_LIST[waypoint])
-			{
-				gWPArray[waypoint]->inuse = false; // set it bad!
-
-				if (tries > 10)
-				{
-					return; // Try again on next check...
-				}
-
-				// Find a new one... This is probably a bad waypoint...
-				waypoint = G_SelectWildernessSpawnpoint();
-				tries++;
+			if (npc_pathing.integer && g_gametype.integer >= GT_TEAM)
+			{// New War Zone Instances (not JKG style)... Get CTF spawnpoints...
+				gentity_t spawnPoint;
+				spawnPoint = *SelectCTFSpawnPoint((team_t)SPAWN_TEAM, 0, position, position, qtrue);
+				VectorCopy(spawnPoint.s.origin, position);
+				position[2] += 32; // Drop down...
+			}
+			else
+			{// Rebels...
+				FindRandomEventSpawnpoint(EVENT_AREA_ID, position);
+				//trap->Print("reb spawnpoint %f %f %f\n", position[0], position[1], position[2]);
+				position[2] += 32; // Drop down...
 			}
 
-			VectorCopy(gWPArray[waypoint]->origin, position);
-#endif //__USE_NAVLIB_SPAWNPOINTS__
-			position[2] += 32; // Drop down...
+			if (VectorLength(position) != 32)
+			{
+				SP_NPC_Spawner_Group(group, position, SPAWN_TEAM, EVENT_AREA_ID);
+			}
 		}
 
-		if (VectorLength(position) != 32)
+		//
+		// Spawn the MANDALORIAN team...
+		//
+		if (HAVE_MANDALORIANS)
 		{
-			SP_NPC_Spawner_Group(group, position, SPAWN_TEAM, EVENT_AREA_ID);
-		}
-	}
-
-	//
-	// Spawn the MANDALORIAN team...
-	//
-	if (HAVE_MANDALORIANS)
-	{
-		if (spawnMandalorian && num_mandalorian_npcs + 4 <= min_mandalorians)
-		{
-#ifndef __USE_NAVLIB_SPAWNPOINTS__
-			int			waypoint = G_SelectWildernessSpawnpoint();
-#endif //__USE_NAVLIB_SPAWNPOINTS__
-			int			random = irand(0, 22);
-			int			tries = 0;
-			vec3_t		position;
-			int			SPAWN_TEAM = FACTION_MANDALORIAN;
+			if (spawnMandalorian)
+			{
+				vec3_t		position;
+				int			SPAWN_TEAM = FACTION_MANDALORIAN;
 
 #ifdef __ALL_JEDI_NPCS__
-			group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_BOSS);
-			if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_BOSS);
+				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_BOSS);
+				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_BOSS);
 #else //!__ALL_JEDI_NPCS__
-			if (EVENT_COUNT > 0)
-			{
 				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), EVENT_SPAWN_QUALITY);
 				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), EVENT_SPAWN_QUALITY);
-			}
-			else if (random >= 16)
-			{
-				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_SPAM);
-				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_SPAM);
-			}
-			else if (random >= 11)
-			{
-				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_COMMON);
-				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_COMMON);
-			}
-			else if (random >= 7)
-			{
-				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_OFFICER);
-				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_OFFICER);
-			}
-			else if (random >= 4)
-			{// Officers/Specials...
-				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_ELITE);
-				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_ELITE);
-			}
-			else if (random >= 1)
-			{// Jedi...
-				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_BOSS);
-				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_BOSS);
-			}
-			else
-			{
-				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_SPAM);
-				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_SPAM);
-			}
 #endif //__ALL_JEDI_NPCS__
 
-			// Mandalorians always spawn at random waypoints (for now)...
-#ifdef __USE_NAVLIB_SPAWNPOINTS__
-			// With navlib they get their own areas...
-			FindRandomEventSpawnpoint(EVENT_AREA_ID, position);
-#else //!__USE_NAVLIB_SPAWNPOINTS__
-			while (gWPArray[waypoint]->inuse == false || gWPArray[waypoint]->wpIsBad == true || WAYPOINT_PARTOL_BAD_LIST[waypoint])
-			{
-				gWPArray[waypoint]->inuse = false; // set it bad!
+				FindRandomEventSpawnpoint(EVENT_AREA_ID, position);
+				position[2] += 32; // Drop down...
 
-				if (tries > 10)
+				if (VectorLength(position) != 32)
 				{
-					return; // Try again on next check...
+					SP_NPC_Spawner_Group(group, position, SPAWN_TEAM, EVENT_AREA_ID);
 				}
-
-				// Find a new one... This is probably a bad waypoint...
-				waypoint = G_SelectWildernessSpawnpoint();
-				tries++;
-			}
-
-			VectorCopy(gWPArray[waypoint]->origin, position);
-#endif //__USE_NAVLIB_SPAWNPOINTS__
-			position[2] += 32; // Drop down...
-
-			if (VectorLength(position) != 32)
-			{
-				SP_NPC_Spawner_Group(group, position, SPAWN_TEAM, EVENT_AREA_ID);
 			}
 		}
-	}
 
-	//
-	// Spawn the MERC team...
-	//
-	if (HAVE_MERCS)
-	{
-		if (spawnMerc && num_merc_npcs + 4 <= min_mercs)
+		//
+		// Spawn the MERC team...
+		//
+		if (HAVE_MERCS)
 		{
-#ifndef __USE_NAVLIB_SPAWNPOINTS__
-			int			waypoint = G_SelectWildernessSpawnpoint();
-#endif //__USE_NAVLIB_SPAWNPOINTS__
-			int			random = irand(0, 22);
-			int			tries = 0;
-			vec3_t		position;
-			int			SPAWN_TEAM = FACTION_MERC;
+			if (spawnMerc)
+			{
+				vec3_t		position;
+				int			SPAWN_TEAM = FACTION_MERC;
 
 #ifdef __ALL_JEDI_NPCS__
-			group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_BOSS);
-			if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_BOSS);
+				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_BOSS);
+				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_BOSS);
 #else //!__ALL_JEDI_NPCS__
-			if (EVENT_COUNT > 0)
-			{
 				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), EVENT_SPAWN_QUALITY);
 				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), EVENT_SPAWN_QUALITY);
-			}
-			else if (random >= 16)
-			{
-				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_SPAM);
-				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_SPAM);
-			}
-			else if (random >= 11)
-			{
-				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_COMMON);
-				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_COMMON);
-			}
-			else if (random >= 7)
-			{
-				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_OFFICER);
-				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_OFFICER);
-			}
-			else if (random >= 4)
-			{// Officers/Specials...
-				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_ELITE);
-				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_ELITE);
-			}
-			else if (random >= 1)
-			{// Jedi...
-				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_BOSS);
-				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_BOSS);
-			}
-			else
-			{
-				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_SPAM);
-				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_SPAM);
-			}
 #endif //__ALL_JEDI_NPCS__
 
-			// Mercs always spawn at random waypoints (for now)...
-#ifdef __USE_NAVLIB_SPAWNPOINTS__
-			// With navlib they get their own areas...
-			FindRandomEventSpawnpoint(EVENT_AREA_ID, position);
-#else //!__USE_NAVLIB_SPAWNPOINTS__
-			while (gWPArray[waypoint]->inuse == false || gWPArray[waypoint]->wpIsBad == true || WAYPOINT_PARTOL_BAD_LIST[waypoint])
-			{
-				gWPArray[waypoint]->inuse = false; // set it bad!
+				FindRandomEventSpawnpoint(EVENT_AREA_ID, position);
+				position[2] += 32; // Drop down...
 
-				if (tries > 10)
+				if (VectorLength(position) != 32)
 				{
-					return; // Try again on next check...
+					SP_NPC_Spawner_Group(group, position, SPAWN_TEAM, EVENT_AREA_ID);
 				}
-
-				// Find a new one... This is probably a bad waypoint...
-				waypoint = G_SelectWildernessSpawnpoint();
-				tries++;
-			}
-
-			VectorCopy(gWPArray[waypoint]->origin, position);
-#endif //__USE_NAVLIB_SPAWNPOINTS__
-			position[2] += 32; // Drop down...
-
-			if (VectorLength(position) != 32)
-			{
-				SP_NPC_Spawner_Group(group, position, SPAWN_TEAM, EVENT_AREA_ID);
 			}
 		}
-	}
 
-	//
-	// Spawn the PIRATES team...
-	//
-	if (HAVE_PIRATES)
-	{
-		if (spawnPirate && num_pirate_npcs + 4 <= min_pirates)
+		//
+		// Spawn the PIRATES team...
+		//
+		if (HAVE_PIRATES)
 		{
-#ifndef __USE_NAVLIB_SPAWNPOINTS__
-			int			waypoint = G_SelectWildernessSpawnpoint();
-#endif //__USE_NAVLIB_SPAWNPOINTS__
-			int			random = irand(0, 22);
-			int			tries = 0;
-			vec3_t		position;
-			int			SPAWN_TEAM = FACTION_PIRATES;
+			if (spawnPirate)
+			{
+				vec3_t		position;
+				int			SPAWN_TEAM = FACTION_PIRATES;
 
 #ifdef __ALL_JEDI_NPCS__
-			group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_BOSS);
-			if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_BOSS);
+				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_BOSS);
+				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_BOSS);
 #else //!__ALL_JEDI_NPCS__
-			if (EVENT_COUNT > 0)
-			{
 				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), EVENT_SPAWN_QUALITY);
 				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), EVENT_SPAWN_QUALITY);
-			}
-			else if (random >= 16)
-			{
-				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_SPAM);
-				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_SPAM);
-			}
-			else if (random >= 11)
-			{
-				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_COMMON);
-				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_COMMON);
-			}
-			else if (random >= 7)
-			{
-				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_OFFICER);
-				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_OFFICER);
-			}
-			else if (random >= 4)
-			{// Officers/Specials...
-				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_ELITE);
-				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_ELITE);
-			}
-			else if (random >= 1)
-			{// Jedi...
-				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_BOSS);
-				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_BOSS);
-			}
-			else
-			{
-				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_SPAM);
-				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_SPAM);
-			}
 #endif //__ALL_JEDI_NPCS__
 
-			// Mercs always spawn at random waypoints (for now)...
-#ifdef __USE_NAVLIB_SPAWNPOINTS__
-			// With navlib they get their own areas...
-			FindRandomEventSpawnpoint(EVENT_AREA_ID, position);
-#else //!__USE_NAVLIB_SPAWNPOINTS__
-			while (gWPArray[waypoint]->inuse == false || gWPArray[waypoint]->wpIsBad == true || WAYPOINT_PARTOL_BAD_LIST[waypoint])
-			{
-				gWPArray[waypoint]->inuse = false; // set it bad!
+				FindRandomEventSpawnpoint(EVENT_AREA_ID, position);
+				position[2] += 32; // Drop down...
 
-				if (tries > 10)
+				if (VectorLength(position) != 32)
 				{
-					return; // Try again on next check...
+					SP_NPC_Spawner_Group(group, position, SPAWN_TEAM, EVENT_AREA_ID);
 				}
-
-				// Find a new one... This is probably a bad waypoint...
-				waypoint = G_SelectWildernessSpawnpoint();
-				tries++;
-			}
-
-			VectorCopy(gWPArray[waypoint]->origin, position);
-#endif //__USE_NAVLIB_SPAWNPOINTS__
-			position[2] += 32; // Drop down...
-
-			if (VectorLength(position) != 32)
-			{
-				SP_NPC_Spawner_Group(group, position, SPAWN_TEAM, EVENT_AREA_ID);
-			}
-		}
-	}
-
-	//
-	// Spawn the WILDLIFE team...
-	//
-	if (HAVE_WILDLIFE)
-	{
-		if (spawnWildlife && num_wildlife_npcs + 4 <= min_wildlife)
-		{
-#ifndef __USE_NAVLIB_SPAWNPOINTS__
-			int			waypoint = G_SelectWildernessSpawnpoint();
-#endif //__USE_NAVLIB_SPAWNPOINTS__
-			int			random = irand(0, 22);
-			int			tries = 0;
-			vec3_t		position;
-			int			SPAWN_TEAM = FACTION_WILDLIFE;
-
-#ifdef __ALL_JEDI_NPCS__
-			group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_BOSS);
-			if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_BOSS);
-#else //!__ALL_JEDI_NPCS__
-			if (random >= 16)
-			{
-				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_SPAM);
-				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_SPAM);
-			}
-			else if (random >= 11)
-			{
-				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_COMMON);
-				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_COMMON);
-			}
-			else if (random >= 7)
-			{
-				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_OFFICER);
-				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_OFFICER);
-			}
-			else if (random >= 4)
-			{// Officers/Specials...
-				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_ELITE);
-				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_ELITE);
-			}
-			else if (random >= 1)
-			{// Jedi...
-				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_BOSS);
-				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_BOSS);
-			}
-			else
-			{
-				group = GetSpawnGroup(va("%s_%s", mapname.string, factionNames[SPAWN_TEAM]), RARITY_SPAM);
-				if (!group.npcCount) group = GetSpawnGroup(va("default_%s", factionNames[SPAWN_TEAM]), RARITY_SPAM);
-			}
-#endif //__ALL_JEDI_NPCS__
-
-			// Wildlife always spawn at random waypoints (for now)...
-#ifdef __USE_NAVLIB_SPAWNPOINTS__
-			FindRandomNavmeshSpawnpoint(NULL, position);
-#else //!__USE_NAVLIB_SPAWNPOINTS__
-			while (gWPArray[waypoint]->inuse == false || gWPArray[waypoint]->wpIsBad == true || WAYPOINT_PARTOL_BAD_LIST[waypoint])
-			{
-				gWPArray[waypoint]->inuse = false; // set it bad!
-
-				if (tries > 10)
-				{
-					return; // Try again on next check...
-				}
-
-				// Find a new one... This is probably a bad waypoint...
-				waypoint = G_SelectWildernessSpawnpoint();
-				tries++;
-			}
-
-			VectorCopy(gWPArray[waypoint]->origin, position);
-#endif //__USE_NAVLIB_SPAWNPOINTS__
-			position[2] += 32; // Drop down...
-
-			if (VectorLength(position) != 32)
-			{
-				SP_NPC_Spawner_Group(group, position, SPAWN_TEAM, EVENT_AREA_ID);
 			}
 		}
 	}

@@ -3958,10 +3958,20 @@ void CG_DrawMyStatus( void )
 	//CG_DrawRect_FixedBorder( boxX + 2, y, sizeX-sizeY-4-8, 5, 1, uqBorder );
 
 	// Draw their armor bar...
-	if (crosshairEnt->playerState->stats[STAT_ARMOR] == 0 || crosshairEnt->playerState->stats[STAT_MAX_HEALTH] == 0)
-		armorPerc = 0; // No health data yet. Assume 0%.
+	if (crosshairEnt->currentState.eType == ET_NPC)
+	{
+		if (crosshairEnt->currentState.health == 0 || crosshairEnt->currentState.maxhealth == 0)
+			armorPerc = 1; // No health data yet. Assume 100%.
+		else
+			armorPerc = pow((float)crosshairEnt->currentState.health / (float)crosshairEnt->currentState.maxhealth, 2.0);
+	}
 	else
-		armorPerc = ((float)crosshairEnt->playerState->stats[STAT_ARMOR] / (float)crosshairEnt->playerState->stats[STAT_MAX_HEALTH]);
+	{
+		if (crosshairEnt->playerState->stats[STAT_ARMOR] == 0 || crosshairEnt->playerState->stats[STAT_MAX_HEALTH] == 0)
+			armorPerc = 0; // No health data yet. Assume 0%.
+		else
+			armorPerc = ((float)crosshairEnt->playerState->stats[STAT_ARMOR] / (float)crosshairEnt->playerState->stats[STAT_MAX_HEALTH]);
+	}
 
 	CG_FilledBar(boxX + 2, y, sizeX - sizeY - 4 - 6, 2, uqGreen, NULL, NULL, armorPerc, flags);
 	// Write "XXX%/XXX%" over the bar in white...
@@ -3990,17 +4000,18 @@ void CG_DrawMyStatus( void )
 
 int currentCrosshairEntity = -1;
 
-void CG_DrawEnemyStatus( void )
+void CG_DrawEnemyStatus(void)
 {
+#if 0
 	int				y = 0;
 	char			str1[255], str2[255];
 	vec4_t			tclr, tclr2;
 	float			boxX, boxXmid, sizeX, sizeY, healthPerc, forcePerc, armorPerc;
-	int				flags = 64|128;
+	int				flags = 64 | 128;
 	centity_t		*crosshairEnt;
 	clientInfo_t	*ci = NULL;
 
-	if ( cg.crosshairClientNum >= 0 && cg.crosshairClientNum != currentCrosshairEntity ) // player
+	if (cg.crosshairClientNum >= 0 && cg.crosshairClientNum != currentCrosshairEntity) // player
 	{
 		// Store current (last looked at) target if it changes...
 		currentCrosshairEntity = cg.crosshairClientNum; // player
@@ -4025,7 +4036,7 @@ void CG_DrawEnemyStatus( void )
 		if (!crosshairEnt->npcClient || !crosshairEnt->npcClient->ghoul2Model)
 			return;
 
-		if ( !crosshairEnt->npcClient->infoValid )
+		if (!crosshairEnt->npcClient->infoValid)
 			return;
 	}
 
@@ -4064,7 +4075,7 @@ void CG_DrawEnemyStatus( void )
 	{
 		return;
 	}
-	
+
 	if (!ci->infoValid)
 	{
 		return;
@@ -4089,7 +4100,7 @@ void CG_DrawEnemyStatus( void )
 
 		//if (crosshairEnt->currentState.NPC_NAME_ID > 0)
 		{// Was assigned a full name already! Yay!
-			switch( crosshairEnt->currentState.NPC_class )
+			switch (crosshairEnt->currentState.NPC_class)
 			{// UQ1: Supported Class Types...
 			case CLASS_CIVILIAN:
 			case CLASS_GENERAL_VENDOR:
@@ -4111,7 +4122,7 @@ void CG_DrawEnemyStatus( void )
 			case CLASS_NATIVE_GUNNER:
 			case CLASS_KYLE:
 			case CLASS_JAN:
-			case CLASS_MONMOTHA:			
+			case CLASS_MONMOTHA:
 			case CLASS_MORGANKATARN:
 			case CLASS_TAVION:
 			case CLASS_ALORA:
@@ -4126,7 +4137,7 @@ void CG_DrawEnemyStatus( void )
 			case CLASS_BESPIN_COP:
 			case CLASS_GALAK:
 			case CLASS_GRAN:
-			case CLASS_LANDO:			
+			case CLASS_LANDO:
 			case CLASS_REBEL:
 			case CLASS_REELO:
 			case CLASS_MURJJ:
@@ -4240,7 +4251,7 @@ void CG_DrawEnemyStatus( void )
 			}
 		}
 
-		switch( crosshairEnt->currentState.NPC_class )
+		switch (crosshairEnt->currentState.NPC_class)
 		{// UQ1: Supported Class Types...
 		case CLASS_CIVILIAN:
 		case CLASS_CIVILIAN_R2D2:
@@ -4287,7 +4298,7 @@ void CG_DrawEnemyStatus( void )
 		case CLASS_JEDI:
 		case CLASS_KYLE:
 		case CLASS_LUKE:
-		case CLASS_MONMOTHA:			
+		case CLASS_MONMOTHA:
 		case CLASS_MORGANKATARN:
 			sprintf(str2, "< Jedi >");
 			tclr[0] = 0.125f;
@@ -4703,10 +4714,10 @@ void CG_DrawEnemyStatus( void )
 	sizeY = 38;
 
 	boxX = 5 + sizeX + 5;
-	boxXmid = (boxX + sizeY - 4) + ((sizeX - (boxX + sizeY - 180))/2);
+	boxXmid = (boxX + sizeY - 4) + ((sizeX - (boxX + sizeY - 180)) / 2);
 
 	// Draw a transparent box background...
-	CG_FillRect( boxX, y, sizeX, sizeY, uqBG );
+	CG_FillRect(boxX, y, sizeX, sizeY, uqBG);
 
 	// Draw the border...
 	//CG_DrawRect_FixedBorder( boxX, y, sizeX, sizeY, 1, uqBorder );
@@ -4718,13 +4729,13 @@ void CG_DrawEnemyStatus( void )
 		clientInfo_t *ci = &cgs.clientinfo[currentCrosshairEntity];
 
 		// FIXME: NPC icons??? And then the bars/name on the right of it like other MMOs???
-		if ( ci->modelIcon )
+		if (ci->modelIcon)
 		{
-			CG_DrawPic( boxX + 2, y, sizeY-4, sizeY-4, ci->modelIcon );
+			CG_DrawPic(boxX + 2, y, sizeY - 4, sizeY - 4, ci->modelIcon);
 		}
 
 		sprintf(str1, "%s", ci->cleanname);
-		
+
 		if (cgs.clientinfo[currentCrosshairEntity].team == FACTION_EMPIRE)
 		{
 			sprintf(str2, "< Imperial >");
@@ -4820,20 +4831,20 @@ void CG_DrawEnemyStatus( void )
 	else
 	{
 		// FIXME: NPC icons??? And then the bars/name on the right of it like other MMOs???
-		if ( crosshairEnt->npcClient->modelIcon )
+		if (crosshairEnt->npcClient->modelIcon)
 		{
-			CG_DrawPic( boxX + 2, y, sizeY-4, sizeY-4, crosshairEnt->npcClient->modelIcon );
+			CG_DrawPic(boxX + 2, y, sizeY - 4, sizeY - 4, crosshairEnt->npcClient->modelIcon);
 		}
 	}
 
 	boxX += sizeY + 2;
 
 	// Draw their name...
-	CG_Text_Paint( boxXmid - (CG_Text_Width ( str1, 0.4f, FONT_SMALL ) * 0.5), y, 0.4f, tclr, str1, 0, 0, 0, FONT_SMALL );
+	CG_Text_Paint(boxXmid - (CG_Text_Width(str1, 0.4f, FONT_SMALL) * 0.5), y, 0.4f, tclr, str1, 0, 0, 0, FONT_SMALL);
 	y += 10;
 
 	// Draw their type...
-	CG_Text_Paint( boxXmid - (CG_Text_Width ( str2, 0.35f, FONT_SMALL ) * 0.5), y, 0.35f, tclr2, str2, 0, 0, 0, FONT_SMALL );
+	CG_Text_Paint(boxXmid - (CG_Text_Width(str2, 0.35f, FONT_SMALL) * 0.5), y, 0.35f, tclr2, str2, 0, 0, 0, FONT_SMALL);
 	y += 12;
 
 	// Draw their health bar...
@@ -4852,14 +4863,24 @@ void CG_DrawEnemyStatus( void )
 			healthPerc = ((float)crosshairEnt->playerState->stats[STAT_HEALTH] / (float)crosshairEnt->playerState->stats[STAT_MAX_HEALTH]);
 	}
 
-	CG_FilledBar( boxX + 2, y, sizeX-sizeY-4-6, 5, uqRed, NULL, NULL, healthPerc, flags );
+	CG_FilledBar(boxX + 2, y, sizeX - sizeY - 4 - 6, 5, uqRed, NULL, NULL, healthPerc, flags);
 	//CG_DrawRect_FixedBorder( boxX + 2, y, sizeX-sizeY-4-8, 5, 1, uqBorder );
 
 	// Draw their armor bar...
-	if (crosshairEnt->playerState->stats[STAT_ARMOR] == 0 || crosshairEnt->playerState->stats[STAT_MAX_HEALTH] == 0)
-		armorPerc = 0; // No health data yet. Assume 0%.
+	if (crosshairEnt->currentState.eType == ET_NPC)
+	{
+		if (crosshairEnt->currentState.health == 0 || crosshairEnt->currentState.maxhealth == 0)
+			armorPerc = 1; // No health data yet. Assume 100%.
+		else
+			armorPerc = pow((float)crosshairEnt->currentState.health / (float)crosshairEnt->currentState.maxhealth, 2.0);
+	}
 	else
-		armorPerc = ((float)crosshairEnt->playerState->stats[STAT_ARMOR] / (float)crosshairEnt->playerState->stats[STAT_MAX_HEALTH]);
+	{
+		if (crosshairEnt->playerState->stats[STAT_ARMOR] == 0 || crosshairEnt->playerState->stats[STAT_MAX_HEALTH] == 0)
+			armorPerc = 0; // No health data yet. Assume 0%.
+		else
+			armorPerc = ((float)crosshairEnt->playerState->stats[STAT_ARMOR] / (float)crosshairEnt->playerState->stats[STAT_MAX_HEALTH]);
+	}
 
 	CG_FilledBar(boxX + 2, y, sizeX - sizeY - 4 - 6, 2, uqGreen, NULL, NULL, armorPerc, flags);
 	// Write "XXX%/XXX%" over the bar in white...
@@ -4880,6 +4901,7 @@ void CG_DrawEnemyStatus( void )
 	//CG_DrawRect_FixedBorder( boxX + 2, y, sizeX-sizeY-4-6, 5, 1, uqBorder );
 
 	y += 7;
+#endif
 }
 
 static float CG_DrawEnemyInfo ( float y )
@@ -4889,8 +4911,6 @@ static float CG_DrawEnemyInfo ( float y )
 	const char		*title;
 	clientInfo_t	*ci;
 	int				xOffset = 0;
-
-	//CG_DrawMyStatus();
 
 	if (!cg.snap)
 	{
@@ -5129,16 +5149,31 @@ int CG_GetCurrentFPS( void )
 }
 
 static float CG_DrawFPS( float y ) {
+	/*
 	char			*s;
 	const int		xOffset = 0;
 	int				w;
 	int				fps = cgs.currentFPS;
 
 	s = va( "%ifps", fps );
+	
 	w = CG_DrawStrlen(s) * SMALLCHAR_WIDTH;//BIGCHAR_WIDTH;
 
 	//CG_DrawBigString( 635 - w + xOffset, y + 2, s, 1.0F);
-	CG_DrawSmallString(635 - w + xOffset, y + 2 /*+ SMALLCHAR_HEIGHT + 2*/, s, 1.0F);
+	CG_DrawSmallString(635 - w + xOffset, y + 2, s, 1.0F);
+
+	return y + BIGCHAR_HEIGHT + 4;
+	*/
+
+	int fps = cgs.currentFPS;
+	char *s = va("%ifps", fps);
+	float size = 0.6;
+	float w = CG_Text_Width(s, size, FONT_SMALL);
+	float h = CG_Text_Height(s, size, FONT_SMALL);
+
+	float x = 637.0 - (w * 0.5f);
+	
+	CG_Text_Paint(x, y, size, /*colorCyan*/colorOrange, s, 0, 0, ITEM_TEXTSTYLE_SHADOWED, FONT_SMALL2);
 
 	return y + BIGCHAR_HEIGHT + 4;
 }
@@ -8595,26 +8630,41 @@ void CG_CalcEWebMuzzlePoint(centity_t *cent, vec3_t start, vec3_t d_f, vec3_t d_
 	}
 }
 
+typedef struct nameDistances_s {
+	centity_t			*cent;
+	float				dist;
+} nameDistances_t;
+
+static int EntityDistanceCompare(const void *a, const void *b)
+{
+	nameDistances_t   *aa = (nameDistances_t *)a;
+	nameDistances_t   *bb = (nameDistances_t *)b;
+
+	if (aa->dist < bb->dist)
+	{
+		return 1;
+	}
+
+	if (aa->dist > bb->dist)
+	{
+		return -1;
+	}
+
+	return 0;
+}
+
 void CG_DrawNPCNames( void )
 {// Float a NPC name above their head!
 	int				i;
+	int				close_num = 0;
+	nameDistances_t	close_list[64] = { { NULL } };
 
 	// Load the list on first check...
 	Load_NPC_Names();
 
 	for (i = 0; i < MAX_GENTITIES; i++)
 	{// Cycle through them...
-		qboolean		skip = qfalse;
-		vec3_t			origin;
 		centity_t		*cent = &cg_entities[i];
-		char			str1[255], str2[255];
-		int				w, w2;
-		float			size, x, y, x2, y2/*, x3, y3*/, dist;
-		vec4_t			tclr =	{ 0.325f,	0.325f,	1.0f,	1.0f	};
-		vec4_t			tclr2 = { 0.325f,	0.325f,	1.0f,	1.0f	};
-		char			sanitized1[1024], sanitized2[1024];
-		int				baseColor = CT_BLUE;
-		float			multiplier = 1.0f;
 		clientInfo_t	*ci = NULL;
 
 		if (!cent)
@@ -8631,7 +8681,7 @@ void CG_DrawNPCNames( void )
 			if (!cent->npcClient || !cent->npcClient->ghoul2Model)
 				continue;
 
-			if ( !cent->npcClient->infoValid )
+			if (!cent->npcClient->infoValid)
 				continue;
 		}
 
@@ -8684,7 +8734,53 @@ void CG_DrawNPCNames( void )
 		}
 
 		if (cent->playerState->persistant[PERS_TEAM] == FACTION_SPECTATOR)
+		{
 			continue;
+		}
+
+		float dist = DistanceHorizontal(cg.snap->ps.origin, cent->lerpOrigin);
+
+		if (dist > 1024.0f)
+		{
+			continue; // Too far...
+		}
+
+		close_list[close_num].cent = cent;
+		close_list[close_num].dist = dist;
+		close_num++;
+
+		if (close_num >= 64)
+		{// Maxed...
+			break;
+		}
+	}
+
+	// Sort by distance, so we draw furthest first...
+	std::qsort(&close_list, close_num, sizeof(nameDistances_t), EntityDistanceCompare);
+
+	for (i = 0; i < close_num; i++)
+	{
+		vec3_t			origin;
+		char			str1[255], str2[255];
+		float			size, x1, y1, x2, y2, w1, w2, h1, h2;
+		vec4_t			tclr = { 0.325f,	0.325f,	1.0f,	1.0f };
+		vec4_t			tclr2 = { 0.325f,	0.325f,	1.0f,	1.0f };
+		char			sanitized1[1024], sanitized2[1024];
+		int				baseColor = CT_BLUE;
+		clientInfo_t	*ci = NULL;
+		centity_t		*cent = close_list[i].cent;
+		float			dist = close_list[i].dist;
+
+		if (cent->currentState.number < MAX_CLIENTS)
+		{
+			ci = &cgs.clientinfo[cent->currentState.number];
+		}
+		else
+		{
+			ci = cent->npcClient;
+		}
+
+		float entityHeight = 72.0 * ((float)cent->currentState.iModelScale / 100.0); // *SIGH* seems playerstate->standHeight and crouchHeight are always zero...
 
 		if (cent->currentState.eType == ET_PLAYER)
 		{
@@ -9317,12 +9413,15 @@ void CG_DrawNPCNames( void )
 				case CLASS_ATST_OLD:				// technically droid...
 				case CLASS_ATST:
 					sprintf(str1, "AT-ST");
+					entityHeight = 400.0;// 384.0;
 					break;
 				case CLASS_ATAT:
 					sprintf(str1, "AT-AT");
+					entityHeight = 600.0;
 					break;
 				case CLASS_ATPT:
 					sprintf(str1, "AT-PT");
+					entityHeight = 304.0;// 272.0;
 					break;
 				case CLASS_CLAW:
 					sprintf(str1, "Claw");
@@ -9407,92 +9506,214 @@ void CG_DrawNPCNames( void )
 		}
 		
 		VectorCopy( cent->lerpOrigin, origin );
-		origin[2] += 30;//60;
-
+		origin[2] += entityHeight;
+		
 		// Account for ducking
-		if ( cent->playerState->pm_flags & PMF_DUCKED )
+		if (cent->playerState->pm_flags & PMF_DUCKED)
+		{
 			origin[2] -= 18;
+		}
 	
 		// Draw the NPC name!
-		if (!CG_WorldCoordToScreenCoordFloat(origin, &x, &y))
+		if (!CG_WorldCoordToScreenCoordFloat(origin, &x1, &y1))
 		{
-			//CG_Printf("FAILED %i screen coords are %fx%f. (%f %f %f)\n", cent->currentState.number, x, y, origin[0], origin[1], origin[2]);
 			continue;
 		}
 
-		if (x < 0 || x > 640 || y < 0 || y > 480)
+		if (x1 < 0 || x1 > 640 || y1 < 0 || y1 > 480)
 		{
-			//CG_Printf("FAILED2 %i screen coords are %fx%f. (%f %f %f)\n", cent->currentState.number, x, y, origin[0], origin[1], origin[2]);
 			continue;
 		}
 
-		VectorCopy( cent->lerpOrigin, origin );
-		origin[2] += 25;//50;
-
-		// Account for ducking
-		if ( cent->playerState->pm_flags & PMF_DUCKED )
-			origin[2] -= 18;
-
-		dist = Distance(cg.snap->ps.origin, origin);
-		
-		if (dist > 1024.0f/*2500.0f*/) continue; // Too far...
-		if (dist < 192.0f/*d_roff.value*//*350.0f*/) multiplier = 200.0f/*d_poff.value*//dist; // Cap short ranges...
-
-		if (!CG_WorldCoordToScreenCoordFloat(origin, &x2, &y2))
-		{
-			//CG_Printf("FAILED %i screen coords are %fx%f. (%f %f %f)\n", cent->currentState.number, x, y, origin[0], origin[1], origin[2]);
-			continue;
-		}
-
-		if (x2 < 0 || x2 > 640 || y2 < 0 || y2 > 480)
-		{
-			//CG_Printf("FAILED2 %i screen coords are %fx%f. (%f %f %f)\n", cent->currentState.number, x, y, origin[0], origin[1], origin[2]);
-			continue;
-		}
-
-		//CG_Printf("%i screen coords are %fx%f. (%f %f %f)\n", cent->currentState.number, x, y, origin[0], origin[1], origin[2]);
-
-		if (!CG_CheckClientVisibility(cent))
-		{
-			//CG_Printf("NPC is NOT visible.\n");
-			//continue;
-			skip = qtrue;
-		}
-
-		if (skip) continue;
-
-		//CG_Printf("%i screen coords are %fx%f. (%f %f %f)\n", cent->currentState.number, x, y, origin[0], origin[1], origin[2]);
-
-		CG_SanitizeString(str1, sanitized1);
-		CG_SanitizeString(str2, sanitized2);
-		
-		size = dist * 0.0002;
+		size = dist * 0.00085;
 		
 		if (size > 0.99f) size = 0.99f;
 		if (size < 0.01f) size = 0.01f;
 
-		size = 1 - size;
+		size = 1.0 - size;
 
 		size *= 0.3;
 
-		//y3 = y;
+		float barCenterX = x1;
+		float barCenterY = y1;
 
-		w = CG_Text_Width(sanitized1, size*2, FONT_SMALL);
-		y = y + CG_Text_Height(sanitized1, size*2, FONT_SMALL);
-		x -= (w * 0.5f);
+		qhandle_t factionShader = 0;
+
+		switch (cent->currentState.teamowner)
+		{
+		case FACTION_EMPIRE:
+			factionShader = trap->R_RegisterShader("gfx/radarIcons/factionIconImperial");
+			break;
+		case FACTION_REBEL:
+			factionShader = trap->R_RegisterShader("gfx/radarIcons/factionIconRebel");
+			break;
+		case FACTION_MANDALORIAN:
+			factionShader = trap->R_RegisterShader("gfx/radarIcons/factionIconMandalorian");
+			break;
+		case FACTION_MERC:
+			factionShader = trap->R_RegisterShader("gfx/radarIcons/factionIconIvaxSyndicate");
+			break;
+		case FACTION_PIRATES:
+			factionShader = trap->R_RegisterShader("gfx/radarIcons/factionIconKouhun");
+			break;
+		case FACTION_WILDLIFE:
+		default:
+			break;
+		}
+
+		qboolean isBoss = qfalse;
+
+		switch (cent->currentState.NPC_class)
+		{
+		case CLASS_SABER_DROID:
+		case CLASS_ASSASSIN_DROID:
+		case CLASS_HAZARD_TROOPER:
+		case CLASS_ALORA:
+		case CLASS_DESANN:
+		case CLASS_JEDI:
+		case CLASS_KYLE:
+		case CLASS_LUKE:
+		case CLASS_MORGANKATARN:
+		case CLASS_REBORN:
+		case CLASS_INQUISITOR:
+		case CLASS_SHADOWTROOPER:
+		case CLASS_TAVION:
+			//case CLASS_PURGETROOPER: // more of an elite...
+			isBoss = qtrue;
+			break;
+		default:
+			break;
+		}
+
+		if (isBoss && factionShader)
+		{// Draw boss icon and their faction icon above the name...
+			float bossIconSize = 72.0 * size;
+			float bossX = barCenterX - bossIconSize;
+			float bossY = (barCenterY - bossIconSize) - (-4.0 * size);
+			CG_DrawPic(bossX, bossY, bossIconSize, bossIconSize, trap->R_RegisterShader("gfx/radarIcons/iconBoss"));
+
+			float factionX = barCenterX;
+			CG_DrawPic(factionX, bossY, bossIconSize, bossIconSize, factionShader);
+		}
+		else if (isBoss)
+		{// Draw boss icon above the name...
+			float bossIconSize = 72.0 * size;
+			float bossX = barCenterX - (bossIconSize * 0.5);
+			float bossY = (barCenterY - bossIconSize) - (-4.0 * size);
+			CG_DrawPic(bossX, bossY, bossIconSize, bossIconSize, trap->R_RegisterShader("gfx/radarIcons/iconBoss"));
+		}
+		else if (factionShader)
+		{// Draw their faction icon above the name...
+			float factionIconSize = 72.0 * size;
+			float factionX = barCenterX - (factionIconSize * 0.5);
+			float factionY = (barCenterY - factionIconSize) - (-4.0 * size);
+			CG_DrawPic(factionX, factionY, factionIconSize, factionIconSize, factionShader);
+		}
+
+
+		CG_SanitizeString(str1, sanitized1);
+		CG_SanitizeString(str2, sanitized2);
+
+		float size1 = size * 2.0 * 1.25;
+		w1 = CG_Text_Width(sanitized1, size1, FONT_SMALL2);
+		h1 = CG_Text_Height(sanitized1, size1, FONT_SMALL2);
 		
-		w2 = CG_Text_Width(sanitized2, size*1.5, /*FONT_SMALL3*/FONT_SMALL);
-		x2 -= (w2 * 0.5f);
-		y2 = y + 10/*6*/ + CG_Text_Height(sanitized1, size*2, /*FONT_SMALL*/FONT_SMALL);
 
-		CG_Text_Paint( x, (y*(1-size))+((30*(1-size))*(1-size))+sqrt(sqrt((1-size)*30))+((1-multiplier)*30), size*2, tclr, sanitized1, 0, 0, ITEM_TEXTSTYLE_SHADOWED, FONT_SMALL);
-		CG_Text_Paint( x2, (y2*(1-size))+((30*(1-size))*(1-size))+sqrt(sqrt((1-size)*30))+((1-multiplier)*30), size*1.5, tclr2, sanitized2, 0, 0, ITEM_TEXTSTYLE_SHADOWED, /*FONT_SMALL3*/FONT_SMALL);
+		float size2 = size * 1.5 * 1.25;
+		w2 = CG_Text_Width(sanitized2, size2, FONT_SMALL2);
+		h2 = CG_Text_Height(sanitized2, size2, FONT_SMALL2);
+		y2 = y1 + h1 + (2.0 * size1);
 
-		//x3 = x;
+		x1 -= (w1 * 0.5f);
+		x2 = barCenterX - (w2 * 0.5f);
 
-		//CG_DrawHealthBar(cent, x3, y3, w, 100);
+		CG_Text_Paint(x1, y1, size1, tclr, sanitized1, 0, 0, ITEM_TEXTSTYLE_SHADOWED, FONT_SMALL2);
+		CG_Text_Paint(x2, y2, size2, tclr2, sanitized2, 0, 0, ITEM_TEXTSTYLE_SHADOWED, FONT_SMALL2);
 
-		//CG_Printf("Draw %s - %s as size %f.\n", sanitized1, sanitized2, size);
+		if (true)
+		{// Draw their health, etc bars...
+			float			healthPerc = 1.0;
+			float			armorPerc = 1.0;
+			float			forcePerc = 1.0;
+			float			yOff = 0.0;
+			int				flags = 64 | 128;
+			float			barWidth = 256.0 * size;
+
+			barCenterY = y2 + h2 + (4.0 * size2);
+
+			if (cent->currentState.eType == ET_NPC)
+			{
+				if (cent->currentState.health == 0 || cent->currentState.maxhealth == 0)
+					healthPerc = 1; // No health data yet. Assume 100%.
+				else
+					healthPerc = ((float)cent->currentState.health / (float)cent->currentState.maxhealth);
+			}
+			else
+			{
+				if (cent->playerState->stats[STAT_HEALTH] == 0 || cent->playerState->stats[STAT_MAX_HEALTH] == 0)
+					healthPerc = 1; // No health data yet. Assume 100%.
+				else
+					healthPerc = ((float)cent->playerState->stats[STAT_HEALTH] / (float)cent->playerState->stats[STAT_MAX_HEALTH]);
+			}
+
+			float barScale = 4.0;
+
+			vec4_t	popBG = { 0.f,0.f,0.f,0.3f };
+			vec4_t	popBorder = { 0.28f,0.28f,0.28f,1.f };
+
+			float rectx = barCenterX - (barWidth * 0.5);
+			float recty = barCenterY + yOff;
+			float rectw = barWidth;
+			float recth = 5.0*barScale * size;
+			CG_FillRect(rectx, recty, rectw, recth, popBG);
+			CG_FilledBar(rectx, recty, rectw, recth, uqRed, NULL, NULL, healthPerc, flags);
+
+			// Draw their armor bar...
+			if (cent->currentState.eType == ET_NPC)
+			{
+				if (cent->currentState.health == 0 || cent->currentState.maxhealth == 0)
+					armorPerc = 1; // No health data yet. Assume 100%.
+				else
+					armorPerc = pow((float)cent->currentState.health / (float)cent->currentState.maxhealth, 2.0);
+			}
+			else
+			{
+				if (cent->playerState->stats[STAT_ARMOR] == 0 || cent->playerState->stats[STAT_MAX_HEALTH] == 0)
+					armorPerc = 0; // No health data yet. Assume 0%.
+				else
+					armorPerc = ((float)cent->playerState->stats[STAT_ARMOR] / (float)cent->playerState->stats[STAT_MAX_HEALTH]);
+			}
+
+			CG_FilledBar(rectx, recty /*+ (3.0*barScale * size)*/, rectw, (/*2.0**/barScale * size), uqGreen, NULL, NULL, armorPerc, flags);
+			// Write "XXX%/XXX%" over the bar in white...
+			char text[128] = { { 0 } };
+			strcpy(text, va("%i/%i", (int)(armorPerc * 100), (int)(healthPerc * 100)));
+			float textWidth = CG_Text_Width(text, 0.35f * size * barScale * 1.5, FONT_SMALL2);
+			CG_Text_Paint(barCenterX - (textWidth * 0.5), barCenterY + yOff - (2.0*barScale * size), 0.35f * size * barScale * 1.5, colorWhite, text, 0, 0, ITEM_TEXTSTYLE_SHADOWED, FONT_SMALL2);
+			//CG_DrawRect_FixedBorder(rectx, recty, rectw, recth, 1, popBorder);
+
+
+			yOff += 7.0 * size * barScale;
+
+			// Draw their force bar...
+			if (!cent->playerState || cent->playerState->fd.forcePower == 0 || cent->playerState->fd.forcePowerMax == 0)
+				forcePerc = 1; // No force/power data yet. Assume 100%.
+			else
+				forcePerc = ((float)cent->playerState->fd.forcePower / (float)cent->playerState->fd.forcePowerMax);
+
+			rectx = barCenterX - (barWidth * 0.5);
+			recty = barCenterY + yOff;
+			rectw = barWidth;
+			recth = 3.0*barScale * size;
+
+			CG_FillRect(rectx, recty, rectw, recth, popBG);
+			CG_FilledBar(rectx, recty, rectw, recth, uqBlue, NULL, NULL, forcePerc, flags);
+			// Write "XXX%" over the bar in white...
+			strcpy(text, va("%i", (int)(forcePerc * 100)));
+			textWidth = CG_Text_Width(text, 0.35f * size * barScale * 0.6 * 1.5, FONT_SMALL2);
+			CG_Text_Paint(barCenterX - (textWidth * 0.5), barCenterY + yOff - (1.2*barScale * size), 0.35f * size * barScale * 0.6 * 1.5, colorWhite, text, 0, 0, ITEM_TEXTSTYLE_SHADOWED, FONT_SMALL2);
+			//CG_DrawRect_FixedBorder(rectx, recty, rectw, recth, 1, uqBorder);
+		}
 	}
 }
 

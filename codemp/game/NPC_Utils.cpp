@@ -1356,11 +1356,11 @@ int NPC_FindNearestEnemy( gentity_t *ent )
 	gentity_t	*bestJedi = NULL;
 	vec3_t		mins, maxs;
 	int			nearestEntID = -1;
-	float		nearestDist = (float)WORLD_SIZE*(float)WORLD_SIZE;
+	float		nearestDist = (float)WORLD_SIZE;
 	float		distance;
 	int			numEnts = 0;
 	int			i;
-	float		maxRange = (ent->s.NPC_class == CLASS_ATST || ent->s.NPC_class == CLASS_ATPT || ent->s.NPC_class == CLASS_ATAT) ? 6000.0 : 4096.0;//aiEnt->NPC->stats.visrange;
+	float		maxRange = (ent->s.NPC_class == CLASS_ATST || ent->s.NPC_class == CLASS_ATPT || ent->s.NPC_class == CLASS_ATAT) ? 6000.0 : 2048.0/*4096.0*/;//aiEnt->NPC->stats.visrange;
 
 	//Setup the bbox to search in
 	for ( i = 0; i < 3; i++ )
@@ -1393,15 +1393,15 @@ int NPC_FindNearestEnemy( gentity_t *ent )
 
 		if (NPC_EntityIsBreakable(ent, radEnt))
 		{
-			distance = DistanceSquared( ent->r.currentOrigin, radEnt->breakableOrigin );
+			distance = Distance( ent->r.currentOrigin, radEnt->breakableOrigin );
 		}
 		else
 		{
-			distance = DistanceSquared( ent->r.currentOrigin, radEnt->r.currentOrigin );
+			distance = Distance( ent->r.currentOrigin, radEnt->r.currentOrigin );
 		}
 
 		//Found one closer to us
-		if ( distance < nearestDist )
+		if ( distance < nearestDist && distance < maxRange)
 		{
 			//Must be visible - UQ1: meh, screw it, let them path...
 			//if ( NPC_TargetVisible( ent, radEnt ) == qfalse )

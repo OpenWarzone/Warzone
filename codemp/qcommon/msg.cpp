@@ -886,14 +886,14 @@ netField_t	entityStateFields[] =
 // used for both force pass and an emplaced gun - gun is just a flag indicator
 { NETF(activeForcePass), 6 },
 // used to indicate health
-{ NETF(health), 16 }, //if something's health exceeds 1024, then.. too bad!
+{ NETF(health), 32/*16*/ }, //if something's health exceeds 1024, then.. too bad!
 // appears to have multiple means, could be eliminated by indicating a sound set differently
 { NETF(loopIsSoundset), 1 },
 { NETF(saberHolstered), 2 },
 //NPC-SPECIFIC:
 // both are used for NPCs sabers, though limited
 { NETF(npcSaber1), 9 },
-{ NETF(maxhealth), 16 },
+{ NETF(maxhealth), 32/*16*/ },
 { NETF(trickedentindex2), 16 },
 // appear to only be 18 powers?
 { NETF(forcePowersActive), 32 },
