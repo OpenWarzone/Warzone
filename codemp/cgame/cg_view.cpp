@@ -558,9 +558,15 @@ void CG_TestModel_f (void) {
 
 	VectorMA( cg.refdef.vieworg, 100, cg.refdef.viewaxis[0], cg.testModelEntity.origin );
 
+#ifdef __VR__
+	angles[PITCH] = 0;
+	angles[YAW] = 180 + cg.refdefViewAngles[1];
+	angles[ROLL] = 0;
+#else //!__VR__
 	angles[PITCH] = 0;
 	angles[YAW] = 180 + cg.refdef.viewangles[1];
 	angles[ROLL] = 0;
+#endif //__VR__
 
 	AnglesToAxis( angles, cg.testModelEntity.axis );
 	cg.testGun = qfalse;
@@ -681,6 +687,79 @@ static void CG_CalcVrect (void) {
 }
 
 //==============================================================================
+
+#ifdef __VR__
+/*
+===============
+CG_OffsetVRView
+
+===============
+*/
+#define	FOCUS_DISTANCE	512
+static void CG_OffsetVRView(void) {
+	vec3_t		forward, right, up;
+	vec3_t      focusUp, focusRight;
+	vec3_t		view;
+	//vec3_t      headVec;
+	vec3_t		focusAngles;
+	//trace_t		trace;
+	static vec3_t	mins = { -4, -4, -4 };
+	static vec3_t	maxs = { 4, 4, 4 };
+	vec3_t		focusPoint;
+	float		focusDist;
+	//float		forwardScale, sideScale;
+
+	centity_t *predictedPlayerEntity = &cg_entities[cg.predictedPlayerState.clientNum];
+
+#if 0
+	cg.refdef.vieworg[0] += (predictedPlayerEntity->headOrigin[0] - predictedPlayerEntity->lerpOrigin[0]);
+	cg.refdef.vieworg[1] += (predictedPlayerEntity->headOrigin[1] - predictedPlayerEntity->lerpOrigin[1]);
+	cg.refdef.vieworg[2] += (predictedPlayerEntity->headOrigin[2] - predictedPlayerEntity->lerpOrigin[2]);
+#endif
+
+	//*** SET HEAD TRACKING INPUT HERE!
+	if (OVRDetected)
+	{
+		cg.refdefViewAngles[ROLL] = cg.predictedPlayerState.headangles[ROLL]; //*** 
+		cg.refdefViewAngles[PITCH] = cg.predictedPlayerState.headangles[PITCH]; //*** Might need to adjust to rotate along axis of ROLL
+		cg.refdefViewAngles[YAW] += cg.predictedPlayerState.headangles[YAW]; //****
+	}
+
+	VectorCopy(cg.refdefViewAngles, focusAngles);
+
+	// if dead, look at killer
+	if (cg.predictedPlayerState.stats[STAT_HEALTH] <= 0)
+	{
+		focusAngles[YAW] = cg.predictedPlayerState.stats[STAT_DEAD_YAW];
+		cg.refdefViewAngles[YAW] = cg.predictedPlayerState.stats[STAT_DEAD_YAW];
+		cg.refdef.vieworg[2] += 12;
+	}
+
+	AngleVectors(focusAngles, forward, focusRight, focusUp);
+
+	VectorMA(cg.refdef.vieworg, FOCUS_DISTANCE, forward, focusPoint);
+
+	VectorCopy(cg.refdef.vieworg, view);
+
+	//*** Add 4 units to make the view at eye level
+	matrix3_t headAxis;
+	AnglesToAxis(focusAngles, headAxis);
+	VectorMA(view, 4, /*predictedPlayerEntity->headAxis[ROLL]*/headAxis[ROLL], view);
+
+	AngleVectors(cg.refdefViewAngles, forward, right, up);
+
+	VectorCopy(view, cg.refdef.vieworg);
+
+	// select pitch to look at focus point from vieword
+	VectorSubtract(focusPoint, cg.refdef.vieworg, focusPoint);
+	focusDist = sqrt(focusPoint[0] * focusPoint[0] + focusPoint[1] * focusPoint[1]);
+	if (focusDist < 1) {
+		focusDist = 1;	// should never happen
+	}
+
+	cg.refdefViewAngles[PITCH] = -180 / M_PI * atan2(focusPoint[2], focusDist);
+}
+#endif //__VR__
 
 //==============================================================================
 //==============================================================================
@@ -1536,6 +1615,12 @@ static void CG_OffsetFirstPersonView( void ) {
 
 	cg.refdef.vieworg[2] += cg.predictedPlayerState.viewheight * cg_entities[cg.predictedPlayerState.clientNum].modelScale[2];
 
+#ifdef __VR__
+	// HMM DUNNO....
+	//angles = cg.refdefViewAngles;
+	VectorCopy(cg.refdefViewAngles, cg.refdef.viewangles);
+#endif //__VR__
+
 #endif //0
 }
 
@@ -2175,8 +2260,15 @@ static int CG_CalcViewValues( void ) {
 	// intermission view
 	if ( ps->pm_type == PM_INTERMISSION ) {
 		VectorCopy( ps->origin, cg.refdef.vieworg );
-		VectorCopy( ps->viewangles, cg.refdef.viewangles );
-		AnglesToAxis( cg.refdef.viewangles, cg.refdef.viewaxis );
+
+#ifdef __VR__
+		VectorCopy(ps->viewangles, cg.refdefViewAngles);
+		AnglesToAxis(cg.refdefViewAngles, cg.refdef.viewaxis);
+#else //!__VR__
+		VectorCopy(ps->viewangles, cg.refdef.viewangles);
+		AnglesToAxis(cg.refdef.viewangles, cg.refdef.viewaxis);
+#endif //__VR__
+		
 		return CG_CalcFov();
 	}
 
@@ -2194,6 +2286,10 @@ static int CG_CalcViewValues( void ) {
 	if ( !manningTurret )
 	{//not manning a turret on a vehicle
 		VectorCopy( ps->origin, cg.refdef.vieworg );
+#ifdef __VR__
+		VectorCopy(ps->viewangles, cg.refdefViewAngles);
+#endif //__VR__
+
 #ifdef VEH_CONTROL_SCHEME_4
 		if ( cg.predictedPlayerState.m_iVehicleNum )//in a vehicle
 		{
@@ -2284,8 +2380,15 @@ static int CG_CalcViewValues( void ) {
 		}
 	}
 
+#ifdef __VR__
+	CG_OffsetVRView();
+
+	// position eye relative to origin
+	AnglesToAxis(cg.refdefViewAngles, cg.refdef.viewaxis);
+#else //!__VR__
 	// position eye relative to origin
 	AnglesToAxis( cg.refdef.viewangles, cg.refdef.viewaxis );
+#endif //__VR__
 
 	if ( cg.hyperspace ) {
 		cg.refdef.rdflags |= RDF_NOWORLDMODEL | RDF_HYPERSPACE;

@@ -5,6 +5,10 @@
 
 #include "ui/ui_shared.h"
 
+#ifdef __VR__
+int OVRDetected = 0;
+#endif //__VR__
+
 void CG_LoadHudMenu();
 void CG_AssetCache();
 static void CG_RegisterClients(void);
@@ -2976,6 +2980,13 @@ Ghoul2 Insert Start
 //	memset( &cg, 0, sizeof( cg ) );
 	CG_Init_CG();
 	CG_InitItems();
+
+#ifdef __VR__
+	char rendererinfos[128];
+	trap->Cvar_VariableStringBuffer("vr_ovrdetected", rendererinfos, sizeof(rendererinfos));
+	OVRDetected = atoi(rendererinfos);
+#endif //__VR__
+
 	CG_PrecacheScopes();
 
 	CG_LoadingString("Loadng jetpack...");

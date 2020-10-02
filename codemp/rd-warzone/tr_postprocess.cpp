@@ -1515,7 +1515,7 @@ qboolean RB_GenerateVolumeLightImage(void)
 
 		{
 			vec4_t local0;
-			VectorSet4(local0, r_lensflare->integer ? 1.0 : 0.0, 0.0, r_volumeLightStrength->value * 0.4 * SUN_VOLUMETRIC_SCALE, SUN_VOLUMETRIC_FALLOFF); // * 0.4 to compensate for old setting.
+			VectorSet4(local0, r_lensflare->integer ? 1.0 : 0.0, r_fastShadows->integer, r_volumeLightStrength->value * 0.4 * SUN_VOLUMETRIC_SCALE, SUN_VOLUMETRIC_FALLOFF); // * 0.4 to compensate for old setting.
 			GLSL_SetUniformVec4(shader, UNIFORM_LOCAL0, local0);
 		}
 

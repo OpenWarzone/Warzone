@@ -3327,7 +3327,7 @@ const void *RB_PostProcess(const void *data)
 		GLSL_SetUniformVec3(sp, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);
 
 		vec4_t vec;
-		VectorSet4(vec, r_shadowMapSize->value, SHADOWS_FULL_SOLID, 0.0, SHADOW_Z_ERROR_OFFSET_NEAR);
+		VectorSet4(vec, r_shadowMapSize->value, SHADOWS_FULL_SOLID, r_fastShadows->integer, SHADOW_Z_ERROR_OFFSET_NEAR);
 		GLSL_SetUniformVec4(sp, UNIFORM_SETTINGS0, vec);
 
 		VectorSet4(vec, SHADOW_Z_ERROR_OFFSET_MID, SHADOW_Z_ERROR_OFFSET_MID2, SHADOW_Z_ERROR_OFFSET_MID3, SHADOW_Z_ERROR_OFFSET_FAR);

@@ -2617,7 +2617,16 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		}
 		else
 #endif //__TERRAIN_TESSELATION__
-		if (!(tr.viewParms.flags & VPF_CUBEMAP)
+		/*if (input->shader->tesselation
+			&& input->shader->tesselationLevel > 1.0
+			&& input->shader->tesselationAlpha != 0.0)
+		{
+			useTesselation = 1;
+			tessInner = input->shader->tesselationLevel;
+			tessOuter = tessInner;
+			tessAlpha = input->shader->tesselationAlpha;
+		}
+		else*/ if (!(tr.viewParms.flags & VPF_CUBEMAP)
 			&& !(tr.viewParms.flags & VPF_DEPTHSHADOW)
 			&& !(tr.viewParms.flags & VPF_SHADOWPASS)
 			&& !(tr.viewParms.flags & VPF_EMISSIVEMAP)

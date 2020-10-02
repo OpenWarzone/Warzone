@@ -56,7 +56,7 @@ uniform mat4				u_ShadowMvp3;
 uniform mat4				u_ShadowMvp4;
 uniform mat4				u_ShadowMvp5;
 
-uniform vec4				u_Settings0;			// SHADOW_MAP_SIZE, SHADOWS_FULL_SOLID, 0.0, SHADOW_Z_ERROR_OFFSET_NEAR
+uniform vec4				u_Settings0;			// SHADOW_MAP_SIZE, SHADOWS_FULL_SOLID, FAST_SHADOWS, SHADOW_Z_ERROR_OFFSET_NEAR
 uniform vec4				u_Settings1;			// SHADOW_Z_ERROR_OFFSET_MID, SHADOW_Z_ERROR_OFFSET_MID2, SHADOW_Z_ERROR_OFFSET_MID3, SHADOW_Z_ERROR_OFFSET_FAR
 uniform vec4				u_Settings2;			// SHADOW_ZFAR[0], SHADOW_ZFAR[1], SHADOW_ZFAR[2], SHADOW_ZFAR[3]
 
@@ -68,6 +68,7 @@ varying vec3				var_ViewDir;
 
 #define						SHADOW_MAP_SIZE				u_Settings0.r
 #define						SHADOWS_FULL_SOLID			u_Settings0.g
+#define						FAST_SHADOWS				u_Settings0.b
 
 #define						SHADOW_Z_ERROR_OFFSET_NEAR	u_Settings0.a
 #define						SHADOW_Z_ERROR_OFFSET_MID	u_Settings1.r
@@ -305,7 +306,7 @@ void main()
 
 	shadowpos = u_ShadowMvp4 * biasPos;
 
-	if (all(lessThan(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
+	if (!(FAST_SHADOWS > 1.0) && all(lessThan(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
 	//if (dist < u_Settings2.b)
 	{
 		shadowpos.xyz = shadowpos.xyz / shadowpos.w * 0.5 + 0.5;
@@ -329,9 +330,14 @@ void main()
 		return;
 	}
 
-	shadowpos = u_ShadowMvp5 * biasPos;
+	if (!(FAST_SHADOWS > 0.0))
+	{
+		shadowpos = u_ShadowMvp5 * biasPos;
 
-	shadowpos.xyz = shadowpos.xyz / shadowpos.w * 0.5 + 0.5;
-	result = PCF(u_ShadowMap5, shadowpos, shadowpos.z, 1.0 / SHADOW_MAP_SIZE, depth, 4);
+		shadowpos.xyz = shadowpos.xyz / shadowpos.w * 0.5 + 0.5;
+		result = PCF(u_ShadowMap5, shadowpos, shadowpos.z, 1.0 / SHADOW_MAP_SIZE, depth, 4);
+		gl_FragColor = vec4(result, depth, 0.0, 1.0);
+	}
+	
 	gl_FragColor = vec4(result, depth, 0.0, 1.0);
 }

@@ -9934,6 +9934,8 @@ void PM_UpdateViewAngles( playerState_t *ps, const usercmd_t *cmd ) {
 	}
 
 	// circularly clamp the angles with deltas
+	//*** cmd->angles contains the view angles from the CL_Input
+	//*** cmd->headAngles contains the head angles from the CL_Input
 	for (i=0 ; i<3 ; i++) {
 		temp = cmd->angles[i] + ps->delta_angles[i];
 #ifdef VEH_CONTROL_SCHEME_4
@@ -10001,6 +10003,12 @@ void PM_UpdateViewAngles( playerState_t *ps, const usercmd_t *cmd ) {
 			}
 		}
 		ps->viewangles[i] = SHORT2ANGLE(temp);
+
+#ifdef __VR__
+		//*** Head Tracking
+		temp = cmd->headAngles[i];
+		ps->headangles[i] = SHORT2ANGLE(temp);
+#endif //__VR__
 	}
 }
 

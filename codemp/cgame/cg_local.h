@@ -465,6 +465,10 @@ typedef struct centity_s {
 	vec3_t			lerpOrigin;
 	vec3_t			lerpAngles;
 	vec3_t			lerpTorsoAngles;
+
+#ifdef __VR__
+	vec3_t			headOrigin;
+#endif //__VR__
 	
 	// UQ1: BEGIN - Trace cache stuff...
 	vec3_t			groundCheckOrigin;
@@ -1007,6 +1011,9 @@ typedef struct cg_s {
 
 	// view rendering
 	refdef_t	refdef;
+#ifdef __VR__
+	vec3_t		refdefViewAngles;		// will be converted to refdef.viewaxis
+#endif //__VR__
 
 	// zoom key
 	qboolean	zoomed;
@@ -1979,6 +1986,10 @@ typedef struct siegeExtended_s
 extern siegeExtended_t cg_siegeExtendedData[MAX_CLIENTS];
 
 //==============================================================================
+
+#ifdef __VR__
+extern  int				OVRDetected;
+#endif //__VR__
 
 extern	cgs_t			cgs;
 extern	cg_t			cg;

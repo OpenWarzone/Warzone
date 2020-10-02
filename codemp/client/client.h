@@ -123,6 +123,10 @@ typedef struct clientActive_s {
 	// and teleport direction changes
 	vec3_t		viewangles;
 
+#ifdef __VR__
+	vec3_t      headAngles; //*** Head Tracking
+#endif //__VR__
+
 	int			serverId;			// included in each client message so the server
 												// can tell if it is for a prior map_restart
 	// big stuff at end of structure so most offsets are 15 bits or less

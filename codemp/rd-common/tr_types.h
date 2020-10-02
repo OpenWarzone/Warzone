@@ -371,6 +371,18 @@ typedef struct glconfig_s {
 	qboolean				isFullscreen;
 	qboolean				stereoEnabled;
 
+#ifdef __VR__
+	unsigned int			oculusProgId;
+	unsigned int			oculusTexId;
+	unsigned int			oculusFBL;
+	unsigned int			oculusFBR;
+	unsigned int			oculusRenderTargetLeft;
+	unsigned int			oculusRenderTargetRight;
+	unsigned int			oculusDepthRenderBufferLeft;
+	unsigned int			oculusDepthRenderBufferRight;
+	unsigned int			oculusQuadVB;
+#endif //__VR__
+
 	qboolean				menuIsOpen;
 
 	// specific to warzone

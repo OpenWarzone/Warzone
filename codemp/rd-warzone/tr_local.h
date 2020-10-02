@@ -454,6 +454,17 @@ extern cvar_t  *r_areaVisDebug;
 
 extern cvar_t  *r_zFarOcclusion;
 
+#ifdef __VR__
+extern cvar_t  *vr_fovoffset;
+extern cvar_t  *vr_warpingShader;
+extern cvar_t  *vr_headlockedtorso;
+extern cvar_t  *vr_ovrdetected;
+extern cvar_t  *vr_lenseoffset;
+extern cvar_t  *vr_ipd;
+extern cvar_t  *vr_viewofsx;
+extern cvar_t  *vr_viewofsy;
+#endif //__VR__
+
 extern cvar_t  *r_ext_draw_range_elements;
 extern cvar_t  *r_ext_multi_draw_arrays;
 extern cvar_t  *r_ext_texture_float;
@@ -522,6 +533,7 @@ extern cvar_t  *r_glowMultiplierA;
 extern cvar_t  *r_sunlightMode;
 extern cvar_t  *r_sunlightSpecular;
 extern cvar_t  *r_drawSunRays;
+extern cvar_t  *r_fastShadows;
 extern cvar_t  *r_shadowSamples;
 extern cvar_t  *r_shadowContrast;
 extern cvar_t  *r_shadowFilter;

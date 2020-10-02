@@ -50,7 +50,7 @@ uniform sampler2DShadow				u_ShadowMap4;
 uniform sampler2DShadow				u_ShadowMap5;
 #endif //defined(USE_BINDLESS_TEXTURES)
 
-uniform vec4					u_Local0; // r_lensflare, 0.0, r_volumeLightStrength * SUN_VOLUMETRIC_SCALE, SUN_VOLUMETRIC_FALLOFF
+uniform vec4					u_Local0; // r_lensflare, FAST_SHADOWS, r_volumeLightStrength * SUN_VOLUMETRIC_SCALE, SUN_VOLUMETRIC_FALLOFF
 uniform vec4					u_Local1; // nightScale, isVolumelightShader, 0.0, 0.0
 uniform vec4					u_Local2; // r_testvalue0->value, r_testvalue1->value, r_testvalue2->value, r_testvalue3->value
 
@@ -58,6 +58,7 @@ uniform vec4					u_Local2; // r_testvalue0->value, r_testvalue1->value, r_testva
 #define NIGHT_FACTOR			u_Local1.r
 
 // General options...
+#define FAST_SHADOWS			u_Local0.g
 #define VOLUMETRIC_STRENGTH		u_Local0.b
 
 #if defined(HQ_VOLUMETRIC)
@@ -150,9 +151,10 @@ void GetShadowCascade(in float depth, inout float fWeight, inout float dWeight, 
 		return;
 	}
 
+	
 	shadowpos = u_ShadowMvp4 * biasPos;
 
-	if (all(lessThanEqual(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
+	if (!(FAST_SHADOWS > 1.0) && all(lessThanEqual(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
 	{
 		shadowpos.xyz = shadowpos.xyz / shadowpos.w * 0.5 + 0.5;
 		result += PCF(u_ShadowMap4, shadowpos, shadowpos.z, 1.0 / r_shadowMapSize) > 0.9999999 ? dWeight : 0.0;
@@ -163,7 +165,7 @@ void GetShadowCascade(in float depth, inout float fWeight, inout float dWeight, 
 
 	shadowpos = u_ShadowMvp5 * biasPos;
 
-	if (all(lessThanEqual(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
+	if (!(FAST_SHADOWS > 0.0) && all(lessThanEqual(abs(shadowpos.xyz), vec3(abs(shadowpos.w)))))
 	{
 		shadowpos.xyz = shadowpos.xyz / shadowpos.w * 0.5 + 0.5;
 		result += PCF(u_ShadowMap5, shadowpos, shadowpos.z, 1.0 / r_shadowMapSize) > 0.9999999 ? dWeight : 0.0;

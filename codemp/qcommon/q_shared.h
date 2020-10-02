@@ -20,6 +20,8 @@
 // Feature Enable/Disable Defines...
 //
 
+//#define __VR__
+
 #define __DEVELOPER_MODE__							// Use to completely disable PRINT_DEVELOPER prints for release. They are a waste of CPU time for normal users...
 
 //#define __OPENGL_SHARED_CONTEXTS__							// Use OpenGL shared contexts...
@@ -1847,6 +1849,10 @@ typedef struct playerState_s {
 	vec3_t		viewangles;		// for fixed views
 	int			viewheight;
 
+#ifdef __VR__
+	vec3_t		headangles;		// NOT sent over the net - should it be? hmmm
+#endif //__VR__
+
 	// damage feedback
 	int			damageEvent;	// when it changes, latch the other parms
 	int			damageYaw;
@@ -2180,9 +2186,12 @@ typedef enum
 // usercmd_t is sent to the server each client frame
 typedef struct usercmd_s {
 	int				serverTime;
-	int				angles[3];
+	int				angles[3];			//*** View Angles (lerp direction, gun position)
+#ifdef __VR__
+	int             headAngles[3];		//*** Head Tracking Angles
+#endif //__VR__
 	int 			buttons;
-	byte			weapon;           // weapon
+	byte			weapon;				// weapon
 	byte			forcesel;
 	byte			invensel;
 	byte			generic_cmd;

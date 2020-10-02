@@ -672,6 +672,11 @@ void MSG_WriteDeltaUsercmdKey( msg_t *msg, int key, usercmd_t *from, usercmd_t *
 	if (from->angles[0] == to->angles[0] &&
 		from->angles[1] == to->angles[1] &&
 		from->angles[2] == to->angles[2] &&
+#ifdef __VR__
+		from->headAngles[0] == to->headAngles[0] && //*** add head tracking angles
+		from->headAngles[1] == to->headAngles[1] &&
+		from->headAngles[2] == to->headAngles[2] &&
+#endif //__VR__
 		from->forwardmove == to->forwardmove &&
 		from->rightmove == to->rightmove &&
 		from->upmove == to->upmove &&
@@ -689,6 +694,14 @@ void MSG_WriteDeltaUsercmdKey( msg_t *msg, int key, usercmd_t *from, usercmd_t *
 	MSG_WriteDeltaKey( msg, key, from->angles[0], to->angles[0], 16 );
 	MSG_WriteDeltaKey( msg, key, from->angles[1], to->angles[1], 16 );
 	MSG_WriteDeltaKey( msg, key, from->angles[2], to->angles[2], 16 );
+
+#ifdef __VR__
+	//*** Add Head Tracking to message.
+	MSG_WriteDelta(msg, from->headAngles[0], to->headAngles[0], 16);
+	MSG_WriteDelta(msg, from->headAngles[1], to->headAngles[1], 16);
+	MSG_WriteDelta(msg, from->headAngles[2], to->headAngles[2], 16);
+#endif //__VR__
+
 	MSG_WriteDeltaKey( msg, key, from->forwardmove, to->forwardmove, 8 );
 	MSG_WriteDeltaKey( msg, key, from->rightmove, to->rightmove, 8 );
 	MSG_WriteDeltaKey( msg, key, from->upmove, to->upmove, 8 );
@@ -717,6 +730,14 @@ void MSG_ReadDeltaUsercmdKey( msg_t *msg, int key, usercmd_t *from, usercmd_t *t
 		to->angles[0] = MSG_ReadDeltaKey( msg, key, from->angles[0], 16);
 		to->angles[1] = MSG_ReadDeltaKey( msg, key, from->angles[1], 16);
 		to->angles[2] = MSG_ReadDeltaKey( msg, key, from->angles[2], 16);
+
+#ifdef __VR__
+		//*** Add Head Tracking angles
+		to->headAngles[0] = MSG_ReadDelta(msg, from->headAngles[0], 16);
+		to->headAngles[1] = MSG_ReadDelta(msg, from->headAngles[1], 16);
+		to->headAngles[2] = MSG_ReadDelta(msg, from->headAngles[2], 16);
+#endif //__VR__
+
 		to->forwardmove = MSG_ReadDeltaKey( msg, key, from->forwardmove, 8);
 		if( to->forwardmove == -128 )
 			to->forwardmove = -127;
@@ -739,6 +760,13 @@ void MSG_ReadDeltaUsercmdKey( msg_t *msg, int key, usercmd_t *from, usercmd_t *t
 		to->angles[0] = from->angles[0];
 		to->angles[1] = from->angles[1];
 		to->angles[2] = from->angles[2];
+
+#ifdef __VR__
+		to->headAngles[0] = from->headAngles[0];
+		to->headAngles[1] = from->headAngles[1];
+		to->headAngles[2] = from->headAngles[2];
+#endif //__VR__
+
 		to->forwardmove = from->forwardmove;
 		to->rightmove = from->rightmove;
 		to->upmove = from->upmove;
@@ -1351,6 +1379,13 @@ netField_t	playerStateFields[] =
 //{ PSF(vehOrientation[1]), 0 },
 //{ PSF(moveDir[1]), 0 },
 //{ PSF(moveDir[0]), 0 },
+
+//#ifdef __VR__
+//{ PSF(headangles[0]), 0 },
+//{ PSF(headangles[1]), 0 },
+//{ PSF(headangles[2]), 0 },
+//#endif //__VR__
+
 { PSF(weaponChargeTime), 32 }, //? really need 32 bits??
 //{ PSF(vehOrientation[2]), 0 },
 { PSF(legsFlip), 1 },
@@ -1593,6 +1628,11 @@ netField_t	pilotPlayerStateFields[] =
 { PSF(ragAttach), GENTITYNUM_BITS },
 { PSF(iModelScale), 10 }, //0-1024 (guess it's gotta be increased if we want larger allowable scale.. but 1024% is pretty big)
 { PSF(hackingBaseTime), 16 }, //up to 65536ms, over 10 seconds would just be silly anyway
+#ifdef __VR__
+{ PSF(headangles[0]), 0 },
+{ PSF(headangles[1]), 0 },
+{ PSF(headangles[2]), 0 },
+#endif //__VR__
 //===NEVER SEND THESE, ONLY USED BY VEHICLES==============================================================
 
 //{ PSF(vehOrientation[0]), 0 },
@@ -1687,6 +1727,12 @@ netField_t	vehPlayerStateFields[] =
 { PSF(hyperSpaceAngles[0]), 0 },
 { PSF(hyperSpaceAngles[2]), 0 },
 { PSF(nextStyleSwitch), 32 },
+
+#ifdef __VR__
+{ PSF(headangles[0]), 0 },
+{ PSF(headangles[1]), 0 },
+{ PSF(headangles[2]), 0 },
+#endif //__VR__
 };
 
 //=====_OPTIMIZED_VEHICLE_NETWORKING=======================================================================
@@ -1845,6 +1891,12 @@ netField_t	playerStateFields[] =
 { PSF(hyperSpaceAngles[0]), 0 },
 { PSF(hyperSpaceAngles[2]), 0 },
 { PSF(nextStyleSwitch), 32 },
+
+#ifdef __VR__
+{ PSF(headangles[0]), 0 },
+{ PSF(headangles[1]), 0 },
+{ PSF(headangles[2]), 0 },
+#endif //__VR__
 };
 
 //=====_OPTIMIZED_VEHICLE_NETWORKING=======================================================================

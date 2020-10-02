@@ -11,6 +11,16 @@
 #include "zlib.h"
 #endif
 
+#ifdef __VR__
+extern "C" {
+	//#include <libovrwrapper.h>
+	#include "../sdk/libovr/libovrwrapper/libovrwrapper/libovrwrapper.h"
+}
+
+extern struct OVR_HMDInfo HMD;
+extern int OVRDetected;
+#endif //__VR__
+
 //============================================================================
 
 //

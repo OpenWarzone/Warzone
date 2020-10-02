@@ -8160,7 +8160,7 @@ char uniqueGenericShader[] = "{\n"\
 "%s"\
 "}\n"\
 "";
-#else //!__USE_SKYMAP_STAGES__
+#elif defined(__TESSELLATE_PLAYERS__)
 char uniqueGenericPlayerShader[] = "{\n"\
 "qer_editorimage	%s\n"\
 "surfaceparm	trans\n"\
@@ -8196,6 +8196,107 @@ char uniqueGenericArmorShader[] = "{\n"\
 "tesselation\n"\
 "tesselationLevel 3.0\n"\
 "tesselationAlpha 1.0\n"\
+"{\n"\
+"map %s\n"\
+"envmap $skyimage\n"\
+"envmapStrength 0.25\n"\
+"blendfunc GL_ONE GL_ZERO\n"\
+"alphaFunc GE128\n"\
+"depthWrite\n"\
+"rgbGen identityLighting\n"\
+"}\n"\
+"%s"\
+"}\n"\
+"";
+
+char uniqueGenericMetalShader[] = "{\n"\
+"qer_editorimage	%s\n"\
+"q3map_material	hollowmetal\n"\
+"surfaceparm	trans\n"\
+"surfaceparm	noimpact\n"\
+"surfaceparm	nomarks\n"\
+"cull	twosided\n"\
+"{\n"\
+"map %s\n"\
+"envmap $skyimage\n"\
+"envmapStrength 0.3\n"\
+"blendfunc GL_ONE GL_ZERO\n"\
+"alphaFunc GE128\n"\
+"depthWrite\n"\
+"rgbGen identityLighting\n"\
+"}\n"\
+"%s"\
+"%s"\
+"}\n"\
+"";
+
+char uniqueGenericWeaponShader[] = "{\n"\
+"qer_editorimage	%s\n"\
+"q3map_material	solidmetal\n"\
+"surfaceparm	noimpact\n"\
+"surfaceparm	nomarks\n"\
+"glowStrength 16.0\n"\
+"cull	twosided\n"\
+"{\n"\
+"map %s\n"\
+"envmap $skyimage\n"\
+"envmapStrength 0.3\n"\
+"blendfunc GL_ONE GL_ZERO\n"\
+"alphaFunc GE128\n"\
+"rgbGen identityLighting\n"\
+"depthWrite\n"\
+"//rgbGen entity\n"\
+"}\n"\
+"%s"\
+"}\n"\
+"";
+
+char uniqueGenericShader[] = "{\n"\
+"qer_editorimage	%s\n"\
+"//entityMergable\n"\
+"{\n"\
+"map %s\n"\
+"envmap $skyimage\n"\
+"envmapStrength 0.1\n"\
+"blendfunc GL_ONE GL_ZERO\n"\
+"alphaFunc GE128\n"\
+"depthWrite\n"\
+"rgbGen identityLighting\n"\
+"}\n"\
+"%s"\
+"%s"\
+"}\n"\
+"";
+#else //!__USE_SKYMAP_STAGES__
+char uniqueGenericPlayerShader[] = "{\n"\
+"qer_editorimage	%s\n"\
+"surfaceparm	trans\n"\
+"surfaceparm	noimpact\n"\
+"surfaceparm	nomarks\n"\
+"glowStrength 1.5\n"\
+"entityMergable\n"\
+"{\n"\
+"map %s\n"\
+"envmap $skyimage\n"\
+"envmapStrength 0.25\n"\
+"blendfunc GL_ONE GL_ZERO\n"\
+"alphaFunc GE128\n"\
+"depthWrite\n"\
+"rgbGen identityLighting\n"\
+"}\n"\
+"%s"\
+"}\n"\
+"";
+
+char uniqueGenericArmorShader[] = "{\n"\
+"qer_editorimage	%s\n"\
+"q3map_material	armor\n"\
+"surfaceparm trans\n"\
+"surfaceparm	noimpact\n"\
+"surfaceparm	nomarks\n"\
+"//entityMergable\n"\
+"glowStrength 16.0\n"\
+"cull	twosided\n"\
 "{\n"\
 "map %s\n"\
 "envmap $skyimage\n"\

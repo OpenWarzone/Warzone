@@ -490,6 +490,68 @@ RE_EndFrame
 Returns the number of msec spent in the back end
 =============
 */
+#ifdef __VR__
+void SetupShaderDistortion(int eye, float VPX, float VPY, float VPW, float VPH)
+{
+	float  as, x, y, w, h;
+	struct OVR_StereoCfg stereoCfg;
+	GLuint lenscenter = qglGetUniformLocation(glConfig.oculusProgId, "LensCenter");
+	GLuint screencenter = qglGetUniformLocation(glConfig.oculusProgId, "ScreenCenter");
+	GLuint uscale = qglGetUniformLocation(glConfig.oculusProgId, "Scale");
+	GLuint uscalein = qglGetUniformLocation(glConfig.oculusProgId, "ScaleIn");
+	GLuint uhmdwarp = qglGetUniformLocation(glConfig.oculusProgId, "HmdWarpParam");
+	GLuint offset = qglGetUniformLocation(glConfig.oculusProgId, "Offset");
+
+	stereoCfg.x = VPX;
+	stereoCfg.y = VPY;
+	stereoCfg.w = VPW*0.5f;
+	stereoCfg.h = VPH;
+
+	as = (VPW*0.5f) / VPH;
+	x = VPX / (float)(glConfig.vidWidth);
+	y = VPY / (float)(glConfig.vidHeight);
+	w = VPW / (float)(glConfig.vidWidth);
+	h = VPH / (float)(glConfig.vidHeight);
+
+	if (OVRDetected)
+	{
+		OVR_StereoConfig(eye, &stereoCfg);
+	}
+	else
+	{
+		stereoCfg.distscale = 1.701516f;
+		stereoCfg.XCenterOffset = 0.145299f;
+		if (eye == 1)
+		{
+			stereoCfg.XCenterOffset *= -1;
+		}
+		stereoCfg.K[0] = 1.00f;
+		stereoCfg.K[1] = 0.22f;
+		stereoCfg.K[2] = 0.24f;
+		stereoCfg.K[3] = 0.00f;
+	}
+
+	qglUniform2f(lenscenter, x + (w + stereoCfg.XCenterOffset * vr_lenseoffset->value)*0.5f, y + h*0.5f);
+	qglUniform2f(screencenter, x + w*0.5f, y + h*0.5f);
+	if (eye == 1)
+		qglUniform2f(offset, vr_viewofsx->value, vr_viewofsy->value);
+	else
+		qglUniform2f(offset, -vr_viewofsx->value, vr_viewofsy->value);
+
+	stereoCfg.distscale = 1.0f / stereoCfg.distscale;
+
+	qglUniform2f(uscale, (w / 2) * stereoCfg.distscale, (h / 2) * stereoCfg.distscale * as);
+	qglUniform2f(uscalein, (2 / w), (2 / h) / as);
+	qglUniform4fv(uhmdwarp, 1, stereoCfg.K);
+
+	if (vr_ipd->value != 0.0)
+	{
+		HMD.InterpupillaryDistance = vr_ipd->value;
+	}
+
+}
+#endif //__VR__
+
 void RE_EndFrame( int *frontEndMsec, int *backEndMsec ) {
 	swapBuffersCommand_t	*cmd;
 
@@ -503,6 +565,122 @@ void RE_EndFrame( int *frontEndMsec, int *backEndMsec ) {
 	cmd->commandId = RC_SWAP_BUFFERS;
 
 	R_IssueRenderCommands( qtrue );
+
+#ifdef __VR__
+	//*** Rift post processing	
+	if (vr_warpingShader->integer)
+	{
+		float x;
+		float y;
+		float w;
+		float h;
+		GLuint texID;
+		static int b = 0;
+
+		//qglBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+		//qglBindRenderbufferEXT(GL_RENDERBUFFER_EXT, 0);
+		qglBindFramebuffer(GL_FRAMEBUFFER_EXT, 0);
+		qglBindRenderbuffer(GL_RENDERBUFFER_EXT, 0);
+
+		if (!backEnd.projection2D)
+		{
+			extern void	RB_SetGL2D(void);
+			RB_SetGL2D();
+		}
+
+		qglViewport(0, 0, glConfig.vidWidth, glConfig.vidHeight); // Render on the whole framebuffer, complete from the lower left corner to the upper right
+
+																 // Use our shader
+		qglUseProgram(glConfig.oculusProgId);
+
+
+		qglEnable(GL_TEXTURE_2D);
+
+
+		{
+			float VPX = 0.0f;
+			float VPY = 0.0f;
+			float VPW = glConfig.vidWidth; // ViewPort Width
+			float VPH = glConfig.vidHeight;
+
+			SetupShaderDistortion(0, VPX, VPY, VPW, VPH); // Left Eye
+		}
+
+		// Set our "renderedTexture" sampler to user Texture Unit 0
+		texID = qglGetUniformLocation(glConfig.oculusProgId, "texid");
+		qglUniform1i(texID, 0);
+
+
+		qglColor3f(tr.identityLight, tr.identityLight, tr.identityLight);
+
+		int     oldtmu = glState.currenttmu;
+		int		oldtexture = glState.currenttextures[oldtmu];
+
+		//	if (stereoFrame == STEREO_LEFT)
+		{
+			GL_SelectTexture(0/*GL_TEXTURE0*/);
+			qglBindTexture(GL_TEXTURE_2D, glConfig.oculusRenderTargetLeft);
+
+			x = 0.0f;
+			y = 0.0f;
+			w = glConfig.vidWidth;
+			h = glConfig.vidHeight;
+
+
+			qglBegin(GL_QUADS);
+			qglTexCoord2f(0, 1);
+			qglVertex2f(x, y);
+			qglTexCoord2f(1, 1);
+			qglVertex2f(x + w / 2, y);
+			qglTexCoord2f(1, 0);
+			qglVertex2f(x + w / 2, y + h);
+			qglTexCoord2f(0, 0);
+			qglVertex2f(x, y + h);
+			qglEnd();
+		}
+		//else
+		{
+			{
+				float VPX = 0;
+				float VPY = 0.0f;
+				float VPW = glConfig.vidWidth; // ViewPort Width
+				float VPH = glConfig.vidHeight;
+
+				SetupShaderDistortion(1, VPX, VPY, VPW, VPH); // Right Eye
+			}
+
+			GL_SelectTexture(0/*GL_TEXTURE0*/);
+			qglBindTexture(GL_TEXTURE_2D, glConfig.oculusRenderTargetRight);
+
+
+			x = glConfig.vidWidth*0.5f;
+			y = 0.0f;
+			w = glConfig.vidWidth;
+			h = glConfig.vidHeight;
+
+
+			qglBegin(GL_QUADS);
+			qglTexCoord2f(0, 1);
+			qglVertex2f(x, y);
+			qglTexCoord2f(1, 1);
+			qglVertex2f(x + w / 2, y);
+			qglTexCoord2f(1, 0);
+			qglVertex2f(x + w / 2, y + h);
+			qglTexCoord2f(0, 0);
+			qglVertex2f(x, y + h);
+			qglEnd();
+		}
+		// unbind the GLSL program
+		// this means that from here the OpenGL fixed functionality is used
+		qglUseProgram(0);
+
+
+		// UQ: Revert bindings...
+		qglBindTexture(GL_TEXTURE_2D, oldtexture);
+		glState.currenttextures[oldtmu] = oldtexture;
+		GL_SelectTexture(oldtmu);
+	}
+#endif //__VR__
 
 	R_InitNextFrame();
 
