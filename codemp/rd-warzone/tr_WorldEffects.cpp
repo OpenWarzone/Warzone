@@ -1726,7 +1726,25 @@ public:
 		switch (mBlendMode)
 		{
 		case 2:
+#ifdef __VR_SEPARATE_EYE_RENDER__
+			if (vr_stereoEnabled->integer)
+			{
+				if (backEnd.stereoFrame == STEREO_LEFT)
+				{
+					FBO_Bind(tr.renderLeftVRFbo);
+				}
+				else if (backEnd.stereoFrame == STEREO_RIGHT)
+				{
+					FBO_Bind(tr.renderRightVRFbo);
+				}
+				else
+				{
+					FBO_Bind(tr.renderFbo);
+				}
+			}
+#else //!__VR_SEPARATE_EYE_RENDER__
 			FBO_Bind(tr.renderFbo);
+#endif //__VR_SEPARATE_EYE_RENDER__
 			break;
 		case 0:
 		case 1:
@@ -2330,7 +2348,6 @@ void RB_RenderWorldEffects(void)
 		if (mParticleClouds.size())
 		{
 			FBO_Bind(tr.renderNoDepthFbo);
-			//FBO_Bind(tr.renderFbo);
 			SetViewportAndScissor();
 			GL_SetModelviewMatrix(backEnd.viewParms.world.modelViewMatrix);
 

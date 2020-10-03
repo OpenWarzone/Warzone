@@ -10004,11 +10004,11 @@ void PM_UpdateViewAngles( playerState_t *ps, const usercmd_t *cmd ) {
 		}
 		ps->viewangles[i] = SHORT2ANGLE(temp);
 
-#ifdef __VR__
+#ifdef __OLD_VR__
 		//*** Head Tracking
 		temp = cmd->headAngles[i];
 		ps->headangles[i] = SHORT2ANGLE(temp);
-#endif //__VR__
+#endif //__OLD_VR__
 	}
 }
 

@@ -546,7 +546,7 @@ static qboolean GLW_InitDriver( int colorbits )
 	//
 	if ( !glw_state.pixelFormatSet )
 	{
-		GLW_CreatePFD( &pfd, colorbits, depthbits, stencilbits, qfalse );
+		GLW_CreatePFD( &pfd, colorbits, depthbits, stencilbits, qfalse);
 		if ( ( tpfd = GLW_MakeContext( &pfd ) ) != TRY_PFD_SUCCESS )
 		{
 			if ( tpfd == TRY_PFD_FAIL_HARD )
@@ -576,7 +576,7 @@ static qboolean GLW_InitDriver( int colorbits )
 			{
 				colorbits = glw_state.desktopBitsPixel;
 			}
-			GLW_CreatePFD( &pfd, colorbits, depthbits, 0, qfalse );
+			GLW_CreatePFD( &pfd, colorbits, depthbits, 0, qfalse);
 			if ( GLW_MakeContext( &pfd ) != TRY_PFD_SUCCESS )
 			{
 				if ( glw_state.hDC )
@@ -592,6 +592,10 @@ static qboolean GLW_InitDriver( int colorbits )
 		}
 
 		glConfig.stereoEnabled = qfalse;
+
+#ifdef __VR_SEPARATE_EYE_RENDER__
+		glConfig.stereoEnabled = (vr_stereoEnabled->integer > 0) ? qtrue : qfalse;
+#endif //__VR_SEPARATE_EYE_RENDER__
 	}
 
 	/*
@@ -802,6 +806,18 @@ static rserr_t GLW_SetMode( int mode,
 	// print out informational messages
 	//
 	Com_Printf ("...setting mode %d:", mode );
+
+#ifdef __VR_SEPARATE_EYE_RENDER__
+	if (OVRDetected)
+	{
+		if (!R_GetModeInfo(&glConfig.vidWidth, &glConfig.vidHeight, mode))
+		{
+			Com_Printf(" invalid mode\n");
+			return RSERR_INVALID_MODE;
+		}
+	}
+	else
+#endif //__VR_SEPARATE_EYE_RENDER__
 	if (mode == -2)
 	{
 		int OSwidth = GetSystemMetrics (SM_CXSCREEN);
@@ -1628,9 +1644,18 @@ static qboolean GLW_CheckOSVersion( void )
 	if ( QGL_Init( "opengl32" ) )
 	{
 		cdsFullscreen = (qboolean)r_fullscreen->integer;
+		int mode = r_mode->integer;
+
+#ifdef __VR_SEPARATE_EYE_RENDER__
+		if (OVRDetected)
+		{
+			mode = -1;
+			cdsFullscreen = qfalse;
+		}
+#endif //__VR_SEPARATE_EYE_RENDER__
 
 		// create the window and set up the context
-		if ( !GLW_StartDriverAndSetMode( r_mode->integer, r_colorbits->integer, cdsFullscreen ) )
+		if ( !GLW_StartDriverAndSetMode( mode, r_colorbits->integer, cdsFullscreen ) )
 		{
 			// if we're on a 24/32-bit desktop and we're going fullscreen on an ICD,
 			// try it again but with a 16-bit desktop

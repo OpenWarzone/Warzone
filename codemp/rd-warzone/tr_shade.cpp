@@ -5797,7 +5797,25 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		{
 			if (glState.currentFBO == tr.renderGlowFbo || glState.currentFBO == tr.renderDetailFbo || glState.currentFBO == tr.renderWaterFbo || glState.currentFBO == tr.renderTransparancyFbo)
 			{// Only attach textures when doing a render pass...
+#ifdef __VR_SEPARATE_EYE_RENDER__
+				if (vr_stereoEnabled->integer)
+				{
+					if (backEnd.stereoFrame == STEREO_LEFT)
+					{
+						FBO_Bind(tr.renderLeftVRFbo);
+					}
+					else if (backEnd.stereoFrame == STEREO_RIGHT)
+					{
+						FBO_Bind(tr.renderRightVRFbo);
+					}
+					else
+					{
+						FBO_Bind(tr.renderFbo);
+					}
+				}
+#else //!__VR_SEPARATE_EYE_RENDER__
 				FBO_Bind(tr.renderFbo);
+#endif //__VR_SEPARATE_EYE_RENDER__
 			}
 		}
 
@@ -6255,7 +6273,25 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 
 		if (glState.currentFBO == tr.renderGlowFbo || glState.currentFBO == tr.renderDetailFbo || glState.currentFBO == tr.renderWaterFbo || glState.currentFBO == tr.renderTransparancyFbo)
 		{// Change back to standard render FBO...
+#ifdef __VR_SEPARATE_EYE_RENDER__
+			if (vr_stereoEnabled->integer)
+			{
+				if (backEnd.stereoFrame == STEREO_LEFT)
+				{
+					FBO_Bind(tr.renderLeftVRFbo);
+				}
+				else if (backEnd.stereoFrame == STEREO_RIGHT)
+				{
+					FBO_Bind(tr.renderRightVRFbo);
+				}
+				else
+				{
+					FBO_Bind(tr.renderFbo);
+				}
+			}
+#else //!__VR_SEPARATE_EYE_RENDER__
 			FBO_Bind(tr.renderFbo);
+#endif //__VR_SEPARATE_EYE_RENDER__
 		}
 
 		// allow skipping out to show just lightmaps during development

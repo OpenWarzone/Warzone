@@ -558,15 +558,15 @@ void CG_TestModel_f (void) {
 
 	VectorMA( cg.refdef.vieworg, 100, cg.refdef.viewaxis[0], cg.testModelEntity.origin );
 
-#ifdef __VR__
+#ifdef __OLD_VR__
 	angles[PITCH] = 0;
 	angles[YAW] = 180 + cg.refdefViewAngles[1];
 	angles[ROLL] = 0;
-#else //!__VR__
+#else //!__OLD_VR__
 	angles[PITCH] = 0;
 	angles[YAW] = 180 + cg.refdef.viewangles[1];
 	angles[ROLL] = 0;
-#endif //__VR__
+#endif //__OLD_VR__
 
 	AnglesToAxis( angles, cg.testModelEntity.axis );
 	cg.testGun = qfalse;
@@ -688,7 +688,7 @@ static void CG_CalcVrect (void) {
 
 //==============================================================================
 
-#ifdef __VR__
+#ifdef __OLD_VR__
 /*
 ===============
 CG_OffsetVRView
@@ -759,7 +759,7 @@ static void CG_OffsetVRView(void) {
 
 	cg.refdefViewAngles[PITCH] = -180 / M_PI * atan2(focusPoint[2], focusDist);
 }
-#endif //__VR__
+#endif //__OLD_VR__
 
 //==============================================================================
 //==============================================================================
@@ -1615,11 +1615,11 @@ static void CG_OffsetFirstPersonView( void ) {
 
 	cg.refdef.vieworg[2] += cg.predictedPlayerState.viewheight * cg_entities[cg.predictedPlayerState.clientNum].modelScale[2];
 
-#ifdef __VR__
+#ifdef __OLD_VR__
 	// HMM DUNNO....
 	//angles = cg.refdefViewAngles;
 	VectorCopy(cg.refdefViewAngles, cg.refdef.viewangles);
-#endif //__VR__
+#endif //__OLD_VR__
 
 #endif //0
 }
@@ -2261,13 +2261,13 @@ static int CG_CalcViewValues( void ) {
 	if ( ps->pm_type == PM_INTERMISSION ) {
 		VectorCopy( ps->origin, cg.refdef.vieworg );
 
-#ifdef __VR__
+#ifdef __OLD_VR__
 		VectorCopy(ps->viewangles, cg.refdefViewAngles);
 		AnglesToAxis(cg.refdefViewAngles, cg.refdef.viewaxis);
-#else //!__VR__
+#else //!__OLD_VR__
 		VectorCopy(ps->viewangles, cg.refdef.viewangles);
 		AnglesToAxis(cg.refdef.viewangles, cg.refdef.viewaxis);
-#endif //__VR__
+#endif //__OLD_VR__
 		
 		return CG_CalcFov();
 	}
@@ -2286,9 +2286,9 @@ static int CG_CalcViewValues( void ) {
 	if ( !manningTurret )
 	{//not manning a turret on a vehicle
 		VectorCopy( ps->origin, cg.refdef.vieworg );
-#ifdef __VR__
+#ifdef __OLD_VR__
 		VectorCopy(ps->viewangles, cg.refdefViewAngles);
-#endif //__VR__
+#endif //__OLD_VR__
 
 #ifdef VEH_CONTROL_SCHEME_4
 		if ( cg.predictedPlayerState.m_iVehicleNum )//in a vehicle
@@ -2380,15 +2380,15 @@ static int CG_CalcViewValues( void ) {
 		}
 	}
 
-#ifdef __VR__
+#ifdef __OLD_VR__
 	CG_OffsetVRView();
 
 	// position eye relative to origin
 	AnglesToAxis(cg.refdefViewAngles, cg.refdef.viewaxis);
-#else //!__VR__
+#else //!__OLD_VR__
 	// position eye relative to origin
 	AnglesToAxis( cg.refdef.viewangles, cg.refdef.viewaxis );
-#endif //__VR__
+#endif //__OLD_VR__
 
 	if ( cg.hyperspace ) {
 		cg.refdef.rdflags |= RDF_NOWORLDMODEL | RDF_HYPERSPACE;

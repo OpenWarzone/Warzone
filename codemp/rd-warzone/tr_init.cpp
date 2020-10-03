@@ -39,11 +39,6 @@ float       displayAspect = 0.0f;
 
 glstate_t	glState;
 
-#ifdef __VR__
-struct OVR_HMDInfo HMD;
-int OVRDetected = 0;
-#endif //__VR__
-
 static void GfxInfo_f( void );
 static void GfxMemInfo_f( void );
 
@@ -161,14 +156,16 @@ cvar_t  *r_areaVisDebug;
 cvar_t  *r_zFarOcclusion;
 
 #ifdef __VR__
-cvar_t  *vr_fovoffset;
-cvar_t  *vr_warpingShader;
-cvar_t  *vr_headlockedtorso;
 cvar_t  *vr_ovrdetected;
-cvar_t  *vr_lenseoffset;
-cvar_t  *vr_ipd;
-cvar_t  *vr_viewofsx;
-cvar_t  *vr_viewofsy;
+cvar_t  *vr_fovOffset;
+cvar_t  *vr_lenseOffset;
+cvar_t  *vr_viewOffsetX;
+cvar_t  *vr_viewOffsetY;
+cvar_t  *vr_interpupillaryDistance;
+cvar_t  *vr_eyeToScreenDistance;
+cvar_t  *vr_stereoEnabled;
+cvar_t  *vr_stereoSeparation;
+cvar_t  *vr_warpShader;
 #endif //__VR__
 
 cvar_t  *r_ext_draw_range_elements;
@@ -547,107 +544,6 @@ void R_Splash()
 	GLimp_EndFrame();
 }
 
-#ifdef __VR__
-GLuint LoadVRShaders()
-{
-	char*VertexShader =
-		"void main()"\
-		"{	"\
-		"gl_TexCoord[0] = gl_MultiTexCoord0;"\
-		"gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex; "\
-		"}";
-
-
-	char *FragmentShader =
-		"uniform sampler2D texid;\n"\
-		"uniform vec2      LensCenter;\n"\
-		"uniform vec2      ScreenCenter;\n"\
-		"uniform vec2      Scale;\n"\
-		"uniform vec2      ScaleIn;\n"\
-		"uniform vec4      HmdWarpParam;\n"\
-		"uniform vec2      Offset;\n"\
-		"void main()\n"\
-		"{\n"\
-		"   vec2  uv = gl_TexCoord[0].xy;\n"\
-		"	vec2  theta   = (uv - LensCenter) *ScaleIn;\n"\
-		"	float rSq     = theta.x * theta.x + theta.y * theta.y;\n"\
-		"	vec2  rvector = Offset + theta * (HmdWarpParam.x + HmdWarpParam.y * rSq +\n"\
-		"		                     HmdWarpParam.z * rSq * rSq +\n"\
-		"							 HmdWarpParam.w * rSq * rSq * rSq);\n"\
-		"	vec2  tc      = (LensCenter + Scale * rvector);\n"\
-		"	if (any(bvec2(clamp(tc, ScreenCenter-vec2(0.50,0.5), ScreenCenter+vec2(0.50,0.5))-tc)))\n"\
-		"		gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);\n"\
-		"	else\n"\
-		"		gl_FragColor = texture2D(texid, tc);	\n"\
-		"}\n";
-
-
-	GLint Result = GL_FALSE;
-	int InfoLogLength;
-	GLuint ProgramID;
-	char* infoLog;
-	int charsWritten;
-
-
-
-	// Create the shaders
-	GLuint VertexShaderID = qglCreateShader(GL_VERTEX_SHADER);
-	GLuint FragmentShaderID = qglCreateShader(GL_FRAGMENT_SHADER);
-
-	qglShaderSource(VertexShaderID, 1, &VertexShader, NULL);
-	qglCompileShader(VertexShaderID);
-
-	// Check Vertex Shader
-	qglGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &Result);
-	qglGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-	if (InfoLogLength > 1)
-	{
-		infoLog = (char *)malloc(InfoLogLength);
-		qglGetShaderInfoLog(VertexShaderID, InfoLogLength, &charsWritten, infoLog);
-		Com_Printf("%s\n", infoLog);
-		free(infoLog);
-	}
-
-
-	// Compile Fragment Shader
-	qglShaderSource(FragmentShaderID, 1, &FragmentShader, NULL);
-	qglCompileShader(FragmentShaderID);
-
-	// Check Fragment Shader
-	qglGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result);
-	qglGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-	if (InfoLogLength > 1)
-	{
-		infoLog = (char *)malloc(InfoLogLength);
-		qglGetShaderInfoLog(FragmentShaderID, InfoLogLength, &charsWritten, infoLog);
-		Com_Printf("%s\n", infoLog);
-		free(infoLog);
-	}
-
-
-	ProgramID = qglCreateProgram();
-	qglAttachShader(ProgramID, VertexShaderID);
-	qglAttachShader(ProgramID, FragmentShaderID);
-	qglLinkProgram(ProgramID);
-
-	// Check the program
-	qglGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);
-	qglGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-	if (InfoLogLength > 1)
-	{
-		infoLog = (char *)malloc(InfoLogLength);
-		qglGetProgramInfoLog(ProgramID, InfoLogLength, &charsWritten, infoLog);
-		Com_Printf("%s\n", infoLog);
-		free(infoLog);
-	}
-
-	qglDeleteShader(VertexShaderID);
-	qglDeleteShader(FragmentShaderID);
-
-	return ProgramID;
-}
-#endif //__VR__
-
 /*
 ** InitOpenGL
 **
@@ -725,65 +621,6 @@ static void InitOpenGL( void )
 		qglUseProgram(0);
 		glState.currentProgram = NULL;
 	}
-
-#ifdef __VR__
-	OVR_QueryHMD(&HMD);
-
-	// Create Render Target for Oculus Rift
-	if (vr_warpingShader->integer)
-	{
-		glConfig.oculusFBL = 0;
-		glConfig.oculusFBR = 0;
-		qglGenFramebuffers(1, &glConfig.oculusFBL);
-		qglBindFramebuffer(GL_FRAMEBUFFER_EXT, glConfig.oculusFBL);
-
-
-		// The depth buffer	
-		qglGenRenderbuffers(1, &glConfig.oculusDepthRenderBufferLeft);
-		qglBindRenderbuffer(GL_RENDERBUFFER_EXT, glConfig.oculusDepthRenderBufferLeft);
-		qglRenderbufferStorage(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT, glConfig.vidWidth, glConfig.vidHeight);
-
-		qglGenTextures(1, &glConfig.oculusRenderTargetLeft);
-		qglBindTexture(GL_TEXTURE_2D, glConfig.oculusRenderTargetLeft);
-
-		qglTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, glConfig.vidWidth, glConfig.vidHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, 0); // Empty Image
-		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		qglGenerateMipmap(GL_TEXTURE_2D);
-
-		qglBindTexture(GL_TEXTURE_2D, 0);
-		qglFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, glConfig.oculusRenderTargetLeft, 0);
-
-
-		qglGenTextures(1, &glConfig.oculusRenderTargetRight);
-		qglBindTexture(GL_TEXTURE_2D, glConfig.oculusRenderTargetRight);
-
-		qglTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, glConfig.vidWidth, glConfig.vidHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, 0); // Empty Image
-		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		qglGenerateMipmap(GL_TEXTURE_2D);
-
-		qglBindTexture(GL_TEXTURE_2D, 0);
-		qglFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT1_EXT, GL_TEXTURE_2D, glConfig.oculusRenderTargetRight, 0);
-
-		qglFramebufferRenderbuffer(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_RENDERBUFFER_EXT, glConfig.oculusDepthRenderBufferLeft);
-
-
-		GLenum status = qglCheckFramebufferStatus(GL_FRAMEBUFFER_EXT);
-		if (status != GL_FRAMEBUFFER_COMPLETE_EXT)
-			exit(1);
-
-		qglBindFramebuffer(GL_FRAMEBUFFER_EXT, 0);	// Unbind the FBO for now
-
-														// Create and compile our GLSL program from the shaders
-		glConfig.oculusProgId = LoadVRShaders();
-		glConfig.oculusTexId = qglGetUniformLocation(glConfig.oculusProgId, "renderedTexture");
-	}
-#endif //__VR__
 }
 
 /*
@@ -869,6 +706,15 @@ qboolean R_GetModeInfo( int *width, int *height, int mode ) {
 		return qfalse;
 	}
 
+#ifdef __VR_SEPARATE_EYE_RENDER__
+	if (OVRDetected)
+	{
+		*width = VR->RenderWidth();
+		*height = VR->RenderHeight();
+		pixelAspect = r_customPixelAspect->value; //(float)*width / (float)*height;// r_customPixelAspect->value;
+	}
+	else
+#endif //__VR_SEPARATE_EYE_RENDER__
 	if ( mode == -1 ) {
 		*width = r_customwidth->integer;
 		*height = r_customheight->integer;
@@ -974,7 +820,25 @@ void RB_TakeScreenshot(int x, int y, int width, int height, char *fileName)
 	int linelen, padlen;
 	size_t offset = 18, memcount;
 
+#ifdef __VR_SEPARATE_EYE_RENDER__
+	if (vr_stereoEnabled->integer)
+	{
+		if (backEnd.stereoFrame == STEREO_LEFT)
+		{
+			FBO_Bind(tr.renderLeftVRFbo);
+		}
+		else if (backEnd.stereoFrame == STEREO_RIGHT)
+		{
+			FBO_Bind(tr.renderRightVRFbo);
+		}
+		else
+		{
+			FBO_Bind(tr.renderFbo);
+		}
+	}
+#else //!__VR_SEPARATE_EYE_RENDER__
 	FBO_Bind(tr.renderFbo);
+#endif //__VR_SEPARATE_EYE_RENDER__
 
 	allbuf = RB_ReadPixels(x, y, width, height, &offset, &padlen);
 	buffer = allbuf + offset - 18;
@@ -1032,7 +896,25 @@ void RB_TakeScreenshotPNG( int x, int y, int width, int height, char *fileName )
 	size_t offset = 0, memcount;
 	int padlen;
 
+#ifdef __VR_SEPARATE_EYE_RENDER__
+	if (vr_stereoEnabled->integer)
+	{
+		if (backEnd.stereoFrame == STEREO_LEFT)
+		{
+			FBO_Bind(tr.renderLeftVRFbo);
+		}
+		else if (backEnd.stereoFrame == STEREO_RIGHT)
+		{
+			FBO_Bind(tr.renderRightVRFbo);
+		}
+		else
+		{
+			FBO_Bind(tr.renderFbo);
+		}
+	}
+#else //!__VR_SEPARATE_EYE_RENDER__
 	FBO_Bind(tr.renderFbo);
+#endif //__VR_SEPARATE_EYE_RENDER__
 
 	buffer = RB_ReadPixels( x, y, width, height, &offset, &padlen );
 	memcount = (width * 3 + padlen) * height;
@@ -1057,7 +939,25 @@ void RB_TakeScreenshotJPEG(int x, int y, int width, int height, char *fileName)
 	size_t offset = 0, memcount;
 	int padlen;
 
+#ifdef __VR_SEPARATE_EYE_RENDER__
+	if (vr_stereoEnabled->integer)
+	{
+		if (backEnd.stereoFrame == STEREO_LEFT)
+		{
+			FBO_Bind(tr.renderLeftVRFbo);
+		}
+		else if (backEnd.stereoFrame == STEREO_RIGHT)
+		{
+			FBO_Bind(tr.renderRightVRFbo);
+		}
+		else
+		{
+			FBO_Bind(tr.renderFbo);
+		}
+	}
+#else //!__VR_SEPARATE_EYE_RENDER__
 	FBO_Bind(tr.renderFbo);
+#endif //__VR_SEPARATE_EYE_RENDER__
 
 	buffer = RB_ReadPixels(x, y, width, height, &offset, &padlen);
 	memcount = (width * 3 + padlen) * height;
@@ -1084,7 +984,25 @@ const void *RB_TakeScreenshotCmd( const void *data ) {
 	if(tess.numIndexes)
 		RB_EndSurface();
 
+#ifdef __VR_SEPARATE_EYE_RENDER__
+	if (vr_stereoEnabled->integer)
+	{
+		if (backEnd.stereoFrame == STEREO_LEFT)
+		{
+			FBO_Bind(tr.renderLeftVRFbo);
+		}
+		else if (backEnd.stereoFrame == STEREO_RIGHT)
+		{
+			FBO_Bind(tr.renderRightVRFbo);
+		}
+		else
+		{
+			FBO_Bind(tr.renderFbo);
+		}
+	}
+#else //!__VR_SEPARATE_EYE_RENDER__
 	FBO_Bind(tr.renderFbo);
+#endif //__VR_SEPARATE_EYE_RENDER__
 
 	switch( cmd->format ) {
 		case SSF_JPEG:
@@ -1736,16 +1654,18 @@ void R_Register( void )
 	ri->Cvar_CheckRange(r_greyscale, 0, 1, qfalse);
 
 #ifdef __VR__
-	vr_fovoffset = ri->Cvar_Get("vr_fovoffset", "0.0", CVAR_ARCHIVE);
-	vr_viewofsx = ri->Cvar_Get("vr_viewofsx", "0", CVAR_ARCHIVE);
-	vr_viewofsy = ri->Cvar_Get("vr_viewofsy", "0", CVAR_ARCHIVE);
-	vr_ipd = ri->Cvar_Get("vr_ipd", "0", CVAR_ARCHIVE);
-	vr_lenseoffset = ri->Cvar_Get("vr_lenseoffset", "0.5", CVAR_ARCHIVE);
-	vr_warpingShader = ri->Cvar_Get("vr_warpingShader", "0", CVAR_ARCHIVE | CVAR_LATCH);
-	vr_headlockedtorso = ri->Cvar_Get("vr_headlockedtorso", "1", CVAR_ARCHIVE);
-	
 	vr_ovrdetected = ri->Cvar_Get("vr_ovrdetected", "0", CVAR_LATCH | CVAR_CHEAT);
 	OVRDetected = vr_ovrdetected->integer;
+
+	vr_fovOffset = ri->Cvar_Get("vr_fovOffset", "0.0", CVAR_ARCHIVE);
+	vr_viewOffsetX = ri->Cvar_Get("vr_viewOffsetX", "0", CVAR_ARCHIVE);
+	vr_viewOffsetY = ri->Cvar_Get("vr_viewOffsetY", "0", CVAR_ARCHIVE);
+	vr_lenseOffset = ri->Cvar_Get("vr_lenseOffset", "0.5", CVAR_ARCHIVE);
+	vr_interpupillaryDistance = ri->Cvar_Get("vr_interpupillaryDistance", /*"0.0"*/"0.058", CVAR_ARCHIVE);
+	vr_eyeToScreenDistance = ri->Cvar_Get("vr_eyeToScreenDistance", "0.04", CVAR_ARCHIVE);
+	vr_stereoEnabled = ri->Cvar_Get("vr_stereoEnabled", "1", CVAR_ARCHIVE | CVAR_LATCH);
+	vr_stereoSeparation = ri->Cvar_Get("vr_stereoSeparation", "10.0", CVAR_ARCHIVE);
+	vr_warpShader = ri->Cvar_Get("vr_warpShader", "0", CVAR_ARCHIVE);
 #endif //__VR__
 
 	r_hdr = ri->Cvar_Get( "r_hdr", "1", CVAR_ARCHIVE | CVAR_LATCH );
@@ -2209,7 +2129,9 @@ void R_Init( void ) {
 	R_InitFogTable();
 
 	R_NoiseInit();
+
 	R_ImageLoader_Init();
+
 	R_Register();
 
 	max_polys = r_maxpolys->integer;
@@ -2231,7 +2153,18 @@ void R_Init( void ) {
 		RE_SetLightStyle (i, -1);
 	}
 
+#ifdef __VR__
+	VR_Initialize();
+#endif //__VR__
+
 	InitOpenGL();
+
+#ifdef __VR__
+	if (VR)
+	{// Create and compile our GLSL program from the shaders
+		VR->LoadWarpShader();
+	}
+#endif //__VR__
 
 	R_InitImages();
 

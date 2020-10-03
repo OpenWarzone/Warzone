@@ -208,11 +208,11 @@ static void CG_CalculateWeaponPosition( vec3_t origin, vec3_t angles ) {
 	float	fracsin;
 
 	VectorCopy( cg.refdef.vieworg, origin );
-#ifdef __VR__
+#ifdef __OLD_VR__
 	VectorCopy( cg.refdefViewAngles, angles );
-#else //!__VR__
+#else //!__OLD_VR__
 	VectorCopy( cg.refdef.viewangles, angles );
-#endif //__VR__
+#endif //__OLD_VR__
 
 	// on odd legs, invert some angles
 	if ( cg.bobcycle & 1 ) {

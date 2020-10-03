@@ -452,8 +452,6 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 		shaderProgram_t *sp = &tr.skyShader[quality];
 		vec4_t vector;
 
-		//FBO_Bind(tr.renderFbo);
-
 		GL_State(GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO);
 		//GL_State(GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK_TRUE | GLS_DEPTHTEST_DISABLE);
 		//qglColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);

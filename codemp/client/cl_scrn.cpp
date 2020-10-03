@@ -503,7 +503,34 @@ void SCR_UpdateScreen( void ) {
 	// that case.
 	if( cls.uiStarted || com_dedicated->integer )
 	{
-		SCR_DrawScreenField( STEREO_CENTER );
+#ifdef __VR_SEPARATE_EYE_RENDER__
+		cls.glconfig.stereoEnabled = (Cvar_VariableIntegerValue("vr_stereoEnabled") > 0) ? qtrue : qfalse;
+#else
+		cls.glconfig.stereoEnabled = qfalse;
+#endif //__VR_SEPARATE_EYE_RENDER__
+
+		// XXX
+		int in_anaglyphMode = Cvar_VariableIntegerValue("r_anaglyphMode");
+		// if running in stereo, we need to draw the frame twice
+		if (cls.glconfig.stereoEnabled || in_anaglyphMode)
+		{
+			//Com_Printf("left\n");
+			SCR_DrawScreenField(STEREO_LEFT);
+			if (com_speeds->integer)
+			{
+				re->EndFrame(&time_frontend, &time_backend);
+			}
+			else {
+				re->EndFrame(NULL, NULL);
+			}
+			//Com_Printf("right\n");
+			SCR_DrawScreenField(STEREO_RIGHT);
+		}
+		else
+		{
+			//Com_Printf("center\n");
+			SCR_DrawScreenField(STEREO_CENTER);
+		}
 		
 		if ( com_speeds->integer ) {
 			re->EndFrame( &time_frontend, &time_backend );

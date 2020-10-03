@@ -817,6 +817,58 @@ R_RotateForViewer
 Sets up the modelview matrix for a given viewParm
 =================
 */
+
+/*#ifdef __VR_SEPARATE_EYE_RENDER__
+void GetHMDMatrixProjectionEye(vr::Hmd_Eye nEye, float zNear, float zFar, float *out)
+{
+#if 0
+	vr::HmdMatrix44_t mat = HMD->GetProjectionMatrix(nEye, zNear, zFar);
+
+	out[0] = mat.m[0][0];
+	out[1] = mat.m[1][0];
+	out[2] = mat.m[2][0];
+	out[3] = mat.m[3][0];
+	
+	out[4] = mat.m[0][1];
+	out[5] = mat.m[1][1];
+	out[6] = mat.m[2][1];
+	out[7] = mat.m[3][1];
+
+	out[8] = mat.m[0][2];
+	out[9] = mat.m[1][2];
+	out[10] = mat.m[2][2];
+	out[11] = mat.m[3][2];
+	
+	out[12] = mat.m[0][3];
+	out[13] = mat.m[1][3];
+	out[14] = mat.m[2][3];
+	out[15] = mat.m[3][3];
+#else
+	vr::HmdMatrix34_t mat = HMD->GetEyeToHeadTransform(nEye);
+
+	out[0] = mat.m[0][0];
+	out[1] = mat.m[1][0];
+	out[2] = mat.m[2][0];
+	out[3] = 0;
+
+	out[3] = mat.m[0][1];
+	out[4] = mat.m[1][1];
+	out[5] = mat.m[2][1];
+	out[6] = 0;
+
+	out[7] = mat.m[0][2];
+	out[8] = mat.m[1][2];
+	out[9] = mat.m[2][2];
+	out[10] = 0;
+
+	out[11] = mat.m[0][3];
+	out[12] = mat.m[1][3];
+	out[13] = mat.m[2][3];
+	out[14] = 1;
+#endif
+}
+#endif //__VR_SEPARATE_EYE_RENDER__*/
+
 /*static*/ void R_RotateForViewer(viewParms_t *viewParms)
 {
 	float	viewerMatrix[16];
@@ -854,8 +906,53 @@ Sets up the modelview matrix for a given viewParm
 
 	// convert from our coordinate system (looking down X)
 	// to OpenGL's coordinate system (looking down -Z)
+/*#ifdef __VR_SEPARATE_EYE_RENDER__
+#if 0
+	float   glviewMatrix[16];
+	myGlMultMatrix(viewerMatrix, s_flipMatrix, glviewMatrix);
+
+	float   viewerTranslate[16];
+
+	viewerTranslate[0] = 1.0;
+	viewerTranslate[1] = 0.0;
+	viewerTranslate[2] = 0.0;
+	viewerTranslate[3] = 0.0;
+
+	viewerTranslate[4] = 0.0;
+	viewerTranslate[5] = 1.0;
+	viewerTranslate[6] = 0.0;
+	viewerTranslate[7] = 0.0;
+
+	viewerTranslate[8] = 0.0;
+	viewerTranslate[9] = 0.0;
+	viewerTranslate[10] = 1.0;
+	viewerTranslate[11] = 0.0;
+
+	viewerTranslate[12] = 0.5 * vr_interpupillaryDistance->value;//HMD.InterpupillaryDistance;
+	if (viewParms != NULL && viewParms->stereoFrame == STEREO_RIGHT)
+	{
+		viewerTranslate[12] *= -1.0;
+	}
+	viewerTranslate[13] = 0.0;
+	viewerTranslate[14] = 0.0;
+	viewerTranslate[15] = 1.0;
+
+
+	myGlMultMatrix(viewerTranslate, glviewMatrix, tr.ori.modelViewMatrix);
+#else
+	float eyeMatrix[16];
+	float viewMatrix[16];
+	GetHMDMatrixProjectionEye((viewParms->stereoFrame == STEREO_RIGHT) ? vr::Eye_Right : vr::Eye_Left, r_znear->value, backEnd.viewParms.zFar, eyeMatrix);
+
+	myGlMultMatrix(viewerMatrix, eyeMatrix, viewMatrix);
+
+	myGlMultMatrix(viewMatrix, s_flipMatrix, tr.ori.modelViewMatrix);
+	Matrix16Identity(tr.ori.modelMatrix);
+#endif
+#else //!__VR_SEPARATE_EYE_RENDER__*/
 	myGlMultMatrix(viewerMatrix, s_flipMatrix, tr.ori.modelViewMatrix);
 	Matrix16Identity(tr.ori.modelMatrix);
+//#endif //__VR_SEPARATE_EYE_RENDER__
 
 	viewParms->world = tr.ori;
 
@@ -1003,10 +1100,146 @@ void R_SetupFrustum (viewParms_t *dest, float xmin, float xmax, float ymax, floa
 R_SetupProjection
 ===============
 */
+#ifdef __VR_SEPARATE_EYE_RENDER__
+void R_SetupProjectionVR(viewParms_t *dest, float zProj, float zFar, qboolean computeFrustum)
+{
+	//***
+	float	xmin, xmax, ymin, ymax;
+	float	width, height, stereoSep = vr_stereoSeparation->value;
+	float   frameMultiplier = 1;
+	float   a = tr.renderLeftVRFbo->width / (2.0*tr.renderLeftVRFbo->height);//(float)HMD.HResolution / (2.0*(float)HMD.VResolution);  //*** Correct Aspect ratio is 2.0 *
+	//float   fov = 2.0*atan((float)/*HMD.VScreenSize*/VR->RenderWidth() / (2.0*(float)/*HMD.EyeToScreenDistance*/vr_eyeToScreenDistance->value)) - vr_fovOffset->value;
+	float   fov = 2.0*atan((float)VR->DeviceWidth() / (2.0*(float)VR->DeviceHeight())) - vr_fovOffset->value;
+	float   zNear = r_znear->value;
+
+	/*
+	* offset the view origin of the viewer for stereo rendering
+	* by setting the projection matrix appropriately.
+	*/
+
+	if (stereoSep != 0)
+	{
+		if (dest->stereoFrame == STEREO_LEFT)
+		{
+			frameMultiplier = 2;
+			stereoSep = zProj / stereoSep;
+		}
+		else if (dest->stereoFrame == STEREO_RIGHT)
+		{
+			frameMultiplier = 2;
+			stereoSep = zProj / -stereoSep;
+		}
+		else
+			stereoSep = 0;
+	}
+
+	ymax = zProj * tan(dest->fovY * M_PI / 360.0f);
+	ymin = -ymax;
+
+	xmax = zProj * tan(dest->fovX * M_PI / 360.0f);
+	xmin = -xmax;
+
+	width = (xmax - xmin);
+	height = ymax - ymin;
+
+	{
+		float projectionMatrix[16];
+		float H[16];
+		float hMeters;
+		float h;
+		
+		hMeters = ((float)/*HMD.HScreenSize*/VR->RenderHeight() / 4.0) - (vr_interpupillaryDistance->value / 2.0);
+		h = 4.0*hMeters / (float)/*HMD.HScreenSize*/VR->RenderHeight();
+
+		projectionMatrix[0] = 1.0 / (a*tan(fov / 2));
+		projectionMatrix[1] = 0;
+		projectionMatrix[2] = 0;
+		projectionMatrix[3] = 0;
+
+		projectionMatrix[4] = 0;
+		projectionMatrix[5] = 1.0 / (tan(fov / 2));
+		projectionMatrix[6] = 0;
+		projectionMatrix[7] = 0;
+
+		projectionMatrix[8] = 0;
+		projectionMatrix[9] = 0;
+		projectionMatrix[10] = zFar / (zNear - zFar);
+		projectionMatrix[11] = -1.0;
+
+		projectionMatrix[12] = 0;
+		projectionMatrix[13] = 0;
+		projectionMatrix[14] = (zFar*zNear) / (zNear - zFar);
+		projectionMatrix[15] = 0;
+
+
+		H[0] = 1.0;
+		H[1] = 0.0;
+		H[2] = 0.0;
+		H[3] = 0.0;
+
+		H[4] = 0.0;
+		H[5] = 1.0;
+		H[6] = 0.0;
+		H[7] = 0.0;
+
+		H[8] = 0.0;
+		H[9] = 0.0;
+		H[10] = 1.0;
+		H[11] = 0.0;
+
+		H[12] = h;
+		if (dest->stereoFrame == STEREO_RIGHT)
+			H[12] *= -1.0;
+		H[13] = 0.0;
+		H[14] = 0.0;
+		H[15] = 1.0;
+
+		myGlMultMatrix(H, projectionMatrix, dest->projectionMatrix);
+	}
+
+	// Now that we have all the data for the projection matrix we can also setup the view frustum.
+	if (computeFrustum)
+		R_SetupFrustum(dest, xmin, xmax, ymax, zProj, zFar, stereoSep);
+}
+#endif //!__VR_SEPARATE_EYE_RENDER__
+
 void R_SetupProjection(viewParms_t *dest, float zProj, float zFar, qboolean computeFrustum)
 {
+/*#ifdef __VR_SEPARATE_EYE_RENDER__
+	if (OVRDetected)
+	{
+		R_SetupProjectionVR(dest, zProj, zFar, computeFrustum);
+		return;
+	}
+#endif //__VR_SEPARATE_EYE_RENDER__*/
+
 	float	xmin, xmax, ymin, ymax;
 	float	width, height, stereoSep = 0;
+
+#ifdef __VR_SEPARATE_EYE_RENDER__
+	//
+
+	stereoSep = vr_stereoSeparation->value;
+
+	if (stereoSep != 0)
+	{
+		if (dest->stereoFrame == STEREO_LEFT)
+		{
+			//stereoSep = zProj / stereoSep;
+		}
+		else if (dest->stereoFrame == STEREO_RIGHT)
+		{
+			//stereoSep = zProj / -stereoSep;
+			stereoSep = -stereoSep;
+		}
+		else
+		{
+			stereoSep = 0;
+		}
+	}
+#endif //__VR_SEPARATE_EYE_RENDER__
+
+	//
 
 	/*
 	* offset the view origin of the viewer for stereo rendering
@@ -3623,7 +3856,25 @@ void R_RenderHeightMap(void)
 
 		tr.viewParms.flags &= ~VPF_SHADOWPASS;
 
+#ifdef __VR_SEPARATE_EYE_RENDER__
+		if (vr_stereoEnabled->integer)
+		{
+			if (backEnd.stereoFrame == STEREO_LEFT)
+			{
+				FBO_Bind(tr.renderLeftVRFbo);
+			}
+			else if (backEnd.stereoFrame == STEREO_RIGHT)
+			{
+				FBO_Bind(tr.renderRightVRFbo);
+			}
+			else
+			{
+				FBO_Bind(tr.renderFbo);
+			}
+		}
+#else //!__VR_SEPARATE_EYE_RENDER__
 		FBO_Bind(tr.renderFbo);
+#endif //__VR_SEPARATE_EYE_RENDER__
 	}
 #endif
 

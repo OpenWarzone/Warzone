@@ -2558,6 +2558,13 @@ void MAPPING_LoadMapInfo(void)
 	//
 	SHADOWS_ENABLED = (atoi(IniRead(mapname, "SHADOWS", "SHADOWS_ENABLED", "0")) > 0) ? qtrue : qfalse;
 
+#ifdef __VR_SEPARATE_EYE_RENDER__
+	if (vr_ovrdetected->integer || backEnd.stereoFrame != STEREO_CENTER)
+	{
+		SHADOWS_ENABLED = qfalse;
+	}
+#endif //__VR_SEPARATE_EYE_RENDER__
+
 	if (SHADOWS_ENABLED)
 	{
 		SHADOWS_FULL_SOLID = (atoi(IniRead(mapname, "SHADOWS", "SHADOWS_FULL_SOLID", "1")) > 0) ? qtrue : qfalse;

@@ -1368,6 +1368,9 @@ void RE_RenderScene(const refdef_t *fd) {
 
 	// playing with even more shadows
 	if (!(fd->rdflags & RDF_NOWORLDMODEL)
+//#ifdef __VR_SEPARATE_EYE_RENDER__
+//		&& (backEnd.stereoFrame == STEREO_CENTER || backEnd.stereoFrame == STEREO_LEFT) // Only need to render shadows once for 1st eye drawn...
+//#endif //__VR_SEPARATE_EYE_RENDER__
 		&& (r_sunlightMode->integer >= 2 || r_forceSun->integer || tr.sunShadows)
 		&& !backEnd.depthFill
 		&& SHADOWS_ENABLED
@@ -1377,10 +1380,18 @@ void RE_RenderScene(const refdef_t *fd) {
 		vec4_t lightDir;
 
 		qboolean FBO_SWITCHED = qfalse;
+#ifdef __VR_SEPARATE_EYE_RENDER__
+		if (glState.currentFBO == tr.renderFbo || glState.currentFBO == tr.renderLeftVRFbo || glState.currentFBO == tr.renderRightVRFbo)
+#else //!__VR_SEPARATE_EYE_RENDER__
 		if (glState.currentFBO == tr.renderFbo)
+#endif //__VR_SEPARATE_EYE_RENDER__
 		{// Skip outputting to deferred textures while doing depth prepass, by using a depth prepass FBO without any attached textures.
 			glState.previousFBO = glState.currentFBO;
 			FBO_Bind(tr.renderDepthFbo);
+#ifdef __VR_SEPARATE_EYE_RENDER__
+			qglClearColor(0, 0, 0, 1);
+			qglClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+#endif //__VR_SEPARATE_EYE_RENDER__
 			FBO_SWITCHED = qtrue;
 		}
 

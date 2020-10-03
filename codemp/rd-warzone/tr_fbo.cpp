@@ -777,6 +777,52 @@ void FBO_Init(void)
 		//FBO_Bind(NULL);
 	}
 
+#ifdef __VR_SEPARATE_EYE_RENDER__
+	if (OVRDetected)
+	{
+		tr.renderLeftVRFbo = FBO_Create("_renderLeftVRFbo", tr.renderLeftVRImage->width, tr.renderLeftVRImage->height);
+		FBO_Bind(tr.renderLeftVRFbo);
+		FBO_AttachTextureImage(tr.renderLeftVRImage, 0);
+		
+		FBO_AttachTextureImage(tr.glowImage, 1);
+		FBO_AttachTextureImage(tr.renderNormalImage, 2);
+		FBO_AttachTextureImage(tr.renderPositionMapImage, 3);
+		if (r_normalMappingReal->integer)
+		{
+			FBO_AttachTextureImage(tr.renderNormalDetailedImage, 4);
+		}
+
+		R_AttachFBOTextureDepth(tr.renderLeftVRDepthImage->texnum);
+		
+		FBO_SetupDrawBuffers();
+		R_CheckFBO(tr.renderLeftVRFbo);
+
+
+
+
+
+		tr.renderRightVRFbo = FBO_Create("_renderRightVRFbo", tr.renderRightVRImage->width, tr.renderRightVRImage->height);
+		FBO_Bind(tr.renderRightVRFbo);
+		FBO_AttachTextureImage(tr.renderRightVRImage, 0);
+
+		FBO_AttachTextureImage(tr.glowImage, 1);
+		FBO_AttachTextureImage(tr.renderNormalImage, 2);
+		FBO_AttachTextureImage(tr.renderPositionMapImage, 3);
+		if (r_normalMappingReal->integer)
+		{
+			FBO_AttachTextureImage(tr.renderNormalDetailedImage, 4);
+		}
+		
+		R_AttachFBOTextureDepth(tr.renderRightVRDepthImage->texnum);
+		
+		FBO_SetupDrawBuffers();
+		R_CheckFBO(tr.renderRightVRFbo);
+		
+		ri->Printf(PRINT_ALL, "renderLeftVRFbo created: w %i. h %i.\n", tr.renderLeftVRFbo->width, tr.renderLeftVRFbo->height);
+		ri->Printf(PRINT_ALL, "renderRightVRFbo created: w %i. h %i.\n", tr.renderRightVRFbo->width, tr.renderRightVRFbo->height);
+	}
+#endif __VR_SEPARATE_EYE_RENDER__
+
 	if (tr.waterFbo)
 	{
 		FBO_Bind(tr.waterFbo);

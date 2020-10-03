@@ -448,10 +448,6 @@ void CLOUD_LAYER_Render(void)
 
 	GLSL_BindProgram(&tr.cloudsShader);
 
-	
-	//FBO_Bind(tr.renderNoDepthFbo);
-	//FBO_Bind(tr.renderFbo);
-
 
 	viewParms_t parms = tr.viewParms;
 

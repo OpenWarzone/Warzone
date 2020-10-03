@@ -304,7 +304,25 @@ void RB_MoveSky(void)
 
 	RB_InstantQuad2(quadVerts, texCoords);
 
+#ifdef __VR_SEPARATE_EYE_RENDER__
+	if (vr_stereoEnabled->integer)
+	{
+		if (backEnd.stereoFrame == STEREO_LEFT)
+		{
+			FBO_Bind(tr.renderLeftVRFbo);
+		}
+		else if (backEnd.stereoFrame == STEREO_RIGHT)
+		{
+			FBO_Bind(tr.renderRightVRFbo);
+		}
+		else
+		{
+			FBO_Bind(tr.renderFbo);
+		}
+	}
+#else //!__VR_SEPARATE_EYE_RENDER__
 	FBO_Bind(tr.renderFbo);
+#endif //__VR_SEPARATE_EYE_RENDER__
 }
 
 void RB_OcclusionCulling(void)
@@ -346,12 +364,28 @@ void RB_OcclusionCulling(void)
 
 			occlusionFrame++;
 
-			//glState.previousFBO = glState.currentFBO;
-			//FBO_Bind(tr.renderDepthFbo);
-
 			GL_Bind(tr.whiteImage);
 
+#ifdef __VR_SEPARATE_EYE_RENDER__
+			if (vr_stereoEnabled->integer)
+			{
+				if (backEnd.stereoFrame == STEREO_LEFT)
+				{
+					FBO_Bind(tr.renderLeftVRFbo);
+				}
+				else if (backEnd.stereoFrame == STEREO_RIGHT)
+				{
+					FBO_Bind(tr.renderRightVRFbo);
+				}
+				else
+				{
+					FBO_Bind(tr.renderFbo);
+				}
+			}
+#else //!__VR_SEPARATE_EYE_RENDER__
 			FBO_Bind(tr.renderFbo);
+#endif //__VR_SEPARATE_EYE_RENDER__
+
 			RB_UpdateVBOs(ATTR_POSITION);
 			GLSL_VertexAttribsState(ATTR_POSITION);
 			GLSL_BindProgram(&tr.occlusionShader);
@@ -743,6 +777,24 @@ void RB_zFarCullingBeginFrame(void)
 
 		RB_InstantQuad2(quadVerts, texCoords);
 
+#ifdef __VR_SEPARATE_EYE_RENDER__
+		if (vr_stereoEnabled->integer)
+		{
+			if (backEnd.stereoFrame == STEREO_LEFT)
+			{
+				FBO_Bind(tr.renderLeftVRFbo);
+			}
+			else if (backEnd.stereoFrame == STEREO_RIGHT)
+			{
+				FBO_Bind(tr.renderRightVRFbo);
+			}
+			else
+			{
+				FBO_Bind(tr.renderFbo);
+			}
+		}
+#else //!__VR_SEPARATE_EYE_RENDER__
 		FBO_Bind(tr.renderFbo);
+#endif //__VR_SEPARATE_EYE_RENDER__
 	}
 }

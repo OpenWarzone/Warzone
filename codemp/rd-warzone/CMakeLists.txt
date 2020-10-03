@@ -73,6 +73,8 @@ set(MPWarzoneFiles
 	"${MPDir}/rd-warzone/tr_occlusion.cpp"
 	"${MPDir}/rd-warzone/tr_ocean.cpp"
 	"${MPDir}/rd-warzone/tr_ocean.h"
+	"${MPDir}/rd-warzone/tr_openvr.cpp"
+	"${MPDir}/rd-warzone/tr_openvr.h"
 	"${MPDir}/rd-warzone/tr_optimization.cpp"
 	"${MPDir}/rd-warzone/tr_postprocess.cpp"
 	"${MPDir}/rd-warzone/tr_postprocess.h"

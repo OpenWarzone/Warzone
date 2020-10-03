@@ -275,6 +275,10 @@ extern int GLSL_BINDS_COUNT;
 #include "../SharedMemory/sharedMemory.h"
 #endif
 
+#ifdef __VR__
+#include "tr_openvr.h"
+#endif //__VR__
+
 #define MAX_GLSL_LENGTH 170000
 
 extern qboolean ALLOW_NULL_FBO_BIND;
@@ -455,14 +459,16 @@ extern cvar_t  *r_areaVisDebug;
 extern cvar_t  *r_zFarOcclusion;
 
 #ifdef __VR__
-extern cvar_t  *vr_fovoffset;
-extern cvar_t  *vr_warpingShader;
-extern cvar_t  *vr_headlockedtorso;
 extern cvar_t  *vr_ovrdetected;
-extern cvar_t  *vr_lenseoffset;
-extern cvar_t  *vr_ipd;
-extern cvar_t  *vr_viewofsx;
-extern cvar_t  *vr_viewofsy;
+extern cvar_t  *vr_fovOffset;
+extern cvar_t  *vr_lenseOffset;
+extern cvar_t  *vr_viewOffsetX;
+extern cvar_t  *vr_viewOffsetY;
+extern cvar_t  *vr_interpupillaryDistance;
+extern cvar_t  *vr_eyeToScreenDistance;
+extern cvar_t  *vr_stereoEnabled;
+extern cvar_t  *vr_stereoSeparation;
+extern cvar_t  *vr_warpShader;
 #endif //__VR__
 
 extern cvar_t  *r_ext_draw_range_elements;
@@ -3006,6 +3012,10 @@ typedef struct {
 	int						viewIsOutdoorsNotCulledCount = 0;
 	vec3_t					viewIsOutdoorsHitPosition;
 #endif //__INDOOR_OUTDOOR_CULLING__
+
+#ifdef __VR_SEPARATE_EYE_RENDER__
+	stereoFrame_t			stereoFrame;
+#endif //__VR_SEPARATE_EYE_RENDER__
 } backEndState_t;
 
 typedef struct lodModel_s {
@@ -3136,6 +3146,12 @@ typedef struct trGlobals_s {
 	
 
 	image_t					*renderImage;
+#ifdef __VR__
+	image_t					*renderLeftVRImage;
+	image_t					*renderLeftVRDepthImage;
+	image_t					*renderRightVRImage;
+	image_t					*renderRightVRDepthImage;
+#endif //__VR__
 	image_t					*renderGUIImage;
 	image_t					*glowImage;
 	image_t					*renderNormalImage;
@@ -3194,6 +3210,12 @@ typedef struct trGlobals_s {
 
 	FBO_t					*renderFbo;
 	FBO_t					*renderDepthFbo;
+
+#ifdef __VR__
+	FBO_t					*renderLeftVRFbo;
+	FBO_t					*renderRightVRFbo;
+#endif __VR__
+
 #ifdef __RENDER_HEIGHTMAP__
 	FBO_t					*renderHeightmapFbo;
 #endif //__RENDER_HEIGHTMAP__

@@ -1032,7 +1032,7 @@ void CL_JoystickMove( usercmd_t *cmd ) {
 #endif
 }
 
-#ifdef __VR__
+#ifdef __OLD_VR__
 void CL_Sixense(usercmd_t *cmd)
 {
 	float joyx, joyy, trigger, yaw, pitch, roll;
@@ -1051,7 +1051,6 @@ void CL_Sixense(usercmd_t *cmd)
 		movespeed = 64;
 	}
 
-	// LIBOVRWRAPPER_API int   SIX_Peek(int hand, float* joyx, float* joyy, float* pos, float* trigger, float* yaw, float* pitch, float* roll, unsigned int* buttons);
 	if (SIX_Peek(1, &joyx, &joyy, (float *)&pos, &trigger, &yaw, &pitch, &roll, &buttons) != 0)
 	{
 		static unsigned int lockbtn = 0;
@@ -1121,6 +1120,7 @@ void CL_HeadTracker()
 	/*static int bla = 0;
 	++bla;
 	Com_Printf("HMD: %d\n", bla);*/
+
 	if (OVR_Peek(&yaw, &pitch, &roll) != 0)
 	{
 		cl.headAngles[YAW] = (yaw    * (180.0f / 3.14159f)); // Delta Yaw to adjust with mouse Yaw.
@@ -1132,7 +1132,7 @@ void CL_HeadTracker()
 	/*	supitch += 0.01f;
 	cl.headAngles[YAW] = sin(supitch) * (180.0f / 3.14159f);*/
 }
-#endif //__VR__
+#endif //__OLD_VR__
 
 /*
 =================
@@ -1417,18 +1417,18 @@ void CL_FinishMove( usercmd_t *cmd ) {
 
 		for (i=0 ; i<3 ; i++) {
 			cmd->angles[i] = ANGLE2SHORT(cl_sendAngles[i]);
-#ifdef __VR__
+#ifdef __OLD_VR__
 			cmd->headAngles[i] = ANGLE2SHORT(cl.headAngles[i]); //*** Head Tracking
-#endif //__VR__
+#endif //__OLD_VR__
 		}
 	}
 	else
 	{
 		for (i=0 ; i<3 ; i++) {
 			cmd->angles[i] = ANGLE2SHORT(cl.viewangles[i]);
-#ifdef __VR__
+#ifdef __OLD_VR__
 			cmd->headAngles[i] = ANGLE2SHORT(cl.headAngles[i]); //*** Head Tracking
-#endif //__VR__
+#endif //__OLD_VR__
 		}
 		//in case we switch to the cl_crazyShipControls
 		VectorCopy( cl.viewangles, cl_sendAngles );
@@ -1458,13 +1458,13 @@ usercmd_t CL_CreateCmd( void ) {
 	// get basic movement from keyboard
 	CL_KeyMove( &cmd );
 
-#ifdef __VR__
+#ifdef __OLD_VR__
 	// Siense SDK update
 	CL_Sixense(&cmd);
 
 	// get head tracker direction
 	CL_HeadTracker();
-#endif //__VR__
+#endif //__OLD_VR__
 
 	// get basic movement from mouse
 	CL_MouseMove( &cmd );

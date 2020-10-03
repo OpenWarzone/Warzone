@@ -15,7 +15,7 @@
 //#include <thread>
 
 #ifdef __VR__
-struct OVR_HMDInfo HMD;
+#pragma comment(lib, "../../sdk/openVR/openvr_api.lib")
 int OVRDetected = 0;
 #endif //__VR__
 
@@ -56,6 +56,12 @@ qboolean Sys_LowPhysicalMemory(void) {
 	return (stat.ullTotalPhys <= MEM_THRESHOLD) ? qtrue : qfalse;
 }
 
+#ifdef __VR__
+void Sys_ShutdownVR(void) {
+	vr::VR_Shutdown();
+}
+#endif //__VR__
+
 /*
 =============
 Sys_Error
@@ -95,7 +101,7 @@ void QDECL Sys_Error( const char *error, ... ) {
  	Com_ShutdownHunkMemory();
 
 #ifdef __VR__
-	OVR_Exit();
+	Sys_ShutdownVR();
 #endif //__VR__
 
 	exit (1);
@@ -114,7 +120,7 @@ void Sys_Quit( void ) {
  	Com_ShutdownHunkMemory();
 
 #ifdef __VR__
-	OVR_Exit();
+	Sys_ShutdownVR();
 #endif //__VR__
 
 	exit (0);
@@ -1006,36 +1012,14 @@ int main( int argc, char **argv )
 #endif //_WIN32
 
 #if defined(__VR__) && !defined(DEDICATED)
-		// Init Oculus SDK
-		int result = OVR_Init();
-
-		if (result < 4)
+		// Check for an OpenVR SDK HMD we can use...
+		if (!vr::VR_IsHmdPresent())
 		{
 			OVRDetected = 0;
-			Com_Printf("[OVR] OVR_Init() Failed! (%i)\n", result);
-			HMD.HResolution = 1280;
-			HMD.VResolution = 800;
-			HMD.HScreenSize = 0.14976;
-			HMD.VScreenSize = 0.0935;
-			HMD.EyeToScreenDistance = 0.04;
-			HMD.InterpupillaryDistance = 0.058;
 		}
 		else
 		{
 			OVRDetected = 1;
-			Com_Printf("[OVR] OVR_Init() Success!\n");
-			if (OVR_QueryHMD(&HMD) != 0)
-			{
-				Com_Printf("[OVR] Device Name       : %s\n", HMD.DisplayDeviceName);
-				Com_Printf("[OVR] IPD               : %f\n", HMD.InterpupillaryDistance);
-				Com_Printf("[OVR] Lens Separation D.: %f\n", HMD.LensSeparationDistance);
-				Com_Printf("[OVR] Eye To Screen Dist: %f\n", HMD.EyeToScreenDistance);
-				Com_Printf("[OVR] Screen Size       : %f, %f\n", HMD.HScreenSize, HMD.VScreenSize);
-				Com_Printf("[OVR] Resolution        : %d, %d\n", HMD.HResolution, HMD.VResolution);
-				Com_Printf("[OVR] Desktop Size      : %d, %d\n", HMD.DesktopX, HMD.DesktopY);
-				Com_Printf("[OVR] VScreen Center    : %f\n", HMD.VScreenCenter);
-				Com_Printf("[OVR] Distortion K      : %f, %f, %f, %f\n", HMD.DistortionK[0], HMD.DistortionK[1], HMD.DistortionK[2], HMD.DistortionK[3]);
-			}
 		}
 
 		Cvar_Set("vr_ovrdetected", va("%i", OVRDetected));
@@ -1120,7 +1104,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	/* End Sam Lantinga Public Domain 4/13/98 */
 
 #ifdef __VR__
-	OVR_Exit();
+	Sys_ShutdownVR();
 #endif //__VR__
 
 	// never gets here

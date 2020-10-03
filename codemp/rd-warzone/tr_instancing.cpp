@@ -186,7 +186,25 @@ void R_AddInstancedModelsToScene(void)
 
 	GLSL_BindProgram(&tr.instanceShader);
 
+#ifdef __VR_SEPARATE_EYE_RENDER__
+	if (vr_stereoEnabled->integer)
+	{
+		if (backEnd.stereoFrame == STEREO_LEFT)
+		{
+			FBO_Bind(tr.renderLeftVRFbo);
+		}
+		else if (backEnd.stereoFrame == STEREO_RIGHT)
+		{
+			FBO_Bind(tr.renderRightVRFbo);
+		}
+		else
+		{
+			FBO_Bind(tr.renderFbo);
+		}
+	}
+#else //!__VR_SEPARATE_EYE_RENDER__
 	FBO_Bind(tr.renderFbo);
+#endif //__VR_SEPARATE_EYE_RENDER__
 
 	SetViewportAndScissor();
 	//GL_SetProjectionMatrix(backEnd.viewParms.projectionMatrix);
@@ -469,7 +487,25 @@ void R_AddInstancedLodModelsToScene(void)
 
 	GLSL_BindProgram(&tr.instanceVAOShader);
 
+#ifdef __VR_SEPARATE_EYE_RENDER__
+	if (vr_stereoEnabled->integer)
+	{
+		if (backEnd.stereoFrame == STEREO_LEFT)
+		{
+			FBO_Bind(tr.renderLeftVRFbo);
+		}
+		else if (backEnd.stereoFrame == STEREO_RIGHT)
+		{
+			FBO_Bind(tr.renderRightVRFbo);
+		}
+		else
+		{
+			FBO_Bind(tr.renderFbo);
+		}
+	}
+#else //!__VR_SEPARATE_EYE_RENDER__
 	FBO_Bind(tr.renderFbo);
+#endif //__VR_SEPARATE_EYE_RENDER__
 
 	SetViewportAndScissor();
 	//GL_SetProjectionMatrix(backEnd.viewParms.projectionMatrix);

@@ -368,9 +368,36 @@ void R_SetColorMode(GLboolean *rgba, stereoFrame_t stereoFrame, int colormode)
 {
 	rgba[0] = rgba[1] = rgba[2] = rgba[3] = GL_TRUE;
 	
-	if(colormode > MODE_MAX)
+	if (colormode > MODE_MAX)
 	{
+		if (stereoFrame == STEREO_LEFT)
+			stereoFrame = STEREO_RIGHT;
+		else if (stereoFrame == STEREO_RIGHT)
+			stereoFrame = STEREO_LEFT;
+
 		colormode -= MODE_MAX;
+	}
+
+	if (colormode == MODE_GREEN_MAGENTA)
+	{
+		if (stereoFrame == STEREO_LEFT)
+			rgba[0] = rgba[2] = GL_FALSE;
+		else if (stereoFrame == STEREO_RIGHT)
+			rgba[1] = GL_FALSE;
+	}
+	else
+	{
+		if (stereoFrame == STEREO_LEFT)
+			rgba[1] = rgba[2] = GL_FALSE;
+		else if (stereoFrame == STEREO_RIGHT)
+		{
+			rgba[0] = GL_FALSE;
+
+			if (colormode == MODE_RED_BLUE)
+				rgba[1] = GL_FALSE;
+			else if (colormode == MODE_RED_GREEN)
+				rgba[2] = GL_FALSE;
+		}
 	}
 }
 
@@ -388,6 +415,26 @@ extern void RB_AdvanceOverlaySway(void);
 void RE_BeginFrame( stereoFrame_t stereoFrame ) {
 	drawBufferCommand_t	*cmd = NULL;
 	colorMaskCommand_t *colcmd = NULL;
+
+#ifdef __VR_SEPARATE_EYE_RENDER__
+	backEnd.stereoFrame = stereoFrame;
+
+	if (vr_stereoEnabled->integer)
+	{
+		if (stereoFrame == STEREO_LEFT)
+		{
+			FBO_Bind(tr.renderLeftVRFbo);
+		}
+		else
+		{
+			FBO_Bind(tr.renderRightVRFbo);
+		}
+	}
+	else
+	{
+		stereoFrame = backEnd.stereoFrame = STEREO_CENTER;
+	}
+#endif //__VR_SEPARATE_EYE_RENDER__
 
 	if ( !tr.registered ) {
 		return;
@@ -465,18 +512,56 @@ void RE_BeginFrame( stereoFrame_t stereoFrame ) {
 			ri->Error(ERR_FATAL, "RE_BeginFrame() - glGetError() failed (0x%x)!", err);
 	}
 
-	
-	if( !(cmd = (drawBufferCommand_t *)R_GetCommandBuffer(sizeof(*cmd))) )
-		return;
+#ifdef __VR_SEPARATE_EYE_RENDER__
+	if (/*glConfig.stereoEnabled*/stereoFrame != STEREO_CENTER) {
+		if (!(cmd = (drawBufferCommand_t *)R_GetCommandBuffer(sizeof(*cmd))))
+			return;
 
-	if(cmd)
-	{
 		cmd->commandId = RC_DRAW_BUFFER;
 
 		if (!Q_stricmp(r_drawBuffer->string, "GL_FRONT"))
-			cmd->buffer = (int)GL_FRONT;
+		{
+			if (stereoFrame == STEREO_LEFT) {
+				cmd->buffer = (int)GL_FRONT_LEFT;
+			}
+			else if (stereoFrame == STEREO_RIGHT) {
+				cmd->buffer = (int)GL_FRONT_RIGHT;
+			}
+			else {
+				ri->Error(ERR_FATAL, "RE_BeginFrame: Stereo is enabled, but stereoFrame was %i", stereoFrame);
+			}
+		}
 		else
-			cmd->buffer = (int)GL_BACK;
+		{
+			if (stereoFrame == STEREO_LEFT) {
+				cmd->buffer = (int)GL_BACK_LEFT;
+			}
+			else if (stereoFrame == STEREO_RIGHT) {
+				cmd->buffer = (int)GL_BACK_RIGHT;
+			}
+			else {
+				ri->Error(ERR_FATAL, "RE_BeginFrame: Stereo is enabled, but stereoFrame was %i", stereoFrame);
+			}
+		}
+	}
+	else
+#endif //__VR_SEPARATE_EYE_RENDER__
+	{
+		if (stereoFrame != STEREO_CENTER)
+			ri->Error(ERR_FATAL, "RE_BeginFrame: Stereo is disabled, but stereoFrame was %i", stereoFrame);
+
+		if (!(cmd = (drawBufferCommand_t *)R_GetCommandBuffer(sizeof(*cmd))))
+			return;
+
+		if (cmd)
+		{
+			cmd->commandId = RC_DRAW_BUFFER;
+
+			if (!Q_stricmp(r_drawBuffer->string, "GL_FRONT"))
+				cmd->buffer = (int)GL_FRONT;
+			else
+				cmd->buffer = (int)GL_BACK;
+		}
 	}
 	
 	tr.refdef.stereoFrame = stereoFrame;
@@ -491,17 +576,29 @@ Returns the number of msec spent in the back end
 =============
 */
 #ifdef __VR__
+struct OVR_StereoCfg
+{
+	int   x;
+	int   y;
+	int   w;
+	int   h;
+	float renderScale;
+	float XCenterOffset;
+	float distscale;
+	float K[4];
+};
+
 void SetupShaderDistortion(int eye, float VPX, float VPY, float VPW, float VPH)
 {
 	float  as, x, y, w, h;
-	struct OVR_StereoCfg stereoCfg;
-	GLuint lenscenter = qglGetUniformLocation(glConfig.oculusProgId, "LensCenter");
-	GLuint screencenter = qglGetUniformLocation(glConfig.oculusProgId, "ScreenCenter");
-	GLuint uscale = qglGetUniformLocation(glConfig.oculusProgId, "Scale");
-	GLuint uscalein = qglGetUniformLocation(glConfig.oculusProgId, "ScaleIn");
-	GLuint uhmdwarp = qglGetUniformLocation(glConfig.oculusProgId, "HmdWarpParam");
-	GLuint offset = qglGetUniformLocation(glConfig.oculusProgId, "Offset");
+	GLuint lenscenter = qglGetUniformLocation(VR->GetWarpShader(), "LensCenter");
+	GLuint screencenter = qglGetUniformLocation(VR->GetWarpShader(), "ScreenCenter");
+	GLuint uscale = qglGetUniformLocation(VR->GetWarpShader(), "Scale");
+	GLuint uscalein = qglGetUniformLocation(VR->GetWarpShader(), "ScaleIn");
+	GLuint uhmdwarp = qglGetUniformLocation(VR->GetWarpShader(), "HmdWarpParam");
+	GLuint offset = qglGetUniformLocation(VR->GetWarpShader(), "Offset");
 
+	struct OVR_StereoCfg stereoCfg;
 	stereoCfg.x = VPX;
 	stereoCfg.y = VPY;
 	stereoCfg.w = VPW*0.5f;
@@ -513,10 +610,33 @@ void SetupShaderDistortion(int eye, float VPX, float VPY, float VPW, float VPH)
 	w = VPW / (float)(glConfig.vidWidth);
 	h = VPH / (float)(glConfig.vidHeight);
 
+	/*ri->Printf(PRINT_ALL, "EYE %i - VP (X %f, Y %f, W %f, H %f) (X %f, Y %f, W %f, H %f) (as %f)\n"
+		, eye
+		, VPX, VPY, VPW, VPH
+		, x, y, w, h
+		, as);*/
+
+#ifndef __OLD_VR__
+	if (OVRDetected)
+	{
+		stereoCfg.distscale = 1.701516f;
+		stereoCfg.XCenterOffset = 0.145299f;
+		if (eye == 1)
+		{
+			stereoCfg.XCenterOffset *= -1;
+		}
+
+		stereoCfg.K[0] = 1.00f;
+		stereoCfg.K[1] = 0.22f;
+		stereoCfg.K[2] = 0.24f;
+		stereoCfg.K[3] = 0.00f;
+	}
+#else //!__OLD_VR__
 	if (OVRDetected)
 	{
 		OVR_StereoConfig(eye, &stereoCfg);
 	}
+#endif //__OLD_VR__
 	else
 	{
 		stereoCfg.distscale = 1.701516f;
@@ -531,24 +651,35 @@ void SetupShaderDistortion(int eye, float VPX, float VPY, float VPW, float VPH)
 		stereoCfg.K[3] = 0.00f;
 	}
 
-	qglUniform2f(lenscenter, x + (w + stereoCfg.XCenterOffset * vr_lenseoffset->value)*0.5f, y + h*0.5f);
+	qglUniform2f(lenscenter, x + (w + stereoCfg.XCenterOffset * vr_lenseOffset->value)*0.5f, y + h*0.5f);
 	qglUniform2f(screencenter, x + w*0.5f, y + h*0.5f);
 	if (eye == 1)
-		qglUniform2f(offset, vr_viewofsx->value, vr_viewofsy->value);
+		qglUniform2f(offset, vr_viewOffsetX->value, vr_viewOffsetY->value);
 	else
-		qglUniform2f(offset, -vr_viewofsx->value, vr_viewofsy->value);
+		qglUniform2f(offset, -vr_viewOffsetX->value, vr_viewOffsetY->value);
 
 	stereoCfg.distscale = 1.0f / stereoCfg.distscale;
 
 	qglUniform2f(uscale, (w / 2) * stereoCfg.distscale, (h / 2) * stereoCfg.distscale * as);
 	qglUniform2f(uscalein, (2 / w), (2 / h) / as);
 	qglUniform4fv(uhmdwarp, 1, stereoCfg.K);
+}
 
-	if (vr_ipd->value != 0.0)
+void RB_DrawDebugVR(void)
+{
+	if (1)
 	{
-		HMD.InterpupillaryDistance = vr_ipd->value;
-	}
+		vec4i_t dstBox;
+		VectorSet4(dstBox, 256, glConfig.vidHeight - 256, 256, 256);
+		FBO_BlitFromTexture(tr.renderLeftVRImage, NULL, NULL, NULL, dstBox, NULL, NULL, 0);
+		VectorSet4(dstBox, 512, glConfig.vidHeight - 256, 256, 256);
+		FBO_BlitFromTexture(tr.renderRightVRImage, NULL, NULL, NULL, dstBox, NULL, NULL, 0);
 
+		//VectorSet4(dstBox, 768, glConfig.vidHeight - 256, 256, 256);
+		//FBO_BlitFromTexture(tr.renderLeftVRDepthImage, NULL, NULL, NULL, dstBox, NULL, NULL, 0);
+		//VectorSet4(dstBox, 1024, glConfig.vidHeight - 256, 256, 256);
+		//FBO_BlitFromTexture(tr.renderRightVRDepthImage, NULL, NULL, NULL, dstBox, NULL, NULL, 0);
+	}
 }
 #endif //__VR__
 
@@ -567,119 +698,173 @@ void RE_EndFrame( int *frontEndMsec, int *backEndMsec ) {
 	R_IssueRenderCommands( qtrue );
 
 #ifdef __VR__
-	//*** Rift post processing	
-	if (vr_warpingShader->integer)
+	/* OpenVR post processing */
+#ifdef __VR_SEPARATE_EYE_RENDER__
+	if (!tr.worldMapLoaded || backEnd.stereoFrame == STEREO_CENTER)
 	{
-		float x;
-		float y;
-		float w;
-		float h;
-		GLuint texID;
-		static int b = 0;
+		VR->UpdateRenderer2D();
 
-		//qglBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-		//qglBindRenderbufferEXT(GL_RENDERBUFFER_EXT, 0);
-		qglBindFramebuffer(GL_FRAMEBUFFER_EXT, 0);
-		qglBindRenderbuffer(GL_RENDERBUFFER_EXT, 0);
-
-		if (!backEnd.projection2D)
+		if (!tr.worldMapLoaded)
 		{
-			extern void	RB_SetGL2D(void);
-			RB_SetGL2D();
+			//FBO_FastBlit(tr.renderLeftVRFbo, srcBox, NULL, dstBox, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+			FBO_Blit(tr.renderLeftVRFbo, NULL, NULL, tr.renderFbo, NULL, NULL, NULL, 0);
 		}
-
-		qglViewport(0, 0, glConfig.vidWidth, glConfig.vidHeight); // Render on the whole framebuffer, complete from the lower left corner to the upper right
-
-																 // Use our shader
-		qglUseProgram(glConfig.oculusProgId);
-
-
-		qglEnable(GL_TEXTURE_2D);
-
-
+	}
+	else if (OVRDetected)
+	{
+		if (vr_warpShader->integer)
 		{
-			float VPX = 0.0f;
-			float VPY = 0.0f;
-			float VPW = glConfig.vidWidth; // ViewPort Width
-			float VPH = glConfig.vidHeight;
+			float x;
+			float y;
+			float w;
+			float h;
+			GLuint texID;
+			static int b = 0;
 
-			SetupShaderDistortion(0, VPX, VPY, VPW, VPH); // Left Eye
-		}
+			int     oldtmu = glState.currenttmu;
+			int		oldtexture = glState.currenttextures[oldtmu];
+			FBO_t	*oldFbo = glState.currentFBO;
 
-		// Set our "renderedTexture" sampler to user Texture Unit 0
-		texID = qglGetUniformLocation(glConfig.oculusProgId, "texid");
-		qglUniform1i(texID, 0);
-
-
-		qglColor3f(tr.identityLight, tr.identityLight, tr.identityLight);
-
-		int     oldtmu = glState.currenttmu;
-		int		oldtexture = glState.currenttextures[oldtmu];
-
-		//	if (stereoFrame == STEREO_LEFT)
-		{
-			GL_SelectTexture(0/*GL_TEXTURE0*/);
-			qglBindTexture(GL_TEXTURE_2D, glConfig.oculusRenderTargetLeft);
-
-			x = 0.0f;
-			y = 0.0f;
-			w = glConfig.vidWidth;
-			h = glConfig.vidHeight;
-
-
-			qglBegin(GL_QUADS);
-			qglTexCoord2f(0, 1);
-			qglVertex2f(x, y);
-			qglTexCoord2f(1, 1);
-			qglVertex2f(x + w / 2, y);
-			qglTexCoord2f(1, 0);
-			qglVertex2f(x + w / 2, y + h);
-			qglTexCoord2f(0, 0);
-			qglVertex2f(x, y + h);
-			qglEnd();
-		}
-		//else
-		{
+			//	Left Eye
 			{
-				float VPX = 0;
-				float VPY = 0.0f;
-				float VPW = glConfig.vidWidth; // ViewPort Width
-				float VPH = glConfig.vidHeight;
+				FBO_Blit(tr.renderLeftVRFbo, NULL, NULL, tr.renderFbo, NULL, NULL, NULL, 0);
 
-				SetupShaderDistortion(1, VPX, VPY, VPW, VPH); // Right Eye
+				if (!backEnd.projection2D)
+				{
+					extern void	RB_SetGL2D(void);
+					RB_SetGL2D();
+				}
+
+				qglViewport(0, 0, glConfig.vidWidth, glConfig.vidHeight); // Render on the whole framebuffer, complete from the lower left corner to the upper right
+
+																		  // Use our shader
+				qglUseProgram(VR->GetWarpShader());
+
+				qglEnable(GL_TEXTURE_2D);
+
+				// Set our "renderedTexture" sampler to user Texture Unit 0
+				texID = qglGetUniformLocation(VR->GetWarpShader(), "texid");
+				qglUniform1i(texID, /*0*/tr.renderImage->texnum);
+
+
+				qglColor3f(tr.identityLight, tr.identityLight, tr.identityLight);
+
+				FBO_Bind(tr.renderLeftVRFbo);
+
+				{
+					float VPX = 0.0f;
+					float VPY = 0.0f;
+					float VPW = glConfig.vidWidth; // ViewPort Width
+					float VPH = glConfig.vidHeight;
+
+					SetupShaderDistortion(0, VPX, VPY, VPW, VPH); // Left Eye
+				}
+
+				GL_BindToTMU(tr.renderImage, TB_DIFFUSEMAP);
+
+				x = 0.0f;
+				y = 0.0f;
+				w = glConfig.vidWidth * 0.5f;
+				h = glConfig.vidHeight;
+
+				qglBegin(GL_QUADS);
+				qglTexCoord2f(0, 1);
+				qglVertex2f(x, y);
+				qglTexCoord2f(1, 1);
+				qglVertex2f(x + w, y);
+				qglTexCoord2f(1, 0);
+				qglVertex2f(x + w, y + h);
+				qglTexCoord2f(0, 0);
+				qglVertex2f(x, y + h);
+				qglEnd();
+
+				// unbind the GLSL program
+				// this means that from here the OpenGL fixed functionality is used
+				qglUseProgram(0);
 			}
 
-			GL_SelectTexture(0/*GL_TEXTURE0*/);
-			qglBindTexture(GL_TEXTURE_2D, glConfig.oculusRenderTargetRight);
+			//	Right Eye
+			{
+				FBO_Blit(tr.renderRightVRFbo, NULL, NULL, tr.renderFbo, NULL, NULL, NULL, 0);
+
+				if (!backEnd.projection2D)
+				{
+					extern void	RB_SetGL2D(void);
+					RB_SetGL2D();
+				}
+
+				qglViewport(0, 0, glConfig.vidWidth, glConfig.vidHeight); // Render on the whole framebuffer, complete from the lower left corner to the upper right
+
+																		  // Use our shader
+				qglUseProgram(VR->GetWarpShader());
+
+				qglEnable(GL_TEXTURE_2D);
+
+				// Set our "renderedTexture" sampler to user Texture Unit 0
+				texID = qglGetUniformLocation(VR->GetWarpShader(), "texid");
+				qglUniform1i(texID, /*0*/tr.renderImage->texnum);
 
 
-			x = glConfig.vidWidth*0.5f;
-			y = 0.0f;
-			w = glConfig.vidWidth;
-			h = glConfig.vidHeight;
+				qglColor3f(tr.identityLight, tr.identityLight, tr.identityLight);
 
+				FBO_Bind(tr.renderRightVRFbo);
 
-			qglBegin(GL_QUADS);
-			qglTexCoord2f(0, 1);
-			qglVertex2f(x, y);
-			qglTexCoord2f(1, 1);
-			qglVertex2f(x + w / 2, y);
-			qglTexCoord2f(1, 0);
-			qglVertex2f(x + w / 2, y + h);
-			qglTexCoord2f(0, 0);
-			qglVertex2f(x, y + h);
-			qglEnd();
+				{
+					float VPX = 0.0f;
+					float VPY = 0.0f;
+					float VPW = glConfig.vidWidth; // ViewPort Width
+					float VPH = glConfig.vidHeight;
+
+					SetupShaderDistortion(1, VPX, VPY, VPW, VPH); // Right Eye
+				}
+
+				GL_BindToTMU(tr.renderImage, TB_DIFFUSEMAP);
+
+				x = 0.0f;// glConfig.vidWidth * 0.5f;
+				y = 0.0f;
+				w = glConfig.vidWidth * 0.5f;
+				h = glConfig.vidHeight;
+
+				qglBegin(GL_QUADS);
+				qglTexCoord2f(0, 1);
+				qglVertex2f(x, y);
+				qglTexCoord2f(1, 1);
+				qglVertex2f(x + w, y);
+				qglTexCoord2f(1, 0);
+				qglVertex2f(x + w, y + h);
+				qglTexCoord2f(0, 0);
+				qglVertex2f(x, y + h);
+				qglEnd();
+
+				// unbind the GLSL program
+				// this means that from here the OpenGL fixed functionality is used
+				qglUseProgram(0);
+			}
+
+			VR->UpdateRenderer();
+
+			// UQ: Revert bindings...
+			FBO_Bind(oldFbo);
+			qglBindTexture(GL_TEXTURE_2D, oldtexture);
+			glState.currenttextures[oldtmu] = oldtexture;
+			GL_SelectTexture(oldtmu);
 		}
-		// unbind the GLSL program
-		// this means that from here the OpenGL fixed functionality is used
-		qglUseProgram(0);
+		else
+		{
+			VR->UpdateRenderer();
+		}
 
-
-		// UQ: Revert bindings...
-		qglBindTexture(GL_TEXTURE_2D, oldtexture);
-		glState.currenttextures[oldtmu] = oldtexture;
-		GL_SelectTexture(oldtmu);
+		//if (!tr.worldMapLoaded)
+		{
+			//FBO_FastBlit(tr.renderLeftVRFbo, srcBox, NULL, dstBox, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+			FBO_Blit(tr.renderLeftVRFbo, NULL, NULL, tr.renderFbo, NULL, NULL, NULL, 0);
+		}
+		
+		//RB_DrawDebugVR();
 	}
+#else //!__VR_SEPARATE_EYE_RENDER__
+	VR->UpdateRenderer2D();
+#endif //__VR_SEPARATE_EYE_RENDER__
 #endif //__VR__
 
 	R_InitNextFrame();
@@ -693,6 +878,7 @@ void RE_EndFrame( int *frontEndMsec, int *backEndMsec ) {
 	}
 	backEnd.pc.msec = 0;
 }
+
 
 /*
 =============

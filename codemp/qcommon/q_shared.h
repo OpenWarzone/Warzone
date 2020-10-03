@@ -20,7 +20,12 @@
 // Feature Enable/Disable Defines...
 //
 
-//#define __VR__
+//#define __VR__ // Enable this to test VR HMD renderring...
+
+#ifdef __VR__
+	#define __VR_SEPARATE_EYE_RENDER__ // Render each eye separately for true 3D...
+	//#define __OLD_VR__ // Just for me to mark places to add controller support etc...
+#endif //__VR__
 
 #define __DEVELOPER_MODE__							// Use to completely disable PRINT_DEVELOPER prints for release. They are a waste of CPU time for normal users...
 
@@ -1849,9 +1854,9 @@ typedef struct playerState_s {
 	vec3_t		viewangles;		// for fixed views
 	int			viewheight;
 
-#ifdef __VR__
+#ifdef __OLD_VR__
 	vec3_t		headangles;		// NOT sent over the net - should it be? hmmm
-#endif //__VR__
+#endif //__OLD_VR__
 
 	// damage feedback
 	int			damageEvent;	// when it changes, latch the other parms
@@ -2187,9 +2192,9 @@ typedef enum
 typedef struct usercmd_s {
 	int				serverTime;
 	int				angles[3];			//*** View Angles (lerp direction, gun position)
-#ifdef __VR__
+#ifdef __OLD_VR__
 	int             headAngles[3];		//*** Head Tracking Angles
-#endif //__VR__
+#endif //__OLD_VR__
 	int 			buttons;
 	byte			weapon;				// weapon
 	byte			forcesel;

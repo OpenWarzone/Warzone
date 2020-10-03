@@ -842,7 +842,25 @@ void RB_BeginDrawingView (void) {
 		}
 		else
 		{
+#ifdef __VR_SEPARATE_EYE_RENDER__
+			if (vr_stereoEnabled->integer)
+			{
+				if (backEnd.stereoFrame == STEREO_LEFT)
+				{
+					FBO_Bind(tr.renderLeftVRFbo);
+				}
+				else if (backEnd.stereoFrame == STEREO_RIGHT)
+				{
+					FBO_Bind(tr.renderRightVRFbo);
+				}
+				else
+				{
+					FBO_Bind(tr.renderFbo);
+				}
+			}
+#else //!__VR_SEPARATE_EYE_RENDER__
 			FBO_Bind(tr.renderFbo);
+#endif //__VR_SEPARATE_EYE_RENDER__
 		}
 	}
 	else
@@ -2125,7 +2143,25 @@ void RE_StretchRaw (int x, int y, int w, int h, int cols, int rows, const byte *
 	}
 	else
 	{
+#ifdef __VR_SEPARATE_EYE_RENDER__
+		if (vr_stereoEnabled->integer)
+		{
+			if (backEnd.stereoFrame == STEREO_LEFT)
+			{
+				FBO_Bind(tr.renderLeftVRFbo);
+			}
+			else if (backEnd.stereoFrame == STEREO_RIGHT)
+			{
+				FBO_Bind(tr.renderRightVRFbo);
+			}
+			else
+			{
+				FBO_Bind(tr.renderFbo);
+			}
+		}
+#else //!__VR_SEPARATE_EYE_RENDER__
 		FBO_Bind(tr.renderFbo);
+#endif //__VR_SEPARATE_EYE_RENDER__
 	}
 
 	RB_SetGL2D();
@@ -2218,7 +2254,25 @@ const void *RB_StretchPic ( const void *data ) {
 	}
 	else
 	{
+#ifdef __VR_SEPARATE_EYE_RENDER__
+		if (vr_stereoEnabled->integer)
+		{
+			if (backEnd.stereoFrame == STEREO_LEFT)
+			{
+				FBO_Bind(tr.renderLeftVRFbo);
+			}
+			else if (backEnd.stereoFrame == STEREO_RIGHT)
+			{
+				FBO_Bind(tr.renderRightVRFbo);
+			}
+			else
+			{
+				FBO_Bind(tr.renderFbo);
+			}
+		}
+#else //!__VR_SEPARATE_EYE_RENDER__
 		FBO_Bind(tr.renderFbo);
+#endif //__VR_SEPARATE_EYE_RENDER__
 	}
 
 	RB_SetGL2D();
@@ -2330,7 +2384,25 @@ const void *RB_RotatePic ( const void *data )
 	}
 	else
 	{
+#ifdef __VR_SEPARATE_EYE_RENDER__
+		if (vr_stereoEnabled->integer)
+		{
+			if (backEnd.stereoFrame == STEREO_LEFT)
+			{
+				FBO_Bind(tr.renderLeftVRFbo);
+			}
+			else if (backEnd.stereoFrame == STEREO_RIGHT)
+			{
+				FBO_Bind(tr.renderRightVRFbo);
+			}
+			else
+			{
+				FBO_Bind(tr.renderFbo);
+			}
+		}
+#else //!__VR_SEPARATE_EYE_RENDER__
 		FBO_Bind(tr.renderFbo);
+#endif //__VR_SEPARATE_EYE_RENDER__
 	}
 
 	RB_SetGL2D();
@@ -2451,7 +2523,25 @@ const void *RB_RotatePic2 ( const void *data )
 	}
 	else
 	{
+#ifdef __VR_SEPARATE_EYE_RENDER__
+		if (vr_stereoEnabled->integer)
+		{
+			if (backEnd.stereoFrame == STEREO_LEFT)
+			{
+				FBO_Bind(tr.renderLeftVRFbo);
+			}
+			else if (backEnd.stereoFrame == STEREO_RIGHT)
+			{
+				FBO_Bind(tr.renderRightVRFbo);
+			}
+			else
+			{
+				FBO_Bind(tr.renderFbo);
+			}
+		}
+#else //!__VR_SEPARATE_EYE_RENDER__
 		FBO_Bind(tr.renderFbo);
+#endif //__VR_SEPARATE_EYE_RENDER__
 	}
 
 	RB_SetGL2D();
@@ -2606,7 +2696,25 @@ const void	*RB_DrawSurfs( const void *data ) {
 		qglColorMask(!backEnd.colorMask[0], !backEnd.colorMask[1], !backEnd.colorMask[2], !backEnd.colorMask[3]);
 		if (FBO_SWITCHED)
 		{// Switch back to original FBO (renderFbo).
+#ifdef __VR_SEPARATE_EYE_RENDER__
+			if (vr_stereoEnabled->integer)
+			{
+				if (backEnd.stereoFrame == STEREO_LEFT)
+				{
+					FBO_Bind(tr.renderLeftVRFbo);
+				}
+				else if (backEnd.stereoFrame == STEREO_RIGHT)
+				{
+					FBO_Bind(tr.renderRightVRFbo);
+				}
+				else
+				{
+					FBO_Bind(tr.renderFbo);
+				}
+			}
+#else //!__VR_SEPARATE_EYE_RENDER__
 			FBO_Bind(tr.renderFbo);
+#endif //__VR_SEPARATE_EYE_RENDER__
 		}
 		backEnd.depthFill = qfalse;
 
@@ -2867,7 +2975,25 @@ const void *RB_ClearDepth(const void *data)
 	}
 	else
 	{
+#ifdef __VR_SEPARATE_EYE_RENDER__
+		if (vr_stereoEnabled->integer)
+		{
+			if (backEnd.stereoFrame == STEREO_LEFT)
+			{
+				FBO_Bind(tr.renderLeftVRFbo);
+			}
+			else if (backEnd.stereoFrame == STEREO_RIGHT)
+			{
+				FBO_Bind(tr.renderRightVRFbo);
+			}
+			else
+			{
+				FBO_Bind(tr.renderFbo);
+			}
+		}
+#else //!__VR_SEPARATE_EYE_RENDER__
 		FBO_Bind(tr.renderFbo);
+#endif //__VR_SEPARATE_EYE_RENDER__
 	}
 
 	qglClear(GL_DEPTH_BUFFER_BIT);
@@ -3207,7 +3333,30 @@ const void *RB_PostProcess(const void *data)
 		backEnd.viewParms = cmd->viewParms;
 	}
 
-	srcFbo = tr.renderFbo;
+#ifdef __VR_SEPARATE_EYE_RENDER__
+	if (vr_stereoEnabled->integer)
+	{
+		if (backEnd.stereoFrame == STEREO_LEFT)
+		{
+			//FBO_Bind(tr.renderLeftVRFbo);
+			srcFbo = tr.renderLeftVRFbo;
+		}
+		else if (backEnd.stereoFrame == STEREO_RIGHT)
+		{
+			//FBO_Bind(tr.renderRightVRFbo);
+			srcFbo = tr.renderRightVRFbo;
+		}
+		else
+		{
+			//FBO_Bind(tr.renderFbo);
+			srcFbo = tr.renderFbo;
+		}
+	}
+	else
+#endif
+	{
+		srcFbo = tr.renderFbo;
+	}
 
 #if 0
 	if (tr.msaaResolveFbo)
@@ -3394,7 +3543,7 @@ const void *RB_PostProcess(const void *data)
 		SCREEN_BLUR = qtrue;
 	}
 
-	/*if (!SCREEN_BLUR && r_dynamiclight->integer && r_volumeLight->integer)
+	/*if (!SCREEN_BLUR && r_dynamiclight->integer && r_volumeLight->integer && SHADOWS_ENABLED)
 	{
 		if (!r_lowQualityMode->integer)
 		{
@@ -3429,12 +3578,17 @@ const void *RB_PostProcess(const void *data)
 	srcBox[2] = backEnd.viewParms.viewportWidth;
 	srcBox[3] = backEnd.viewParms.viewportHeight;
 
-	if (srcFbo)
+	if (srcFbo
+#ifdef __VR_SEPARATE_EYE_RENDER__
+		&& (srcFbo == tr.renderFbo || srcFbo == tr.renderLeftVRFbo || srcFbo == tr.renderRightVRFbo))
+#else //!__VR_SEPARATE_EYE_RENDER__
+		&& srcFbo == tr.renderFbo)
+#endif //__VR_SEPARATE_EYE_RENDER__
 	{
 		//ALLOW_NULL_FBO_BIND = qfalse;
 
 		DEBUG_StartTimer("Initial blit", qtrue);
-		FBO_FastBlit(tr.renderFbo, NULL, tr.genericFbo3, NULL, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		FBO_FastBlit(srcFbo/*tr.renderFbo*/, NULL, tr.genericFbo3, NULL, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 		DEBUG_EndTimer(qtrue);
 
 		FBO_t *currentFbo = tr.genericFbo3;
@@ -3840,7 +3994,7 @@ const void *RB_PostProcess(const void *data)
 			}
 		}
 
-		if (!SCREEN_BLUR && r_dynamiclight->integer && r_volumeLight->integer && RB_NightScale() < 1.0)
+		if (!SCREEN_BLUR && r_dynamiclight->integer && r_volumeLight->integer && SHADOWS_ENABLED && RB_NightScale() < 1.0)
 		{
 			//if (!r_lowQualityMode->integer)
 			{
@@ -3916,6 +4070,50 @@ const void *RB_PostProcess(const void *data)
 			DEBUG_EndTimer(qtrue);
 		}
 #else
+#ifdef __VR_SEPARATE_EYE_RENDER__
+		if (backEnd.stereoFrame != STEREO_CENTER)
+		{
+			if (!SCREEN_BLUR && (r_fxaa->integer || r_txaa->integer))
+			{
+				DEBUG_StartTimer("FXAA", qtrue);
+				RB_FXAA(currentFbo, srcBox, currentOutFbo, dstBox);
+				RB_SwapFBOs(&currentFbo, &currentOutFbo);
+				DEBUG_EndTimer(qtrue);
+			}
+
+			DEBUG_StartTimer("HDR", qtrue);
+			if (r_hdr->integer && MAP_TONEMAP_METHOD > 0)
+			{
+				RB_ToneMap(currentFbo, srcBox, srcFbo, dstBox, MAP_TONEMAP_AUTOEXPOSURE);
+			}
+			else if (MAP_TONEMAP_METHOD <= 0 || MAP_TONEMAP_CAMERAEXPOSURE == 0.0)
+			{
+				FBO_FastBlit(currentFbo, srcBox, srcFbo, dstBox, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+			}
+			else
+			{
+				vec4_t color;
+
+				color[0] =
+					color[1] =
+					color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE); //exp2(MAP_TONEMAP_CAMERAEXPOSURE);
+				color[3] = 1.0f;
+
+				FBO_Blit(currentFbo, srcBox, NULL, srcFbo, dstBox, NULL, color, 0);
+			}
+			DEBUG_EndTimer(qtrue);
+
+			/*if (backEnd.stereoFrame == STEREO_LEFT)
+			{// Copy to screen...
+				ALLOW_NULL_FBO_BIND = qtrue;
+				FBO_FastBlit(tr.renderLeftVRFbo, srcBox, NULL, dstBox, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+				ALLOW_NULL_FBO_BIND = qfalse;
+			}*/
+
+			return (const void *)(cmd + 1);
+		}
+		else
+#endif //__VR_SEPARATE_EYE_RENDER__
 		if (!SCREEN_BLUR && (r_fxaa->integer || r_txaa->integer))
 		{
 			DEBUG_StartTimer("FXAA", qtrue);
@@ -3934,27 +4132,29 @@ const void *RB_PostProcess(const void *data)
 		ALLOW_NULL_FBO_BIND = qtrue;
 
 
-		DEBUG_StartTimer("HDR", qtrue);
-		if (r_hdr->integer && MAP_TONEMAP_METHOD > 0)
 		{
-			RB_ToneMap(srcFbo, srcBox, NULL, dstBox, MAP_TONEMAP_AUTOEXPOSURE);
-		}
-		else if (MAP_TONEMAP_METHOD <= 0 || MAP_TONEMAP_CAMERAEXPOSURE == 0.0)
-		{
-			FBO_FastBlit(srcFbo, srcBox, NULL, dstBox, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-		}
-		else
-		{
-			vec4_t color;
+			DEBUG_StartTimer("HDR", qtrue);
+			if (r_hdr->integer && MAP_TONEMAP_METHOD > 0)
+			{
+				RB_ToneMap(srcFbo, srcBox, NULL, dstBox, MAP_TONEMAP_AUTOEXPOSURE);
+			}
+			else if (MAP_TONEMAP_METHOD <= 0 || MAP_TONEMAP_CAMERAEXPOSURE == 0.0)
+			{
+				FBO_FastBlit(srcFbo, srcBox, NULL, dstBox, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+			}
+			else
+			{
+				vec4_t color;
 
-			color[0] =
-			color[1] =
-			color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE); //exp2(MAP_TONEMAP_CAMERAEXPOSURE);
-			color[3] = 1.0f;
+				color[0] =
+					color[1] =
+					color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE); //exp2(MAP_TONEMAP_CAMERAEXPOSURE);
+				color[3] = 1.0f;
 
-			FBO_Blit(srcFbo, srcBox, NULL, NULL, dstBox, NULL, color, 0);
+				FBO_Blit(srcFbo, srcBox, NULL, NULL, dstBox, NULL, color, 0);
+			}
+			DEBUG_EndTimer(qtrue);
 		}
-		DEBUG_EndTimer(qtrue);
 	}
 
 	//if (r_drawSunRays->integer)
@@ -4100,6 +4300,11 @@ const void *RB_PostProcess(const void *data)
 		FBO_BlitFromTexture(tr.waterReflectionRenderImage, NULL, NULL, NULL, dstBox, NULL, NULL, 0);
 	}
 #endif
+
+#ifdef __VR__
+	extern void RB_DrawDebugVR(void);
+	RB_DrawDebugVR();
+#endif //__VR__
 
 	DEBUG_StartTimer("zFarCulling", qtrue);
 	RB_zFarCullingEndFrame();

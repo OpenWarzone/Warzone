@@ -5092,6 +5092,29 @@ void R_CreateBuiltinImages( void ) {
 	tr.renderImage = R_CreateImage("_render", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
 	//tr.previousRenderImage = R_CreateImage("_renderPreviousFrame", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
 
+#ifdef __VR_SEPARATE_EYE_RENDER__
+	if (OVRDetected)
+	{
+		int vrWidth = VR->RenderWidth();
+		int vrHeight = VR->RenderHeight();
+
+		tr.renderLeftVRImage = R_CreateImage("_renderLeftVR", NULL, /*width*/vrWidth, /*height*/vrHeight, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
+		tr.renderRightVRImage = R_CreateImage("_renderRightVR", NULL, /*width*/vrWidth, /*height*/vrHeight, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
+
+		ri->Printf(PRINT_ALL, "renderLeftVRImage %i created: w %i. h %i.\n", tr.renderLeftVRImage->texnum, tr.renderLeftVRImage->width, tr.renderLeftVRImage->height);
+		ri->Printf(PRINT_ALL, "renderRightVRImage %i created: w %i. h %i.\n", tr.renderRightVRImage->texnum, tr.renderRightVRImage->width, tr.renderRightVRImage->height);
+
+		if (vr_stereoEnabled->integer)
+		{
+			tr.renderLeftVRDepthImage = R_CreateImage("*renderLeftVRdepth", NULL, /*width*/vrWidth, /*height*/vrHeight, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrDepth);
+			tr.renderRightVRDepthImage = R_CreateImage("*renderRightVRdepth", NULL, /*width*/vrWidth, /*height*/vrHeight, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrDepth);
+			
+			ri->Printf(PRINT_ALL, "renderLeftVRDepthImage %i created: w %i. h %i\n.", tr.renderLeftVRDepthImage->texnum, tr.renderLeftVRDepthImage->width, tr.renderLeftVRDepthImage->height);
+			ri->Printf(PRINT_ALL, "renderRightVRDepthImage %i created: w %i. h %i\n.", tr.renderRightVRDepthImage->texnum, tr.renderRightVRDepthImage->width, tr.renderRightVRDepthImage->height);
+		}
+	}
+#endif //__VR_SEPARATE_EYE_RENDER__
+
 	tr.renderNormalImage = R_CreateImage("*normal", NULL, width, height, IMGTYPE_NORMAL, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, 0);
 	tr.renderTransparancyNormalImage = R_CreateImage("*transparancyNormal", NULL, width, height, IMGTYPE_NORMAL, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, 0);
 	if (r_normalMappingReal->integer)

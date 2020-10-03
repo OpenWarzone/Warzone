@@ -643,6 +643,9 @@ void RB_Bloom(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 	// Copy to FBO...
 	//
 	
+	FBO_Bind(tr.bloomRenderFBO[0]);
+	qglClearBufferfv(GL_COLOR, 0, colorBlack);
+
 	FBO_BlitFromTexture(tr.glowFboScaled[0]->colorImage[0], NULL, NULL, tr.bloomRenderFBO[0], NULL, NULL, colorWhite, 0);
 
 	//
@@ -659,6 +662,9 @@ void RB_Bloom(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		//
 
 		GLSL_BindProgram(&tr.bloomBlurShader);
+
+		FBO_Bind(currentOUT);
+		qglClearBufferfv(GL_COLOR, 0, colorBlack);
 
 		if (tr.bloomBlurShader.isBindless)
 		{
@@ -717,6 +723,9 @@ void RB_Bloom(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		GLSL_SetUniformVec4(&tr.bloomCombineShader, UNIFORM_LOCAL0, local0);
 	}
 
+	FBO_Bind(ldrFbo);
+	qglClearBufferfv(GL_COLOR, 0, colorBlack);
+
 	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.bloomCombineShader, colorWhite, 0);
 }
 
@@ -755,6 +764,9 @@ void RB_CreateAnamorphicImage( void )
 		GLSL_SetUniformVec4(&tr.anamorphicBlurShader, UNIFORM_LOCAL0, local0);
 	}
 
+	FBO_Bind(tr.anamorphicRenderFBO);
+	qglClearBufferfv(GL_COLOR, 0, colorBlack);
+
 	FBO_Blit(tr.glowFboScaled[0], srcBox, NULL, tr.anamorphicRenderFBO, NULL, &tr.anamorphicBlurShader, colorWhite, 0);
 }
 
@@ -786,6 +798,9 @@ void RB_Anamorphic(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		VectorSet4(local1, r_anamorphicStrength->value, 0.0, 0.0, 0.0);
 		GLSL_SetUniformVec4(&tr.anamorphicCombineShader, UNIFORM_LOCAL1, local1);
 	}
+
+	FBO_Bind(ldrFbo);
+	qglClearBufferfv(GL_COLOR, 0, colorBlack);
 
 	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.anamorphicCombineShader, colorWhite, 0);
 }
@@ -848,6 +863,9 @@ void RB_BloomRays(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL2, local2);
 	}
 
+	FBO_Bind(tr.bloomRaysFbo);
+	qglClearBufferfv(GL_COLOR, 0, colorBlack);
+
 	FBO_BlitFromTexture(glowImage, NULL, NULL, tr.bloomRaysFbo, NULL, sp, colorWhite, GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO);
 
 	//
@@ -883,6 +901,9 @@ void RB_BloomRays(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		VectorSet4(local1, backEnd.refdef.floatTime, 0.0 /*is volumelight shader*/, r_testshaderValue1->value, r_testshaderValue2->value);
 		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL1, local1);
 	}
+
+	FBO_Bind(ldrFbo);
+	qglClearBufferfv(GL_COLOR, 0, colorBlack);
 
 	FBO_Blit(hdrFbo, NULL, NULL, ldrFbo, NULL, sp, colorWhite, 0);
 }
@@ -1404,6 +1425,9 @@ qboolean RB_GenerateVolumeLightImage(void)
 
 	FBO_Bind(tr.volumetricFbo);
 
+	if (r_testvalue2->integer)
+		qglClearBufferfv(GL_COLOR, 0, colorBlack);
+
 	box[0] = backEnd.viewParms.viewportX      * tr.volumetricFbo->width / ((float)glConfig.vidWidth * r_superSampleMultiplier->value);
 	box[1] = backEnd.viewParms.viewportY      * tr.volumetricFbo->height / ((float)glConfig.vidHeight * r_superSampleMultiplier->value);
 	box[2] = backEnd.viewParms.viewportWidth  * tr.volumetricFbo->width / ((float)glConfig.vidWidth * r_superSampleMultiplier->value);
@@ -1578,6 +1602,9 @@ qboolean RB_VolumetricLight(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_
 		VectorSet4(local1, backEnd.refdef.floatTime, 1.0, 0.0, 0.0);
 		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL1, local1);
 	}
+
+	FBO_Bind(ldrFbo);
+	qglClearBufferfv(GL_COLOR, 0, colorBlack);
 
 	FBO_Blit(hdrFbo, NULL, NULL, ldrFbo, ldrBox, sp, colorWhite, 0);
 	//FBO_Blit(hdrFbo, NULL, NULL, ldrFbo, NULL, sp, colorWhite, 0);
