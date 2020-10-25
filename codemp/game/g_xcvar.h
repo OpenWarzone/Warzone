@@ -180,6 +180,9 @@ XCVAR_DEF(sv_saberHideStance,			"0",			NULL,				CVAR_SERVERINFO|CVAR_ARCHIVE,			
 XCVAR_DEF(g_saberScriptedAnimations,		"0",		NULL,				CVAR_SERVERINFO | CVAR_ARCHIVE,					qtrue)
 XCVAR_DEF(g_mmoStyleAttacking,			"0",			NULL,				CVAR_SERVERINFO | CVAR_ARCHIVE,					qtrue)
 XCVAR_DEF(g_consoleNPCStats,			"1",			NULL,				CVAR_ARCHIVE,									qfalse)
+XCVAR_DEF(g_voxelTraceDebug,			"0",			NULL,				CVAR_ARCHIVE,									qfalse)
+XCVAR_DEF(g_voxelTraceSize,				"1.5",			NULL,				CVAR_ARCHIVE,									qfalse)
+XCVAR_DEF(g_voxelTraceDefenderSize,		"0.5",			NULL,				CVAR_ARCHIVE,									qfalse)
 #undef XCVAR_DEF
 
 #endif //NAVLIB

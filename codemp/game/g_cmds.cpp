@@ -2862,7 +2862,7 @@ void Cmd_ToggleSaber_f(gentity_t *ent)
 }
 
 
-#define BASE_SINGLE_STANCE SS_SINGLE//g_testvalue0.integer ///*SS_MEDIUM*/SS_DUAL
+#define BASE_SINGLE_STANCE SS_MEDIUM//SS_TAVION//SS_SINGLE//g_testvalue0.integer ///*SS_MEDIUM*/SS_DUAL
 
 
 extern void G_CheckSaber(gentity_t *ent);

@@ -21,6 +21,7 @@ extern void PM_DoPunch(void);
 
 float BG_GetSpeedMultiplierForStance(int saberAnimLevelBase)
 {
+#if 0 // hmm seems this messes with anim timing...
 	switch (saberAnimLevelBase)
 	{
 	case SS_DUAL:
@@ -36,7 +37,7 @@ float BG_GetSpeedMultiplierForStance(int saberAnimLevelBase)
 	default:
 		break;
 	}
-
+#endif
 	return 1.0;
 }
 
@@ -6061,6 +6062,7 @@ int PM_AnimationForBounceMove(short newMove)
 	}
 	else
 	{
+#if 0
 		switch (newMove)
 		{
 		case LS_B1_TL:
@@ -6085,6 +6087,279 @@ int PM_AnimationForBounceMove(short newMove)
 			return BOTH_SABERBLOCK_BR1 + irand(0, 4);
 			break;
 		}
+#else
+		if (bg_testvalue0.integer == 6)
+		{
+			switch (newMove)
+			{
+			case LS_B1_TL:
+				return BOTH_CC_SABERBLOCK_FL1 + irand(0, 4);
+				break;
+			case LS_B1_TR:
+			default:
+				return BOTH_CC_SABERBLOCK_FR1 + irand(0, 4);
+				break;
+			case LS_B1__L:
+				//return BOTH_CC_SABERBLOCK_B1 + irand(0, 4);
+				return BOTH_CC_SABERBLOCK_FL1 + irand(0, 4);
+				break;
+			case LS_B1__R:
+				//return BOTH_CC_SABERBLOCK_F1 + irand(0, 4);
+				return BOTH_CC_SABERBLOCK_FR1 + irand(0, 4);
+				break;
+			case LS_B1_BL:
+				return BOTH_CC_SABERBLOCK_BL1 + irand(0, 4);
+				break;
+			case LS_B1_BR:
+				return BOTH_CC_SABERBLOCK_BR1 + irand(0, 4);
+				break;
+			}
+		}
+		else if (bg_testvalue0.integer == 5)
+		{
+			switch (newMove)
+			{
+			case LS_B1_TL:
+				return BOTH_SABERBLOCK_FL1 + irand(0, 4);
+				break;
+			case LS_B1_TR:
+			default:
+				return BOTH_SABERBLOCK_FR1 + irand(0, 4);
+				break;
+			case LS_B1__L:
+				//return BOTH_SABERBLOCK_B1 + irand(0, 4);
+				return BOTH_SABERBLOCK_FL1 + irand(0, 4);
+				break;
+			case LS_B1__R:
+				//return BOTH_SABERBLOCK_F1 + irand(0, 4);
+				return BOTH_SABERBLOCK_FR1 + irand(0, 4);
+				break;
+			case LS_B1_BL:
+				return BOTH_SABERBLOCK_BL1 + irand(0, 4);
+				break;
+			case LS_B1_BR:
+				return BOTH_SABERBLOCK_BR1 + irand(0, 4);
+				break;
+			}
+		}
+		else if (bg_testvalue0.integer == 4)
+		{
+			switch (newMove)
+			{
+			case LS_B1_TL:
+				return BOTH_B1_TL___;
+				break;
+			case LS_B1_TR:
+			default:
+				return BOTH_B1_TR___;
+				break;
+			case LS_B1__L:
+				return BOTH_B1__L___;
+				break;
+			case LS_B1__R:
+				return BOTH_B1__R___;
+				break;
+			case LS_B1_BL:
+				return BOTH_B1_BL___;
+				break;
+			case LS_B1_BR:
+				return BOTH_B1_BR___;
+				break;
+			}
+		}
+		else if (bg_testvalue0.integer == 3)
+		{
+			/*
+			// Broken parries
+			{ "BParry Top", BOTH_H1_S1_T_,		Q_T,	Q_B,	AFLAG_ACTIVE,	50,		BLK_NO, LS_READY,		LS_READY,	150},	// LS_PARRY_UP,
+			{ "BParry UR", BOTH_H1_S1_TR,		Q_TR,	Q_BL,	AFLAG_ACTIVE,	50,		BLK_NO, LS_READY,		LS_READY,	150},	// LS_PARRY_UR,
+			{ "BParry UL", BOTH_H1_S1_TL,		Q_TL,	Q_BR,	AFLAG_ACTIVE,	50,		BLK_NO, LS_READY,		LS_READY,	150},	// LS_PARRY_UL,
+			//JAC: the bottom right and bottom left animations were accidently switched.
+			{ "BParry LR", BOTH_H1_S1_BR,		Q_BL,	Q_TR,	AFLAG_ACTIVE,	50,		BLK_NO, LS_READY,		LS_READY,	150},	// LS_PARRY_LR,
+			{ "BParry Bot", BOTH_H1_S1_B_,		Q_B,	Q_T,	AFLAG_ACTIVE,	50,		BLK_NO, LS_READY,		LS_READY,	150},	// LS_PARRY_LR
+			{ "BParry LL", BOTH_H1_S1_BL,		Q_BR,	Q_TL,	AFLAG_ACTIVE,	50,		BLK_NO, LS_READY,		LS_READY,	150},	// LS_PARRY_LL
+			*/
+			switch (newMove)
+			{
+			case LS_B1_TL:
+				return BOTH_H1_S1_TL;
+				break;
+			case LS_B1_TR:
+			default:
+				return BOTH_H1_S1_TR;
+				break;
+			case LS_B1__L:
+				return BOTH_H1_S1_TL;
+				break;
+			case LS_B1__R:
+				return BOTH_H1_S1_TR;
+				break;
+			case LS_B1_BL:
+				return BOTH_H1_S1_BL;
+				break;
+			case LS_B1_BR:
+				return BOTH_H1_S1_BR;
+				break;
+			}
+		}
+		else if (bg_testvalue0.integer == 2)
+		{
+			/*
+			// Parry
+			{ "Parry Top",BOTH_P1_S1_T_,		Q_R,	Q_T,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_BL2TR, LS_A_T2B,   150},	    // LS_PARRY_UP,
+			{ "Parry UR", BOTH_P1_S1_TR,		Q_R,	Q_TL,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_BL2TR, LS_A_TR2BL, 150,},	// LS_PARRY_UR,
+			{ "Parry UL", BOTH_P1_S1_TL,		Q_R,	Q_TR,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_BR2TL, LS_A_TL2BR, 150,},	// LS_PARRY_UL,
+			//JAC: the bottom right and bottom left animations were accidently switched.
+			{ "Parry LR", BOTH_P1_S1_BR,		Q_R,	Q_BR,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_TL2BR, LS_A_BR2TL, 150,},	// LS_PARRY_LR,
+			{ "Parry LL", BOTH_P1_S1_BL,		Q_R,	Q_BL,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_TR2BL, LS_A_BL2TR, 150,},	// LS_PARRY_LL
+
+			{ "Parry Side	LR", BOTH_P1_S1_R,	Q_SR,	Q_SBR,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_TR2BL, LS_A_BL2TR, 150},	    // LS_PARRY_SLR
+			{ "Parry Side	LR", BOTH_P1_S1_L,	Q_SL,	Q_SBL,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_TR2BL, LS_A_BL2TR, 150},	    // LS_PARRY_SLL
+			{ "Parry Back Top",	 BOTH_P1_S1_B_,	Q_R,	Q_BR,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_BL2TR, LS_A_T2B,	  150 },	// LS_PARRY_BACK_UP,
+			*/
+			switch (newMove)
+			{
+			case LS_B1_TL:
+				return BOTH_P1_S1_TL;
+				break;
+			case LS_B1_TR:
+			default:
+				return BOTH_P1_S1_TR;
+				break;
+			case LS_B1__L:
+				return BOTH_P1_S1_L;
+				break;
+			case LS_B1__R:
+				return BOTH_P1_S1_R;
+				break;
+			case LS_B1_BL:
+				return BOTH_P1_S1_BL;
+				break;
+			case LS_B1_BR:
+				return BOTH_P1_S1_BR;
+				break;
+			}
+		}
+		else if (bg_testvalue0.integer)
+		{
+			/*
+			// Knockaways
+			{ "Knock Top", BOTH_K1_S1_T_,		Q_R,	Q_T,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_BL2TR, LS_T1_T__BR, 150},	// LS_PARRY_UP,
+			{ "Knock UR", BOTH_K1_S1_TR,		Q_R,	Q_TR,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_BL2TR, LS_T1_TR__R, 150},	// LS_PARRY_UR,
+			{ "Knock UL", BOTH_K1_S1_TL,		Q_R,	Q_TL,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_BR2TL, LS_T1_TL__L, 150},	// LS_PARRY_UL,
+			//JAC: the bottom right and bottom left animations were accidently switched.
+			{ "Knock LR", BOTH_K1_S1_BR,		Q_R,	Q_BL,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_TL2BR, LS_T1_BL_TL, 150},	// LS_PARRY_LR,
+			{ "Knock LL", BOTH_K1_S1_BL,		Q_R,	Q_BR,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_TR2BL, LS_T1_BR_TR, 150},	// LS_PARRY_LL
+			*/
+			switch (newMove)
+			{
+			case LS_B1_TL:
+				return BOTH_K1_S1_TL;
+				break;
+			case LS_B1_TR:
+			default:
+				return BOTH_K1_S1_TR;
+				break;
+			case LS_B1__L:
+				return BOTH_K1_S1_TL;
+				break;
+			case LS_B1__R:
+				return BOTH_K1_S1_TR;
+				break;
+			case LS_B1_BL:
+				return BOTH_K1_S1_BL;
+				break;
+			case LS_B1_BR:
+				return BOTH_K1_S1_BR;
+				break;
+			}
+		}
+		else
+		{
+			switch (newMove)
+			{
+			case LS_B1_TL:
+				return BOTH_D1_TL___;
+				break;
+			case LS_B1_TR:
+			default:
+				return BOTH_D1_TR___;
+				break;
+			case LS_B1__L:
+				return BOTH_D1__L___;
+				break;
+			case LS_B1__R:
+				return BOTH_D1__R___;
+				break;
+			case LS_B1_BL:
+				return BOTH_D1_BL___;
+				break;
+			case LS_B1_BR:
+				return BOTH_D1_BR___;
+				break;
+			}
+		}
+#endif
+		/*
+		//Bounces																												
+	{"Bounce BR",	BOTH_B1_BR___,		Q_BR,	Q_BR,	AFLAG_ACTIVE,	100,	BLK_NO,	LS_R_TL2BR,		LS_T1_BR_TR,	150},	
+	{"Bounce R",	BOTH_B1__R___,		Q_R,	Q_R,	AFLAG_ACTIVE,	100,	BLK_NO,	LS_R_L2R,		LS_T1__R__L,	150},	
+	{"Bounce TR",	BOTH_B1_TR___,		Q_TR,	Q_TR,	AFLAG_ACTIVE,	100,	BLK_NO,	LS_R_BL2TR,		LS_T1_TR_TL,	150},	
+	{"Bounce T",	BOTH_B1_T____,		Q_T,	Q_T,	AFLAG_ACTIVE,	100,	BLK_NO,	LS_R_BL2TR,		LS_T1_T__BL,	150},	
+	{"Bounce TL",	BOTH_B1_TL___,		Q_TL,	Q_TL,	AFLAG_ACTIVE,	100,	BLK_NO,	LS_R_BR2TL,		LS_T1_TL_TR,	150},	
+	{"Bounce L",	BOTH_B1__L___,		Q_L,	Q_L,	AFLAG_ACTIVE,	100,	BLK_NO,	LS_R_R2L,		LS_T1__L__R,	150},	
+	{"Bounce BL",	BOTH_B1_BL___,		Q_BL,	Q_BL,	AFLAG_ACTIVE,	100,	BLK_NO,	LS_R_TR2BL,		LS_T1_BL_TR,	150},	
+																															
+	//Deflected attacks (like bounces, but slide off enemy saber, not straight back)										
+	{"Deflect BR",	BOTH_D1_BR___,		Q_BR,	Q_BR,	AFLAG_ACTIVE,	100,	BLK_NO,	LS_R_TL2BR,		LS_T1_BR_TR,	150},	
+	{"Deflect R",	BOTH_D1__R___,		Q_R,	Q_R,	AFLAG_ACTIVE,	100,	BLK_NO,	LS_R_L2R,		LS_T1__R__L,	150},	
+	{"Deflect TR",	BOTH_D1_TR___,		Q_TR,	Q_TR,	AFLAG_ACTIVE,	100,	BLK_NO,	LS_R_BL2TR,		LS_T1_TR_TL,	150},	
+	{"Deflect T",	BOTH_B1_T____,		Q_T,	Q_T,	AFLAG_ACTIVE,	100,	BLK_NO,	LS_R_BL2TR,		LS_T1_T__BL,	150},	
+	{"Deflect TL",	BOTH_D1_TL___,		Q_TL,	Q_TL,	AFLAG_ACTIVE,	100,	BLK_NO,	LS_R_BR2TL,		LS_T1_TL_TR,	150},	
+	{"Deflect L",	BOTH_D1__L___,		Q_L,	Q_L,	AFLAG_ACTIVE,	100,	BLK_NO,	LS_R_R2L,		LS_T1__L__R,	150},	
+	{"Deflect BL",	BOTH_D1_BL___,		Q_BL,	Q_BL,	AFLAG_ACTIVE,	100,	BLK_NO,	LS_R_TR2BL,		LS_T1_BL_TR,	150},	
+	{"Deflect B",	BOTH_D1_B____,		Q_B,	Q_B,	AFLAG_ACTIVE,	100,	BLK_NO,	LS_R_BL2TR,		LS_T1_T__BL,	150},	
+
+	//Reflected attacks
+	{"Reflected BR",BOTH_V1_BR_S1,		Q_BR,	Q_BR,	AFLAG_ACTIVE,	100,	BLK_NO,	LS_READY,		LS_READY,	150},//	LS_V1_BR
+	{"Reflected R",	BOTH_V1__R_S1,		Q_R,	Q_R,	AFLAG_ACTIVE,	100,	BLK_NO,	LS_READY,		LS_READY,	150},//	LS_V1__R
+	{"Reflected TR",BOTH_V1_TR_S1,		Q_TR,	Q_TR,	AFLAG_ACTIVE,	100,	BLK_NO,	LS_READY,		LS_READY,	150},//	LS_V1_TR
+	{"Reflected T",	BOTH_V1_T__S1,		Q_T,	Q_T,	AFLAG_ACTIVE,	100,	BLK_NO,	LS_READY,		LS_READY,	150},//	LS_V1_T_
+	{"Reflected TL",BOTH_V1_TL_S1,		Q_TL,	Q_TL,	AFLAG_ACTIVE,	100,	BLK_NO,	LS_READY,		LS_READY,	150},//	LS_V1_TL
+	{"Reflected L",	BOTH_V1__L_S1,		Q_L,	Q_L,	AFLAG_ACTIVE,	100,	BLK_NO,	LS_READY,		LS_READY,	150},//	LS_V1__L
+	{"Reflected BL",BOTH_V1_BL_S1,		Q_BL,	Q_BL,	AFLAG_ACTIVE,	100,	BLK_NO,	LS_READY,		LS_READY,	150},//	LS_V1_BL
+	{"Reflected B",	BOTH_V1_B__S1,		Q_B,	Q_B,	AFLAG_ACTIVE,	100,	BLK_NO,	LS_READY,		LS_READY,	150},//	LS_V1_B_
+	
+	// Broken parries
+	{ "BParry Top", BOTH_H1_S1_T_,		Q_T,	Q_B,	AFLAG_ACTIVE,	50,		BLK_NO, LS_READY,		LS_READY,	150},	// LS_PARRY_UP,
+	{ "BParry UR", BOTH_H1_S1_TR,		Q_TR,	Q_BL,	AFLAG_ACTIVE,	50,		BLK_NO, LS_READY,		LS_READY,	150},	// LS_PARRY_UR,
+	{ "BParry UL", BOTH_H1_S1_TL,		Q_TL,	Q_BR,	AFLAG_ACTIVE,	50,		BLK_NO, LS_READY,		LS_READY,	150},	// LS_PARRY_UL,
+	//JAC: the bottom right and bottom left animations were accidently switched.
+	{ "BParry LR", BOTH_H1_S1_BR,		Q_BL,	Q_TR,	AFLAG_ACTIVE,	50,		BLK_NO, LS_READY,		LS_READY,	150},	// LS_PARRY_LR,
+	{ "BParry Bot", BOTH_H1_S1_B_,		Q_B,	Q_T,	AFLAG_ACTIVE,	50,		BLK_NO, LS_READY,		LS_READY,	150},	// LS_PARRY_LR
+	{ "BParry LL", BOTH_H1_S1_BL,		Q_BR,	Q_TL,	AFLAG_ACTIVE,	50,		BLK_NO, LS_READY,		LS_READY,	150},	// LS_PARRY_LL
+
+
+	// Knockaways
+	{ "Knock Top", BOTH_K1_S1_T_,		Q_R,	Q_T,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_BL2TR, LS_T1_T__BR, 150},	// LS_PARRY_UP,
+	{ "Knock UR", BOTH_K1_S1_TR,		Q_R,	Q_TR,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_BL2TR, LS_T1_TR__R, 150},	// LS_PARRY_UR,
+	{ "Knock UL", BOTH_K1_S1_TL,		Q_R,	Q_TL,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_BR2TL, LS_T1_TL__L, 150},	// LS_PARRY_UL,
+	//JAC: the bottom right and bottom left animations were accidently switched.
+	{ "Knock LR", BOTH_K1_S1_BR,		Q_R,	Q_BL,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_TL2BR, LS_T1_BL_TL, 150},	// LS_PARRY_LR,
+	{ "Knock LL", BOTH_K1_S1_BL,		Q_R,	Q_BR,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_TR2BL, LS_T1_BR_TR, 150},	// LS_PARRY_LL
+
+	// Parry
+	{ "Parry Top",BOTH_P1_S1_T_,		Q_R,	Q_T,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_BL2TR, LS_A_T2B,   150},	    // LS_PARRY_UP,
+	{ "Parry UR", BOTH_P1_S1_TR,		Q_R,	Q_TL,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_BL2TR, LS_A_TR2BL, 150,},	// LS_PARRY_UR,
+	{ "Parry UL", BOTH_P1_S1_TL,		Q_R,	Q_TR,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_BR2TL, LS_A_TL2BR, 150,},	// LS_PARRY_UL,
+	//JAC: the bottom right and bottom left animations were accidently switched.
+	{ "Parry LR", BOTH_P1_S1_BR,		Q_R,	Q_BR,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_TL2BR, LS_A_BR2TL, 150,},	// LS_PARRY_LR,
+	{ "Parry LL", BOTH_P1_S1_BL,		Q_R,	Q_BL,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_TR2BL, LS_A_BL2TR, 150,},	// LS_PARRY_LL
+
+	{ "Parry Side	LR", BOTH_P1_S1_R,	Q_SR,	Q_SBR,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_TR2BL, LS_A_BL2TR, 150},	    // LS_PARRY_SLR
+	{ "Parry Side	LR", BOTH_P1_S1_L,	Q_SL,	Q_SBL,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_TR2BL, LS_A_BL2TR, 150},	    // LS_PARRY_SLL
+	{ "Parry Back Top",	 BOTH_P1_S1_B_,	Q_R,	Q_BR,	AFLAG_ACTIVE,	50,		BLK_WIDE, LS_R_BL2TR, LS_A_T2B,	  150 },	// LS_PARRY_BACK_UP,
+	*/
 	}
 }
 
@@ -6286,14 +6561,28 @@ void PM_SetSaberMove(short newMove)
 			Com_Printf("Using bounce anim %i (%s).\n", anim, animTable[anim].name);
 		}
 	}*/
-	else if ((pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL || pm->ps->fd.saberAnimLevelBase == SS_SINGLE)
-		&& newMove >= LS_B1_BR && newMove < LS_B1_BL)
+	else if (/*(pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL || pm->ps->fd.saberAnimLevelBase == SS_SINGLE)
+		&&*/ newMove >= LS_B1_BR && newMove < LS_B1_BL)
 	{
-		anim = PM_AnimationForBounceMove(newMove);
-		if (bg_debugbounce.integer)
+		if (PM_SaberInParry(pm->ps->saberMove)
+			|| PM_SaberInBounce(pm->ps->saberMove)
+			|| PM_SaberInKnockaway(pm->ps->saberMove)
+			|| PM_SaberInReflect(pm->ps->saberMove)
+			|| PM_SaberInAnyBlockMove(pm->ps->saberMove)
+			|| (pm->ps->torsoAnim >= BOTH_SABERBLOCK_TL && pm->ps->torsoAnim <= BOTH_SABERBLOCK_T)
+			|| (pm->ps->torsoAnim >= BOTH_SABERBLOCK_FL1 && pm->ps->torsoAnim <= BOTH_SABERBLOCK_BR5)
+			|| (pm->ps->torsoAnim >= BOTH_CC_SABERBLOCK_FL1 && pm->ps->torsoAnim <= BOTH_CC_SABERBLOCK_BR5))
+		{// Continue previous bounce anim...
+			anim = pm->ps->torsoAnim;
+		}
+		else
 		{
-			extern stringID_table_t animTable[MAX_ANIMATIONS + 1];
-			Com_Printf("Using bounce anim %i (%s).\n", anim, animTable[anim].name);
+			anim = PM_AnimationForBounceMove(newMove);
+			if (bg_debugbounce.integer)
+			{
+				extern stringID_table_t animTable[MAX_ANIMATIONS + 1];
+				Com_Printf("Using bounce anim %i (%s).\n", anim, animTable[anim].name);
+			}
 		}
 	}
 	else if (pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL
