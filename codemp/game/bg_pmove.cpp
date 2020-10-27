@@ -387,7 +387,7 @@ qboolean PM_AllowDefenceSpin(void)
 			{
 				float dist = Distance(pm->ps->origin, ent->playerState->origin);
 
-				if (dist <= 192 || (lenientCheck && dist <= 384))
+				if (dist <= 256/*192*/ || (lenientCheck && dist <= 448/*384*/))
 				{
 					jediInRange = qtrue;
 					break;
@@ -518,6 +518,11 @@ int BG_GetSaberStanceForPS(playerState_t *ps, usercmd_t *ucmd)
 	if (ps->fd.saberAnimLevelBase == SS_SINGLE)
 	{
 		ps->fd.saberAnimLevel = SS_SINGLE;
+		mblockforstance = SS_TAVION;
+	}
+
+	if (ps->fd.saberAnimLevelBase == SS_MEDIUM)
+	{// Use the old one...
 		mblockforstance = SS_TAVION;
 	}
 

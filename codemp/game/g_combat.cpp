@@ -3028,33 +3028,43 @@ typedef enum
 			{
 			case KILLMOVE_SINGLE:
 			default:
+				attacker->client->ps.saberMove = LS_PULL_ATTACK_STAB;
 				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_PULL_IMPALE_STAB, animFlags, 0);
 				break;
 			case KILLMOVE_SINGLE_FAR:
+				attacker->client->ps.saberMove = LS_READY;
 				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_TUSKENLUNGE1, animFlags, 0);
 				break;
 			case KILLMOVE_SINGLE_BACK:
+				attacker->client->ps.saberMove = LS_A_BACKSTAB;// LS_A_BACK;// LS_READY;
 				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_A2_STABBACK1, animFlags, 0);
 				break;
 			case KILLMOVE_BACK_AOE:
+				attacker->client->ps.saberMove = LS_A_BACK_CR;// LS_READY;
 				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_ATTACK_BACK, animFlags, 0);
 				break;
 			case KILLMOVE_DUO_LR:
+				attacker->client->ps.saberMove = LS_DUAL_LR;// LS_READY;
 				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_A6_LR, animFlags, 0);
 				break;
 			case KILLMOVE_DUO_FB:
+				attacker->client->ps.saberMove = LS_DUAL_FB;// LS_READY;
 				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_A6_FB, animFlags, 0);
 				break;
 			case KILLMOVE_FORWARD_AOE:
+				attacker->client->ps.saberMove = LS_PULL_ATTACK_SWING;// LS_READY;
 				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_PULL_IMPALE_SWING, animFlags, 0);
 				break;
 			case KILLMOVE_FORWARD_MULTI_AOE:
+				attacker->client->ps.saberMove = LS_STAFF_SOULCAL;// LS_READY;
 				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_A7_SOULCAL, animFlags, 0);
 				break;
 			case KILLMOVE_SINGLE_360_AOE:
+				attacker->client->ps.saberMove = LS_A1_SPECIAL;// LS_READY;
 				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_A1_SPECIAL, animFlags, 0);
 				break;
 			case KILLMOVE_360_AOE:
+				attacker->client->ps.saberMove = LS_A1_SPECIAL;// LS_READY;
 				G_SetAnim(attacker, NULL, SETANIM_BOTH, BOTH_A1_SPECIAL, animFlags, 0);
 				break;
 			}

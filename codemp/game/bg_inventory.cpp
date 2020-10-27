@@ -1140,6 +1140,7 @@ void GenerateAllInventoryItems(void)
 
 							float stat3mod = 1.0;
 							if (stat3 == SABER_STAT3_LENGTH_MODIFIER) stat3mod *= 0.5;
+							if (stat3 == SABER_STAT3_SPEED_MODIFIER) stat3mod *= 0.3;
 							item->setStat3(stat3, roll*1.25*stat3mod);
 
 							item->setQuantity(1);

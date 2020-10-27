@@ -9896,7 +9896,8 @@ void CG_DrawDamage( void )
 				size *= 2.0; // crit!
 
 			if (damage_show_value[i][j] == 0)
-				sprintf(value, "MISS");
+				//sprintf(value, "MISS");
+				sprintf(value, "HIT ARMOR");
 			else
 				sprintf(value, "%i", damage_show_value[i][j]);
 

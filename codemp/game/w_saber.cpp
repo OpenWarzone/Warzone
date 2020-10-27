@@ -2656,7 +2656,7 @@ int G_KnockawayForParry( int move )
 }
 #endif
 
-#define SABER_NONATTACK_DAMAGE 1
+#define SABER_NONATTACK_DAMAGE 15//1
 
 //For strong attacks, we ramp damage based on the point in the attack animation
 static QINLINE int G_GetAttackDamage(gentity_t *self, int minDmg, int maxDmg, float multPoint)
@@ -3724,7 +3724,7 @@ static QINLINE int Finish_RealTrace(gentity_t *attacker, trace_t *results, trace
 
 #define __SABER_VOXEL_TRACE__
 //#define __DEBUG_VOXEL_TRACE__
-//#define __DEBUG_VOXEL_LINES__
+#define __DEBUG_VOXEL_LINES__
 #define __DEBUG_VOXEL_HITS__
 
 #ifdef __SABER_VOXEL_TRACE__
@@ -3733,38 +3733,6 @@ extern qboolean G_PointInBounds(vec3_t point, vec3_t mins, vec3_t maxs);
 #if defined(__SABER_VOXEL_TRACE__) || defined(__DEBUG_VOXEL_HITS__)
 void	G_VoxelDebugBox(vec3_t mins, vec3_t maxs, int duration)
 {
-#if 0 // whats this 2d shite???
-	vec3_t start;
-	vec3_t end;
-
-	float x = maxs[0] - mins[0];
-	float y = maxs[1] - mins[1];
-
-	// top of box
-	VectorCopy(maxs, start);
-	VectorCopy(maxs, end);
-	start[0] -= x;
-	G_TestLine(start, end, 0x00000ff, duration);
-	end[0] = start[0];
-	end[1] -= y;
-	G_TestLine(start, end, 0x00000ff, duration);
-	start[1] = end[1];
-	start[0] += x;
-	G_TestLine(start, end, 0x00000ff, duration);
-	G_TestLine(start, maxs, 0x00000ff, duration);
-	// bottom of box
-	VectorCopy(mins, start);
-	VectorCopy(mins, end);
-	start[0] += x;
-	G_TestLine(start, end, 0x00000ff, duration);
-	end[0] = start[0];
-	end[1] += y;
-	G_TestLine(start, end, 0x00000ff, duration);
-	start[1] = end[1];
-	start[0] -= x;
-	G_TestLine(start, end, 0x00000ff, duration);
-	G_TestLine(start, mins, 0x00000ff, duration);
-#else
 	vec3_t quadVerts[4];
 
 	VectorSet(quadVerts[0], mins[0], mins[1], mins[2]);
@@ -3814,7 +3782,6 @@ void	G_VoxelDebugBox(vec3_t mins, vec3_t maxs, int duration)
 	G_TestLine(quadVerts[0], quadVerts[1], 0x00000ff, duration);
 	G_TestLine(quadVerts[1], quadVerts[2], 0x00000ff, duration);
 	G_TestLine(quadVerts[2], quadVerts[3], 0x00000ff, duration);
-#endif
 }
 #endif //defined(__SABER_VOXEL_TRACE__) || defined(__DEBUG_VOXEL_HITS__)
 
@@ -3878,26 +3845,33 @@ qboolean G_VoxelInBounds(vec3_t voxel1Mins, vec3_t voxel1Maxs, vec3_t voxel2Mins
 
 qboolean G_SaberVoxelTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_t end, int rSaberNum, int rBladeNum)
 {
+#ifdef __DEBUG_VOXEL_LINES__
+	if (g_testvalue0.integer)
+	{
+		G_TestLine(start, end, 0x00000ff, 200);
+	}
+#endif //__DEBUG_VOXEL_LINES__
+
 	TraceClear(&attacker->saberTrace[rSaberNum][rBladeNum].trace, end);
 	attacker->saberTrace[rSaberNum][rBladeNum].frameNum = level.framenum;
 	attacker->saberTrace[rSaberNum][rBladeNum].realTraceResult = REALTRACE_MISS;
 
-	int				saberVoxelSize = g_voxelTraceSize.value;
-	int				saberDefenderVoxelSize = g_voxelTraceDefenderSize.value;
+	float			saberVoxelSize = g_voxelTraceSize.value;
+	float			saberDefenderVoxelSize = g_voxelTraceDefenderSize.value;
 
 	vec3_t			mins, maxs;
 	float			saberLength = Distance(start, end);
 
-	if (saberVoxelSize > saberLength * 0.25)
+	if (saberVoxelSize > saberLength * 0.5)
 	{// Never allow this... Make sure there are at least 4 voxels for a saber...
-		saberVoxelSize = saberLength * 0.25;
+		saberVoxelSize = saberLength * 0.5;
 	}
 
-	float			segmentSize = (saberLength / (float)saberVoxelSize);
-	vec3_t			entitySearchRange = { saberLength * 2.0f, saberLength * 2.0f, saberLength * 2.0f };
+	vec3_t			entitySearchRange = { saberLength * 3.0f, saberLength * 3.0f, saberLength * 3.0f };
 	int				touch[MAX_GENTITIES];
 
-	int				attackerNumVoxels = ((saberLength / segmentSize) * 2) + 1;
+	int				attackerNumVoxels = int((saberLength / saberVoxelSize) * 2.0f) + 1;
+	vec3_t			saberVoxelBounds = { (float)saberVoxelSize * 0.5f, (float)saberVoxelSize * 0.5f, (float)saberVoxelSize * 0.5f };
 
 	VectorSubtract(start, entitySearchRange, mins);
 	VectorAdd(start, entitySearchRange, maxs);
@@ -3916,7 +3890,6 @@ qboolean G_SaberVoxelTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_
 	for (int e = 0; e < numEntities; e++)
 	{// Scan all saber entities near us for a collision...
 		gentity_t		*ent = &g_entities[touch[e]];
-		qboolean		isSaberEnt = qfalse;
 		gentity_t		*saberEnt = NULL;
 
 		if (!ent) continue;
@@ -3924,13 +3897,10 @@ qboolean G_SaberVoxelTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_
 		if (!ent->inuse) continue;
 
 		if (ent->inuse && ent->neverFree
-			&& ent->r.ownerNum == attacker->s.number
+			//&& ent->r.ownerNum == attacker->s.number
 			&& ent->classname && ent->classname[0]
 			&& !Q_stricmp(ent->classname, "lightsaber"))
-			//if (ent->r.contents & CONTENTS_LIGHTSABER)
 		{
-			//if (attacker->s.saberEntityNum == e) continue;
-			isSaberEnt = qtrue;
 			saberEnt = ent;
 			ent = &g_entities[ent->r.ownerNum];
 		}
@@ -3940,10 +3910,9 @@ qboolean G_SaberVoxelTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_
 		if (ent->client->ps.weapon != WP_SABER) continue;
 		if (ent->client->ps.saberHolstered) continue; // TODO: Blade off (if we even need this)
 		if (!ent->client->saber[rSaberNum].numBlades) continue;
-		/*if (!ent->client->saber[rSaberNum].blade[rBladeNum].active) continue;*/ // WTF: Not set???
 
 #ifdef __DEBUG_VOXEL_TRACE__
-		if (g_testvalue3.integer)
+		if (g_testvalue0.integer)
 		{
 			trap->Print("Voxel saber test on entity %i. rSaberNum %i. rBladeNum %i. start %f %f %f. end %f %f %f.\n", e, rSaberNum, rBladeNum
 				, start[0], start[1], start[2], end[0], end[1], end[2]);
@@ -3951,10 +3920,8 @@ qboolean G_SaberVoxelTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_
 #endif //__DEBUG_VOXEL_TRACE__
 
 		// Create the 1st attacker voxel...
-		vec3_t attackerVoxelStart, attackerVoxelEnd;
+		vec3_t attackerVoxelStart;
 		VectorCopy(start, attackerVoxelStart);
-		VectorCopy(start, attackerVoxelEnd);
-		VectorMA(attackerVoxelEnd, segmentSize, attackerTraceDirection, attackerVoxelEnd);
 
 		int defenderNumSabers = 1;
 		
@@ -3967,71 +3934,61 @@ qboolean G_SaberVoxelTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_
 		{
 			for (int dBladeNum = 0; dBladeNum < ent->client->saber[dSaberNum].numBlades; dBladeNum++)
 			{
-				for (int av = 0; av <= attackerNumVoxels; av++)
+				// screw it, will just use points for second saber... we dont need to check actual voxels on both sides, points smaller distance than the voxels will suffice...
+				vec3_t			defenderSaberPoint, defenderSaberStartPoint, defenderSaberEndPoint;
+				vec3_t			defenderTraceDirection;
+				VectorCopy(ent->client->saber[dSaberNum].blade[dBladeNum].muzzlePoint, defenderSaberPoint);
+				VectorCopy(ent->client->saber[dSaberNum].blade[dBladeNum].muzzlePoint, defenderSaberStartPoint);
+				VectorCopy(ent->client->saber[dSaberNum].blade[dBladeNum].muzzleDir, defenderTraceDirection);
+				VectorCopy(ent->client->saber[dSaberNum].blade[dBladeNum].muzzlePoint, defenderSaberEndPoint);
+				VectorNormalize(defenderTraceDirection);
+
+				/* BEGIN: INV SYSTEM SABER LENGTHS */
+				float lengthMult = 1.0f;
+
+				inventoryItem *invSaber = BG_EquippedWeapon(&ent->client->ps);
+
+				if (invSaber && invSaber->getBasicStat3() == SABER_STAT3_LENGTH_MODIFIER)
 				{
-					// screw it, will just use points for second saber... we dont need to check actual voxels on both sides, points smaller distance than the voxels will suffice...
-					vec3_t			defenderSaberPoint, defenderSaberStartPoint, defenderSaberEndPoint;
-					vec3_t			defenderTraceDirection;
-					VectorCopy(ent->client->saber[dSaberNum].blade[dBladeNum].muzzlePoint, defenderSaberPoint);
-					VectorCopy(ent->client->saber[dSaberNum].blade[dBladeNum].muzzlePoint, defenderSaberStartPoint);
-					VectorCopy(ent->client->saber[dSaberNum].blade[dBladeNum].muzzleDir, defenderTraceDirection);
-					VectorCopy(ent->client->saber[dSaberNum].blade[dBladeNum].muzzlePoint, defenderSaberEndPoint);
-					VectorNormalize(defenderTraceDirection);
+					lengthMult *= 1.0f + invSaber->getBasicStat3Value();
+				}
 
-					/* BEGIN: INV SYSTEM SABER LENGTHS */
-					float lengthMult = 1.0f;
+				inventoryItem *invSaberMod3 = BG_EquippedMod3(&ent->client->ps);
 
-					inventoryItem *invSaber = BG_EquippedWeapon(&ent->client->ps);
+				if (invSaberMod3 && invSaberMod3->getBasicStat3() == SABER_STAT3_LENGTH_MODIFIER)
+				{
+					lengthMult *= 1.0f + invSaberMod3->getBasicStat3Value();
+				}
+				/* END: INV SYSTEM SABER LENGTHS */
 
-					if (invSaber && invSaber->getBasicStat3() == SABER_STAT3_LENGTH_MODIFIER)
-					{
-						lengthMult *= 1.0f + invSaber->getBasicStat3Value();
-					}
+				VectorMA(defenderSaberEndPoint, ent->client->saber[dSaberNum].blade[dBladeNum].lengthMax * lengthMult, defenderTraceDirection, defenderSaberEndPoint);
 
-					inventoryItem *invSaberMod3 = BG_EquippedMod3(&ent->client->ps);
+				if (saberDefenderVoxelSize > ent->client->saber[dSaberNum].blade[dBladeNum].lengthMax * lengthMult * 0.25)
+				{// Never allow this... Make sure there are at least 8 voxels for defender's a saber...
+					saberDefenderVoxelSize = ent->client->saber[dSaberNum].blade[dBladeNum].lengthMax * lengthMult * 0.25;
+				}
 
-					if (invSaberMod3 && invSaberMod3->getBasicStat3() == SABER_STAT3_LENGTH_MODIFIER)
-					{
-						lengthMult *= 1.0f + invSaberMod3->getBasicStat3Value();
-					}
-					/* END: INV SYSTEM SABER LENGTHS */
-
-					VectorMA(defenderSaberEndPoint, ent->client->saber[dSaberNum].blade[dBladeNum].lengthMax * lengthMult, defenderTraceDirection, defenderSaberEndPoint);
-
-					if (saberDefenderVoxelSize > ent->client->saber[dSaberNum].blade[dBladeNum].lengthMax * lengthMult * 0.125)
-					{// Never allow this... Make sure there are at least 8 voxels for defender's a saber...
-						saberDefenderVoxelSize = ent->client->saber[dSaberNum].blade[dBladeNum].lengthMax * lengthMult * 0.125;
-					}
-
-					float			defenderSaberLength = Distance(defenderSaberPoint, defenderSaberEndPoint);
-					float			defenderSegmentSize = (defenderSaberLength / (float)saberDefenderVoxelSize);
-					int				defenderNumVoxels = ((defenderSaberLength / defenderSegmentSize) * 2) + 1;
-
-
-					vec3_t			saberVoxelBounds = { (float)saberVoxelSize, (float)saberVoxelSize, (float)saberVoxelSize };
-					vec3_t			attackerTempVoxel[2];
-					vec3_t			attackerFinalVoxel[2];
-
-					ClearBounds(attackerTempVoxel[0], attackerTempVoxel[1]);
-					ClearBounds(attackerFinalVoxel[0], attackerFinalVoxel[1]);
-
-					// Reconstruct the voxel box so it uses mins and maxs properly...
-					AddPointToBounds(attackerVoxelStart, attackerTempVoxel[0], attackerTempVoxel[1]);
-					AddPointToBounds(attackerVoxelEnd, attackerTempVoxel[0], attackerTempVoxel[1]);
-
-					// Now add the voxel's size/scale to make new bounds...
-					VectorSubtract(attackerTempVoxel[0], saberVoxelBounds, attackerFinalVoxel[0]);
-					VectorAdd(attackerTempVoxel[1], saberVoxelBounds, attackerFinalVoxel[1]);
+				float			defenderSaberLength = Distance(defenderSaberPoint, defenderSaberEndPoint);
+				int				defenderNumVoxels = int((defenderSaberLength / saberDefenderVoxelSize) * 2.0) + 1;
 
 #ifdef __DEBUG_VOXEL_LINES__
-					if (g_testvalue0.integer)
-					{
-						int boxDuration = int((10.0f / (float)sv_fps.integer) * 100.0);
-						//G_VoxelDebugBox(attackerFinalVoxel[0], attackerFinalVoxel[1], boxDuration);
-						G_TestLine(start, end, 0x00000ff, boxDuration);
-						G_TestLine(defenderSaberStartPoint, defenderSaberEndPoint, 0x0ff0000, boxDuration);
-					}
+				if (g_testvalue0.integer)
+				{
+					G_TestLine(defenderSaberStartPoint, defenderSaberEndPoint, 0x0ff0000, 200);
+				}
 #endif //__DEBUG_VOXEL_LINES__
+
+				for (int av = 0; av <= attackerNumVoxels; av++)
+				{
+					float			boundsMod = (((float)av / (float)attackerNumVoxels) + 1.0f) * 4.0;
+					vec3_t			attackerVoxelBoundsModified;
+					vec3_t			attackerFinalVoxel[2];
+
+					VectorSet(attackerVoxelBoundsModified, saberVoxelBounds[0] * boundsMod, saberVoxelBounds[1] * boundsMod, saberVoxelBounds[2] * boundsMod);
+
+					// Now add the voxel's size/scale to make new bounds...
+					VectorSubtract(attackerVoxelStart, attackerVoxelBoundsModified, attackerFinalVoxel[0]);
+					VectorAdd(attackerVoxelStart, attackerVoxelBoundsModified, attackerFinalVoxel[1]);
 
 					for (int dv = 0; dv <= defenderNumVoxels; dv++)
 					{
@@ -4085,32 +4042,25 @@ qboolean G_SaberVoxelTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_
 								G_TestLine(defenderSaberStartPoint, defenderSaberEndPoint, 0x0ff0000, boxDuration);
 
 								// Re-create the 1st attacker voxel... We need to reconstruct them all and loop...
-								vec3_t dattackerVoxelStart, dattackerVoxelEnd;
-								VectorCopy(start, dattackerVoxelStart);
-								VectorCopy(start, dattackerVoxelEnd);
-								VectorMA(dattackerVoxelEnd, segmentSize, attackerTraceDirection, dattackerVoxelEnd);
+								vec3_t dbgAttackerVoxelStart;
+								VectorCopy(start, dbgAttackerVoxelStart);
 
 								for (int dav = 0; dav <= attackerNumVoxels; dav++)
 								{
-									vec3_t			dattackerTempVoxel[2];
+									float			dbgBoundsMod = (((float)dav / (float)attackerNumVoxels) + 1.0f) * 4.0;
+									vec3_t			dbgAttackerVoxelBoundsModified;
 									vec3_t			dattackerFinalVoxel[2];
 
-									ClearBounds(dattackerTempVoxel[0], dattackerTempVoxel[1]);
-									ClearBounds(dattackerFinalVoxel[0], dattackerFinalVoxel[1]);
-
-									// Reconstruct the voxel box so it uses mins and maxs properly...
-									AddPointToBounds(dattackerVoxelStart, dattackerTempVoxel[0], dattackerTempVoxel[1]);
-									AddPointToBounds(dattackerVoxelEnd, dattackerTempVoxel[0], dattackerTempVoxel[1]);
+									VectorSet(dbgAttackerVoxelBoundsModified, saberVoxelBounds[0] * dbgBoundsMod, saberVoxelBounds[1] * dbgBoundsMod, saberVoxelBounds[2] * dbgBoundsMod);
 
 									// Now add the voxel's size/scale to make new bounds...
-									VectorSubtract(dattackerTempVoxel[0], saberVoxelBounds, dattackerFinalVoxel[0]);
-									VectorAdd(dattackerTempVoxel[1], saberVoxelBounds, dattackerFinalVoxel[1]);
+									VectorSubtract(dbgAttackerVoxelStart, dbgAttackerVoxelBoundsModified, dattackerFinalVoxel[0]);
+									VectorAdd(dbgAttackerVoxelStart, dbgAttackerVoxelBoundsModified, dattackerFinalVoxel[1]);
 
 									G_VoxelDebugBox(dattackerFinalVoxel[0], dattackerFinalVoxel[1], boxDuration);
 
 									// Move to the next voxel...
-									VectorMA(dattackerVoxelStart, segmentSize / 2.0, attackerTraceDirection, dattackerVoxelStart);
-									VectorMA(dattackerVoxelEnd, segmentSize / 2.0, attackerTraceDirection, dattackerVoxelEnd);
+									VectorMA(dbgAttackerVoxelStart, saberVoxelSize / 2.0, attackerTraceDirection, dbgAttackerVoxelStart);
 								}
 							}
 							else if (g_voxelTraceDebug.integer >= 2)
@@ -4125,40 +4075,15 @@ qboolean G_SaberVoxelTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_
 							}
 #endif //__DEBUG_VOXEL_HITS__
 
-#ifdef __DEBUG_VOXEL_TRACE__
-							if (g_testvalue3.integer)
-							{
-								trap->Print("Voxel saber test on entity %i. defenderSaberPoint %f %f %f. !!! HIT !!! voxel %f %f %f -> %f %f %f.\n"
-									, e
-									, defenderSaberPoint[0], defenderSaberPoint[1], defenderSaberPoint[2]
-									, attackerVoxelStart[0], attackerVoxelStart[1], attackerVoxelStart[2]
-									, attackerVoxelEnd[0], attackerVoxelEnd[1], attackerVoxelEnd[2]);
-							}
-
-							trap->Print("Voxel saber trace HIT!\n");
-#endif //__DEBUG_VOXEL_TRACE__
-
 							return qtrue;
 						}
 
-#ifdef __DEBUG_VOXEL_TRACE__
-						if (g_testvalue3.integer)
-						{
-							trap->Print("Voxel saber test on entity %i. defenderSaberPoint %f %f %f. is not within voxel %f %f %f -> %f %f %f.\n"
-								, e
-								, defenderSaberPoint[0], defenderSaberPoint[1], defenderSaberPoint[2]
-								, attackerVoxelStart[0], attackerVoxelStart[1], attackerVoxelStart[2]
-								, attackerVoxelEnd[0], attackerVoxelEnd[1], attackerVoxelEnd[2]);
-						}
-#endif //__DEBUG_VOXEL_TRACE__
-
 						// Move to the next point...
-						VectorMA(defenderSaberPoint, segmentSize / 2.0, defenderTraceDirection, defenderSaberPoint);
+						VectorMA(defenderSaberPoint, saberDefenderVoxelSize / 2.0, defenderTraceDirection, defenderSaberPoint);
 					}
 
 					// Move to the next voxel...
-					VectorMA(attackerVoxelStart, segmentSize / 2.0, attackerTraceDirection, attackerVoxelStart);
-					VectorMA(attackerVoxelEnd, segmentSize / 2.0, attackerTraceDirection, attackerVoxelEnd);
+					VectorMA(attackerVoxelStart, saberVoxelSize / 2.0, attackerTraceDirection, attackerVoxelStart);
 				}
 			}
 		}
@@ -4403,6 +4328,8 @@ int WP_DoFrameSaberTrace(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t s
 		self->saberTrace[rSaberNum][rBladeNum].frameNum = level.framenum;
 		self->saberTrace[rSaberNum][rBladeNum].realTraceResult = REALTRACE_MISS;
 
+#define __LIGHTSABER_STOP_CLASH_SPAM__ // Shouldn't need this now, hopefully...
+#ifdef __LIGHTSABER_STOP_CLASH_SPAM__
 		extern qboolean PM_SaberInAnyBlockMove(int move);
 		if (self->client
 			&& self->client->ps.weapon == WP_SABER 
@@ -4417,12 +4344,23 @@ int WP_DoFrameSaberTrace(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t s
 		{// Don't do more saber clash checking, but allow hitting players (below)... Spam sucks...
 
 		}
-		else if (self->client 
+		else
+#endif //__LIGHTSABER_STOP_CLASH_SPAM__
+		if (self->client 
 			&& self->client->ps.weapon == WP_SABER 
 			&& G_SaberVoxelTrace(self, &self->saberTrace[rSaberNum][rBladeNum].trace, saberStart, saberEnd, rSaberNum, rBladeNum))
 		{
-			//self->saberTrace[rSaberNum][rBladeNum].trace.entityNum = g_entities[self->saberTrace[rSaberNum][rBladeNum].trace.entityNum].s.saberEntityNum;
-			//self->saberTrace[rSaberNum][rBladeNum].realTraceResult = REALTRACE_HIT_SABER;
+			return self->saberTrace[rSaberNum][rBladeNum].realTraceResult;
+		}
+		else if (self->inuse && self->neverFree
+			&& self->classname && self->classname[0]
+			&& !Q_stricmp(self->classname, "lightsaber")
+			&& g_entities[self->r.ownerNum].client
+			&& g_entities[self->r.ownerNum].client->ps.weapon == WP_SABER
+			&& G_SaberVoxelTrace(&g_entities[self->r.ownerNum], &g_entities[self->r.ownerNum].saberTrace[rSaberNum][rBladeNum].trace, saberStart, saberEnd, rSaberNum, rBladeNum))
+			//if (ent->r.contents & CONTENTS_LIGHTSABER)
+		{// Running this as the saber entity, not the client entity?
+			//trap->Print("Running test on saber entity instead of player. FIXED!\n");
 			return self->saberTrace[rSaberNum][rBladeNum].realTraceResult;
 		}
 		else
@@ -6015,6 +5953,8 @@ int WP_SaberBlockDirection(gentity_t *self, vec3_t hitloc)
 #define CLASH_MINIMUM_TIME				200//50//g_testvalue0.integer// 500//750
 #define SABER_DAMAGE_TIME				100//100//1000
 
+qboolean WP_MMOStyleSaberKillMovePossible(gentity_t *self); // below...
+
 static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t saberStart, vec3_t saberEnd, qboolean doInterpolate, int trMask, qboolean extrapolate)
 {
 	static trace_t		tr;
@@ -6056,6 +5996,11 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 		isBlocking = qtrue;
 	}
 
+	if (WP_MMOStyleSaberKillMovePossible(self))
+	{// MMO Style Kill Moves...
+		return qfalse;
+	}
+
 	//selfSaberLevel = G_SaberAttackPower(self, SaberAttacking(self));
 
 	realTraceResult = WP_DoFrameSaberTrace(self, rSaberNum, rBladeNum, saberStart, saberEnd, doInterpolate, trMask, extrapolate);
@@ -6081,19 +6026,19 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 			|| (self->client->ps.torsoAnim >= BOTH_SABERBLOCK_FL1 && self->client->ps.torsoAnim <= BOTH_SABERBLOCK_BR5)
 			|| (self->client->ps.torsoAnim >= BOTH_CC_SABERBLOCK_FL1 && self->client->ps.torsoAnim <= BOTH_CC_SABERBLOCK_BR5))
 		{// Very low damage while in a bounce...
-			dmg = 1.0;
+			dmg = 15.0;// 1.0;
 		}
 		else if (BG_SaberInSpecial(self->client->ps.saberMove) || BG_SaberInKata(self->client->ps.saberMove))
 		{// High damage in special attacks...
-			dmg = 25.0;
+			dmg = 75.0;// 25.0;
 		}
 		else if (BG_SaberInFullDamageMove(&self->client->ps, self->localAnimIndex))
 		{// Normal damage...
-			dmg = 10.0;
+			dmg = 50.0;// 10.0;
 		}
 		else if (self->client->ps.saberInFlight && rSaberNum == 0)
 		{// Low damage in saber throws...
-			dmg = 2.0;
+			dmg = 15.0;// 2.0;
 		}
 		else
 		{
@@ -12677,4 +12622,314 @@ typedef enum
 		self->nextSaberDamage = level.time + 500;
 	else
 		self->nextSaberDamage = level.time + MMO_SABER_DAMAGE_TIME;
+}
+
+qboolean WP_MMOStyleSaberKillMovePossible(gentity_t *self)
+{// This is it.. The whole code for a basic MMO style AOE saber/melee-weapon damage system...
+	if (!self || !self->client)
+	{
+		return qfalse;
+	}
+
+	if (!WP_PairedAnimationCheckCompletion(self))
+	{// Always continue scripted paired animations...
+		return qfalse;
+	}
+
+	if (self->client->ps.weapon != WP_SABER)
+	{
+		return qfalse;
+	}
+
+	if (!(self->client->pers.cmd.buttons & BUTTON_ATTACK) || (self->client->pers.cmd.buttons & BUTTON_ALT_ATTACK))
+	{
+		return qfalse;
+	}
+
+	if (self->nextSaberDamage > level.time)
+	{
+		return qfalse;
+	}
+
+	qboolean				isStaff = BG_EquippedWeaponIsTwoHanded(&self->client->ps);
+	qboolean				saberInAOE = (BG_SaberInSpecialAttack(self->client->ps.torsoAnim) || BG_SaberInSpecial(self->client->ps.saberMove) || BG_SaberInKata(self->client->ps.saberMove)) ? qtrue : qfalse;
+	float					dmg = irand(MMO_SABER_BASE_DAMAGE - 2.0, MMO_SABER_BASE_DAMAGE + 2.0);
+	int						dflags = 0;
+	static int				touch[MAX_GENTITIES], hits[MAX_GENTITIES], isBack[MAX_GENTITIES];
+	int						num = 0, numHits = 0, numHitsForward = 0, numHitsBehind = 0, numHitsLeft = 0, numHitsRight = 0, numHitsTrueForward = 0, numHitsTrueBehind = 0, numKillMoves = 0;
+	vec3_t					mins, maxs;
+	vec3_t					range = { MMO_SABER_DAMAGE_RANGE, MMO_SABER_DAMAGE_RANGE, 64.0f };
+	float					furthestDist = 0.0;
+
+	if (saberInAOE)
+	{// High damage in special attacks...
+		dmg = irand(20, 30);
+		dflags |= DAMAGE_EXTRA_KNOCKBACK;
+	}
+
+	if (isStaff)
+	{// Staff does a little less damage than a directed single saber...
+		dmg *= 0.75;
+	}
+
+
+	self->client->killmovePossible = KILLMOVE_NONE;
+
+
+	/* BEGIN: INV SYSTEM SABER DAMAGE */
+	float damageMult = 1.0f;
+
+	inventoryItem *invSaber = BG_EquippedWeapon(&self->client->ps);
+
+	if (invSaber && invSaber->getBasicStat2() == SABER_STAT2_DAMAGE_MODIFIER)
+	{
+		damageMult *= 1.0f + invSaber->getBasicStat3Value();
+	}
+
+	inventoryItem *invSaberMod2 = BG_EquippedMod2(&self->client->ps);
+
+	if (invSaberMod2 && invSaberMod2->getBasicStat2() == SABER_STAT2_DAMAGE_MODIFIER)
+	{
+		damageMult *= 1.0f + invSaberMod2->getBasicStat2Value();
+	}
+
+	dmg *= damageMult;
+	/* END: INV SYSTEM SABER DAMAGE */
+
+	/* BEGIN: INV SYSTEM SABER LENGTHS */
+	float lengthMult = 1.0f;
+
+	if (invSaber && invSaber->getBasicStat3() == SABER_STAT3_LENGTH_MODIFIER)
+	{
+		lengthMult *= 1.0f + invSaber->getBasicStat3Value();
+	}
+
+	inventoryItem *invSaberMod3 = BG_EquippedMod3(&self->client->ps);
+
+	if (invSaberMod3 && invSaberMod3->getBasicStat3() == SABER_STAT3_LENGTH_MODIFIER)
+	{
+		lengthMult *= 1.0f + invSaberMod3->getBasicStat3Value();
+	}
+
+	range[0] *= lengthMult;
+	range[1] *= lengthMult;
+	/* END: INV SYSTEM SABER LENGTHS */
+
+
+	VectorSubtract(self->client->ps.origin, range, mins);
+	VectorAdd(self->client->ps.origin, range, maxs);
+
+	num = trap->EntitiesInBox(mins, maxs, touch, MAX_GENTITIES);
+
+	for (int i = 0; i < num; i++)
+	{
+		if (touch[i] == self->s.number)
+		{
+			continue;
+		}
+
+		gentity_t *ent = &g_entities[touch[i]];
+
+		if (!ent)
+		{
+			continue;
+		}
+
+		if (ent->s.eType != ET_PLAYER && ent->s.eType != ET_NPC)
+		{
+			continue;
+		}
+
+		if (!ent->client)
+		{
+			continue;
+		}
+
+		if (ent->client->ps.eFlags & EF_DEAD)
+		{
+			continue;
+		}
+
+		if (ent->client->ps.stats[STAT_HEALTH] <= 0)
+		{
+			continue;
+		}
+
+		if (!ValidEnemy(self, ent))
+		{
+			continue;
+		}
+
+		float dist = Distance(self->client->ps.origin, ent->client->ps.origin);
+
+		if (dist > range[0])
+		{
+			continue;
+		}
+
+		qboolean isForward = InFront(ent->client->ps.origin, self->client->ps.origin, self->client->ps.viewangles, 0.0f);
+		qboolean isBehind = isForward ? qfalse : qtrue;
+
+		if (!isStaff && !saberInAOE && !isForward && dist > 64.0 * lengthMult)
+		{// Staff is full 360 degrees, as are AOE special abilities/attacks...
+			continue;
+		}
+
+		if (isBehind && dist > 96.0 * lengthMult)
+		{
+			continue;
+		}
+
+		// Record to the hits array, so as we can do kill moves if appropriate...
+		hits[numHits] = touch[i];
+
+		if (dist > furthestDist)
+		{
+			furthestDist = dist;
+		}
+
+		isBack[numHits] = qfalse;
+
+		if (isBehind)
+		{
+			numHitsBehind++;
+			isBack[numHits] = qtrue;
+		}
+		else if (isForward)
+		{
+			numHitsForward++;
+		}
+
+		numHits++;
+	}
+
+	if (numHits <= 0)
+	{
+		return qfalse;
+	}
+
+	if (numHitsBehind > 0)
+	{// Stab the one behind us...
+		self->client->killmovePossible = KILLMOVE_SINGLE_BACK;
+		numHits = 1;
+	}
+	else
+	{// Single forward stab...
+		if (furthestDist >= 96.0 * lengthMult)
+		{
+			self->client->killmovePossible = KILLMOVE_SINGLE_FAR;
+			numHits = 1;
+		}
+		else
+		{
+			self->client->killmovePossible = KILLMOVE_SINGLE;
+			numHits = 1;
+		}
+	}
+
+	if (self->client->killmovePossible <= KILLMOVE_NONE)
+	{
+		return qfalse;
+	}
+
+	/*if (self->s.eType == ET_PLAYER && numHits > 0)
+	{
+	Com_Printf("hits %i. behind %i. forward %i. trueForward %i. trueBehind %i. left %i. right %i. furthest %f. killMove %i (%s).\n", numHits, numHitsBehind, numHitsForward, numHitsTrueForward, numHitsTrueBehind, numHitsLeft, numHitsRight, furthestDist, (int)self->client->killmovePossible, killMoveTable[self->client->killmovePossible].name);
+	}*/
+
+	for (int i = 0; i < numHits; i++)
+	{
+		if (hits[i] == self->s.number)
+		{
+			continue;
+		}
+
+		gentity_t *ent = &g_entities[hits[i]];
+
+		if (!ent || !ent->client)
+		{
+			continue;
+		}
+
+		if (!isStaff && !saberInAOE)
+		{// Staff is full 360 degrees, as are AOE special abilities/attacks...
+			if (isBack[i]
+				&& self->client->killmovePossible != KILLMOVE_SINGLE_BACK
+				&& self->client->killmovePossible != KILLMOVE_BACK_AOE
+				&& self->client->killmovePossible != KILLMOVE_SINGLE_360_AOE)
+			{// For single saber back attacks, only backstab, BACK AOE, or single version of the 360 AOE allowed...
+				continue;
+			}
+		}
+
+		vec3_t enemyOrg, enemyDir;
+
+		enemyOrg[0] = ent->client->ps.origin[0];
+		enemyOrg[1] = ent->client->ps.origin[1];
+		enemyOrg[2] = ent->client->ps.origin[2] + irand(0, 16);
+
+		VectorSubtract(ent->client->ps.origin, self->client->ps.origin, enemyDir);
+
+		qboolean canInsta = qfalse;
+
+		if (ent->s.eType == ET_NPC && ent->s.health < 50)
+		{// Can finish off most NPCs with a kill move...
+			canInsta = qtrue;
+		}
+
+		if (!canInsta && ent->s.eType == ET_NPC && ent->s.NPC_class == CLASS_PURGETROOPER)
+		{
+			self->client->killmovePossible = KILLMOVE_NONE;
+			continue;
+		}
+		else if (ent->client->ps.weapon == WP_SABER || NPC_IsJedi(ent) || NPC_IsBoss(ent))
+		{
+			self->client->killmovePossible = KILLMOVE_NONE;
+			continue;
+		}
+		else if (ent->s.eType == ET_PLAYER)
+		{
+			self->client->killmovePossible = KILLMOVE_NONE;
+			continue;
+		}
+		else if (!canInsta && ent->s.eType == ET_NPC && ent->s.NPC_class == CLASS_K2SO)
+		{
+			self->client->killmovePossible = KILLMOVE_NONE;
+			continue;
+		}
+		else if (!canInsta && NPC_IsFollowerGunner(ent))
+		{
+			self->client->killmovePossible = KILLMOVE_NONE;
+			continue;
+		}
+		else if (!canInsta && (NPC_IsBountyHunter(ent) || NPC_IsCommando(ent) || NPC_IsAdvancedGunner(ent)))
+		{
+			self->client->killmovePossible = KILLMOVE_NONE;
+			continue;
+		}
+		else if (!canInsta && (NPC_IsGunner(ent) || NPC_IsAnimalEnemyFaction(ent)))
+		{
+			self->client->killmovePossible = KILLMOVE_NONE;
+			continue;
+		}
+		else
+		{/* attacking fodder always deals high damage */
+			G_Damage(ent, self, self, enemyDir, enemyOrg, 2000, dflags, MOD_SABER); // Insta-kill whenever there is a killmove possibility...
+		}
+
+		if (ent->client->ps.stats[STAT_HEALTH] <= 0 || (ent->client->ps.eFlags & EF_DEAD))
+		{
+			numKillMoves++;
+		}
+	}
+
+	if (numKillMoves > 0)
+	{
+		self->nextSaberDamage = level.time + 500;
+		return qtrue;
+	}
+	
+	self->nextSaberDamage = level.time + MMO_SABER_DAMAGE_TIME;
+
+	return qfalse;
 }

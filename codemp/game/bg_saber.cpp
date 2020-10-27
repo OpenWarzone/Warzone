@@ -6062,30 +6062,56 @@ int PM_AnimationForBounceMove(short newMove)
 	}
 	else
 	{
-#if 0
-		switch (newMove)
-		{
-		case LS_B1_TL:
-			return BOTH_SABERBLOCK_FL1 + irand(0, 4);
-			break;
-		case LS_B1_TR:
-		default:
-			return BOTH_SABERBLOCK_FR1 + irand(0, 4);
-			break;
-		case LS_B1__L:
-			//return BOTH_SABERBLOCK_B1 + irand(0, 4);
-			return BOTH_SABERBLOCK_FL1 + irand(0, 4);
-			break;
-		case LS_B1__R:
-			//return BOTH_SABERBLOCK_F1 + irand(0, 4);
-			return BOTH_SABERBLOCK_FR1 + irand(0, 4);
-			break;
-		case LS_B1_BL:
-			return BOTH_SABERBLOCK_BL1 + irand(0, 4);
-			break;
-		case LS_B1_BR:
-			return BOTH_SABERBLOCK_BR1 + irand(0, 4);
-			break;
+#if 1
+		if ((pm->cmd.buttons & BUTTON_ALT_ATTACK) || !(pm->cmd.buttons & BUTTON_ATTACK))
+		{// Shields up! When actively blocking, use appropriate deflect anims... They hit a brick wall and spin, we do a minor deflection...
+			switch (newMove)
+			{
+			case LS_B1_TL:
+				return BOTH_D1_TL___;
+				break;
+			case LS_B1_TR:
+			default:
+				return BOTH_D1_TR___;
+				break;
+			case LS_B1__L:
+				return BOTH_D1__L___;
+				break;
+			case LS_B1__R:
+				return BOTH_D1__R___;
+				break;
+			case LS_B1_BL:
+				return BOTH_D1_BL___;
+				break;
+			case LS_B1_BR:
+				return BOTH_D1_BR___;
+				break;
+			}
+		}
+		else
+		{// Let the rage flow through them... When attacking, use full body blocks and spins to keep the look of them being in attack...
+			switch (newMove)
+			{
+			case LS_B1_TL:
+				return BOTH_SABERBLOCK_FL1 + irand(0, 4);
+				break;
+			case LS_B1_TR:
+			default:
+				return BOTH_SABERBLOCK_FR1 + irand(0, 4);
+				break;
+			case LS_B1__L:
+				return BOTH_SABERBLOCK_FL1 + irand(0, 4);
+				break;
+			case LS_B1__R:
+				return BOTH_SABERBLOCK_FR1 + irand(0, 4);
+				break;
+			case LS_B1_BL:
+				return BOTH_SABERBLOCK_BL1 + irand(0, 4);
+				break;
+			case LS_B1_BR:
+				return BOTH_SABERBLOCK_BR1 + irand(0, 4);
+				break;
+			}
 		}
 #else
 		if (bg_testvalue0.integer == 6)
@@ -6100,11 +6126,9 @@ int PM_AnimationForBounceMove(short newMove)
 				return BOTH_CC_SABERBLOCK_FR1 + irand(0, 4);
 				break;
 			case LS_B1__L:
-				//return BOTH_CC_SABERBLOCK_B1 + irand(0, 4);
 				return BOTH_CC_SABERBLOCK_FL1 + irand(0, 4);
 				break;
 			case LS_B1__R:
-				//return BOTH_CC_SABERBLOCK_F1 + irand(0, 4);
 				return BOTH_CC_SABERBLOCK_FR1 + irand(0, 4);
 				break;
 			case LS_B1_BL:
@@ -6127,11 +6151,9 @@ int PM_AnimationForBounceMove(short newMove)
 				return BOTH_SABERBLOCK_FR1 + irand(0, 4);
 				break;
 			case LS_B1__L:
-				//return BOTH_SABERBLOCK_B1 + irand(0, 4);
 				return BOTH_SABERBLOCK_FL1 + irand(0, 4);
 				break;
 			case LS_B1__R:
-				//return BOTH_SABERBLOCK_F1 + irand(0, 4);
 				return BOTH_SABERBLOCK_FR1 + irand(0, 4);
 				break;
 			case LS_B1_BL:
@@ -6567,6 +6589,7 @@ void PM_SetSaberMove(short newMove)
 		if (PM_SaberInParry(pm->ps->saberMove)
 			|| PM_SaberInBounce(pm->ps->saberMove)
 			|| PM_SaberInKnockaway(pm->ps->saberMove)
+			|| PM_SaberInBrokenParry(newMove)
 			|| PM_SaberInReflect(pm->ps->saberMove)
 			|| PM_SaberInAnyBlockMove(pm->ps->saberMove)
 			|| (pm->ps->torsoAnim >= BOTH_SABERBLOCK_TL && pm->ps->torsoAnim <= BOTH_SABERBLOCK_T)
@@ -6637,10 +6660,17 @@ void PM_SetSaberMove(short newMove)
 
 		pm->ps->torsoBlendTime *= BG_GetBlendMultiplierForStance(pm->ps->fd.saberAnimLevelBase);
 	}
-	else if (pm->ps->fd.saberAnimLevel > SS_FAST &&
-		!BG_SaberInIdle(newMove) && !PM_SaberInParry(newMove) && !PM_SaberInKnockaway(newMove) && !PM_SaberInBrokenParry(newMove) && !PM_SaberInReflect(newMove) && !BG_SaberInSpecial(newMove))
-	{
-		//readies, parries and reflections have only 1 level 
+	else if (pm->ps->fd.saberAnimLevel > SS_FAST 
+		&& !BG_SaberInIdle(newMove) 
+		&& !PM_SaberInParry(newMove) 
+		&& !PM_SaberInKnockaway(newMove) 
+		&& !PM_SaberInBrokenParry(newMove) 
+		&& !PM_SaberInReflect(newMove) 
+		&& !BG_SaberInSpecial(newMove)
+		&& !((pm->ps->torsoAnim >= BOTH_SABERBLOCK_TL && pm->ps->torsoAnim <= BOTH_SABERBLOCK_T)
+			|| (pm->ps->torsoAnim >= BOTH_SABERBLOCK_FL1 && pm->ps->torsoAnim <= BOTH_SABERBLOCK_BR5)
+			|| (pm->ps->torsoAnim >= BOTH_CC_SABERBLOCK_FL1 && pm->ps->torsoAnim <= BOTH_CC_SABERBLOCK_BR5)))
+	{// readies, parries and reflections have only 1 level 
 		anim += (pm->ps->fd.saberAnimLevel - SS_FAST) * SABER_ANIM_GROUP_SIZE;
 	}
 
