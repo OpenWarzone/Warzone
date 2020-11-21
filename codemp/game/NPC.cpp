@@ -11,6 +11,8 @@
 
 #define WAYPOINT_NONE -1
 
+extern float			MAP_WATER_LEVEL;
+
 extern bot_state_t *botstates[MAX_GENTITIES];
 
 extern vec3_t playerMins;
@@ -4604,42 +4606,6 @@ void NPC_Think ( gentity_t *self )//, int msec )
 		// UQ1: Think more often!
 #ifndef __LOW_THINK_AI__
 
-#if 0
-		if (is_jedi && haveEnemyPlayer && enemyDist <= 256)
-		{// When a jedi NPC has a valid enemy, let it think a lot more, for smooth saber moves...
-			self->nextthink = aiEnt->NPC->nextBStateThink = level.time;
-			self->thinkrate = 0;
-
-			if (self->client->pers.cmd.buttons & BUTTON_ATTACK)
-			{// Keep things exactly as before, for saber chaining like players do...
-
-			}
-			else
-			{
-				aiEnt->client->pers.cmd.buttons = 0; // init buttons...
-			}
-		}
-		else if (haveEnemyPlayer && enemyDist <= NPC_FAST_THINK_RANGE)
-		{// Allow more thinks for NPC's with an enemy player...
-			//self->nextthink = level.time + (FRAMETIME / 10);
-			//aiEnt->NPC->nextBStateThink = level.time + (FRAMETIME / 2);
-
-			// Dynamic think timers based on distance from the enemy... Closer thinks faster... Should also spread all AI thinks out over time for less lag...
-			float rangeMultiplier = 1.0 - Q_clamp(0.0, enemyDist / NPC_FAST_THINK_RANGE, 1.0); // Give us a number between 0.0 and 1.0, 1.0 being the closest and 0.0 being the furthest...
-
-			// Basic (ClientThink - no AI changes) think every 10ms -> 50ms, by range...
-			float nextThinkDivider = Q_clamp(1.0, rangeMultiplier * 5.0, 5.0); // Should give us a number between 1.0 and 5.0. 5.0 being the closest and 1.0 being the furthest...
-			self->nextthink = level.time + (int)(((float)FRAMETIME / 2.0) / nextThinkDivider);
-			self->thinkrate = (int)(((float)FRAMETIME / 2.0) / nextThinkDivider);
-
-			// Full think (AI updates) every 25ms -> 50ms, by range...
-			float nextbSThinkDivider = Q_clamp(1.0, rangeMultiplier + 1.0, 2.0); // Should give us a number between 1.0 and 2.0. 2.0 being the closest and 1.0 being the furthest...
-			aiEnt->NPC->nextBStateThink = level.time + (int)(((float)FRAMETIME / 2.0) / nextbSThinkDivider);
-
-			aiEnt->client->pers.cmd.buttons = 0; // init buttons...
-		}
-		else
-#endif
 		{// Slow think, every 100ms...
 			self->nextthink = aiEnt->NPC->nextBStateThink = level.time + (FRAMETIME / 2);
 			self->thinkrate = (FRAMETIME / 2);
@@ -4665,6 +4631,36 @@ void NPC_Think ( gentity_t *self )//, int msec )
 
 			if (!WP_PairedAnimationCheckCompletion(self))
 			{// Always continue scripted paired animations...
+				NPC_GenericFrameCode(self);
+				return;
+			}
+
+			if (aiEnt->watertype == CONTENTS_WATER || !TIMER_Done(aiEnt, "gtfOutaWater") || aiEnt->r.currentOrigin[2] <= MAP_WATER_LEVEL + 32.0f)
+			{
+				//G_ClearEnemy(self);
+
+				if (aiEnt->watertype == CONTENTS_WATER || aiEnt->r.currentOrigin[2] <= MAP_WATER_LEVEL + 32.0f)
+				{
+					TIMER_Set(aiEnt, "gtfOutaWater", 15000); // When leaving water, keep running for 15 seconds, once back on land...
+				}
+
+				/*if (NPC_PatrolArea(aiEnt))
+				{
+					// On land, find a new position...
+					//trap->Print("NPC %i pathing out of water.\n", aiEnt->s.number);
+				}
+				else*/
+				{
+					if (DistanceHorizontal(aiEnt->spawn_pos, aiEnt->r.currentOrigin) > 64.0f)
+					{
+						NPC_FacePosition(aiEnt, aiEnt->spawn_pos, qfalse);
+						VectorSubtract(aiEnt->spawn_pos, aiEnt->r.currentOrigin, aiEnt->movedir);
+						UQ1_UcmdMoveForDir_NoAvoidance(aiEnt, &aiEnt->client->pers.cmd, aiEnt->movedir, qtrue, aiEnt->spawn_pos);
+						//trap->Print("NPC %i forced direction out of water.\n", aiEnt->s.number);
+					}
+				}
+
+				// Always run the generic frame code at the end...
 				NPC_GenericFrameCode(self);
 				return;
 			}

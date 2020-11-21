@@ -537,6 +537,19 @@ int NPC_FindGoal( gentity_t *NPC )
 	if (!G_NavmeshIsLoaded())
 		return -1;
 
+	if (!TIMER_Done(NPC, "gtfOutaWater"))
+	{// Get the fk out of water...
+		//FindRandomNavmeshSpawnpoint(NULL, NPC->client->navigation.goal.origin);
+		//if (VectorLength(NPC->client->navigation.goal.origin) == 0)
+		//	return -1;
+
+		VectorCopy(NPC->spawn_pos, NPC->client->navigation.goal.origin);
+		if (VectorLength(NPC->client->navigation.goal.origin) == 0)
+			return -1;
+
+		return 1;
+	}
+
 	//FindRandomNavmeshPatrolPoint(NPC->s.number, NPC->client->navigation.goal.origin);
 	FindRandomNavmeshSpawnpoint(NPC, NPC->client->navigation.goal.origin);
 	if (VectorLength(NPC->client->navigation.goal.origin) == 0)

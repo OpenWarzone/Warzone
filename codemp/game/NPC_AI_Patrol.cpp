@@ -413,6 +413,84 @@ qboolean NPC_PatrolArea(gentity_t *aiEnt)
 		return qfalse;
 	}*/
 
+//#define __TRACED_PATROL__
+	
+#ifdef __TRACED_PATROL__
+	if (VectorLength(aiEnt->NPC->investigateGoal) == 0.0f)
+	{
+		vec3_t traceBox[2];
+		VectorSet(traceBox[0], aiEnt->r.mins[0], aiEnt->r.mins[1], -2.0f);
+		VectorSet(traceBox[1], aiEnt->r.maxs[0], aiEnt->r.maxs[1], 2.0f);
+
+		float yaw = irand(0, 360);
+
+		vec3_t dir;
+		dir[PITCH] = 0;
+		dir[ROLL] = 0;
+		dir[YAW] = yaw;
+
+		VectorMA(aiEnt->spawn_pos, 4096.0, dir, aiEnt->NPC->investigateGoal);
+		aiEnt->NPC->investigateGoal[2] += 96.0f;
+
+		vec3_t viewPos;
+		VectorCopy(aiEnt->r.currentOrigin, viewPos);
+		viewPos[2] += 96.0;
+
+		trace_t tr1;
+		trap->Trace(&tr1, viewPos, traceBox[0], traceBox[1], aiEnt->NPC->investigateGoal, aiEnt->s.number, MASK_PLAYERSOLID | CONTENTS_WATER, qfalse, 0, 0);
+
+		if (tr1.contents & CONTENTS_WATER)
+		{
+			VectorClear(aiEnt->NPC->investigateGoal);
+			return qfalse;
+		}
+
+		float distTraced = Distance(tr1.endpos, aiEnt->r.currentOrigin);
+
+		// if tr1 went far enough, then check for a fall as well...
+		if (distTraced < 256.0)
+		{
+			VectorClear(aiEnt->NPC->investigateGoal);
+			return qfalse;
+		}
+
+		vec3_t downPos;
+		VectorCopy(aiEnt->NPC->investigateGoal, downPos);
+		downPos[2] -= 256.0;
+
+		trace_t tr2;
+		trap->Trace(&tr2, tr1.endpos, NULL, NULL, aiEnt->NPC->investigateGoal, aiEnt->s.number, MASK_PLAYERSOLID | CONTENTS_WATER, qfalse, 0, 0);
+
+		if (tr2.contents & CONTENTS_WATER)
+		{
+			VectorClear(aiEnt->NPC->investigateGoal);
+			return qfalse;
+		}
+
+		if (tr2.endpos[2] < aiEnt->r.currentOrigin[2] - 96.0f)
+		{
+			VectorClear(aiEnt->NPC->investigateGoal);
+			return qfalse;
+		}
+
+		VectorCopy(tr2.endpos, aiEnt->NPC->investigateGoal);
+		aiEnt->NPC->investigateGoal[2] += 8.0f;
+	}
+
+	// We have a goal, move there...
+	if (DistanceHorizontal(aiEnt->r.currentOrigin, aiEnt->NPC->investigateGoal) <= 32.0f)
+	{
+		VectorClear(aiEnt->NPC->investigateGoal);
+		return qfalse;
+	}
+
+	NPC_FacePosition(aiEnt, aiEnt->NPC->investigateGoal, qfalse);
+	VectorSubtract(aiEnt->NPC->investigateGoal, aiEnt->r.currentOrigin, aiEnt->movedir);
+	UQ1_UcmdMoveForDir(aiEnt, &aiEnt->client->pers.cmd, aiEnt->movedir, qtrue, aiEnt->NPC->investigateGoal);
+
+	return qtrue;
+#endif //__TRACED_PATROL__
+
 #ifdef __USE_NAVLIB__
 	if (G_NavmeshIsLoaded())
 	{
