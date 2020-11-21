@@ -2880,6 +2880,18 @@ qboolean G_SaberStanceIsValid(gentity_t *ent, int stance)
 		return qtrue;
 	}
 
+	inventoryItem *saber = BG_EquippedWeapon(&ent->client->ps);
+
+	// Let staff be split into 2 sabers...
+	if (saber && saber->getBaseItem()->giTag == WP_SABER && saber->getIsTwoHanded() && stance == SS_CROWD_CONTROL)
+	{
+		return qtrue;
+	}
+	else if (saber && saber->getBaseItem()->giTag == WP_SABER && saber->getIsTwoHanded() && stance == SS_DUAL)
+	{
+		return qtrue;
+	}
+
 	G_CheckSaber(ent);
 
 	int dualSaber = 0;
@@ -2945,6 +2957,7 @@ void G_CheckSaberStanceValidity(gentity_t *ent)
 		return;
 	}
 
+#ifdef __ALL_SABER_STYLES__
 	G_CheckSaber(ent);
 
 	int dualSaber = 0;
@@ -2966,7 +2979,6 @@ void G_CheckSaberStanceValidity(gentity_t *ent)
 			dualBlade = 1;
 	}
 
-#ifdef __ALL_SABER_STYLES__
 	if (dualSaber > 0)
 	{
 		Cmd_SaberAttackCycle_f(ent);
@@ -2987,7 +2999,65 @@ void G_CheckSaberStanceValidity(gentity_t *ent)
 		}
 	}
 #else //!__ALL_SABER_STYLES__
-	Cmd_SaberAttackCycle_f(ent);
+	//Cmd_SaberAttackCycle_f(ent);
+	if (!G_SaberStanceIsValid(ent, ent->client->ps.fd.saberAnimLevelBase))
+	{
+		int selectLevel = ent->client->ps.fd.saberAnimLevel;
+
+		if (ent->client->saberCycleQueue)
+		{ //resume off of the queue if we haven't gotten a chance to update it yet
+			selectLevel = ent->client->saberCycleQueue;
+		}
+
+		if (!G_SaberStanceIsValid(ent, selectLevel))
+		{
+			int dualSaber = 0;
+			int dualBlade = 0;
+
+			if (ent->client->saber[0].model[0] && ent->client->saber[1].model[0])
+			{// dual sabers
+				if (ent->client->ps.saberHolstered == 0)
+					dualSaber = 2;
+				else
+					dualSaber = 1;
+			}
+
+			if (ent->client->saber[0].numBlades > 1)
+			{// staff
+				if (ent->client->ps.saberHolstered == 0)
+					dualBlade = 2;
+				else
+					dualBlade = 1;
+			}
+
+			if (dualSaber > 0)
+			{
+				selectLevel = SS_DUAL;
+			}
+			else if (dualBlade > 0)
+			{
+				selectLevel = SS_CROWD_CONTROL;
+			}
+			else
+			{
+#ifdef __ALL_SABER_STYLES__
+				selectLevel = SS_FAST;
+#else //!__ALL_SABER_STYLES__
+				selectLevel = BASE_SINGLE_STANCE;
+#endif //__ALL_SABER_STYLES__
+			}
+		}
+
+		if (ent->client->ps.weaponTime <= 0)
+		{// not busy, set it now
+			ent->client->ps.fd.saberDrawAnimLevel = ent->client->ps.fd.saberAnimLevelBase = ent->client->ps.fd.saberAnimLevel = selectLevel;
+			ent->client->saberCycleQueue = 0;
+		}
+		else
+		{ //can't set it now or we might cause unexpected chaining, so queue it
+			ent->client->saberCycleQueue = selectLevel;
+		}
+	}
 #endif //__ALL_SABER_STYLES__
 }
 
@@ -3002,11 +3072,15 @@ void Cmd_SaberAttackCycle_f(gentity_t *ent)
 		return;
 	}
 
+	//if (ent->s.eType == ET_NPC) trap->Print("NPC staff user (%i) switching between staff/dual...\n", ent->s.number);
+
 	if (level.intermissionQueued || level.intermissiontime)
 	{
 		trap->SendServerCommand(ent - g_entities, va("print \"%s (saberAttackCycle)\n\"", G_GetStringEdString("MP_SVGAME", "CANNOT_TASK_INTERMISSION")));
 		return;
 	}
+
+	//if (ent->s.eType == ET_NPC) trap->Print("  --> (%i) checkSaber\n", ent->s.number);
 
 	if (ent->client->ps.weapon != WP_SABER)
 	{
@@ -3025,6 +3099,7 @@ void Cmd_SaberAttackCycle_f(gentity_t *ent)
 	}
 
 #ifndef __DEBUG_SABER_STYLES__
+
 	selectLevel++;
 
 	if (!G_SaberStanceIsValid(ent, selectLevel))
@@ -3124,12 +3199,73 @@ void Cmd_SaberAttackCycle_f(gentity_t *ent)
 #endif //__DEBUG_SABER_STYLES__
 
 	if (ent->client->ps.weaponTime <= 0)
-	{ //not busy, set it now
+	{// not busy, set it now
+		bool switchedToDual = false;
+		bool switchedToStaff = false;
+
+		inventoryItem *saber = BG_EquippedWeapon(&ent->client->ps);
+
+		// Let staff be split into 2 sabers...
+		if (saber && saber->getBaseItem()->giTag == WP_SABER && saber->getIsTwoHanded() && ent->client->ps.fd.saberDrawAnimLevel == SS_CROWD_CONTROL)
+		{
+			int orig = ent->client->ps.fd.saberAnimLevel;
+			selectLevel = SS_DUAL;
+			ent->client->ps.fd.saberAnimLevel = selectLevel; // So we can set it up in G_CheckSaber()
+			G_CheckSaber(ent);
+			ent->client->ps.fd.saberAnimLevel = orig;
+			
+			//trap->Print("Entity %i switching to DUAL (is 2h %s).\n", ent->s.number, saber->getIsTwoHanded() ? "TRUE" : "FALSE");
+
+			switchedToDual = true;
+		}
+		else if (saber && saber->getBaseItem()->giTag == WP_SABER && saber->getIsTwoHanded())
+		{
+			int orig = ent->client->ps.fd.saberAnimLevel;
+			selectLevel = SS_CROWD_CONTROL;
+			ent->client->ps.fd.saberAnimLevel = selectLevel; // So we can set it up in G_CheckSaber()
+			G_CheckSaber(ent);
+			ent->client->ps.fd.saberAnimLevel = orig;
+			
+			//trap->Print("Entity %i switching to STAFF (is 2h %s).\n", ent->s.number, saber->getIsTwoHanded() ? "TRUE" : "FALSE");
+
+			switchedToStaff = true;
+		}
+
 		ent->client->ps.fd.saberDrawAnimLevel = ent->client->ps.fd.saberAnimLevelBase = ent->client->ps.fd.saberAnimLevel = selectLevel;
+		ent->client->saberCycleQueue = 0;
+
+		// UQ: Always wait between switches, especially now we sometimes send new clientinfo changes with staff... Don't want switch DDOS attacks on the servers...
+		ent->client->ps.weaponTime = 1000;
+
+		if (switchedToDual)
+		{
+			int animFlags = SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART | SETANIM_FLAG_HOLDLESS;
+			ent->client->ps.saberMove = LS_READY;
+			//G_SetAnim(ent, NULL, SETANIM_TORSO, 505, animFlags, 0);
+			//G_SetAnim(ent, NULL, SETANIM_TORSO, 538, animFlags, 0);
+			//G_SetAnim(ent, NULL, SETANIM_TORSO, 559, animFlags, 0);
+			////G_SetAnim(ent, NULL, SETANIM_TORSO, 1268, animFlags, 0);
+			//G_SetAnim(ent, NULL, SETANIM_TORSO, 1269, animFlags, 0);
+			G_SetAnim(ent, NULL, SETANIM_TORSO, BOTH_FORCE_DRAIN_GRAB_END/*1366*/, animFlags, 0);
+		}
+		else if (switchedToStaff)
+		{
+			int animFlags = SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_RESTART | SETANIM_FLAG_HOLDLESS;
+			ent->client->ps.saberMove = LS_READY;
+			G_SetAnim(ent, NULL, SETANIM_TORSO, BOTH_CC_STANCE, animFlags, 0);
+		}
+
+		if (ent->s.eType == ET_NPC)
+		{// Set favored stance for NPC to the new stance, so it stays with it...
+			ent->client->npcFavoredStance = ent->client->ps.fd.saberAnimLevel;
+		}
+
+		//if (ent->s.eType == ET_NPC) trap->Print("  --> (%i) should have switched\n", ent->s.number);
 	}
 	else
 	{ //can't set it now or we might cause unexpected chaining, so queue it
 		ent->client->saberCycleQueue = selectLevel;
+		//if (ent->s.eType == ET_NPC) trap->Print("  --> (%i) was busy\n", ent->s.number);
 	}
 }
 

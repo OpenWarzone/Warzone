@@ -4127,6 +4127,7 @@ void NPC_GenericFrameCode ( gentity_t *self )
 	{
 		aiEnt->NPC->last_ucmd.buttons &= ~(BUTTON_ATTACK|BUTTON_ALT_ATTACK);//so we don't fire twice in one think
 	}
+
 	//============================================================================
 	NPC_CheckAttackScript(aiEnt);
 	NPC_KeepCurrentFacing(aiEnt);
@@ -4545,6 +4546,34 @@ void NPC_Think ( gentity_t *self )//, int msec )
 			&& g_entities[self->client->ps.m_iVehicleNum].s.NPC_class == CLASS_VEHICLE))
 	{// Make sure we unghost and transmit to clients...
 		NPC_UnGhost(aiEnt);
+	}
+
+	if (!TIMER_Done(aiEnt, "attackHold"))
+	{
+		aiEnt->client->pers.cmd.buttons |= BUTTON_ATTACK;
+	}
+	else if (aiEnt->NPC->attackHoldTime || (aiEnt->client->pers.cmd.buttons & BUTTON_ATTACK))
+	{
+		aiEnt->client->pers.cmd.buttons |= BUTTON_ATTACK;
+		TIMER_Set(aiEnt, "attackHold", 2000);
+	}
+	else
+	{
+		aiEnt->client->pers.cmd.buttons &= ~BUTTON_ATTACK;
+	}
+
+	if (!TIMER_Done(aiEnt, "altAttackHold"))
+	{
+		aiEnt->client->pers.cmd.buttons |= BUTTON_ALT_ATTACK;
+	}
+	else if (aiEnt->NPC->attackHoldTime || (aiEnt->client->pers.cmd.buttons & BUTTON_ATTACK))
+	{
+		aiEnt->client->pers.cmd.buttons |= BUTTON_ALT_ATTACK;
+		TIMER_Set(aiEnt, "altAttackHold", 2000);
+	}
+	else
+	{
+		aiEnt->client->pers.cmd.buttons &= ~BUTTON_ALT_ATTACK;
 	}
 
 #ifdef __NPC_VEHICLE_PILOTS__

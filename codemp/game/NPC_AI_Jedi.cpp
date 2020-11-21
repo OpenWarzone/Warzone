@@ -3,6 +3,12 @@
 #include "anims.h"
 #include "w_saber.h"
 
+#define __JEDI_EVASIONS__
+#define __JEDI_STRAFE__
+
+//#define __JEDI_HEAL__
+//#define __USE_FORCE_EXTRA_ABILITIES__
+
 //#define __JEDI_TRACKING__
 //#define __EVASION_JUMPING__
 
@@ -102,6 +108,7 @@ static void Jedi_Aggression( gentity_t *self, int change );
 qboolean Jedi_WaitingAmbush( gentity_t *self );
 
 extern void G_AddPadawanCombatCommentEvent( gentity_t *self, int event, int speakDebounceTime );
+extern qboolean Jedi_BattleTaunt(gentity_t *aiEnt);
 
 extern int bg_parryDebounce[];
 
@@ -254,12 +261,24 @@ qboolean Jedi_AttackOrCounter( gentity_t *NPC )
 	{// Attack mode...
 		NPC->client->pers.cmd.buttons &= ~BUTTON_ALT_ATTACK;
 		if (NPC->enemy->s.eType != ET_PLAYER) NPC->enemy->client->pers.cmd.buttons |= BUTTON_ALT_ATTACK;
+
 		return qtrue;
 	}
 	else
 	{// Counter mode...
+		inventoryItem *saber = BG_EquippedWeapon(&NPC->client->ps);
+
+		if (saber && saber->getBaseItem()->giTag == WP_SABER && saber->getIsTwoHanded() && irand(0, 30) == 0)
+		{// Staff users sometimes split their staff into dual sabers...
+			//trap->Print("NPC staff user (%i) switching between staff/dual...\n", NPC->s.number);
+			NPC->client->ps.weaponTime = 0;
+			Cmd_SaberAttackCycle_f(NPC);
+			Jedi_BattleTaunt(NPC);
+		}
+
 		NPC->client->pers.cmd.buttons |= BUTTON_ALT_ATTACK;
 		if (NPC->enemy->s.eType != ET_PLAYER) NPC->enemy->client->pers.cmd.buttons &= ~BUTTON_ALT_ATTACK;
+
 		return qfalse;
 	}
 }
@@ -1373,7 +1392,7 @@ SPEAKING
 ==========================================================================================
 */
 
-static qboolean Jedi_BattleTaunt( gentity_t *aiEnt)
+qboolean Jedi_BattleTaunt( gentity_t *aiEnt)
 {
 	if ( TIMER_Done( aiEnt, "chatter" )
 		&& !Q_irand( 0, 3 )
@@ -2036,6 +2055,7 @@ void Jedi_AdjustSaberAnimLevel( gentity_t *self, int newLevel )
 		return;
 	}
 
+	// UQ1: FUUUUUUUUUUCCCCKKKKKKKKK OOOOOOFFFFFFFFFFFFFFFFFFFF, K?
 #if 0
 	if (self->client->NPC_class == CLASS_TAVION)
 	{//special attacks
@@ -2118,27 +2138,76 @@ void Jedi_AdjustSaberAnimLevel( gentity_t *self, int newLevel )
 		self->client->npcFavoredStance = self->client->ps.fd.saberAnimLevel;
 		//trap->Print("NPC %s selected stance %i.\n", self->client->pers.netname, self->client->npcFavoredStance);
 	}
-#else
-	if (self->client->saber[0].model[0] && self->client->saber[1].model[0])
-	{// Dual sabers...
-		self->client->ps.fd.saberAnimLevel = SS_DUAL;
-		self->client->ps.fd.saberAnimLevelBase = SS_DUAL;
-		self->client->ps.fd.saberDrawAnimLevel = SS_DUAL;
+#elif 0
+	if (self->client->NPC_class == CLASS_TAVION)
+	{//special attacks
+		self->client->ps.fd.saberAnimLevel = SS_TAVION;
+		self->client->ps.fd.saberAnimLevelBase = SS_TAVION;
+		self->client->ps.fd.saberDrawAnimLevel = SS_TAVION;
+		self->client->npcFavoredStance = SS_TAVION;
+		return;
 	}
-	else if (self->client->saber[0].numBlades > 1)
-	{// Dual blade...
-		self->client->ps.fd.saberAnimLevel = SS_CROWD_CONTROL;
-		self->client->ps.fd.saberAnimLevelBase = SS_CROWD_CONTROL;
-		self->client->ps.fd.saberDrawAnimLevel = SS_CROWD_CONTROL;
+	else if (self->client->NPC_class == CLASS_DESANN)
+	{//special attacks
+		self->client->ps.fd.saberAnimLevel = SS_DESANN;
+		self->client->ps.fd.saberAnimLevelBase = SS_DESANN;
+		self->client->ps.fd.saberDrawAnimLevel = SS_DESANN;
+		self->client->npcFavoredStance = SS_DESANN;
+		return;
 	}
 	else
-	{// Single saber...
-		self->client->ps.fd.saberAnimLevel = SS_SINGLE;
-		self->client->ps.fd.saberAnimLevelBase = SS_SINGLE;
-		self->client->ps.fd.saberDrawAnimLevel = SS_SINGLE;
-	}
+	{
+		if (self->client->saber[0].model[0] && self->client->saber[1].model[0])
+		{// Dual sabers...
+			self->client->ps.fd.saberAnimLevel = SS_DUAL;
+			self->client->ps.fd.saberAnimLevelBase = SS_DUAL;
+			self->client->ps.fd.saberDrawAnimLevel = SS_DUAL;
+		}
+		else if (self->client->saber[0].numBlades > 1)
+		{// Dual blade...
+			self->client->ps.fd.saberAnimLevel = SS_CROWD_CONTROL;
+			self->client->ps.fd.saberAnimLevelBase = SS_CROWD_CONTROL;
+			self->client->ps.fd.saberDrawAnimLevel = SS_CROWD_CONTROL;
+		}
+		else
+		{// Single saber...
+			int styleChoice = irand(0, 5);
 
-	// Remember our favored stance...
+			switch (styleChoice)
+			{
+			case 0:
+				self->client->ps.fd.saberAnimLevel = SS_FAST;
+				self->client->ps.fd.saberAnimLevelBase = SS_FAST;
+				self->client->ps.fd.saberDrawAnimLevel = SS_FAST;
+				break;
+			case 1:
+			case 2:
+			case 3:
+			default:
+				self->client->ps.fd.saberAnimLevel = SS_MEDIUM;
+				self->client->ps.fd.saberAnimLevelBase = SS_MEDIUM;
+				self->client->ps.fd.saberDrawAnimLevel = SS_MEDIUM;
+				break;
+			case 4:
+				self->client->ps.fd.saberAnimLevel = SS_STRONG;
+				self->client->ps.fd.saberAnimLevelBase = SS_STRONG;
+				self->client->ps.fd.saberDrawAnimLevel = SS_STRONG;
+				break;
+			case 5:
+			case 6:
+				self->client->ps.fd.saberAnimLevel = SS_DUAL;
+				self->client->ps.fd.saberAnimLevelBase = SS_DUAL;
+				self->client->ps.fd.saberDrawAnimLevel = SS_DUAL;
+				break;
+			}
+		}
+
+		// Remember our favored stance...
+		self->client->npcFavoredStance = self->client->ps.fd.saberAnimLevel;
+		//trap->Print("NPC %s selected stance %i.\n", self->client->pers.netname, self->client->npcFavoredStance);
+	}
+#else
+	G_CheckSaberStanceValidity(self);
 	self->client->npcFavoredStance = self->client->ps.fd.saberAnimLevel;
 #endif
 }
@@ -2532,6 +2601,7 @@ static void Jedi_CombatDistance( gentity_t *aiEnt, int enemy_dist )
 #endif //__FORCE_SPEED__
 }
 
+#ifdef __JEDI_STRAFE__
 static qboolean Jedi_Strafe( gentity_t *aiEnt, int strafeTimeMin, int strafeTimeMax, int nextStrafeTimeMin, int nextStrafeTimeMax, qboolean walking )
 {
 	if( Jedi_CultistDestroyer( aiEnt ) )
@@ -2590,6 +2660,7 @@ static qboolean Jedi_Strafe( gentity_t *aiEnt, int strafeTimeMin, int strafeTime
 	}
 	return qfalse;
 }
+#endif //__JEDI_STRAFE__
 
 /*
 static void Jedi_FaceEntity( gentity_t *self, gentity_t *other, qboolean doPitch )
@@ -2616,6 +2687,7 @@ static void Jedi_FaceEntity( gentity_t *self, gentity_t *other, qboolean doPitch
 }
 */
 
+#ifdef __JEDI_EVASIONS__
 /*
 qboolean Jedi_DodgeEvasion( gentity_t *self, gentity_t *shooter, trace_t *tr, int hitLoc )
 
@@ -2915,6 +2987,7 @@ int Jedi_ReCalcParryTime( gentity_t *self, evasionType_t evasionType )
 	}
 	return 0;
 }
+#endif //__JEDI_EVASIONS__
 
 qboolean Jedi_QuickReactions( gentity_t *self )
 {
@@ -2944,6 +3017,7 @@ qboolean Jedi_SaberBusy( gentity_t *self )
 	return qfalse;
 }
 
+#ifdef __JEDI_EVASIONS__
 /*
 -------------------------
 Jedi_SaberBlock
@@ -3830,6 +3904,12 @@ static qboolean Jedi_SaberBlock( gentity_t *aiEnt, int saberNum, int bladeNum ) 
 	}
 	return qtrue;
 }
+#else //!__JEDI_EVASIONS__
+evasionType_t Jedi_SaberBlockGo(gentity_t *self, usercmd_t *cmd, vec3_t pHitloc, vec3_t phitDir, gentity_t *incoming, float dist) //dist = 0.0f
+{
+	return EVASION_NONE;
+}
+#endif //__JEDI_EVASIONS__
 
 qboolean Jedi_SpeedEvasion(gentity_t *self)
 {
@@ -4426,6 +4506,7 @@ void Jedi_EvasionSaber( gentity_t *aiEnt, vec3_t enemy_movedir, float enemy_dist
 		}
 	}
 
+#ifdef __JEDI_EVASIONS__
 	if ( aiEnt->enemy->client->ps.weaponTime && aiEnt->enemy->client->ps.weaponstate == WEAPON_FIRING )
 	{
 		if ( !aiEnt->client->ps.saberInFlight && Jedi_SaberBlock(aiEnt, 0, 0) )
@@ -4433,6 +4514,7 @@ void Jedi_EvasionSaber( gentity_t *aiEnt, vec3_t enemy_movedir, float enemy_dist
 			return;
 		}
 	}
+#endif //__JEDI_EVASIONS__
 
 	VectorSubtract( aiEnt->r.currentOrigin, aiEnt->enemy->r.currentOrigin, dirEnemy2Me );
 	VectorNormalize( dirEnemy2Me );
@@ -4571,7 +4653,10 @@ void Jedi_EvasionSaber( gentity_t *aiEnt, vec3_t enemy_movedir, float enemy_dist
 				{//FIXME: check forcePushRadius[NPC->client->ps.fd.forcePowerLevel[FP_PUSH]]
 					ForceThrow( aiEnt, qfalse );
 				}
-				else if (!Jedi_SaberBlock(aiEnt, 0, 0))
+				else
+#ifdef __JEDI_EVASIONS__
+				if (!Jedi_SaberBlock(aiEnt, 0, 0))
+#endif //__JEDI_EVASIONS__
 				{
 					Jedi_EvasionRoll(aiEnt);
 				}
@@ -4587,7 +4672,9 @@ void Jedi_EvasionSaber( gentity_t *aiEnt, vec3_t enemy_movedir, float enemy_dist
 			case 12:
 				//try to parry the blow
 				//Com_Printf( "blocking\n" );
+#ifdef __JEDI_EVASIONS__
 				if (!Jedi_SaberBlock(aiEnt, 0, 0))
+#endif //__JEDI_EVASIONS__
 				{
 					Jedi_EvasionRoll(aiEnt);
 				}
@@ -4595,7 +4682,11 @@ void Jedi_EvasionSaber( gentity_t *aiEnt, vec3_t enemy_movedir, float enemy_dist
 			default:
 				//Evade!
 				//start a strafe left/right if not already
-				if ( !Q_irand( 0, 5 ) || !Jedi_Strafe(aiEnt, 300, 1000, 0, 1000, qfalse ) )
+				if ( !Q_irand( 0, 5 ) 
+#ifdef __JEDI_EVASIONS__
+					|| !Jedi_Strafe(aiEnt, 300, 1000, 0, 1000, qfalse ) 
+#endif //__JEDI_EVASIONS__
+					)
 				{//certain chance they will pick an alternative evasion
 					//if couldn't strafe, try a different kind of evasion...
 #ifdef __EVASION_JUMPING__
@@ -4654,7 +4745,9 @@ void Jedi_EvasionSaber( gentity_t *aiEnt, vec3_t enemy_movedir, float enemy_dist
 						}
 					}
 #else //!__EVASION_JUMPING__
+#ifdef __JEDI_EVASIONS__
 					if (!Jedi_SaberBlock(aiEnt, 0, 0))
+#endif //__JEDI_EVASIONS__
 					{
 						Jedi_EvasionRoll(aiEnt);
 					}
@@ -4687,7 +4780,9 @@ void Jedi_EvasionSaber( gentity_t *aiEnt, vec3_t enemy_movedir, float enemy_dist
 						TIMER_Set( aiEnt, "jumpChaseDebounce", Q_irand( 2000, 5000 ) );
 					}
 #else //!__EVASION_JUMPING__
+#ifdef __JEDI_EVASIONS__
 					if (!Jedi_SaberBlock(aiEnt, 0, 0))
+#endif //__JEDI_EVASIONS__
 					{
 						Jedi_EvasionRoll(aiEnt);
 					}
@@ -5096,6 +5191,7 @@ static void Jedi_CombatTimersUpdate( gentity_t *aiEnt, int enemy_dist )
 		}
 	}
 
+#ifdef __JEDI_STRAFE__
 	if ( TIMER_Done( aiEnt, "noStrafe" ) && TIMER_Done( aiEnt, "strafeLeft" ) && TIMER_Done( aiEnt, "strafeRight" ) )
 	{
 		//FIXME: Maybe more likely to do this if aggression higher?  Or some other stat?
@@ -5114,6 +5210,7 @@ static void Jedi_CombatTimersUpdate( gentity_t *aiEnt, int enemy_dist )
 			TIMER_Set( aiEnt, "noStrafe", Q_irand( 1000, 3000 ) );
 		}
 	}
+#endif //__JEDI_STRAFE__
 
 	if ( aiEnt->client->ps.saberEventFlags )
 	{//some kind of saber combat event is still pending
@@ -5423,6 +5520,7 @@ static qboolean Jedi_AttackDecide( gentity_t *aiEnt, int enemy_dist )
 	{//not already attacking
 		if (CanShoot (aiEnt->enemy, aiEnt ))
 		{// UQ1: Umm, how about we actually check if we can hit them first???
+#ifdef __JEDI_HEAL__
 			if (aiEnt->s.weapon == WP_SABER)
 			{//Try to attack
 				Jedi_FaceEnemy(aiEnt, qtrue);
@@ -5508,6 +5606,7 @@ static qboolean Jedi_AttackDecide( gentity_t *aiEnt, int enemy_dist )
 				}
 			}
 			else
+#endif //__JEDI_HEAL__
 			{//Try to attack
 				WeaponThink(aiEnt, qtrue );
 			}
@@ -6525,6 +6624,7 @@ static void Jedi_Combat( gentity_t *aiEnt)
 		qboolean attacked = qfalse;
 
 		if ( aiEnt->enemy 
+			&& aiEnt->client->ps.weaponTime <= 0
 			&& NPC_IsAlive(aiEnt, aiEnt->enemy)
 			&& Distance(aiEnt->enemy->r.currentOrigin, aiEnt->r.currentOrigin) <= 64 
 			&& (aiEnt->client->ps.weapon == WP_SABER || aiEnt->client->NPC_class == CLASS_BOBAFETT)
@@ -8160,40 +8260,85 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 	//
 	if (NPC_IsLightJedi(aiEnt))
 	{// Jedi...
-		/*aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_TEAM_HEAL);
+		aiEnt->client->ps.fd.forceSide = FORCE_LIGHTSIDE;
+		aiEnt->client->ps.fd.forceRank = FORCE_MASTERY_JEDI_MASTER;
+
+		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_TEAM_HEAL);
 		aiEnt->client->ps.fd.forcePowerLevel[FP_TEAM_HEAL] = 3;
 
 		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_HEAL);
 		aiEnt->client->ps.fd.forcePowerLevel[FP_HEAL] = 3;
 
+#ifdef __USE_FORCE_EXTRA_ABILITIES__
 		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_PROTECT);
 		aiEnt->client->ps.fd.forcePowerLevel[FP_PROTECT] = 3;
 
 		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_ABSORB);
-		aiEnt->client->ps.fd.forcePowerLevel[FP_ABSORB] = 3;*/
+		aiEnt->client->ps.fd.forcePowerLevel[FP_ABSORB] = 3;
 
-		//aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_TELEPATHY);
-		//aiEnt->client->ps.fd.forcePowerLevel[FP_TELEPATHY] = 3;
+		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_TELEPATHY);
+		aiEnt->client->ps.fd.forcePowerLevel[FP_TELEPATHY] = 3;
+		
+		for ( int i = 0; i<NUM_FORCE_POWERS; i++)
+			aiEnt->client->ps.fd.forcePowerBaseLevel[i] = aiEnt->client->ps.fd.forcePowerLevel[i];
+#endif //__USE_FORCE_EXTRA_ABILITIES__
 	}
 	else if (NPC_IsDarkJedi(aiEnt))
 	{// Sith...
-		//aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_DRAIN);
-		//aiEnt->client->ps.fd.forcePowerLevel[FP_DRAIN] = 3;
+		aiEnt->client->ps.fd.forceSide = FORCE_DARKSIDE;
+		aiEnt->client->ps.fd.forceRank = FORCE_MASTERY_JEDI_MASTER;
 
-		//aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_LIGHTNING);
-		//aiEnt->client->ps.fd.forcePowerLevel[FP_LIGHTNING] = 3;
+#ifdef __USE_FORCE_EXTRA_ABILITIES__
+		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_DRAIN);
+		aiEnt->client->ps.fd.forcePowerLevel[FP_DRAIN] = 3;
 
-		//aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_GRIP);
-		//aiEnt->client->ps.fd.forcePowerLevel[FP_GRIP] = 3;
+		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_LIGHTNING);
+		aiEnt->client->ps.fd.forcePowerLevel[FP_LIGHTNING] = 3;
 
-		/*
+		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_GRIP);
+		aiEnt->client->ps.fd.forcePowerLevel[FP_GRIP] = 3;
+
 		aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_RAGE);
 		aiEnt->client->ps.fd.forcePowerLevel[FP_RAGE] = 3;
-		*/
+#endif //__USE_FORCE_EXTRA_ABILITIES__
+
+		for (int i = 0; i<NUM_FORCE_POWERS; i++)
+			aiEnt->client->ps.fd.forcePowerBaseLevel[i] = aiEnt->client->ps.fd.forcePowerLevel[i];
 	}
 	else
 	{// Not a jedi/sith???
 		return qfalse;
+	}
+
+	if (!TIMER_Done(aiEnt, "usingForce"))
+	{
+		if (!TIMER_Done(aiEnt, "teamheal"))
+		{
+			ForceTeamHeal(aiEnt);
+		}
+		else if (!TIMER_Done(aiEnt, "heal"))
+		{
+			ForceHeal(aiEnt);
+		}
+#ifdef __USE_FORCE_EXTRA_ABILITIES__
+		else if (!TIMER_Done(aiEnt, "drain"))
+		{
+			NPC_FaceEnemy(aiEnt, qtrue);
+			ForceDrain(aiEnt);
+		}
+		else if (!TIMER_Done(aiEnt, "grip"))
+		{
+			NPC_FaceEnemy(aiEnt, qtrue);
+			ForceGrip(aiEnt);
+		}
+		else if (!TIMER_Done(aiEnt, "lightning"))
+		{
+			NPC_FaceEnemy(aiEnt, qtrue);
+			ForceLightning(aiEnt);
+		}
+#endif //__USE_FORCE_EXTRA_ABILITIES__
+
+		return qtrue;
 	}
 
 	aiEnt->client->ps.fd.forcePowersKnown |= (1 << FP_PUSH);
@@ -8206,7 +8351,7 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 	//aiEnt->client->ps.fd.forcePowerLevel[FP_SABERTHROW] = 3;
 
 
-	if (Jedi_SaberBusy( aiEnt ))
+	if (Jedi_SaberBusy( aiEnt ) || aiEnt->client->ps.weaponTime > 0)
 	{
 		return qfalse;
 	}
@@ -8222,7 +8367,8 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 	{// Team heal our padawan???
 		NPC_FacePosition(aiEnt, aiEnt->padawan->r.currentOrigin, qtrue);
 		ForceTeamHeal( aiEnt );
-		TIMER_Set( aiEnt, "teamheal", irand(5000, 15000) );
+		TIMER_Set( aiEnt, "teamheal", irand(15000, 25000) );
+		TIMER_Set(aiEnt, "usingForce", 3000);
 		return qtrue;
 	}
 	else if ( TIMER_Done( aiEnt, "teamheal" )
@@ -8235,7 +8381,8 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 	{// Team heal our jedi???
 		NPC_FacePosition(aiEnt, aiEnt->parent->r.currentOrigin, qtrue);
 		ForceTeamHeal( aiEnt );
-		TIMER_Set( aiEnt, "teamheal", irand(5000, 15000) );
+		TIMER_Set( aiEnt, "teamheal", irand(15000, 25000) );
+		TIMER_Set(aiEnt, "usingForce", 3000);
 		return qtrue;
 	}
 	else if ( TIMER_Done( aiEnt, "heal" )
@@ -8245,10 +8392,12 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 	{
 		//trap->Print("%s is using heal.\n", aiEnt->NPC_type);
 		ForceHeal( aiEnt );
-		TIMER_Set( aiEnt, "heal", irand(5000, 15000) );
+		TIMER_Set( aiEnt, "heal", irand(15000, 25000) );
+		TIMER_Set(aiEnt, "usingForce", 1000);
 		return qtrue;
 	}
-	/*else if ( TIMER_Done( aiEnt, "drain" )
+#ifdef __USE_FORCE_EXTRA_ABILITIES__
+	else if ( TIMER_Done( aiEnt, "drain" )
 		&& aiEnt->client->ps.fd.forcePowerLevel[FP_DRAIN] > 0
 		&& NPC_Jedi_EnemyInForceRange(aiEnt)
 		&& NPC_NeedsHeal( aiEnt )
@@ -8257,7 +8406,8 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 		//trap->Print("%s is using drain.\n", aiEnt->NPC_type);
 		NPC_FaceEnemy(aiEnt, qtrue);
 		ForceDrain( aiEnt );
-		TIMER_Set( aiEnt, "drain", irand(5000, 15000) );
+		TIMER_Set( aiEnt, "drain", irand(15000, 25000) );
+		TIMER_Set(aiEnt, "usingForce", 5000);
 		return qtrue;
 	}
 	else if ( TIMER_Done( aiEnt, "grip" )
@@ -8269,6 +8419,7 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 		NPC_FaceEnemy(aiEnt, qtrue);
 		ForceGrip( aiEnt );
 		TIMER_Set( aiEnt, "grip", irand(12000, 25000) );
+		TIMER_Set(aiEnt, "usingForce", 5000);
 		return qtrue;
 	}
 	else if ( TIMER_Done( aiEnt, "lightning" )
@@ -8280,6 +8431,7 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 		NPC_FaceEnemy(aiEnt, qtrue);
 		ForceLightning( aiEnt );
 		TIMER_Set( aiEnt, "lightning", irand(12000, 25000) );
+		TIMER_Set(aiEnt, "usingForce", 3000);
 		return qtrue;
 	}
 	else if ( TIMER_Done( aiEnt, "protect" )
@@ -8290,6 +8442,7 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 		//trap->Print("%s is using protect.\n", aiEnt->NPC_type);
 		ForceProtect( aiEnt );
 		TIMER_Set( aiEnt, "protect", irand(15000, 30000) );
+		TIMER_Set(aiEnt, "usingForce", 1000);
 		return qtrue;
 	}
 	else if ( TIMER_Done( aiEnt, "absorb" )
@@ -8300,9 +8453,10 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 		//trap->Print("%s is using absorb.\n", aiEnt->NPC_type);
 		ForceAbsorb( aiEnt );
 		TIMER_Set( aiEnt, "absorb", irand(15000, 30000) );
+		TIMER_Set(aiEnt, "usingForce", 1000);
 		return qtrue;
-	}*/
-	/*else if ( TIMER_Done( aiEnt, "telepathy" )
+	}
+	else if ( TIMER_Done( aiEnt, "telepathy" )
 		&& (aiEnt->client->ps.fd.forcePowersKnown&(1<<FP_TELEPATHY)) != 0
 		&& (aiEnt->client->ps.fd.forcePowersActive&(1<<FP_TELEPATHY)) == 0
 		&& NPC_Jedi_EnemyInForceRange(aiEnt)
@@ -8312,6 +8466,7 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 		NPC_FaceEnemy(aiEnt, qtrue);
 		ForceTelepathy(aiEnt);
 		TIMER_Set( aiEnt, "telepathy", irand(15000, 30000) );
+		TIMER_Set(aiEnt, "usingForce", 1000);
 		return qtrue;
 	}
 	else if ( TIMER_Done( aiEnt, "rage" )
@@ -8323,6 +8478,7 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 		//trap->Print("%s is using rage.\n", aiEnt->NPC_type);
 		Jedi_Rage(aiEnt);
 		TIMER_Set( aiEnt, "rage", irand(15000, 30000) );
+		TIMER_Set(aiEnt, "usingForce", 1000);
 		return qtrue;
 	}
 	else if ( TIMER_Done( aiEnt, "speed" )
@@ -8334,9 +8490,10 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 		//trap->Print("%s is using speed.\n", aiEnt->NPC_type);
 		ForceSpeed( aiEnt, 500 );
 		TIMER_Set( aiEnt, "speed", irand(15000, 30000) );
+		TIMER_Set(aiEnt, "usingForce", 1000);
 		return qtrue;
 	}
-	*/
+#endif //__USE_FORCE_EXTRA_ABILITIES__
 	else if ( TIMER_Done( aiEnt, "push" )
 		&& (aiEnt->client->ps.fd.forcePowersKnown&(1<<FP_PUSH)) != 0
 		&& (aiEnt->client->ps.fd.forcePowersActive&(1<<FP_PUSH)) == 0
@@ -8347,6 +8504,7 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 		NPC_FaceEnemy(aiEnt, qtrue);
 		ForceThrow( aiEnt, qfalse );
 		TIMER_Set( aiEnt, "push", irand(15000, 30000) );
+		TIMER_Set(aiEnt, "usingForce", 1000);
 		return qtrue;
 	}
 	else if ( TIMER_Done( aiEnt, "pull" )
@@ -8359,6 +8517,7 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 		NPC_FaceEnemy(aiEnt, qtrue);
 		ForceThrow( aiEnt, qtrue );
 		TIMER_Set( aiEnt, "pull", irand(15000, 30000) );
+		TIMER_Set(aiEnt, "usingForce", 1000);
 		return qtrue;
 	}
 	/*else if (aiEnt->client->ps.weapon == WP_SABER //using saber
@@ -8393,6 +8552,7 @@ qboolean Jedi_CheckForce ( gentity_t *aiEnt)
 			aiEnt->client->pers.cmd.buttons |= BUTTON_SABERTHROW;
 		}
 
+		TIMER_Set(aiEnt, "usingForce", 1000);
 		return qtrue;
 	}*/
 

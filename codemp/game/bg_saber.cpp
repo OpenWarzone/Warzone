@@ -6067,6 +6067,27 @@ int PM_AnimationForBounceMove(short newMove)
 		{// Shields up! When actively blocking, use appropriate deflect anims... They hit a brick wall and spin, we do a minor deflection...
 			switch (newMove)
 			{
+			/*
+			case LS_B1_TL:
+				return BOTH_D1_TL___;
+				break;
+			case LS_B1_TR:
+			default:
+				return BOTH_D1_TR___;
+				break;
+			case LS_B1__L:
+				return BOTH_D1__L___;
+				break;
+			case LS_B1__R:
+				return BOTH_D1__R___;
+				break;
+			case LS_B1_BL:
+				return BOTH_D1_BL___;
+				break;
+			case LS_B1_BR:
+				return BOTH_D1_BR___;
+				break;
+			*/
 			case LS_B1_TL:
 				return BOTH_D1_TL___;
 				break;
@@ -6092,6 +6113,7 @@ int PM_AnimationForBounceMove(short newMove)
 		{// Let the rage flow through them... When attacking, use full body blocks and spins to keep the look of them being in attack...
 			switch (newMove)
 			{
+			/*
 			case LS_B1_TL:
 				return BOTH_SABERBLOCK_FL1 + irand(0, 4);
 				break;
@@ -6110,6 +6132,47 @@ int PM_AnimationForBounceMove(short newMove)
 				break;
 			case LS_B1_BR:
 				return BOTH_SABERBLOCK_BR1 + irand(0, 4);
+				break;
+			*/
+			/*
+			case LS_B1_TL:
+				return BOTH_D1_TL___;
+				break;
+			case LS_B1_TR:
+			default:
+				return BOTH_D1_TR___;
+				break;
+			case LS_B1__L:
+				return BOTH_D1__L___;
+				break;
+			case LS_B1__R:
+				return BOTH_D1__R___;
+				break;
+			case LS_B1_BL:
+				return BOTH_D1_BL___;
+				break;
+			case LS_B1_BR:
+				return BOTH_D1_BR___;
+				break;
+			*/
+			case LS_B1_TL:
+				return BOTH_D1_TL___;
+				break;
+			case LS_B1_TR:
+			default:
+				return BOTH_D1_TR___;
+				break;
+			case LS_B1__L:
+				return BOTH_D1__L___;
+				break;
+			case LS_B1__R:
+				return BOTH_D1__R___;
+				break;
+			case LS_B1_BL:
+				return BOTH_D1_BL___;
+				break;
+			case LS_B1_BR:
+				return BOTH_D1_BR___;
 				break;
 			}
 		}
@@ -6508,6 +6571,7 @@ void PM_SetSaberMove(short newMove)
 
 		pm->ps->nextTransitionAnim = 0;
 	}
+	/* BEGIN: MMO STYLE SABERS */
 	else if (g_mmoStyleAttacking.integer
 		&& (pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL || pm->ps->fd.saberAnimLevelBase == SS_SINGLE)
 		&& !(pm->cmd.buttons & BUTTON_ATTACK)
@@ -6570,26 +6634,13 @@ void PM_SetSaberMove(short newMove)
 	{
 		pm->ps->saberMove = newMove = LS_READY;
 	}
-	/*else if (BG_InSaberLock(pm->ps->torsoAnim))
-	{
-		anim += (pm->ps->fd.saberAnimLevel - SS_FAST) * SABER_ANIM_GROUP_SIZE;
-	}*/
-	/*else if (newMove >= LS_R_TL2BR && newMove < LS_R_T2B && newMove < LS_B1_BR)
-	{
-		anim = PM_AnimationForBounceMove(newMove);
-		if (bg_debugbounce.integer)
-		{
-			extern stringID_table_t animTable[MAX_ANIMATIONS + 1];
-			Com_Printf("Using bounce anim %i (%s).\n", anim, animTable[anim].name);
-		}
-	}*/
-	else if (/*(pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL || pm->ps->fd.saberAnimLevelBase == SS_SINGLE)
-		&&*/ newMove >= LS_B1_BR && newMove < LS_B1_BL)
+	/* END: MMO STYLE SABERS */
+	else if ( newMove >= LS_B1_BR && newMove < LS_B1_BL)
 	{
 		if (PM_SaberInParry(pm->ps->saberMove)
 			|| PM_SaberInBounce(pm->ps->saberMove)
 			|| PM_SaberInKnockaway(pm->ps->saberMove)
-			|| PM_SaberInBrokenParry(newMove)
+			|| PM_SaberInBrokenParry(/*newMove*/pm->ps->saberMove)
 			|| PM_SaberInReflect(pm->ps->saberMove)
 			|| PM_SaberInAnyBlockMove(pm->ps->saberMove)
 			|| (pm->ps->torsoAnim >= BOTH_SABERBLOCK_TL && pm->ps->torsoAnim <= BOTH_SABERBLOCK_T)
@@ -6607,6 +6658,12 @@ void PM_SetSaberMove(short newMove)
 				Com_Printf("Using bounce anim %i (%s).\n", anim, animTable[anim].name);
 			}
 		}
+	}
+	else if (pm->ps->torsoAnim == BOTH_FORCE_DRAIN_GRAB_END && pm->ps->torsoTimer > 0)
+	{// used on switch to dual sabers from staff... hope this makes it hold until it plays...
+		anim = BOTH_FORCE_DRAIN_GRAB_END;
+		parts = SETANIM_TORSO;
+		pm->ps->nextTransitionAnim = 0;
 	}
 	else if (pm->ps->fd.saberAnimLevelBase == SS_CROWD_CONTROL
 		&& newMove != LS_READY
@@ -6901,8 +6958,8 @@ void PM_SetSaberMove(short newMove)
 	}
 #endif //__DEBUG_STANCES__
 
-	if (BG_SaberInSpecial(newMove) &&
-		pm->ps->weaponTime < pm->ps->torsoTimer)
+	if ((BG_SaberInSpecial(newMove) || (newMove >= LS_B1_BR && newMove < LS_B1_BL))  // UQ1: Added blocks here, so new moves should not be able to start until the bounces finish...
+		&& pm->ps->weaponTime < pm->ps->torsoTimer)
 	{ //rww 01-02-03 - I think this will solve the issue of special attacks being interruptable, hopefully without side effects
 		pm->ps->weaponTime = pm->ps->torsoTimer;
 	}

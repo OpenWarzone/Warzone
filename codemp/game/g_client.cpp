@@ -2182,36 +2182,70 @@ void G_CheckSaber(gentity_t *ent)
 		{
 			if (saber->getModelType() == SABER_MODELTYPE_ELECTROSTAFF)
 			{
-				if (Q_stricmp(ent->client->pers.saber1, "electrostaff"))
+				if (Q_stricmp(ent->client->pers.saber1, "electrostaff") || Q_stricmp(ent->client->pers.saber2, "none"))
 				{
 					if (ent->s.eType == ET_NPC)
 					{
 						WP_SaberParseParms("electrostaff", &ent->client->saber[0]);
+						WP_SaberParseParms("none", &ent->client->saber[1]);
 						ent->s.npcSaber1 = G_ModelIndex(va("@%s", "electrostaff"));
 						ent->s.npcSaber2 = G_ModelIndex(va("@%s", "none"));
 						Q_strncpyz(ent->client->pers.saber1, "electrostaff", sizeof(ent->client->pers.saber1));
+						Q_strncpyz(ent->client->pers.saber2, "none", sizeof(ent->client->pers.saber2));
 					}
 					else
 					{
+						Q_strncpyz(ent->client->pers.saber1, "electrostaff", sizeof(ent->client->pers.saber1));
+						Q_strncpyz(ent->client->pers.saber2, "none", sizeof(ent->client->pers.saber2));
 						G_SetSaber(ent, 0, "electrostaff", qtrue);
 						G_SetSaber(ent, 1, "none", qtrue);
 						changed = qtrue;
 					}
 				}
 			}
+			else if (ent->client->ps.fd.saberAnimLevel == SS_DUAL)
+			{// Staff split into 2 sabers...
+				if (Q_stricmp(ent->client->pers.saber1, "single_16") || Q_stricmp(ent->client->pers.saber2, "single_16"))
+				{
+					if (ent->s.eType == ET_NPC)
+					{
+						WP_SaberParseParms("single_16", &ent->client->saber[0]);
+						WP_SaberParseParms("single_16", &ent->client->saber[1]);
+						ent->s.npcSaber1 = G_ModelIndex(va("@%s", "single_16"));
+						ent->s.npcSaber2 = G_ModelIndex(va("@%s", "single_16"));
+						Q_strncpyz(ent->client->pers.saber1, "single_16", sizeof(ent->client->pers.saber1));
+						Q_strncpyz(ent->client->pers.saber2, "single_16", sizeof(ent->client->pers.saber2));
+						//trap->Print("NPC Entity %i switched to DUAL (%i %i).\n", ent->s.number, ent->s.npcSaber1, ent->s.npcSaber2);
+					}
+					else
+					{
+						Q_strncpyz(ent->client->pers.saber1, "single_16", sizeof(ent->client->pers.saber1));
+						Q_strncpyz(ent->client->pers.saber2, "single_16", sizeof(ent->client->pers.saber2));
+						G_SetSaber(ent, 0, "single_16", qtrue);
+						G_SetSaber(ent, 1, "single_16", qtrue);
+						changed = qtrue;
+					}
+
+					//trap->Print("Entity %i switched to DUAL (is 2h %s).\n", ent->s.number, saber->getIsTwoHanded() ? "TRUE" : "FALSE");
+				}
+			}
 			else
 			{
-				if (Q_stricmp(ent->client->pers.saber1, "dual_1"))
+				if (Q_stricmp(ent->client->pers.saber1, "dual_1") || Q_stricmp(ent->client->pers.saber2, "none"))
 				{
 					if (ent->s.eType == ET_NPC)
 					{
 						WP_SaberParseParms("dual_1", &ent->client->saber[0]);
+						WP_SaberParseParms("none", &ent->client->saber[1]);
 						ent->s.npcSaber1 = G_ModelIndex(va("@%s", "dual_1"));
 						ent->s.npcSaber2 = G_ModelIndex(va("@%s", "none"));
 						Q_strncpyz(ent->client->pers.saber1, "dual_1", sizeof(ent->client->pers.saber1));
+						Q_strncpyz(ent->client->pers.saber2, "none", sizeof(ent->client->pers.saber2));
 					}
 					else
 					{
+						Q_strncpyz(ent->client->pers.saber1, "dual_1", sizeof(ent->client->pers.saber1));
+						Q_strncpyz(ent->client->pers.saber2, "none", sizeof(ent->client->pers.saber2));
 						G_SetSaber(ent, 0, "dual_1", qtrue);
 						G_SetSaber(ent, 1, "none", qtrue);
 						changed = qtrue;
@@ -2221,17 +2255,21 @@ void G_CheckSaber(gentity_t *ent)
 		}
 		else
 		{
-			if (Q_stricmp(ent->client->pers.saber1, "single_16"))
+			if (Q_stricmp(ent->client->pers.saber1, "single_16") || Q_stricmp(ent->client->pers.saber1, "none"))
 			{
 				if (ent->s.eType == ET_NPC)
 				{
 					WP_SaberParseParms("single_16", &ent->client->saber[0]);
+					WP_SaberParseParms("none", &ent->client->saber[1]);
 					ent->s.npcSaber1 = G_ModelIndex(va("@%s", "single_16"));
 					ent->s.npcSaber2 = G_ModelIndex(va("@%s", "none"));
 					Q_strncpyz(ent->client->pers.saber1, "single_16", sizeof(ent->client->pers.saber1));
+					Q_strncpyz(ent->client->pers.saber2, "none", sizeof(ent->client->pers.saber2));
 				}
 				else
 				{
+					Q_strncpyz(ent->client->pers.saber1, "single_16", sizeof(ent->client->pers.saber1));
+					Q_strncpyz(ent->client->pers.saber2, "none", sizeof(ent->client->pers.saber2));
 					G_SetSaber(ent, 0, "single_16", qtrue);
 					G_SetSaber(ent, 1, "none", qtrue);
 					changed = qtrue;
@@ -2241,17 +2279,20 @@ void G_CheckSaber(gentity_t *ent)
 	}
 	else
 	{
-		if (Q_stricmp(ent->client->pers.saber1, "single_16"))
+		if (Q_stricmp(ent->client->pers.saber1, "single_16") || Q_stricmp(ent->client->pers.saber1, "none"))
 		{
 			if (ent->s.eType == ET_NPC)
 			{
 				WP_SaberParseParms("single_16", &ent->client->saber[0]);
+				WP_SaberParseParms("none", &ent->client->saber[1]);
 				ent->s.npcSaber1 = G_ModelIndex(va("@%s", "single_16"));
 				ent->s.npcSaber2 = G_ModelIndex(va("@%s", "none"));
 				Q_strncpyz(ent->client->pers.saber1, "single_16", sizeof(ent->client->pers.saber1));
 			}
 			else
 			{
+				Q_strncpyz(ent->client->pers.saber1, "single_16", sizeof(ent->client->pers.saber1));
+				Q_strncpyz(ent->client->pers.saber2, "none", sizeof(ent->client->pers.saber2));
 				G_SetSaber(ent, 0, "single_16", qtrue);
 				G_SetSaber(ent, 1, "none", qtrue);
 				changed = qtrue;
@@ -2689,8 +2730,11 @@ qboolean ClientUserinfoChanged( int clientNum ) {
 		{
 			if (saber->getModelType() == SABER_MODELTYPE_ELECTROSTAFF)
 			{
-				if (Q_stricmp(ent->client->saber[0].model, "electrostaff"))
+				if (Q_stricmp(ent->client->saber[0].model, "electrostaff") || Q_stricmp(ent->client->pers.saber2, "none"))
 				{
+					Q_strncpyz(ent->client->pers.saber1, "electrostaff", sizeof(ent->client->pers.saber1));
+					Q_strncpyz(ent->client->pers.saber2, "none", sizeof(ent->client->pers.saber2));
+
 					G_SetSaber(ent, 0, "electrostaff", qtrue);
 					G_SetSaber(ent, 1, "none", qtrue);
 
@@ -2698,10 +2742,27 @@ qboolean ClientUserinfoChanged( int clientNum ) {
 					Info_SetValueForKey(userinfo, "saber2", "none");
 				}
 			}
+			else if (ent->client->ps.fd.saberAnimLevel == SS_DUAL)
+			{// Staff split into 2 sabers...
+				if (Q_stricmp(ent->client->pers.saber1, "single_16") || Q_stricmp(ent->client->pers.saber2, "single_16"))
+				{
+					Q_strncpyz(ent->client->pers.saber1, "single_16", sizeof(ent->client->pers.saber1));
+					Q_strncpyz(ent->client->pers.saber2, "single_16", sizeof(ent->client->pers.saber2));
+
+					G_SetSaber(ent, 0, "single_16", qtrue);
+					G_SetSaber(ent, 1, "single_16", qtrue);
+
+					Info_SetValueForKey(userinfo, "saber1", "single_16");
+					Info_SetValueForKey(userinfo, "saber2", "single_16");
+				}
+			}
 			else
 			{
-				if (Q_stricmp(ent->client->saber[0].model, "dual_1"))
+				if (Q_stricmp(ent->client->saber[0].model, "dual_1") || Q_stricmp(ent->client->pers.saber2, "none"))
 				{
+					Q_strncpyz(ent->client->pers.saber1, "single_16", sizeof(ent->client->pers.saber1));
+					Q_strncpyz(ent->client->pers.saber2, "none", sizeof(ent->client->pers.saber2));
+
 					G_SetSaber(ent, 0, "dual_1", qtrue);
 					G_SetSaber(ent, 1, "none", qtrue);
 
@@ -2712,8 +2773,11 @@ qboolean ClientUserinfoChanged( int clientNum ) {
 		}
 		else
 		{
-			if (Q_stricmp(ent->client->saber[0].model, "single_16"))
+			if (Q_stricmp(ent->client->saber[0].model, "single_16") || Q_stricmp(ent->client->pers.saber2, "none"))
 			{
+				Q_strncpyz(ent->client->pers.saber1, "single_16", sizeof(ent->client->pers.saber1));
+				Q_strncpyz(ent->client->pers.saber2, "none", sizeof(ent->client->pers.saber2));
+
 				G_SetSaber(ent, 0, "single_16", qtrue);
 				G_SetSaber(ent, 1, "none", qtrue);
 

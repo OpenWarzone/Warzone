@@ -1717,13 +1717,15 @@ qboolean WP_PairedSaberAnimation_MoveIntoPosition(gentity_t *self, vec3_t dest)
 		//Com_Printf("%i forward %f. right %f.\n", self->s.number, highestforward, highestright);
 	}
 
+	/*
 	if (self->s.eType == ET_PLAYER)
-	{
+	{// dont even remember what i was doing this for... TODO: Look into this... No wonder paired anims were wierd...
 		//VectorMA(self->client->ps.velocity, g_testvalue1.value, dir, self->client->ps.velocity);
 		self->client->ps.velocity[0] = dir[0] * g_testvalue1.value;
 		self->client->ps.velocity[1] = dir[1] * g_testvalue1.value;
 		self->client->ps.velocity[2] = dir[2] * g_testvalue1.value;
 	}
+	*/
 
 	return qtrue;
 }
@@ -3724,8 +3726,8 @@ static QINLINE int Finish_RealTrace(gentity_t *attacker, trace_t *results, trace
 
 #define __SABER_VOXEL_TRACE__
 //#define __DEBUG_VOXEL_TRACE__
-#define __DEBUG_VOXEL_LINES__
-#define __DEBUG_VOXEL_HITS__
+//#define __DEBUG_VOXEL_LINES__
+//#define __DEBUG_VOXEL_HITS__
 
 #ifdef __SABER_VOXEL_TRACE__
 extern qboolean G_PointInBounds(vec3_t point, vec3_t mins, vec3_t maxs);
@@ -4014,6 +4016,7 @@ qboolean G_SaberVoxelTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_
 							attacker->saberTrace[rSaberNum][rBladeNum].realTraceResult = REALTRACE_HIT_SABER;
 
 
+							/*
 							//
 							// Cache the same hit for the other entity as well... May as well skip their trace this frame...
 							//
@@ -4031,7 +4034,7 @@ qboolean G_SaberVoxelTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_
 							VectorCopy(result, dtr->plane.normal);
 
 							ent->saberTrace[dSaberNum][dBladeNum].frameNum = level.framenum;
-							ent->saberTrace[dSaberNum][dBladeNum].realTraceResult = REALTRACE_HIT_SABER;
+							ent->saberTrace[dSaberNum][dBladeNum].realTraceResult = REALTRACE_HIT_SABER;*/
 
 
 #ifdef __DEBUG_VOXEL_HITS__

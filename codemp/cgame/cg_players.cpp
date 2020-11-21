@@ -9568,6 +9568,72 @@ void CG_Player( centity_t *cent ) {
 		return;
 	}
 
+	if (cent->currentState.eType == ET_NPC)
+	{// For NPC Staff users who switch between staff and dual sabers... Also allows for switching NPC sabers for other stuff if we need it...
+		if (cent->currentState.npcSaber1 != cent->lastNpcSaber1)
+		{
+			//trap->Print("NPC saber1 changed on entity %i (%i -> %i).\n", cent->currentState.number, cent->lastNpcSaber1, cent->currentState.npcSaber1);
+
+			cent->lastNpcSaber1 = cent->currentState.npcSaber1;
+
+			char *saber = (char *)CG_ConfigString(CS_MODELS + cent->currentState.npcSaber1);
+			assert(!saber || !saber[0] || saber[0] == '@');
+			//valid saber names should always start with '@' for NPCs
+
+			if (saber && saber[0])
+			{
+				saber++; //skip over the @
+				WP_SetSaber(cent->currentState.number, cent->npcClient->saber, 0, saber);
+			}
+		}
+		
+		if (cent->currentState.npcSaber2 != cent->lastNpcSaber2)
+		{
+			//trap->Print("NPC saber2 changed on entity %i (%i -> %i).\n", cent->currentState.number, cent->lastNpcSaber2, cent->currentState.npcSaber2);
+
+			cent->lastNpcSaber2 = cent->currentState.npcSaber2;
+
+			char *saber = (char *)CG_ConfigString(CS_MODELS + cent->currentState.npcSaber2);
+			assert(!saber || !saber[0] || saber[0] == '@');
+			//valid saber names should always start with '@' for NPCs
+
+			if (saber && saber[0])
+			{
+				saber++; //skip over the @
+				WP_SetSaber(cent->currentState.number, cent->npcClient->saber, 1, saber);
+			}
+		}
+
+		// If this is a not vehicle, give it saber stuff...
+		if (cent->currentState.NPC_class != CLASS_VEHICLE)
+		{
+			int j = 0;
+
+			while (j < MAX_SABERS)
+			{
+				if (cent->npcClient->saber[j].model[0])
+				{
+					if (cent->npcClient->ghoul2Weapons[j])
+					{ //free the old instance(s)
+						trap->G2API_CleanGhoul2Models(&cent->npcClient->ghoul2Weapons[j]);
+						cent->npcClient->ghoul2Weapons[j] = 0;
+					}
+					//[VisualWeapons]
+					//racc - delete the current ghoul2holsterWeapons so we can load new ones
+					if (cent->npcClient->ghoul2HolsterWeapons[j])
+					{ //free the old instance(s)
+						trap->G2API_CleanGhoul2Models(&cent->npcClient->ghoul2HolsterWeapons[j]);
+						cent->npcClient->ghoul2HolsterWeapons[j] = 0;
+					}
+					//[/VisualWeapons]
+
+					CG_InitG2SaberData(j, cent->npcClient);
+				}
+				j++;
+			}
+		}
+	}
+
 	if (cg_showShieldBubble.integer)
 	{// This is just here for debugging saber distances from player...
 		extern void CG_ForcefieldDraw(vec3_t origin, vec3_t radius);

@@ -1445,7 +1445,7 @@ void RE_RenderScene(const refdef_t *fd) {
 		R_RenderSunShadowMaps(fd, 0, lightDir, lightHeight, lightOrigin);
 
 		if (nowTime >= NEXT_SHADOWMAP_UPDATE[0] || forceUpdate[0])
-		{
+		{// Timed updates for distant shadows, or forced by view change...
 			R_RenderSunShadowMaps(fd, 1, lightDir, lightHeight, lightOrigin);
 
 			NEXT_SHADOWMAP_UPDATE[0] = nowTime + 50;
@@ -1455,7 +1455,7 @@ void RE_RenderScene(const refdef_t *fd) {
 		}
 
 		if (nowTime >= NEXT_SHADOWMAP_UPDATE[1] || forceUpdate[1])
-		{
+		{// Timed updates for distant shadows, or forced by view change...
 			R_RenderSunShadowMaps(fd, 2, lightDir, lightHeight, lightOrigin);
 
 			NEXT_SHADOWMAP_UPDATE[1] = nowTime + 200;
@@ -1464,31 +1464,24 @@ void RE_RenderScene(const refdef_t *fd) {
 			VectorCopy(tr.refdef.vieworg, SHADOWMAP_LAST_VIEWORIGIN[1]);
 		}
 
-		if (!r_fastShadows->integer > 1)
-		{
-			if (nowTime >= NEXT_SHADOWMAP_UPDATE[2] || forceUpdate[2])
-			{
-				R_RenderSunShadowMaps(fd, 3, lightDir, lightHeight, lightOrigin);
+		if (!(r_fastShadows->integer > 1) && (nowTime >= NEXT_SHADOWMAP_UPDATE[2] || forceUpdate[2]))
+		{// Timed updates for distant shadows, or forced by view change...
+			R_RenderSunShadowMaps(fd, 3, lightDir, lightHeight, lightOrigin);
 
-				NEXT_SHADOWMAP_UPDATE[2] = nowTime + 2000;
+			NEXT_SHADOWMAP_UPDATE[2] = nowTime + 2000;
 
-				VectorCopy(tr.refdef.viewangles, SHADOWMAP_LAST_VIEWANGLES[2]);
-				VectorCopy(tr.refdef.vieworg, SHADOWMAP_LAST_VIEWORIGIN[2]);
-			}
+			VectorCopy(tr.refdef.viewangles, SHADOWMAP_LAST_VIEWANGLES[2]);
+			VectorCopy(tr.refdef.vieworg, SHADOWMAP_LAST_VIEWORIGIN[2]);
 		}
 
-		if (!(r_fastShadows->integer))
-		{
-			// Timed updates for distant shadows, or forced by view change...
-			if (nowTime >= NEXT_SHADOWMAP_UPDATE[3] || forceUpdate[3])
-			{
-				R_RenderSunShadowMaps(fd, 4, lightDir, lightHeight, lightOrigin);
+		if (!(r_fastShadows->integer) && (nowTime >= NEXT_SHADOWMAP_UPDATE[3] || forceUpdate[3]))
+		{// Timed updates for distant shadows, or forced by view change...
+			R_RenderSunShadowMaps(fd, 4, lightDir, lightHeight, lightOrigin);
 
-				NEXT_SHADOWMAP_UPDATE[3] = nowTime + 10000;
+			NEXT_SHADOWMAP_UPDATE[3] = nowTime + 10000;
 
-				VectorCopy(tr.refdef.viewangles, SHADOWMAP_LAST_VIEWANGLES[3]);
-				VectorCopy(tr.refdef.vieworg, SHADOWMAP_LAST_VIEWORIGIN[3]);
-			}
+			VectorCopy(tr.refdef.viewangles, SHADOWMAP_LAST_VIEWANGLES[3]);
+			VectorCopy(tr.refdef.vieworg, SHADOWMAP_LAST_VIEWORIGIN[3]);
 		}
 
 		/*if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer)

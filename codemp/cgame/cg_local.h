@@ -605,6 +605,9 @@ typedef struct centity_s {
 	int				saberDefenseStartTime = 0;
 	int				saberDefenseLastValidTime = 0;
 
+	int				lastNpcSaber1 = 0;
+	int				lastNpcSaber2 = 0;
+
 } centity_t;
 
 

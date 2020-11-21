@@ -2629,6 +2629,16 @@ void FOLIAGE_DrawGrass(void)
 		return;
 	}
 
+	if (!FOLIAGE_INITIALIZED)
+	{// Init/register all foliage models...
+		CUSTOM_FOLIAGE_MAX_DISTANCE = atof(IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "FOLIAGE", "FOLAIGE_MAX_DISTANCE", "0"));
+
+		if (CUSTOM_FOLIAGE_MAX_DISTANCE != 0.0)
+		{
+			trap->Print("^1*** ^3%s^5: Foliage system using custom max range of \"^7%.4f^5\".\n", "FOLIAGE", CUSTOM_FOLIAGE_MAX_DISTANCE);
+		}
+	}
+
 	FOLIAGE_VISIBLE_DISTANCE = (CUSTOM_FOLIAGE_MAX_DISTANCE != 0.0) ? CUSTOM_FOLIAGE_MAX_DISTANCE : (FOLIAGE_AREA_SIZE*cg_foliageGrassRangeMult.value);
 	FOLIAGE_PLANT_VISIBLE_DISTANCE = (CUSTOM_FOLIAGE_MAX_DISTANCE != 0.0) ? CUSTOM_FOLIAGE_MAX_DISTANCE : (FOLIAGE_AREA_SIZE*cg_foliagePlantRangeMult.value);
 	FOLIAGE_TREE_VISIBLE_DISTANCE = (CUSTOM_FOLIAGE_MAX_DISTANCE != 0.0) ? CUSTOM_FOLIAGE_MAX_DISTANCE : (FOLIAGE_AREA_SIZE*cg_foliageTreeRangeMult.value);
@@ -2664,13 +2674,6 @@ void FOLIAGE_DrawGrass(void)
 			char	customRareFoliageModelsTempList[69][128] = { 0 };
 			float	customNormalFoliageModelsTempScalesList[69] = { 1.0 };
 			float	customRareFoliageModelsTempScalesList[69] = { 1.0 };
-
-			CUSTOM_FOLIAGE_MAX_DISTANCE = atof(IniRead(va("maps/%s.mapInfo", cgs.currentmapname), "FOLIAGE", "FOLAIGE_MAX_DISTANCE", "0"));
-
-			if (CUSTOM_FOLIAGE_MAX_DISTANCE != 0.0)
-			{
-				trap->Print("^1*** ^3%s^5: Foliage system using custom max range of \"^7%.4f^5\".\n", "FOLIAGE", CUSTOM_FOLIAGE_MAX_DISTANCE);
-			}
 
 #define		ANY_AREA_MODEL_POSITION		46
 #define		RARE_MODELS_START			47

@@ -2380,6 +2380,9 @@ void WP_SetSaber( int entNum, saberInfo_t *sabers, int saberNum, const char *sab
 	{
 		WP_SaberParseParms( saberName, &sabers[saberNum] );//get saber info
 	}
+	
+	/*
+	// UQ1: DISABLED - No reason not to allow this, if we choose to.... We probably won't though...
 	if ((sabers[1].saberFlags&SFL_TWO_HANDED))
 	{//not allowed to use a 2-handed saber as second saber
 		WP_RemoveSaber( sabers, 1 );
@@ -2391,6 +2394,7 @@ void WP_SetSaber( int entNum, saberInfo_t *sabers, int saberNum, const char *sab
 		WP_RemoveSaber( sabers, 1 );
 		return;
 	}
+	*/
 }
 
 void WP_SaberSetColor( saberInfo_t *sabers, int saberNum, int bladeNum, char *colorName )

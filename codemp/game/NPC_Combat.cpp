@@ -654,10 +654,10 @@ void ShootThink( gentity_t *aiEnt)
 	if ( aiEnt->client->ps.weapon == WP_NONE )
 		return;
 
-	if ( aiEnt->client->ps.weaponstate != WEAPON_READY && aiEnt->client->ps.weaponstate != WEAPON_FIRING && aiEnt->client->ps.weaponstate != WEAPON_IDLE)
+	if ( aiEnt->client->ps.weapon != WP_SABER && aiEnt->client->ps.weaponstate != WEAPON_READY && aiEnt->client->ps.weaponstate != WEAPON_FIRING && aiEnt->client->ps.weaponstate != WEAPON_IDLE)
 		return;
 
-	if ( level.time < aiEnt->NPC->shotTime )
+	if ( aiEnt->client->ps.weapon != WP_SABER && level.time < aiEnt->NPC->shotTime )
 	{
 		return;
 	}
@@ -676,80 +676,87 @@ void ShootThink( gentity_t *aiEnt)
 	aiEnt->NPC->currentAmmo = aiEnt->client->ps.ammo[weaponData[aiEnt->client->ps.weapon].ammoIndex];	// checkme
 #endif //__MMO__
 
-	NPC_ApplyWeaponFireDelay(aiEnt);
-
-	if ( aiEnt->NPC->aiFlags & NPCAI_BURST_WEAPON )
+	if (aiEnt->client->ps.weapon == WP_SABER)
 	{
-		if ( !aiEnt->NPC->burstCount )
-		{
-			aiEnt->NPC->burstCount = Q_irand( aiEnt->NPC->burstMin, aiEnt->NPC->burstMax );
-			/*
-			NPCInfo->burstCount = erandom( NPCInfo->burstMean );
-			if ( NPCInfo->burstCount < NPCInfo->burstMin )
-			{
-				NPCInfo->burstCount = NPCInfo->burstMin;
-			}
-			else if ( NPCInfo->burstCount > NPCInfo->burstMax )
-			{
-				NPCInfo->burstCount = NPCInfo->burstMax;
-			}
-			*/
-			delay = 0;
-		}
-		else
-		{
-			aiEnt->NPC->burstCount--;
-			if ( aiEnt->NPC->burstCount == 0 )
-			{
-				delay = aiEnt->NPC->burstSpacing;
-			}
-			else
-			{
-				delay = 0;
-			}
-		}
-
-		if ( !delay )
-		{
-			// HACK: dirty little emplaced bits, but is done because it would otherwise require some sort of new variable...
-			if ( aiEnt->client->ps.weapon == WP_EMPLACED_GUN )
-			{
-				if ( aiEnt->parent ) // try and get the debounce values from the chair if we can
-				{
-					if ( g_npcspskill.integer == 0 )
-					{
-						delay = aiEnt->parent->random + 150;
-					}
-					else if ( g_npcspskill.integer == 1 )
-					{
-						delay = aiEnt->parent->random + 100;
-					}
-					else
-					{
-						delay = aiEnt->parent->random;
-					}
-				}
-				else
-				{
-					if ( g_npcspskill.integer == 0 )
-					{
-						delay = 350;
-					}
-					else if ( g_npcspskill.integer == 1 )
-					{
-						delay = 300;
-					}
-					else
-					{
-						delay = 200;
-					}
-				}
-			}
-		}
+		delay = 0;
 	}
 	else
 	{
-		delay = aiEnt->NPC->burstSpacing;
+		NPC_ApplyWeaponFireDelay(aiEnt);
+
+		if (aiEnt->NPC->aiFlags & NPCAI_BURST_WEAPON)
+		{
+			if (!aiEnt->NPC->burstCount)
+			{
+				aiEnt->NPC->burstCount = Q_irand(aiEnt->NPC->burstMin, aiEnt->NPC->burstMax);
+				/*
+				NPCInfo->burstCount = erandom( NPCInfo->burstMean );
+				if ( NPCInfo->burstCount < NPCInfo->burstMin )
+				{
+					NPCInfo->burstCount = NPCInfo->burstMin;
+				}
+				else if ( NPCInfo->burstCount > NPCInfo->burstMax )
+				{
+					NPCInfo->burstCount = NPCInfo->burstMax;
+				}
+				*/
+				delay = 0;
+			}
+			else
+			{
+				aiEnt->NPC->burstCount--;
+				if (aiEnt->NPC->burstCount == 0)
+				{
+					delay = aiEnt->NPC->burstSpacing;
+				}
+				else
+				{
+					delay = 0;
+				}
+			}
+
+			if (!delay)
+			{
+				// HACK: dirty little emplaced bits, but is done because it would otherwise require some sort of new variable...
+				if (aiEnt->client->ps.weapon == WP_EMPLACED_GUN)
+				{
+					if (aiEnt->parent) // try and get the debounce values from the chair if we can
+					{
+						if (g_npcspskill.integer == 0)
+						{
+							delay = aiEnt->parent->random + 150;
+						}
+						else if (g_npcspskill.integer == 1)
+						{
+							delay = aiEnt->parent->random + 100;
+						}
+						else
+						{
+							delay = aiEnt->parent->random;
+						}
+					}
+					else
+					{
+						if (g_npcspskill.integer == 0)
+						{
+							delay = 350;
+						}
+						else if (g_npcspskill.integer == 1)
+						{
+							delay = 300;
+						}
+						else
+						{
+							delay = 200;
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			delay = aiEnt->NPC->burstSpacing;
+		}
 	}
 
 	aiEnt->NPC->shotTime = level.time + delay;

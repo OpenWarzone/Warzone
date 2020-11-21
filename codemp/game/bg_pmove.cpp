@@ -577,6 +577,13 @@ int BG_GetSaberStanceForPS(playerState_t *ps, usercmd_t *ucmd)
 	{
 		return BOTH_CC_DEFENCE_SPIN;
 	}
+	else if (ps->fd.saberDrawAnimLevel == SS_DUAL && BG_EquippedWeapon(ps)->getIsTwoHanded()
+		&& (ucmd->buttons & BUTTON_ALT_ATTACK)
+		&& !(ucmd->buttons & BUTTON_ATTACK)
+		&& (bg_testspinanimation.integer || ps->torsoAnim == BOTH_CC_DEFENCE_SPIN || g_mmoStyleAttacking.integer || PM_AllowDefenceSpin()))
+	{
+		return BOTH_CC_DEFENCE_SPIN;
+	}
 	else if ((ucmd->buttons & BUTTON_ALT_ATTACK)
 		&& !(ucmd->buttons & BUTTON_ATTACK)
 		&& (bg_testspinanimation.integer || ps->torsoAnim == BOTH_SINGLE_DEFENCE_SPIN || g_mmoStyleAttacking.integer || PM_AllowDefenceSpin()))
@@ -795,11 +802,6 @@ int BG_GetSaberStanceForPS(playerState_t *ps, usercmd_t *ucmd)
 		return saber2->readyAnim;
 	}
 
-	if (saber1 && saber2 && !ps->saberHolstered)
-	{//dual sabers, both on
-		return BOTH_SABERDUAL_STANCE;
-	}
-
 	if (ps->fd.saberDrawAnimLevel == SS_CROWD_CONTROL)
 	{
 		if ((ucmd->buttons & BUTTON_ALT_ATTACK) && !(ucmd->buttons & BUTTON_ATTACK) && blockableSaber)
@@ -808,6 +810,16 @@ int BG_GetSaberStanceForPS(playerState_t *ps, usercmd_t *ucmd)
 		}
 
 		return BOTH_CC_STANCE;
+	}
+
+	if (ps->fd.saberDrawAnimLevel == SS_DUAL && BG_EquippedWeapon(ps)->getIsTwoHanded())
+	{
+		if ((ucmd->buttons & BUTTON_ALT_ATTACK) && !(ucmd->buttons & BUTTON_ATTACK) && blockableSaber)
+		{
+			return BOTH_P1_S1_T_;// BOTH_P6_S6_T_;
+		}
+
+		return BOTH_H6_S6_B_;//BOTH_ATTACK11;//BOTH_CC_STANCE;
 	}
 
 	if (ps->fd.saberDrawAnimLevel == SS_SINGLE)
@@ -819,6 +831,11 @@ int BG_GetSaberStanceForPS(playerState_t *ps, usercmd_t *ucmd)
 
 		//return 686;
 		return BOTH_SINGLE_STANCE;
+	}
+
+	if (saber1 && saber2 && !ps->saberHolstered)
+	{//dual sabers, both on
+		return BOTH_SABERDUAL_STANCE;
 	}
 
 	switch (ps->fd.saberAnimLevel)
