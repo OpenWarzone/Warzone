@@ -9,39 +9,39 @@
 <h2 align="center">&nbsp;</h2>
 <h2 align="center">V I D E O S</h2>
 <p align="center"><a class="hoverZoomLink" href="https://www.youtube.com/watch?v=x_jFr-uking"><img src="https://img.youtube.com/vi/x_jFr-uking/0.jpg" alt="IMAGE ALT TEXT" width="100%" /></a> <a class="hoverZoomLink" href="https://www.youtube.com/watch?v=kjUXPjHzMVk"><img src="https://img.youtube.com/vi/kjUXPjHzMVk/0.jpg" alt="IMAGE ALT TEXT" width="100%" /></a> <a class="hoverZoomLink" href="https://www.youtube.com/watch?v=dS4uwjVNq3s"><img src="https://img.youtube.com/vi/dS4uwjVNq3s/0.jpg" alt="IMAGE ALT TEXT" width="100%" /></a> <a class="hoverZoomLink" href="https://www.youtube.com/watch?v=883r3qRMJv4"><img src="https://img.youtube.com/vi/883r3qRMJv4/0.jpg" alt="IMAGE ALT TEXT" width="100%" /></a></p>
-<p>============================================================================</p>
+<p align="center">============================================================================</p>
 <h2 align="center">C R E D I T S</h2>
-<p>============================================================================</p>
+<p align="center">============================================================================</p>
 <h3 align="center">CODING:</h3>
-<p>============================================================================</p>
+<p align="center">============================================================================</p>
 <p align="center">Unique One</p>
 <p align="center">Stoiss</p>
 <p align="center">kungfooman</p>
 <p align="center">Exmirai</p>
-<p>============================================================================</p>
+<p align="center">============================================================================</p>
 <h3 align="center">MAPPING:</h3>
-<p>============================================================================</p>
+<p align="center">============================================================================</p>
 <p align="center">Lwkill</p>
 <p align="center">Noodle</p>
 <p align="center">TheTemplar</p>
 <p align="center">UniqueOne</p>
-<p>============================================================================</p>
+<p align="center">============================================================================</p>
 <h3 align="center">MODELING:</h3>
-<p>============================================================================</p>
+<p align="center">============================================================================</p>
 <p align="center">Rooxon</p>
 <p align="center">Noodle</p>
 <p align="center">DT85</p>
 <p align="center">Unique One</p>
-<p>============================================================================</p>
+<p align="center">============================================================================</p>
 <h3 align="center">OTHER:</h3>
-<p>============================================================================</p>
+<p align="center">============================================================================</p>
 <p align="center">Finalizer</p>
 <p align="center">Unique One</p>
-<p>============================================================================</p>
+<p align="center">============================================================================</p>
 <h4 align="center">... And also everyone whos names are unknown ...</h4>
 <h4 align="center">If you should also be on this list, please let us know. It is hard to keep</h4>
 <h4 align="center">track of everything at times.</h4>
-<p>============================================================================</p>
+<p align="center">============================================================================</p>
 <p><img id="hzDownscaled" style="position: absolute; top: -10000px;" /><img id="hzDownscaled" style="position: absolute; top: -10000px;" /><img id="hzDownscaled" style="position: absolute; top: -10000px;" /><img id="hzDownscaled" style="position: absolute; top: -10000px;" /><img id="hzDownscaled" style="position: absolute; top: -10000px;" /><img id="hzDownscaled" style="position: absolute; top: -10000px;" /><img id="hzDownscaled" style="position: absolute; top: -10000px;" /><img id="hzDownscaled" style="position: absolute; top: -10000px;" /><img id="hzDownscaled" style="position: absolute; top: -10000px;" /></p>
 <p><img id="hzDownscaled" style="position: absolute; top: -10000px;" /><img id="hzDownscaled" style="position: absolute; top: -10000px;" /><img id="hzDownscaled" style="position: absolute; top: -10000px;" /><img id="hzDownscaled" style="position: absolute; top: -10000px;" /><img id="hzDownscaled" style="position: absolute; top: -10000px;" /><img id="hzDownscaled" style="position: absolute; top: -10000px;" /></p>
 <p><img id="hzDownscaled" style="position: absolute; top: -10000px;" /><img id="hzDownscaled" style="position: absolute; top: -10000px;" /><img id="hzDownscaled" style="position: absolute; top: -10000px;" /></p>
