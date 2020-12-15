@@ -1,20 +1,23 @@
+<p align="center" width="100%">
 
 
-          A LONG TIME AGO IN A PROJECT WAY TOO CRAZY TO KEEP TRACK OF
+A LONG TIME AGO IN A PROJECT WAY TOO AMBITIOUS TO KEEP TRACK OF
 
-                     S T A R   W A R S :    W A R Z O N E
+S T A R   W A R S :    W A R Z O N E
 
-                 ( Jedi Academy for Open Worlds, not corridors )
-
-
-      More information at https://www.moddb.com/mods/star-wars-warzone
-                      Discord: https://discord.gg/zQ4CB9S
+( Jedi Academy for Open Worlds, not corridors )
 
 
+More information at https://www.moddb.com/mods/star-wars-warzone
+Discord: https://discord.gg/zQ4CB9S
+</p>
 
-                                 V I D E O
+
 
 <p align="center" width="100%">
+V I D E O
+
+
     <a href="https://www.youtube.com/watch?v=x_jFr-uking"><img width="100%" src="https://img.youtube.com/vi/x_jFr-uking/0.jpg" alt="IMAGE ALT TEXT"></a>
     <a href="https://www.youtube.com/watch?v=kjUXPjHzMVk"><img width="100%" src="https://img.youtube.com/vi/kjUXPjHzMVk/0.jpg" alt="IMAGE ALT TEXT"></a>
     <a href="https://www.youtube.com/watch?v=dS4uwjVNq3s"><img width="100%" src="https://img.youtube.com/vi/dS4uwjVNq3s/0.jpg" alt="IMAGE ALT TEXT"></a>
@@ -23,9 +26,9 @@
 
 
 
-                              P I C T U R E S
-
 <p align="center" width="100%">
+P I C T U R E S
+
     <img width="100%" src="https://media.moddb.com/cache/images/mods/1/42/41519/thumb_620x2000/shot2020-05-08_20-51-24.jpg">
     <img width="100%" src="https://media.moddb.com/cache/images/mods/1/42/41519/thumb_620x2000/shot2020-11-21_16-33-19.jpg">
     <img width="100%" src="https://media.moddb.com/cache/images/mods/1/42/41519/thumb_620x2000/shot2020-04-21_19-52-01.jpg">
@@ -35,68 +38,70 @@
 
 
 
+<p align="center" width="100%">
 ============================================================================
 
-                                C R E D I T S
+C R E D I T S
 
 ============================================================================
 
-                                   CODING:
+CODING:
 
 ============================================================================                          
 
 
-                                 Unique One
-                                   Stoiss
-                                 kungfooman
-                                   Exmirai
+Unique One
+Stoiss
+kungfooman
+Exmirai
 
 
 ============================================================================
 
-                                  MAPPING:
+MAPPING:
 
 ============================================================================
 
 
-                                   Lwkill
-                                   Noodle
-                                 TheTemplar
-                            UniqueOne (test maps)
+Lwkill
+Noodle
+TheTemplar
+UniqueOne
 
 
 ============================================================================
 
-                                 MODELING:
+MODELING:
 
 ============================================================================
 
 
-                                   Rooxon
-                                   Noodle
-                                    DT85
-                            Unique One (conversions)
+Rooxon
+Noodle
+DT85
+Unique One
 
 
 ============================================================================
 
-                                   OTHER:
+OTHER:
 
 ============================================================================
 
 
-                                 Finalizer
-                                 Unique One
+Finalizer
+Unique One
 
 
 ============================================================================
 
 
-             ... And also everyone whos names are unknown ...
+... And also everyone whos names are unknown ...
 
-  If you should also be on this list, please let us know. It is hard to keep
-                      track of everything at times.
+If you should also be on this list, please let us know. It is hard to keep
+track of everything at times.
 
 
 ============================================================================
+</p>
 
