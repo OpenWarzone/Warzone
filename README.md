@@ -1,6 +1,6 @@
 <p align="center"><strong>A LONG TIME AGO IN A PROJECT WAY TOO AMBITIOUS TO KEEP TRACK OF</strong></p>
-<h1>S T A R W A R S : W A R Z O N E</h1>
-<h3>( Jedi Academy for Open Worlds, not corridors )</h3>
+<p align="center"><h1>S T A R W A R S : W A R Z O N E</h1></p>
+<p align="center"><h3>( Jedi Academy for Open Worlds, not corridors )</h3></p>
 <p align="center">More information at https://www.moddb.com/mods/star-wars-warzone</p>
 <p align="center">Discord: <a href="https://discord.gg/zQ4CB9S">https://discord.gg/zQ4CB9S</a></p>
 <p align="center">&nbsp;</p>
