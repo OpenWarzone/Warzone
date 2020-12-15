@@ -12,9 +12,7 @@
 
 
 <p align="center" width="100%">
-    <iframe width="100%"
-        src="https://www.youtube.com/embed/x_jFr-uking">
-    </iframe>
+    <object data='https://www.youtube.com/embed/v=x_jFr-uking' width='560px' height='315px'></object>
     <img width="100%" src="https://media.moddb.com/cache/images/mods/1/42/41519/thumb_620x2000/shot2020-05-08_20-51-24.jpg">
     <img width="100%" src="https://media.moddb.com/cache/images/mods/1/42/41519/thumb_620x2000/shot2020-11-21_16-33-19.jpg">
     <img width="100%" src="https://media.moddb.com/cache/images/mods/1/42/41519/thumb_620x2000/shot2020-04-21_19-52-01.jpg">
