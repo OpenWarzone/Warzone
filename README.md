@@ -1,20 +1,16 @@
-<p align="center">
-A LONG TIME AGO IN A PROJECT WAY TOO AMBITIOUS TO KEEP TRACK OF
+<p align="center">A LONG TIME AGO IN A PROJECT WAY TOO AMBITIOUS TO KEEP TRACK OF</p>
 
-S T A R   W A R S :    W A R Z O N E
+<p align="center">S T A R   W A R S :    W A R Z O N E</p>
 
-( Jedi Academy for Open Worlds, not corridors )
+<p align="center">( Jedi Academy for Open Worlds, not corridors )</p>
 
 
-More information at https://www.moddb.com/mods/star-wars-warzone
-Discord: https://discord.gg/zQ4CB9S
-</p>
+<p align="center">More information at https://www.moddb.com/mods/star-wars-warzone</p>
+<p align="center">Discord: https://discord.gg/zQ4CB9S</p>
 
 
 
-<p align="center">
-V I D E O
-</p>
+<p align="center">V I D E O</p>
 
 <p align="center" width="100%">
     <a href="https://www.youtube.com/watch?v=x_jFr-uking"><img width="100%" src="https://img.youtube.com/vi/x_jFr-uking/0.jpg" alt="IMAGE ALT TEXT"></a>
@@ -25,9 +21,7 @@ V I D E O
 
 
 
-<p align="center">
-P I C T U R E S
-</p>
+<p align="center">P I C T U R E S</p>
 
 
 <p align="center" width="100%">
@@ -40,70 +34,67 @@ P I C T U R E S
 
 
 
-<p align="center">
 ============================================================================
 
-C R E D I T S
+<p align="center">C R E D I T S</p>
 
 ============================================================================
 
-CODING:
+<p align="center">CODING:</p>
 
 ============================================================================                          
 
 
-Unique One
-Stoiss
-kungfooman
-Exmirai
+<p align="center">Unique One</p>
+<p align="center">Stoiss</p>
+<p align="center">kungfooman</p>
+<p align="center">Exmirai</p>
 
 
 ============================================================================
 
-MAPPING:
+<p align="center">MAPPING:</p>
 
 ============================================================================
 
 
-Lwkill
-Noodle
-TheTemplar
-UniqueOne
+<p align="center">Lwkill</p>
+<p align="center">Noodle</p>
+<p align="center">TheTemplar</p>
+<p align="center">UniqueOne</p>
 
 
 ============================================================================
 
-MODELING:
+<p align="center">MODELING:</p>
 
 ============================================================================
 
 
-Rooxon
-Noodle
-DT85
-Unique One
+<p align="center">Rooxon</p>
+<p align="center">Noodle</p>
+<p align="center">DT85</p>
+<p align="center">Unique One</p>
 
 
 ============================================================================
 
-OTHER:
+<p align="center">OTHER:</p>
 
 ============================================================================
 
 
-Finalizer
-Unique One
+<p align="center">Finalizer</p>
+<p align="center">Unique One</p>
 
 
 ============================================================================
 
 
-... And also everyone whos names are unknown ...
+<p align="center">... And also everyone whos names are unknown ...</p>
 
-If you should also be on this list, please let us know. It is hard to keep
-track of everything at times.
+<p align="center">If you should also be on this list, please let us know. It is hard to keep</p>
+<p align="center">track of everything at times.</p>
 
 
 ============================================================================
-</p>
-
