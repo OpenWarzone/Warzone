@@ -9,8 +9,10 @@
                       Discord: https://discord.gg/zQ4CB9S
 
 
-![Open Worlds](https://cdn.dbolical.com/cache/videos/mods/1/42/41519/encode720p_mp4/warzone-event-ships.mp4)
-![Open Worlds](https://cdn.dbolical.com/cache/videos/mods/1/42/41519/encode720p_mp4/jedi-academy-star-wars-warzone-alpha-gameplay-3.mp4)
+[![Open Worlds](https://img.youtube.com/vi/x_jFr-uking/0.jpg)](http://www.youtube.com/watch?v=x_jFr-uking)
+[![Open Worlds](https://img.youtube.com/vi/kjUXPjHzMVk/0.jpg)](http://www.youtube.com/watch?v=kjUXPjHzMVk)
+[![Open Worlds](https://img.youtube.com/vi/dS4uwjVNq3s/0.jpg)](http://www.youtube.com/watch?v=dS4uwjVNq3s)
+[![Open Worlds](https://img.youtube.com/vi/883r3qRMJv4/0.jpg)](http://www.youtube.com/watch?v=883r3qRMJv4)
 ![Open Worlds](https://media.moddb.com/cache/images/mods/1/42/41519/thumb_620x2000/shot2020-05-08_20-51-24.jpg)
 ![Open Worlds](https://media.moddb.com/cache/images/mods/1/42/41519/thumb_620x2000/shot2020-11-21_16-33-19.jpg)
 ![Open Worlds](https://media.moddb.com/cache/images/mods/1/42/41519/thumb_620x2000/shot2020-04-21_19-52-01.jpg)
