@@ -6142,7 +6142,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL21, l21);
 
 			vec4_t l22;
-			VectorSet4(l22, TOWN_RADIUS, TOWN_ORIGIN[0], TOWN_ORIGIN[1], TOWN_ORIGIN[2]);
+			VectorSet4(l22, TOWN_GRASS_ENABLED ? 0.0 : TOWN_RADIUS, TOWN_ORIGIN[0], TOWN_ORIGIN[1], TOWN_ORIGIN[2]);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL22, l22);
 
 			vec4_t l23;
@@ -6157,7 +6157,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL21, l21);
 
 			vec4_t l22;
-			VectorSet4(l22, TOWN_RADIUS, TOWN_ORIGIN[0], TOWN_ORIGIN[1], TOWN_ORIGIN[2]);
+			VectorSet4(l22, TOWN_GRASS_ENABLED ? 0.0 : TOWN_RADIUS, TOWN_ORIGIN[0], TOWN_ORIGIN[1], TOWN_ORIGIN[2]);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL22, l22);
 
 			vec4_t l23;
@@ -6171,7 +6171,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL21, l21);
 
 			vec4_t l22;
-			VectorSet4(l22, TOWN_RADIUS, TOWN_ORIGIN[0], TOWN_ORIGIN[1], TOWN_ORIGIN[2]);
+			VectorSet4(l22, TOWN_GRASS_ENABLED ? 0.0 : TOWN_RADIUS, TOWN_ORIGIN[0], TOWN_ORIGIN[1], TOWN_ORIGIN[2]);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL22, l22);
 
 			vec4_t l23;
@@ -6185,7 +6185,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL21, l21);
 
 			vec4_t l22;
-			VectorSet4(l22, TOWN_RADIUS, TOWN_ORIGIN[0], TOWN_ORIGIN[1], TOWN_ORIGIN[2]);
+			VectorSet4(l22, TOWN_GRASS_ENABLED ? 0.0 : TOWN_RADIUS, TOWN_ORIGIN[0], TOWN_ORIGIN[1], TOWN_ORIGIN[2]);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL22, l22);
 
 			vec4_t l23;
@@ -6198,10 +6198,20 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			VectorSet4(l21, WATEREDGE_RANGE_MULTIPLIER, 0.0, 0.0, 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL21, l21);
 
-			vec4_t l22;
-			//VectorSet4(l22, 0.0, 0.0, 0.0, 0.0);
-			VectorSet4(l22, TOWN_RADIUS, TOWN_ORIGIN[0], TOWN_ORIGIN[1], TOWN_ORIGIN[2]);
-			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL22, l22);
+			if (FAKE_GRASS_ENABLED 
+				&& (sp == &tr.lightAllSplatShader[0] || sp == &tr.lightAllSplatShader[1] || sp == &tr.lightAllSplatShader[2] || sp == &tr.lightAllSplatShader[3]))
+			{// Still needs to match for fake grass rendering...
+				vec4_t l22;
+				VectorSet4(l22, TOWN_GRASS_ENABLED ? 0.0 : TOWN_RADIUS, TOWN_ORIGIN[0], TOWN_ORIGIN[1], TOWN_ORIGIN[2]);
+				GLSL_SetUniformVec4(sp, UNIFORM_LOCAL22, l22);
+			}
+			else
+			{
+				vec4_t l22;
+				//VectorSet4(l22, 0.0, 0.0, 0.0, 0.0);
+				VectorSet4(l22, TOWN_RADIUS, TOWN_ORIGIN[0], TOWN_ORIGIN[1], TOWN_ORIGIN[2]);
+				GLSL_SetUniformVec4(sp, UNIFORM_LOCAL22, l22);
+			}
 		}
 
 		if (sp == &tr.lightAllSplatShader[0] || sp == &tr.lightAllSplatShader[1] || sp == &tr.lightAllSplatShader[2] || sp == &tr.lightAllSplatShader[3])

@@ -1402,6 +1402,7 @@ float		DISPLACEMENT_MAPPING_STRENGTH = 18.0;
 qboolean	MAP_REFLECTION_ENABLED = qfalse;
 qboolean	ENABLE_CHRISTMAS_EFFECT = qfalse;
 
+qboolean	TOWN_GRASS_ENABLED = qfalse;
 vec3_t		TOWN_ORIGIN = { { 0.0 } };
 float		TOWN_RADIUS = 0.0;
 float		TOWN_FORCEFIELD_ALPHAMULT = 1.0;
@@ -2137,6 +2138,8 @@ void MAPPING_LoadMapInfo(void)
 
 	vec3_t			TOWN_FORCEFIELD_ORIGIN;
 	vec3_t			TOWN_FORCEFIELD_RADIUS;
+
+	TOWN_GRASS_ENABLED = (atoi(IniRead(mapname, "TOWN", "TOWN_GRASS_ENABLED", "0")) > 0) ? qtrue : qfalse;
 
 	TOWN_FORCEFIELD_ORIGIN[0] = atof(IniRead(mapname, "TOWN", "TOWN_FORCEFIELD_ORIGIN_X", "999999.9"));
 	TOWN_FORCEFIELD_ORIGIN[1] = atof(IniRead(mapname, "TOWN", "TOWN_FORCEFIELD_ORIGIN_Y", "999999.9"));

@@ -22,6 +22,7 @@ extern float			DISPLACEMENT_MAPPING_STRENGTH;
 extern qboolean			MAP_REFLECTION_ENABLED;
 extern qboolean			ENABLE_CHRISTMAS_EFFECT;
 
+extern qboolean			TOWN_GRASS_ENABLED;
 extern vec3_t			TOWN_ORIGIN;
 extern float			TOWN_RADIUS;
 extern float			TOWN_FORCEFIELD_ALPHAMULT;
