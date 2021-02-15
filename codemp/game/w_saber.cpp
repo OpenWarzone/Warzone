@@ -3872,7 +3872,7 @@ qboolean G_SaberVoxelTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_
 	vec3_t			entitySearchRange = { saberLength * 3.0f, saberLength * 3.0f, saberLength * 3.0f };
 	int				touch[MAX_GENTITIES];
 
-	int				attackerNumVoxels = int((saberLength / saberVoxelSize) * 2.0f) + 1;
+	int				attackerNumVoxels = int((saberLength / saberVoxelSize) * 2.0f) /*+ 1*/;
 	vec3_t			saberVoxelBounds = { (float)saberVoxelSize * 0.5f, (float)saberVoxelSize * 0.5f, (float)saberVoxelSize * 0.5f };
 
 	VectorSubtract(start, entitySearchRange, mins);
@@ -3971,7 +3971,7 @@ qboolean G_SaberVoxelTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_
 				}
 
 				float			defenderSaberLength = Distance(defenderSaberPoint, defenderSaberEndPoint);
-				int				defenderNumVoxels = int((defenderSaberLength / saberDefenderVoxelSize) * 2.0) + 1;
+				int				defenderNumVoxels = int((defenderSaberLength / saberDefenderVoxelSize) * 2.0) /*+ 1*/;
 
 #ifdef __DEBUG_VOXEL_LINES__
 				if (g_testvalue0.integer)
@@ -5851,7 +5851,7 @@ void G_DoClashTaunting(gentity_t *self, gentity_t *attacker)
 				G_AddVoiceEvent(self, Q_irand(EV_COMBAT1, EV_COMBAT3), 5000 + irand(0, 15000));
 				break;
 			case 1:
-				G_AddVoiceEvent(self, Q_irand(EV_ANGER1, EV_ANGER1), 5000 + irand(0, 15000));
+				G_AddVoiceEvent(self, Q_irand(EV_ANGER1, EV_ANGER3), 5000 + irand(0, 15000));
 				break;
 			default:
 				G_AddVoiceEvent(self, Q_irand(EV_TAUNT1, EV_TAUNT5), 5000 + irand(0, 15000));
@@ -6009,6 +6009,39 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 	realTraceResult = WP_DoFrameSaberTrace(self, rSaberNum, rBladeNum, saberStart, saberEnd, doInterpolate, trMask, extrapolate);
 	memcpy(&tr, &self->saberTrace[rSaberNum][rBladeNum].trace, sizeof(trace_t)); // TODO: Use the self->saberTrace[rSaberNum][rBladeNum].trace instead of tr in this code and skip the memcpy, but for testing it's this way...
 
+#if 0
+	extern qboolean Jedi_SaberBlock(gentity_t *aiEnt, gentity_t *enemy);
+	
+	if (realTraceResult == REALTRACE_HIT_SABER)
+	{// Testing use of NPC blocking stuff here...
+		otherOwner = &g_entities[tr.entityNum];
+
+		if (!otherOwner->client)
+		{
+			if (!strcmp(otherOwner->classname, "lightsaber"))
+			{
+				otherOwner = &g_entities[otherOwner->r.ownerNum];
+			}
+			else
+			{
+				otherOwner = NULL;
+			}
+		}
+
+		if (otherOwner && Jedi_SaberBlock(self, otherOwner))
+		{
+			if (self->s.eType == ET_PLAYER)
+			{
+				trap->Print("Player doing NPC saber block/evade...\n");
+			}
+			if (self->s.eType == ET_NPC)
+			{
+				trap->Print("NPC doing NPC saber block/evade...\n");
+			}
+			return qfalse;
+		}
+	}
+#endif
 
 	if (realTraceResult == REALTRACE_MISS || realTraceResult == REALTRACE_HIT_WORLD)
 	{

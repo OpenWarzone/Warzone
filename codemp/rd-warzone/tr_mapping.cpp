@@ -1234,7 +1234,7 @@ void R_CreateRoadMapImage(void)
 					alpha[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0;
 					continue;
 				}
-
+				
 				if (tr.surfaceFlags & SURF_NODRAW)
 				{// don't generate a drawsurface at all
 					red[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0;
@@ -1290,8 +1290,10 @@ void R_CreateRoadMapImage(void)
 					}
 					default:
 					{
+#if 0
 						extern qboolean RB_ShouldUseGeometryGrass(int materialType);
 						if (RB_ShouldUseGeometryGrass(MATERIAL_TYPE))
+#endif
 						{
 							float slope = ROAD_GetSlope(tr.plane.normal);
 							UINT8 brightness = 0;
@@ -1309,6 +1311,7 @@ void R_CreateRoadMapImage(void)
 							blue[(MAP_INFO_TRACEMAP_SIZE - 1) - imageY][imageX] = 0;
 							alpha[(MAP_INFO_TRACEMAP_SIZE - 1) - imageY][imageX] = 255;
 						}
+#if 0
 						else
 						{
 							// Material isn't a road-able surface type...  Draw black...
@@ -1317,6 +1320,7 @@ void R_CreateRoadMapImage(void)
 							blue[(MAP_INFO_TRACEMAP_SIZE - 1) - imageY][imageX] = 0;
 							alpha[(MAP_INFO_TRACEMAP_SIZE - 1) - imageY][imageX] = 255;
 						}
+#endif
 						FOUND = qtrue;
 						break;
 					}
@@ -1605,6 +1609,7 @@ float		GRASS_PATCHES_LOD_START_RANGE = 8192.0;
 image_t		*GRASS_PATCHES_CONTROL_TEXTURE = NULL;
 
 qboolean	GRASS_ENABLED = qtrue;
+float		GRASS_MATCH_TERRAIN_COLOR = 0.0;
 int			GRASS_UNDERWATER = 0;
 qboolean	GRASS_RARE_PATCHES_ONLY = qfalse;
 int			GRASS_WIDTH_REPEATS = 0;
@@ -1635,6 +1640,7 @@ float		FAKE_GRASS_COLORMULT = 0.3;
 float		FAKE_GRASS_COLORMULT_UNDERWATER = 0.3;
 
 qboolean	GRASS2_ENABLED = qtrue;
+float		GRASS2_MATCH_TERRAIN_COLOR = 0.0;
 int			GRASS2_UNDERWATER = 0;
 qboolean	GRASS2_RARE_PATCHES_ONLY = qfalse;
 int			GRASS2_WIDTH_REPEATS = 0;
@@ -1658,6 +1664,7 @@ vec2_t		GRASS2_PATCH_OFFSET = { { 0 } };
 image_t		*GRASS2_CONTROL_TEXTURE = NULL;
 
 qboolean	GRASS3_ENABLED = qtrue;
+float		GRASS3_MATCH_TERRAIN_COLOR = 0.0;
 int			GRASS3_UNDERWATER = 0;
 qboolean	GRASS3_RARE_PATCHES_ONLY = qfalse;
 int			GRASS3_WIDTH_REPEATS = 0;
@@ -1680,6 +1687,7 @@ vec2_t		GRASS3_PATCH_OFFSET = { { 0 } };
 image_t		*GRASS3_CONTROL_TEXTURE = NULL;
 
 qboolean	GRASS4_ENABLED = qtrue;
+float		GRASS4_MATCH_TERRAIN_COLOR = 0.0;
 int			GRASS4_UNDERWATER = 0;
 qboolean	GRASS4_RARE_PATCHES_ONLY = qfalse;
 int			GRASS4_WIDTH_REPEATS = 0;
@@ -2712,6 +2720,7 @@ void MAPPING_LoadMapInfo(void)
 
 	if (GRASS_ENABLED)
 	{
+		GRASS_MATCH_TERRAIN_COLOR = (atof(IniRead(mapname, "GRASS", "GRASS_MATCH_TERRAIN_COLOR", "0.0")));
 		GRASS_UNDERWATER = (atoi(IniRead(mapname, "GRASS", "GRASS_UNDERWATER", "0")));
 		GRASS_RARE_PATCHES_ONLY = (atoi(IniRead(mapname, "GRASS", "GRASS_RARE_PATCHES_ONLY", "0")) > 0) ? qtrue : qfalse;
 		GRASS_DENSITY = atoi(IniRead(mapname, "GRASS", "GRASS_DENSITY", "2"));
@@ -2774,6 +2783,7 @@ void MAPPING_LoadMapInfo(void)
 
 	if (GRASS2_ENABLED)
 	{
+		GRASS2_MATCH_TERRAIN_COLOR = (atof(IniRead(mapname, "GRASS2", "GRASS_MATCH_TERRAIN_COLOR", "0.0")));
 		GRASS2_UNDERWATER = (atoi(IniRead(mapname, "GRASS2", "GRASS_UNDERWATER", "0")));
 		GRASS2_RARE_PATCHES_ONLY = (atoi(IniRead(mapname, "GRASS2", "GRASS_RARE_PATCHES_ONLY", "0")) > 0) ? qtrue : qfalse;
 		GRASS2_DENSITY = atoi(IniRead(mapname, "GRASS2", "GRASS_DENSITY", "2"));
@@ -2827,6 +2837,7 @@ void MAPPING_LoadMapInfo(void)
 
 	if (GRASS3_ENABLED)
 	{
+		GRASS3_MATCH_TERRAIN_COLOR = (atof(IniRead(mapname, "GRASS3", "GRASS_MATCH_TERRAIN_COLOR", "0.0")));
 		GRASS3_UNDERWATER = (atoi(IniRead(mapname, "GRASS3", "GRASS_UNDERWATER", "0")));
 		GRASS3_RARE_PATCHES_ONLY = (atoi(IniRead(mapname, "GRASS3", "GRASS_RARE_PATCHES_ONLY", "0")) > 0) ? qtrue : qfalse;
 		GRASS3_DENSITY = atoi(IniRead(mapname, "GRASS3", "GRASS_DENSITY", "2"));
@@ -2880,6 +2891,7 @@ void MAPPING_LoadMapInfo(void)
 
 	if (GRASS4_ENABLED)
 	{
+		GRASS4_MATCH_TERRAIN_COLOR = (atof(IniRead(mapname, "GRASS4", "GRASS_MATCH_TERRAIN_COLOR", "0.0")));
 		GRASS4_UNDERWATER = (atoi(IniRead(mapname, "GRASS4", "GRASS_UNDERWATER", "0")));
 		GRASS4_RARE_PATCHES_ONLY = (atoi(IniRead(mapname, "GRASS4", "GRASS_RARE_PATCHES_ONLY", "0")) > 0) ? qtrue : qfalse;
 		GRASS4_DENSITY = atoi(IniRead(mapname, "GRASS4", "GRASS_DENSITY", "2"));

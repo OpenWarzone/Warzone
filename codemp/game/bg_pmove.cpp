@@ -526,6 +526,11 @@ int BG_GetSaberStanceForPS(playerState_t *ps, usercmd_t *ucmd)
 		mblockforstance = SS_TAVION;
 	}
 
+	if (ps->fd.saberAnimLevelBase == SS_STRONG)
+	{// Use the old one...
+		mblockforstance = SS_TAVION;
+	}
+
 	if (!ps->saberEntityNum)
 	{ //lost it
 		return BOTH_STAND1;
@@ -853,7 +858,8 @@ int BG_GetSaberStanceForPS(playerState_t *ps, usercmd_t *ucmd)
 		anim = TRIPLE3_BLUESTANCE;
 		break;
 	case SS_STRONG:
-		anim = BOTH_SABERSLOW_STANCE;
+		//anim = BOTH_SABERSLOW_STANCE;
+		anim = BOTH_SINGLE_STANCE;
 		break;
 	case SS_DESANN:
 		anim = TRIPLE3_REDSTANCE;

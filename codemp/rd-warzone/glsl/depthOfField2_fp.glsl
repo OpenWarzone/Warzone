@@ -74,13 +74,16 @@ vec2 sampleOffset = vec2(1.0/u_Dimensions);
 
 #elif defined(MEDIUM_DOF)
 
-#define iMatsoDOFBokehQuality	6		// [1 to 10] Blur quality as control value over tap count.
-#define DOF_BLURRADIUS 			5.0//12.0
+//#define iMatsoDOFBokehQuality	6		// [1 to 10] Blur quality as control value over tap count.
+//#define DOF_BLURRADIUS 			5.0//12.0
+#define iMatsoDOFBokehQuality	3		// [1 to 10] Blur quality as control value over tap count.
+#define DOF_BLURRADIUS 			10.0
 
 #else //defined(HIGH_DOF)
 
 #define iMatsoDOFBokehQuality	10		// [1 to 10] Blur quality as control value over tap count.
-#define DOF_BLURRADIUS 			6.0
+//#define DOF_BLURRADIUS 			6.0
+#define DOF_BLURRADIUS 			10.0
 
 #endif //defined(HIGH_DOF)
 
@@ -107,10 +110,14 @@ vec4 GetMatsoDOFBlur(int axis, vec2 coord, sampler2D SamplerHDRX)
 	float focalDepth = var_FocalDepth;
 	float coordDepth = texture2D(u_ScreenDepthMap, coord.xy).x;
 	float depthDiff = (coordDepth - focalDepth);
+
+//#if !defined(FAST_DOF)
+//	depthDiff *= u_Local1.r;//3.0;
+//#endif //!defined(FAST_DOF)
 	
 	if (depthDiff < 0.0)
 	{// Close to camera pixels, blur much less so player model is not blury...
-		depthDiff = pow(length(depthDiff), 128.0);
+		depthDiff = clamp(pow(length(depthDiff), 128.0), 0.0, 1.0);
 	}
 	else
 	{

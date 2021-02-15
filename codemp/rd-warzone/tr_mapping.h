@@ -225,6 +225,7 @@ extern float			GRASS_PATCHES_LOD_START_RANGE;
 extern image_t			*GRASS_PATCHES_CONTROL_TEXTURE;
 
 extern qboolean			GRASS_ENABLED;
+extern float			GRASS_MATCH_TERRAIN_COLOR;
 extern int				GRASS_UNDERWATER;
 extern qboolean			GRASS_RARE_PATCHES_ONLY;
 extern int				GRASS_WIDTH_REPEATS;
@@ -255,6 +256,7 @@ extern float			FAKE_GRASS_COLORMULT;
 extern float			FAKE_GRASS_COLORMULT_UNDERWATER;
 
 extern qboolean			GRASS2_ENABLED;
+extern float			GRASS2_MATCH_TERRAIN_COLOR;
 extern int				GRASS2_UNDERWATER;
 extern qboolean			GRASS2_RARE_PATCHES_ONLY;
 extern int				GRASS2_WIDTH_REPEATS;
@@ -277,6 +279,7 @@ extern vec2_t			GRASS2_PATCH_OFFSET;
 extern image_t			*GRASS2_CONTROL_TEXTURE;
 
 extern qboolean			GRASS3_ENABLED;
+extern float			GRASS3_MATCH_TERRAIN_COLOR;
 extern int				GRASS3_UNDERWATER;
 extern qboolean			GRASS3_RARE_PATCHES_ONLY;
 extern int				GRASS3_WIDTH_REPEATS;
@@ -299,6 +302,7 @@ extern vec2_t			GRASS3_PATCH_OFFSET;
 extern image_t			*GRASS3_CONTROL_TEXTURE;
 
 extern qboolean			GRASS4_ENABLED;
+extern float			GRASS4_MATCH_TERRAIN_COLOR;
 extern int				GRASS4_UNDERWATER;
 extern qboolean			GRASS4_RARE_PATCHES_ONLY;
 extern int				GRASS4_WIDTH_REPEATS;

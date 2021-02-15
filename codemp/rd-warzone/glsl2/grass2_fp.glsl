@@ -68,6 +68,7 @@ uniform vec4						u_Local8; // passnum, GRASS_DISTANCE_FROM_ROADS, GRASS_HEIGHT,
 uniform vec4						u_Local9; // testvalue0, 1, 2, 3
 uniform vec4						u_Local10; // foliageLODdistance, TERRAIN_TESS_OFFSET, 0.0, GRASS_TYPE_UNIFORMALITY
 uniform vec4						u_Local11; // GRASS_WIDTH_REPEATS, 0.0, 0.0, 0.0
+uniform vec4						u_Local24; // GRASS_MATCH_TERRAIN_COLOR, TERRAIN_COLOR_R, TERRAIN_COLOR_G, TERRAIN_COLOR_B
 
 #define SHADER_MAP_SIZE				u_Local1.r
 #define SHADER_SWAY					u_Local1.g
@@ -93,6 +94,9 @@ uniform vec4						u_Local11; // GRASS_WIDTH_REPEATS, 0.0, 0.0, 0.0
 #define GRASS_TYPE_UNIFORMALITY		u_Local10.a
 
 #define GRASS_WIDTH_REPEATS			u_Local11.r
+
+#define GRASS_MATCH_TERRAIN_COLOR	u_Local24.r
+#define GRASS_TERRAIN_COLOR			u_Local24.gba
 
 smooth in vec2		vTexCoord;
 smooth in vec3		vVertPosition;
@@ -196,6 +200,18 @@ bool isDithered(vec2 pos, float alpha)
 	return (alpha - DITHER_THRESHOLDS[index] < 0) ? true : false;
 }
 
+vec4 AdjustGrassColorToTerrainColor(vec4 diffuse)
+{
+	if (GRASS_MATCH_TERRAIN_COLOR > 0)
+	{
+		// * GRASS_MATCH_TERRAIN_COLOR to brighten a little because of averaging, hopefully this makes it about right most of the time....
+		diffuse.rgb = vec3( clamp( max(diffuse.r, max(diffuse.g, diffuse.b)), 0.0, 1.0 ) );
+		diffuse.rgb *= /*clamp(*/GRASS_TERRAIN_COLOR * GRASS_MATCH_TERRAIN_COLOR/*, 0.0, 1.0)*/;
+	}
+
+	return diffuse;
+}
+
 void main() 
 {
 	vec4 diffuse;
@@ -290,6 +306,11 @@ void main()
 			tc.x = fract(p.x) * paramU.x + paramU.y;
 			tc.y = fract(p.y) * paramV.x + paramV.y;
 			diffuse = texture(u_DiffuseMap, tc);
+
+			if (vTexCoord.y < 0.25)
+			{// Only the basic grass textures (0->3), not the special grasses...
+				diffuse = AdjustGrassColorToTerrainColor(diffuse);
+			}
 		}
 		else 
 #endif //FAKE_LOD
@@ -300,6 +321,11 @@ void main()
 		else
 		{
 			diffuse = texture(u_DiffuseMap, tc);
+
+			if (vTexCoord.y < 0.25)
+			{// Only the basic grass textures (0->3), not the special grasses...
+				diffuse = AdjustGrassColorToTerrainColor(diffuse);
+			}
 		}
 	}
 #endif //defined(_USE_UNDERWATER_)

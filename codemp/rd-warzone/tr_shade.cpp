@@ -6149,6 +6149,9 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			VectorSet4(l23, GRASS_PATCH_DENSITY, GRASS_PATCH_SCALE, GRASS_PATCH_OFFSET[0], GRASS_PATCH_OFFSET[1]);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL23, l23);
 
+			vec4_t l24;
+			VectorSet4(l24, GRASS_MATCH_TERRAIN_COLOR, (GRASS_MATCH_TERRAIN_COLOR > 0) ? pStage->bundle[TB_DIFFUSEMAP].image[0]->averageColor[0] : 0.0, (GRASS_MATCH_TERRAIN_COLOR > 0) ? pStage->bundle[TB_DIFFUSEMAP].image[0]->averageColor[1] : 0.0, (GRASS_MATCH_TERRAIN_COLOR > 0) ? pStage->bundle[TB_DIFFUSEMAP].image[0]->averageColor[2] : 0.0);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL24, l24);
 		}
 		else if (isGrass2 && backEnd.renderPass == RENDERPASS_GRASS2)
 		{
@@ -6163,6 +6166,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			vec4_t l23;
 			VectorSet4(l23, GRASS2_PATCH_DENSITY, GRASS2_PATCH_SCALE, GRASS2_PATCH_OFFSET[0], GRASS2_PATCH_OFFSET[1]);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL23, l23);
+
+			vec4_t l24;
+			VectorSet4(l24, GRASS2_MATCH_TERRAIN_COLOR, (GRASS2_MATCH_TERRAIN_COLOR > 0) ? pStage->bundle[TB_DIFFUSEMAP].image[0]->averageColor[0] : 0.0, (GRASS2_MATCH_TERRAIN_COLOR > 0) ? pStage->bundle[TB_DIFFUSEMAP].image[0]->averageColor[1] : 0.0, (GRASS2_MATCH_TERRAIN_COLOR > 0) ? pStage->bundle[TB_DIFFUSEMAP].image[0]->averageColor[2] : 0.0);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL24, l24);
 		}
 		else if (isGrass3 && backEnd.renderPass == RENDERPASS_GRASS3)
 		{
@@ -6177,6 +6184,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			vec4_t l23;
 			VectorSet4(l23, GRASS3_PATCH_DENSITY, GRASS3_PATCH_SCALE, GRASS3_PATCH_OFFSET[0], GRASS3_PATCH_OFFSET[1]);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL23, l23);
+
+			vec4_t l24;
+			VectorSet4(l24, GRASS3_MATCH_TERRAIN_COLOR, (GRASS3_MATCH_TERRAIN_COLOR > 0) ? pStage->bundle[TB_DIFFUSEMAP].image[0]->averageColor[0] : 0.0, (GRASS3_MATCH_TERRAIN_COLOR > 0) ? pStage->bundle[TB_DIFFUSEMAP].image[0]->averageColor[1] : 0.0, (GRASS3_MATCH_TERRAIN_COLOR > 0) ? pStage->bundle[TB_DIFFUSEMAP].image[0]->averageColor[2] : 0.0);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL24, l24);
 		}
 		else if (isGrass4 && backEnd.renderPass == RENDERPASS_GRASS4)
 		{
@@ -6191,6 +6202,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			vec4_t l23;
 			VectorSet4(l23, GRASS4_PATCH_DENSITY, GRASS4_PATCH_SCALE, GRASS4_PATCH_OFFSET[0], GRASS4_PATCH_OFFSET[1]);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL23, l23);
+
+			vec4_t l24;
+			VectorSet4(l24, GRASS4_MATCH_TERRAIN_COLOR, (GRASS4_MATCH_TERRAIN_COLOR > 0) ? pStage->bundle[TB_DIFFUSEMAP].image[0]->averageColor[0] : 0.0, (GRASS4_MATCH_TERRAIN_COLOR > 0) ? pStage->bundle[TB_DIFFUSEMAP].image[0]->averageColor[1] : 0.0, (GRASS4_MATCH_TERRAIN_COLOR > 0) ? pStage->bundle[TB_DIFFUSEMAP].image[0]->averageColor[2] : 0.0);
+			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL24, l24);
 		}
 		else
 		{

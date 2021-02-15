@@ -444,6 +444,7 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_Local21", GLSL_VEC4, 1 },
 	{ "u_Local22", GLSL_VEC4, 1 },
 	{ "u_Local23", GLSL_VEC4, 1 },
+	{ "u_Local24", GLSL_VEC4, 1 },
 
 	{ "u_MoonCount", GLSL_INT, 1 },
 	{ "u_MoonInfos", GLSL_VEC4, 4 },

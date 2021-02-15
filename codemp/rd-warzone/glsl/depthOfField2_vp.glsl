@@ -63,6 +63,9 @@ float GetFocalDepth()
 	float depthsum = clamp(texture(u_SpecularMap, vec2(0.5, 0.5)).x + 0.1, 0.0, 1.0) * 0.999;
 	//depthsum = pow(clamp(depthsum * 2.25, 0.0, 1.0), 1.15);
 	//depthsum = pow(clamp(depthsum * u_Local1.r, 0.0, 1.0), u_Local1.g);
+#if !defined(FAST_DOF)
+	depthsum *= 0.9;
+#endif //!defined(FAST_DOF)
 	depthsum = pow(clamp(depthsum * 1.25, 0.0, 1.0), 0.5);
 	return depthsum; 
 }

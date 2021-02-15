@@ -2949,7 +2949,27 @@ int BG_ParseAnimationFile(const char *filename, animation_t *animset, qboolean i
 		if ( fps < 0 )
 		{//backwards
 			animset[animNum].frameLerp = floor(1000.0f / fps);
-			//well this can't be here
+
+#ifdef __SABER_HEAVY_ANIMATION_SPEEDUP__
+			{// UQ1: Adjust saber move speeds, consistantly...
+				int x;
+
+				for (x = 4; x < LS_MOVE_MAX; x++)
+				{
+					if (saberMoveData[x].animToUse + (77 * 2) == animNum) // SS_STRONG
+					{
+						animset[animNum].frameLerp *= 0.95;
+						break;
+					}
+					else if (saberMoveData[x].animToUse + (77 * 5) == animNum // SS_DUAL
+						|| saberMoveData[x].animToUse + (77 * 6) == animNum) // SS_STAFF
+					{
+						animset[animNum].frameLerp *= 1.3;
+						break;
+					}
+				}
+			}
+#endif //__SABER_HEAVY_ANIMATION_SPEEDUP__
 #ifdef __SABER_ANIMATION_SLOW__
 			{// UQ1: Slow down saber moves...
 				int x;
@@ -2973,14 +2993,6 @@ int BG_ParseAnimationFile(const char *filename, animation_t *animset, qboolean i
 						//trap->Print("Slowed down anim %i.\n", animNum);
 						break;
 					}*/
-#ifdef __NO_SILLY_SABER_SPINAROUND__
-					else if (saberMoveData[x].animToUse + (77 * 2) == animNum) // SS_STRONG
-					{
-						animset[animNum].frameLerp *= 0.7;
-						//trap->Print("Slowed down anim %i.\n", animNum);
-						-break;
-					}
-#endif //__NO_SILLY_SABER_SPINAROUND__
 				}
 			}
 #endif //__SABER_ANIMATION_SLOW__
@@ -2989,6 +3001,26 @@ int BG_ParseAnimationFile(const char *filename, animation_t *animset, qboolean i
 		{
 			animset[animNum].frameLerp = ceil(1000.0f / fps);
 
+#ifdef __SABER_HEAVY_ANIMATION_SPEEDUP__
+			{// UQ1: Adjust saber move speeds, consistantly...
+				int x;
+
+				for (x = 4; x < LS_MOVE_MAX; x++)
+				{
+					if (saberMoveData[x].animToUse + (77 * 2) == animNum) // SS_STRONG
+					{
+						animset[animNum].frameLerp *= 0.95;
+						break;
+					}
+					else if (saberMoveData[x].animToUse + (77 * 5) == animNum // SS_DUAL
+						|| saberMoveData[x].animToUse + (77 * 6) == animNum) // SS_STAFF
+					{
+						animset[animNum].frameLerp *= 1.3;
+						break;
+					}
+				}
+			}
+#endif //__SABER_HEAVY_ANIMATION_SPEEDUP__
 #ifdef __SABER_ANIMATION_SLOW__
 			{// UQ1: Slow down saber moves...
 				int x;
@@ -3012,14 +3044,6 @@ int BG_ParseAnimationFile(const char *filename, animation_t *animset, qboolean i
 						//trap->Print("Slowed down anim %i.\n", animNum);
 						break;
 					}*/
-#ifdef __NO_SILLY_SABER_SPINAROUND__
-					else if (saberMoveData[x].animToUse + (77 * 2) == animNum) // SS_STRONG
-					{
-						animset[animNum].frameLerp *= 0.7;
-						//trap->Print("Slowed down anim %i.\n", animNum);
-						break;
-					}
-#endif //__NO_SILLY_SABER_SPINAROUND__
 				}
 			}
 #endif //__SABER_ANIMATION_SLOW__
