@@ -338,17 +338,6 @@ vec3 Enhance(in sampler2D tex, in vec2 uv, vec3 color, float level)
 
 #ifdef _CLOUDS_
 
-//#define RAY_TRACE_STEPS 55
-
-// NEW SETTINGS POSSIBILITY
-//#define RAY_TRACE_STEPS 2 -> 4
-//#define CLOUD_LOWER 39900.0
-//#define CLOUD_UPPER 40000.0
-
-//#define RAY_TRACE_STEPS int(u_Local9.r)//8
-//#define CLOUD_LOWER u_Local9.g//2800.0
-//#define CLOUD_UPPER u_Local9.b//26800.0
-
 #if defined(CLOUD_QUALITY4)
 	#define RAY_TRACE_STEPS 8
 	#define CLOUD_LOWER 2800.0
@@ -444,9 +433,6 @@ float GetLighting(vec3 p, vec3 s)
     return clamp(-l, 0.1, 0.4) * 1.25;
 }
 
-//#define EXPERIMENTAL_CLOUD_COLOR
-//#define EXPERIMENTAL_CLOUD_COLOR2
-
 //--------------------------------------------------------------------------
 // Grab all sky information for a given ray from camera
 vec4 GetSky(in vec3 pos,in vec3 rd, out vec2 outPos)
@@ -468,10 +454,7 @@ vec4 GetSky(in vec3 pos,in vec3 rd, out vec2 outPos)
 	vec2 shadeSum = vec2(0.0);
 	shade.x = 1.0;
 
-#ifdef EXPERIMENTAL_CLOUD_COLOR
-	float bz = 0.0;
-#endif //EXPERIMENTAL_CLOUD_COLOR
-	
+
 	// I think this is as small as the loop can be
 	// for a reasonable cloud density illusion.
 	for (int i = 0; i < RAY_TRACE_STEPS; i++)
@@ -483,57 +466,13 @@ vec4 GetSky(in vec3 pos,in vec3 rd, out vec2 outPos)
 		shade.x = GetLighting(p, sunLight);
 		shadeSum += shade * (1.0 - shadeSum.y);
 
-#ifdef EXPERIMENTAL_CLOUD_COLOR
-		if (i == 0) bz = shade.y;
-#endif //EXPERIMENTAL_CLOUD_COLOR
-
 		p += posAdd;
 	}
 
 	float final = shadeSum.x;
 	final += flash * (shadeSum.y+final+.2) * .5;
 
-#ifdef EXPERIMENTAL_CLOUD_COLOR
-	vec4 col = vec4(final, final, final, shadeSum.y);
-	col = clamp(col, 0.0, 1.0);
-
-	/*
-	float sun = clamp(dot(sunLight, rd), 0.0, 1.0 );
-	float s2p = distance(p + posAdd, sunLight * 100.0);
-	float tot = shadeSum.y;
-	//col = mix(col, vec3(0.5, 0.5, 0.55) * 0.2, pow(bz, 1.5)); // darkens (back-shadows)
-	//tot = smoothstep(-7.5, -0.0, 1.0 - tot);
-	
-	//vec3 sccol = mix(vec3(0.11, 0.1, 0.2), vec3(0.2, 0.0, 0.1), smoothstep(0.0, 900.0, s2p));
-	vec3 sccol = mix(vec3(0.11, 0.1, 0.2), vec3(0.2, 0.0, 0.1), smoothstep(0.0, 1.0, s2p));
-
-	col.rgb = mix(col.rgb, sccol, 1.0 - tot) * 1.6; // darkens (nightish)
-	
-	//vec3 sncol = mix(vec3(1.4, 0.3, 0.0), vec3(1.5, 0.65, 0.0), smoothstep(0.0, 1200.0, s2p));
-	vec3 sncol = mix(vec3(1.4, 0.3, 0.0), vec3(1.5, 0.65, 0.0), smoothstep(0.0, 1.0, s2p));
-
-	float sd = pow(sun, 10.0) + 0.7;
-	//col.rgb += sncol * bz * bz * bz * tot * tot * tot * sd; // (sunlight coloring)
-	col.rgb = mix(col.rgb, sncol, bz * bz * bz * tot * tot * tot * sd);
-	*/
-
-	float sunDot = dot(sunLight, rd);
-	
-	if (sunDot >= 0.0)
-	{// Looking towards sun dir...
-		float dirPwr = clamp(pow(length(sunDot), 14.95), 0.0, 1.0);
-		float alphaPwr = 1.0 - col.a;
-		float sunPwr = alphaPwr * dirPwr;
-	}
-	else
-	{// Looking away from sun dir...
-
-	}
-
-	return col;
-#else //!EXPERIMENTAL_CLOUD_COLOR
 	return clamp(vec4(final, final, final, shadeSum.y), 0.0, 1.0);
-#endif //EXPERIMENTAL_CLOUD_COLOR
 }
 
 //--------------------------------------------------------------------------
@@ -571,14 +510,6 @@ vec4 Clouds(float colorMult)
 	vec4 origCol;
 	vec2 pos;
 	vec4 col = GetSky(cameraPos, dir, pos);
-#ifdef EXPERIMENTAL_CLOUD_COLOR2
-	origCol = col;
-
-	vec3 sunPixel = normalize(mix(dir, sunLight, 0.001));
-	vec2 pos2;
-	vec4 sunPixelCol = GetSky(cameraPos, sunPixel, pos2);
-	col.rgb = mix(col.rgb, sunPixelCol.rgb, 0.5);
-#endif //EXPERIMENTAL_CLOUD_COLOR2
 
 	col.rgb = clamp(col.rgb * (128.0/*64.0*/ * colorMult), 0.0, 1.0);
 
@@ -588,22 +519,6 @@ vec4 Clouds(float colorMult)
 	// Stretch RGB upwards... 
 	col.rgb = pow(col.rgb, vec3(.7));
 
-#ifdef EXPERIMENTAL_CLOUD_COLOR2
-	float nFac = length(normalize(u_PrimaryLightOrigin.xzy).y);
-
-	// Add sunset coloring...
-	if (nFac > 0.0 && nFac < 0.5 && sunPixelCol.a < origCol.a)
-	{//	This direction is less dense, it's most likely toward the sun direction...
-		float nScale = 1.0 - (nFac / 0.5);
-
-		float sunPixelDiff = origCol.a - sunPixelCol.a;
-		float sunPwr = clamp(pow(sunPixelDiff, 0.0001), 0.0, 1.0);
-		sunPwr *= clamp(pow(nScale, 0.25), 0.0, 1.0);
-		vec3 sunColor = vec3(1.0, 0.8, 0.325);
-		col.rgb = mix(col.rgb, sunColor, sunPwr);
-	}
-#endif //EXPERIMENTAL_CLOUD_COLOR2
-	
 	col = clamp(col, 0.0, 1.0);
 
 	float alpha = clamp(pow(col.a, 1.5), 0.0, 1.0);
@@ -1459,7 +1374,7 @@ void main()
 			gl_FragColor.rgb = clamp(atmos, 0.0, 1.0);
 			gl_FragColor.a = 1.0;
 
-#if defined(_CLOUDS_) && !defined(CLOUD_QUALITY0)
+#if defined(_CLOUDS_) && (defined(CLOUD_QUALITY1) || defined(CLOUD_QUALITY2) || defined(CLOUD_QUALITY3) || defined(CLOUD_QUALITY4))
 			if (terrainColor.a != 1.0 && CLOUDS_ENABLED > 0.0 && SHADER_SKY_DIRECTION != 5.0)
 			{// Procedural clouds are enabled...
 				float nMult = 1.0;
@@ -1478,7 +1393,7 @@ void main()
 				nMult = min(cdMult, nMult);
 				clouds = Clouds(nMult);
 			}
-#endif //defined(_CLOUDS_) && !defined(CLOUD_QUALITY0)
+#endif //defined(_CLOUDS_) && (defined(CLOUD_QUALITY1) || defined(CLOUD_QUALITY2) || defined(CLOUD_QUALITY3) || defined(CLOUD_QUALITY4))
 
 			if (ENABLE_SUN && pCol.a <= 0.0 && terrainColor.a != 1.0)
 			{
@@ -1567,7 +1482,7 @@ void main()
 #endif //defined(_AURORA2_) && defined(_BACKGROUND_HILLS_)
 			}
 
-#if defined(_CLOUDS_)
+#if defined(_CLOUDS_) && (defined(CLOUD_QUALITY1) || defined(CLOUD_QUALITY2) || defined(CLOUD_QUALITY3) || defined(CLOUD_QUALITY4))
 			if (clouds.a > 0.0 && terrainColor.a != 1.0 && CLOUDS_ENABLED > 0.0 && SHADER_SKY_DIRECTION != 5.0)
 			{// Procedural clouds are enabled...
 				float cloudMix = clamp(pow(clouds.a, mix(0.75, 0.5, SHADER_NIGHT_SCALE)), 0.0, 1.0);
@@ -1583,7 +1498,7 @@ void main()
 				}
 #endif //_LIGHTNING_
 			}
-#endif //defined(_CLOUDS_)
+#endif //defined(_CLOUDS_) && (defined(CLOUD_QUALITY1) || defined(CLOUD_QUALITY2) || defined(CLOUD_QUALITY3) || defined(CLOUD_QUALITY4))
 
 #ifdef _BACKGROUND_HILLS_
 			if (ENABLE_TERRAIN && PROCEDURAL_BACKGROUND_HILLS_ENABLED > 0.0 && SHADER_SKY_DIRECTION != 4.0 && SHADER_SKY_DIRECTION != 5.0)

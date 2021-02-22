@@ -936,25 +936,47 @@ void RB_LensFlare(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 
 void RB_MultiPost(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 {
-	/*vec4_t color;
+	shaderProgram_t *sp = &tr.multipostShader;
 
-	// bloom
-	color[0] =
-		color[1] =
-		color[2] = pow(2, MAP_TONEMAP_CAMERAEXPOSURE);
-	color[3] = 1.0f;*/
+	GLSL_BindProgram(sp);
 
-	GLSL_BindProgram(&tr.multipostShader);
-
-	if (tr.multipostShader.isBindless)
+	if (sp->isBindless)
 	{
-		GLSL_SetBindlessTexture(&tr.multipostShader, UNIFORM_DIFFUSEMAP, &hdrFbo->colorImage[0], 0);
-		GLSL_BindlessUpdate(&tr.multipostShader);
+		GLSL_SetBindlessTexture(sp, UNIFORM_DIFFUSEMAP, &hdrFbo->colorImage[0], 0);
+		GLSL_SetBindlessTexture(sp, UNIFORM_SCREENDEPTHMAP, /*&tr.linearDepthImage4096*/&tr.linearDepthImageZfar, 0);
+		GLSL_SetBindlessTexture(sp, UNIFORM_POSITIONMAP, &tr.renderPositionMapImage, 0);
+		GLSL_SetBindlessTexture(sp, UNIFORM_NORMALMAP, &tr.renderNormalImage, 0);
+		GLSL_SetBindlessTexture(sp, UNIFORM_GLOWMAP, &tr.random2KImage[0], 0);
+
+		if (r_normalMappingReal->integer)
+		{
+			GLSL_SetBindlessTexture(sp, UNIFORM_OVERLAYMAP, &tr.renderNormalDetailedImage, 0);
+		}
+
+		GLSL_BindlessUpdate(sp);
 	}
 	else
 	{
-		GLSL_SetUniformInt(&tr.multipostShader, UNIFORM_DIFFUSEMAP, TB_LEVELSMAP);
-		GL_BindToTMU(hdrFbo->colorImage[0], TB_LEVELSMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+		GL_BindToTMU(hdrFbo->colorImage[0], TB_DIFFUSEMAP);
+
+		GLSL_SetUniformInt(sp, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
+		GL_BindToTMU(/*tr.linearDepthImage4096*/tr.linearDepthImageZfar, TB_LIGHTMAP);
+
+		GLSL_SetUniformInt(sp, UNIFORM_POSITIONMAP, TB_POSITIONMAP);
+		GL_BindToTMU(tr.renderPositionMapImage, TB_POSITIONMAP);
+
+		GLSL_SetUniformInt(sp, UNIFORM_NORMALMAP, TB_NORMALMAP);
+		GL_BindToTMU(tr.renderNormalImage, TB_NORMALMAP);
+
+		GLSL_SetUniformInt(sp, UNIFORM_GLOWMAP, TB_GLOWMAP);
+		GL_BindToTMU(tr.random2KImage[0], TB_GLOWMAP);
+
+		if (r_normalMappingReal->integer)
+		{
+			GLSL_SetUniformInt(sp, UNIFORM_OVERLAYMAP, TB_OVERLAYMAP);
+			GL_BindToTMU(tr.renderNormalDetailedImage, TB_OVERLAYMAP);
+		}
 	}
 
 	{
@@ -962,10 +984,19 @@ void RB_MultiPost(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		screensize[0] = glConfig.vidWidth * r_superSampleMultiplier->value;
 		screensize[1] = glConfig.vidHeight * r_superSampleMultiplier->value;
 
-		GLSL_SetUniformVec2(&tr.multipostShader, UNIFORM_DIMENSIONS, screensize);
+		GLSL_SetUniformVec2(sp, UNIFORM_DIMENSIONS, screensize);
 	}
 
-	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, &tr.multipostShader, colorWhite/*color*/, 0);
+	GLSL_SetUniformVec3(sp, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);
+	GLSL_SetUniformFloat(sp, UNIFORM_TIME, backEnd.refdef.floatTime);
+	
+	{
+		vec4_t local0;
+		VectorSet4(local0, r_testvalue0->value, r_testvalue1->value, r_testvalue2->value, r_testvalue3->value);
+		GLSL_SetUniformVec4(sp, UNIFORM_LOCAL0, local0);
+	}
+
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, sp, colorWhite/*color*/, 0);
 }
 
 void TR_AxisToAngles ( const vec3_t axis[3], vec3_t angles )

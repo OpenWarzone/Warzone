@@ -1941,6 +1941,30 @@ public:
 					tess.minIndex = 0;
 					tess.maxIndex = 0;
 					tess.useInternalVBO = qfalse;
+
+					/* TESTING */
+					if (shader->isBindless)
+					{
+						GLSL_SetBindlessTexture(shader, UNIFORM_DIFFUSEMAP, &mImage, 0);
+						if (tr.waterHeightMapImage)
+							GLSL_SetBindlessTexture(shader, UNIFORM_HEIGHTMAP, &tr.waterHeightMapImage, 0);
+						else
+							GLSL_SetBindlessTexture(shader, UNIFORM_HEIGHTMAP, &tr.whiteImage, 0);
+
+						GLSL_BindlessUpdate(shader);
+					}
+					else
+					{
+						GLSL_SetUniformInt(shader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+						GL_BindToTMU(mImage, TB_DIFFUSEMAP);
+
+						GLSL_SetUniformInt(shader, UNIFORM_HEIGHTMAP, TB_HEIGHTMAP);
+						if (tr.waterHeightMapImage)
+							GL_BindToTMU(tr.waterHeightMapImage, TB_HEIGHTMAP);
+						else
+							GL_BindToTMU(tr.whiteImage, TB_HEIGHTMAP);
+					}
+					/* TESTING */
 				}
 
 				int ndx = tess.numVertexes;
@@ -2056,6 +2080,30 @@ public:
 					tess.minIndex = 0;
 					tess.maxIndex = 0;
 					tess.useInternalVBO = qfalse;
+
+					/* TESTING */
+					if (shader->isBindless)
+					{
+						GLSL_SetBindlessTexture(shader, UNIFORM_DIFFUSEMAP, &mImage, 0);
+						if (tr.waterHeightMapImage)
+							GLSL_SetBindlessTexture(shader, UNIFORM_HEIGHTMAP, &tr.waterHeightMapImage, 0);
+						else
+							GLSL_SetBindlessTexture(shader, UNIFORM_HEIGHTMAP, &tr.whiteImage, 0);
+
+						GLSL_BindlessUpdate(shader);
+					}
+					else
+					{
+						GLSL_SetUniformInt(shader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+						GL_BindToTMU(mImage, TB_DIFFUSEMAP);
+
+						GLSL_SetUniformInt(shader, UNIFORM_HEIGHTMAP, TB_HEIGHTMAP);
+						if (tr.waterHeightMapImage)
+							GL_BindToTMU(tr.waterHeightMapImage, TB_HEIGHTMAP);
+						else
+							GL_BindToTMU(tr.whiteImage, TB_HEIGHTMAP);
+					}
+					/* TESTING */
 				}
 
 				int ndx = tess.numVertexes;
@@ -2426,13 +2474,16 @@ qboolean WE_ParseVector( const char **text, int count, float *v ) {
 	return qtrue;
 }
 
+#define RAIN_SPAWN_RANGE_XY 2048.0f //r_testvalue0->value
+#define RAIN_SPAWN_RANGE_Z 2048.0f //r_testvalue1->value
+
 void RE_WorldEffectCommand_REAL(const char *command, qboolean noHelp)
 {
 	if ( !command )
 	{
 		return;
 	}
-
+	
 	COM_BeginParseSession ("RE_WorldEffectCommand");
 
 	const char	*token;//, *origCommand;
@@ -2549,9 +2600,12 @@ void RE_WorldEffectCommand_REAL(const char *command, qboolean noHelp)
 			return;
 		}
 		CWeatherParticleCloud& nCloud = mParticleClouds.push_back();
-		nCloud.Initialize(1000, "gfx/world/vividrain.png", 4);
-		nCloud.mHeight = 32.0;
-		nCloud.mWidth = 32.0;
+		//nCloud.Initialize(1000, "gfx/world/vividrain.png", 4);
+		//nCloud.mHeight = 32.0;
+		//nCloud.mWidth = 32.0;
+		nCloud.Initialize(150, "gfx/world/vividrain3.png", 4);
+		nCloud.mHeight = 96.0;
+		nCloud.mWidth = 96.0;
 		nCloud.mGravity = 2800.0f;
 		nCloud.mFilterMode = 0;
 		nCloud.mBlendMode = 0;
@@ -2559,6 +2613,13 @@ void RE_WorldEffectCommand_REAL(const char *command, qboolean noHelp)
 		nCloud.mColor = 3.0f;
 		nCloud.mOrientWithVelocity = true;
 		nCloud.mWaterParticles = true;
+
+		nCloud.mSpawnRange.mMins[0] = -RAIN_SPAWN_RANGE_XY;
+		nCloud.mSpawnRange.mMins[1] = -RAIN_SPAWN_RANGE_XY;
+		nCloud.mSpawnRange.mMins[2] = -RAIN_SPAWN_RANGE_Z;
+		nCloud.mSpawnRange.mMaxs[0] = RAIN_SPAWN_RANGE_XY;
+		nCloud.mSpawnRange.mMaxs[1] = RAIN_SPAWN_RANGE_XY;
+		nCloud.mSpawnRange.mMaxs[2] = RAIN_SPAWN_RANGE_Z;
 	}
 
 	// Create A Rain Storm
@@ -2570,9 +2631,12 @@ void RE_WorldEffectCommand_REAL(const char *command, qboolean noHelp)
 			return;
 		}
 		CWeatherParticleCloud& nCloud = mParticleClouds.push_back();
-		nCloud.Initialize(1000, "gfx/world/vividrain.png", 4);
-		nCloud.mHeight = 48.0;
-		nCloud.mWidth = 48.0;
+		//nCloud.Initialize(1000, "gfx/world/vividrain.png", 4);
+		//nCloud.mHeight = 48.0;
+		//nCloud.mWidth = 48.0;
+		nCloud.Initialize(150, "gfx/world/vividrain3.png", 4);
+		nCloud.mHeight = 128.0;
+		nCloud.mWidth = 128.0;
 		nCloud.mGravity = 2800.0f;
 		nCloud.mFilterMode = 0;
 		nCloud.mBlendMode = 0;
@@ -2580,6 +2644,13 @@ void RE_WorldEffectCommand_REAL(const char *command, qboolean noHelp)
 		nCloud.mColor = 3.0f;
 		nCloud.mOrientWithVelocity = true;
 		nCloud.mWaterParticles = true;
+
+		nCloud.mSpawnRange.mMins[0] = -RAIN_SPAWN_RANGE_XY;
+		nCloud.mSpawnRange.mMins[1] = -RAIN_SPAWN_RANGE_XY;
+		nCloud.mSpawnRange.mMins[2] = -RAIN_SPAWN_RANGE_Z;
+		nCloud.mSpawnRange.mMaxs[0] = RAIN_SPAWN_RANGE_XY;
+		nCloud.mSpawnRange.mMaxs[1] = RAIN_SPAWN_RANGE_XY;
+		nCloud.mSpawnRange.mMaxs[2] = RAIN_SPAWN_RANGE_Z;
 	}
 
 	// Create A Rain Storm
@@ -2591,9 +2662,12 @@ void RE_WorldEffectCommand_REAL(const char *command, qboolean noHelp)
 			return;
 		}
 		CWeatherParticleCloud& nCloud = mParticleClouds.push_back();
-		nCloud.Initialize(2000, "gfx/world/vividrain.png", 4);
-		nCloud.mHeight = 96.0;
-		nCloud.mWidth = 96.0;
+		//nCloud.Initialize(2000, "gfx/world/vividrain.png", 4);
+		//nCloud.mHeight = 96.0;
+		//nCloud.mWidth = 96.0;
+		nCloud.Initialize(100, "gfx/world/vividrain3.png", 4);
+		nCloud.mHeight = 192.0;
+		nCloud.mWidth = 192.0;
 		nCloud.mGravity = 2800.0f;
 		nCloud.mFilterMode = 0;
 		nCloud.mBlendMode = 0;
@@ -2601,6 +2675,13 @@ void RE_WorldEffectCommand_REAL(const char *command, qboolean noHelp)
 		nCloud.mColor = 3.0f;
 		nCloud.mOrientWithVelocity = true;
 		nCloud.mWaterParticles = true;
+
+		nCloud.mSpawnRange.mMins[0] = -RAIN_SPAWN_RANGE_XY;
+		nCloud.mSpawnRange.mMins[1] = -RAIN_SPAWN_RANGE_XY;
+		nCloud.mSpawnRange.mMins[2] = -RAIN_SPAWN_RANGE_Z;
+		nCloud.mSpawnRange.mMaxs[0] = RAIN_SPAWN_RANGE_XY;
+		nCloud.mSpawnRange.mMaxs[1] = RAIN_SPAWN_RANGE_XY;
+		nCloud.mSpawnRange.mMaxs[2] = RAIN_SPAWN_RANGE_Z;
 	}
 
 	// Create A Rain Storm
@@ -2612,9 +2693,12 @@ void RE_WorldEffectCommand_REAL(const char *command, qboolean noHelp)
 			return;
 		}
 		CWeatherParticleCloud& nCloud = mParticleClouds.push_back();
-		nCloud.Initialize(2000, "gfx/world/vividrain.png", 4);
-		nCloud.mHeight = 128.0;
-		nCloud.mWidth = 128.0;
+		//nCloud.Initialize(2000, "gfx/world/vividrain.png", 4);
+		//nCloud.mHeight = 128.0;
+		//nCloud.mWidth = 128.0;
+		nCloud.Initialize(100, "gfx/world/vividrain3.png", 4);
+		nCloud.mHeight = 256.0;
+		nCloud.mWidth = 256.0;
 		nCloud.mGravity = 2800.0f;
 		nCloud.mFilterMode = 0;
 		nCloud.mBlendMode = 0;
@@ -2622,6 +2706,13 @@ void RE_WorldEffectCommand_REAL(const char *command, qboolean noHelp)
 		nCloud.mColor = 3.0f;
 		nCloud.mOrientWithVelocity = true;
 		nCloud.mWaterParticles = true;
+
+		nCloud.mSpawnRange.mMins[0] = -RAIN_SPAWN_RANGE_XY;
+		nCloud.mSpawnRange.mMins[1] = -RAIN_SPAWN_RANGE_XY;
+		nCloud.mSpawnRange.mMins[2] = -RAIN_SPAWN_RANGE_Z;
+		nCloud.mSpawnRange.mMaxs[0] = RAIN_SPAWN_RANGE_XY;
+		nCloud.mSpawnRange.mMaxs[1] = RAIN_SPAWN_RANGE_XY;
+		nCloud.mSpawnRange.mMaxs[2] = RAIN_SPAWN_RANGE_Z;
 	}
 
 #if 0

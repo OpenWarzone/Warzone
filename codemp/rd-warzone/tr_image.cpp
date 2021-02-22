@@ -4198,7 +4198,8 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 	{
 		qboolean isFoliage = (qboolean)(StringContainsWord(name, "models/warzone/trees") 
 			|| StringContainsWord(name, "models/warzone/plants") 
-			|| StringContainsWord(name, "models/warzone/foliage") 
+			|| StringContainsWord(name, "models/warzone/foliage")
+			|| StringContainsWord(name, "models/warzone/bushes")
 			|| StringContainsWord(name, "models/warzone/groundFoliage") 
 			|| StringContainsWord(name, "models/warzone/deadtrees"));
 

@@ -4328,7 +4328,7 @@ int DetectMaterialType ( const char *name )
 		return MATERIAL_NONE;
 	if (StringContainsWord(name, "gfx/atmospheric"))
 		return MATERIAL_NONE;
-	if (StringContainsWord(name, "warzone/plant"))
+	if (StringContainsWord(name, "warzone/plant") || StringContainsWord(name, "warzone/bushes"))
 		return MATERIAL_GREENLEAVES;
 	else if ((StringContainsWord(name, "yavin/tree2b") || StringContainsWord(name, "yavin/tree05") || StringContainsWord(name, "yavin/tree06"))
 		&& !(StringContainsWord(name, "yavin/tree05_vines") || StringContainsWord(name, "yavin/tree06b")))
@@ -4580,7 +4580,7 @@ void AssignMaterialType ( const char *name, const char *text )
 			shader.materialType = MATERIAL_NONE;
 		else if (StringContainsWord(name, "gfx/atmospheric"))
 			shader.materialType = MATERIAL_NONE;
-		else if (StringContainsWord(name, "warzone/plant"))
+		else if (StringContainsWord(name, "warzone/plant") || StringContainsWord(name, "warzone/bushes"))
 			shader.materialType = MATERIAL_GREENLEAVES;
 		else if ((StringContainsWord(name, "yavin/tree2b") || StringContainsWord(name, "yavin/tree05") || StringContainsWord(name, "yavin/tree06"))
 				&& !(StringContainsWord(name, "yavin/tree05_vines") || StringContainsWord(name, "yavin/tree06b")))
@@ -4667,7 +4667,7 @@ void AssignMaterialType ( const char *name, const char *text )
 		|| StringContainsWord(name, "tree") || StringContainsWord(name, "plant") || StringContainsWord(name, "bush")
 		|| StringContainsWord(name, "shrub") || StringContainsWord(name, "leaf") || StringContainsWord(name, "leaves")
 		|| StringContainsWord(name, "branch") || StringContainsWord(name, "flower") || StringContainsWord(name, "weed")
-		|| StringContainsWord(name, "warzone/plant")))
+		|| StringContainsWord(name, "warzone/plant") || StringContainsWord(name, "warzone/bushes")))
 	{// Always greenleaves... No parallax...
 #ifdef FIXME_TREE_BARK_PARALLAX
 		if (StringContainsWord(name, "bark") || StringContainsWord(name, "trunk") || StringContainsWord(name, "giant_tree") || StringContainsWord(name, "vine01"))
@@ -5464,7 +5464,8 @@ static void CollapseStagesToLightall(shaderStage_t *diffuse, shaderStage_t *norm
 			}
 			else if (diffuse->bundle[TB_DIFFUSEMAP].image[0]
 				&& (StringContainsWord(diffuse->bundle[TB_DIFFUSEMAP].image[0]->imgName, "warzone/plant/") 
-					|| StringContainsWord(diffuse->bundle[TB_DIFFUSEMAP].image[0]->imgName, "warzone/plants/")))
+					|| StringContainsWord(diffuse->bundle[TB_DIFFUSEMAP].image[0]->imgName, "warzone/plants/")
+					|| StringContainsWord(diffuse->bundle[TB_DIFFUSEMAP].image[0]->imgName, "warzone/bushes/")))
 			{
 				diffuse->isFoliage = true;
 			}
@@ -8863,7 +8864,7 @@ shader_t *R_FindShader( const char *shaderName, const int *lightmapIndexes, cons
 		{
 			sprintf(myShader, uniqueGenericFoliageShader, strippedName, strippedName);
 		}
-		else if (StringContainsWord(strippedName, "warzone/foliage") || StringContainsWord(strippedName, "warzone\\foliage") || StringContainsWord(name, "warzone/plant"))
+		else if (StringContainsWord(strippedName, "warzone/foliage") || StringContainsWord(strippedName, "warzone\\foliage") || StringContainsWord(name, "warzone/plant") || StringContainsWord(name, "warzone/bushes"))
 		{
 			sprintf(myShader, uniqueGenericFoliageShader, strippedName, strippedName);
 		}
@@ -8874,7 +8875,7 @@ shader_t *R_FindShader( const char *shaderName, const int *lightmapIndexes, cons
 		{
 			sprintf(myShader, uniqueGenericFoliageShader, strippedName, strippedName);
 		}
-		else if (StringContainsWord(strippedName, "warzone/plants") || StringContainsWord(strippedName, "warzone\\plants"))
+		else if (StringContainsWord(strippedName, "warzone/plants") || StringContainsWord(strippedName, "warzone\\plants") || StringContainsWord(strippedName, "warzone\\bushes"))
 		{
 			sprintf(myShader, uniqueGenericFoliageShader, strippedName, strippedName);
 		}

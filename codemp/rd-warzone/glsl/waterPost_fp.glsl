@@ -565,6 +565,39 @@ vec2 wavedrag(vec2 uv, vec2 emitter) {
 
 #define DRAG_MULT 4.0
 
+float getwavesfast(vec2 position) {
+	position *= 0.1;
+	float iter = 0.0;
+	float phase = 1.5;// 6.0;
+	float speed = 1.0;// 1.5;// 2.0;
+	float weight = 1.0;// 1.0;
+	float w = 0.0;
+	float ws = 0.0;
+	for (int i = 0; i<1; i++)
+	{
+		vec2 p = vec2(sin(iter), cos(iter)) * 30.0;
+		
+		float res = wave(position, p, speed, phase, 0.0);
+		res = mix(res, noise(position+res), 0.25);
+		
+		//float res2 = wave(position, p, speed, phase, 0.006);
+		float res2 = res + noise(position)*0.15;
+
+		position -= wavedrag(position, p) * (res - res2) * weight * DRAG_MULT;
+		
+		//w += res * weight;
+		w += pow(res * weight, 2.0) * 1.5;
+
+		iter += 12.0;
+		ws += weight;
+		weight = mix(weight, 0.0, float(i + 1) / 3.0/*4.0*/);
+		phase *= 1.2;
+		speed *= 1.02;
+	}
+	return clamp(w / ws, 0.0, 1.0);
+	//return clamp(((w / ws) - 0.075) * 1.075, 0.0, 1.0);
+}
+
 float getwaves(vec2 position) {
 	position *= 0.1;
 	float iter = 0.0;
@@ -721,7 +754,8 @@ void ScanHeightMap(in vec4 waterMapLower, inout vec3 surfacePoint, inout vec3 ey
 	{
 		if (pos.y <= maxHeight)
 		{
-			float h = getwaves(pos.xz*0.03);
+			//float h = getwaves(pos.xz*0.03);
+			float h = getwavesfast(pos.xz*0.03);
 			//ApplyHeightAdjustments(h);
 
 			if (!IS_UNDERWATER && level + (h * waveHeight) >= pos.y)
@@ -749,6 +783,7 @@ void ScanHeightMap(in vec4 waterMapLower, inout vec3 surfacePoint, inout vec3 ey
 #endif //USE_RAYTRACE
 }
 
+#ifdef EXPERIMENTAL_WATERFALL
 float WaterFallNearby ( vec2 uv, out float hit )
 {
 	hit = 0.0;
@@ -785,6 +820,7 @@ float WaterFallNearby ( vec2 uv, out float hit )
 
 	return numTests / 16.0;
 }
+#endif //EXPERIMENTAL_WATERFALL
 
 vec4 WaterFall(vec3 color, vec3 color2, vec3 waterMapUpper, vec3 position, float timer, float slope, float wfEdgeFactor, float wfHitType)
 {

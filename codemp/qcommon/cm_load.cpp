@@ -316,7 +316,7 @@ int DetectMaterialType(const char *name)
 		return MATERIAL_NONE;
 	if (StringContainsWord(name, "gfx/atmospheric"))
 		return MATERIAL_NONE;
-	if (StringContainsWord(name, "warzone/plant"))
+	if (StringContainsWord(name, "warzone/plant") || StringContainsWord(name, "warzone/bushes"))
 		return MATERIAL_GREENLEAVES;
 	else if ((StringContainsWord(name, "yavin/tree2b") || StringContainsWord(name, "yavin/tree05") || StringContainsWord(name, "yavin/tree06"))
 		&& !(StringContainsWord(name, "yavin/tree05_vines") || StringContainsWord(name, "yavin/tree06b")))
@@ -546,7 +546,7 @@ int GetMaterialType ( const char *name, int materialType )
 			return MATERIAL_EFX;
 		else if (StringContainsWord(name, "gfx/atmospheric"))
 			return MATERIAL_EFX;
-		else if (StringContainsWord(name, "warzone/plant"))
+		else if (StringContainsWord(name, "warzone/plant") || StringContainsWord(name, "warzone/bushes"))
 			return MATERIAL_GREENLEAVES;
 		else if ((StringContainsWord(name, "yavin/tree2b") || StringContainsWord(name, "yavin/tree05") || StringContainsWord(name, "yavin/tree06"))
 			&& !(StringContainsWord(name, "yavin/tree05_vines") || StringContainsWord(name, "yavin/tree06b")))

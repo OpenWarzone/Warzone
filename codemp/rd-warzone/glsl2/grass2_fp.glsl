@@ -141,46 +141,6 @@ vec4 DecodeFloatRGBA( float v ) {
   return enc;
 }
 
-float hash( const in float n ) {
-	return fract(sin(n)*4378.5453);
-}
-
-float noise(in vec3 o) 
-{
-	vec3 p = floor(o);
-	vec3 fr = fract(o);
-		
-	float n = p.x + p.y*57.0 + p.z * 1009.0;
-
-	float a = hash(n+  0.0);
-	float b = hash(n+  1.0);
-	float c = hash(n+ 57.0);
-	float d = hash(n+ 58.0);
-	
-	float e = hash(n+  0.0 + 1009.0);
-	float f = hash(n+  1.0 + 1009.0);
-	float g = hash(n+ 57.0 + 1009.0);
-	float h = hash(n+ 58.0 + 1009.0);
-	
-	
-	vec3 fr2 = fr * fr;
-	vec3 fr3 = fr2 * fr;
-	
-	vec3 t = 3.0 * fr2 - 2.0 * fr3;
-	
-	float u = t.x;
-	float v = t.y;
-	float w = t.z;
-
-	// this last bit should be refactored to the same form as the rest :)
-	float res1 = a + (b-a)*u +(c-a)*v + (a-b+d-c)*u*v;
-	float res2 = e + (f-e)*u +(g-e)*v + (e-f+h-g)*u*v;
-	
-	float res = res1 * (1.0- w) + res2 * (w);
-	
-	return res;
-}
-
 bool isDithered(vec2 pos, float alpha)
 {
 	pos *= u_Dimensions.xy * 12.0;
@@ -283,9 +243,6 @@ void main()
 
 		if (iGrassType == 3)
 		{// Below water grass lod...
-			//tc.x = noise(vVertPosition.xyz*LOD_COORD_MULT) * 0.03 + 0.10;
-			//tc.y = noise(vVertPosition.yzx*LOD_COORD_MULT) * 0.03 + 0.10;
-			//vec2 p = vec2(vVertPosition.xy)*LOD_COORD_MULT;
 			vec3 dir = normalize(u_ViewOrigin - vVertPosition);
 			vec2 p = vec2(vVertPosition.x+vVertPosition.y*LOD_COORD_MULT_X, dir.z*LOD_COORD_MULT_Y);
 			vec2 paramU = vec2(0.05, 0.125);
@@ -296,9 +253,6 @@ void main()
 		}
 		else if (iGrassType == 2)
 		{// Above water grass lod...
-			//tc.x = noise(vVertPosition.xyz*LOD_COORD_MULT) * 0.03 + 0.10;
-			//tc.y = noise(vVertPosition.yzx*LOD_COORD_MULT) * 0.03 + 0.10;
-			//vec2 p = vec2(vVertPosition.xy)*LOD_COORD_MULT;
 			vec3 dir = normalize(u_ViewOrigin - vVertPosition);
 			vec2 p = vec2(vVertPosition.x+vVertPosition.y*LOD_COORD_MULT_X, dir.z*LOD_COORD_MULT_Y);
 			vec2 paramU = vec2(0.05, 0.125);

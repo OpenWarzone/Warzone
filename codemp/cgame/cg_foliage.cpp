@@ -2289,8 +2289,8 @@ qboolean FOLIAGE_LoadFoliagePositions(char *filename)
 			FOLIAGE_PLANT_SELECTION[foliageCount] = 0;
 			foliageCount++;
 		}
-		else if ((MAP_HAS_TREES && FOLIAGE_TREE_SELECTION[foliageCount] > 0) || FOLIAGE_PLANT_SELECTION[foliageCount] > 0)
-		{// Only keep positions with trees or plants...
+		else if (FOLIAGE_PLANT_SELECTION[foliageCount] > 0)
+		{// Only keep positions plants...
 			foliageCount++;
 		}
 		else
@@ -2445,37 +2445,54 @@ qboolean FOLIAGE_SaveFoliagePositions(void)
 		}
 	}
 
-	trap->FS_Write(&FOLIAGE_NUM_POSITIONS, sizeof(int), f);
+	int NUM_REAL_FOLIAGES = 0;
 
 	for (i = 0; i < FOLIAGE_NUM_POSITIONS; i++)
 	{
-		trap->FS_Write(&FOLIAGE_POSITIONS[i], sizeof(vec3_t), f);
-		trap->FS_Write(&FOLIAGE_NORMALS[i], sizeof(vec3_t), f);
-		trap->FS_Write(&FOLIAGE_PLANT_SELECTION[i], sizeof(int), f);
-		trap->FS_Write(&FOLIAGE_PLANT_ANGLE[i], sizeof(float), f);
-		trap->FS_Write(&FOLIAGE_PLANT_SCALE[i], sizeof(float), f);
-
-		if (MAP_HAS_TREES)
-		{
-			trap->FS_Write(&FOLIAGE_TREE_SELECTION[i], sizeof(int), f);
-			trap->FS_Write(&FOLIAGE_TREE_ANGLE[i], sizeof(float), f);
-			trap->FS_Write(&FOLIAGE_TREE_SCALE[i], sizeof(float), f);
-		}
-		else
-		{
-			int zero = 0;
-			float zerof = 0.0;
-			trap->FS_Write(&zero, sizeof(int), f);
-			trap->FS_Write(&zerof, sizeof(float), f);
-			trap->FS_Write(&zerof, sizeof(float), f);
-		}
-
 		if (MAP_HAS_TREES && FOLIAGE_TREE_SELECTION[i] > 0)
-			numTrees++;
+		{
+			NUM_REAL_FOLIAGES++;
+		}
 		else if (FOLIAGE_PLANT_SELECTION[i] > 0)
-			numPlants++;
-		else
-			numGrasses++;
+		{
+			NUM_REAL_FOLIAGES++;
+		}
+	}
+
+	trap->FS_Write(&NUM_REAL_FOLIAGES, sizeof(int), f);
+
+	for (i = 0; i < FOLIAGE_NUM_POSITIONS; i++)
+	{
+		if ((MAP_HAS_TREES && FOLIAGE_TREE_SELECTION[i] > 0) || FOLIAGE_PLANT_SELECTION[i] > 0)
+		{
+			trap->FS_Write(&FOLIAGE_POSITIONS[i], sizeof(vec3_t), f);
+			trap->FS_Write(&FOLIAGE_NORMALS[i], sizeof(vec3_t), f);
+			trap->FS_Write(&FOLIAGE_PLANT_SELECTION[i], sizeof(int), f);
+			trap->FS_Write(&FOLIAGE_PLANT_ANGLE[i], sizeof(float), f);
+			trap->FS_Write(&FOLIAGE_PLANT_SCALE[i], sizeof(float), f);
+
+			if (MAP_HAS_TREES)
+			{
+				trap->FS_Write(&FOLIAGE_TREE_SELECTION[i], sizeof(int), f);
+				trap->FS_Write(&FOLIAGE_TREE_ANGLE[i], sizeof(float), f);
+				trap->FS_Write(&FOLIAGE_TREE_SCALE[i], sizeof(float), f);
+			}
+			else
+			{
+				int zero = 0;
+				float zerof = 0.0;
+				trap->FS_Write(&zero, sizeof(int), f);
+				trap->FS_Write(&zerof, sizeof(float), f);
+				trap->FS_Write(&zerof, sizeof(float), f);
+			}
+
+			if (MAP_HAS_TREES && FOLIAGE_TREE_SELECTION[i] > 0)
+				numTrees++;
+			else if (FOLIAGE_PLANT_SELECTION[i] > 0)
+				numPlants++;
+			else
+				numGrasses++;
+		}
 	}
 
 	trap->FS_Close(f);
@@ -2487,6 +2504,17 @@ qboolean FOLIAGE_SaveFoliagePositions(void)
 		return qfalse;
 	}
 
+#if 1
+	trap->Print("^1*** ^3%s^5: Successfully saved %i foliage points (%i trees, %i plants, %i grasses) to foliage file ^7foliage/%s.foliage^5.\n", "AUTO-FOLIAGE",
+		NUM_REAL_FOLIAGES, numTrees, numPlants, numGrasses, cgs.currentmapname);
+
+	// Make it reload the whole lot again, to make sure everything is clean...
+	FOLIAGE_FreeMemory();
+	FOLIAGE_INITIALIZED = qfalse;
+	FOLIAGE_LOADED = qfalse;
+
+	FOLIAGE_LoadFoliagePositions(NULL);
+#else
 	if (!FOLIAGE_AREAS_LIST_COUNT) FOLIAGE_AREAS_LIST_COUNT = (int *)malloc(sizeof(int) * FOLIAGE_AREA_MAX);
 	if (!FOLIAGE_AREAS_LIST) FOLIAGE_AREAS_LIST = (ivec256_t *)malloc(sizeof(ivec256_t) * FOLIAGE_AREA_MAX);
 	if (!FOLIAGE_AREAS_MINS) FOLIAGE_AREAS_MINS = (vec3_t *)malloc(sizeof(vec3_t) * FOLIAGE_AREA_MAX);
@@ -2566,6 +2594,7 @@ qboolean FOLIAGE_SaveFoliagePositions(void)
 	FOLIAGE_FreeMemory();
 	FOLIAGE_INITIALIZED = qfalse;
 	FOLIAGE_LOADED = qfalse;
+#endif
 
 	return qtrue;
 }
@@ -4289,6 +4318,54 @@ qboolean FOLIAGE_NearbyWall(vec3_t org)
 	VectorCopy(org, pos);
 	pos[2] += 48.0;
 	
+#if 0
+	// Let's try a single big box trace instead, for speed...
+	VectorCopy(pos, end);
+	
+	vec3_t mins, maxs;
+	mins[0] = -TREE_SEARCH_DISTANCE;
+	mins[1] = -TREE_SEARCH_DISTANCE;
+	mins[2] = -1.0;
+
+	maxs[0] = TREE_SEARCH_DISTANCE;
+	maxs[1] = TREE_SEARCH_DISTANCE;
+	maxs[2] = 1.0;
+
+	CG_Trace(&tr, end, mins, maxs, end, ENTITYNUM_NONE, MASK_PLAYERSOLID | CONTENTS_WATER);
+	if (/*tr.fraction < 1.0*/tr.startsolid || tr.allsolid)
+	{
+		if (FOLIAGE_MaterialIsWallSolid(tr.plane.normal, tr.materialType))
+		{// Looks like a tree or wall here.. Yay!
+			return qtrue;
+		}
+	}
+#else
+	// First do a quick check...
+	vec3_t mins, maxs;
+	mins[0] = -TREE_SEARCH_DISTANCE;
+	mins[1] = -TREE_SEARCH_DISTANCE;
+	mins[2] = -1.0;
+
+	maxs[0] = TREE_SEARCH_DISTANCE;
+	maxs[1] = TREE_SEARCH_DISTANCE;
+	maxs[2] = 1.0;
+
+	qboolean goodSpot = qfalse;
+
+	CG_Trace(&tr, end, mins, maxs, end, ENTITYNUM_NONE, MASK_PLAYERSOLID | CONTENTS_WATER);
+	if (/*tr.fraction < 1.0*/tr.startsolid || tr.allsolid)
+	{
+		if (FOLIAGE_MaterialIsWallSolid(tr.plane.normal, tr.materialType))
+		{// Looks like a tree or wall here.. Yay!
+			goodSpot = qtrue;
+		}
+	}
+
+	if (!goodSpot)
+	{
+		return qfalse;
+	}
+
 	VectorCopy(pos, end);
 	end[0] += TREE_SEARCH_DISTANCE;
 	CG_Trace(&tr, pos, NULL, NULL, end, ENTITYNUM_NONE, MASK_PLAYERSOLID | CONTENTS_WATER);
@@ -4333,6 +4410,7 @@ qboolean FOLIAGE_NearbyWall(vec3_t org)
 		}
 	}
 
+#if 1
 	VectorCopy(pos, end);
 	end[0] += TREE_SEARCH_DISTANCE;
 	end[1] += TREE_SEARCH_DISTANCE;
@@ -4380,6 +4458,8 @@ qboolean FOLIAGE_NearbyWall(vec3_t org)
 			return qtrue;
 		}
 	}
+#endif
+#endif
 
 	return qfalse;
 }
@@ -4426,6 +4506,7 @@ void FOLIAGE_FoliageReplantSpecial(int plantPercentage)
 	int NUM_REPLACED = 0;
 	int NUM_OBJECT_PLANTS = 0;
 	int NUM_PLANTS_TOTAL = 0;
+	int NUM_REMOVED = 0;
 
 	int previous_time = clock();
 	aw_stage_start_time = clock();
@@ -4465,33 +4546,31 @@ void FOLIAGE_FoliageReplantSpecial(int plantPercentage)
 		{
 			NUM_PLANTS_TOTAL++;
 
-			if (FOLIAGE_TreeLocationNearby(FOLIAGE_POSITIONS[i]) || FOLIAGE_NearbyWall(FOLIAGE_POSITIONS[i]))
-			{// 1 in 2 (or if no other nearby yet) are fern or tall plant...
-				//if (irand(1,2) == 1 || !FOLIAGE_AnotherBigPlantNearby(FOLIAGE_POSITIONS[i], i-1))
-				//{
+			if ((MAP_HAS_TREES && FOLIAGE_TreeLocationNearby(FOLIAGE_POSITIONS[i])) || FOLIAGE_NearbyWall(FOLIAGE_POSITIONS[i]))
+			{// if no other nearby yet are fern or tall plant...
+				if (MAP_HAS_TREES) FOLIAGE_TREE_SELECTION[i] = 0;
 				FOLIAGE_PLANT_SELECTION[i] = irand(MAX_PLANT_MODELS - 23, MAX_PLANT_MODELS);
 				NUM_OBJECT_PLANTS++;
-				//}
-				//else
-				//	FOLIAGE_PLANT_SELECTION[i] = irand(1, MAX_PLANT_MODELS - 1);
 
-				sprintf(last_node_added_string, "^3%i ^5near object plants replaced. ^3%i ^5normal replaced. ^3%i ^5total plants.", NUM_OBJECT_PLANTS, NUM_REPLACED, NUM_PLANTS_TOTAL);
+				sprintf(last_node_added_string, "^3%i ^5near object plants replaced. ^3%i ^5normal replaced. ^3%i ^5removed plants. ^3%i ^5total plants.", NUM_OBJECT_PLANTS, NUM_REPLACED, NUM_REMOVED, NUM_PLANTS_TOTAL);
 			}
 			else
 			{
 				if (irand(0, 100) <= plantPercentage)
 				{// Replace...
+					if (MAP_HAS_TREES) FOLIAGE_TREE_SELECTION[i] = 0;
 					FOLIAGE_PLANT_SELECTION[i] = irand(1, MAX_PLANT_MODELS - 22);
 					NUM_REPLACED++;
 
-					sprintf(last_node_added_string, "^3%i ^5near object plants replaced. ^3%i ^5normal replaced. ^3%i ^5total plants.", NUM_OBJECT_PLANTS, NUM_REPLACED, NUM_PLANTS_TOTAL);
+					sprintf(last_node_added_string, "^3%i ^5near object plants replaced. ^3%i ^5normal replaced. ^3%i ^5removed plants. ^3%i ^5total plants.", NUM_OBJECT_PLANTS, NUM_REPLACED, NUM_REMOVED, NUM_PLANTS_TOTAL);
 				}
 				else
 				{
+					//if (MAP_HAS_TREES) FOLIAGE_TREE_SELECTION[i] = 0;
 					FOLIAGE_PLANT_SELECTION[i] = 0;
-					NUM_REPLACED++;
+					NUM_REMOVED++;
 
-					sprintf(last_node_added_string, "^3%i ^5near object plants replaced. ^3%i ^5normal replaced. ^3%i ^5total plants.", NUM_OBJECT_PLANTS, NUM_REPLACED, NUM_PLANTS_TOTAL);
+					sprintf(last_node_added_string, "^3%i ^5near object plants replaced. ^3%i ^5normal replaced. ^3%i ^5removed plants. ^3%i ^5total plants.", NUM_OBJECT_PLANTS, NUM_REPLACED, NUM_REMOVED, NUM_PLANTS_TOTAL);
 				}
 			}
 		}
@@ -4501,7 +4580,7 @@ void FOLIAGE_FoliageReplantSpecial(int plantPercentage)
 
 	aw_percent_complete = 0.0f;
 
-	trap->Print("^1*** ^3%s^5: Successfully replaced %i plants (%i near objects)...\n", "AUTO-FOLIAGE", NUM_REPLACED, NUM_OBJECT_PLANTS);
+	trap->Print("^1*** ^3%s^5: Successfully replaced %i plants (%i near objects). %i removed...\n", "AUTO-FOLIAGE", NUM_REPLACED, NUM_OBJECT_PLANTS, NUM_REMOVED);
 
 	// Save the generated info to a file for next time...
 	FOLIAGE_SaveFoliagePositions();
