@@ -7899,6 +7899,8 @@ int cg_saberFlashTime = 0;
 vec3_t cg_saberFlashPos = {0, 0, 0};
 void CG_SaberClashFlare( void )
 {
+	if (!cg_saberClash.integer) return;
+
 	int				t, maxTime = 150;
 	vec3_t dif;
 	vec3_t color;
@@ -7948,6 +7950,7 @@ void CG_SaberClashFlare( void )
 		v = 0.001f;
 	}
 
+#if 1
 	CG_WorldCoordToScreenCoord( cg_saberFlashPos, &x, &y );
 
 	VectorSet( color, 0.8f, 0.8f, 0.8f );
@@ -7956,6 +7959,20 @@ void CG_SaberClashFlare( void )
 	CG_DrawPic( x - ( v * 300 ), y - ( v * 300 ),
 				v * 600, v * 600,
 				trap->R_RegisterShader( "gfx/effects/saberFlare" ));
+
+	AddLightToScene(cg_saberFlashPos, 255.0 * (t / maxTime), 1.0f, 1.0f, 1.0f);
+#else
+	{ // UQ1: Tested - saber block using efx, doesnt look much better, and much slower...
+		vec3_t fxDir;
+
+		VectorCopy(dif, fxDir);
+		if (!fxDir[0] && !fxDir[1] && !fxDir[2])
+		{
+			fxDir[1] = 1;
+		}
+		PlayEffectID(cgs.effects.mSaberBlock, cg_saberFlashPos, fxDir, -1, -1, qfalse);
+	}
+#endif
 }
 
 void CG_DottedLine( float x1, float y1, float x2, float y2, float dotSize, int numDots, vec4_t color, float alpha )

@@ -6747,66 +6747,98 @@ void CG_AddSaberBlade(centity_t *cent, centity_t *scent, refEntity_t *saber, int
 		}
 #endif
 
-		if (cent->nextSaberClash <= cg.time && g_mmoStyleAttacking.integer)
-		{// UQ1: Do a trace for saber vs saber clashes...
-			vec3_t tMins, tMaxs;
-			VectorSet(tMins, -16.0, -16.0, -32.0);
-			VectorSet(tMaxs, 16.0, 16.0, 32.0);
-			CG_Trace(&trace, org_, tMins, tMaxs, end, cent->currentState.saberEntityNum, CONTENTS_LIGHTSABER);
-			
-			if (trace.fraction != 1)
-			{// Hit another saber, do a clash...
-				//Com_Printf("Saber clash at %f %f %f angle %f %f %f.\n", trace.endpos[0], trace.endpos[1], trace.endpos[2], trace.plane.normal[0], trace.plane.normal[1], trace.plane.normal[2]);
+		if (cg_saberClash.integer)
+		{
+#if 0
+			if (cent->nextSaberClash <= cg.time)
+			{// UQ1: Do a trace for saber vs saber clashes...
+				vec3_t tMins, tMaxs;
+				VectorSet(tMins, -16.0, -16.0, -32.0);
+				VectorSet(tMaxs, 16.0, 16.0, 32.0);
+				CG_Trace(&trace, org_, tMins, tMaxs, end, cent->currentState.saberEntityNum, CONTENTS_LIGHTSABER);
 
-				extern int cg_saberFlashTime;
-				extern vec3_t cg_saberFlashPos;
+				if (trace.fraction < 1.0f)
+				{// Hit another saber, do a clash...
+					Com_Printf("Saber clash at %f %f %f angle %f %f %f.\n", trace.endpos[0], trace.endpos[1], trace.endpos[2], trace.plane.normal[0], trace.plane.normal[1], trace.plane.normal[2]);
 
-				trap->S_StartSound(trace.endpos, -1, CHAN_SABER, trap->S_RegisterSound(va("sound/weapons/saber/saberblock%d.wav", Q_irand(1, 9))));
-				//PlayEffectID(cgs.effects.mSaberBlock, trace.endpos, trace.plane.normal, -1, -1, qfalse);
+					extern int cg_saberFlashTime;
+					extern vec3_t cg_saberFlashPos;
 
-				// And do an actual clash...
-				VectorCopy(trace.endpos, cg_saberFlashPos);
-				cg_saberFlashTime = cg.time - 50;
+					trap->S_StartSound(trace.endpos, -1, CHAN_SABER, trap->S_RegisterSound(va("sound/weapons/saber/saberblock%d.wav", Q_irand(1, 9))));
+					//PlayEffectID(cgs.effects.mSaberBlock, trace.endpos, trace.plane.normal, -1, -1, qfalse);
 
-				cent->nextSaberClash = cg.time + irand(1200, 3800);
+					// And do an actual clash...
+					VectorCopy(trace.endpos, cg_saberFlashPos);
+					cg_saberFlashTime = cg.time - 150;
+
+					cent->nextSaberClash = cg.time + irand(1200, 3800);
+				}
 			}
-		}
+#endif
+
+
+			
+			//if (cent->nextSaberClash <= cg.time)
+			{
+				//for (i = 0; i < 1; i++)//was 2 because it would go through architecture and leave saber trails on either side of the brush - but still looks bad if we hit a corner, blade is still 8 longer than hit
+				{
+					/*if (i)
+					{//tracing from end to base
+						CG_Trace(&trace, end, NULL, NULL, org_, ENTITYNUM_NONE, MASK_PLAYERSOLID);
+					}
+					else*/
+					{//tracing from base to end
+						CG_Trace(&trace, org_, NULL, NULL, end, ENTITYNUM_NONE, MASK_PLAYERSOLID);
+					}
+
+					if (trace.fraction < 1.0f)
+					{
+						centity_t *hit = NULL;
+
+						if (trace.entityNum < ENTITYNUM_MAX_NORMAL)
+						{
+							hit = &cg_entities[trace.entityNum];
+						}
+
+						/* // Sigh, lightsaber ents are not on client...
+						if (hit && hit->currentState.eType == ET_LIGHTSABER)
+						{// UQ1: Do saber vs saber clashes...
+							if (hit->nextSaberClash <= cg.time && hit->currentState.number != cent->currentState.saberEntityNum)
+							{// Don't spam this, filling up memory...
+								//Com_Printf("Saber vs saber clash at %f %f %f angle %f %f %f.\n", trace.endpos[0], trace.endpos[1], trace.endpos[2], trace.plane.normal[0], trace.plane.normal[1], trace.plane.normal[2]);
+
+								PlayEffectID(cgs.effects.mSaberBloodSparks, trace.endpos, trace.plane.normal, -1, -1, qfalse);
+
+								//trap->S_StartSound(trace.endpos, trace.entityNum, CHAN_SABER, trap->S_RegisterSound(va("sound/weapons/saber/saberhit%i.wav", Q_irand(1, 9)))); // ewww!!!!
+
+								if (irand(0,1) == 1) // UQ1: ADDED - Stoiss sounds???
+									trap->S_StartSound(trace.endpos, trace.entityNum, CHAN_SABER, trap->S_RegisterSound(va("sound/weapons/saber/saberbounce%i.wav", Q_irand(1, 3))));
+								else // UQ1: ADDED - JKA sounds???
+									trap->S_StartSound(trace.endpos, trace.entityNum, CHAN_SABER, trap->S_RegisterSound(va("sound/weapons/saber/saberblock%i.wav", Q_irand(1, 9))));
+								
+								hit->nextSaberClash = cg.time + irand(1300, 4400);
+							}
+						}
+						*/
 
 #define __BLOOD_SPARKS__
-
 #ifdef __BLOOD_SPARKS__
-		for (i = 0; i < 1; i++)//was 2 because it would go through architecture and leave saber trails on either side of the brush - but still looks bad if we hit a corner, blade is still 8 longer than hit
-		{
-			if (i)
-			{//tracing from end to base
-				CG_Trace(&trace, end, NULL, NULL, org_, ENTITYNUM_NONE, MASK_PLAYERSOLID);
-			}
-			else
-			{//tracing from base to end
-				CG_Trace(&trace, org_, NULL, NULL, end, ENTITYNUM_NONE, MASK_PLAYERSOLID);
-			}
+						if (hit && (hit->currentState.eType == ET_PLAYER || hit->currentState.eType == ET_NPC))
+						{// UQ1: Also do blood sparks here...
+							if (hit->nextBodyClash <= cg.time && hit != cent)
+							{// Don't spam this, filling up memory...
+								//Com_Printf("Saber vs body clash at %f %f %f angle %f %f %f.\n", trace.endpos[0], trace.endpos[1], trace.endpos[2], trace.plane.normal[0], trace.plane.normal[1], trace.plane.normal[2]);
 
-			if (trace.fraction < 1.0f)
-			{
-				centity_t *hit = NULL;
-
-				if (trace.entityNum < ENTITYNUM_MAX_NORMAL)
-				{
-					hit = &cg_entities[trace.entityNum];
-				}
-
-				if (hit && (hit->currentState.eType == ET_PLAYER || hit->currentState.eType == ET_NPC))
-				{// UQ1: Also do blood sparks here...
-					if (hit->nextBodyClash <= cg.time && hit != cent)
-					{// Don't spam this, filling up memory...
-						PlayEffectID(cgs.effects.mSaberBloodSparks, trace.endpos, trace.plane.normal, -1, -1, qfalse);
-						trap->S_StartSound(trace.endpos, trace.entityNum, CHAN_SABER, trap->S_RegisterSound(va("sound/weapons/saber/saberhit%i.wav", Q_irand(1, 3))));
-						hit->nextSaberClash = cg.time + irand(1300, 4400);
+								PlayEffectID(cgs.effects.mSaberBloodSparks, trace.endpos, trace.plane.normal, -1, -1, qfalse);
+								trap->S_StartSound(trace.endpos, trace.entityNum, CHAN_SABER, trap->S_RegisterSound(va("sound/weapons/saber/saberbodyhit%i.wav", Q_irand(1, 3))));
+								hit->nextBodyClash = cg.time + irand(1300, 4400);
+							}
+						}
+#endif //__BLOOD_SPARKS__
 					}
 				}
 			}
 		}
-#endif //__BLOOD_SPARKS__
 
 		for (i = 0; i < 1; i++)//was 2 because it would go through architecture and leave saber trails on either side of the brush - but still looks bad if we hit a corner, blade is still 8 longer than hit
 		{
@@ -6910,7 +6942,6 @@ CheckTrail:
 	}
 
 	//FIXME: if trailStyle is 1, use the motion blur instead
-
 	saberTrail = &client->saber[saberNum].blade[bladeNum].trail;
 
 JustDoIt:
@@ -6920,7 +6951,11 @@ JustDoIt:
 		return;
 	}
 
-	CG_DoSaberTrails(cent, client, org_, end, axis_, (saber_colors_t)scolor, saberTrail, saberNum, bladeNum);
+	if (cg_saberTrail.integer)
+	{
+		CG_DoSaberTrails(cent, client, org_, end, axis_, (saber_colors_t)scolor, saberTrail, saberNum, bladeNum);
+	}
+
 	CG_Do3DSaber(cent, org_, axis_[0], saberLen, client->saber[saberNum].blade[bladeNum].lengthMax, client->saber[saberNum].blade[bladeNum].radius, (saber_colors_t)scolor);
 
 	if (CG_SaberHasSound(cent, client, saberNum, bladeNum, fromSaber, dontDraw))

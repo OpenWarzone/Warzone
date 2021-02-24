@@ -305,6 +305,9 @@ void	Svcmd_EntityList_f (void) {
 		case ET_ITEM:
 			trap->Print("ET_ITEM             ");
 			break;
+		case ET_LIGHTSABER:
+			trap->Print("ET_LIGHTSABER       ");
+			break;
 		case ET_MISSILE:
 			trap->Print("ET_MISSILE          ");
 			break;

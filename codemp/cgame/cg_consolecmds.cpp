@@ -338,6 +338,9 @@ void	Clcmd_EntityList_f (void) {
 		case ET_ITEM:
 			trap->Print("ET_ITEM             ");
 			break;
+		case ET_LIGHTSABER:
+			trap->Print("ET_LIGHTSABER       ");
+			break;
 		case ET_MISSILE:
 			trap->Print("ET_MISSILE          ");
 			break;
@@ -533,6 +536,12 @@ void	Clcmd_EntityList_f(void) {
 		if (!check || check->currentState.eType == ET_FREED) {
 			continue;
 		}
+		
+		if (check->currentState.eType == ET_GENERAL && check->lerpOrigin[0] == 0 && check->lerpOrigin[1] == 0 && check->lerpOrigin[2] == 0)
+		{// Don't bother displaying inactive entities...
+			continue;
+		}
+
 		trap->Print("%3i:", e);
 		switch (check->currentState.eType) {
 		case ET_GENERAL:
@@ -543,6 +552,9 @@ void	Clcmd_EntityList_f(void) {
 			break;
 		case ET_ITEM:
 			trap->Print("ET_ITEM             ");
+			break;
+		case ET_LIGHTSABER:
+			trap->Print("ET_LIGHTSABER       ");
 			break;
 		case ET_MISSILE:
 			trap->Print("ET_MISSILE          ");

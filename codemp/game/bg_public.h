@@ -1381,6 +1381,7 @@ typedef enum {
 	ET_GENERAL,
 	ET_PLAYER,
 	ET_ITEM,
+	ET_LIGHTSABER,
 	ET_MISSILE,
 	ET_SPECIAL,				// rww - force fields
 	ET_HOLOCRON,			// rww - holocron icon displays

@@ -1203,6 +1203,71 @@ int PM_SaberMoveQuadrantForMovement(usercmd_t *ucmd)
 	}
 }
 
+int PM_SaberMoveQuadrantForInvertedMovement(usercmd_t *ucmd)
+{
+	if (ucmd->rightmove < 0)
+	{//moving right
+		if (ucmd->forwardmove < 0)
+		{//forward right = TL2BR slash
+			return Q_TL;
+		}
+		else if (ucmd->forwardmove > 0)
+		{//backward right = BL2TR uppercut
+			return Q_BL;
+		}
+		else
+		{//just right is a left slice
+			return Q_L;
+		}
+	}
+	else if (ucmd->rightmove > 0)
+	{//moving left
+		if (ucmd->forwardmove < 0)
+		{//forward left = TR2BL slash
+			return Q_TR;
+		}
+		else if (ucmd->forwardmove < 0)
+		{//backward left = BR2TL uppercut
+			return Q_BR;
+		}
+		else
+		{//just left is a right slice
+			return Q_R;
+		}
+	}
+	else
+	{//not moving left or right
+		if (ucmd->forwardmove < 0)
+		{//forward= T2B slash
+			return Q_T;
+		}
+		else if (ucmd->forwardmove > 0)
+		{//backward= T2B slash	//or B2T uppercut?
+			return Q_T;
+		}
+		else
+		{//Not moving at all
+			return Q_TR;// Q_R;
+		}
+	}
+}
+
+int PM_SaberMoveQuadrantForInvertedMovement2(usercmd_t *ucmd)
+{
+	if (ucmd->rightmove < 0)
+	{//moving right
+		return Q_TL;
+	}
+	else if (ucmd->rightmove > 0)
+	{//moving left
+		return Q_TR;
+	}
+	else
+	{//not moving left or right
+		return Q_T;
+	}
+}
+
 //===================================================================
 qboolean PM_SaberInBounce(int move)
 {
@@ -2736,6 +2801,7 @@ static qboolean PM_CheckEnemyPresence(int dir, float radius)
 //#define SABER_ALT_ATTACK_POWER_FB	25//30/50?
 
 extern qboolean PM_SaberInReturn(int move); //bg_panimate.c
+extern qboolean PM_SaberInAnyBlockMove(int move); //bg_panimate.c
 
 saberMoveName_t PM_CheckPullAttack(void)
 {//Serenity  add pull attack swing,
@@ -3336,7 +3402,7 @@ saberMoveName_t PM_SaberAttackForMovement(saberMoveName_t curmove)
 				newmove = LS_A_T2B;
 			}
 		}
-		else if (PM_SaberInBounce(curmove))
+		else if (PM_SaberInBounce(curmove) || PM_SaberInReflect(curmove))
 		{//bounces should go to their default attack if you don't specify a direction but are attacking
 			newmove = saberMoveData[curmove].chain_attack;
 
@@ -4512,7 +4578,9 @@ void PM_WeaponLightsaber(void)
 #else
 		// Force all blocks through the bounce code, let's just extend those animations...
 		if (PM_SaberInBounce(pm->ps->saberMove) 
+			|| PM_SaberInReflect(pm->ps->saberMove)
 			|| PM_SaberInReturn(pm->ps->saberMove)
+			|| PM_SaberInAnyBlockMove(pm->ps->saberMove)
 			|| (pm->ps->torsoAnim >= BOTH_SABERBLOCK_TL && pm->ps->torsoAnim <= BOTH_SABERBLOCK_T)
 			|| (pm->ps->torsoAnim >= BOTH_SABERBLOCK_FL1 && pm->ps->torsoAnim <= BOTH_SABERBLOCK_BR5)
 			|| (pm->ps->torsoAnim >= BOTH_CC_SABERBLOCK_FL1 && pm->ps->torsoAnim <= BOTH_CC_SABERBLOCK_BR5))
@@ -4571,8 +4639,34 @@ void PM_WeaponLightsaber(void)
 				break;
 			}
 #else
-			if ((pm->cmd.buttons & BUTTON_ALT_ATTACK) && !(pm->cmd.buttons & BUTTON_ATTACK))
-			{// When actively blocking, do parrys, or short bounces...
+#if 0
+			if (/*BG_SaberInAttack(pm->ps->saberMove) || BG_SaberInTransitionAny(pm->ps->saberMove)*/pm->cmd.buttons & BUTTON_ATTACK)
+			{// Attacker is forced into a block...
+				/*switch (pm->ps->saberBlocked)
+				{
+				case BLOCKED_FORWARD_LEFT:
+					bounceMove = LS_B1_TL;
+					break;
+				case BLOCKED_FORWARD_RIGHT:
+					bounceMove = LS_B1_TR;
+					break;
+				case BLOCKED_LEFT:
+					bounceMove = LS_B1__L;
+					break;
+				case BLOCKED_RIGHT:
+					bounceMove = LS_B1__R;
+					break;
+				case BLOCKED_BACK_LEFT:
+					bounceMove = LS_B1_BL;
+					break;
+				case BLOCKED_BACK_RIGHT:
+					bounceMove = LS_B1_BR;
+					break;
+				default:
+					bounceMove = LS_B1_TR;
+					break;
+				}
+				*/
 				switch (pm->ps->saberBlocked)
 				{
 				case BLOCKED_FORWARD_LEFT:
@@ -4599,60 +4693,193 @@ void PM_WeaponLightsaber(void)
 				}
 			}
 			else
-			{
-				/*
+			{// When not in attack, do parrys or short bounces...
 				switch (pm->ps->saberBlocked)
 				{
 				case BLOCKED_FORWARD_LEFT:
-					bounceMove = LS_R_TL2BR;
+					bounceMove = LS_V1_TL;
 					break;
 				case BLOCKED_FORWARD_RIGHT:
-					bounceMove = LS_R_TR2BL;
+					bounceMove = LS_V1_TR;
 					break;
 				case BLOCKED_LEFT:
-					bounceMove = LS_R_L2R;
+					bounceMove = LS_V1__L;
 					break;
 				case BLOCKED_RIGHT:
-					bounceMove = LS_R_R2L;
+					bounceMove = LS_V1__R;
 					break;
 				case BLOCKED_BACK_LEFT:
-					bounceMove = LS_R_BL2TR;
+					bounceMove = LS_V1_BL;
 					break;
 				case BLOCKED_BACK_RIGHT:
-					bounceMove = LS_R_BR2TL;
+					bounceMove = LS_V1_BR;
 					break;
 				default:
-					//bounceMove = pm->ps->saberMove;
-					//pm->ps->saberBlocked = BLOCKED_NONE;
-					bounceMove = LS_R_R2L;
-					break;
-				}
-				*/
-				switch (pm->ps->saberBlocked)
-				{
-				case BLOCKED_FORWARD_LEFT:
-					bounceMove = LS_B1_TL;
-					break;
-				case BLOCKED_FORWARD_RIGHT:
-					bounceMove = LS_B1_TR;
-					break;
-				case BLOCKED_LEFT:
-					bounceMove = LS_B1__L;
-					break;
-				case BLOCKED_RIGHT:
-					bounceMove = LS_B1__R;
-					break;
-				case BLOCKED_BACK_LEFT:
-					bounceMove = LS_B1_BL;
-					break;
-				case BLOCKED_BACK_RIGHT:
-					bounceMove = LS_B1_BR;
-					break;
-				default:
-					bounceMove = LS_B1_TR;
+					bounceMove = LS_V1_T_;
 					break;
 				}
 			}
+#else
+			// UQ1: Testing... Trying for more coriagraphed looks...
+			if (/*BG_SaberInAttack(pm->ps->saberMove) || BG_SaberInTransitionAny(pm->ps->saberMove)*/pm->cmd.buttons & BUTTON_ATTACK)
+			{// Attacking... Try to move into a transition in the other direction...
+				/*if (pm->ps->fd.saberAnimLevel == SS_CROWD_CONTROL || pm->ps->fd.saberAnimLevel == SS_DUAL)
+				{// Crowd control and dual sabers works a bit different, transition to a new move from inverted move direction to keep flow of crowd controller moves...
+					int newQuad = PM_SaberMoveQuadrantForInvertedMovement(&pm->cmd);
+					bounceMove = PM_AttackMoveForQuad(newQuad);
+				}
+				else*/
+				{// Move into the inverted transition move from the block point...
+					int newQuad = 0;
+
+					//if (bg_testvalue0.integer == 3)
+					{
+						switch (pm->ps->saberBlocked)
+						{
+						case BLOCKED_FORWARD_LEFT:
+							newQuad = Q_BL;
+							break;
+						case BLOCKED_FORWARD_RIGHT:
+							newQuad = Q_BR;
+							break;
+						case BLOCKED_LEFT:
+							newQuad = Q_BL;
+							break;
+						case BLOCKED_RIGHT:
+							newQuad = Q_BR;
+							break;
+						case BLOCKED_BACK_LEFT:
+							newQuad = Q_BL;
+							break;
+						case BLOCKED_BACK_RIGHT:
+							newQuad = Q_BR;
+							break;
+						default:
+							newQuad = Q_B;
+							break;
+						}
+					}
+					/*else if (bg_testvalue0.integer == 2)
+					{
+						switch (pm->ps->saberBlocked)
+						{
+						case BLOCKED_FORWARD_LEFT:
+							newQuad = Q_BR;
+							break;
+						case BLOCKED_FORWARD_RIGHT:
+							newQuad = Q_BL;
+							break;
+						case BLOCKED_LEFT:
+							newQuad = Q_BR;
+							break;
+						case BLOCKED_RIGHT:
+							newQuad = Q_BL;
+							break;
+						case BLOCKED_BACK_LEFT:
+							newQuad = Q_BR;
+							break;
+						case BLOCKED_BACK_RIGHT:
+							newQuad = Q_BL;
+							break;
+						default:
+							newQuad = Q_B;
+							break;
+						}
+					}
+					else if (bg_testvalue0.integer == 1)
+					{
+						switch (pm->ps->saberBlocked)
+						{
+						case BLOCKED_FORWARD_LEFT:
+							newQuad = Q_TL;
+							break;
+						case BLOCKED_FORWARD_RIGHT:
+							newQuad = Q_TR;
+							break;
+						case BLOCKED_LEFT:
+							newQuad = Q_TL;
+							break;
+						case BLOCKED_RIGHT:
+							newQuad = Q_TR;
+							break;
+						case BLOCKED_BACK_LEFT:
+							newQuad = Q_TL;
+							break;
+						case BLOCKED_BACK_RIGHT:
+							newQuad = Q_TR;
+							break;
+						default:
+							newQuad = Q_T;
+							break;
+						}
+					}
+					else
+					{
+						switch (pm->ps->saberBlocked)
+						{
+						case BLOCKED_FORWARD_LEFT:
+							newQuad = Q_TR;
+							break;
+						case BLOCKED_FORWARD_RIGHT:
+							newQuad = Q_TL;
+							break;
+						case BLOCKED_LEFT:
+							newQuad = Q_TR;
+							break;
+						case BLOCKED_RIGHT:
+							newQuad = Q_TL;
+							break;
+						case BLOCKED_BACK_LEFT:
+							newQuad = Q_TR;
+							break;
+						case BLOCKED_BACK_RIGHT:
+							newQuad = Q_TL;
+							break;
+						default:
+							newQuad = Q_T;
+							break;
+						}
+					}*/
+
+					bounceMove = PM_AttackMoveForQuad(newQuad);
+					//if (bg_testvalue1.integer)
+					{
+						bounceMove = transitionMove[saberMoveData[pm->ps->saberMove].startQuad][newQuad];
+					}
+				}
+			}
+			else
+			{// UQ1: Start a new realiatory attack starting at the block point...
+				int newQuad = 0;
+
+				switch (pm->ps->saberBlocked)
+				{
+				case BLOCKED_FORWARD_LEFT:
+					newQuad = Q_BL;
+					break;
+				case BLOCKED_FORWARD_RIGHT:
+					newQuad = Q_BR;
+					break;
+				case BLOCKED_LEFT:
+					newQuad = Q_L;
+					break;
+				case BLOCKED_RIGHT:
+					newQuad = Q_R;
+					break;
+				case BLOCKED_BACK_LEFT:
+					newQuad = Q_TL;
+					break;
+				case BLOCKED_BACK_RIGHT:
+					newQuad = Q_TR;
+					break;
+				default:
+					newQuad = Q_B;//Q_T;
+					break;
+				}
+
+				bounceMove = PM_AttackMoveForQuad(newQuad);
+			}
+#endif
 #endif
 
 			if (pm->ps->saberMove != bounceMove)
@@ -4682,7 +4909,7 @@ void PM_WeaponLightsaber(void)
 		*/
 
 		//clear block
-		pm->ps->saberBlocked = 0;
+		pm->ps->saberBlocked = BLOCKED_NONE;
 
 		// Charging is like a lead-up before attacking again.  This is an appropriate use, or we can create a new weaponstate for blocking
 		pm->ps->weaponstate = WEAPON_READY;
@@ -5298,7 +5525,7 @@ weapChecks:
 				newmove = PM_ReturnforQuad(saberMoveData[curmove].endQuad);
 				//newmove = saberMoveData[curmove].chain_attack;
 			}
-			else if (PM_SaberInBounce(curmove))
+			else if (PM_SaberInBounce(curmove) || PM_SaberInReflect(curmove))
 			{//in a bounce
 				newmove = saberMoveData[curmove].chain_idle;//oops, not attacking, so don't chain
 			}
@@ -6639,6 +6866,7 @@ void PM_SetSaberMove(short newMove)
 	{
 		if (PM_SaberInParry(pm->ps->saberMove)
 			|| PM_SaberInBounce(pm->ps->saberMove)
+			|| PM_SaberInReflect(pm->ps->saberMove)
 			|| PM_SaberInKnockaway(pm->ps->saberMove)
 			|| PM_SaberInBrokenParry(/*newMove*/pm->ps->saberMove)
 			|| PM_SaberInReflect(pm->ps->saberMove)

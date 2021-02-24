@@ -2751,7 +2751,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 					PlayEffectID( blockFXID, es->origin, fxDir, -1, -1, qfalse );
 					if ( !noFlare )
 					{
-						cg_saberFlashTime = cg.time-50;
+						cg_saberFlashTime = cg.time-150;
 						VectorCopy( es->origin, cg_saberFlashPos );
 					}
 					
@@ -2799,7 +2799,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 	case EV_SABER_CLASHFLARE:
 		DEBUGNAME("EV_SABER_CLASHFLARE");
 		{
-			cg_saberFlashTime = cg.time-50;
+			cg_saberFlashTime = cg.time-150;
 			VectorCopy( es->origin, cg_saberFlashPos );
 			trap->S_StartSound ( es->origin, -1, CHAN_SABER, trap->S_RegisterSound( va("sound/weapons/saber/saberhitwall%i", Q_irand(1, 3)) ) );
 		}

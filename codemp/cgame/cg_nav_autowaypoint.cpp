@@ -1210,6 +1210,7 @@ qboolean VisibleAllowEntType ( int type, int flags )
 	switch (type)
 	{
 	case ET_GENERAL:
+	case ET_LIGHTSABER:
 	case ET_PLAYER:
 	case ET_ITEM:
 	//case ET_MISSILE:

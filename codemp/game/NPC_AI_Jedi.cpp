@@ -85,6 +85,8 @@ extern qboolean PM_SaberInStart( int move );
 extern qboolean BG_SaberInSpecialAttack( int anim );
 extern qboolean BG_SaberInAttack( int move );
 extern qboolean PM_SaberInBounce( int move );
+extern qboolean PM_SaberInReflect(int move);
+extern qboolean PM_SaberInAnyBlockMove(int move);
 extern qboolean PM_SaberInParry( int move );
 extern qboolean PM_SaberInKnockaway( int move );
 extern qboolean PM_SaberInBrokenParry( int move );
@@ -3066,9 +3068,13 @@ qboolean Jedi_SaberBusy( gentity_t *self )
 	&& ( (BG_SaberInAttack( self->client->ps.saberMove )&&self->client->ps.fd.saberAnimLevel==FORCE_LEVEL_3)
 		|| BG_SpinningSaberAnim( self->client->ps.torsoAnim )
 		|| BG_SaberInSpecialAttack( self->client->ps.torsoAnim )
-		//|| PM_SaberInBounce( self->client->ps.saberMove )
 		|| PM_SaberInBrokenParry( self->client->ps.saberMove )
-		//|| PM_SaberInDeflect( self->client->ps.saberMove )
+		/**/
+		|| PM_SaberInBounce(self->client->ps.saberMove)
+		|| PM_SaberInReflect(self->client->ps.saberMove)
+		|| PM_SaberInDeflect( self->client->ps.saberMove )
+		|| PM_SaberInAnyBlockMove( self->client->ps.saberMove )
+		/**/
 		|| BG_FlippingAnim( self->client->ps.torsoAnim )
 		|| PM_RollingAnim( self->client->ps.torsoAnim ) ) )
 	{//my saber is not in a parrying position

@@ -29,21 +29,25 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 extern qboolean InFront( vec3_t spot, vec3_t from, vec3_t fromAngles, float threshHold );
 extern void G_TestLine(vec3_t start, vec3_t end, int color, int time);
 
+// Clash event spam reduction...
+int lastSaberClashTime[MAX_GENTITIES] = { { 0 } };
+
 int saberSpinSound = 0;
 
 //would be cleaner if these were renamed to BG_ and proto'd in a header.
-qboolean PM_SaberInTransition( int move );
-qboolean PM_SaberInDeflect( int move );
-qboolean PM_SaberInBrokenParry( int move );
-qboolean PM_SaberInBounce( int move );
-qboolean BG_SaberInReturn( int move );
-qboolean BG_InKnockDownOnGround( playerState_t *ps );
-qboolean BG_StabDownAnim( int anim );
-qboolean BG_SabersOff( playerState_t *ps );
-qboolean BG_SaberInTransitionAny( int move );
-qboolean BG_SaberInAttackPure( int move );
-qboolean WP_SaberBladeUseSecondBladeStyle( saberInfo_t *saber, int bladeNum );
-qboolean WP_SaberBladeDoTransitionDamage( saberInfo_t *saber, int bladeNum );
+extern qboolean PM_SaberInTransition( int move );
+extern qboolean PM_SaberInDeflect( int move );
+extern qboolean PM_SaberInBrokenParry( int move );
+extern qboolean PM_SaberInBounce( int move );
+extern qboolean BG_SaberInReturn( int move );
+extern qboolean PM_SaberInAnyBlockMove(int move);
+extern qboolean BG_InKnockDownOnGround( playerState_t *ps );
+extern qboolean BG_StabDownAnim( int anim );
+extern qboolean BG_SabersOff( playerState_t *ps );
+extern qboolean BG_SaberInTransitionAny( int move );
+extern qboolean BG_SaberInAttackPure( int move );
+extern qboolean WP_SaberBladeUseSecondBladeStyle( saberInfo_t *saber, int bladeNum );
+extern qboolean WP_SaberBladeDoTransitionDamage( saberInfo_t *saber, int bladeNum );
 
 //[SaberSys]
 extern float VectorDistances(vec3_t v1, vec3_t v2);
@@ -635,6 +639,7 @@ void WP_SaberInitBladeData( gentity_t *ent )
 	}
 	ent->client->ps.saberEntityNum = ent->client->saberStoredIndex = saberent->s.number;
 	saberent->classname = "lightsaber";
+	saberent->s.eType = ET_LIGHTSABER;
 
 	saberent->neverFree = qtrue; //the saber being removed would be a terrible thing.
 
@@ -1082,6 +1087,14 @@ qboolean SaberAttacking(gentity_t *self)
 		return qfalse;
 	}
 	if (PM_SaberInBounce(self->client->ps.saberMove))
+	{
+		return qfalse;
+	}
+	if (PM_SaberInReflect(self->client->ps.saberMove))
+	{
+		return qfalse;
+	}
+	if (PM_SaberInAnyBlockMove(self->client->ps.saberMove))
 	{
 		return qfalse;
 	}
@@ -3729,6 +3742,7 @@ static QINLINE int Finish_RealTrace(gentity_t *attacker, trace_t *results, trace
 //#define __DEBUG_VOXEL_LINES__
 //#define __DEBUG_VOXEL_HITS__
 
+
 #ifdef __SABER_VOXEL_TRACE__
 extern qboolean G_PointInBounds(vec3_t point, vec3_t mins, vec3_t maxs);
 
@@ -3982,7 +3996,7 @@ qboolean G_SaberVoxelTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_
 
 				for (int av = 0; av <= attackerNumVoxels; av++)
 				{
-					float			boundsMod = (((float)av / (float)attackerNumVoxels) + 1.0f) * 4.0;
+					float			boundsMod = (((float)av / (float)attackerNumVoxels) + 1.0f) * 2.0;
 					vec3_t			attackerVoxelBoundsModified;
 					vec3_t			attackerFinalVoxel[2];
 
@@ -4050,7 +4064,7 @@ qboolean G_SaberVoxelTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_
 
 								for (int dav = 0; dav <= attackerNumVoxels; dav++)
 								{
-									float			dbgBoundsMod = (((float)dav / (float)attackerNumVoxels) + 1.0f) * 4.0;
+									float			dbgBoundsMod = (((float)dav / (float)attackerNumVoxels) + 1.0f) * 2.0;
 									vec3_t			dbgAttackerVoxelBoundsModified;
 									vec3_t			dattackerFinalVoxel[2];
 
@@ -4333,11 +4347,11 @@ int WP_DoFrameSaberTrace(gentity_t *self, int rSaberNum, int rBladeNum, vec3_t s
 
 #define __LIGHTSABER_STOP_CLASH_SPAM__ // Shouldn't need this now, hopefully...
 #ifdef __LIGHTSABER_STOP_CLASH_SPAM__
-		extern qboolean PM_SaberInAnyBlockMove(int move);
 		if (self->client
 			&& self->client->ps.weapon == WP_SABER 
 			&& (PM_SaberInParry(self->client->ps.saberMove)
 				|| PM_SaberInBounce(self->client->ps.saberMove)
+				|| PM_SaberInReflect(self->client->ps.saberMove)
 				|| PM_SaberInKnockaway(self->client->ps.saberMove)
 				|| PM_SaberInReflect(self->client->ps.saberMove)
 				|| PM_SaberInAnyBlockMove(self->client->ps.saberMove)
@@ -5355,6 +5369,13 @@ void WP_SaberClearDamage( void )
 //[SaberSys]
 void WP_SaberSpecificDoHit(gentity_t *self, int saberNum, int bladeNum, gentity_t *victim, vec3_t impactpoint, int dmg, int realTraceResult)
 {
+	if (lastSaberClashTime[self->s.number] >= level.time - 1500)
+	{// Clash event spam reduction...
+		return;
+	}
+
+	lastSaberClashTime[self->s.number] = level.time;
+
 	gentity_t *te = NULL;
 	qboolean isDroid = qfalse;
 
@@ -5430,6 +5451,13 @@ void WP_SaberSpecificDoHit(gentity_t *self, int saberNum, int bladeNum, gentity_
 
 void WP_SaberDoHit( gentity_t *self, int saberNum, int bladeNum )
 {
+	if (lastSaberClashTime[self->s.number] >= level.time - 1500)
+	{// Clash event spam reduction...
+		return;
+	}
+
+	lastSaberClashTime[self->s.number] = level.time;
+
 	int i;
 	if ( !numVictims )
 	{
@@ -5619,17 +5647,27 @@ void WP_SaberRadiusDamage( gentity_t *ent, vec3_t point, float radius, int damag
 
 void WP_SaberDoClash(gentity_t *self, int saberNum, int bladeNum)
 {
-	if (saberDoClashEffect)
+	if (!saberDoClashEffect)
 	{
-
-		gentity_t *te = G_TempEntity(saberClashPos, EV_SABER_BLOCK);
-		VectorCopy(saberClashPos, te->s.origin);
-		VectorCopy(saberClashNorm, te->s.angles);
-		te->s.eventParm = saberClashEventParm;
-		te->s.otherEntityNum2 = self->s.number;
-		te->s.weapon = saberNum;
-		te->s.legsAnim = bladeNum;
+		saberDoClashEffect = qfalse;
+		return;
 	}
+
+	if (lastSaberClashTime[self->s.number] >= level.time - 1500)
+	{// Clash event spam reduction...
+		saberDoClashEffect = qfalse;
+		return;
+	}
+
+	lastSaberClashTime[self->s.number] = level.time;
+
+	gentity_t *te = G_TempEntity(saberClashPos, EV_SABER_BLOCK);
+	VectorCopy(saberClashPos, te->s.origin);
+	VectorCopy(saberClashNorm, te->s.angles);
+	te->s.eventParm = saberClashEventParm;
+	te->s.otherEntityNum2 = self->s.number;
+	te->s.weapon = saberNum;
+	te->s.legsAnim = bladeNum;
 
 	//[BugFix5]
 	//I think the clasheffect is repeating for each blade on a saber.
@@ -7071,7 +7109,6 @@ static QINLINE qboolean CheckThrownSaberDamaged(gentity_t *saberent, gentity_t *
 {
 	vec3_t vecsub;
 	float veclen;
-	gentity_t *te;
 
 	if (!saberOwner || !saberOwner->client)
 	{
@@ -7128,16 +7165,21 @@ static QINLINE qboolean CheckThrownSaberDamaged(gentity_t *saberent, gentity_t *
 #endif //__MISSILES_AUTO_PARRY__
 				//[/SaberSys]
 
-					te = G_TempEntity( tr.endpos, EV_SABER_BLOCK );
-					VectorCopy(tr.endpos, te->s.origin);
-					VectorCopy(tr.plane.normal, te->s.angles);
-					if (!te->s.angles[0] && !te->s.angles[1] && !te->s.angles[2])
-					{
-						te->s.angles[1] = 1;
+					if (lastSaberClashTime[saberOwner->s.number] < level.time - 1500)
+					{// Clash event spam reduction...
+						lastSaberClashTime[saberOwner->s.number] = level.time;
+
+						gentity_t *te = G_TempEntity(tr.endpos, EV_SABER_BLOCK);
+						VectorCopy(tr.endpos, te->s.origin);
+						VectorCopy(tr.plane.normal, te->s.angles);
+						if (!te->s.angles[0] && !te->s.angles[1] && !te->s.angles[2])
+						{
+							te->s.angles[1] = 1;
+						}
+						te->s.eventParm = 1;
+						te->s.weapon = 0;//saberNum
+						te->s.legsAnim = 0;//bladeNum
 					}
-					te->s.eventParm = 1;
-					te->s.weapon = 0;//saberNum
-					te->s.legsAnim = 0;//bladeNum
 
 					if (saberCheckKnockdown_Thrown(saberent, saberOwner, &g_entities[tr.entityNum]))
 					{ //it was knocked out of the air
@@ -7184,19 +7226,24 @@ static QINLINE qboolean CheckThrownSaberDamaged(gentity_t *saberent, gentity_t *
 						G_Damage(ent, saberOwner, saberOwner, dir, tr.endpos, saberent->damage, dflags, MOD_SABER);
 					}
 
-					te = G_TempEntity( tr.endpos, EV_SABER_HIT );
-					te->s.otherEntityNum = ent->s.number;
-					te->s.otherEntityNum2 = saberOwner->s.number;
-					te->s.weapon = 0;//saberNum
-					te->s.legsAnim = 0;//bladeNum
-					VectorCopy(tr.endpos, te->s.origin);
-					VectorCopy(tr.plane.normal, te->s.angles);
-					if (!te->s.angles[0] && !te->s.angles[1] && !te->s.angles[2])
-					{
-						te->s.angles[1] = 1;
-					}
+					if (lastSaberClashTime[saberOwner->s.number] < level.time - 1500)
+					{// Clash event spam reduction...
+						lastSaberClashTime[saberOwner->s.number] = level.time;
 
-					te->s.eventParm = 1;
+						gentity_t *te = G_TempEntity(tr.endpos, EV_SABER_HIT);
+						te->s.otherEntityNum = ent->s.number;
+						te->s.otherEntityNum2 = saberOwner->s.number;
+						te->s.weapon = 0;//saberNum
+						te->s.legsAnim = 0;//bladeNum
+						VectorCopy(tr.endpos, te->s.origin);
+						VectorCopy(tr.plane.normal, te->s.angles);
+						if (!te->s.angles[0] && !te->s.angles[1] && !te->s.angles[2])
+						{
+							te->s.angles[1] = 1;
+						}
+
+						te->s.eventParm = 1;
+					}
 
 					if (!returning)
 					{ //return to owner if blocked
@@ -7267,39 +7314,44 @@ static QINLINE qboolean CheckThrownSaberDamaged(gentity_t *saberent, gentity_t *
 					G_Damage(ent, saberOwner, saberOwner, dir, tr.endpos, 5, dflags, MOD_SABER);
 				}
 
-				te = G_TempEntity( tr.endpos, EV_SABER_HIT );
-				te->s.otherEntityNum = ENTITYNUM_NONE; //don't do this for throw damage
-				//te->s.otherEntityNum = ent->s.number;
-				te->s.otherEntityNum2 = saberOwner->s.number;//actually, do send this, though - for the overridden per-saber hit effects/sounds
-				te->s.weapon = 0;//saberNum
-				te->s.legsAnim = 0;//bladeNum
-				VectorCopy(tr.endpos, te->s.origin);
-				VectorCopy(tr.plane.normal, te->s.angles);
-				if (!te->s.angles[0] && !te->s.angles[1] && !te->s.angles[2])
-				{
-					te->s.angles[1] = 1;
-				}
+				if (lastSaberClashTime[saberOwner->s.number] < level.time - 1500)
+				{// Clash event spam reduction...
+					lastSaberClashTime[saberOwner->s.number] = level.time;
 
-				if ( ent->s.eType == ET_MOVER )
-				{
-					if ( saberOwner
-						&& saberOwner->client
-						&& (saberOwner->client->saber[0].saberFlags2&SFL2_NO_CLASH_FLARE) )
-					{//don't do clash flare - NOTE: assumes same is true for both sabers if using dual sabers!
-						G_FreeEntity( te );//kind of a waste, but...
+					gentity_t *te = G_TempEntity(tr.endpos, EV_SABER_HIT);
+					te->s.otherEntityNum = ENTITYNUM_NONE; //don't do this for throw damage
+					//te->s.otherEntityNum = ent->s.number;
+					te->s.otherEntityNum2 = saberOwner->s.number;//actually, do send this, though - for the overridden per-saber hit effects/sounds
+					te->s.weapon = 0;//saberNum
+					te->s.legsAnim = 0;//bladeNum
+					VectorCopy(tr.endpos, te->s.origin);
+					VectorCopy(tr.plane.normal, te->s.angles);
+					if (!te->s.angles[0] && !te->s.angles[1] && !te->s.angles[2])
+					{
+						te->s.angles[1] = 1;
+					}
+
+					if (ent->s.eType == ET_MOVER)
+					{
+						if (saberOwner
+							&& saberOwner->client
+							&& (saberOwner->client->saber[0].saberFlags2&SFL2_NO_CLASH_FLARE))
+						{//don't do clash flare - NOTE: assumes same is true for both sabers if using dual sabers!
+							G_FreeEntity(te);//kind of a waste, but...
+						}
+						else
+						{
+							//I suppose I could tie this into the saberblock event, but I'm tired of adding flags to that thing.
+							gentity_t *teS = G_TempEntity(te->s.origin, EV_SABER_CLASHFLARE);
+							VectorCopy(te->s.origin, teS->s.origin);
+
+							te->s.eventParm = 0;
+						}
 					}
 					else
 					{
-						//I suppose I could tie this into the saberblock event, but I'm tired of adding flags to that thing.
-						gentity_t *teS = G_TempEntity( te->s.origin, EV_SABER_CLASHFLARE );
-						VectorCopy(te->s.origin, teS->s.origin);
-
-						te->s.eventParm = 0;
+						te->s.eventParm = 1;
 					}
-				}
-				else
-				{
-					te->s.eventParm = 1;
 				}
 
 				if (!returning)
@@ -7703,7 +7755,7 @@ void saberReactivate(gentity_t *saberent, gentity_t *saberOwner)
 	saberent->s.apos.trDelta[2] = 0;
 
 	saberent->s.pos.trType = TR_LINEAR;
-	saberent->s.eType = ET_GENERAL;
+	saberent->s.eType = ET_LIGHTSABER;
 	saberent->s.eFlags = 0;
 
 	saberent->parent = saberOwner;
@@ -7878,7 +7930,7 @@ qboolean saberKnockOutOfHand(gentity_t *saberent, gentity_t *saberOwner, vec3_t 
 	saberent->s.saberInFlight = qfalse;//qtrue;
 
 	saberent->s.pos.trType = TR_LINEAR;
-	saberent->s.eType = ET_GENERAL;
+	saberent->s.eType = ET_LIGHTSABER;
 	saberent->s.eFlags = 0;
 
 	WP_SaberAddG2Model( saberent, saberOwner->client->saber[0].model, saberOwner->client->saber[0].skin );
@@ -10040,7 +10092,7 @@ nextStep:
 				saberent->s.apos.trDelta[2] = 0;
 
 				saberent->s.pos.trType = TR_LINEAR;
-				saberent->s.eType = ET_GENERAL;
+				saberent->s.eType = ET_LIGHTSABER;
 				saberent->s.eFlags = 0;
 
 				WP_SaberAddG2Model( saberent, self->client->saber[0].model, self->client->saber[0].skin );
@@ -10140,15 +10192,20 @@ nextStep:
 		{
 			if (self->client->ps.saberIdleWound < level.time)
 			{
-				gentity_t *te;
-				vec3_t dir;
-				te = G_TempEntity( g_entities[saberNum].r.currentOrigin, EV_SABER_BLOCK );
-				VectorSet( dir, 0, 1, 0 );
-				VectorCopy(g_entities[saberNum].r.currentOrigin, te->s.origin);
-				VectorCopy(dir, te->s.angles);
-				te->s.eventParm = 1;
-				te->s.weapon = 0;//saberNum
-				te->s.legsAnim = 0;//bladeNum
+				if (lastSaberClashTime[self->s.number] < level.time - 1500)
+				{// Clash event spam reduction...
+					lastSaberClashTime[self->s.number] = level.time;
+
+					gentity_t *te;
+					vec3_t dir;
+					te = G_TempEntity(g_entities[saberNum].r.currentOrigin, EV_SABER_BLOCK);
+					VectorSet(dir, 0, 1, 0);
+					VectorCopy(g_entities[saberNum].r.currentOrigin, te->s.origin);
+					VectorCopy(dir, te->s.angles);
+					te->s.eventParm = 1;
+					te->s.weapon = 0;//saberNum
+					te->s.legsAnim = 0;//bladeNum
+				}
 
 				self->client->ps.saberIdleWound = level.time + Q_irand(400, 600);
 			}
@@ -11953,7 +12010,7 @@ nextStep:
 				saberent->s.apos.trDelta[2] = 0;
 
 				saberent->s.pos.trType = TR_LINEAR;
-				saberent->s.eType = ET_GENERAL;
+				saberent->s.eType = ET_LIGHTSABER;
 				saberent->s.eFlags = 0;
 
 				WP_SaberAddG2Model(saberent, self->client->saber[0].model, self->client->saber[0].skin);

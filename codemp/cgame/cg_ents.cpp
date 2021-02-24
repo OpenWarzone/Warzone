@@ -3562,6 +3562,7 @@ static void CG_AddCEntity( centity_t *cent ) {
 	{ //don't render anything then
 		if (cent->currentState.eType == ET_GENERAL ||
 			cent->currentState.eType == ET_PLAYER ||
+			cent->currentState.eType == ET_LIGHTSABER ||
 			cent->currentState.eType == ET_INVISIBLE)
 		{
 			CG_CheckEvents(cent);
@@ -3629,6 +3630,7 @@ Ghoul2 Insert End
 		CG_NPC_Goal( cent );
 		break;
 	case ET_GENERAL:
+	case ET_LIGHTSABER:
 		CG_General( cent );
 		break;
 	case ET_PLAYER:
