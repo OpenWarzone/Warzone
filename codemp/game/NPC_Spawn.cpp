@@ -966,6 +966,7 @@ void NPC_StandardizeModelScales(gentity_t *ent)
 	{
 		adjustedScale = 88;
 	}
+#ifndef __NO_JEDI_SCALING__
 	else if (ent->client->ps.weapon == WP_SABER || NPC_IsJedi(ent))
 	{// Bosses... TODO: Sub-types...
 		if (NPC_IsBoss(ent))
@@ -985,6 +986,27 @@ void NPC_StandardizeModelScales(gentity_t *ent)
 	{
 		adjustedScale = 112;
 	}
+#else //__NO_JEDI_SCALING__
+	else if (ent->client->ps.weapon == WP_SABER || NPC_IsJedi(ent))
+	{// Bosses... TODO: Sub-types...
+		if (NPC_IsBoss(ent))
+		{
+			adjustedScale = 100;
+		}
+		else if (ent->s.NPC_class == CLASS_PURGETROOPER)
+		{
+			adjustedScale = 100;
+		}
+		else
+		{
+			adjustedScale = 100;
+		}
+	}
+	else if (NPC_IsBoss(ent))
+	{
+		adjustedScale = 100;
+	}
+#endif //__NO_JEDI_SCALING__
 	else if (ent->s.NPC_class == CLASS_K2SO)
 	{
 		adjustedScale = 130;

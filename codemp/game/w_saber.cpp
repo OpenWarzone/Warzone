@@ -3872,7 +3872,7 @@ qboolean G_SaberVoxelTrace(gentity_t *attacker, trace_t *tr, vec3_t start, vec3_
 	attacker->saberTrace[rSaberNum][rBladeNum].frameNum = level.framenum;
 	attacker->saberTrace[rSaberNum][rBladeNum].realTraceResult = REALTRACE_MISS;
 
-	float			saberVoxelSize = g_voxelTraceSize.value;
+	float			saberVoxelSize = g_voxelTraceSize.value * 1.5f; // dont want to have to change the cvar, for now... people have it in cfg
 	float			saberDefenderVoxelSize = g_voxelTraceDefenderSize.value;
 
 	vec3_t			mins, maxs;
@@ -5918,7 +5918,7 @@ void G_DoClashTaunting(gentity_t *self, gentity_t *attacker)
 	}
 }
 
-int WP_SaberBlockDirection(gentity_t *self, vec3_t hitloc)
+int WP_SaberBlockDirection(gentity_t *self, vec3_t hitloc, vec3_t hitnormal)
 {
 	vec3_t diff, fwdangles = { 0,0,0 }, fwd, right;
 	vec3_t clEye;
@@ -5938,6 +5938,8 @@ int WP_SaberBlockDirection(gentity_t *self, vec3_t hitloc)
 	fwddot = DotProduct(fwd, diff);
 	rightdot = DotProduct(right, diff);
 
+	qboolean lower = (hitnormal[2] > 0.0) ? qtrue : qfalse;
+
 	/*
 	BLOCKED_FORWARD_LEFT,
 	BLOCKED_FORWARD_RIGHT,
@@ -5952,12 +5954,12 @@ int WP_SaberBlockDirection(gentity_t *self, vec3_t hitloc)
 		if (rightdot >= 0.0)
 		{
 			//if (self->s.number < MAX_CLIENTS) Com_Printf("BLOCKED_FORWARD_RIGHT\n");
-			return BLOCKED_FORWARD_RIGHT;
+			return lower ? BLOCKED_FORWARD_RIGHT : BLOCKED_FORWARD_RIGHT_UPPER;
 		}
 		else
 		{
 			//if (self->s.number < MAX_CLIENTS) Com_Printf("BLOCKED_FORWARD_LEFT\n");
-			return BLOCKED_FORWARD_LEFT;
+			return lower ? BLOCKED_FORWARD_LEFT : BLOCKED_FORWARD_LEFT_UPPER;
 		}
 	}
 	else if (fwddot < -0.2)
@@ -5965,12 +5967,12 @@ int WP_SaberBlockDirection(gentity_t *self, vec3_t hitloc)
 		if (rightdot >= 0.0)
 		{
 			//if (self->s.number < MAX_CLIENTS) Com_Printf("BLOCKED_BACK_RIGHT\n");
-			return BLOCKED_BACK_RIGHT;
+			return lower ? BLOCKED_BACK_RIGHT : BLOCKED_BACK_RIGHT_UPPER;
 		}
 		else
 		{
 			//if (self->s.number < MAX_CLIENTS) Com_Printf("BLOCKED_BACK_LEFT\n");
-			return BLOCKED_BACK_LEFT;
+			return lower ? BLOCKED_BACK_LEFT : BLOCKED_BACK_LEFT_UPPER;
 		}
 	}
 	else
@@ -5978,12 +5980,12 @@ int WP_SaberBlockDirection(gentity_t *self, vec3_t hitloc)
 		if (rightdot >= 0.0)
 		{
 			//if (self->s.number < MAX_CLIENTS) Com_Printf("BLOCKED_RIGHT\n");
-			return BLOCKED_RIGHT;
+			return lower ? BLOCKED_RIGHT : BLOCKED_RIGHT_UPPER;
 		}
 		else
 		{
 			//if (self->s.number < MAX_CLIENTS) Com_Printf("BLOCKED_LEFT\n");
-			return BLOCKED_LEFT;
+			return lower ? BLOCKED_LEFT : BLOCKED_LEFT_UPPER;
 		}
 	}
 
@@ -6377,7 +6379,7 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 						Com_Printf("Non-damage self bounce.\n");
 #endif //__DEBUG_REALTRACE__
 						//self->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
-						self->client->ps.saberBlocked = WP_SaberBlockDirection(self, tr.endpos);
+						self->client->ps.saberBlocked = WP_SaberBlockDirection(self, tr.endpos, tr.plane.normal);
 
 						//if (BG_SaberInAttack(self->client->ps.saberMove))
 						if (self->client->pers.cmd.buttons & BUTTON_ATTACK)
@@ -6404,7 +6406,7 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 						Com_Printf("Non-damage victim bounce.\n");
 #endif //__DEBUG_REALTRACE__
 						//otherOwner->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
-						otherOwner->client->ps.saberBlocked = WP_SaberBlockDirection(otherOwner, tr.endpos);
+						otherOwner->client->ps.saberBlocked = WP_SaberBlockDirection(otherOwner, tr.endpos, tr.plane.normal);
 
 						//if (BG_SaberInAttack(otherOwner->client->ps.saberMove))
 						if (otherOwner->client->pers.cmd.buttons & BUTTON_ATTACK)
@@ -6546,7 +6548,7 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 						Com_Printf("Damage self bounce.\n");
 #endif //__DEBUG_REALTRACE__
 						//self->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
-						self->client->ps.saberBlocked = WP_SaberBlockDirection(self, tr.endpos);
+						self->client->ps.saberBlocked = WP_SaberBlockDirection(self, tr.endpos, tr.plane.normal);
 
 						//if (BG_SaberInAttack(self->client->ps.saberMove))
 						if (self->client->pers.cmd.buttons & BUTTON_ATTACK)
@@ -6573,7 +6575,7 @@ static QINLINE qboolean CheckSaberDamage(gentity_t *self, int rSaberNum, int rBl
 						Com_Printf("Damage victim bounce.\n");
 #endif //__DEBUG_REALTRACE__
 						//otherOwner->client->ps.saberBlocked = BLOCKED_BOUNCE_MOVE;
-						otherOwner->client->ps.saberBlocked = WP_SaberBlockDirection(otherOwner, tr.endpos);
+						otherOwner->client->ps.saberBlocked = WP_SaberBlockDirection(otherOwner, tr.endpos, tr.plane.normal);
 
 						//if (BG_SaberInAttack(otherOwner->client->ps.saberMove))
 						if (otherOwner->client->pers.cmd.buttons & BUTTON_ATTACK)

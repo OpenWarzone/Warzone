@@ -4720,126 +4720,100 @@ void PM_WeaponLightsaber(void)
 				}
 			}
 #else
+
+//#define __DEBUG_BLOCK_DIRECTIONS__
+
 			// UQ1: Testing... Trying for more coriagraphed looks...
 			if (/*BG_SaberInAttack(pm->ps->saberMove) || BG_SaberInTransitionAny(pm->ps->saberMove)*/pm->cmd.buttons & BUTTON_ATTACK)
 			{// Attacking... Try to move into a transition in the other direction...
-				/*if (pm->ps->fd.saberAnimLevel == SS_CROWD_CONTROL || pm->ps->fd.saberAnimLevel == SS_DUAL)
-				{// Crowd control and dual sabers works a bit different, transition to a new move from inverted move direction to keep flow of crowd controller moves...
-					int newQuad = PM_SaberMoveQuadrantForInvertedMovement(&pm->cmd);
-					bounceMove = PM_AttackMoveForQuad(newQuad);
-				}
-				else*/
-				{// Move into the inverted transition move from the block point...
+				{
+					// Move into the inverted transition move from the block point...
+					// Do this by using the block direction, and if we hit the top or bottom of the enemy saber, and select a new attack in a direction away from that point (as close as we can).
+					//
+					// Sometimes this may do smallish defections, but that is fine. Not every block should be a huge deflection... Most however should turn out to be fairly major (and seem to).
+					// Not completely sure how to handle the behind blocks, hopefully though this will be good enough...
 					int newQuad = 0;
 
-					//if (bg_testvalue0.integer == 3)
 					{
 						switch (pm->ps->saberBlocked)
 						{
-						case BLOCKED_FORWARD_LEFT:
+						case BLOCKED_FORWARD_LEFT: // bounces off in lower back left direction
+#ifdef __DEBUG_BLOCK_DIRECTIONS__
+							if (pm->ps->clientNum == 0) trap->Print("BLOCKED_FORWARD_LEFT\n");
+#endif //__DEBUG_BLOCK_DIRECTIONS__
 							newQuad = Q_BL;
 							break;
-						case BLOCKED_FORWARD_RIGHT:
+						case BLOCKED_FORWARD_LEFT_UPPER: // bounces off in upper back left direction
+#ifdef __DEBUG_BLOCK_DIRECTIONS__
+							if (pm->ps->clientNum == 0) trap->Print("BLOCKED_FORWARD_LEFT_UPPER\n");
+#endif //__DEBUG_BLOCK_DIRECTIONS__
+							newQuad = Q_TL;
+							break;
+						case BLOCKED_FORWARD_RIGHT: // bounces off in lower back right direction
+#ifdef __DEBUG_BLOCK_DIRECTIONS__
+							if (pm->ps->clientNum == 0) trap->Print("BLOCKED_FORWARD_RIGHT\n");
+#endif //__DEBUG_BLOCK_DIRECTIONS__
 							newQuad = Q_BR;
 							break;
-						case BLOCKED_LEFT:
+						case BLOCKED_FORWARD_RIGHT_UPPER: // bounces off in upper back right direction
+#ifdef __DEBUG_BLOCK_DIRECTIONS__
+							if (pm->ps->clientNum == 0) trap->Print("BLOCKED_FORWARD_RIGHT_UPPER\n");
+#endif //__DEBUG_BLOCK_DIRECTIONS__
+							newQuad = Q_TR;
+							break;
+						case BLOCKED_LEFT: // bounces off in lower back left direction
+#ifdef __DEBUG_BLOCK_DIRECTIONS__
+							if (pm->ps->clientNum == 0) trap->Print("BLOCKED_LEFT\n");
+#endif //__DEBUG_BLOCK_DIRECTIONS__
 							newQuad = Q_BL;
 							break;
-						case BLOCKED_RIGHT:
+						case BLOCKED_LEFT_UPPER: // bounces off in upper back left direction
+#ifdef __DEBUG_BLOCK_DIRECTIONS__
+							if (pm->ps->clientNum == 0) trap->Print("BLOCKED_LEFT_UPPER\n");
+#endif //__DEBUG_BLOCK_DIRECTIONS__
+							newQuad = Q_TL;
+							break;
+						case BLOCKED_RIGHT: // bounces off in lower back right direction
+#ifdef __DEBUG_BLOCK_DIRECTIONS__
+							if (pm->ps->clientNum == 0) trap->Print("BLOCKED_RIGHT\n");
+#endif //__DEBUG_BLOCK_DIRECTIONS__
 							newQuad = Q_BR;
 							break;
-						case BLOCKED_BACK_LEFT:
+						case BLOCKED_RIGHT_UPPER: // bounces off in upper back right direction
+#ifdef __DEBUG_BLOCK_DIRECTIONS__
+							if (pm->ps->clientNum == 0) trap->Print("BLOCKED_RIGHT_UPPER\n");
+#endif //__DEBUG_BLOCK_DIRECTIONS__
+							newQuad = Q_TR;
+							break;
+						case BLOCKED_BACK_LEFT:// dunno - try to bounce toward lower right?
+#ifdef __DEBUG_BLOCK_DIRECTIONS__
+							if (pm->ps->clientNum == 0) trap->Print("BLOCKED_BACK_LEFT\n");
+#endif //__DEBUG_BLOCK_DIRECTIONS__
 							newQuad = Q_BL;
 							break;
-						case BLOCKED_BACK_RIGHT:
+						case BLOCKED_BACK_LEFT_UPPER:// dunno - try to bounce toward top right?
+#ifdef __DEBUG_BLOCK_DIRECTIONS__
+							if (pm->ps->clientNum == 0) trap->Print("BLOCKED_BACK_LEFT_UPPER\n");
+#endif //__DEBUG_BLOCK_DIRECTIONS__
+							newQuad = Q_TL;
+							break;
+						case BLOCKED_BACK_RIGHT: // dunno - try to bounce toward lower left?
+#ifdef __DEBUG_BLOCK_DIRECTIONS__
+							if (pm->ps->clientNum == 0) trap->Print("BLOCKED_BACK_RIGHT\n");
+#endif //__DEBUG_BLOCK_DIRECTIONS__
 							newQuad = Q_BR;
 							break;
-						default:
+						case BLOCKED_BACK_RIGHT_UPPER: // dunno - try to bounce toward top left?
+#ifdef __DEBUG_BLOCK_DIRECTIONS__
+							if (pm->ps->clientNum == 0) trap->Print("BLOCKED_BACK_RIGHT_UPPER\n");
+#endif //__DEBUG_BLOCK_DIRECTIONS__
+							newQuad = Q_TR;
+							break;
+						default: // shouldn't happen...
 							newQuad = Q_B;
 							break;
 						}
 					}
-					/*else if (bg_testvalue0.integer == 2)
-					{
-						switch (pm->ps->saberBlocked)
-						{
-						case BLOCKED_FORWARD_LEFT:
-							newQuad = Q_BR;
-							break;
-						case BLOCKED_FORWARD_RIGHT:
-							newQuad = Q_BL;
-							break;
-						case BLOCKED_LEFT:
-							newQuad = Q_BR;
-							break;
-						case BLOCKED_RIGHT:
-							newQuad = Q_BL;
-							break;
-						case BLOCKED_BACK_LEFT:
-							newQuad = Q_BR;
-							break;
-						case BLOCKED_BACK_RIGHT:
-							newQuad = Q_BL;
-							break;
-						default:
-							newQuad = Q_B;
-							break;
-						}
-					}
-					else if (bg_testvalue0.integer == 1)
-					{
-						switch (pm->ps->saberBlocked)
-						{
-						case BLOCKED_FORWARD_LEFT:
-							newQuad = Q_TL;
-							break;
-						case BLOCKED_FORWARD_RIGHT:
-							newQuad = Q_TR;
-							break;
-						case BLOCKED_LEFT:
-							newQuad = Q_TL;
-							break;
-						case BLOCKED_RIGHT:
-							newQuad = Q_TR;
-							break;
-						case BLOCKED_BACK_LEFT:
-							newQuad = Q_TL;
-							break;
-						case BLOCKED_BACK_RIGHT:
-							newQuad = Q_TR;
-							break;
-						default:
-							newQuad = Q_T;
-							break;
-						}
-					}
-					else
-					{
-						switch (pm->ps->saberBlocked)
-						{
-						case BLOCKED_FORWARD_LEFT:
-							newQuad = Q_TR;
-							break;
-						case BLOCKED_FORWARD_RIGHT:
-							newQuad = Q_TL;
-							break;
-						case BLOCKED_LEFT:
-							newQuad = Q_TR;
-							break;
-						case BLOCKED_RIGHT:
-							newQuad = Q_TL;
-							break;
-						case BLOCKED_BACK_LEFT:
-							newQuad = Q_TR;
-							break;
-						case BLOCKED_BACK_RIGHT:
-							newQuad = Q_TL;
-							break;
-						default:
-							newQuad = Q_T;
-							break;
-						}
-					}*/
 
 					bounceMove = PM_AttackMoveForQuad(newQuad);
 					//if (bg_testvalue1.integer)
@@ -4849,7 +4823,12 @@ void PM_WeaponLightsaber(void)
 				}
 			}
 			else
-			{// UQ1: Start a new realiatory attack starting at the block point...
+			{// UQ1: Start a new retaliatory attack starting at the block point...
+				// These are basic right now, and need work to not go through enemy saber at times. They do however give free damage, usually, when you block the enemy as a reward.
+				// There may be no perfect way to do this, but it should be possible to get it pretty close with some playing...
+				// This may also be better to only happen based on a timer or something, so only timed blocks retaliate and do damage.
+				// Another option may be below, but it would be better predicted, so the block comes out to meet the enemy blade, then we move into an attack after... Not easy to do this though...
+
 				int newQuad = 0;
 
 				switch (pm->ps->saberBlocked)
@@ -4857,27 +4836,230 @@ void PM_WeaponLightsaber(void)
 				case BLOCKED_FORWARD_LEFT:
 					newQuad = Q_BL;
 					break;
+				case BLOCKED_FORWARD_LEFT_UPPER:
+					newQuad = Q_TL;
+					break;
 				case BLOCKED_FORWARD_RIGHT:
 					newQuad = Q_BR;
+					break;
+				case BLOCKED_FORWARD_RIGHT_UPPER:
+					newQuad = Q_TR;
 					break;
 				case BLOCKED_LEFT:
 					newQuad = Q_L;
 					break;
+				case BLOCKED_LEFT_UPPER:
+					newQuad = Q_TL;
+					break;
 				case BLOCKED_RIGHT:
 					newQuad = Q_R;
+					break;
+				case BLOCKED_RIGHT_UPPER:
+					newQuad = Q_TR;
 					break;
 				case BLOCKED_BACK_LEFT:
 					newQuad = Q_TL;
 					break;
+				case BLOCKED_BACK_LEFT_UPPER:
+					newQuad = Q_BL;
+					break;
 				case BLOCKED_BACK_RIGHT:
 					newQuad = Q_TR;
 					break;
-				default:
+				case BLOCKED_BACK_RIGHT_UPPER:
+					newQuad = Q_BR;
+					break;
+				default: // shouldn't happen...
 					newQuad = Q_B;//Q_T;
 					break;
 				}
 
 				bounceMove = PM_AttackMoveForQuad(newQuad);
+
+				/*
+				// Something like this (based on BLOCKED_FORWARD_LEFT etc) converted would probably be better, would move the defender's saber into block positions as the attackers deflects off...
+				// Stupid anim vs sabermove system of course makes this really hard, I doubt any of these anims have actual saberMoves names...
+				// Could possibly use LS_READY, and force the ucmd to a direction of the block, but I hate overriding player controls, hackfest...
+				// We would also lose the retaliation, if we did this.
+				// Optimally I guess this would be best done, instead, as prediction so the block anim starts before the clash happens...
+				{//for now I'll assume that we're using an inverted control system.
+					if (forwardmove < 0)
+					{
+						if (ps->fd.saberDrawAnimLevel == SS_CROWD_CONTROL)
+						{// Always hold saber in front of face, so that the blade doesn't clip into player's legs when moving side to side...
+							return 838;
+						}
+						else if (rightmove < 0)
+						{//lower left block
+							if (mblockforstance == SS_DUAL)
+							{
+								return BOTH_P6_S6_BL;
+							}
+							else if (mblockforstance == SS_STAFF)
+							{
+								return BOTH_P7_S7_BL;
+							}
+
+							else if (mblockforstance == SS_TAVION)
+							{
+								return BOTH_P1_S1_BL;
+							}
+							else
+							{
+								return BOTH_P1_S1_BL;
+							}
+						}
+						else if (rightmove > 0)
+						{//upper right block
+							if (mblockforstance == SS_DUAL)
+							{
+								return BOTH_P6_S6_BR;
+							}
+							else if (mblockforstance == SS_STAFF)
+							{
+								return BOTH_P7_S7_BR;
+							}
+							else if (mblockforstance == SS_TAVION)
+							{
+								return BOTH_P1_S1_BR;
+							}
+							else
+							{
+								return BOTH_P1_S1_BR;
+							}
+						}
+						else
+						{//Top Block
+							if (mblockforstance == SS_DUAL)
+							{
+								return BOTH_P6_S6_T_;
+							}
+							else if (mblockforstance == SS_STAFF)
+							{
+								return BOTH_P7_S7_T_;
+							}
+							else if (mblockforstance == SS_TAVION)
+							{
+								return BOTH_P1_S1_B_;
+							}
+							else
+							{
+								return BOTH_P1_S1_B_;
+							}
+						}
+					}
+					else if (forwardmove > 0)
+					{
+						if (rightmove < 0)
+						{//lower left block
+							if (mblockforstance == SS_DUAL)
+							{
+								return BOTH_P6_S6_TL;
+							}
+							else if (mblockforstance == SS_STAFF)
+							{
+								return BOTH_P7_S7_TL;
+							}
+
+							else if (mblockforstance == SS_TAVION)
+							{
+								return BOTH_P1_S1_TL;
+							}
+							else
+							{
+								return BOTH_P1_S1_TL;
+							}
+						}
+						else if (rightmove > 0)
+						{//lower right block
+							if (mblockforstance == SS_DUAL)
+							{
+								return BOTH_P6_S6_TR;
+							}
+							else if (mblockforstance == SS_STAFF)
+							{
+								return BOTH_P7_S7_TR;
+							}
+							else if (mblockforstance == SS_TAVION)
+							{
+								return BOTH_P1_S1_TR;
+							}
+							else
+							{
+								return BOTH_P1_S1_TR;
+							}
+						}
+						else
+						{
+							//Top Block
+							if (ps->fd.saberDrawAnimLevel == SS_CROWD_CONTROL)
+							{
+								return 838;
+							}
+							if (mblockforstance == SS_DUAL)
+							{
+								return BOTH_P6_S6_T_;
+							}
+							else if (mblockforstance == SS_STAFF)
+							{
+								return BOTH_P7_S7_T_;
+							}
+
+							else if (mblockforstance == SS_TAVION)
+							{
+								return BOTH_P1_S1_T_;
+							}
+							else
+							{
+								return BOTH_P1_S1_T_;
+							}
+						}
+					}
+					else
+					{
+						if (rightmove < 0)
+						{//left block doesn't exist so we just use the upper blocks for now.
+							if (mblockforstance == SS_DUAL)
+							{
+								return BOTH_P6_S6_TL;
+							}
+							else if (mblockforstance == SS_STAFF)
+							{
+								return BOTH_P7_S7_TL;
+							}
+
+							else if (mblockforstance == SS_TAVION)
+							{
+								return BOTH_P1_S1_TL;
+							}
+							else
+							{
+							return BOTH_P1_S1_L;
+						}
+						}
+						else if (rightmove > 0)
+						{//right block doesn't exist so we just use the upper blocks for now.
+							if (mblockforstance == SS_DUAL)
+							{
+								return BOTH_P6_S6_TR;
+							}
+							else if (mblockforstance == SS_STAFF)
+							{
+								return BOTH_P7_S7_TR;
+							}
+
+							else if (mblockforstance == SS_TAVION)
+							{
+								return BOTH_P1_S1_TR;
+							}
+							else
+							{
+								return BOTH_P1_S1_R;
+							}
+						}
+					}
+				}
+				*/
 			}
 #endif
 #endif

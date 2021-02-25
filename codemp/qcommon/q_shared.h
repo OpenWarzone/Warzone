@@ -65,6 +65,7 @@
 //#define __EXPERIMENTAL_REVERSE_ANIM__				// Testing repeating animation backwards...
 #define __KILLMOVES__								// Testing kill moves...
 #define __STANDARDIZED_MODEL_SCALING__				// Don't use modelscale.cfg for jedi, instead scale to standard scales so we only need 1 saber anim set...
+#define __NO_JEDI_SCALING__							// Actually don't scale jedi (bosses) up...
 
 // Disable stupid warnings...
 #pragma warning( disable : 4996 )
@@ -505,11 +506,17 @@ typedef enum {
 	BLOCKED_BACK_TOP,
 	//
 	BLOCKED_FORWARD_LEFT,
+	BLOCKED_FORWARD_LEFT_UPPER,
 	BLOCKED_FORWARD_RIGHT,
+	BLOCKED_FORWARD_RIGHT_UPPER,
 	BLOCKED_LEFT,
+	BLOCKED_LEFT_UPPER,
 	BLOCKED_RIGHT,
+	BLOCKED_RIGHT_UPPER,
 	BLOCKED_BACK_LEFT,
+	BLOCKED_BACK_LEFT_UPPER,
 	BLOCKED_BACK_RIGHT,
+	BLOCKED_BACK_RIGHT_UPPER,
 } saberBlockedType_t;
 
 
