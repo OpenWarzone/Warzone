@@ -1758,30 +1758,6 @@ void main(void)
 	}
 #endif //LQ_MODE
 
-	if (u_Local3.r >= 1.0)
-	{
-		vec3 reflected = normalize(-u_ViewOrigin.xyz);
-
-		if (NIGHT_SCALE > 0.0 && NIGHT_SCALE < 1.0)
-		{// Mix between night and day colors...
-			vec3 skyColorDay = textureLod(u_SkyCubeMap, reflected, 4.0).rgb;
-			vec3 skyColorNight = textureLod(u_SkyCubeMapNight, reflected, 4.0).rgb;
-			skyColor = mix(skyColorDay, skyColorNight, NIGHT_SCALE);
-		}
-		else if (NIGHT_SCALE >= 1.0)
-		{// Night only colors...
-			skyColor = textureLod(u_SkyCubeMapNight, reflected, 4.0).rgb;
-		}
-		else
-		{// Day only colors...
-			skyColor = textureLod(u_SkyCubeMap, reflected, 4.0).rgb;
-		}
-
-		skyColor = clamp(ContrastSaturationBrightness(skyColor, 1.0, 2.0, 0.333), 0.0, 1.0);
-		skyColor = clamp(Vibrancy( skyColor, 0.4 ), 0.0, 1.0);
-		outColor.rgb = skyColor.rgb;
-	}
-
 	if (specularReflectivePower > 0.0)
 	{
 #ifndef LQ_MODE
