@@ -105,7 +105,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define __ALLOW_MAP_GLOWS_MERGE__				// Allow merging of (map glow) emissive lights...
 
 #define __ENTITY_LIGHTING_DLIGHT_GLOW__			// Add some dlight glow to entity lighting...
-#define __ENTITY_LIGHTING_MAP_GLOW__			// Add some emissive glow to entity lighting...
+#define __ENTITY_LIGHTING_MAP_EMISSIVE_LIGHT__			// Add some emissive glow to entity lighting...
 
 //#define __DEPTH_PREPASS_STUFF__
 
@@ -133,7 +133,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define __USE_REGIONS__
 
-//#define __USE_MAP_EMMISSIVE_BLOCK__			// Do map emissive lights as a SSBO block of it's own... --- TOO SLOW!
+#define __USE_MAP_EMMISSIVE_BLOCK__			// Do map emissive lights as a SSBO block of it's own... --- TOO SLOW!
 
 
 #define	__PROCEDURALS_IN_DEFERRED_SHADER__		// Merge procedural draws into deferred light shader...
@@ -147,6 +147,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #ifdef __HUMANOIDS_BEND_GRASS__
 #define MAX_GRASSBEND_HUMANOIDS 4
 #endif //__HUMANOIDS_BEND_GRASS__
+
+//#define __USE_WATER_MAPS__					// Testing, using water maps instead of procedural random generation...
+//#define __WATER_SPEC_AO_IMAGES__				// Use specular and AO maps for water (TODO, maybe)...
 
 
 #define __NIF_IMPORT_TEST__						// Loading of skyrim .nif models...
@@ -305,14 +308,14 @@ extern float RB_NightScale(void);
 extern qboolean SHADOWS_ENABLED;
 
 #define MAX_EMISSIVE_LIGHTS 65536
-extern int			NUM_MAP_GLOW_LOCATIONS;
-extern vec3_t		MAP_GLOW_LOCATIONS[MAX_EMISSIVE_LIGHTS];
-extern vec4_t		MAP_GLOW_COLORS[MAX_EMISSIVE_LIGHTS];
-extern qboolean		MAP_GLOW_COLORS_AVILABLE[MAX_EMISSIVE_LIGHTS];
-extern float		MAP_GLOW_RADIUSES[MAX_EMISSIVE_LIGHTS];
-extern float		MAP_GLOW_HEIGHTSCALES[MAX_EMISSIVE_LIGHTS];
-extern float		MAP_GLOW_CONEANGLE[MAX_EMISSIVE_LIGHTS];
-extern vec3_t		MAP_GLOW_CONEDIRECTION[MAX_EMISSIVE_LIGHTS];
+extern int			MAP_EMISSIVE_LIGHT_COUNT;
+extern vec3_t		MAP_EMISSIVE_LIGHT_LOCATIONS[MAX_EMISSIVE_LIGHTS];
+extern vec4_t		MAP_EMISSIVE_LIGHT_COLORS[MAX_EMISSIVE_LIGHTS];
+extern qboolean		MAP_EMISSIVE_LIGHT_COLORS_AVILABLE[MAX_EMISSIVE_LIGHTS];
+extern float		MAP_EMISSIVE_LIGHT_RADIUSES[MAX_EMISSIVE_LIGHTS];
+extern float		MAP_EMISSIVE_LIGHT_HEIGHTSCALES[MAX_EMISSIVE_LIGHTS];
+extern float		MAP_EMISSIVE_LIGHT_CONEANGLE[MAX_EMISSIVE_LIGHTS];
+extern vec3_t		MAP_EMISSIVE_LIGHT_CONEDIRECTION[MAX_EMISSIVE_LIGHTS];
 
 #define				MAX_WORLD_GLOW_DLIGHT_RANGE MAX_DEFERRED_LIGHT_RANGE
 #define				MAX_WORLD_GLOW_DLIGHTS (MAX_DEFERRED_LIGHTS - 1)
@@ -649,6 +652,7 @@ extern cvar_t	*r_blinnPhong;
 extern cvar_t	*r_ao;
 extern cvar_t	*r_env;
 extern cvar_t	*r_debugEmissiveLights;
+extern cvar_t	*r_debugDrawEmissiveLights;
 extern cvar_t	*r_debugEmissiveRadiusScale;
 extern cvar_t	*r_debugEmissiveColorScale;
 extern cvar_t	*r_skynum;
@@ -908,6 +912,7 @@ struct Lights_t
 {
 	vec4_t										u_lightPositions2;
 	vec4_t										u_lightColors;
+	vec4_t										u_coneDirection;
 };
 
 struct LightBlock_t
@@ -916,9 +921,11 @@ struct LightBlock_t
 };
 
 #ifdef __USE_MAP_EMMISSIVE_BLOCK__
+#define MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS 96//128//64
+
 struct EmissiveLightBlock_t
 {
-	Lights_t lights[MAX_EMISSIVE_LIGHTS];
+	Lights_t lights[MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS/*MAX_EMISSIVE_LIGHTS*/];
 };
 #endif //__USE_MAP_EMMISSIVE_BLOCK__
 
@@ -3112,8 +3119,12 @@ typedef struct trGlobals_s {
 	image_t					*defaultDetail;
 	
 	image_t					*waterFoamImage[4];
-	image_t					*waterHeightImage;
-	image_t					*waterNormalImage;
+	image_t					*waterHeightImage[2];
+	image_t					*waterNormalImage[2];
+#ifdef __WATER_SPEC_AO_IMAGES__
+	image_t					*waterSpecularImage[2];
+	image_t					*waterAOImage[2];
+#endif //__WATER_SPEC_AO_IMAGES__
 	image_t					*waterCausicsImage;
 
 	image_t					*mapImage;

@@ -59,6 +59,7 @@ float			EVENT_TRACE_SIZE = 1024.0;
 
 qboolean		WATER_ENABLED = qfalse;
 float			MAP_WATER_LEVEL = -999999.9;
+float			MAP_WATER_WAVE_HEIGHT = 64.0;
 
 qboolean		TOWN_FORCEFIELD_ENABLED = qfalse;
 vec3_t			TOWN_FORCEFIELD_ORIGIN;
@@ -82,10 +83,12 @@ qboolean MAPPING_LoadMapInfo(void)
 	if (WATER_ENABLED)
 	{
 		MAP_WATER_LEVEL = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "WATER", "MAP_WATER_LEVEL", "-999999.9"));
+		MAP_WATER_WAVE_HEIGHT = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "WATER", "WATER_WAVE_HEIGHT", "64.0"));
 	}
 	else
 	{
 		MAP_WATER_LEVEL = -999999.9;
+		MAP_WATER_WAVE_HEIGHT = 64.0;
 	}
 
 	TOWN_FORCEFIELD_ORIGIN[0] = atof(IniRead(va("maps/%s.mapInfo", mapname.string), "TOWN", "TOWN_FORCEFIELD_ORIGIN_X", "999999.9"));
@@ -119,15 +122,15 @@ int IsBelowWaterPlane(vec3_t pos, float viewHeight)
 	float npcUnderwaterHeight = viewHeight - MINS_Z;
 	float npcSwimHeight = npcUnderwaterHeight / 2;
 
-	if (pos[2] + MINS_Z + npcUnderwaterHeight <= MAP_WATER_LEVEL)
+	if (pos[2] + MINS_Z + npcUnderwaterHeight <= MAP_WATER_LEVEL - MAP_WATER_WAVE_HEIGHT)
 	{
 		return 3;
 	}
-	else if (pos[2] + MINS_Z + npcSwimHeight <= MAP_WATER_LEVEL)
+	else if (pos[2] + MINS_Z + npcSwimHeight <= MAP_WATER_LEVEL - MAP_WATER_WAVE_HEIGHT)
 	{
 		return 2;
 	}
-	else if (pos[2] <= MAP_WATER_LEVEL)
+	else if (pos[2] <= MAP_WATER_LEVEL - MAP_WATER_WAVE_HEIGHT)
 	{
 		return 1;
 	}

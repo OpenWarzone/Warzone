@@ -521,7 +521,14 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 			VectorSet4(vector, PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR2[0], PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR2[1], PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR2[2], 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL12, vector);
 
-			VectorSet4(vector, AURORA_STRENGTH1, AURORA_STRENGTH2, DYNAMIC_WEATHER_PUDDLE_STRENGTH, 0.0);
+			bool doingSkyCube = false;
+
+			if ((tr.viewParms.flags & VPF_SKYCUBEDAY) || (tr.viewParms.flags & VPF_SKYCUBENIGHT))
+			{
+				doingSkyCube = true;
+			}
+
+			VectorSet4(vector, AURORA_STRENGTH1, AURORA_STRENGTH2, DYNAMIC_WEATHER_PUDDLE_STRENGTH, doingSkyCube ? 1.0 : 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL13, vector);
 
 
@@ -706,7 +713,11 @@ static void DrawSkyBox( shader_t *shader )
 		return;
 	}
 
-	if (backEnd.renderPass == RENDERPASS_GEOMETRY)
+	if (backEnd.renderPass == RENDERPASS_SKY && LATE_SKY_DISABLED)
+	{// Was done in geometry pass...
+		return;
+	}
+	else if (backEnd.renderPass == RENDERPASS_GEOMETRY && !LATE_SKY_DISABLED)
 	{// Sky is done in it's own pass later to reduce screen fill rate on the procedural sky...
 		return;
 	}

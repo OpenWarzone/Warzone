@@ -3,6 +3,7 @@
 extern qboolean			GENERIC_MATERIALS_PREFER_SHINY;
 extern qboolean			DISABLE_DEPTH_PREPASS;
 extern qboolean			LODMODEL_MAP;
+extern qboolean			LATE_SKY_DISABLED;
 extern qboolean			DISABLE_MERGED_GLOWS;
 extern qboolean			DISABLE_LIFTS_AND_PORTALS_MERGE;
 extern qboolean			ENABLE_REGEN_SMOOTH_NORMALS;

@@ -36,7 +36,7 @@ int			r_firstScenePoly;
 int			r_numpolyverts;
 
 
-extern qboolean CLOSE_LIGHTS_UPDATE;
+extern qboolean CURRENT_DRAW_DLIGHTS_UPDATE;
 
 
 /*
@@ -850,7 +850,7 @@ void RB_UpdateDayNightCycle()
 		DAY_NIGHT_UPDATE_TIME = 1;
 	}
 
-	int milli = (double(tr.refdef.time) * 16384.0 * r_dayNightCycleSpeed->value) + (DAY_NIGHT_START_TIME * 1000.0 * 60 * 60); // roughly matches old speed...
+	uint64_t milli = uint64_t(double(tr.refdef.time) * 16384.0 * r_dayNightCycleSpeed->value) + uint64_t((uint64_t)DAY_NIGHT_START_TIME * 60000 * 60); // roughly matches old speed...
 
 	// Hours
 	int hr = (milli / (1000 * 60 * 60)) % 24;
@@ -1355,7 +1355,7 @@ void RE_RenderScene(const refdef_t *fd) {
 		ri->Error(ERR_DROP, "R_RenderScene: NULL worldmodel");
 	}
 
-	CLOSE_LIGHTS_UPDATE = qtrue;
+	CURRENT_DRAW_DLIGHTS_UPDATE = qtrue;
 	RE_BeginScene(fd);
 
 #ifdef __PSHADOWS__
@@ -1578,7 +1578,7 @@ void RE_RenderScene(const refdef_t *fd) {
 
 	parms.maxEntityRange = 512000;
 
-	CLOSE_LIGHTS_UPDATE = qtrue;
+	CURRENT_DRAW_DLIGHTS_UPDATE = qtrue;
 
 	// Render the sold world...
 	R_RenderView( &parms );

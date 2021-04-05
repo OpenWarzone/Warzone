@@ -299,9 +299,9 @@ static void R_SetupEntityLightingGrid( trRefEntity_t *ent, world_t *world ) {
 
 
 #if 0
-#if defined(__ENTITY_LIGHTING_DLIGHT_GLOW__) || defined(__ENTITY_LIGHTING_MAP_GLOW__)
+#if defined(__ENTITY_LIGHTING_DLIGHT_GLOW__) || defined(__ENTITY_LIGHTING_MAP_EMISSIVE_LIGHT__)
 	vec3_t lightDir, dir;
-#endif //defined(__ENTITY_LIGHTING_DLIGHT_GLOW__) || defined(__ENTITY_LIGHTING_MAP_GLOW__)
+#endif //defined(__ENTITY_LIGHTING_DLIGHT_GLOW__) || defined(__ENTITY_LIGHTING_MAP_EMISSIVE_LIGHT__)
 
 #ifdef __ENTITY_LIGHTING_DLIGHT_GLOW__
 	//
@@ -327,7 +327,7 @@ static void R_SetupEntityLightingGrid( trRefEntity_t *ent, world_t *world ) {
 	}
 #endif //__ENTITY_LIGHTING_DLIGHT_GLOW__
 
-#ifdef __ENTITY_LIGHTING_MAP_GLOW__
+#ifdef __ENTITY_LIGHTING_MAP_EMISSIVE_LIGHT__
 	//
 	// modify the light by close glow lights
 	//
@@ -375,7 +375,7 @@ static void R_SetupEntityLightingGrid( trRefEntity_t *ent, world_t *world ) {
 		VectorMA(ent->directedLight, d, CLOSE_COLORS[i], ent->directedLight);
 		VectorMA(lightDir, d, dir, direction/*lightDir*/);
 	}
-#endif //__ENTITY_LIGHTING_MAP_GLOW__
+#endif //__ENTITY_LIGHTING_MAP_EMISSIVE_LIGHT__
 #endif
 
 
@@ -511,7 +511,7 @@ void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent ) {
 	}
 #endif //__ENTITY_LIGHTING_DLIGHT_GLOW__
 
-#ifdef __ENTITY_LIGHTING_MAP_GLOW__
+#ifdef __ENTITY_LIGHTING_MAP_EMISSIVE_LIGHT__
 	//
 	// modify the light by close glow lights
 	//
@@ -559,7 +559,7 @@ void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent ) {
 		VectorMA(ent->directedLight, d, CLOSE_COLORS[i], ent->directedLight);
 		VectorMA(lightDir, d, dir, lightDir);
 	}
-#endif //__ENTITY_LIGHTING_MAP_GLOW__
+#endif //__ENTITY_LIGHTING_MAP_EMISSIVE_LIGHT__
 
 	// clamp ambient
 	//if ( !r_hdr->integer )

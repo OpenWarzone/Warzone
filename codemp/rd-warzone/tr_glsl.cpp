@@ -3976,6 +3976,10 @@ int GLSL_BeginLoadGPUShaders(void)
 
 	Q_strcat(extradefines, 1024, "#define USE_REFLECTION\n");
 
+#ifdef __USE_WATER_MAPS__
+	Q_strcat(extradefines, 1024, "#define USE_WATER_MAPS\n");
+#endif //__USE_WATER_MAPS__
+
 	if (!GLSL_BeginLoadGPUShader(&tr.waterPostShader[1], "waterPost1", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_waterPost_vp, fallbackShader_waterPost_fp, NULL, NULL, NULL))
 	{
 		ri->Error(ERR_FATAL, "Could not load waterPost[1] shader!");
@@ -3986,6 +3990,10 @@ int GLSL_BeginLoadGPUShaders(void)
 
 	Q_strcat(extradefines, 1024, "#define USE_REFLECTION\n");
 	Q_strcat(extradefines, 1024, "#define USE_RAYTRACE\n");
+
+#ifdef __USE_WATER_MAPS__
+	Q_strcat(extradefines, 1024, "#define USE_WATER_MAPS\n");
+#endif //__USE_WATER_MAPS__
 
 	if (!GLSL_BeginLoadGPUShader(&tr.waterPostShader[2], "waterPost2", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_waterPost_vp, fallbackShader_waterPost_fp, NULL, NULL, NULL))
 	{
@@ -4005,6 +4013,10 @@ int GLSL_BeginLoadGPUShaders(void)
 
 	Q_strcat(extradefines, 1024, "#define USE_REFLECTION\n");
 
+#ifdef __USE_WATER_MAPS__
+	Q_strcat(extradefines, 1024, "#define USE_WATER_MAPS\n");
+#endif //__USE_WATER_MAPS__
+
 	if (!GLSL_BeginLoadGPUShader(&tr.waterPostShader[4], "waterPost4", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_waterPost2_vp, fallbackShader_waterPost2_fp, NULL, NULL, NULL))
 	{
 		ri->Error(ERR_FATAL, "Could not load waterPost[4] shader!");
@@ -4016,6 +4028,10 @@ int GLSL_BeginLoadGPUShaders(void)
 	Q_strcat(extradefines, 1024, "#define USE_REFLECTION\n");
 	Q_strcat(extradefines, 1024, "#define USE_RAYTRACE\n");
 
+#ifdef __USE_WATER_MAPS__
+	Q_strcat(extradefines, 1024, "#define USE_WATER_MAPS\n");
+#endif //__USE_WATER_MAPS__
+
 	if (!GLSL_BeginLoadGPUShader(&tr.waterPostShader[5], "waterPost5", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_waterPost2_vp, fallbackShader_waterPost2_fp, NULL, NULL, NULL))
 	{
 		ri->Error(ERR_FATAL, "Could not load waterPost[5] shader!");
@@ -4023,6 +4039,11 @@ int GLSL_BeginLoadGPUShaders(void)
 
 	attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL;
 	extradefines[0] = '\0';
+
+#ifdef __USE_WATER_MAPS__
+	Q_strcat(extradefines, 1024, "#define USE_WATER_MAPS\n");
+#endif //__USE_WATER_MAPS__
+
 
 	if (!GLSL_BeginLoadGPUShader(&tr.waterReflectionShader, "waterReflection", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_waterReflection_vp, fallbackShader_waterReflection_fp, NULL, NULL, NULL))
 	{
@@ -4187,6 +4208,11 @@ int GLSL_BeginLoadGPUShaders(void)
 		Q_strcat(extradefines, 1024, "#define REALTIME_CUBEMAPS\n");
 #endif //__REALTIME_CUBEMAP__
 
+#ifdef __USE_MAP_EMMISSIVE_BLOCK__
+		Q_strcat(extradefines, 1024, "#define _USE_MAP_EMMISSIVE_BLOCK_\n");
+		Q_strcat(extradefines, 1024, va("#define MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS %i\n", MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS));
+#endif //__USE_MAP_EMMISSIVE_BLOCK__
+
 		if (!GLSL_BeginLoadGPUShader(&tr.deferredLightingShader[0], "deferredLighting0", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_deferredLighting_vp, fallbackShader_deferredLighting_fp, NULL, NULL, NULL))
 		{
 			ri->Error(ERR_FATAL, "Could not load deferredLighting0 shader!");
@@ -4219,6 +4245,11 @@ int GLSL_BeginLoadGPUShaders(void)
 		Q_strcat(extradefines, 1024, "#define REALTIME_CUBEMAPS\n");
 #endif //__REALTIME_CUBEMAP__
 
+#ifdef __USE_MAP_EMMISSIVE_BLOCK__
+		Q_strcat(extradefines, 1024, "#define _USE_MAP_EMMISSIVE_BLOCK_\n");
+		Q_strcat(extradefines, 1024, va("#define MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS %i\n", MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS));
+#endif //__USE_MAP_EMMISSIVE_BLOCK__
+
 		if (!GLSL_BeginLoadGPUShader(&tr.deferredLightingShader[1], "deferredLighting1", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_deferredLighting_vp, fallbackShader_deferredLighting_fp, NULL, NULL, NULL))
 		{
 			ri->Error(ERR_FATAL, "Could not load deferredLighting1 shader!");
@@ -4248,6 +4279,11 @@ int GLSL_BeginLoadGPUShaders(void)
 #ifdef __REALTIME_CUBEMAP__
 		Q_strcat(extradefines, 1024, "#define REALTIME_CUBEMAPS\n");
 #endif //__REALTIME_CUBEMAP__
+
+#ifdef __USE_MAP_EMMISSIVE_BLOCK__
+		Q_strcat(extradefines, 1024, "#define _USE_MAP_EMMISSIVE_BLOCK_\n");
+		Q_strcat(extradefines, 1024, va("#define MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS %i\n", MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS));
+#endif //__USE_MAP_EMMISSIVE_BLOCK__
 
 		if (!GLSL_BeginLoadGPUShader(&tr.deferredLightingShader[2], "deferredLighting2", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_deferredLighting_vp, fallbackShader_deferredLighting_fp, NULL, NULL, NULL))
 		{
@@ -5770,9 +5806,13 @@ void GLSL_EndLoadGPUShaders(int startTime)
 		GLSL_SetUniformInt(&tr.waterPostShader[i], UNIFORM_SPLATMAP2, TB_SPLATMAP2);
 		GLSL_SetUniformInt(&tr.waterPostShader[i], UNIFORM_SPLATMAP3, TB_SPLATMAP3);
 		GLSL_SetUniformInt(&tr.waterPostShader[i], UNIFORM_SPLATCONTROLMAP, TB_SPLATCONTROLMAP);
-		GLSL_SetUniformInt(&tr.waterPostShader[i], UNIFORM_SKYCUBEMAP, TB_SKYCUBEMAP);
-		GLSL_SetUniformInt(&tr.waterPostShader[i], UNIFORM_SKYCUBEMAPNIGHT, TB_SKYCUBEMAPNIGHT);
+		//GLSL_SetUniformInt(&tr.waterPostShader[i], UNIFORM_SKYCUBEMAP, TB_SKYCUBEMAP);
+		//GLSL_SetUniformInt(&tr.waterPostShader[i], UNIFORM_SKYCUBEMAPNIGHT, TB_SKYCUBEMAPNIGHT);
 		GLSL_SetUniformInt(&tr.waterPostShader[i], UNIFORM_EMISSIVECUBE, TB_EMISSIVECUBE);
+		GLSL_SetUniformInt(&tr.waterPostShader[i], UNIFORM_STEEPMAP, TB_STEEPMAP);
+		GLSL_SetUniformInt(&tr.waterPostShader[i], UNIFORM_STEEPMAP1, TB_STEEPMAP1);
+		GLSL_SetUniformInt(&tr.waterPostShader[i], UNIFORM_STEEPMAP2, TB_STEEPMAP2);
+		GLSL_SetUniformInt(&tr.waterPostShader[i], UNIFORM_STEEPMAP3, TB_STEEPMAP3);
 
 		{
 			vec4_t viewInfo;

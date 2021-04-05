@@ -1386,6 +1386,7 @@ void R_CreateRoadMapImage(void)
 
 qboolean	GENERIC_MATERIALS_PREFER_SHINY = qfalse;
 qboolean	DISABLE_DEPTH_PREPASS = qfalse;
+qboolean	LATE_SKY_DISABLED = qfalse;
 qboolean	LODMODEL_MAP = qfalse;
 qboolean	DISABLE_MERGED_GLOWS = qfalse;
 qboolean	DISABLE_LIFTS_AND_PORTALS_MERGE = qtrue;
@@ -2092,6 +2093,7 @@ void MAPPING_LoadMapInfo(void)
 	//
 	// Horrible hacks for basejka maps... Don't use them! Fix your maps for warzone!
 	//
+	LATE_SKY_DISABLED = atoi(IniRead(mapname, "FIXES", "LATE_SKY_DISABLED", "0")) > 0 ? qtrue : qfalse;
 	LODMODEL_MAP = (atoi(IniRead(mapname, "FIXES", "LODMODEL_MAP", "0")) > 0) ? qtrue : qfalse;
 	DISABLE_DEPTH_PREPASS = (atoi(IniRead(mapname, "FIXES", "DISABLE_DEPTH_PREPASS", "0")) > 0) ? qtrue : qfalse;
 	MAP_MAX_VIS_RANGE = atoi(IniRead(mapname, "FIXES", "MAP_MAX_VIS_RANGE", "0"));
@@ -2436,7 +2438,6 @@ void MAPPING_LoadMapInfo(void)
 	MAP_HDR_MAX = atof(IniRead(mapname, "PALETTE", "MAP_HDR_MAX", "209.0"));
 
 	MAP_GLOW_MULTIPLIER = atof(IniRead(mapname, "PALETTE", "MAP_GLOW_MULTIPLIER", "1.0"));
-
 	MAP_GLOW_MULTIPLIER_NIGHT = atof(IniRead(mapname, "PALETTE", "MAP_GLOW_MULTIPLIER_NIGHT", va("%f", MAP_GLOW_MULTIPLIER)));
 
 	SKY_LIGHTING_SCALE = atof(IniRead(mapname, "PALETTE", "SKY_LIGHTING_SCALE", "1.0"));
@@ -3386,6 +3387,60 @@ void MAPPING_LoadMapInfo(void)
 		tr.waterFoamImage[2] = R_FindImageFile("textures/water/waterFoamGrey03.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
 		tr.waterFoamImage[3] = R_FindImageFile("textures/water/waterFoamGrey04.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
 		tr.waterCausicsImage = R_FindImageFile("textures/water/waterCausicsMap.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+
+#ifdef __USE_WATER_MAPS__
+		tr.waterHeightImage[0] = R_FindImageFile("gfx/waves/lakewaves_d.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		tr.waterNormalImage[0] = R_FindImageFile("gfx/waves/lakewaves_n.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+
+		/*if (!tr.waterHeightImage[0] || tr.waterHeightImage[0] == tr.defaultImage)
+		{
+			ri->Printf(PRINT_WARNING, "Failed to load waterHeightImage[0]\n");
+		}
+		else
+		{
+			ri->Printf(PRINT_WARNING, "Loaded waterHeightImage[0]\n");
+		}
+
+		if (!tr.waterNormalImage[0] || tr.waterNormalImage[0] == tr.defaultImage)
+		{
+			ri->Printf(PRINT_WARNING, "Failed to load waterNormalImage[0]\n");
+		}
+		else
+		{
+			ri->Printf(PRINT_WARNING, "Loaded waterNormalImage[0]\n");
+		}*/
+
+#ifdef __WATER_SPEC_AO_IMAGES__
+		tr.waterSpecularImage[0] = R_FindImageFile("gfx/waves/lakewaves_s.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		tr.waterAOImage[0] = R_FindImageFile("gfx/waves/lakewaves_ao.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+#endif //__WATER_SPEC_AO_IMAGES__
+
+		tr.waterHeightImage[1] = R_FindImageFile("gfx/waves/oceanwaves_d.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		tr.waterNormalImage[1] = R_FindImageFile("gfx/waves/oceanwaves_n.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+#ifdef __WATER_SPEC_AO_IMAGES__
+		tr.waterSpecularImage[1] = R_FindImageFile("gfx/waves/oceanwaves_s.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		tr.waterAOImage[1] = R_FindImageFile("gfx/waves/oceanwaves_ao.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+#endif //__WATER_SPEC_AO_IMAGES__
+
+
+		/*if (!tr.waterHeightImage[1] || tr.waterHeightImage[1] == tr.defaultImage)
+		{
+			ri->Printf(PRINT_WARNING, "Failed to load waterHeightImage[1]\n");
+		}
+		else
+		{
+			ri->Printf(PRINT_WARNING, "Loaded waterHeightImage[1]\n");
+		}
+
+		if (!tr.waterNormalImage[1] || tr.waterNormalImage[1] == tr.defaultImage)
+		{
+			ri->Printf(PRINT_WARNING, "Failed to load waterNormalImage[1]\n");
+		}
+		else
+		{
+			ri->Printf(PRINT_WARNING, "Loaded waterNormalImage[1]\n");
+		}*/
+#endif //__USE_WATER_MAPS__
 
 		{
 			// Water height maps... Try to load map based image first...

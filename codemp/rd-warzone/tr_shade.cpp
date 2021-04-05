@@ -30,7 +30,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
   This file deals with applying shaders to surface data in the tess struct.
 */
 
-qboolean CLOSE_LIGHTS_UPDATE = qtrue;
+qboolean CURRENT_DRAW_DLIGHTS_UPDATE = qtrue;
 
 extern qboolean WATER_ENABLED;
 
@@ -1854,16 +1854,16 @@ void RB_SetStageImageDimensions(shaderProgram_t *sp, shaderStage_t *pStage)
 	GLSL_SetUniformVec2(sp, UNIFORM_DIMENSIONS, dimensions);
 }
 
-int			NUM_CLOSE_LIGHTS = 0;
-int			CLOSEST_LIGHTS[MAX_DEFERRED_LIGHTS] = {0};
-vec3_t		CLOSEST_LIGHTS_POSITIONS[MAX_DEFERRED_LIGHTS] = {0};
-float		CLOSEST_LIGHTS_WEIGHTS[MAX_DEFERRED_LIGHTS] = { 0 };
-vec2_t		CLOSEST_LIGHTS_SCREEN_POSITIONS[MAX_DEFERRED_LIGHTS];
-float		CLOSEST_LIGHTS_RADIUS[MAX_DEFERRED_LIGHTS] = {0};
-float		CLOSEST_LIGHTS_HEIGHTSCALES[MAX_DEFERRED_LIGHTS] = { 0 };
-float		CLOSEST_LIGHTS_CONEANGLES[MAX_DEFERRED_LIGHTS] = { 0 };
-vec3_t		CLOSEST_LIGHTS_CONEDIRECTIONS[MAX_DEFERRED_LIGHTS] = { 0 };
-vec3_t		CLOSEST_LIGHTS_COLORS[MAX_DEFERRED_LIGHTS] = {0};
+int			CURRENT_DRAW_DLIGHTS_COUNT = 0;
+int			CURRENT_DRAW_DLIGHTS_IDS[MAX_DEFERRED_LIGHTS] = {0};
+vec3_t		CURRENT_DRAW_DLIGHTS_POSITIONS[MAX_DEFERRED_LIGHTS] = {0};
+float		CURRENT_DRAW_DLIGHTS_WEIGHTS[MAX_DEFERRED_LIGHTS] = { 0 };
+vec2_t		CURRENT_DRAW_DLIGHTS_SCREEN_POSITIONS[MAX_DEFERRED_LIGHTS];
+float		CURRENT_DRAW_DLIGHTS_RADIUS[MAX_DEFERRED_LIGHTS] = {0};
+float		CURRENT_DRAW_DLIGHTS_HEIGHTSCALES[MAX_DEFERRED_LIGHTS] = { 0 };
+float		CURRENT_DRAW_DLIGHTS_CONEANGLES[MAX_DEFERRED_LIGHTS] = { 0 };
+vec3_t		CURRENT_DRAW_DLIGHTS_CONEDIRECTIONS[MAX_DEFERRED_LIGHTS] = { 0 };
+vec3_t		CURRENT_DRAW_DLIGHTS_COLORS[MAX_DEFERRED_LIGHTS] = {0};
 
 extern void WorldCoordToScreenCoord(vec3_t origin, float *x, float *y);
 extern qboolean Volumetric_Visible(vec3_t from, vec3_t to, qboolean isSun);
@@ -1876,9 +1876,9 @@ int RB_CullPointAndRadius(const vec3_t pt, float radius)
 
 void RB_UpdateCloseLights ( void )
 {
-	if (!CLOSE_LIGHTS_UPDATE) return; // Already done for this frame...
+	if (!CURRENT_DRAW_DLIGHTS_UPDATE) return; // Already done for this frame...
 
-	NUM_CLOSE_LIGHTS = 0;
+	CURRENT_DRAW_DLIGHTS_COUNT = 0;
 
 	float dayNightFactor = mix(MAP_EMISSIVE_RADIUS_SCALE, MAP_EMISSIVE_RADIUS_SCALE_NIGHT, RB_NightScale());
 
@@ -1896,7 +1896,7 @@ void RB_UpdateCloseLights ( void )
 
 		float distance = Distance(backEnd.refdef.vieworg, dl->origin);
 
-		if (distance > MAX_DEFERRED_LIGHT_RANGE) continue; // Don't even check at this range. Traces are costly!
+		if (distance > MAX_DEFERRED_LIGHT_RANGE + dl->radius) continue; // Don't even check at this range. Traces are costly!
 
 		if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer)
 		{// Check occlusion zfar distance as well...
@@ -1918,30 +1918,29 @@ void RB_UpdateCloseLights ( void )
 			continue;
 		}*/
 
-		if (NUM_CLOSE_LIGHTS < MAX_CLOSE_LIGHTS)
+		if (CURRENT_DRAW_DLIGHTS_COUNT < MAX_CLOSE_LIGHTS)
 		{// Have free light slots for a new light...
-			CLOSEST_LIGHTS[NUM_CLOSE_LIGHTS] = l;
-			VectorCopy(dl->origin, CLOSEST_LIGHTS_POSITIONS[NUM_CLOSE_LIGHTS]);
-			CLOSEST_LIGHTS_RADIUS[NUM_CLOSE_LIGHTS] = dl->radius;
-			CLOSEST_LIGHTS_WEIGHTS[NUM_CLOSE_LIGHTS] = this_weight;
-			CLOSEST_LIGHTS_HEIGHTSCALES[NUM_CLOSE_LIGHTS] = dl->heightScale;
-			CLOSEST_LIGHTS_COLORS[NUM_CLOSE_LIGHTS][0] = dl->color[0];
-			CLOSEST_LIGHTS_COLORS[NUM_CLOSE_LIGHTS][1] = dl->color[1];
-			CLOSEST_LIGHTS_COLORS[NUM_CLOSE_LIGHTS][2] = dl->color[2];
-			CLOSEST_LIGHTS_CONEANGLES[NUM_CLOSE_LIGHTS] = dl->coneAngle;
-			VectorCopy(dl->coneDirection, CLOSEST_LIGHTS_CONEDIRECTIONS[NUM_CLOSE_LIGHTS]);
-			NUM_CLOSE_LIGHTS++;
+			CURRENT_DRAW_DLIGHTS_IDS[CURRENT_DRAW_DLIGHTS_COUNT] = l;
+			VectorCopy(dl->origin, CURRENT_DRAW_DLIGHTS_POSITIONS[CURRENT_DRAW_DLIGHTS_COUNT]);
+			CURRENT_DRAW_DLIGHTS_RADIUS[CURRENT_DRAW_DLIGHTS_COUNT] = dl->radius;
+			CURRENT_DRAW_DLIGHTS_WEIGHTS[CURRENT_DRAW_DLIGHTS_COUNT] = this_weight;
+			CURRENT_DRAW_DLIGHTS_HEIGHTSCALES[CURRENT_DRAW_DLIGHTS_COUNT] = dl->heightScale;
+			CURRENT_DRAW_DLIGHTS_COLORS[CURRENT_DRAW_DLIGHTS_COUNT][0] = dl->color[0];
+			CURRENT_DRAW_DLIGHTS_COLORS[CURRENT_DRAW_DLIGHTS_COUNT][1] = dl->color[1];
+			CURRENT_DRAW_DLIGHTS_COLORS[CURRENT_DRAW_DLIGHTS_COUNT][2] = dl->color[2];
+			CURRENT_DRAW_DLIGHTS_CONEANGLES[CURRENT_DRAW_DLIGHTS_COUNT] = dl->coneAngle;
+			VectorCopy(dl->coneDirection, CURRENT_DRAW_DLIGHTS_CONEDIRECTIONS[CURRENT_DRAW_DLIGHTS_COUNT]);
+			CURRENT_DRAW_DLIGHTS_COUNT++;
 			continue;
 		}
 		else
 		{// See if this is closer then one of our other lights...
-#if 1
 			int		farthest_light = 0;
 			float	farthest_distance = 0.0;
 
-			for (int i = 0; i < NUM_CLOSE_LIGHTS; i++)
+			for (int i = 0; i < CURRENT_DRAW_DLIGHTS_COUNT; i++)
 			{// Find the most distance light in our current list to replace, if this new option is closer...
-				dlight_t	*thisLight = &backEnd.refdef.dlights[CLOSEST_LIGHTS[i]];
+				dlight_t	*thisLight = &backEnd.refdef.dlights[CURRENT_DRAW_DLIGHTS_IDS[i]];
 				float		dist = Distance(thisLight->origin, backEnd.refdef.vieworg);
 
 				if (dist > farthest_distance)
@@ -1954,85 +1953,56 @@ void RB_UpdateCloseLights ( void )
 
 			if (distance < farthest_distance)
 			{// This light is closer. Replace this one in our array of closest lights...
-				CLOSEST_LIGHTS[farthest_light] = l;
-				VectorCopy(dl->origin, CLOSEST_LIGHTS_POSITIONS[farthest_light]);
-				CLOSEST_LIGHTS_RADIUS[farthest_light] = dl->radius;
-				CLOSEST_LIGHTS_WEIGHTS[farthest_light] = (dl->radius * dl->radius) / (distance * distance);
-				CLOSEST_LIGHTS_HEIGHTSCALES[farthest_light] = dl->heightScale;
-				CLOSEST_LIGHTS_COLORS[farthest_light][0] = dl->color[0];
-				CLOSEST_LIGHTS_COLORS[farthest_light][1] = dl->color[1];
-				CLOSEST_LIGHTS_COLORS[farthest_light][2] = dl->color[2];
-				CLOSEST_LIGHTS_CONEANGLES[farthest_light] = dl->coneAngle;
-				VectorCopy(dl->coneDirection, CLOSEST_LIGHTS_CONEDIRECTIONS[farthest_light]);
+				CURRENT_DRAW_DLIGHTS_IDS[farthest_light] = l;
+				VectorCopy(dl->origin, CURRENT_DRAW_DLIGHTS_POSITIONS[farthest_light]);
+				CURRENT_DRAW_DLIGHTS_RADIUS[farthest_light] = dl->radius;
+				CURRENT_DRAW_DLIGHTS_WEIGHTS[farthest_light] = (dl->radius * dl->radius) / (distance * distance);
+				CURRENT_DRAW_DLIGHTS_HEIGHTSCALES[farthest_light] = dl->heightScale;
+				CURRENT_DRAW_DLIGHTS_COLORS[farthest_light][0] = dl->color[0];
+				CURRENT_DRAW_DLIGHTS_COLORS[farthest_light][1] = dl->color[1];
+				CURRENT_DRAW_DLIGHTS_COLORS[farthest_light][2] = dl->color[2];
+				CURRENT_DRAW_DLIGHTS_CONEANGLES[farthest_light] = dl->coneAngle;
+				VectorCopy(dl->coneDirection, CURRENT_DRAW_DLIGHTS_CONEDIRECTIONS[farthest_light]);
 			}
-#else
-			int		worst_light = -1;
-			float	worst_weight = 999999.0;
-
-			for (int i = 0; i < NUM_CLOSE_LIGHTS; i++)
-			{// Find the most distance light in our current list to replace, if this new option is closer...
-				float		weight = CLOSEST_LIGHTS_WEIGHTS[i];
-
-				if (weight < worst_weight)
-				{// This one is further!
-					worst_light = i;
-					worst_weight = weight;
-				}
-			}
-
-			if (worst_light >= 0 && this_weight > worst_weight)
-			{// This light is better. Replace this one in our array of closest lights...
-				CLOSEST_LIGHTS[worst_light] = l;
-				VectorCopy(dl->origin, CLOSEST_LIGHTS_POSITIONS[worst_light]);
-				CLOSEST_LIGHTS_WEIGHTS[worst_light] = this_weight;
-				CLOSEST_LIGHTS_RADIUS[worst_light] = dl->radius;
-				CLOSEST_LIGHTS_HEIGHTSCALES[worst_light] = dl->heightScale;
-				CLOSEST_LIGHTS_COLORS[worst_light][0] = dl->color[0];
-				CLOSEST_LIGHTS_COLORS[worst_light][1] = dl->color[1];
-				CLOSEST_LIGHTS_COLORS[worst_light][2] = dl->color[2];
-				CLOSEST_LIGHTS_CONEANGLES[worst_light] = dl->coneAngle;
-				VectorCopy(dl->coneDirection, CLOSEST_LIGHTS_CONEDIRECTIONS[worst_light]);
-			}
-#endif
 		}
 	}
 
-	for (int i = 0; i < NUM_CLOSE_LIGHTS; i++)
+	for (int i = 0; i < CURRENT_DRAW_DLIGHTS_COUNT; i++)
 	{
-		if (CLOSEST_LIGHTS_RADIUS[i] < 0.0)
+		if (CURRENT_DRAW_DLIGHTS_RADIUS[i] < 0.0)
 		{// Remove volume light markers...
-			CLOSEST_LIGHTS_RADIUS[i] = -CLOSEST_LIGHTS_RADIUS[i];
+			CURRENT_DRAW_DLIGHTS_RADIUS[i] = -CURRENT_DRAW_DLIGHTS_RADIUS[i];
 		}
 
 		// Normalize and desaturate the colors...
-		float whiteStrength = max(CLOSEST_LIGHTS_COLORS[i][0], max(CLOSEST_LIGHTS_COLORS[i][1], CLOSEST_LIGHTS_COLORS[i][2]));
-		float colorLength = CLOSEST_LIGHTS_COLORS[i][0] + CLOSEST_LIGHTS_COLORS[i][1] + CLOSEST_LIGHTS_COLORS[i][2];
+		float whiteStrength = max(CURRENT_DRAW_DLIGHTS_COLORS[i][0], max(CURRENT_DRAW_DLIGHTS_COLORS[i][1], CURRENT_DRAW_DLIGHTS_COLORS[i][2]));
+		float colorLength = CURRENT_DRAW_DLIGHTS_COLORS[i][0] + CURRENT_DRAW_DLIGHTS_COLORS[i][1] + CURRENT_DRAW_DLIGHTS_COLORS[i][2];
 
 		// Normalize...
-		CLOSEST_LIGHTS_COLORS[i][0] = CLOSEST_LIGHTS_COLORS[i][0] / colorLength;
-		CLOSEST_LIGHTS_COLORS[i][1] = CLOSEST_LIGHTS_COLORS[i][1] / colorLength;
-		CLOSEST_LIGHTS_COLORS[i][2] = CLOSEST_LIGHTS_COLORS[i][2] / colorLength;
+		CURRENT_DRAW_DLIGHTS_COLORS[i][0] = CURRENT_DRAW_DLIGHTS_COLORS[i][0] / colorLength;
+		CURRENT_DRAW_DLIGHTS_COLORS[i][1] = CURRENT_DRAW_DLIGHTS_COLORS[i][1] / colorLength;
+		CURRENT_DRAW_DLIGHTS_COLORS[i][2] = CURRENT_DRAW_DLIGHTS_COLORS[i][2] / colorLength;
 
 		// Desaturate...
-		CLOSEST_LIGHTS_COLORS[i][0] = mix(CLOSEST_LIGHTS_COLORS[i][0], whiteStrength, 0.5/*0.65*//*0.85*/);
-		CLOSEST_LIGHTS_COLORS[i][1] = mix(CLOSEST_LIGHTS_COLORS[i][1], whiteStrength, 0.5/*0.65*//*0.85*/);
-		CLOSEST_LIGHTS_COLORS[i][2] = mix(CLOSEST_LIGHTS_COLORS[i][2], whiteStrength, 0.5/*0.65*//*0.85*/);
+		CURRENT_DRAW_DLIGHTS_COLORS[i][0] = mix(CURRENT_DRAW_DLIGHTS_COLORS[i][0], whiteStrength, 0.5/*0.65*//*0.85*/);
+		CURRENT_DRAW_DLIGHTS_COLORS[i][1] = mix(CURRENT_DRAW_DLIGHTS_COLORS[i][1], whiteStrength, 0.5/*0.65*//*0.85*/);
+		CURRENT_DRAW_DLIGHTS_COLORS[i][2] = mix(CURRENT_DRAW_DLIGHTS_COLORS[i][2], whiteStrength, 0.5/*0.65*//*0.85*/);
 
-		float strength = Q_clamp(0.0, CLOSEST_LIGHTS_WEIGHTS[i], 1.0);
-		CLOSEST_LIGHTS_COLORS[i][0] *= strength;
-		CLOSEST_LIGHTS_COLORS[i][1] *= strength;
-		CLOSEST_LIGHTS_COLORS[i][2] *= strength;
+		float strength = Q_clamp(0.0, CURRENT_DRAW_DLIGHTS_WEIGHTS[i], 1.0);
+		CURRENT_DRAW_DLIGHTS_COLORS[i][0] *= strength;
+		CURRENT_DRAW_DLIGHTS_COLORS[i][1] *= strength;
+		CURRENT_DRAW_DLIGHTS_COLORS[i][2] *= strength;
 	}
 
 #if 0
 	{// Sort them by screen usage...
-		for (int i = 0; i < NUM_CLOSE_LIGHTS; i++)
+		for (int i = 0; i < CURRENT_DRAW_DLIGHTS_COUNT; i++)
 		{
 			int bestChoice = i;
 
-			for (int j = i + 1; j < NUM_CLOSE_LIGHTS; j++)
+			for (int j = i + 1; j < CURRENT_DRAW_DLIGHTS_COUNT; j++)
 			{
-				if (CLOSEST_LIGHTS_WEIGHTS[j] > CLOSEST_LIGHTS_WEIGHTS[bestChoice])
+				if (CURRENT_DRAW_DLIGHTS_WEIGHTS[j] > CURRENT_DRAW_DLIGHTS_WEIGHTS[bestChoice])
 				{
 					bestChoice = j;
 				}
@@ -2040,36 +2010,36 @@ void RB_UpdateCloseLights ( void )
 
 			if (bestChoice != i)
 			{
-				int lightNum = CLOSEST_LIGHTS[i];
-				CLOSEST_LIGHTS[i] = CLOSEST_LIGHTS[bestChoice];
-				CLOSEST_LIGHTS[bestChoice] = lightNum;
+				int lightNum = CURRENT_DRAW_DLIGHTS_IDS[i];
+				CURRENT_DRAW_DLIGHTS_IDS[i] = CURRENT_DRAW_DLIGHTS_IDS[bestChoice];
+				CURRENT_DRAW_DLIGHTS_IDS[bestChoice] = lightNum;
 
-				float lightDist = CLOSEST_LIGHTS_RADIUS[i];
-				CLOSEST_LIGHTS_RADIUS[i] = CLOSEST_LIGHTS_RADIUS[bestChoice];
-				CLOSEST_LIGHTS_RADIUS[bestChoice] = lightDist;
+				float lightDist = CURRENT_DRAW_DLIGHTS_RADIUS[i];
+				CURRENT_DRAW_DLIGHTS_RADIUS[i] = CURRENT_DRAW_DLIGHTS_RADIUS[bestChoice];
+				CURRENT_DRAW_DLIGHTS_RADIUS[bestChoice] = lightDist;
 
-				float lightWeight = CLOSEST_LIGHTS_WEIGHTS[i];
-				CLOSEST_LIGHTS_WEIGHTS[i] = CLOSEST_LIGHTS_WEIGHTS[bestChoice];
-				CLOSEST_LIGHTS_WEIGHTS[bestChoice] = lightWeight;
+				float lightWeight = CURRENT_DRAW_DLIGHTS_WEIGHTS[i];
+				CURRENT_DRAW_DLIGHTS_WEIGHTS[i] = CURRENT_DRAW_DLIGHTS_WEIGHTS[bestChoice];
+				CURRENT_DRAW_DLIGHTS_WEIGHTS[bestChoice] = lightWeight;
 
-				float lightHS = CLOSEST_LIGHTS_HEIGHTSCALES[i];
-				CLOSEST_LIGHTS_HEIGHTSCALES[i] = CLOSEST_LIGHTS_HEIGHTSCALES[bestChoice];
-				CLOSEST_LIGHTS_HEIGHTSCALES[bestChoice] = lightHS;
+				float lightHS = CURRENT_DRAW_DLIGHTS_HEIGHTSCALES[i];
+				CURRENT_DRAW_DLIGHTS_HEIGHTSCALES[i] = CURRENT_DRAW_DLIGHTS_HEIGHTSCALES[bestChoice];
+				CURRENT_DRAW_DLIGHTS_HEIGHTSCALES[bestChoice] = lightHS;
 
 				vec3_t lightOrg;
-				VectorCopy(CLOSEST_LIGHTS_POSITIONS[i], lightOrg);
-				VectorCopy(CLOSEST_LIGHTS_POSITIONS[bestChoice], CLOSEST_LIGHTS_POSITIONS[i]);
-				VectorCopy(lightOrg, CLOSEST_LIGHTS_POSITIONS[bestChoice]);
+				VectorCopy(CURRENT_DRAW_DLIGHTS_POSITIONS[i], lightOrg);
+				VectorCopy(CURRENT_DRAW_DLIGHTS_POSITIONS[bestChoice], CURRENT_DRAW_DLIGHTS_POSITIONS[i]);
+				VectorCopy(lightOrg, CURRENT_DRAW_DLIGHTS_POSITIONS[bestChoice]);
 
 				vec3_t lightColor;
-				VectorCopy(CLOSEST_LIGHTS_COLORS[i], lightColor);
-				VectorCopy(CLOSEST_LIGHTS_COLORS[i], CLOSEST_LIGHTS_COLORS[bestChoice]);
-				VectorCopy(lightColor, CLOSEST_LIGHTS_COLORS[bestChoice]);
+				VectorCopy(CURRENT_DRAW_DLIGHTS_COLORS[i], lightColor);
+				VectorCopy(CURRENT_DRAW_DLIGHTS_COLORS[i], CURRENT_DRAW_DLIGHTS_COLORS[bestChoice]);
+				VectorCopy(lightColor, CURRENT_DRAW_DLIGHTS_COLORS[bestChoice]);
 
 				vec3_t lightDirection;
-				VectorCopy(CLOSEST_LIGHTS_CONEDIRECTIONS[i], lightDirection);
-				VectorCopy(CLOSEST_LIGHTS_CONEDIRECTIONS[i], CLOSEST_LIGHTS_CONEDIRECTIONS[bestChoice]);
-				VectorCopy(lightDirection, CLOSEST_LIGHTS_CONEDIRECTIONS[bestChoice]);
+				VectorCopy(CURRENT_DRAW_DLIGHTS_CONEDIRECTIONS[i], lightDirection);
+				VectorCopy(CURRENT_DRAW_DLIGHTS_CONEDIRECTIONS[i], CURRENT_DRAW_DLIGHTS_CONEDIRECTIONS[bestChoice]);
+				VectorCopy(lightDirection, CURRENT_DRAW_DLIGHTS_CONEDIRECTIONS[bestChoice]);
 			}
 		}
 	}
@@ -2078,12 +2048,12 @@ void RB_UpdateCloseLights ( void )
 #if 0
 	if (r_testvalue0->integer)
 	{
-		for (int i = 0; i < NUM_CLOSE_LIGHTS; i++)
+		for (int i = 0; i < CURRENT_DRAW_DLIGHTS_COUNT; i++)
 		{
-			float dist = Distance(backEnd.refdef.vieworg, CLOSEST_LIGHTS_POSITIONS[i]);
-			float radius = CLOSEST_LIGHTS_RADIUS[i];
+			float dist = Distance(backEnd.refdef.vieworg, CURRENT_DRAW_DLIGHTS_POSITIONS[i]);
+			float radius = CURRENT_DRAW_DLIGHTS_RADIUS[i];
 
-			ri->Printf(PRINT_WARNING, "Light %i. Weight %f. Dist %f. Radius %f.\n", i, CLOSEST_LIGHTS_WEIGHTS[i], dist, radius);
+			ri->Printf(PRINT_WARNING, "Light %i. Weight %f. Dist %f. Radius %f.\n", i, CURRENT_DRAW_DLIGHTS_WEIGHTS[i], dist, radius);
 		}
 	}
 #endif
@@ -2116,18 +2086,18 @@ void RB_UpdateCloseLights ( void )
 		VectorScale(backEnd.viewParms.emissiveLightOrigin, nightOffset, backEnd.viewParms.emissiveLightOrigin);
 	}
 
-	for (int i = 0; i < NUM_CLOSE_LIGHTS; i++)
+	for (int i = 0; i < CURRENT_DRAW_DLIGHTS_COUNT; i++)
 	{// emissives...
 		vec3_t dir;
-		VectorSubtract(backEnd.refdef.vieworg, CLOSEST_LIGHTS_POSITIONS[i], dir);
+		VectorSubtract(backEnd.refdef.vieworg, CURRENT_DRAW_DLIGHTS_POSITIONS[i], dir);
 		VectorNormalizeFast(dir);
 
 		VectorAdd(backEnd.viewParms.emissiveLightDirection, dir, backEnd.viewParms.emissiveLightDirection);
-		VectorAdd(backEnd.viewParms.emissiveLightOrigin, CLOSEST_LIGHTS_POSITIONS[i], backEnd.viewParms.emissiveLightOrigin);
-		VectorAdd(backEnd.viewParms.emissiveLightColor, CLOSEST_LIGHTS_COLORS[i], backEnd.viewParms.emissiveLightColor);
+		VectorAdd(backEnd.viewParms.emissiveLightOrigin, CURRENT_DRAW_DLIGHTS_POSITIONS[i], backEnd.viewParms.emissiveLightOrigin);
+		VectorAdd(backEnd.viewParms.emissiveLightColor, CURRENT_DRAW_DLIGHTS_COLORS[i], backEnd.viewParms.emissiveLightColor);
 	}
 
-	float numLightsAveragedWeighted = 2.0 + NUM_CLOSE_LIGHTS;
+	float numLightsAveragedWeighted = 2.0 + CURRENT_DRAW_DLIGHTS_COUNT;
 	backEnd.viewParms.emissiveLightDirection[0] /= numLightsAveragedWeighted;
 	backEnd.viewParms.emissiveLightDirection[1] /= numLightsAveragedWeighted;
 	backEnd.viewParms.emissiveLightDirection[2] /= numLightsAveragedWeighted;
@@ -2155,7 +2125,7 @@ void RB_UpdateCloseLights ( void )
 	VectorMA(backEnd.refdef.vieworg, dist, backEnd.refdef.sunDir, backEnd.viewParms.emissiveLightOrigin);
 #endif //__CALCULATE_LIGHTDIR_FROM_LIGHT_AVERAGES__
 
-	CLOSE_LIGHTS_UPDATE = qfalse;
+	CURRENT_DRAW_DLIGHTS_UPDATE = qfalse;
 }
 
 float waveTime = 0.5;
@@ -2564,10 +2534,6 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	{
 		return;
 	}
-	else if ((!isSky && backEnd.renderPass == RENDERPASS_SKY) || (isSky && backEnd.renderPass != RENDERPASS_SKY))
-	{
-		return;
-	}
 	else if (backEnd.renderPass == RENDERPASS_PSHADOWS)
 	{
 		return;
@@ -2576,6 +2542,17 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	{
 		if (isSky || isMist || isVines || isGroundFoliage || isGrass4 || isGrass3 || isGrass2 || isGrass || isGrassPatches)
 		{
+			return;
+		}
+	}
+	else if ((!isSky && backEnd.renderPass == RENDERPASS_SKY) || (isSky && backEnd.renderPass != RENDERPASS_SKY))
+	{
+		if (isSky && backEnd.renderPass == RENDERPASS_SKY && LATE_SKY_DISABLED)
+		{// Was done in geometry pass...
+			return;
+		}
+		else if (!isSky && backEnd.renderPass != RENDERPASS_SKY && !LATE_SKY_DISABLED)
+		{// Don't do non-sky draws in sky render pass...
 			return;
 		}
 	}

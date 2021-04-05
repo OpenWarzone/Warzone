@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "ghoul2/g2_local.h"
 
-extern qboolean CLOSE_LIGHTS_UPDATE;
+extern qboolean CURRENT_DRAW_DLIGHTS_UPDATE;
 
 trGlobals_t		tr;
 
@@ -1855,7 +1855,7 @@ qboolean R_MirrorViewBySurface(drawSurf_t *drawSurf, int64_t entityNum) {
 	// OPTIMIZE: restrict the viewport on the mirrored view
 
 	// render the mirror view
-	CLOSE_LIGHTS_UPDATE = qtrue;
+	CURRENT_DRAW_DLIGHTS_UPDATE = qtrue;
 	R_RenderView (&newParms);
 
 	tr.viewParms = oldParms;
@@ -2625,18 +2625,18 @@ void Light_Trace(trace_t *results, const vec3_t start, const vec3_t mins, const 
 //#define __PSHADOWS_MISC_ENTS__
 
 #ifdef __PSHADOW_USE_BEST_LIGHT__
-#if 0 // Use deferredLighting's CLOSEST_LIGHTS list...
-extern int					NUM_CLOSE_LIGHTS;
-extern int					CLOSEST_LIGHTS[MAX_DEFERRED_LIGHTS];
-extern vec2_t				CLOSEST_LIGHTS_SCREEN_POSITIONS[MAX_DEFERRED_LIGHTS];
-extern vec3_t				CLOSEST_LIGHTS_POSITIONS[MAX_DEFERRED_LIGHTS];
-extern float				CLOSEST_LIGHTS_RADIUS[MAX_DEFERRED_LIGHTS];
-extern float				CLOSEST_LIGHTS_HEIGHTSCALES[MAX_DEFERRED_LIGHTS];
-extern vec3_t				CLOSEST_LIGHTS_COLORS[MAX_DEFERRED_LIGHTS];
+#if 0 // Use deferredLighting's CURRENT_DRAW_DLIGHTS_IDS list...
+extern int					CURRENT_DRAW_DLIGHTS_COUNT;
+extern int					CURRENT_DRAW_DLIGHTS_IDS[MAX_DEFERRED_LIGHTS];
+extern vec2_t				CURRENT_DRAW_DLIGHTS_SCREEN_POSITIONS[MAX_DEFERRED_LIGHTS];
+extern vec3_t				CURRENT_DRAW_DLIGHTS_POSITIONS[MAX_DEFERRED_LIGHTS];
+extern float				CURRENT_DRAW_DLIGHTS_RADIUS[MAX_DEFERRED_LIGHTS];
+extern float				CURRENT_DRAW_DLIGHTS_HEIGHTSCALES[MAX_DEFERRED_LIGHTS];
+extern vec3_t				CURRENT_DRAW_DLIGHTS_COLORS[MAX_DEFERRED_LIGHTS];
 
-#define NUM_LIGHTS					NUM_CLOSE_LIGHTS
-#define LIGHTS_POSITIONS(a)			CLOSEST_LIGHTS_POSITIONS[a]
-#define LIGHTS_RADIUS(a)			CLOSEST_LIGHTS_RADIUS[a]
+#define NUM_LIGHTS					CURRENT_DRAW_DLIGHTS_COUNT
+#define LIGHTS_POSITIONS(a)			CURRENT_DRAW_DLIGHTS_POSITIONS[a]
+#define LIGHTS_RADIUS(a)			CURRENT_DRAW_DLIGHTS_RADIUS[a]
 #elif 1 // Use the JKA dlights list...
 #define NUM_LIGHTS					backEnd.refdef.num_dlights
 #define LIGHTS_POSITIONS(a)			(backEnd.refdef.dlights[a].origin)
@@ -2656,6 +2656,13 @@ extern float		MAP_EMISSIVE_RADIUS_SCALE;
 #define LIGHTS_RADIUS(a)			CLOSE_RADIUS[a]
 #endif
 #endif //__PSHADOW_USE_BEST_LIGHT__
+
+#ifdef __USE_MAP_EMMISSIVE_BLOCK__
+extern EmissiveLightBlock_t				EmissiveLightsBlock;
+extern EmissiveLightBlock_t				EmissiveLightsBlockPrevious;
+extern int								emissiveUpdateTime;
+extern int								NUM_CURRENT_EMISSIVE_DRAW_LIGHTS;
+#endif //__USE_MAP_EMMISSIVE_BLOCK__
 
 void R_RenderPshadowMaps(const refdef_t *fd)
 {
@@ -2710,15 +2717,50 @@ void R_RenderPshadowMaps(const refdef_t *fd)
 
 		if (dLight == -1)
 		{// Nothing in radius found...
+#ifdef __USE_MAP_EMMISSIVE_BLOCK__
+			// Let's try to find a real light source from emissive lights...
+			int		dLight = -1;
+			float	dLightFactor = 0.0;
+
+			for (int i = 0; i < NUM_CURRENT_EMISSIVE_DRAW_LIGHTS; i++)
+			{
+				float radius = EmissiveLightsBlock.lights[i].u_lightPositions2[3] * 3.0;
+				float dist = Distance(playerOrigin, EmissiveLightsBlock.lights[i].u_lightPositions2);
+
+				if (dist > radius /*|| LIGHTS_POSITIONS(i)[2] < playerOrigin[2]*/)
+				{// Not in range of this light...
+					continue;
+				}
+
+				float factor = 1.0 - Q_clamp(0.0, dist / radius, 1.0);
+
+				if (factor > dLightFactor)
+				{
+					dLight = i;
+					dLightFactor = factor;
+				}
+			}
+
+			if (dLight == -1)
+			{// Nothing in radius found...
+				return;
+			}
+			else
+			{// Seems that we found an emissive light to use...
+				invLightPower = Q_clamp(0.0, 0.01*(1.0 - dLightFactor), 1.0);
+				if (invLightPower == 1.0) return;
+				bestLightPosition[0] = mix(EmissiveLightsBlock.lights[dLight].u_lightPositions2[0], playerOrigin[0], invLightPower);
+				bestLightPosition[1] = mix(EmissiveLightsBlock.lights[dLight].u_lightPositions2[1], playerOrigin[1], invLightPower);
+				bestLightPosition[2] = playerOrigin[2] + 64.0;
+				bestLightRadius = mix(EmissiveLightsBlock.lights[dLight].u_lightPositions2[3] * 3.0, 128.0, invLightPower);
+			}
+#else //!__USE_MAP_EMMISSIVE_BLOCK__
 			return;
-			/*bestLightPosition[0] = playerOrigin[0];
-			bestLightPosition[1] = playerOrigin[1];
-			bestLightPosition[2] = playerOrigin[2] + 64.0;
-			bestLightRadius = 128.0;*/
+#endif //__USE_MAP_EMMISSIVE_BLOCK__
 		}
 		else
 		{
-			// Seems that we found a light to use...
+			// Seems that we found a dlight to use...
 			invLightPower = Q_clamp(0.0, 0.01*(1.0-dLightFactor), 1.0);
 			if (invLightPower == 1.0) return;
 			bestLightPosition[0] = mix(LIGHTS_POSITIONS(dLight)[0], playerOrigin[0], invLightPower);
@@ -3777,7 +3819,7 @@ void R_RenderHeightMap(void)
 
 	parms.targetFbo = tr.renderHeightmapFbo;
 
-	CLOSE_LIGHTS_UPDATE = qtrue;
+	CURRENT_DRAW_DLIGHTS_UPDATE = qtrue;
 	R_RenderView(&parms);
 #else
 	{
@@ -3981,7 +4023,7 @@ void R_RenderCubemapSide( int cubemapIndex, int cubemapSide, qboolean subscene )
 	parms.targetFboLayer = cubemapSide;
 	parms.targetFboCubemapIndex = cubemapIndex;
 	
-	CLOSE_LIGHTS_UPDATE = qtrue;
+	CURRENT_DRAW_DLIGHTS_UPDATE = qtrue;
 	R_RenderView(&parms);
 
 	if (subscene)
@@ -4093,7 +4135,7 @@ void R_RenderEmissiveMapSide(int cubemapIndex, int cubemapSide, qboolean subscen
 	parms.targetFboLayer = cubemapSide;
 	parms.targetFboCubemapIndex = cubemapIndex;
 
-	CLOSE_LIGHTS_UPDATE = qtrue;
+	CURRENT_DRAW_DLIGHTS_UPDATE = qtrue;
 	R_RenderView(&parms);
 
 	if (subscene)
@@ -4207,7 +4249,7 @@ void R_RenderCubemapSideRealtime(vec3_t origin, int cubemapSide, qboolean subsce
 	parms.targetFboLayer = cubemapSide;
 	//parms.targetFboCubemapIndex = cubemapIndex;
 
-	CLOSE_LIGHTS_UPDATE = qtrue;
+	CURRENT_DRAW_DLIGHTS_UPDATE = qtrue;
 	R_RenderView(&parms);
 
 	if (subscene)

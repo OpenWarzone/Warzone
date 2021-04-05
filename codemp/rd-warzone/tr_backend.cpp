@@ -1754,7 +1754,14 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 				}
 				else if (isSky && backEnd.renderPass == RENDERPASS_SKY)
 				{
-					doDraw = qtrue;
+					if (LATE_SKY_DISABLED)
+					{
+						doDraw = qfalse;
+					}
+					else
+					{
+						doDraw = qtrue;
+					}
 				}
 				else if (thisEntityNum == REFENTITYNUM_WORLD && backEnd.renderPass == RENDERPASS_PSHADOWS)
 				{
@@ -1763,6 +1770,13 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 				else
 				{
 					//continue;
+					doDraw = qfalse;
+				}
+			}
+			else //if (backEnd.renderPass == RENDERPASS_GEOMETRY)
+			{
+				if (thisShader->isSky && !LATE_SKY_DISABLED)
+				{
 					doDraw = qfalse;
 				}
 			}

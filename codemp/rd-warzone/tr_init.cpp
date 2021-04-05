@@ -348,6 +348,7 @@ cvar_t	*r_ao;
 cvar_t	*r_env;
 cvar_t	*r_blinnPhong;
 cvar_t	*r_debugEmissiveLights;
+cvar_t	*r_debugDrawEmissiveLights;
 cvar_t	*r_debugEmissiveRadiusScale;
 cvar_t	*r_debugEmissiveColorScale;
 cvar_t  *r_skynum;
@@ -1777,6 +1778,7 @@ void R_Register( void )
 	r_env = ri->Cvar_Get("r_env", "1", CVAR_ARCHIVE);
 	
 	r_debugEmissiveLights = ri->Cvar_Get("r_debugEmissiveLights", "0", CVAR_ARCHIVE);
+	r_debugDrawEmissiveLights = ri->Cvar_Get("r_debugDrawEmissiveLights", "0", CVAR_ARCHIVE);
 	r_debugEmissiveRadiusScale = ri->Cvar_Get("r_debugEmissiveRadiusScale", "1.0", CVAR_ARCHIVE);
 	r_debugEmissiveColorScale = ri->Cvar_Get("r_debugEmissiveColorScale", "1.0", CVAR_ARCHIVE);
 	

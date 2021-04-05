@@ -105,7 +105,7 @@ uniform vec4											u_Local9; // testvalue0, 1, 2, 3
 uniform vec4											u_Local10; // PROCEDURAL_BACKGROUND_HILLS_ENABLED, PROCEDURAL_BACKGROUND_HILLS_SMOOTHNESS, PROCEDURAL_BACKGROUND_HILLS_UPDOWN, PROCEDURAL_BACKGROUND_HILLS_SEED
 uniform vec4											u_Local11; // PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR
 uniform vec4											u_Local12; // PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR2
-uniform vec4											u_Local13; // AURORA_STRENGTH1, AURORA_STRENGTH2, DYNAMIC_WEATHER_PUDDLE_STRENGTH, 0.0
+uniform vec4											u_Local13; // AURORA_STRENGTH1, AURORA_STRENGTH2, DYNAMIC_WEATHER_PUDDLE_STRENGTH, doingSkyCube
 
 #define PROCEDURAL_SKY_ENABLED							u_Local1.r
 #define DAY_NIGHT_24H_TIME								u_Local1.g
@@ -147,6 +147,7 @@ uniform vec4											u_Local13; // AURORA_STRENGTH1, AURORA_STRENGTH2, DYNAMIC
 #define AURORA_STRENGTH1								u_Local13.r
 #define AURORA_STRENGTH2								u_Local13.g
 #define DYNAMIC_WEATHER_PUDDLE_STRENGTH					u_Local13.b
+#define DOING_SKY_CUBE									u_Local13.a
 
 
 uniform vec2						u_Dimensions;
@@ -1349,11 +1350,11 @@ void main()
 			vec3 atmos = extra_cheap_atmosphere(skyViewDir, skyViewDir2, skySunDir, sunColorMod);
 
 #ifdef _BACKGROUND_HILLS_
-			if ((!ENABLE_TERRAIN || SHADER_SKY_DIRECTION == 5.0) && SHADER_DAY_NIGHT_ENABLED > 0.0 && SHADER_NIGHT_SCALE >= 1.0)
+			if ((!ENABLE_TERRAIN || SHADER_SKY_DIRECTION == 5.0) && SHADER_DAY_NIGHT_ENABLED > 0.0 && SHADER_NIGHT_SCALE >= 1.0 && DOING_SKY_CUBE <= 0.0)
 			{// At night, just do a black lower sky side...
 				terrainColor = vec4(0.0, 0.0, 0.0, 1.0);
 			}
-			else if (SHADER_SKY_DIRECTION != 4.0 && SHADER_SKY_DIRECTION != 5.0 && PROCEDURAL_BACKGROUND_HILLS_ENABLED > 0.0)
+			else if (((SHADER_SKY_DIRECTION != 4.0 && SHADER_SKY_DIRECTION != 5.0) || DOING_SKY_CUBE > 0.0) && PROCEDURAL_BACKGROUND_HILLS_ENABLED > 0.0)
 			{
 				terrainColor.rgb = mix(atmos, vec3(0.1), clamp(SHADER_NIGHT_SCALE * 2.0, 0.0, 1.0));
 				terrainColor.a = 0.0;
@@ -1451,7 +1452,7 @@ void main()
 
 #if defined(_AURORA2_) && defined(_BACKGROUND_HILLS_)
 				if (ENABLE_AURORA
-					&& SHADER_SKY_DIRECTION != 5.0																/* Not down sky textures */
+					&& SHADER_SKY_DIRECTION != 5.0																							/* Not down sky textures */
 					&& SHADER_AURORA_ENABLED > 0.0																							/* Auroras Enabled */
 					&& ((SHADER_DAY_NIGHT_ENABLED > 0.0 && SHADER_NIGHT_SCALE > 0.0) /* Night Aurora */ || SHADER_AURORA_ENABLED >= 2.0		/* Forced day Aurora */))
 				{// Aurora is enabled, and this is not up/down sky textures, add a sexy aurora effect :)
@@ -1472,7 +1473,7 @@ void main()
 				}
 #elif !defined(_AURORA2_) && defined(_BACKGROUND_HILLS_)
 				if (ENABLE_AURORA
-					&& SHADER_SKY_DIRECTION != 4.0 && SHADER_SKY_DIRECTION != 5.0																/* Not up/down sky textures */
+					&& SHADER_SKY_DIRECTION != 4.0 && SHADER_SKY_DIRECTION != 5.0															/* Not up/down sky textures */
 					&& SHADER_AURORA_ENABLED > 0.0																							/* Auroras Enabled */
 					&& ((SHADER_DAY_NIGHT_ENABLED > 0.0 && SHADER_NIGHT_SCALE > 0.0) /* Night Aurora */ || SHADER_AURORA_ENABLED >= 2.0		/* Forced day Aurora */))
 				{// Aurora is enabled, and this is not up/down sky textures, add a sexy aurora effect :)
@@ -1501,7 +1502,7 @@ void main()
 #endif //defined(_CLOUDS_) && (defined(CLOUD_QUALITY1) || defined(CLOUD_QUALITY2) || defined(CLOUD_QUALITY3) || defined(CLOUD_QUALITY4))
 
 #ifdef _BACKGROUND_HILLS_
-			if (ENABLE_TERRAIN && PROCEDURAL_BACKGROUND_HILLS_ENABLED > 0.0 && SHADER_SKY_DIRECTION != 4.0 && SHADER_SKY_DIRECTION != 5.0)
+			if (ENABLE_TERRAIN && PROCEDURAL_BACKGROUND_HILLS_ENABLED > 0.0 && SHADER_SKY_DIRECTION != 4.0 && (SHADER_SKY_DIRECTION != 5.0 || DOING_SKY_CUBE > 0.0))
 			{// Only on horizontal sides.
 				gl_FragColor.rgb = mix(gl_FragColor.rgb, terrainColor.rgb, terrainColor.a > 0.0 ? 1.0 : 0.0);
 			}

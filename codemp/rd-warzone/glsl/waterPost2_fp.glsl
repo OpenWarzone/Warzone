@@ -75,8 +75,8 @@ uniform sampler2D							u_DetailMap;			// causics map
 
 uniform sampler2D							u_HeightMap;			// map height map
 
-uniform samplerCube							u_SkyCubeMap;
-uniform samplerCube							u_SkyCubeMapNight;
+//uniform samplerCube							u_SkyCubeMap;
+//uniform samplerCube							u_SkyCubeMapNight;
 
 uniform sampler2D							u_EmissiveCubeMap;		// water reflection image... (not really a cube, just reusing using the uniform)
 

@@ -1207,12 +1207,12 @@ void RB_AddGlowShaderLights ( void )
 
 		float dayNightFactor = mix(MAP_EMISSIVE_RADIUS_SCALE, MAP_EMISSIVE_RADIUS_SCALE_NIGHT, RB_NightScale());
 
-		for (int maplight = 0; maplight < NUM_MAP_GLOW_LOCATIONS; maplight++)
+		for (int maplight = 0; maplight < MAP_EMISSIVE_LIGHT_COUNT; maplight++)
 		{
-			if (!MAP_GLOW_COLORS_AVILABLE[maplight]) continue;
+			if (!MAP_EMISSIVE_LIGHT_COLORS_AVILABLE[maplight]) continue;
 
-			//float distance = Distance(playerOrigin, MAP_GLOW_LOCATIONS[maplight]);
-			float distance = Distance(backEnd.refdef.vieworg, MAP_GLOW_LOCATIONS[maplight]);
+			//float distance = Distance(playerOrigin, MAP_EMISSIVE_LIGHT_LOCATIONS[maplight]);
+			float distance = Distance(backEnd.refdef.vieworg, MAP_EMISSIVE_LIGHT_LOCATIONS[maplight]);
 
 			// We need to have some sanity... Basic max light range...
 			if (distance > MAX_WORLD_GLOW_DLIGHT_RANGE) continue;
@@ -1223,12 +1223,12 @@ void RB_AddGlowShaderLights ( void )
 			// If occlusion is enabled and this light is further away, skip it, obviously...
 			if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer && distance > tr.occlusionZfar * 1.732) continue;
 
-			/*if (r_cullLights->integer && RB_CullPointAndRadius(MAP_GLOW_LOCATIONS[maplight], MAP_GLOW_RADIUSES[maplight] * dayNightFactor * 0.2 * r_debugEmissiveRadiusScale->value) == CULL_OUT)
+			/*if (r_cullLights->integer && RB_CullPointAndRadius(MAP_EMISSIVE_LIGHT_LOCATIONS[maplight], MAP_EMISSIVE_LIGHT_RADIUSES[maplight] * dayNightFactor * 0.2 * r_debugEmissiveRadiusScale->value) == CULL_OUT)
 			{
 				continue;
 			}*/
 
-			float	this_weight = (MAP_GLOW_RADIUSES[maplight] * MAP_GLOW_RADIUSES[maplight]) / (distance * distance);
+			float	this_weight = (MAP_EMISSIVE_LIGHT_RADIUSES[maplight] * MAP_EMISSIVE_LIGHT_RADIUSES[maplight]) / (distance * distance);
 
 			/*if (this_weight <= 0.05)
 			{// Will be too dark to even notice it, so skip...
@@ -1238,13 +1238,13 @@ void RB_AddGlowShaderLights ( void )
 			if (CLOSE_TOTAL < MAX_WORLD_GLOW_DLIGHTS)
 			{// Have free light slots for a new light...
 				CLOSE_LIST[CLOSE_TOTAL] = maplight;
-				CLOSE_DIST[CLOSE_TOTAL] = MAP_GLOW_RADIUSES[maplight];
-				VectorCopy(MAP_GLOW_LOCATIONS[maplight], CLOSE_POS[CLOSE_TOTAL]);
-				CLOSE_RADIUS[CLOSE_TOTAL] = MAP_GLOW_RADIUSES[maplight];
+				CLOSE_DIST[CLOSE_TOTAL] = MAP_EMISSIVE_LIGHT_RADIUSES[maplight];
+				VectorCopy(MAP_EMISSIVE_LIGHT_LOCATIONS[maplight], CLOSE_POS[CLOSE_TOTAL]);
+				CLOSE_RADIUS[CLOSE_TOTAL] = MAP_EMISSIVE_LIGHT_RADIUSES[maplight];
 				CLOSE_WEIGHT[CLOSE_TOTAL] = this_weight;
-				CLOSE_HEIGHTSCALES[CLOSE_TOTAL] = MAP_GLOW_HEIGHTSCALES[maplight];
-				CLOSE_CONEANGLE[CLOSE_TOTAL] = MAP_GLOW_CONEANGLE[maplight];
-				VectorCopy(MAP_GLOW_CONEDIRECTION[maplight], CLOSE_CONEDIRECTION[CLOSE_TOTAL]);
+				CLOSE_HEIGHTSCALES[CLOSE_TOTAL] = MAP_EMISSIVE_LIGHT_HEIGHTSCALES[maplight];
+				CLOSE_CONEANGLE[CLOSE_TOTAL] = MAP_EMISSIVE_LIGHT_CONEANGLE[maplight];
+				VectorCopy(MAP_EMISSIVE_LIGHT_CONEDIRECTION[maplight], CLOSE_CONEDIRECTION[CLOSE_TOTAL]);
 				CLOSE_TOTAL++;
 				continue;
 			}
@@ -1266,12 +1266,12 @@ void RB_AddGlowShaderLights ( void )
 				if (distance < farthest_distance)
 				{// This light is closer. Replace this one in our array of closest lights...
 					CLOSE_LIST[farthest_light] = maplight;
-					CLOSE_DIST[farthest_light] = MAP_GLOW_RADIUSES[maplight];
-					VectorCopy(MAP_GLOW_LOCATIONS[maplight], CLOSE_POS[farthest_light]);
-					CLOSE_RADIUS[farthest_light] = MAP_GLOW_RADIUSES[maplight];
-					CLOSE_HEIGHTSCALES[farthest_light] = MAP_GLOW_HEIGHTSCALES[maplight];
-					CLOSE_CONEANGLE[farthest_light] = MAP_GLOW_CONEANGLE[maplight];
-					VectorCopy(MAP_GLOW_CONEDIRECTION[maplight], CLOSE_CONEDIRECTION[farthest_light]);
+					CLOSE_DIST[farthest_light] = MAP_EMISSIVE_LIGHT_RADIUSES[maplight];
+					VectorCopy(MAP_EMISSIVE_LIGHT_LOCATIONS[maplight], CLOSE_POS[farthest_light]);
+					CLOSE_RADIUS[farthest_light] = MAP_EMISSIVE_LIGHT_RADIUSES[maplight];
+					CLOSE_HEIGHTSCALES[farthest_light] = MAP_EMISSIVE_LIGHT_HEIGHTSCALES[maplight];
+					CLOSE_CONEANGLE[farthest_light] = MAP_EMISSIVE_LIGHT_CONEANGLE[maplight];
+					VectorCopy(MAP_EMISSIVE_LIGHT_CONEDIRECTION[maplight], CLOSE_CONEDIRECTION[farthest_light]);
 				}
 #else
 				int		worst_light = -1;
@@ -1291,13 +1291,13 @@ void RB_AddGlowShaderLights ( void )
 				if (worst_light >= 0 && this_weight > worst_weight)
 				{// This light is better. Replace this one in our array of closest lights...
 					CLOSE_LIST[worst_light] = maplight;
-					CLOSE_DIST[worst_light] = MAP_GLOW_RADIUSES[maplight];
-					VectorCopy(MAP_GLOW_LOCATIONS[maplight], CLOSE_POS[worst_light]);
-					CLOSE_RADIUS[worst_light] = MAP_GLOW_RADIUSES[maplight];
+					CLOSE_DIST[worst_light] = MAP_EMISSIVE_LIGHT_RADIUSES[maplight];
+					VectorCopy(MAP_EMISSIVE_LIGHT_LOCATIONS[maplight], CLOSE_POS[worst_light]);
+					CLOSE_RADIUS[worst_light] = MAP_EMISSIVE_LIGHT_RADIUSES[maplight];
 					CLOSE_WEIGHT[worst_light] = this_weight;
-					CLOSE_HEIGHTSCALES[worst_light] = MAP_GLOW_HEIGHTSCALES[maplight];
-					CLOSE_CONEANGLE[worst_light] = MAP_GLOW_CONEANGLE[maplight];
-					VectorCopy(MAP_GLOW_CONEDIRECTION[maplight], CLOSE_CONEDIRECTION[worst_light]);
+					CLOSE_HEIGHTSCALES[worst_light] = MAP_EMISSIVE_LIGHT_HEIGHTSCALES[maplight];
+					CLOSE_CONEANGLE[worst_light] = MAP_EMISSIVE_LIGHT_CONEANGLE[maplight];
+					VectorCopy(MAP_EMISSIVE_LIGHT_CONEDIRECTION[maplight], CLOSE_CONEDIRECTION[worst_light]);
 				}
 #endif
 
@@ -1305,11 +1305,11 @@ void RB_AddGlowShaderLights ( void )
 			}
 		}
 
-		//ri->Printf(PRINT_WARNING, "VLIGHT DEBUG: %i visible of %i total glow lights.\n", CLOSE_TOTAL, NUM_MAP_GLOW_LOCATIONS);
+		//ri->Printf(PRINT_WARNING, "VLIGHT DEBUG: %i visible of %i total glow lights.\n", CLOSE_TOTAL, MAP_EMISSIVE_LIGHT_COUNT);
 
 		for (int i = 0; i < CLOSE_TOTAL && backEnd.refdef.num_dlights < MAX_DLIGHTS; i++)
 		{
-			if (MAP_GLOW_COLORS_AVILABLE[CLOSE_LIST[i]])
+			if (MAP_EMISSIVE_LIGHT_COLORS_AVILABLE[CLOSE_LIST[i]])
 			{
 				float strength = 1.0 - Q_clamp(0.0, Distance(CLOSE_POS[i], playerOrigin) / MAX_WORLD_GLOW_DLIGHT_RANGE, 1.0);
 				float radius = CLOSE_RADIUS[i] * strength * dayNightFactor * 0.2 * r_debugEmissiveRadiusScale->value;
@@ -1322,12 +1322,12 @@ void RB_AddGlowShaderLights ( void )
 				if (r_debugEmissiveLights->integer)
 				{
 					vec4_t glowColor;
-					VectorScale(MAP_GLOW_COLORS[CLOSE_LIST[i]], r_debugEmissiveColorScale->value, glowColor);
+					VectorScale(MAP_EMISSIVE_LIGHT_COLORS[CLOSE_LIST[i]], r_debugEmissiveColorScale->value, glowColor);
 					VectorCopy4(glowColor, CLOSE_COLORS[i]);
 				}
 				else
 				{
-					VectorCopy4(MAP_GLOW_COLORS[CLOSE_LIST[i]], CLOSE_COLORS[i]);
+					VectorCopy4(MAP_EMISSIVE_LIGHT_COLORS[CLOSE_LIST[i]], CLOSE_COLORS[i]);
 				}
 				
 				RE_AddDynamicLightToScene(CLOSE_POS[i], radius, CLOSE_COLORS[i][0], CLOSE_COLORS[i][1], CLOSE_COLORS[i][2], qfalse, qtrue, CLOSE_HEIGHTSCALES[i], CLOSE_CONEANGLE[i], CLOSE_CONEDIRECTION[i]);
@@ -2311,7 +2311,10 @@ void RB_WaterPost(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 		FBO_Blit(hdrFbo, NULL, NULL, tr.waterReflectionRenderFBO, box, shader, colorWhite, 0);
 	}
 
-	{// Actual water draw...
+	//
+	// Actual water draw...
+	//
+	{
 		//shaderProgram_t *shader = &tr.waterPostShader[Q_clampi(0, r_glslWater->integer - 1, 5)];
 
 		int waterShaderChoice = Q_clampi(0, r_glslWater->integer - 1, 3);
@@ -2341,14 +2344,31 @@ void RB_WaterPost(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 			GLSL_SetBindlessTexture(shader, UNIFORM_POSITIONMAP, &tr.renderPositionMapImage, 0);
 			GLSL_SetBindlessTexture(shader, UNIFORM_WATERPOSITIONMAP, &tr.waterPositionMapImage, 0);
 			GLSL_SetBindlessTexture(shader, UNIFORM_OVERLAYMAP, &tr.waterFoamImage[0], 0);
-			GLSL_SetBindlessTexture(shader, TB_SPLATMAP1, &tr.waterFoamImage[1], 0);
-			GLSL_SetBindlessTexture(shader, TB_SPLATMAP2, &tr.waterFoamImage[2], 0);
-			GLSL_SetBindlessTexture(shader, TB_SPLATMAP3, &tr.waterFoamImage[3], 0);
+			GLSL_SetBindlessTexture(shader, UNIFORM_SPLATMAP1, &tr.waterFoamImage[1], 0);
+			GLSL_SetBindlessTexture(shader, UNIFORM_SPLATMAP2, &tr.waterFoamImage[2], 0);
+			GLSL_SetBindlessTexture(shader, UNIFORM_SPLATMAP3, &tr.waterFoamImage[3], 0);
 			GLSL_SetBindlessTexture(shader, UNIFORM_DETAILMAP, &tr.waterCausicsImage, 0);
 			GLSL_SetBindlessTexture(shader, UNIFORM_HEIGHTMAP, &tr.waterHeightMapImage, 0);
-			GLSL_SetBindlessTexture(shader, UNIFORM_SKYCUBEMAP, &tr.skyCubeMap, 0);
-			GLSL_SetBindlessTexture(shader, UNIFORM_SKYCUBEMAPNIGHT, &tr.skyCubeMapNight, 0);
+			//GLSL_SetBindlessTexture(shader, UNIFORM_SKYCUBEMAP, &tr.skyCubeMap, 0);
+			//GLSL_SetBindlessTexture(shader, UNIFORM_SKYCUBEMAPNIGHT, &tr.skyCubeMapNight, 0);
 			GLSL_SetBindlessTexture(shader, UNIFORM_EMISSIVECUBE, &tr.waterReflectionRenderImage, 0);
+
+#ifdef __USE_WATER_MAPS__
+			if (!WATER_ALTERNATIVE_METHOD)
+			{
+				// Lake waves...
+				GLSL_SetBindlessTexture(shader, UNIFORM_STEEPMAP, &tr.waterHeightImage[0], 0);
+				GLSL_SetBindlessTexture(shader, UNIFORM_STEEPMAP1, &tr.waterNormalImage[0], 0);
+
+				if (WATER_USE_OCEAN > 0.0)
+				{
+					// Ocean waves...
+					GLSL_SetBindlessTexture(shader, UNIFORM_STEEPMAP2, &tr.waterHeightImage[1], 0);
+					GLSL_SetBindlessTexture(shader, UNIFORM_STEEPMAP3, &tr.waterNormalImage[1], 0);
+				}
+			}
+#endif //__USE_WATER_MAPS__
+
 			GLSL_BindlessUpdate(shader);
 		}
 		else
@@ -2380,14 +2400,36 @@ void RB_WaterPost(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 			GLSL_SetUniformInt(shader, UNIFORM_HEIGHTMAP, TB_HEIGHTMAP);
 			GL_BindToTMU(tr.waterHeightMapImage, TB_HEIGHTMAP);
 
-			GLSL_SetUniformInt(shader, UNIFORM_SKYCUBEMAP, TB_SKYCUBEMAP);
-			GL_BindToTMU(tr.skyCubeMap, TB_SKYCUBEMAP);
+			//GLSL_SetUniformInt(shader, UNIFORM_SKYCUBEMAP, TB_SKYCUBEMAP);
+			//GL_BindToTMU(tr.skyCubeMap, TB_SKYCUBEMAP);
 
-			GLSL_SetUniformInt(shader, UNIFORM_SKYCUBEMAPNIGHT, TB_SKYCUBEMAPNIGHT);
-			GL_BindToTMU(tr.skyCubeMapNight, TB_SKYCUBEMAPNIGHT);
+			//GLSL_SetUniformInt(shader, UNIFORM_SKYCUBEMAPNIGHT, TB_SKYCUBEMAPNIGHT);
+			//GL_BindToTMU(tr.skyCubeMapNight, TB_SKYCUBEMAPNIGHT);
 
 			GLSL_SetUniformInt(shader, UNIFORM_EMISSIVECUBE, TB_EMISSIVECUBE);
 			GL_BindToTMU(tr.waterReflectionRenderImage, TB_EMISSIVECUBE);
+
+#ifdef __USE_WATER_MAPS__
+			if (!WATER_ALTERNATIVE_METHOD)
+			{
+				// Lake waves...
+				GLSL_SetUniformInt(shader, UNIFORM_STEEPMAP, TB_STEEPMAP);
+				GL_BindToTMU(tr.waterHeightImage[0], TB_STEEPMAP);
+
+				GLSL_SetUniformInt(shader, UNIFORM_STEEPMAP1, TB_STEEPMAP1);
+				GL_BindToTMU(tr.waterNormalImage[0], TB_STEEPMAP1);
+
+				if (WATER_USE_OCEAN > 0.0)
+				{
+					// Ocean waves...
+					GLSL_SetUniformInt(shader, UNIFORM_STEEPMAP2, TB_STEEPMAP2);
+					GL_BindToTMU(tr.waterHeightImage[1], TB_STEEPMAP2);
+
+					GLSL_SetUniformInt(shader, UNIFORM_STEEPMAP3, TB_STEEPMAP3);
+					GL_BindToTMU(tr.waterNormalImage[1], TB_STEEPMAP3);
+				}
+			}
+#endif //__USE_WATER_MAPS__
 		}
 
 		GLSL_SetUniformVec3(shader, UNIFORM_VIEWORIGIN, backEnd.refdef.vieworg);
@@ -2758,21 +2800,21 @@ extern qboolean		MATERIAL_SPECULAR_CHANGED;
 extern float		MATERIAL_SPECULAR_STRENGTHS[MATERIAL_LAST];
 extern float		MATERIAL_SPECULAR_REFLECTIVENESS[MATERIAL_LAST];
 
-int					NUM_CURRENT_EMISSIVE_LIGHTS = 0;
+int					NUM_CURRENT_DRAW_DLIGHTS = 0;
 
 extern float		DYNAMIC_WEATHER_PUDDLE_STRENGTH;
 
 extern float		DISPLACEMENT_MAPPING_STRENGTH;
 
-extern int			NUM_CLOSE_LIGHTS;
-extern int			CLOSEST_LIGHTS[MAX_DEFERRED_LIGHTS];
-extern vec2_t		CLOSEST_LIGHTS_SCREEN_POSITIONS[MAX_DEFERRED_LIGHTS];
-extern vec3_t		CLOSEST_LIGHTS_POSITIONS[MAX_DEFERRED_LIGHTS];
-extern float		CLOSEST_LIGHTS_RADIUS[MAX_DEFERRED_LIGHTS];
-extern float		CLOSEST_LIGHTS_HEIGHTSCALES[MAX_DEFERRED_LIGHTS];
-extern vec3_t		CLOSEST_LIGHTS_COLORS[MAX_DEFERRED_LIGHTS];
-extern float		CLOSEST_LIGHTS_CONEANGLES[MAX_DEFERRED_LIGHTS];
-extern vec3_t		CLOSEST_LIGHTS_CONEDIRECTIONS[MAX_DEFERRED_LIGHTS];
+extern int			CURRENT_DRAW_DLIGHTS_COUNT;
+extern int			CURRENT_DRAW_DLIGHTS_IDS[MAX_DEFERRED_LIGHTS];
+extern vec2_t		CURRENT_DRAW_DLIGHTS_SCREEN_POSITIONS[MAX_DEFERRED_LIGHTS];
+extern vec3_t		CURRENT_DRAW_DLIGHTS_POSITIONS[MAX_DEFERRED_LIGHTS];
+extern float		CURRENT_DRAW_DLIGHTS_RADIUS[MAX_DEFERRED_LIGHTS];
+extern float		CURRENT_DRAW_DLIGHTS_HEIGHTSCALES[MAX_DEFERRED_LIGHTS];
+extern vec3_t		CURRENT_DRAW_DLIGHTS_COLORS[MAX_DEFERRED_LIGHTS];
+extern float		CURRENT_DRAW_DLIGHTS_CONEANGLES[MAX_DEFERRED_LIGHTS];
+extern vec3_t		CURRENT_DRAW_DLIGHTS_CONEDIRECTIONS[MAX_DEFERRED_LIGHTS];
 
 qboolean			DEFERRED_LIGHT_HAVE_CONEANGLES = qfalse;
 
@@ -2841,15 +2883,15 @@ void RB_FastLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBo
 
 
 	{
-		NUM_CURRENT_EMISSIVE_LIGHTS = r_lowQualityMode->integer ? min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, 8.0)) : min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, MAX_DEFERRED_LIGHTS));
+		NUM_CURRENT_DRAW_DLIGHTS = r_lowQualityMode->integer ? min(CURRENT_DRAW_DLIGHTS_COUNT, min(r_maxDeferredLights->integer, 8.0)) : min(CURRENT_DRAW_DLIGHTS_COUNT, min(r_maxDeferredLights->integer, MAX_DEFERRED_LIGHTS));
 
 		float maxDist = 0.0;
 
-		if (NUM_CURRENT_EMISSIVE_LIGHTS >= r_maxDeferredLights->integer / 2)
+		if (NUM_CURRENT_DRAW_DLIGHTS >= r_maxDeferredLights->integer / 2)
 		{
-			for (int i = 0; i < NUM_CURRENT_EMISSIVE_LIGHTS; i++)
+			for (int i = 0; i < NUM_CURRENT_DRAW_DLIGHTS; i++)
 			{
-				float dist = Distance(backEnd.refdef.vieworg, CLOSEST_LIGHTS_POSITIONS[i]);
+				float dist = Distance(backEnd.refdef.vieworg, CURRENT_DRAW_DLIGHTS_POSITIONS[i]);
 				if (dist > maxDist)
 				{
 					maxDist = dist;
@@ -2857,11 +2899,11 @@ void RB_FastLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBo
 			}
 		}
 
-		GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, NUM_CURRENT_EMISSIVE_LIGHTS);
-		GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTPOSITIONS2, CLOSEST_LIGHTS_POSITIONS, NUM_CURRENT_EMISSIVE_LIGHTS);
-		GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTCOLORS, CLOSEST_LIGHTS_COLORS, NUM_CURRENT_EMISSIVE_LIGHTS);
-		GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHTDISTANCES, CLOSEST_LIGHTS_RADIUS, NUM_CURRENT_EMISSIVE_LIGHTS);
-		GLSL_SetUniformFloat(shader, UNIFORM_LIGHT_MAX_DISTANCE, (NUM_CURRENT_EMISSIVE_LIGHTS >= r_maxDeferredLights->integer / 2) ? maxDist : 8192.0);
+		GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, NUM_CURRENT_DRAW_DLIGHTS);
+		GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTPOSITIONS2, CURRENT_DRAW_DLIGHTS_POSITIONS, NUM_CURRENT_DRAW_DLIGHTS);
+		GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTCOLORS, CURRENT_DRAW_DLIGHTS_COLORS, NUM_CURRENT_DRAW_DLIGHTS);
+		GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHTDISTANCES, CURRENT_DRAW_DLIGHTS_RADIUS, NUM_CURRENT_DRAW_DLIGHTS);
+		GLSL_SetUniformFloat(shader, UNIFORM_LIGHT_MAX_DISTANCE, (NUM_CURRENT_DRAW_DLIGHTS >= r_maxDeferredLights->integer / 2) ? maxDist : 8192.0);
 	}
 
 
@@ -2954,6 +2996,9 @@ void RB_FastLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBo
 
 #ifdef __USE_MAP_EMMISSIVE_BLOCK__
 EmissiveLightBlock_t				EmissiveLightsBlock = { { 0 } };
+EmissiveLightBlock_t				EmissiveLightsBlockPrevious = { { 0 } };
+int									emissiveUpdateTime = 0.0;
+int									NUM_CURRENT_EMISSIVE_DRAW_LIGHTS = 0;
 #endif //__USE_MAP_EMMISSIVE_BLOCK__
 
 void GLSL_InitializeLights(shaderProgram_t *program)
@@ -2988,26 +3033,30 @@ void GLSL_InitializeLights(shaderProgram_t *program)
 		qglBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(EmissiveLightsBlock), &EmissiveLightsBlock, GL_DYNAMIC_COPY);
 		qglBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-		for (int i = 0; i < NUM_MAP_GLOW_LOCATIONS; i++)
-		{
-			EmissiveLightsBlock.lights[i].u_lightPositions2[0] = MAP_GLOW_LOCATIONS[i][0];
-			EmissiveLightsBlock.lights[i].u_lightPositions2[1] = MAP_GLOW_LOCATIONS[i][1];
-			EmissiveLightsBlock.lights[i].u_lightPositions2[2] = MAP_GLOW_LOCATIONS[i][2];
-			EmissiveLightsBlock.lights[i].u_lightPositions2[3] = MAP_GLOW_RADIUSES[i];
-
-			EmissiveLightsBlock.lights[i].u_lightColors[0] = MAP_GLOW_COLORS[i][0];
-			EmissiveLightsBlock.lights[i].u_lightColors[1] = MAP_GLOW_COLORS[i][1];
-			EmissiveLightsBlock.lights[i].u_lightColors[2] = MAP_GLOW_COLORS[i][2];
-			EmissiveLightsBlock.lights[i].u_lightColors[3] = 0;
-		}
-
-		qglBindBuffer(GL_SHADER_STORAGE_BUFFER, program->EmissiveLightsBlockSSBO);
-		LightBlock_t *p = (LightBlock_t *)qglMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
-		memcpy(p, &EmissiveLightsBlock, sizeof(EmissiveLightsBlock));
-		qglUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+		qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, program->EmissiveLightsBindingPoint, program->EmissiveLightsBlockSSBO);
 	}
 #endif //__USE_MAP_EMMISSIVE_BLOCK__
 }
+
+#ifdef __USE_MAP_EMMISSIVE_BLOCK__
+static int EmissiveLightCompare(const void *a, const void *b)
+{
+	Lights_t   *aa = (Lights_t *)a;
+	Lights_t   *bb = (Lights_t *)b;
+	
+	if (Distance(aa->u_lightPositions2, backEnd.refdef.vieworg) > Distance(bb->u_lightPositions2, backEnd.refdef.vieworg))
+	{
+		return 1;
+	}
+
+	if (Distance(aa->u_lightPositions2, backEnd.refdef.vieworg) < Distance(bb->u_lightPositions2, backEnd.refdef.vieworg))
+	{
+		return -1;
+	}
+
+	return 0;
+}
+#endif //__USE_MAP_EMMISSIVE_BLOCK__
 
 extern qboolean ALLOW_GL_430;
 
@@ -3324,96 +3373,262 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 #endif //__REALTIME_CUBEMAP__
 
 	{
-		NUM_CURRENT_EMISSIVE_LIGHTS = r_lowQualityMode->integer ? min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, 8.0)) : min(NUM_CLOSE_LIGHTS, min(r_maxDeferredLights->integer, MAX_DEFERRED_LIGHTS));
+		NUM_CURRENT_DRAW_DLIGHTS = r_lowQualityMode->integer ? min(CURRENT_DRAW_DLIGHTS_COUNT, min(r_maxDeferredLights->integer, 8.0)) : min(CURRENT_DRAW_DLIGHTS_COUNT, min(r_maxDeferredLights->integer, MAX_DEFERRED_LIGHTS));
 
 		float maxDist = 8192.0;
 
-		if (NUM_CURRENT_EMISSIVE_LIGHTS > 0)
+		if (ALLOW_GL_430)
 		{
-			if (NUM_CURRENT_EMISSIVE_LIGHTS >= r_maxDeferredLights->integer / 2)
+			// Make sure the UBO buffer is set up...
+			GLSL_InitializeLights(shader);
+
+			if (NUM_CURRENT_DRAW_DLIGHTS > 0)
 			{
-				for (int i = 0; i < NUM_CURRENT_EMISSIVE_LIGHTS; i++)
+				if (NUM_CURRENT_DRAW_DLIGHTS >= r_maxDeferredLights->integer / 2)
 				{
-					float dist = Distance(backEnd.refdef.vieworg, CLOSEST_LIGHTS_POSITIONS[i]);
-					if (dist > maxDist)
+					for (int i = 0; i < NUM_CURRENT_DRAW_DLIGHTS; i++)
 					{
-						maxDist = dist;
+						float dist = Distance(backEnd.refdef.vieworg, CURRENT_DRAW_DLIGHTS_POSITIONS[i]);
+						if (dist > maxDist)
+						{
+							maxDist = dist;
+						}
 					}
 				}
-			}
 
-			/*DEFERRED_LIGHT_HAVE_CONEANGLES = qfalse;
+				/*DEFERRED_LIGHT_HAVE_CONEANGLES = qfalse;
 
-			for (int i = 0; i < NUM_CURRENT_EMISSIVE_LIGHTS; i++)
-			{
-				if (CLOSEST_LIGHTS_CONEANGLES[i] != 0.0)
+				for (int i = 0; i < NUM_CURRENT_DRAW_DLIGHTS; i++)
 				{
-					DEFERRED_LIGHT_HAVE_CONEANGLES = qtrue;
-					break;
-				}
-			}*/
-
-			if (ALLOW_GL_430)
-			{
-				// Make sure the UBO buffer is set up...
-				GLSL_InitializeLights(shader);
-
-				GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, NUM_CURRENT_EMISSIVE_LIGHTS);
+					if (CURRENT_DRAW_DLIGHTS_CONEANGLES[i] != 0.0)
+					{
+						DEFERRED_LIGHT_HAVE_CONEANGLES = qtrue;
+						break;
+					}
+				}*/
 
 				// Update our struct's data...
 				float maxDistance = maxDist;
 
-				for (int i = 0; i < NUM_CURRENT_EMISSIVE_LIGHTS; i++)
+				for (int i = 0; i < NUM_CURRENT_DRAW_DLIGHTS; i++)
 				{
-					shader->LightsBlock.lights[i].u_lightPositions2[0] = CLOSEST_LIGHTS_POSITIONS[i][0];
-					shader->LightsBlock.lights[i].u_lightPositions2[1] = CLOSEST_LIGHTS_POSITIONS[i][1];
-					shader->LightsBlock.lights[i].u_lightPositions2[2] = CLOSEST_LIGHTS_POSITIONS[i][2];
-					shader->LightsBlock.lights[i].u_lightPositions2[3] = CLOSEST_LIGHTS_RADIUS[i];
+					shader->LightsBlock.lights[i].u_lightPositions2[0] = CURRENT_DRAW_DLIGHTS_POSITIONS[i][0];
+					shader->LightsBlock.lights[i].u_lightPositions2[1] = CURRENT_DRAW_DLIGHTS_POSITIONS[i][1];
+					shader->LightsBlock.lights[i].u_lightPositions2[2] = CURRENT_DRAW_DLIGHTS_POSITIONS[i][2];
+					shader->LightsBlock.lights[i].u_lightPositions2[3] = CURRENT_DRAW_DLIGHTS_RADIUS[i];
 
-					shader->LightsBlock.lights[i].u_lightColors[0] = CLOSEST_LIGHTS_COLORS[i][0];
-					shader->LightsBlock.lights[i].u_lightColors[1] = CLOSEST_LIGHTS_COLORS[i][1];
-					shader->LightsBlock.lights[i].u_lightColors[2] = CLOSEST_LIGHTS_COLORS[i][2];
+					shader->LightsBlock.lights[i].u_lightColors[0] = CURRENT_DRAW_DLIGHTS_COLORS[i][0];
+					shader->LightsBlock.lights[i].u_lightColors[1] = CURRENT_DRAW_DLIGHTS_COLORS[i][1];
+					shader->LightsBlock.lights[i].u_lightColors[2] = CURRENT_DRAW_DLIGHTS_COLORS[i][2];
 					shader->LightsBlock.lights[i].u_lightColors[3] = maxDistance;
+
+					VectorClear(shader->LightsBlock.lights[i].u_coneDirection);
+					shader->LightsBlock.lights[i].u_coneDirection[3] = 0.0;
 				}
 
 				// Send new data to shader, if it has changed...
 				if (memcmp(&shader->LightsBlock, &shader->LightsBlockPrevious, sizeof(shader->LightsBlock)) != 0)
 				{
 					qglBindBuffer(GL_SHADER_STORAGE_BUFFER, shader->LightsBlockSSBO);
-					qglBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(Lights_t) * NUM_CURRENT_EMISSIVE_LIGHTS, &shader->LightsBlock);
+					qglBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(Lights_t) * NUM_CURRENT_DRAW_DLIGHTS, &shader->LightsBlock);
 					memcpy(&shader->LightsBlockPrevious, &shader->LightsBlock, sizeof(shader->LightsBlock));
 				}
 
+				GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, NUM_CURRENT_DRAW_DLIGHTS);
 				//qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, shader->LightsBindingPoint, shader->LightsBlockSSBO);
-#ifdef __USE_MAP_EMMISSIVE_BLOCK__
-				GLSL_SetUniformInt(shader, UNIFORM_EMISSIVELIGHTCOUNT, NUM_MAP_GLOW_LOCATIONS);
-				qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, shader->EmissiveLightsBindingPoint, shader->EmissiveLightsBlockSSBO);
-#endif //__USE_MAP_EMMISSIVE_BLOCK__
 			}
 			else
-			{// Pathetic hardware...
-				GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, NUM_CURRENT_EMISSIVE_LIGHTS);
-				GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTPOSITIONS2, CLOSEST_LIGHTS_POSITIONS, NUM_CURRENT_EMISSIVE_LIGHTS);
-				GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTCOLORS, CLOSEST_LIGHTS_COLORS, NUM_CURRENT_EMISSIVE_LIGHTS);
-				GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHTDISTANCES, CLOSEST_LIGHTS_RADIUS, NUM_CURRENT_EMISSIVE_LIGHTS);
-				GLSL_SetUniformFloat(shader, UNIFORM_LIGHT_MAX_DISTANCE, (NUM_CURRENT_EMISSIVE_LIGHTS >= r_maxDeferredLights->integer / 2) ? maxDist : 8192.0);
+			{
+				GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, 0);
 			}
+
+#ifdef __USE_MAP_EMMISSIVE_BLOCK__
+			if (MAP_EMISSIVE_LIGHT_COUNT > 0)
+			{
+#if 1
+				// Only use lights in draw range... Hope I don't have the need to sort these due to too many in range, will see...
+				if (backEnd.refdef.time >= emissiveUpdateTime)
+				{
+					int OLD_NUM_LIGHTS = NUM_CURRENT_EMISSIVE_DRAW_LIGHTS;
+					NUM_CURRENT_EMISSIVE_DRAW_LIGHTS = 0;
+
+#if 0
+					for (int i = 0; i < MAP_EMISSIVE_LIGHT_COUNT; i++)
+					{
+						if (Distance(backEnd.refdef.vieworg, MAP_EMISSIVE_LIGHT_LOCATIONS[i]) <= MAX_DEFERRED_LIGHT_RANGE + MAP_EMISSIVE_LIGHT_RADIUSES[i])
+						{
+							EmissiveLightsBlock.lights[NUM_CURRENT_EMISSIVE_DRAW_LIGHTS].u_lightPositions2[0] = MAP_EMISSIVE_LIGHT_LOCATIONS[i][0];
+							EmissiveLightsBlock.lights[NUM_CURRENT_EMISSIVE_DRAW_LIGHTS].u_lightPositions2[1] = MAP_EMISSIVE_LIGHT_LOCATIONS[i][1];
+							EmissiveLightsBlock.lights[NUM_CURRENT_EMISSIVE_DRAW_LIGHTS].u_lightPositions2[2] = MAP_EMISSIVE_LIGHT_LOCATIONS[i][2];
+							EmissiveLightsBlock.lights[NUM_CURRENT_EMISSIVE_DRAW_LIGHTS].u_lightPositions2[3] = MAP_EMISSIVE_LIGHT_RADIUSES[i];
+
+							EmissiveLightsBlock.lights[NUM_CURRENT_EMISSIVE_DRAW_LIGHTS].u_lightColors[0] = MAP_EMISSIVE_LIGHT_COLORS[i][0];
+							EmissiveLightsBlock.lights[NUM_CURRENT_EMISSIVE_DRAW_LIGHTS].u_lightColors[1] = MAP_EMISSIVE_LIGHT_COLORS[i][1];
+							EmissiveLightsBlock.lights[NUM_CURRENT_EMISSIVE_DRAW_LIGHTS].u_lightColors[2] = MAP_EMISSIVE_LIGHT_COLORS[i][2];
+							EmissiveLightsBlock.lights[NUM_CURRENT_EMISSIVE_DRAW_LIGHTS].u_lightColors[3] = 0;
+
+							VectorCopy(MAP_EMISSIVE_LIGHT_CONEDIRECTION[i], EmissiveLightsBlock.lights[NUM_CURRENT_EMISSIVE_DRAW_LIGHTS].u_coneDirection);
+							EmissiveLightsBlock.lights[NUM_CURRENT_EMISSIVE_DRAW_LIGHTS].u_coneAngle = MAP_EMISSIVE_LIGHT_CONEANGLE[i];
+
+							NUM_CURRENT_EMISSIVE_DRAW_LIGHTS++;
+						}
+					}
+#else
+					float tempLightDistances[MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS];
+
+					for (int i = 0; i < MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS; i++)
+					{
+						tempLightDistances[i] = MAX_DEFERRED_LIGHT_RANGE + 1.0;
+					}
+
+					for (int i = 0; i < MAP_EMISSIVE_LIGHT_COUNT; i++)
+					{
+						float dist = Q_max(Distance(backEnd.refdef.vieworg, MAP_EMISSIVE_LIGHT_LOCATIONS[i]) - MAP_EMISSIVE_LIGHT_RADIUSES[i], 0.0);
+
+						if (dist <= MAX_DEFERRED_LIGHT_RANGE)
+						{
+							if (NUM_CURRENT_EMISSIVE_DRAW_LIGHTS < MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS)
+							{// Just add it...
+								/*if (r_testvalue0->integer >= 1)
+								{
+									ri->Printf(PRINT_ALL, "Add light %i (dist %f).\n", NUM_CURRENT_EMISSIVE_DRAW_LIGHTS, dist);
+								}*/
+
+								EmissiveLightsBlock.lights[NUM_CURRENT_EMISSIVE_DRAW_LIGHTS].u_lightPositions2[0] = MAP_EMISSIVE_LIGHT_LOCATIONS[i][0];
+								EmissiveLightsBlock.lights[NUM_CURRENT_EMISSIVE_DRAW_LIGHTS].u_lightPositions2[1] = MAP_EMISSIVE_LIGHT_LOCATIONS[i][1];
+								EmissiveLightsBlock.lights[NUM_CURRENT_EMISSIVE_DRAW_LIGHTS].u_lightPositions2[2] = MAP_EMISSIVE_LIGHT_LOCATIONS[i][2];
+								EmissiveLightsBlock.lights[NUM_CURRENT_EMISSIVE_DRAW_LIGHTS].u_lightPositions2[3] = MAP_EMISSIVE_LIGHT_RADIUSES[i];
+
+								EmissiveLightsBlock.lights[NUM_CURRENT_EMISSIVE_DRAW_LIGHTS].u_lightColors[0] = MAP_EMISSIVE_LIGHT_COLORS[i][0];
+								EmissiveLightsBlock.lights[NUM_CURRENT_EMISSIVE_DRAW_LIGHTS].u_lightColors[1] = MAP_EMISSIVE_LIGHT_COLORS[i][1];
+								EmissiveLightsBlock.lights[NUM_CURRENT_EMISSIVE_DRAW_LIGHTS].u_lightColors[2] = MAP_EMISSIVE_LIGHT_COLORS[i][2];
+								EmissiveLightsBlock.lights[NUM_CURRENT_EMISSIVE_DRAW_LIGHTS].u_lightColors[3] = 0;
+
+								VectorCopy(MAP_EMISSIVE_LIGHT_CONEDIRECTION[i], EmissiveLightsBlock.lights[NUM_CURRENT_EMISSIVE_DRAW_LIGHTS].u_coneDirection);
+								EmissiveLightsBlock.lights[NUM_CURRENT_EMISSIVE_DRAW_LIGHTS].u_coneDirection[3] = MAP_EMISSIVE_LIGHT_CONEANGLE[i];
+
+								tempLightDistances[NUM_CURRENT_EMISSIVE_DRAW_LIGHTS] = dist;
+
+								NUM_CURRENT_EMISSIVE_DRAW_LIGHTS++;
+							}
+							else
+							{// Find the best one to replace...
+								int bestReplace = -1;
+								float bestDist = -1.0;
+
+								for (int j = 0; j < MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS; j++)
+								{
+									if (dist < tempLightDistances[j] && tempLightDistances[j] > bestDist)
+									{// We have a candidate...
+										bestReplace = j;
+										bestDist = tempLightDistances[j];
+									}
+								}
+
+								if (bestReplace != -1)
+								{// Replace this one in the final list...
+									/*if (r_testvalue0->integer >= 1)
+									{
+										ri->Printf(PRINT_ALL, "Replace light %i (dist %f) with light %i (dist %f).\n", bestReplace, bestDist, i, dist);
+									}*/
+
+									EmissiveLightsBlock.lights[bestReplace].u_lightPositions2[0] = MAP_EMISSIVE_LIGHT_LOCATIONS[i][0];
+									EmissiveLightsBlock.lights[bestReplace].u_lightPositions2[1] = MAP_EMISSIVE_LIGHT_LOCATIONS[i][1];
+									EmissiveLightsBlock.lights[bestReplace].u_lightPositions2[2] = MAP_EMISSIVE_LIGHT_LOCATIONS[i][2];
+									EmissiveLightsBlock.lights[bestReplace].u_lightPositions2[3] = MAP_EMISSIVE_LIGHT_RADIUSES[i];
+
+									EmissiveLightsBlock.lights[bestReplace].u_lightColors[0] = MAP_EMISSIVE_LIGHT_COLORS[i][0];
+									EmissiveLightsBlock.lights[bestReplace].u_lightColors[1] = MAP_EMISSIVE_LIGHT_COLORS[i][1];
+									EmissiveLightsBlock.lights[bestReplace].u_lightColors[2] = MAP_EMISSIVE_LIGHT_COLORS[i][2];
+									EmissiveLightsBlock.lights[bestReplace].u_lightColors[3] = 0;
+
+									VectorCopy(MAP_EMISSIVE_LIGHT_CONEDIRECTION[i], EmissiveLightsBlock.lights[bestReplace].u_coneDirection);
+									EmissiveLightsBlock.lights[bestReplace].u_coneDirection[3] = MAP_EMISSIVE_LIGHT_CONEANGLE[i];
+
+									tempLightDistances[bestReplace] = dist;
+								}
+							}
+						}
+					}
+
+					// Sort by distance, so we can fade the furthest ones, and stop the "popping"...
+					std::qsort(&EmissiveLightsBlock.lights, NUM_CURRENT_EMISSIVE_DRAW_LIGHTS, sizeof(Lights_t), EmissiveLightCompare);
+
+					/*if (r_testvalue0->integer >= 1)
+					{
+						ri->Printf(PRINT_ALL, "Final %i Lights:\n");
+
+						for (int i = 0; i < NUM_CURRENT_EMISSIVE_DRAW_LIGHTS; i++)
+						{
+							ri->Printf(PRINT_ALL, "  %i - distance: %f.\n", i, Distance(EmissiveLightsBlock.lights[i].u_lightPositions2, backEnd.refdef.vieworg));
+						}
+					}*/
+#endif
+
+					// Send new data to shader, if it has changed...
+					if (NUM_CURRENT_EMISSIVE_DRAW_LIGHTS != OLD_NUM_LIGHTS || memcmp(&EmissiveLightsBlock, &EmissiveLightsBlockPrevious, sizeof(EmissiveLightsBlock)) != 0)
+					{
+						qglBindBuffer(GL_SHADER_STORAGE_BUFFER, shader->EmissiveLightsBlockSSBO);
+						qglBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(Lights_t) * NUM_CURRENT_EMISSIVE_DRAW_LIGHTS, &EmissiveLightsBlock);
+						memcpy(&EmissiveLightsBlockPrevious, &EmissiveLightsBlock, sizeof(EmissiveLightsBlock));
+					}
+
+					if (r_debugEmissiveLights->integer >= 2)
+					{
+						ri->Printf(PRINT_ALL, "Currently drawing %i emissive lights.\n", NUM_CURRENT_EMISSIVE_DRAW_LIGHTS);
+					}
+
+					emissiveUpdateTime = backEnd.refdef.time + 100; // update every 100 msec???
+				}
+
+				GLSL_SetUniformInt(shader, UNIFORM_EMISSIVELIGHTCOUNT, NUM_CURRENT_EMISSIVE_DRAW_LIGHTS);
+				//qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, shader->EmissiveLightsBindingPoint, shader->EmissiveLightsBlockSSBO);
+			}
+			else
+			{
+				GLSL_SetUniformInt(shader, UNIFORM_EMISSIVELIGHTCOUNT, 0);
+			}
+#else
+			GLSL_SetUniformInt(shader, UNIFORM_EMISSIVELIGHTCOUNT, MAP_EMISSIVE_LIGHT_COUNT);
+			qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, shader->EmissiveLightsBindingPoint, shader->EmissiveLightsBlockSSBO);
+#endif
+#endif //__USE_MAP_EMMISSIVE_BLOCK__
 		}
 		else
-		{
-			if (ALLOW_GL_430)
+		{// Pathetic hardware...
+			if (NUM_CURRENT_DRAW_DLIGHTS > 0)
 			{
-				// Make sure the UBO buffer is set up...
-				GLSL_InitializeLights(shader);
+				if (NUM_CURRENT_DRAW_DLIGHTS >= r_maxDeferredLights->integer / 2)
+				{
+					for (int i = 0; i < NUM_CURRENT_DRAW_DLIGHTS; i++)
+					{
+						float dist = Distance(backEnd.refdef.vieworg, CURRENT_DRAW_DLIGHTS_POSITIONS[i]);
+						if (dist > maxDist)
+						{
+							maxDist = dist;
+						}
+					}
+				}
 
-				GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, 0);
-#ifdef __USE_MAP_EMMISSIVE_BLOCK__
-				GLSL_SetUniformInt(shader, UNIFORM_EMISSIVELIGHTCOUNT, NUM_MAP_GLOW_LOCATIONS);
-				qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, shader->EmissiveLightsBindingPoint, shader->EmissiveLightsBlockSSBO);
-#endif //__USE_MAP_EMMISSIVE_BLOCK__
+				/*DEFERRED_LIGHT_HAVE_CONEANGLES = qfalse;
+
+				for (int i = 0; i < NUM_CURRENT_DRAW_DLIGHTS; i++)
+				{
+					if (CURRENT_DRAW_DLIGHTS_CONEANGLES[i] != 0.0)
+					{
+						DEFERRED_LIGHT_HAVE_CONEANGLES = qtrue;
+						break;
+					}
+				}*/
+
+				GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, NUM_CURRENT_DRAW_DLIGHTS);
+				GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTPOSITIONS2, CURRENT_DRAW_DLIGHTS_POSITIONS, NUM_CURRENT_DRAW_DLIGHTS);
+				GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTCOLORS, CURRENT_DRAW_DLIGHTS_COLORS, NUM_CURRENT_DRAW_DLIGHTS);
+				GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHTDISTANCES, CURRENT_DRAW_DLIGHTS_RADIUS, NUM_CURRENT_DRAW_DLIGHTS);
+				GLSL_SetUniformFloat(shader, UNIFORM_LIGHT_MAX_DISTANCE, (NUM_CURRENT_DRAW_DLIGHTS >= r_maxDeferredLights->integer / 2) ? maxDist : 8192.0);
 			}
 			else
-			{// Pathetic hardware...
+			{
 				GLSL_SetUniformInt(shader, UNIFORM_LIGHTCOUNT, 0);
 			}
 		}
@@ -3474,8 +3689,12 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 	VectorSet4(local3, r_testshaderValue1->value, r_testshaderValue2->value, r_testshaderValue3->value, r_testshaderValue4->value);
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL3, local3);
 
+	vec4_t local12;
+	VectorSet4(local12, r_testshaderValue5->value, r_testshaderValue6->value, r_testshaderValue7->value, r_testshaderValue8->value);
+	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL12, local12);
+
 	vec4_t local4;
-	VectorSet4(local4, /*DEFERRED_LIGHT_HAVE_CONEANGLES ? 1.0 :*/ 0.0, PROCEDURAL_SKY_ENABLED ? 1.0 : 0.0, MAP_HDR_MIN, MAP_HDR_MAX);
+	VectorSet4(local4, r_debugDrawEmissiveLights->integer, PROCEDURAL_SKY_ENABLED ? 1.0 : 0.0, MAP_HDR_MIN, MAP_HDR_MAX);
 	GLSL_SetUniformVec4(shader, UNIFORM_LOCAL4, local4);
 
 	vec4_t local5;

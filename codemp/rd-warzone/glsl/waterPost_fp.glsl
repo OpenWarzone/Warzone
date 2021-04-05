@@ -3,9 +3,12 @@
 #define FIX_WATER_DEPTH_ISSUES		// Use basic depth value for sky hits...
 //#define EXPERIMENTAL_WATERFALL	// Experimental waterfalls...
 #define EXPERIMENTAL_WATERFALL2	// Experimental waterfalls...
-//#define _DEBUG_
 //#define USE_LIGHTING				// Use lighting in this shader? trying to handle the lighting in deferredlight now instead.
 //#define USE_DETAILED_UNDERWATER		// Experimenting...
+
+//#define USE_WATER_MAPS				// TESTING: Use water wave maps instead of procedural noise waves...
+
+//#define _DEBUG_
 
 /*
 heightMap – height-map used for waves generation as described in the section “Modifying existing geometry”
@@ -72,14 +75,19 @@ uniform sampler2D							u_SplatMap3;			// foamMap 4
 
 uniform sampler2D							u_DetailMap;			// causics map
 
+uniform sampler2D							u_SteepMap;				// lake waterHeight
+uniform sampler2D							u_SteepMap1;			// lake waterNormals
+uniform sampler2D							u_SteepMap2;			// ocean waterHeight
+uniform sampler2D							u_SteepMap3;			// ocean waterNormals
+
 uniform sampler2D							u_HeightMap;			// map height map
 
 uniform sampler2D							u_WaterPositionMap;
 
 uniform sampler2D							u_EmissiveCubeMap;		// water reflection image... (not really a cube, just reusing using the uniform)
 
-uniform samplerCube							u_SkyCubeMap;
-uniform samplerCube							u_SkyCubeMapNight;
+//uniform samplerCube							u_SkyCubeMap;
+//uniform samplerCube							u_SkyCubeMapNight;
 #endif //defined(USE_BINDLESS_TEXTURES)
 
 uniform vec4								u_Mins;					// MAP_MINS[0], MAP_MINS[1], MAP_MINS[2], 0.0
@@ -173,7 +181,7 @@ const vec4 normalModifier =					vec4(1.0, 2.0, 4.0, 8.0);
 // Describes at what depth foam starts to fade out and
 // at what it is completely invisible. The third value is at
 // what height foam for waves appear (+ waterLevel).
-#define foamExistence						vec3(8.0, 50.0, waveHeight)
+#define foamExistence						vec3(8.0, waveHeight * 0.75, 0.0) // last one unused now
 
 const float sunScale =						3.0;
 
@@ -190,11 +198,11 @@ vec3 waterColorDeep =						u_Local3.rgb;
 vec3 extinction =							u_Local4.gba;
 
 // Water transparency along eye vector.
-const float visibility =					32.0;
+const float visibility =					4.0;//u_Local0.g;//32.0;
 
 // Increase this value to have more smaller waves.
 const vec2 scale =							vec2(0.002, 0.002);
-const float refractionScale =				0.005;
+const float refractionScale =				0.0;//0.005; // disabling for now, they look crappy...
 
 #define USE_OCEAN							u_Local10.b
 
@@ -327,6 +335,7 @@ vec4 GetFoamMap(vec3 m_vertPos)
 	vec4 splatColor2 = mix(tex2, tex3, y);
 
 	vec4 splatColor = mix(splatColor1, splatColor2, (x+y)*0.5);
+
 	return splatColor;
 }
 
@@ -385,6 +394,7 @@ vec4 positionMapAtCoord ( vec2 coord )
 	return texture(u_PositionMap, coord).xzyw;
 }
 
+/*
 vec4 waterMapLowerAtCoord ( vec2 coord )
 {
 	vec4 wmap = texture(u_WaterPositionMap, coord).xzyw;
@@ -395,6 +405,7 @@ vec4 waterMapLowerAtCoord ( vec2 coord )
 	wmap.y -= waveHeight;
 	return wmap;
 }
+*/
 
 vec4 waterMapUpperAtCoord ( vec2 coord )
 {
@@ -482,12 +493,6 @@ float dosun(vec3 ray, vec3 lightDir) {
 	return pow(max(0.0, dot(ray, lightDir)), 528.0);
 }
 
-// bteitler: diffuse lighting calculation - could be tweaked to taste
-// lighting
-float diffuse(vec3 n,vec3 l,float p) {
-    return pow(dot(n,l) * 0.4 + 0.6,p);
-}
-
 // bteitler: specular lighting calculation - could be tweaked taste
 float specular(vec3 n,vec3 l,vec3 e,float s) {    
     float nrm = (s + 8.0) / (3.1415 * 8.0);
@@ -518,7 +523,7 @@ vec3 getSeaColor(vec3 p, vec3 n, vec3 l, vec3 eye, vec3 dist, vec3 lightColor, v
     fresnel = pow(fresnel,3.0) * 0.45;
 
 	// bteitler: refraction effect based on angle between light surface normal
-	float d = diffuse(-n, l, 1.0);
+	float d = getdiffuse(-n, l, 1.0);
     //vec3 refr = SEA_BASE + pow(d, 60.0) * SEA_WATER_COLOR * 0.27 * lightColor; 
 	vec3 refr = SEA_BASE + pow(d, 60.0) * 0.15 * SEA_WATER_COLOR * lightColor;
         
@@ -530,7 +535,7 @@ vec3 getSeaColor(vec3 p, vec3 n, vec3 l, vec3 eye, vec3 dist, vec3 lightColor, v
     // bteitler: refraction effect based on angle between light surface normal
 	vec3 refCol = mix(SEA_BASE, refr, refrStr*waterClarity);
 	vec3 swCol = mix(SEA_WATER_COLOR, refr, refrStr*waterClarity);
-    vec3 refracted = refCol + diffuse(n, l, 80.0) * swCol * 0.27 * lightColor; 
+    vec3 refracted = refCol + getdiffuse(n, l, 80.0) * swCol * 0.27 * lightColor; 
     
     // bteitler: blend the refracted color with the reflected color based on our fresnel term
     vec3 color = mix(refracted, reflected, fresnel);
@@ -543,7 +548,7 @@ vec3 getSeaColor(vec3 p, vec3 n, vec3 l, vec3 eye, vec3 dist, vec3 lightColor, v
     // bteitler: Apply specular highlight
     color += vec3(specular(n, l, eye, 90.0)) * 0.5 * lightColor;
 
-	color += clamp(diffuse(n, -l, 40.0) * 0.333, 0.0, 1.0) * lightColor;
+	color += clamp(getdiffuse(n, -l, 40.0) * 0.333, 0.0, 1.0) * lightColor;
 
 	float dt = clamp(dot(n, -eye), 0.0, 1.0);
 	color += vec3(clamp(dt * 1.25, 0.0, 1.0)) * lightColor;
@@ -565,6 +570,7 @@ vec2 wavedrag(vec2 uv, vec2 emitter) {
 
 #define DRAG_MULT 4.0
 
+#ifndef USE_WATER_MAPS
 float getwavesfast(vec2 position) {
 	position *= 0.1;
 	float iter = 0.0;
@@ -619,7 +625,7 @@ float getwaves(vec2 position) {
 		position -= wavedrag(position, p) * (res - res2) * weight * DRAG_MULT;
 		
 		//w += res * weight;
-		w += pow(res * weight, 2.0) * 1.5;
+		w += pow(res * weight, 2.0);// * 1.5;
 
 		iter += 12.0;
 		ws += weight;
@@ -696,6 +702,77 @@ vec3 getNormalDetailed(in vec2 p, in float eps, out float height) {
     n.y = eps*0.25; 
     return normalize(n);
 }
+#else //!USE_WATER_MAPS
+
+float getwavesfast(vec2 position) {
+	//position *= 0.1;
+	float iter = 0.0;
+	float phase = 1.5;
+	float speed = 1.0;
+	float w = 0.0;
+	
+	vec2 p = vec2(sin(iter), cos(iter)) * 30.0;
+		
+	float res = wave(position, p, speed, phase, 0.0);
+
+	float res2;
+
+	if (USE_OCEAN > 0.0)
+	{
+		float height = texture(u_SteepMap2, ((position+res)*0.1) * 0.025).x;
+		//float heightb = texture(u_SteepMap, ((position+res)*0.1) * 0.025).x * 0.333;
+		//height = mix(height, heightb, 0.1);
+		res = mix(res, height, 0.25);
+
+		height = texture(u_SteepMap2, position*0.1 * 0.025).x;
+		//heightb = texture(u_SteepMap, position*0.1 * 0.025).x * 0.1;
+		//height = mix(height, heightb, 0.1);
+		res2 = res + height*0.15;
+	}
+	else
+	{
+		float height = texture(u_SteepMap, (position+res) * 0.025).x * 0.333;
+		res = mix(res, height, 0.25);
+
+		height = texture(u_SteepMap, position * 0.025).x * 0.1;
+		res2 = res + height*0.15;
+	}
+
+	position -= wavedrag(position, p) * (res - res2) * DRAG_MULT;
+		
+	w += pow(res, 2.0);// * 1.5;
+
+	return clamp(w, 0.0, 1.0);
+}
+
+vec3 getNormalDetailed(in vec2 p, in float eps, out float height) {
+	vec3 n;
+	vec2 p1 = p.xy;
+	vec2 p2 = vec2(p.x+eps, p.y);
+	vec2 p3 = vec2(p.x, p.y+eps);
+
+    n.y = getwavesfast(p1);
+	height = n.y;
+    n.x = getwavesfast(p2) - n.y;
+    n.z = getwavesfast(p3) - n.y;
+    n.y = eps*0.25; 
+    return normalize(n);
+}
+
+vec3 getNormalOcean(in vec2 p, in float eps, out float height) {
+	vec3 n;
+	vec2 p1 = p.xy;
+	vec2 p2 = vec2(p.x+eps, p.y);
+	vec2 p3 = vec2(p.x, p.y+eps);
+
+    n.y = getwavesfast(p1);
+	height = n.y;
+    n.x = getwavesfast(p2) - n.y;
+    n.z = getwavesfast(p3) - n.y;
+    n.y = eps*0.25; 
+    return normalize(n);
+}
+#endif //USE_WATER_MAPS
 
 void GetHeightAndNormal(in vec2 pos, in float e, in float depth, inout float height, inout float chopheight, inout vec3 waveNormal, inout vec3 lightingNormal, in vec3 eyeVecNorm, in float timer, in float level) {
 #if !defined(LQ_MODE) && defined(REAL_WAVES)
@@ -919,9 +996,8 @@ vec3 DoUnderwater(vec3 position, bool isSky)
 void main ( void )
 {
 	vec4 waterMapUpper = waterMapUpperAtCoord(var_TexCoords);
-	vec4 waterMapLower = waterMapUpper;
+	vec4 waterMapLower = waterMapUpper - (waveHeight * 0.6);
 	vec4 origWaterMapUpper = waterMapUpper;
-	waterMapLower.y -= waveHeight;
 	bool IS_UNDERWATER = false;
 	bool pixelIsInWaterRange = false;
 	bool pixelIsUnderWater = false;
@@ -954,7 +1030,7 @@ void main ( void )
 		{
 			if (IS_UNDERWATER)
 			{
-				position.xyz = waterMapLower.xyz;
+				position.xyz = waterMapUpper.xyz;//waterMapLower.xyz;
 				position.y += 1024.0;
 			}
 			else
@@ -1179,17 +1255,24 @@ void main ( void )
 		{
 			if (depth2 < foamExistence.x)
 			{
-				foam = GetFoamMap(origWaterMapUpper.xzy);
+				foam = GetFoamMap(surfacePoint.xzy/*origWaterMapUpper.xzy*/);
+
+				//if (depth2 < 2.0)
+				//{// Very close to beach, fade out for a smooth edge...
+				//	foam = mix(vec4(0.0), foam, depth2 / 2.0);
+				//}
 			}
 			else if (depth2 < foamExistence.y)
 			{
-				foam = mix(GetFoamMap(origWaterMapUpper.xzy), vec4(0.0), (depth2 - foamExistence.x) / (foamExistence.y - foamExistence.x));
+				float depthAboveX = depth2 - foamExistence.x;
+				float maxAboveX = foamExistence.y - foamExistence.x;
+				foam = mix(GetFoamMap(surfacePoint.xzy/*origWaterMapUpper.xzy*/), vec4(0.0), depthAboveX / maxAboveX);
 			}
 
-			if (waveHeight - foamExistence.z > 0.0001)
+			/*if (waveHeight - foamExistence.z > 0.0001)
 			{
 				foam += GetFoamMap(origWaterMapUpper.xzy + foamExistence.z) * clamp((level - (waterLevel + foamExistence.z)) / (waveHeight - foamExistence.z), 0.0, 1.0);
-			}
+			}*/
 		}
 #endif //!defined(LQ_MODE)
 		
@@ -1227,7 +1310,7 @@ void main ( void )
 		/*
 		// UQ1: Disabled because i cant be bothered fixing issues with it on the skybox right now...
 		vec3 caustic = color * GetCausicMap(vec3(positionMap.x, positionMap.z, (positionMap.z + level) / 16.0) / 3.0);
-		causicStrength *= 1.0 - clamp(length(foam.rgb * 3.0), 0.0, 1.0); // deduct roam strength from causics...
+		causicStrength *= 1.0 - clamp(length(foam.rgb * 3.0), 0.0, 1.0); // deduct foam strength from causics...
 		causicStrength *= 1.0 - clamp(height * 4.0, 0.0, 1.0); // deduct height from causics...
 		color = clamp(color + (caustic * causicStrength * 0.5), 0.0, 1.0);
 		*/
@@ -1239,9 +1322,8 @@ void main ( void )
 		}
 #endif //!defined(LQ_MODE)
 
-		color = mix(refraction, color, clamp(depth * shoreHardness, 0.0, 1.0));
+		//color = mix(refraction, color, clamp(depth * shoreHardness, 0.0, 1.0)); // refraction disabled atm
 		color = mix(color, color2, 1.0 - clamp(waterClarity2 * depth, 0.8, 1.0));
-
 
 		// add white caps...
 		float whiteCaps = pow(clamp(chopheight, 0.0, 1.0), 16.0);
@@ -1322,6 +1404,11 @@ void main ( void )
 				color = color2;
 		}
 
+		if (depth2 < 2.0)
+		{// Very close to beach, fade out for a smooth edge...
+			color = mix(color2, color, depth2 / 2.0);
+		}
+
 #ifdef _DEBUG_
 		if (u_Local0.r == 1.0)
 		{
@@ -1345,17 +1432,31 @@ void main ( void )
 		}
 		else if (u_Local0.r == 5.0)
 		{
-			gl_FragColor = vec4(fresnel, fresnel, fresnel, 1.0);
+			gl_FragColor = vec4(height, height, height, 1.0);
 			return;
 		}
-		/*else if (u_Local0.r == 6.0)
-		{
-			gl_FragColor = vec4(fresnel2.xyz, 1.0);
-			return;
-		}*/
 		else if (u_Local0.r == 6.0)
 		{
-			gl_FragColor = vec4(height, height, height, 1.0);
+			float hht = texture(u_SteepMap, position.xz * u_Local0.b).x;
+			gl_FragColor = vec4(hht, hht, hht, 1.0);
+			return;
+		}
+		else if (u_Local0.r == 7.0)
+		{
+			vec3 n = texture(u_SteepMap1, position.xz * u_Local0.b).xyz * 0.5 + 0.5;
+			gl_FragColor = vec4(n.x, n.y, n.z, 1.0);
+			return;
+		}
+		else if (u_Local0.r == 8.0)
+		{
+			float hht = texture(u_SteepMap2, position.xz * u_Local0.g).x;
+			gl_FragColor = vec4(hht, hht, hht, 1.0);
+			return;
+		}
+		else if (u_Local0.r == 9.0)
+		{
+			vec3 n = texture(u_SteepMap3, position.xz * u_Local0.g).xyz * 0.5 + 0.5;
+			gl_FragColor = vec4(n.x, n.y, n.z, 1.0);
 			return;
 		}
 #endif //_DEBUG_
