@@ -1738,6 +1738,9 @@ void main(void)
 			reflected = vec3(-reflected.y, -reflected.z, -reflected.x); // for old sky cubemap generation based on sky textures
 		}
 
+#ifdef _REALTIME_SKYCUBES_
+		skyColor = textureLod(u_SkyCubeMap, reflected, 4.0).rgb;
+#else //!_REALTIME_SKYCUBES_
 		if (NIGHT_SCALE > 0.0 && NIGHT_SCALE < 1.0)
 		{// Mix between night and day colors...
 			vec3 skyColorDay = textureLod(u_SkyCubeMap, reflected, 4.0).rgb;
@@ -1752,6 +1755,7 @@ void main(void)
 		{// Day only colors...
 			skyColor = textureLod(u_SkyCubeMap, reflected, 4.0).rgb;
 		}
+#endif //_REALTIME_SKYCUBES_
 
 		skyColor = clamp(ContrastSaturationBrightness(skyColor, 1.0, 2.0, 0.333), 0.0, 1.0);
 		skyColor = clamp(Vibrancy( skyColor, 0.4 ), 0.0, 1.0);
@@ -1781,14 +1785,13 @@ void main(void)
 			vec3 cubeLightColor = vec3(0.0);
 			float curDist = distance(u_ViewOrigin.xyz, position.xyz);
 			float cubeDist = distance(u_CubeMapInfo.xyz, position.xyz);
-			float cubeFade = (1.0 - clamp(curDist / CUBEMAP_CULLRANGE, 0.0, 1.0)) * (1.0 - clamp(cubeDist / CUBEMAP_CULLRANGE, 0.0, 1.0));
+			float cubeRadius = min(CUBEMAP_CULLRANGE, u_CubeMapInfo.w);
+			float cubeFade = min(1.0 - clamp(curDist / CUBEMAP_CULLRANGE, 0.0, 1.0), 1.0 - clamp(cubeDist / u_CubeMapInfo.w, 0.0, 1.0));
 			
 			// This used to be done in rend2 code, now done here because I need u_CubeMapInfo.xyz to be cube origin for distance checks above... u_CubeMapInfo.w is now radius.
 			vec4 cubeInfo = u_CubeMapInfo;
-			//cubeInfo.xyz -= u_ViewOrigin.xyz;
-			cubeInfo.xyz = vec3(0.0);
-
-			cubeInfo.w = curDist;//pow(distance(u_ViewOrigin.xyz, u_CubeMapInfo.xyz), 3.0);
+			cubeInfo.xyz = cubeInfo.xyz - u_ViewOrigin.xyz;
+			cubeInfo.w = cubeDist;
 
 			cubeInfo.xyz *= 1.0 / cubeInfo.w;
 			cubeInfo.w = 1.0 / cubeInfo.w;
@@ -1798,10 +1801,8 @@ void main(void)
 
 			if (cubeFade > 0.0)
 			{
-				cubeLightColor = textureLod(u_CubeMap, cubeRayDir + parallax, 7.0 - (cubeReflectionFactor * 7.0)).rgb;
-				cubeLightColor += texture(u_CubeMap, cubeRayDir + parallax).rgb;
-				cubeLightColor /= 2.0;
-				outColor.rgb = mix(outColor.rgb, outColor.rgb + cubeLightColor.rgb, clamp(NE * cubeFade * (u_CubeMapStrength * 20.0) * cubeReflectionFactor, 0.0, 1.0));
+				cubeLightColor = (textureLod(u_CubeMap, cubeRayDir + parallax, 7.0 - (cubeReflectionFactor * 7.0)).rgb + texture(u_CubeMap, cubeRayDir + parallax).rgb) * 0.5;
+				outColor.rgb = mix(outColor.rgb, outColor.rgb + cubeLightColor.rgb, clamp(NE * cubeFade * (u_CubeMapStrength /** 20.0*/) * cubeReflectionFactor, 0.0, 1.0));
 			}
 		}
 #endif //REALTIME_CUBEMAPS

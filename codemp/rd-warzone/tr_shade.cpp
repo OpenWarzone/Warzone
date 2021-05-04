@@ -2321,8 +2321,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			isSky = qtrue;
 		}
 	}
-	else if ((tr.viewParms.flags & VPF_CUBEMAP)
-		|| (tr.viewParms.flags & VPF_DEPTHSHADOW)
+	else if (/*(tr.viewParms.flags & VPF_CUBEMAP)
+		||*/ (tr.viewParms.flags & VPF_DEPTHSHADOW)
 		|| (tr.viewParms.flags & VPF_SHADOWPASS)
 		|| (tr.viewParms.flags & VPF_EMISSIVEMAP)
 		|| (tr.viewParms.flags & VPF_SKYCUBEDAY)
@@ -3105,7 +3105,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			sp = &tr.mistShader;
 			GLSL_BindProgram(sp);
 		}
-		else if ((IS_DEPTH_PASS || (tr.viewParms.flags & VPF_CUBEMAP))
+		else if ((IS_DEPTH_PASS /*|| (tr.viewParms.flags & VPF_CUBEMAP)*/)
 			&& !((tr.viewParms.flags & VPF_EMISSIVEMAP) && (pStage->glow || pStage->glowMapped)))
 		{
 			lightMapsDisabled = qtrue;

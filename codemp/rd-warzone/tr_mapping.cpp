@@ -543,7 +543,7 @@ void R_CreateBspMapImage(void)
 				qboolean	FOUND = qfalse;
 
 				VectorSet(pos, x, y, z);
-				VectorSet(down, x, y, -65536);
+				VectorSet(down, x, y, -1048576);
 
 				Mapping_Trace(&tr, pos, NULL, NULL, down, ENTITYNUM_NONE, /*MASK_ALL*/MASK_PLAYERSOLID | CONTENTS_WATER/*|CONTENTS_OPAQUE*/);
 
@@ -852,7 +852,7 @@ void R_CreateHeightMapImage(void)
 				qboolean	FOUND = qfalse;
 
 				VectorSet(pos, x, y, z);
-				VectorSet(down, x, y, -65536);
+				VectorSet(down, x, y, -1048576);
 
 				//if (HIT_WATER)
 					Mapping_Trace(&tr, pos, NULL, NULL, down, ENTITYNUM_NONE, MASK_PLAYERSOLID);
@@ -1013,7 +1013,7 @@ void R_CreateFoliageMapImage(void)
 				qboolean	FOUND = qfalse;
 
 				VectorSet(pos, x, y, z);
-				VectorSet(down, x, y, -65536);
+				VectorSet(down, x, y, -1048576);
 
 				Mapping_Trace(&tr, pos, NULL, NULL, down, ENTITYNUM_NONE, /*MASK_ALL*/MASK_PLAYERSOLID | CONTENTS_WATER/*|CONTENTS_OPAQUE*/);
 
@@ -1204,7 +1204,7 @@ void R_CreateRoadMapImage(void)
 				qboolean	FOUND = qfalse;
 
 				VectorSet(pos, x, y, z);
-				VectorSet(down, x, y, -65536);
+				VectorSet(down, x, y, -1048576);
 
 				Mapping_Trace(&tr, pos, NULL, NULL, down, ENTITYNUM_NONE, /*MASK_ALL*/MASK_PLAYERSOLID | CONTENTS_WATER/*|CONTENTS_OPAQUE*/);
 

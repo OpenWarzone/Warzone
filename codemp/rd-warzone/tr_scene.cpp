@@ -1315,6 +1315,13 @@ void RB_UpdateDebuggingInfo(void)
 }
 #endif //__DEBUG_BINDS__
 
+
+#ifdef __REALTIME_GENERATED_SKY_CUBES__
+int NEXT_SKYCUBE_RENDER = 0;
+
+extern void R_RenderSkyCubeSide(int cubemapSide, qboolean subscene, int flag /* VPF_SKYCUBEDAY, VPF_SKYCUBENIGHT*/);
+#endif //__REALTIME_GENERATED_SKY_CUBES__
+
 void RE_RenderScene(const refdef_t *fd) {
 	viewParms_t		parms;
 	int				startTime;
@@ -1494,6 +1501,24 @@ void RE_RenderScene(const refdef_t *fd) {
 			FBO_Bind(glState.previousFBO);
 		}
 	}
+
+#ifdef __REALTIME_GENERATED_SKY_CUBES__
+	if (!(fd->rdflags & RDF_NOWORLDMODEL) && !backEnd.depthFill)
+	{// Render new sky cubes on timer...
+		int nowTime = ri->Milliseconds();
+
+		if (nowTime >= NEXT_SKYCUBE_RENDER)
+		{// Timed updates for distant shadows, or forced by view change...
+			// Generate the sky cubemap this frame...
+			for (int j = 0; j < 6; j++)
+			{
+				R_RenderSkyCubeSide(j, qtrue, VPF_SKYCUBEDAY);
+			}
+
+			NEXT_SKYCUBE_RENDER = nowTime + 100;
+		}
+	}
+#endif //__REALTIME_GENERATED_SKY_CUBES__
 
 	// playing with cube maps
 	// this is where dynamic cubemaps would be rendered

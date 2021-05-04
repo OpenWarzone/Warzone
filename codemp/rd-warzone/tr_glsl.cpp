@@ -4213,6 +4213,10 @@ int GLSL_BeginLoadGPUShaders(void)
 		Q_strcat(extradefines, 1024, va("#define MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS %i\n", MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS));
 #endif //__USE_MAP_EMMISSIVE_BLOCK__
 
+#ifdef __REALTIME_GENERATED_SKY_CUBES__
+		Q_strcat(extradefines, 1024, "#define _REALTIME_SKYCUBES_\n");
+#endif //__REALTIME_GENERATED_SKY_CUBES__
+
 		if (!GLSL_BeginLoadGPUShader(&tr.deferredLightingShader[0], "deferredLighting0", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_deferredLighting_vp, fallbackShader_deferredLighting_fp, NULL, NULL, NULL))
 		{
 			ri->Error(ERR_FATAL, "Could not load deferredLighting0 shader!");
@@ -4250,6 +4254,10 @@ int GLSL_BeginLoadGPUShaders(void)
 		Q_strcat(extradefines, 1024, va("#define MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS %i\n", MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS));
 #endif //__USE_MAP_EMMISSIVE_BLOCK__
 
+#ifdef __REALTIME_GENERATED_SKY_CUBES__
+		Q_strcat(extradefines, 1024, "#define _REALTIME_SKYCUBES_\n");
+#endif //__REALTIME_GENERATED_SKY_CUBES__
+
 		if (!GLSL_BeginLoadGPUShader(&tr.deferredLightingShader[1], "deferredLighting1", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_deferredLighting_vp, fallbackShader_deferredLighting_fp, NULL, NULL, NULL))
 		{
 			ri->Error(ERR_FATAL, "Could not load deferredLighting1 shader!");
@@ -4284,6 +4292,10 @@ int GLSL_BeginLoadGPUShaders(void)
 		Q_strcat(extradefines, 1024, "#define _USE_MAP_EMMISSIVE_BLOCK_\n");
 		Q_strcat(extradefines, 1024, va("#define MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS %i\n", MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS));
 #endif //__USE_MAP_EMMISSIVE_BLOCK__
+
+#ifdef __REALTIME_GENERATED_SKY_CUBES__
+		Q_strcat(extradefines, 1024, "#define _REALTIME_SKYCUBES_\n");
+#endif //__REALTIME_GENERATED_SKY_CUBES__
 
 		if (!GLSL_BeginLoadGPUShader(&tr.deferredLightingShader[2], "deferredLighting2", attribs, qtrue, qfalse, qfalse, qtrue, extradefines, qtrue, NULL, fallbackShader_deferredLighting_vp, fallbackShader_deferredLighting_fp, NULL, NULL, NULL))
 		{

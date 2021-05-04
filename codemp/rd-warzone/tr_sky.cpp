@@ -466,17 +466,42 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 			extern float		DAY_NIGHT_24H_TIME;
 			extern float		DYNAMIC_WEATHER_PUDDLE_STRENGTH;
 
-			float dayNight24 = DAY_NIGHT_24H_TIME / 24.0;
+			bool renderingSkyCube = false;
 
+			if ((tr.viewParms.flags & VPF_SKYCUBEDAY) || (tr.viewParms.flags & VPF_SKYCUBENIGHT))
+			{
+				renderingSkyCube = true;
+			}
+
+			bool drawSkyCube = false;
+
+#ifdef __REALTIME_GENERATED_SKY_CUBES__
+			if (!renderingSkyCube)
+			{// Render new sky cubes on timer...
+				drawSkyCube = true;
+			}
+#endif //__REALTIME_GENERATED_SKY_CUBES__
+
+			float dayNight24 = DAY_NIGHT_24H_TIME / 24.0;
+			float nightScale = RB_NightScale();
+
+#ifndef __REALTIME_GENERATED_SKY_CUBES__
 			if (tr.viewParms.flags & VPF_SKYCUBEDAY)
+			{
 				dayNight24 = 12.0;
+				nightScale = 0.0;
+			}
 			else if (tr.viewParms.flags & VPF_SKYCUBENIGHT)
+			{
 				dayNight24 = 0.0;
+				nightScale = 1.0;
+			}
+#endif //__REALTIME_GENERATED_SKY_CUBES__
 
 			VectorSet4(vector, PROCEDURAL_SKY_ENABLED ? 1.0 : 0.0, dayNight24, PROCEDURAL_SKY_STAR_DENSITY, PROCEDURAL_SKY_NEBULA_SEED);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL1, vector); // 0.0, 0.0, 0.0, PROCEDURAL_SKY_NEBULA_SEED
 
-			VectorSet4(vector, PROCEDURAL_CLOUDS_ENABLED ? 1.0 : 0.0, DYNAMIC_WEATHER_CLOUDSCALE, DYNAMIC_WEATHER_CLOUDCOVER, 0.0);
+			VectorSet4(vector, PROCEDURAL_CLOUDS_ENABLED ? 1.0 : 0.0, DYNAMIC_WEATHER_CLOUDSCALE, DYNAMIC_WEATHER_CLOUDCOVER, drawSkyCube ? 1.0 : 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL2, vector);
 
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL3, PROCEDURAL_SKY_SUNSET_COLOR);
@@ -490,13 +515,6 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 				auroraEnabled = 2.0;
 			else if (AURORA_ENABLED)
 				auroraEnabled = 1.0;
-
-			float nightScale = RB_NightScale();
-			
-			if (tr.viewParms.flags & VPF_SKYCUBEDAY)
-				nightScale = 0.0;
-			else if (tr.viewParms.flags & VPF_SKYCUBENIGHT)
-				nightScale = 1.0;
 
 			VectorSet4(vector, DAY_NIGHT_CYCLE_ENABLED ? 1.0 : 0.0, nightScale, skyDirection, auroraEnabled);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL5, vector); // dayNightEnabled, nightScale, skyDirection, auroraEnabled
@@ -521,16 +539,23 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 			VectorSet4(vector, PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR2[0], PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR2[1], PROCEDURAL_BACKGROUND_HILLS_VEGETAION_COLOR2[2], 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL12, vector);
 
-			bool doingSkyCube = false;
-
-			if ((tr.viewParms.flags & VPF_SKYCUBEDAY) || (tr.viewParms.flags & VPF_SKYCUBENIGHT))
-			{
-				doingSkyCube = true;
-			}
-
-			VectorSet4(vector, AURORA_STRENGTH1, AURORA_STRENGTH2, DYNAMIC_WEATHER_PUDDLE_STRENGTH, doingSkyCube ? 1.0 : 0.0);
+			VectorSet4(vector, AURORA_STRENGTH1, AURORA_STRENGTH2, DYNAMIC_WEATHER_PUDDLE_STRENGTH, renderingSkyCube ? 1.0 : 0.0);
 			GLSL_SetUniformVec4(sp, UNIFORM_LOCAL13, vector);
 
+#ifdef __REALTIME_GENERATED_SKY_CUBES__
+			if (drawSkyCube)
+			{// Since we are drawing a pre-rendered cube, bind it...
+				if (sp->isBindless)
+				{
+					GLSL_SetBindlessTexture(sp, UNIFORM_SKYCUBEMAP, &tr.skyCubeMap, 0);
+				}
+				else
+				{
+					GLSL_SetUniformInt(sp, UNIFORM_SKYCUBEMAP, TB_SKYCUBEMAP);
+					GL_BindToTMU(tr.skyCubeMap, TB_SKYCUBEMAP);
+				}
+			}
+#endif //__REALTIME_GENERATED_SKY_CUBES__
 
 			if (MOON_INFO_CHANGED)
 			{
@@ -666,6 +691,7 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 
 		//vec3_t out;
 		
+#ifndef __REALTIME_GENERATED_SKY_CUBES__
 		if (tr.viewParms.flags & VPF_SKYCUBEDAY)
 		{
 			vec4_t sunDir;
@@ -679,6 +705,7 @@ static void DrawSkySide( struct image_s *image, struct image_s *nightImage, cons
 			GLSL_SetUniformVec4(sp, UNIFORM_PRIMARYLIGHTORIGIN, backEnd.refdef.sunDir);
 		}
 		else
+#endif //__REALTIME_GENERATED_SKY_CUBES__
 		{
 			GLSL_SetUniformVec4(sp, UNIFORM_PRIMARYLIGHTORIGIN, backEnd.refdef.sunDir);
 		}

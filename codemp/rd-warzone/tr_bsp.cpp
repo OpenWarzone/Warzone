@@ -5854,10 +5854,13 @@ static void R_SetupCubemapPoints( void )
 
 		w = s_worldData;
 
+#if 0
 		vec3_t scatter;
 		scatter[0] = (MAP_INFO_SIZE[0] / 9.0);
 		scatter[1] = (MAP_INFO_SIZE[1] / 9.0);
 		scatter[2] = (MAP_INFO_SIZE[2] / 9.0);
+
+		float maxScatter = Q_max(scatter[0], Q_max(scatter[1], scatter[2]));
 
 		for (float x = MAP_INFO_MINS[0] + (scatter[0] * 2.0); x <= MAP_INFO_MAXS[0] - (scatter[0] * 2.0); x += scatter[0])
 		{
@@ -5866,12 +5869,112 @@ static void R_SetupCubemapPoints( void )
 				for (float z = MAP_INFO_MINS[2] + (scatter[2]); z <= MAP_INFO_MAXS[2] - (scatter[2]); z += scatter[2])
 				{
 					VectorSet(tr.cubemapOrigins[tr.numCubemaps], x, y, z);
-					tr.cubemapRadius[tr.numCubemaps] = 2048.0;
+					tr.cubemapRadius[tr.numCubemaps] = maxScatter;// 2048.0;
 					tr.cubemapEnabled[tr.numCubemaps] = true;
 					tr.numCubemaps++;
 				}
 			}
 		}
+#else
+		vec3_t scatter;
+		scatter[0] = (MAP_INFO_SIZE[0] / 18.0);
+		scatter[1] = (MAP_INFO_SIZE[1] / 18.0);
+		scatter[2] = (MAP_INFO_SIZE[2] / 18.0);
+
+		extern void Mapping_Trace(trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, const int passEntityNum, const int contentmask);
+
+		float maxScatter = Q_max(scatter[0], scatter[1]);
+
+		for (float x = MAP_INFO_MINS[0] + (scatter[0] * 2.0); x <= MAP_INFO_MAXS[0] - (scatter[0] * 2.0); x += scatter[0])
+		{
+			for (float y = MAP_INFO_MINS[1] + (scatter[1] * 2.0); y <= MAP_INFO_MAXS[1] - (scatter[1] * 2.0); y += scatter[1])
+			{
+				trace_t		trace;
+				vec3_t		pos, down;
+
+				VectorSet(pos, x, y, MAP_INFO_MAXS[2] - 256.0);
+				VectorSet(down, x, y, -1048576);
+
+				Mapping_Trace(&trace, pos, NULL, NULL, down, ENTITYNUM_NONE, MASK_PLAYERSOLID | CONTENTS_WATER);
+
+				if (trace.startsolid || trace.allsolid)
+				{// Try again from below this spot.. Scan down for a valid point...
+					float z = pos[2] - 256.0;
+
+					while (((trace.startsolid || trace.allsolid)) && z > MAP_INFO_MINS[2])
+					{
+						VectorSet(pos, x, y, z);
+						Mapping_Trace(&trace, pos, NULL, NULL, down, ENTITYNUM_NONE, MASK_PLAYERSOLID | CONTENTS_WATER);
+						z -= 256.0;
+					}
+
+					if (z <= MAP_INFO_MINS[2])
+					{
+						continue;
+					}
+				}
+
+				if (trace.endpos[2] <= MAP_INFO_MINS[2])
+				{// Went off map...
+					break;
+				}
+
+				if (trace.surfaceFlags & SURF_SKY)
+				{// Sky..... Scan down for a valid point...
+					float z = pos[2] - 256.0;
+
+					while ((trace.surfaceFlags & SURF_SKY) && z > MAP_INFO_MINS[2])
+					{
+						VectorSet(pos, x, y, z);
+						Mapping_Trace(&trace, pos, NULL, NULL, down, ENTITYNUM_NONE, MASK_PLAYERSOLID | CONTENTS_WATER);
+						z -= 256.0;
+					}
+
+					if (z <= MAP_INFO_MINS[2])
+					{
+						continue;
+					}
+				}
+
+				if (trace.endpos[2] <= MAP_INFO_MINS[2])
+				{// Went off map...
+					break;
+				}
+
+				if (trace.surfaceFlags & SURF_NODRAW)
+				{// don't generate a drawsurface at all.. Scan down for a valid point...
+					float z = pos[2] - 256.0;
+
+					while ((trace.surfaceFlags & SURF_SKY) && z > MAP_INFO_MINS[2])
+					{
+						VectorSet(pos, x, y, z);
+						Mapping_Trace(&trace, pos, NULL, NULL, down, ENTITYNUM_NONE, MASK_PLAYERSOLID | CONTENTS_WATER);
+						z -= 256.0;
+					}
+
+					if (z <= MAP_INFO_MINS[2])
+					{
+						continue;
+					}
+				}
+
+				if (trace.endpos[2] <= MAP_INFO_MINS[2])
+				{// Went off map...
+					break;
+				}
+
+				if (trace.endpos[2] <= MAP_WATER_LEVEL)
+				{// If below water level, then move up above it... MAP_WATER_LEVEL is not a collision plane in bsp...
+					trace.endpos[2] = MAP_WATER_LEVEL + 256.0;
+				}
+
+				VectorSet(tr.cubemapOrigins[tr.numCubemaps], x, y, trace.endpos[2] + 256.0);
+				tr.cubemapRadius[tr.numCubemaps] = maxScatter * 2.0;
+				tr.cubemapEnabled[tr.numCubemaps] = true;
+				tr.numCubemaps++;
+			}
+		}
+#endif
 	}
 #endif
 
@@ -6103,7 +6206,9 @@ void R_RenderSkyCubeSide(int cubemapSide, qboolean subscene, int flag /* VPF_SKY
 		parms.flags |= VPF_USESUNLIGHT;
 	}
 
+#ifndef __REALTIME_GENERATED_SKY_CUBES__
 	CURRENT_DRAW_DLIGHTS_UPDATE = qtrue;
+#endif //__REALTIME_GENERATED_SKY_CUBES__
 
 	parms.targetFbo = tr.renderSkyFbo;
 	parms.targetFboLayer = cubemapSide;
@@ -6141,8 +6246,20 @@ void R_GenerateSkyCubes(void)
 		vramScaleDiv = 2;
 	}
 
+#ifndef __REALTIME_GENERATED_SKY_CUBES__
 	tr.skyCubeMap = R_CreateImage("*skyCubeDay", NULL, 2048 / vramScaleDiv, 2048 / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_MIPMAP | IMGFLAG_CUBEMAP, cubemapFormat);
 	tr.skyCubeMapNight = R_CreateImage("*skyCubeNight", NULL, 2048 / vramScaleDiv, 2048 / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_MIPMAP | IMGFLAG_CUBEMAP, cubemapFormat);
+#else //__REALTIME_GENERATED_SKY_CUBES__
+	// Only alloc on 1st run...
+	if (!tr.skyCubeMap || tr.skyCubeMap == tr.defaultImage)
+	{
+		tr.skyCubeMap = R_CreateImage("*skyCubeDay", NULL, 2048 / vramScaleDiv, 2048 / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_MIPMAP | IMGFLAG_CUBEMAP, cubemapFormat);
+	}
+	if (!tr.skyCubeMapNight || tr.skyCubeMapNight == tr.defaultImage)
+	{
+		tr.skyCubeMapNight = R_CreateImage("*skyCubeNight", NULL, 2048 / vramScaleDiv, 2048 / vramScaleDiv, IMGTYPE_COLORALPHA, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_MIPMAP | IMGFLAG_CUBEMAP, cubemapFormat);
+	}
+#endif //__REALTIME_GENERATED_SKY_CUBES__
 
 	for (int j = 0; j < 6; j++)
 	{
@@ -6152,6 +6269,7 @@ void R_GenerateSkyCubes(void)
 		R_InitNextFrame();
 	}
 
+//#ifndef __REALTIME_GENERATED_SKY_CUBES__
 	for (int j = 0; j < 6; j++)
 	{
 		RE_ClearScene();
@@ -6159,6 +6277,7 @@ void R_GenerateSkyCubes(void)
 		R_IssuePendingRenderCommands();
 		R_InitNextFrame();
 	}
+//#endif //__REALTIME_GENERATED_SKY_CUBES__
 }
 #endif //__GENERATED_SKY_CUBES__
 

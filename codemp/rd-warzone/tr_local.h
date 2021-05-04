@@ -133,19 +133,17 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define __USE_REGIONS__
 
-#define __USE_MAP_EMMISSIVE_BLOCK__			// Do map emissive lights as a SSBO block of it's own... --- TOO SLOW!
+#define __USE_MAP_EMMISSIVE_BLOCK__				// Do map emissive lights as a SSBO block of it's own...
 
 
 #define	__PROCEDURALS_IN_DEFERRED_SHADER__		// Merge procedural draws into deferred light shader...
-
-#define __GENERATED_SKY_CUBES__					// Generate sky cubemaps from sky render instead of using map's skybox textures... Doesn't like non-procedural for some reason, so disabled.
 
 #define __TERRAIN_TESSELATION__
 #define __PSHADOW_TESSELLATION__				// Tessellate pshadow draws so that they work correctly on tessellated terrain...
 
 #define __HUMANOIDS_BEND_GRASS__
 #ifdef __HUMANOIDS_BEND_GRASS__
-#define MAX_GRASSBEND_HUMANOIDS 4
+	#define MAX_GRASSBEND_HUMANOIDS 4
 #endif //__HUMANOIDS_BEND_GRASS__
 
 //#define __USE_WATER_MAPS__					// Testing, using water maps instead of procedural random generation...
@@ -217,6 +215,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 // Allow all surfaces to merge with different cubemaps... with our range based checks as well, should be good enough... Not needed with __PLAYER_BASED_CUBEMAPS__
 //#define __LAZY_CUBEMAP__
+
+#define __GENERATED_SKY_CUBES__					// Generate sky cubemaps from sky render instead of using map's skybox textures...
+//#define __REALTIME_GENERATED_SKY_CUBES__		// Generate sky cubes in realtime... BROKEN!
 
 // -----------------------------------------------------------------------------------------------------------------------------
 //                                               Warzone Cubemap and Lights Defines

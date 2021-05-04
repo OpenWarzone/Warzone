@@ -27,10 +27,10 @@ uniform sampler2D					u_GlowMap;
 uniform sampler2D					u_EnvironmentMap;
 uniform sampler2D					u_TextureMap;
 uniform sampler2D					u_LevelsMap;
-uniform sampler2D					u_CubeMap;
-uniform sampler2D					u_SkyCubeMap;
-uniform sampler2D					u_SkyCubeMapNight;
-uniform sampler2D					u_EmissiveCubeMap;
+uniform samplerCube					u_CubeMap;
+uniform samplerCube					u_SkyCubeMap;
+uniform samplerCube					u_SkyCubeMapNight;
+uniform samplerCube					u_EmissiveCubeMap;
 uniform sampler2D					u_OverlayMap;
 uniform sampler2D					u_SteepMap;
 uniform sampler2D					u_SteepMap1;
@@ -63,6 +63,7 @@ uniform sampler2D										u_SplatMap3; // smoothNoiseImage
 uniform sampler2D										u_RoadMap; // random2KImage
 uniform sampler2D										u_MoonMaps[4]; // moon textures
 uniform sampler3D										u_VolumeMap; // volumetricRandom
+uniform samplerCube										u_SkyCubeMap;
 #endif //defined(USE_BINDLESS_TEXTURES)
 
 uniform int												u_MoonCount; // moons total count
@@ -94,7 +95,7 @@ uniform vec4											u_Settings3; // LIGHTDEF_USE_REGIONS, LIGHTDEF_IS_DETAIL,
 #define USE_DETAIL_COORD								u_Settings3.b
 
 uniform vec4											u_Local1; // PROCEDURAL_SKY_ENABLED, DAY_NIGHT_24H_TIME/24.0, PROCEDURAL_SKY_STAR_DENSITY, PROCEDURAL_SKY_NEBULA_SEED
-uniform vec4											u_Local2; // PROCEDURAL_CLOUDS_ENABLED, PROCEDURAL_CLOUDS_CLOUDSCALE, PROCEDURAL_CLOUDS_CLOUDCOVER, 0.0 /*UNUSED*/
+uniform vec4											u_Local2; // PROCEDURAL_CLOUDS_ENABLED, PROCEDURAL_CLOUDS_CLOUDSCALE, PROCEDURAL_CLOUDS_CLOUDCOVER, DRAW_SKY_CUBE
 uniform vec4											u_Local3; // PROCEDURAL_SKY_SUNSET_COLOR_R, PROCEDURAL_SKY_SUNSET_COLOR_G, PROCEDURAL_SKY_SUNSET_COLOR_B, PROCEDURAL_SKY_SUNSET_STRENGTH
 uniform vec4											u_Local4; // PROCEDURAL_SKY_NIGHT_HDR_MIN, PROCEDURAL_SKY_NIGHT_HDR_MAX, PROCEDURAL_SKY_PLANETARY_ROTATION, PROCEDURAL_SKY_NEBULA_FACTOR
 uniform vec4											u_Local5; // dayNightEnabled, nightScale, skyDirection, auroraEnabled -- Sky draws only!
@@ -115,7 +116,7 @@ uniform vec4											u_Local13; // AURORA_STRENGTH1, AURORA_STRENGTH2, DYNAMIC
 #define CLOUDS_ENABLED									u_Local2.r
 #define CLOUDS_CLOUDSCALE								u_Local2.g
 #define CLOUDS_CLOUDCOVER								u_Local2.b
-//#define CLOUDS_DARK									u_Local2.a
+#define DRAW_SKY_CUBE									u_Local2.a
 
 #define PROCEDURAL_SKY_SUNSET_COLOR						u_Local3.rgb
 #define PROCEDURAL_SKY_SUNSET_STRENGTH					u_Local3.a
@@ -1314,6 +1315,23 @@ void main()
 	float cloudiness = clamp(CLOUDS_CLOUDCOVER*0.3, 0.0, 0.3);
 #endif //defined(_CLOUDS_)
 
+#if 1
+	if (DRAW_SKY_CUBE > 0.0)
+	{// Draw pre-rendered cubemap as sky...
+		gl_FragColor.rgb = textureLod(u_SkyCubeMap, -skyViewDir.xzy, 0.0).rgb;
+		gl_FragColor.a = 1.0;
+
+		out_Glow = vec4(0.0); // TODO: Render glow map as well to a second cube???
+
+		out_Position = vec4(normalize(var_Position.xyz) * 524288.0, 1025.0);
+		out_Normal = vec4(EncodeNormal(-skyViewDir.rbg), 0.0, 1.0);
+	#ifdef USE_REAL_NORMALMAPS
+		out_NormalDetail = vec4(0.0);
+	#endif //USE_REAL_NORMALMAPS
+		return;
+	}
+#endif
+
 	if (USE_TRIPLANAR > 0.0 || USE_REGIONS > 0.0)
 	{// Can skip nearly everything... These are always going to be solid color...
 		gl_FragColor = vec4(1.0);
@@ -1376,7 +1394,7 @@ void main()
 			gl_FragColor.a = 1.0;
 
 #if defined(_CLOUDS_) && (defined(CLOUD_QUALITY1) || defined(CLOUD_QUALITY2) || defined(CLOUD_QUALITY3) || defined(CLOUD_QUALITY4))
-			if (terrainColor.a != 1.0 && CLOUDS_ENABLED > 0.0 && SHADER_SKY_DIRECTION != 5.0)
+			if (terrainColor.a != 1.0 && CLOUDS_ENABLED > 0.0 && (SHADER_SKY_DIRECTION != 5.0 || DOING_SKY_CUBE > 0.0))
 			{// Procedural clouds are enabled...
 				float nMult = 1.0;
 				float cdMult = 1.0;
@@ -1452,7 +1470,7 @@ void main()
 
 #if defined(_AURORA2_) && defined(_BACKGROUND_HILLS_)
 				if (ENABLE_AURORA
-					&& SHADER_SKY_DIRECTION != 5.0																							/* Not down sky textures */
+					&& (SHADER_SKY_DIRECTION != 5.0 || DOING_SKY_CUBE > 0.0)																/* Not down sky textures */
 					&& SHADER_AURORA_ENABLED > 0.0																							/* Auroras Enabled */
 					&& ((SHADER_DAY_NIGHT_ENABLED > 0.0 && SHADER_NIGHT_SCALE > 0.0) /* Night Aurora */ || SHADER_AURORA_ENABLED >= 2.0		/* Forced day Aurora */))
 				{// Aurora is enabled, and this is not up/down sky textures, add a sexy aurora effect :)
@@ -1463,7 +1481,7 @@ void main()
 						aucolor = GetAurora2(texCoords) * AURORA_STRENGTH1;
 					}
 					
-					if (SHADER_SKY_DIRECTION != 4.0 && AURORA_STRENGTH2 > 0.0)
+					if ((SHADER_SKY_DIRECTION != 4.0 || DOING_SKY_CUBE > 0.0) && AURORA_STRENGTH2 > 0.0)
 					{
 						vec4 aucolor2 = GetAurora(texCoords) * AURORA_STRENGTH2;
 						aucolor = clamp(aucolor + aucolor2, 0.0, 1.0);
@@ -1473,7 +1491,7 @@ void main()
 				}
 #elif !defined(_AURORA2_) && defined(_BACKGROUND_HILLS_)
 				if (ENABLE_AURORA
-					&& SHADER_SKY_DIRECTION != 4.0 && SHADER_SKY_DIRECTION != 5.0															/* Not up/down sky textures */
+					&& ((SHADER_SKY_DIRECTION != 4.0 && SHADER_SKY_DIRECTION != 5.0) || DOING_SKY_CUBE > 0.0)								/* Not up/down sky textures */
 					&& SHADER_AURORA_ENABLED > 0.0																							/* Auroras Enabled */
 					&& ((SHADER_DAY_NIGHT_ENABLED > 0.0 && SHADER_NIGHT_SCALE > 0.0) /* Night Aurora */ || SHADER_AURORA_ENABLED >= 2.0		/* Forced day Aurora */))
 				{// Aurora is enabled, and this is not up/down sky textures, add a sexy aurora effect :)
@@ -1484,7 +1502,7 @@ void main()
 			}
 
 #if defined(_CLOUDS_) && (defined(CLOUD_QUALITY1) || defined(CLOUD_QUALITY2) || defined(CLOUD_QUALITY3) || defined(CLOUD_QUALITY4))
-			if (clouds.a > 0.0 && terrainColor.a != 1.0 && CLOUDS_ENABLED > 0.0 && SHADER_SKY_DIRECTION != 5.0)
+			if (clouds.a > 0.0 && terrainColor.a != 1.0 && CLOUDS_ENABLED > 0.0 && (SHADER_SKY_DIRECTION != 5.0 || DOING_SKY_CUBE > 0.0))
 			{// Procedural clouds are enabled...
 				float cloudMix = clamp(pow(clouds.a, mix(0.75, 0.5, SHADER_NIGHT_SCALE)), 0.0, 1.0);
 				gl_FragColor.rgb = mix(gl_FragColor.rgb, clouds.rgb, cloudMix);

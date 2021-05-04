@@ -2174,7 +2174,11 @@ void RB_WaterPost(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 			GLSL_SetBindlessTexture(shader, UNIFORM_DETAILMAP, &tr.waterCausicsImage, 0);
 			GLSL_SetBindlessTexture(shader, UNIFORM_HEIGHTMAP, &tr.waterHeightMapImage, 0);
 			GLSL_SetBindlessTexture(shader, UNIFORM_SKYCUBEMAP, &tr.skyCubeMap, 0);
+#ifdef __REALTIME_GENERATED_SKY_CUBES__
+			GLSL_SetBindlessTexture(shader, UNIFORM_SKYCUBEMAPNIGHT, &tr.skyCubeMap, 0);
+#else //!__REALTIME_GENERATED_SKY_CUBES__
 			GLSL_SetBindlessTexture(shader, UNIFORM_SKYCUBEMAPNIGHT, &tr.skyCubeMapNight, 0);
+#endif //__REALTIME_GENERATED_SKY_CUBES__
 			//GLSL_SetBindlessTexture(shader, UNIFORM_GLOWMAP, &tr.random2KImage[0], 0);
 			GLSL_BindlessUpdate(shader);
 		}
@@ -2210,8 +2214,13 @@ void RB_WaterPost(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 			GLSL_SetUniformInt(shader, UNIFORM_SKYCUBEMAP, TB_SKYCUBEMAP);
 			GL_BindToTMU(tr.skyCubeMap, TB_SKYCUBEMAP);
 
+#ifdef __REALTIME_GENERATED_SKY_CUBES__
+			GLSL_SetUniformInt(shader, UNIFORM_SKYCUBEMAPNIGHT, TB_SKYCUBEMAPNIGHT);
+			GL_BindToTMU(tr.skyCubeMap, TB_SKYCUBEMAPNIGHT);
+#else //!__REALTIME_GENERATED_SKY_CUBES__
 			GLSL_SetUniformInt(shader, UNIFORM_SKYCUBEMAPNIGHT, TB_SKYCUBEMAPNIGHT);
 			GL_BindToTMU(tr.skyCubeMapNight, TB_SKYCUBEMAPNIGHT);
+#endif //__REALTIME_GENERATED_SKY_CUBES__
 
 			//GLSL_SetUniformInt(shader, UNIFORM_GLOWMAP, TB_GLOWMAP);
 			//GL_BindToTMU(tr.random2KImage[0], TB_GLOWMAP);
@@ -3083,7 +3092,11 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 		GLSL_SetBindlessTexture(shader, UNIFORM_WATER_EDGE_MAP, &tr.shinyImage, 0);
 		GLSL_SetBindlessTexture(shader, UNIFORM_ROADSCONTROLMAP, &tr.renderPshadowsImage, 0);
 		GLSL_SetBindlessTexture(shader, UNIFORM_SKYCUBEMAP, &tr.skyCubeMap, 0);
+#ifdef __REALTIME_GENERATED_SKY_CUBES__
+		GLSL_SetBindlessTexture(shader, UNIFORM_SKYCUBEMAPNIGHT, &tr.skyCubeMap, 0);
+#else //!__REALTIME_GENERATED_SKY_CUBES__
 		GLSL_SetBindlessTexture(shader, UNIFORM_SKYCUBEMAPNIGHT, &tr.skyCubeMapNight, 0);
+#endif //__REALTIME_GENERATED_SKY_CUBES__
 		GLSL_SetBindlessTexture(shader, UNIFORM_WATERPOSITIONMAP, &tr.random2KImage[0], 0);
 
 		if (tr.heightMapImage && tr.heightMapImage != tr.defaultImage && tr.heightMapImage != tr.whiteImage)
@@ -3214,8 +3227,13 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 		GLSL_SetUniformInt(shader, UNIFORM_SKYCUBEMAP, TB_SKYCUBEMAP);
 		GL_BindToTMU(tr.skyCubeMap, TB_SKYCUBEMAP);
 
+#ifdef __REALTIME_GENERATED_SKY_CUBES__
+		GLSL_SetUniformInt(shader, UNIFORM_SKYCUBEMAPNIGHT, TB_SKYCUBEMAPNIGHT);
+		GL_BindToTMU(tr.skyCubeMap, TB_SKYCUBEMAPNIGHT);
+#else //!__REALTIME_GENERATED_SKY_CUBES__
 		GLSL_SetUniformInt(shader, UNIFORM_SKYCUBEMAPNIGHT, TB_SKYCUBEMAPNIGHT);
 		GL_BindToTMU(tr.skyCubeMapNight, TB_SKYCUBEMAPNIGHT);
+#endif //__REALTIME_GENERATED_SKY_CUBES__
 	}
 
 	qboolean haveEmissiveCube = qfalse;
@@ -3322,8 +3340,8 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 			cubeMapVec[0] = tr.cubemapOrigins[cubeMapNum][0];
 			cubeMapVec[1] = tr.cubemapOrigins[cubeMapNum][1];
 			cubeMapVec[2] = tr.cubemapOrigins[cubeMapNum][2];
-			cubeMapVec[3] = 1.0f;
-			cubeMapRadius = 2048.0;// tr.cubemapRadius[currentPlayerCubemap];
+			//cubeMapVec[3] = 1.0f;
+			cubeMapRadius = /*2048.0;*/ tr.cubemapRadius[currentPlayerCubemap];
 			cubeMapVec[3] = cubeMapRadius;
 
 			if (shader->isBindless)

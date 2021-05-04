@@ -3314,6 +3314,10 @@ extern qboolean FOG_POST_ENABLED;
 extern qboolean AO_DIRECTIONAL;
 extern int LATE_LIGHTING_ENABLED;
 
+#if 0//def __REALTIME_GENERATED_SKY_CUBES__
+int NEXT_SKYCUBE_RENDER = 0;
+#endif //__REALTIME_GENERATED_SKY_CUBES__
+
 const void *RB_PostProcess(const void *data)
 {
 	const postProcessCommand_t *cmd = (const postProcessCommand_t *)data;
@@ -4352,6 +4356,41 @@ const void *RB_PostProcess(const void *data)
 		FBO_FastBlit(srcFbo, srcBox, tr.genericFbo, dstBox, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 		FBO_FastBlit(tr.genericFbo, dstBox, srcFbo, dstBox, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 	}
+
+#if 0//def __REALTIME_GENERATED_SKY_CUBES__
+	{// Render new sky cubes on timer...
+		int nowTime = ri->Milliseconds();
+
+		if (nowTime >= NEXT_SKYCUBE_RENDER)
+		{// Timed updates for distant shadows, or forced by view change...
+			extern void R_RenderSkyCubeSide(int cubemapSide, qboolean subscene, int flag /* VPF_SKYCUBEDAY, VPF_SKYCUBENIGHT*/);
+
+			backEnd.renderPass = RENDERPASS_SKY;
+
+			// Generate the sky cubemap this frame...
+			glState.previousFBO = glState.currentFBO;
+
+			FBO_Bind(tr.renderSkyFbo);
+
+			for (int j = 0; j < 6; j++)
+			{
+				//RE_ClearScene();
+				R_RenderSkyCubeSide(j, qfalse/*qtrue*/, VPF_SKYCUBEDAY);
+				//R_IssuePendingRenderCommands();
+				//R_InitNextFrame();
+			}
+
+			ALLOW_NULL_FBO_BIND = qtrue;
+			FBO_Bind(glState.previousFBO);
+
+			NEXT_SKYCUBE_RENDER = nowTime + 100;
+
+			//ri->Printf(PRINT_ALL, "Sky cube rendered.\n");
+
+			backEnd.renderPass = RENDERPASS_POSTPROCESS;
+		}
+	}
+#endif //__REALTIME_GENERATED_SKY_CUBES__
 
 	backEnd.framePostProcessed = qtrue;
 
