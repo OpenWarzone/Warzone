@@ -18,6 +18,53 @@ extern inventoryItem *BG_GetInventoryItemByID(uint16_t id);
 //
 
 
+//
+// String versions of stats... Needs to match the tables in bg_inventoryItem.h
+//
+stringID_table_t itemPowerCrystalStrings[] =
+{
+	ENUM2STRING(ITEM_CRYSTAL_DEFAULT),
+	ENUM2STRING(ITEM_CRYSTAL_RED),
+	ENUM2STRING(ITEM_CRYSTAL_GREEN),
+	ENUM2STRING(ITEM_CRYSTAL_BLUE),
+	ENUM2STRING(ITEM_CRYSTAL_WHITE),
+	ENUM2STRING(ITEM_CRYSTAL_YELLOW),
+	ENUM2STRING(ITEM_CRYSTAL_PURPLE),
+	ENUM2STRING(ITEM_CRYSTAL_ORANGE),
+	ENUM2STRING(ITEM_CRYSTAL_PINK),
+	ENUM2STRING(ITEM_CRYSTAL_MAX),
+};
+
+stringID_table_t weaponStat1Strings[] =
+{
+	ENUM2STRING(WEAPON_STAT1_DEFAULT),
+	ENUM2STRING(WEAPON_STAT1_HEAVY_PISTOL),
+	ENUM2STRING(WEAPON_STAT1_FIRE_ACCURACY_MODIFIER),
+	ENUM2STRING(WEAPON_STAT1_FIRE_RATE_MODIFIER),
+	ENUM2STRING(WEAPON_STAT1_VELOCITY_MODIFIER),
+	ENUM2STRING(WEAPON_STAT1_HEAT_ACCUMULATION_MODIFIER),
+	ENUM2STRING(WEAPON_STAT1_MAX),
+};
+
+stringID_table_t weaponStat2Strings[] =
+{
+	ENUM2STRING(WEAPON_STAT2_DEFAULT),
+	ENUM2STRING(WEAPON_STAT2_FIRE_DAMAGE_MODIFIER),
+	ENUM2STRING(WEAPON_STAT2_CRITICAL_CHANCE_MODIFIER),
+	ENUM2STRING(WEAPON_STAT2_CRITICAL_POWER_MODIFIER),
+	ENUM2STRING(WEAPON_STAT2_MAX),
+};
+
+stringID_table_t weaponStat3Strings[] =
+{
+	ENUM2STRING(WEAPON_STAT3_DEFAULT),
+	ENUM2STRING(WEAPON_STAT3_SHOT_BOUNCE),
+	ENUM2STRING(WEAPON_STAT3_SHOT_EXPLOSIVE),
+	ENUM2STRING(WEAPON_STAT3_SHOT_BEAM),
+	ENUM2STRING(WEAPON_STAT3_SHOT_WIDE),
+	ENUM2STRING(WEAPON_STAT3_SHOT_REPEATING),
+	ENUM2STRING(WEAPON_STAT3_MAX),
+};
 
 //
 // A quality based price scale modifier... Used internally... Matches levels of itemQuality_t.
@@ -239,6 +286,16 @@ inventoryItem::inventoryItem(uint16_t itemID)
 	m_basicStat1value = 0.0;
 	m_basicStat2value = 0.0;
 	m_basicStat3value = 0.0;
+
+	// Reforged and Unique items...
+	m_customType = ITEM_CUSTOMIZATION_DEFAULT;
+	setCustomName("");
+	setCustomDescription("");
+#ifdef _CGAME
+	setCustomModel("");
+	setCustomEfx("");
+	setCustomSounds("");
+#endif //_CGAME
 }
 
 inventoryItem::inventoryItem(uint16_t itemID, uint16_t bgItemID, itemQuality_t quality, uint16_t type = 0, uint16_t amount = 1)
@@ -257,6 +314,16 @@ inventoryItem::inventoryItem(uint16_t itemID, uint16_t bgItemID, itemQuality_t q
 	m_basicStat1value = 0.0;
 	m_basicStat2value = 0.0;
 	m_basicStat3value = 0.0;
+
+	// Reforged and Unique items...
+	m_customType = ITEM_CUSTOMIZATION_DEFAULT;
+	setCustomName("");
+	setCustomDescription("");
+#ifdef _CGAME
+	setCustomModel("");
+	setCustomEfx("");
+	setCustomSounds("");
+#endif //_CGAME
 }
 
 inventoryItem::~inventoryItem()
@@ -327,6 +394,69 @@ void inventoryItem::setStat3(uint16_t statType, float statValue)
 	m_basicStat3value = statValue;
 }
 
+// Reforged/Unique weapon information...
+itemCustomType_t inventoryItem::getCustomType()
+{
+	return m_customType;
+}
+
+void inventoryItem::setCustomType(itemCustomType_t type)
+{
+	m_customType = type;
+}
+
+char *inventoryItem::getCustomName()
+{
+	return m_customName;
+}
+
+void inventoryItem::setCustomName(char *name)
+{
+	Q_strncpyz(m_customName, name, 64);
+}
+
+char *inventoryItem::getCustomDescription()
+{
+	return m_customDescription;
+}
+
+void inventoryItem::setCustomDescription(char *description)
+{
+	Q_strncpyz(m_customDescription, description, 256);
+}
+
+#ifdef _CGAME
+char *inventoryItem::getCustomModel()
+{
+	return m_customModel;
+}
+
+void inventoryItem::setCustomModel(char *model)
+{
+	Q_strncpyz(m_customModel, model, 128);
+}
+
+char *inventoryItem::getCustomEfx()
+{
+	return m_customEfx;
+}
+
+void inventoryItem::setCustomEfx(char *efxFolder)
+{
+	Q_strncpyz(m_customEfx, efxFolder, 128);
+}
+
+char *inventoryItem::getCustomSounds()
+{
+	return m_customSounds;
+}
+
+void inventoryItem::setCustomSounds(char *soundFolder)
+{
+	Q_strncpyz(m_customSounds, soundFolder, 128);
+}
+#endif //_CGAME
+
 //
 // Item Accessing Functions...
 //
@@ -355,6 +485,17 @@ void inventoryItem::getName(std::string &name, uint16_t modItemID1)
 	int giType = getBaseItem()->giType;
 
 	name.clear();
+
+	if (giType == IT_WEAPON && getCustomType() > ITEM_CUSTOMIZATION_DEFAULT)
+	{// Reforge and Unique only supports weapons, for now...
+		char *cname = getCustomName();
+
+		if (cname && cname[0] && strlen(cname) > 0)
+		{
+			name = va("%s%s%s (%s)", getColorStringForQuality(), cname, weaponCrystalNames[getCrystal()], itemQualityTooltips[getQuality()]);
+			return;
+		}
+	}
 
 	switch (giType)
 	{
@@ -421,6 +562,16 @@ void inventoryItem::getName(std::string &name, uint16_t modItemID1)
 
 char *inventoryItem::getDescription()
 {
+	if (getBaseItem()->giType == IT_WEAPON && getCustomType() > ITEM_CUSTOMIZATION_DEFAULT)
+	{// Reforge and Unique only supports weapons, for now...
+		char *cdescription = getCustomDescription();
+
+		if (cdescription && cdescription[0] && strlen(cdescription) > 0)
+		{
+			return cdescription;
+		}
+	}
+
 	return getBaseItem()->description;
 }
 
@@ -451,16 +602,52 @@ uint16_t inventoryItem::getBasicStat3()
 
 float inventoryItem::getBasicStat1Value()
 {
+	if (getCustomType() > ITEM_CUSTOMIZATION_DEFAULT)
+	{
+		if (getCustomType() == ITEM_CUSTOMIZATION_REFORGE)
+		{
+			return m_basicStat1value * 1.15f;
+		}
+		else if (getCustomType() == ITEM_CUSTOMIZATION_UNIQUE)
+		{
+			return m_basicStat1value * 1.25f;
+		}
+	}
+
 	return m_basicStat1value;
 }
 
 float inventoryItem::getBasicStat2Value()
 {
+	if (getCustomType() > ITEM_CUSTOMIZATION_DEFAULT)
+	{
+		if (getCustomType() == ITEM_CUSTOMIZATION_REFORGE)
+		{
+			return m_basicStat2value * 1.15f;
+		}
+		else if (getCustomType() == ITEM_CUSTOMIZATION_UNIQUE)
+		{
+			return m_basicStat2value * 1.25f;
+		}
+	}
+
 	return m_basicStat2value;
 }
 
 float inventoryItem::getBasicStat3Value()
 {
+	if (getCustomType() > ITEM_CUSTOMIZATION_DEFAULT)
+	{
+		if (getCustomType() == ITEM_CUSTOMIZATION_REFORGE)
+		{
+			return m_basicStat3value * 1.15f;
+		}
+		else if (getCustomType() == ITEM_CUSTOMIZATION_UNIQUE)
+		{
+			return m_basicStat3value * 1.25f;
+		}
+	}
+
 	return m_basicStat3value;
 }
 
@@ -516,6 +703,18 @@ uint16_t inventoryItem::getVisualType3(uint16_t modItemID)
 
 float inventoryItem::getCrystalPower(void)
 {
+	if (getCustomType() > ITEM_CUSTOMIZATION_DEFAULT)
+	{
+		if (getCustomType() == ITEM_CUSTOMIZATION_REFORGE)
+		{
+			return 0.025f * pow(float(m_quality + 1), 1.1f) * 1.15f;
+		}
+		else if (getCustomType() == ITEM_CUSTOMIZATION_UNIQUE)
+		{
+			return 0.025f * pow(float(m_quality + 1), 1.1f) * 1.25f;
+		}
+	}
+
 	return 0.025 * pow(float(m_quality + 1), 1.1);
 }
 
@@ -529,6 +728,37 @@ float inventoryItem::getCost(uint16_t modItemID1, uint16_t modItemID2, uint16_t 
 	float modCostMultiplier1 = getMod1Stat(modItemID1) ? 1.25 * (1.0 + getMod1Value(modItemID1)) : 1.0;
 	float modCostMultiplier2 = getMod2Stat(modItemID2) ? 1.25 * (1.0 + getMod2Value(modItemID2)) : 1.0;
 	float modCostMultiplier3 = getMod3Stat(modItemID3) ? 1.25 * (1.0 + getMod3Value(modItemID3)) : 1.0;
+
+	if (getCustomType() > ITEM_CUSTOMIZATION_DEFAULT)
+	{
+		if (getCustomType() == ITEM_CUSTOMIZATION_REFORGE)
+		{
+			crystalCostMultiplier *= 1.15f;
+			dualbladeCostMultiplier *= 1.15f;
+			statCostMultiplier1 *= 1.15f;
+			statCostMultiplier2 *= 1.15f;
+			statCostMultiplier3 *= 1.15f;
+			modCostMultiplier1 *= 1.15f;
+			modCostMultiplier2 *= 1.15f;
+			modCostMultiplier3 *= 1.15f;
+
+			return getBaseItem()->price * 1.15f * statCostMultiplier1 * statCostMultiplier2 * statCostMultiplier3 * modCostMultiplier1 * modCostMultiplier2 * modCostMultiplier3 * crystalCostMultiplier * qualityPriceModifier[m_quality];
+		}
+		else if (getCustomType() == ITEM_CUSTOMIZATION_UNIQUE)
+		{
+			crystalCostMultiplier *= 1.25f;
+			dualbladeCostMultiplier *= 1.25f;
+			statCostMultiplier1 *= 1.25f;
+			statCostMultiplier2 *= 1.25f;
+			statCostMultiplier3 *= 1.25f;
+			modCostMultiplier1 *= 1.25f;
+			modCostMultiplier2 *= 1.25f;
+			modCostMultiplier3 *= 1.25f;
+
+			return getBaseItem()->price * 1.25f * statCostMultiplier1 * statCostMultiplier2 * statCostMultiplier3 * modCostMultiplier1 * modCostMultiplier2 * modCostMultiplier3 * crystalCostMultiplier * qualityPriceModifier[m_quality];
+		}
+	}
+
 	return getBaseItem()->price * statCostMultiplier1 * statCostMultiplier2 * statCostMultiplier3 * modCostMultiplier1 * modCostMultiplier2 * modCostMultiplier3 * crystalCostMultiplier * qualityPriceModifier[m_quality];
 }
 
@@ -724,6 +954,21 @@ void inventoryItem::getTooltip(std::string &tooltipText, uint16_t modItemID1, ui
 			tooltipText.append(va(saberStat1Tooltips[getMod1Stat(modItemID1)], getMod1Value(modItemID1) * 100.0, getMod1Value(modItemID1) * 100.0));
 			tooltipText.append(va(saberStat2Tooltips[getMod2Stat(modItemID2)], getMod2Value(modItemID2) * 100.0, getMod2Value(modItemID2) * 100.0));
 			tooltipText.append(va(saberStat3Tooltips[getMod3Stat(modItemID3)], getMod3Value(modItemID3) * 100.0, getMod3Value(modItemID3) * 100.0));
+			if (getCustomType() > ITEM_CUSTOMIZATION_DEFAULT)
+			{
+				if (getCustomType() == ITEM_CUSTOMIZATION_REFORGE)
+				{
+					tooltipText.append(" \n");
+					tooltipText.append(va("^B%s^b\n", "Reforged Weapon"));
+					tooltipText.append(va("^P+%.2f%% ^7bonus to all stats.\n", 1.15f));
+				}
+				else if (getCustomType() == ITEM_CUSTOMIZATION_UNIQUE)
+				{
+					tooltipText.append(" \n");
+					tooltipText.append(va("^B%s^b\n", "Unique Weapon"));
+					tooltipText.append(va("^P+%.2f%% ^7bonus to all stats.\n", 1.25f));
+				}
+			}
 			tooltipText.append(" \n");
 			if (m_quantity > 1)
 				tooltipText.append(va("^5Value: ^P%i (%i per item).\n", (int)getStackCost(modItemID1, modItemID2, modItemID3), (int)getCost(modItemID1, modItemID2, modItemID3)));
@@ -772,6 +1017,21 @@ void inventoryItem::getTooltip(std::string &tooltipText, uint16_t modItemID1, ui
 			tooltipText.append(va(weaponStat2Tooltips[getMod2Stat(modItemID2)], getMod2Value(modItemID2) * 100.0, getMod2Value(modItemID2) * 100.0));
 			tooltipText.append(va(weaponStat3Tooltips[getBasicStat3()], getBasicStat3Value() * 100.0, getBasicStat3Value() * 100.0));
 			tooltipText.append(va(weaponStat3Tooltips[getMod3Stat(modItemID3)], getMod3Value(modItemID3) * 100.0, getMod3Value(modItemID3) * 100.0));
+			if (getCustomType() > ITEM_CUSTOMIZATION_DEFAULT)
+			{
+				if (getCustomType() == ITEM_CUSTOMIZATION_REFORGE)
+				{
+					tooltipText.append(" \n");
+					tooltipText.append(va("^B%s^b\n", "Reforged Weapon"));
+					tooltipText.append(va("^P+%.2f%% ^7bonus to all stats.\n", 1.15f));
+				}
+				else if (getCustomType() == ITEM_CUSTOMIZATION_UNIQUE)
+				{
+					tooltipText.append(" \n");
+					tooltipText.append(va("^B%s^b\n", "Unique Weapon"));
+					tooltipText.append(va("^P+%.2f%% ^7bonus to all stats.\n", 1.25f));
+				}
+			}
 			tooltipText.append(" \n");
 			if (m_quantity > 1)
 				tooltipText.append(va("^5Value: ^P%i (%i per item).\n", (int)getStackCost(modItemID1, modItemID2, modItemID3), (int)getCost(modItemID1, modItemID2, modItemID3)));

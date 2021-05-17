@@ -387,7 +387,8 @@ qboolean PM_AllowDefenceSpin(void)
 			{
 				float dist = Distance(pm->ps->origin, ent->playerState->origin);
 
-				if (dist <= 256/*192*/ || (lenientCheck && dist <= 448/*384*/))
+				//if (dist <= 256/*192*/ || (lenientCheck && dist <= 448/*384*/))
+				if (dist <= 256/*192*/ || (lenientCheck && dist <= 768/*384*/))
 				{
 					jediInRange = qtrue;
 					break;
@@ -551,12 +552,12 @@ int BG_GetSaberStanceForPS(playerState_t *ps, usercmd_t *ucmd)
 	qboolean hideStance = qfalse;
 
 #if defined(_GAME)
-	if (sv_saberHideStance.integer || level.gametype == GT_DUEL || level.gametype == GT_POWERDUEL || level.gametype == GT_WARZONE)
+	if (sv_saberHideStance.integer || level.gametype == GT_DUEL || level.gametype == GT_POWERDUEL /*|| level.gametype == GT_WARZONE*/)
 	{
 		hideStance = qtrue;
 	}
 #elif defined(_CGAME)
-	if (cgs.hideStance || cgs.gametype == GT_DUEL || cgs.gametype == GT_POWERDUEL)
+	if (cgs.hideStance || cgs.gametype == GT_DUEL || cgs.gametype == GT_POWERDUEL /*|| level.gametype == GT_WARZONE*/)
 	{
 		hideStance = qtrue;
 	}
@@ -597,20 +598,18 @@ int BG_GetSaberStanceForPS(playerState_t *ps, usercmd_t *ucmd)
 	}
 
 #ifdef __DEBUG_TEST_ANIMS__
-	if (bg_testanimation.integer != 0)
+	if (bg_testanimation.integer > 0 && bg_testanimation.integer < MAX_ANIMATIONS)
 	{
-		if (bg_testanimation.integer < MAX_ANIMATIONS)
-		{
 #ifdef _CGAME
-			if (bg_testanimation.integer != currentTestAnimationNumver)
-			{
-				extern stringID_table_t animTable[MAX_ANIMATIONS + 1];
-				currentTestAnimationNumver = bg_testanimation.integer;
-				Com_Printf("Using test animation %i (%s).\n", currentTestAnimationNumver, animTable[currentTestAnimationNumver].name);
-			}
-#endif //_CGAME
-			return bg_testanimation.integer;
+		if (bg_testanimation.integer != currentTestAnimationNumver)
+		{
+			extern stringID_table_t animTable[MAX_ANIMATIONS + 1];
+			currentTestAnimationNumver = bg_testanimation.integer;
+			Com_Printf("Using test animation %i (%s).\n", currentTestAnimationNumver, animTable[currentTestAnimationNumver].name);
 		}
+#endif //_CGAME
+
+		return bg_testanimation.integer;
 	}
 #endif //__DEBUG_TEST_ANIMS__
 
@@ -9227,7 +9226,7 @@ static void PM_Weapon( void )
 				switch (currentGun->getBasicStat3())
 				{
 				default:
-				case WEAPON_STAT3_SHOT_DEFAULT:
+				case WEAPON_STAT3_DEFAULT:
 				case WEAPON_STAT3_SHOT_BOUNCE:
 				case WEAPON_STAT3_SHOT_EXPLOSIVE:
 				case WEAPON_STAT3_SHOT_BEAM: // Semi???
@@ -9244,7 +9243,7 @@ static void PM_Weapon( void )
 				switch (currentGunMod3->getBasicStat3())
 				{
 				default:
-				case WEAPON_STAT3_SHOT_DEFAULT:
+				case WEAPON_STAT3_DEFAULT:
 				case WEAPON_STAT3_SHOT_BOUNCE:
 				case WEAPON_STAT3_SHOT_EXPLOSIVE:
 				case WEAPON_STAT3_SHOT_BEAM: // Semi???
@@ -9554,7 +9553,7 @@ static void PM_Weapon( void )
 				switch (currentGun->getBasicStat3())
 				{
 				default:
-				case WEAPON_STAT3_SHOT_DEFAULT:
+				case WEAPON_STAT3_DEFAULT:
 					addTimeGun = 250;
 					break;
 				case WEAPON_STAT3_SHOT_BOUNCE:
@@ -9592,7 +9591,7 @@ static void PM_Weapon( void )
 				switch (currentGunMod3->getBasicStat3())
 				{
 				default:
-				case WEAPON_STAT3_SHOT_DEFAULT:
+				case WEAPON_STAT3_DEFAULT:
 					addTimeMod = 250;
 					break;
 				case WEAPON_STAT3_SHOT_BOUNCE:
@@ -9689,7 +9688,7 @@ static void PM_Weapon( void )
 			switch (currentGun->getBasicStat3())
 			{
 			default:
-			case WEAPON_STAT3_SHOT_DEFAULT:
+			case WEAPON_STAT3_DEFAULT:
 				addTimeGun = 350;
 				break;
 			case WEAPON_STAT3_SHOT_BOUNCE:
@@ -9727,7 +9726,7 @@ static void PM_Weapon( void )
 			switch (currentGunMod3->getBasicStat3())
 			{
 			default:
-			case WEAPON_STAT3_SHOT_DEFAULT:
+			case WEAPON_STAT3_DEFAULT:
 				addTimeMod = 350;
 				break;
 			case WEAPON_STAT3_SHOT_BOUNCE:
@@ -10212,7 +10211,7 @@ void PM_AdjustAttackStates( pmove_t *pmove )
 				switch (currentGun->getBasicStat3())
 				{
 				default:
-				case WEAPON_STAT3_SHOT_DEFAULT:
+				case WEAPON_STAT3_DEFAULT:
 				case WEAPON_STAT3_SHOT_BOUNCE:
 				case WEAPON_STAT3_SHOT_EXPLOSIVE:
 				case WEAPON_STAT3_SHOT_BEAM: // Semi???
@@ -10229,7 +10228,7 @@ void PM_AdjustAttackStates( pmove_t *pmove )
 				switch (currentGunMod3->getBasicStat3())
 				{
 				default:
-				case WEAPON_STAT3_SHOT_DEFAULT:
+				case WEAPON_STAT3_DEFAULT:
 				case WEAPON_STAT3_SHOT_BOUNCE:
 				case WEAPON_STAT3_SHOT_EXPLOSIVE:
 				case WEAPON_STAT3_SHOT_BEAM: // Semi???
@@ -10360,7 +10359,7 @@ void PM_AdjustAttackStates( pmove_t *pmove )
 				switch (currentGun->getBasicStat3())
 				{
 				default:
-				case WEAPON_STAT3_SHOT_DEFAULT:
+				case WEAPON_STAT3_DEFAULT:
 				case WEAPON_STAT3_SHOT_BOUNCE:
 				case WEAPON_STAT3_SHOT_EXPLOSIVE:
 				case WEAPON_STAT3_SHOT_BEAM: // Semi???
@@ -10377,7 +10376,7 @@ void PM_AdjustAttackStates( pmove_t *pmove )
 				switch (currentGunMod3->getBasicStat3())
 				{
 				default:
-				case WEAPON_STAT3_SHOT_DEFAULT:
+				case WEAPON_STAT3_DEFAULT:
 				case WEAPON_STAT3_SHOT_BOUNCE:
 				case WEAPON_STAT3_SHOT_EXPLOSIVE:
 				case WEAPON_STAT3_SHOT_BEAM: // Semi???

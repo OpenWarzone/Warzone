@@ -1976,7 +1976,7 @@ void G_SoundOnEnt(gentity_t *ent, soundChannel_t channel, const char *soundPath)
 void G_CheckSaberStanceValidity(gentity_t *ent);
 
 // bg_inventory*
-inventoryItem *BG_CreatePlayerInventoryItem(playerState_t *ps, int psSlot, uint16_t bgItemID, uint16_t quality, uint16_t crystal, uint16_t stat1, uint16_t stat2, uint16_t stat3);
+inventoryItem *BG_CreatePlayerInventoryItem(playerState_t *ps, int psSlot, uint16_t bgItemID, uint16_t modelType, uint16_t customType, uint16_t quality, uint16_t crystal, uint16_t stat1, uint16_t stat2, uint16_t stat3);
 void BG_CreatePlayerDefaultJediInventory(gentity_t *ent, playerState_t *ps, team_t team);
 void BG_CreatePlayerDefaultGunnerInventory(playerState_t *ps, team_t team);
 void BG_CreateRandomNPCInventory(gentity_t *ent);

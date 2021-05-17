@@ -18,6 +18,8 @@ set(MPWarzoneFiles
   "${MPDir}/game/bg_inventory.h"
   "${MPDir}/game/bg_inventoryItem.cpp"
   "${MPDir}/game/bg_inventoryItem.h"
+  "${MPDir}/game/bg_inventoryReforge.cpp"
+  "${MPDir}/game/bg_inventoryReforge.h"
 	"${MPDir}/rd-warzone/iqm.h"
 	"${MPDir}/rd-warzone/qgl.h"
 	"${MPDir}/rd-warzone/G2_API.cpp"

@@ -64,6 +64,8 @@ set(MPGameGameFiles
 	"${MPDir}/game/bg_inventory.h"
 	"${MPDir}/game/bg_inventoryItem.cpp"
 	"${MPDir}/game/bg_inventoryItem.h"
+	"${MPDir}/game/bg_inventoryReforge.cpp"
+	"${MPDir}/game/bg_inventoryReforge.h"
 	"${MPDir}/game/bg_misc.cpp"
 	"${MPDir}/game/bg_panimate.cpp"
 	"${MPDir}/game/bg_pmove.cpp"

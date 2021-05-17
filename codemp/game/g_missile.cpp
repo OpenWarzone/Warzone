@@ -429,7 +429,7 @@ gentity_t *CreateMissile( vec3_t org, vec3_t dir, float vel, int life,
 	VectorCopy( org, missile->r.currentOrigin);
 	SnapVector(missile->s.pos.trDelta);
 
-	missile->s.primaryWeapon = (owner && owner->client) ? BG_EquippedWeaponVisualType3(&owner->client->ps) : WEAPON_STAT3_SHOT_DEFAULT;
+	missile->s.primaryWeapon = (owner && owner->client) ? BG_EquippedWeaponVisualType3(&owner->client->ps) : WEAPON_STAT3_DEFAULT;
 
 	return missile;
 }

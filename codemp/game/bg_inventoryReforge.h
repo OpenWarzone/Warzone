@@ -1,14 +1,5 @@
 #include "bg_inventoryItem.h"
 
-
-//
-// Inventory System Global Defines...
-//
-
-//#define __SEND_FULL_WEAPON_INFO_WITH_BOLT__				// This would send all the information about the player's inventory system item (and it's mods) to the clients... Should we need it...
-
-
-
 //
 // bg_itemlist - TODO: Replace/Extend with ini files...
 //
@@ -34,6 +25,3 @@ extern uint16_t BG_EquippedWeaponVisualType1(playerState_t *ps);
 extern uint16_t BG_EquippedWeaponVisualType2(playerState_t *ps);
 extern uint16_t BG_EquippedWeaponVisualType3(playerState_t *ps);
 extern uint16_t BG_EquippedWeaponCrystal(playerState_t *ps);
-
-extern uint16_t LoadReforgedWeapons(void);
-extern uint16_t LoadUniqueWeapons(void);

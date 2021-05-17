@@ -6513,7 +6513,7 @@ void FireWeapon(gentity_t *ent, qboolean altFire) {
 				switch (stat3)
 				{
 				default:
-				case WEAPON_STAT3_SHOT_DEFAULT:
+				case WEAPON_STAT3_DEFAULT:
 					break;
 				case WEAPON_STAT3_SHOT_BOUNCE:
 					bounces += 3;
@@ -6535,7 +6535,7 @@ void FireWeapon(gentity_t *ent, qboolean altFire) {
 				switch (mod3)
 				{
 				default:
-				case WEAPON_STAT3_SHOT_DEFAULT:
+				case WEAPON_STAT3_DEFAULT:
 					break;
 				case WEAPON_STAT3_SHOT_BOUNCE:
 					bounces += 3;

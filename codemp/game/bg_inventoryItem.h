@@ -58,6 +58,8 @@ typedef enum {
 	ITEM_CRYSTAL_MAX
 } itemPowerCrystal_t;
 
+extern stringID_table_t itemPowerCrystalStrings[];
+
 // For weapons/weapon-mods slot 1 only.
 typedef enum {
 	WEAPON_STAT1_DEFAULT,						// Pistol
@@ -69,6 +71,8 @@ typedef enum {
 	WEAPON_STAT1_MAX
 } weaponStat1_t;
 
+extern stringID_table_t weaponStat1Strings[];
+
 // For weapons/weapon-mods slot 2 only.
 typedef enum {
 	WEAPON_STAT2_DEFAULT,
@@ -78,9 +82,11 @@ typedef enum {
 	WEAPON_STAT2_MAX
 } weaponStat2_t;
 
+extern stringID_table_t weaponStat2Strings[];
+
 // For weapons/mods/items slot 3 only.
 typedef enum {
-	WEAPON_STAT3_SHOT_DEFAULT,
+	WEAPON_STAT3_DEFAULT,
 	WEAPON_STAT3_SHOT_BOUNCE,
 	WEAPON_STAT3_SHOT_EXPLOSIVE,
 	WEAPON_STAT3_SHOT_BEAM,
@@ -88,6 +94,8 @@ typedef enum {
 	WEAPON_STAT3_SHOT_REPEATING,
 	WEAPON_STAT3_MAX
 } weaponStat3_t;
+
+extern stringID_table_t weaponStat3Strings[];
 
 // For sabers/saber-mods slot 1 only.
 typedef enum {
@@ -137,6 +145,14 @@ typedef enum {
 	ITEM_STAT1_MAX
 } itemStat_t;
 
+// Reforged/Unique weapon types...
+typedef enum {
+	ITEM_CUSTOMIZATION_DEFAULT,
+	ITEM_CUSTOMIZATION_REFORGE,
+	ITEM_CUSTOMIZATION_UNIQUE,
+	ITEM_CUSTOMIZATION_MAX
+} itemCustomType_t;
+
 //
 // A quality based price scale modifier... Used internally... Matches levels of itemQuality_t.
 //
@@ -162,6 +178,16 @@ private:
 	float				m_basicStat1value;		// m_basicStat1 strength multiplier
 	float				m_basicStat2value;		// m_basicStat2 strength multiplier
 	float				m_basicStat3value;		// m_basicStat3 strength multiplier
+
+	// Reforged/Unique weapon information...
+	itemCustomType_t	m_customType;
+	char				m_customName[64];			// Custom name, if this is a reforged/unique weapon.
+	char				m_customDescription[256];	// Custom description, if this is a reforged/unique weapon.
+#ifdef _CGAME
+	char				m_customModel[128];			// Custom model, if this is a reforged/unique weapon.
+	char				m_customEfx[128];			// Custom EFX folder, if this is a reforged/unique weapon.
+	char				m_customSounds[128];		// Custom Sounds folder, if this is a reforged/unique weapon.
+#endif //_CGAME
 
 	//
 	// Private Internal Functions...
@@ -234,6 +260,22 @@ public:
 
 	const char *getColorStringForQuality();
 	void getTooltip(std::string &tooltipText, uint16_t modItemID1, uint16_t modItemID2, uint16_t modItemID3); // Can parse modItemID# = 0 for base tooltip without any mods...
+
+	// Reforged/Unique weapon information...
+	itemCustomType_t getCustomType();
+	void setCustomType(itemCustomType_t type);
+	char *getCustomName();
+	void setCustomName(char *name);
+	char *getCustomDescription();
+	void setCustomDescription(char *description);
+#ifdef _CGAME
+	char *getCustomModel();
+	void setCustomModel(char *model);
+	char *getCustomEfx();
+	void setCustomEfx(char *efxFolder);
+	char *getCustomSounds();
+	void setCustomSounds(char *soundsFolder);
+#endif //_CGAME
 };
 
 //
