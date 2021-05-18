@@ -196,7 +196,7 @@ uint16_t LoadReforgedWeapons(void)
 	for (i = 0; i < numFiles; i++)
 	{
 		Com_sprintf(filename, sizeof(filename), "reforgedWeapons/%s", filelist[i]);
-		ri->Printf(PRINT_ALL, "Filename: %s.\n", filename);
+		//ri->Printf(PRINT_ALL, "Filename: %s.\n", filename);
 #else
 	int filelen;
 	char* fileptr;

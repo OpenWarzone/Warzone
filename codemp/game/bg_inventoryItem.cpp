@@ -960,13 +960,13 @@ void inventoryItem::getTooltip(std::string &tooltipText, uint16_t modItemID1, ui
 				{
 					tooltipText.append(" \n");
 					tooltipText.append(va("^B%s^b\n", "Reforged Weapon"));
-					tooltipText.append(va("^P+%.2f%% ^7bonus to all stats.\n", 1.15f));
+					tooltipText.append(va("^P+%.2f%% ^7bonus to all stats.\n", 15.0f));
 				}
 				else if (getCustomType() == ITEM_CUSTOMIZATION_UNIQUE)
 				{
 					tooltipText.append(" \n");
 					tooltipText.append(va("^B%s^b\n", "Unique Weapon"));
-					tooltipText.append(va("^P+%.2f%% ^7bonus to all stats.\n", 1.25f));
+					tooltipText.append(va("^P+%.2f%% ^7bonus to all stats.\n", 25.0f));
 				}
 			}
 			tooltipText.append(" \n");
@@ -1023,13 +1023,13 @@ void inventoryItem::getTooltip(std::string &tooltipText, uint16_t modItemID1, ui
 				{
 					tooltipText.append(" \n");
 					tooltipText.append(va("^B%s^b\n", "Reforged Weapon"));
-					tooltipText.append(va("^P+%.2f%% ^7bonus to all stats.\n", 1.15f));
+					tooltipText.append(va("^P+%.2f%% ^7bonus to all stats.\n", 15.0f));
 				}
 				else if (getCustomType() == ITEM_CUSTOMIZATION_UNIQUE)
 				{
 					tooltipText.append(" \n");
 					tooltipText.append(va("^B%s^b\n", "Unique Weapon"));
-					tooltipText.append(va("^P+%.2f%% ^7bonus to all stats.\n", 1.25f));
+					tooltipText.append(va("^P+%.2f%% ^7bonus to all stats.\n", 25.0f));
 				}
 			}
 			tooltipText.append(" \n");

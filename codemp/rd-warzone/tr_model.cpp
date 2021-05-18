@@ -120,7 +120,7 @@ qhandle_t R_RegisterMD3(const char *name, model_t *mod)
 }
 
 
-//#define __REGEN_MODEL_NORMALS__
+#define __REGEN_MODEL_NORMALS__
 
 #ifdef __REGEN_MODEL_NORMALS__
 void GenerateNormalsForMesh(mdvSurface_t *cv)
@@ -1109,7 +1109,11 @@ static qboolean R_LoadAssImp(model_t * mod, int lod, void *buffer, const char *m
 			uint32_t *normals;
 
 #ifdef __REGEN_MODEL_NORMALS__
-			GenerateEnhancedNormalsForSurface(surf);
+			shader_t *shader = tr.shaders[surf->shaderIndexes[0]];
+			if (shader && shader->recalculateNormals)
+			{
+				GenerateEnhancedNormalsForSurface(surf);
+			}
 #endif //__REGEN_MODEL_NORMALS__
 
 			byte *data;
@@ -2092,6 +2096,14 @@ static qboolean R_LoadNIF(model_t * mod, int lod, void *buffer, const char *modN
 				int dataSize;
 
 				int ofs_xyz, ofs_normal, ofs_st;
+
+#ifdef __REGEN_MODEL_NORMALS__
+				shader_t *shader = tr.shaders[surf->shaderIndexes[0]];
+				if (shader && shader->recalculateNormals)
+				{
+					GenerateEnhancedNormalsForSurface(surf);
+				}
+#endif //__REGEN_MODEL_NORMALS__
 
 				dataSize = 0;
 
@@ -3423,6 +3435,14 @@ static qboolean R_LoadMD3(model_t * mod, int lod, void *buffer, const char *modN
 			int dataSize;
 
 			int ofs_xyz, ofs_normal, ofs_st;
+
+#ifdef __REGEN_MODEL_NORMALS__
+			shader_t *shader = tr.shaders[surf->shaderIndexes[0]];
+			if (shader && shader->recalculateNormals)
+			{
+				GenerateEnhancedNormalsForSurface(surf);
+			}
+#endif //__REGEN_MODEL_NORMALS__
 
 			dataSize = 0;
 

@@ -4718,6 +4718,9 @@ static qboolean ParseShader( const char *name, const char **text )
 	shader.emissiveRadiusScale = 1.0;
 	shader.emissiveColorScale = 1.0;
 
+	// Makse sure shader is set to not recalculate normals by default...
+	shader.recalculateNormals = qfalse;
+
 	s = 0;
 
 	token = COM_ParseExt( text, qtrue );
@@ -4763,6 +4766,12 @@ static qboolean ParseShader( const char *name, const char **text )
 		else if (Q_stricmp(token, "warzoneShader") == 0 || Q_stricmp(token, "warzoneEnabled") == 0 || Q_stricmp(token, "warzoneSupported") == 0)
 		{// Just skip past these markers, handled in FindShader()...
 			shader.warzoneEnabled = qtrue;
+			SkipRestOfLine(text);
+			continue;
+		}
+		else if (Q_stricmp(token, "recalculateNormals") == 0)
+		{
+			shader.recalculateNormals = qtrue;
 			SkipRestOfLine(text);
 			continue;
 		}
@@ -8321,7 +8330,8 @@ char uniqueGenericMetalShader[] = "{\n"\
 "{\n"\
 "map %s\n"\
 "envmap $skyimage\n"\
-"envmapStrength 0.3\n"\
+"//envmapStrength 0.3\n"\
+"envmapStrength 0.7\n"\
 "blendfunc GL_ONE GL_ZERO\n"\
 "alphaFunc GE128\n"\
 "depthWrite\n"\
@@ -8332,6 +8342,7 @@ char uniqueGenericMetalShader[] = "{\n"\
 "}\n"\
 "";
 
+#if 0
 char uniqueGenericWeaponShader[] = "{\n"\
 "qer_editorimage	%s\n"\
 "q3map_material	solidmetal\n"\
@@ -8348,6 +8359,27 @@ char uniqueGenericWeaponShader[] = "{\n"\
 "rgbGen identityLighting\n"\
 "depthWrite\n"\
 "//rgbGen entity\n"\
+"}\n"\
+"%s"\
+"}\n"\
+"";
+#endif
+
+char uniqueGenericWeaponShader[] = "{\n"\
+"qer_editorimage	%s\n"\
+"q3map_material	solidmetal\n"\
+"surfaceparm	noimpact\n"\
+"surfaceparm	nomarks\n"\
+"glowStrength 16.0\n"\
+"cull	twosided\n"\
+"{\n"\
+"map %s\n"\
+"envmap $skyimage\n"\
+"envmapStrength 0.9\n"\
+"blendfunc GL_ONE GL_ZERO\n"\
+"alphaFunc GE128\n"\
+"rgbGen lightingDiffuse\n"\
+"depthWrite\n"\
 "}\n"\
 "%s"\
 "}\n"\

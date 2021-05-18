@@ -1893,10 +1893,10 @@ void BG_CreateRandomNPCInventory(gentity_t *ent)
 				int selectedID = irand_big(allInventoryReforgedWeaponsStart, allInventoryReforgedWeaponsEnd);
 				inventoryItem *reforgeWeapon = allInventoryItems[selectedID];
 				newItem = BG_CreatePlayerInventoryItem(ps, 0, 39, SABER_MODELTYPE_DEFAULT, ITEM_CUSTOMIZATION_REFORGE, reforgeWeapon->getQuality(), reforgeWeapon->getCrystal(), reforgeWeapon->getBasicStat1(), reforgeWeapon->getBasicStat2(), reforgeWeapon->getBasicStat3());
-				/*if (newItem)
-				{
-					trap->Print("NPC %i has been given a custom reforged %s weapon.\n", ent->s.number, newItem->getCustomName());
-				}*/
+				//if (newItem)
+				//{
+				//	trap->Print("NPC %i has been given a custom reforged %s weapon.\n", ent->s.number, newItem->getCustomName());
+				//}
 			}
 			else
 			{

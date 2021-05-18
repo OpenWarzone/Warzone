@@ -1473,6 +1473,8 @@ typedef struct shader_s {
 
 	qboolean	warzoneEnabled;
 
+	qboolean	recalculateNormals;
+
 	qboolean	entityMergable;			// merge across entites optimizable (smoke, blood)
 
 	qboolean	isWater;
