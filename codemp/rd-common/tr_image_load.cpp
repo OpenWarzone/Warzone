@@ -87,7 +87,7 @@ Loads any of the supported image types into a cannonical
 32 bit format.
 =================
 */
-void R_LoadImage( const char *shortname, byte **pic, int *width, int *height ) {
+const char *R_LoadImage( const char *shortname, byte **pic, int *width, int *height ) {
 	*pic = NULL;
 	*width = 0;
 	*height = 0;
@@ -100,7 +100,7 @@ void R_LoadImage( const char *shortname, byte **pic, int *width, int *height ) {
 		imageLoader->loader (shortname, pic, width, height);
 		if ( *pic )
 		{
-			return;
+			return extension;
 		}
 	}
 
@@ -120,9 +120,11 @@ void R_LoadImage( const char *shortname, byte **pic, int *width, int *height ) {
 		tryLoader->loader (name, pic, width, height);
 		if ( *pic )
 		{
-			return;
+			return tryLoader->extension;
 		}
 	}
+
+	return NULL;
 }
 
 void R_LoadDataImage( const char *name, byte **pic, int *width, int *height )

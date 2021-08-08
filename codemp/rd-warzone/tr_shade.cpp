@@ -1048,10 +1048,12 @@ static void ProjectPshadowVBOGLSL( void ) {
 		return;
 	}
 
+#ifdef __INDOOR_OUTDOOR_CULLING__
 	if (!(!backEnd.viewIsOutdoors || !SHADOWS_ENABLED || RB_NightScale() == 1.0))
 	{// Also skip during day, when outdoors...
 		return;
 	}
+#endif //__INDOOR_OUTDOOR_CULLING__
 
 	shaderProgram_t *sp = NULL;
 

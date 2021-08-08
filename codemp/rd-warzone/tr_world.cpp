@@ -1826,12 +1826,12 @@ void R_AddWorldSurfaces(void) {
 		if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer >= 1)
 		{
 			RB_CheckOcclusions();
+		}
 
 #ifdef __USE_VBO_AREAS__
-			extern void SetVBOVisibleAreas(void);
-			SetVBOVisibleAreas();
+		extern void SetVBOVisibleAreas(void);
+		SetVBOVisibleAreas();
 #endif //__USE_VBO_AREAS__
-		}
 	}
 
 #ifdef __PSHADOWS__

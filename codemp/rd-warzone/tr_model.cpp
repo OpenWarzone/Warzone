@@ -185,7 +185,7 @@ void GenerateSmoothNormalsForSurface(mdvSurface_t *cv)
 	for (int z = 0; z < 3; z++)
 #endif //__MULTIPASS_SMOOTHING__
 	{
-		//#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 		for (int i = 0; i < numVerts; i++)
 		{
 			//ri->Printf(PRINT_WARNING, "%i of %i.\n", i, numVerts);

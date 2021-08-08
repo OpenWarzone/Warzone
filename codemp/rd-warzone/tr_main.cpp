@@ -2689,7 +2689,9 @@ void R_RenderPshadowMaps(const refdef_t *fd)
 	vec3_t	bestLightPosition;
 	float	bestLightRadius = MAX_PSHADOW_RADIUS;
 
+#ifdef __INDOOR_OUTDOOR_CULLING__
 	if (!backEnd.viewIsOutdoors || !SHADOWS_ENABLED || RB_NightScale() == 1.0)
+#endif //__INDOOR_OUTDOOR_CULLING__
 	{// Only use pshadows inside, when sun shadows are disabled, or at night...
 #ifdef __PSHADOW_USE_BEST_LIGHT__
 		// Let's try to find a real light source...
@@ -2795,10 +2797,12 @@ void R_RenderPshadowMaps(const refdef_t *fd)
 		bestLightPosition[2] -= r_testvalue1->value;
 #endif //__PSHADOW_USE_BEST_LIGHT__
 	}
+#ifdef __INDOOR_OUTDOOR_CULLING__
 	else
 	{
 		return;
 	}
+#endif //__INDOOR_OUTDOOR_CULLING__
 
 	// first, make a list of GLM shadows
 	for (i = 0; i < tr.refdef.num_entities; i++)

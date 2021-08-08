@@ -997,13 +997,13 @@ int G_MaxSpawnsPerWave(int wave, eventSize_t eventSize)
 		{
 		case EVENT_SIZE_SMALL:
 		default:
-			return 8;// 4;
+			return 4;// 8;// 4;
 			break;
 		case EVENT_SIZE_MEDIUM:
-			return 16;// 8;
+			return 6;// 16;// 8;
 			break;
 		case EVENT_SIZE_LARGE:
-			return 24;// 12;
+			return 8;// 24;// 12;
 			break;
 		}
 		break;
@@ -1013,13 +1013,13 @@ int G_MaxSpawnsPerWave(int wave, eventSize_t eventSize)
 		{
 		case EVENT_SIZE_SMALL:
 		default:
-			return 12;// 8;
+			return 4;// 12;// 8;
 			break;
 		case EVENT_SIZE_MEDIUM:
-			return 20;// 12;
+			return 6;// 20;// 12;
 			break;
 		case EVENT_SIZE_LARGE:
-			return 32;// 16;
+			return 8;// 32;// 16;
 			break;
 		}
 		break;
@@ -1029,13 +1029,13 @@ int G_MaxSpawnsPerWave(int wave, eventSize_t eventSize)
 		{
 		case EVENT_SIZE_SMALL:
 		default:
-			return 12;// 8;
+			return 4;// 12;// 8;
 			break;
 		case EVENT_SIZE_MEDIUM:
-			return 20;// 12;
+			return 6;// 20;// 12;
 			break;
 		case EVENT_SIZE_LARGE:
-			return 32;// 16;
+			return 8;// 32;// 16;
 			break;
 		}
 		break;
@@ -1045,13 +1045,13 @@ int G_MaxSpawnsPerWave(int wave, eventSize_t eventSize)
 		{
 		case EVENT_SIZE_SMALL:
 		default:
-			return 12;// 8;
+			return 4;// 12;// 8;
 			break;
 		case EVENT_SIZE_MEDIUM:
-			return 20;// 12;
+			return 6;// 20;// 12;
 			break;
 		case EVENT_SIZE_LARGE:
-			return 32;// 16;
+			return 10;// 32;// 16;
 			break;
 		}
 		break;
@@ -1061,13 +1061,13 @@ int G_MaxSpawnsPerWave(int wave, eventSize_t eventSize)
 		{
 		case EVENT_SIZE_SMALL:
 		default:
-			return 12;// 8;
+			return 4;// 12;// 8;
 			break;
 		case EVENT_SIZE_MEDIUM:
-			return 20;// 12;
+			return 6;// 20;// 12;
 			break;
 		case EVENT_SIZE_LARGE:
-			return 32;// 16;
+			return 10;// 32;// 16;
 			break;
 		}
 		break;
@@ -1077,13 +1077,13 @@ int G_MaxSpawnsPerWave(int wave, eventSize_t eventSize)
 		{
 		case EVENT_SIZE_SMALL:
 		default:
-			return 12;// 8;
+			return 4;// 12;// 8;
 			break;
 		case EVENT_SIZE_MEDIUM:
-			return 20;// 12;
+			return 4;// 20;// 12;
 			break;
 		case EVENT_SIZE_LARGE:
-			return 32;// 16;
+			return 4;// 32;// 16;
 			break;
 		}
 		break;

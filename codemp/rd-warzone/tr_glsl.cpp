@@ -2279,7 +2279,11 @@ void GLSL_SetBindlessTexture(shaderProgram_t *program, int uniformNum, image_t *
 		}
 		*/
 
-		qglMakeTextureHandleResident(bindlessHandle);
+		if (!images[arrayID]->bindlessHandleIsResident || r_lowVram->integer > 0)
+		{
+			qglMakeTextureHandleResident(bindlessHandle);
+			images[arrayID]->bindlessHandleIsResident = qtrue;
+		}
 
 		switch (uniformNum)
 		{

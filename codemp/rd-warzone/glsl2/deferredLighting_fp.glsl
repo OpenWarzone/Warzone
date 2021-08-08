@@ -787,204 +787,6 @@ float getSpecialSauce(vec3 color)
 	return lum;
 }
 
-//#define _TEST_
-
-#ifdef _TEST_
-#define INSCATTER_STEPS 50
-#define NOISE_AMPLITUDE 0.05
-
-/*float particles (vec3 p)
-{
-	vec3 pos = p;
-	pos.y -= iTime*0.02;
-	float n = fbm(20.0*pos);
-	n = pow(n, 5.0);
-	float brightness = noise(10.3*p);
-	float threshold = 0.26;
-	return smoothstep(threshold, threshold + 0.15, n)*brightness*90.0;
-}*/
-
-float transmittance (vec3 p)
-{
-	return exp (0.4*p.y);
-}
-
-vec3 inscatter (vec3 ro, vec3 rd, vec3 roLight, vec3 rdLight, vec3 lightDir, float hit, vec2 screenPos)
-{
-	//float far;
-	//float near = box(roLight + vec3(0.0, 1.0, 0.0), rdLight, vec3(1.5, 3.0, 1.5), far);
-	//if(near == INF || hit < near)
-	//	return vec3(0);
-	
-	float distAlongView = min(hit, far) - near;
-	float oneOverSteps = 1.0/float(INSCATTER_STEPS);
-	vec3 step = rd*distAlongView*oneOverSteps;
-    vec3 pos = ro + rd*near;
-	float light = 0.0;
-    
-    // add noise to the start position to hide banding
-    // TODO: blue noise
-	pos += rd*proceduralNoise(vec3(2.0*screenPos, 0.0))*NOISE_AMPLITUDE;
-
-	for(int i = 0; i < INSCATTER_STEPS; i++)
-	{
-		float l = intersect(pos, lightDir) == INF ? 1.0 : 0.0;
-		l *= transmittance(pos);
-		light += l;
-		//light += particles(pos)*l;
-		pos += step;
-	}
-
-	light *= oneOverSteps * distAlongView;
-	return light*vec3(0.6);
-}
-#endif //_TEST_
-
-#if !defined(LQ_MODE) && !defined(_FAST_LIGHTING_)
-float specTrowbridgeReitz(float HoN, float a, float aP)
-{
-	float a2 = a * a;
-	float aP2 = aP * aP;
-	return (a2 * aP2) / pow(HoN * HoN * (a2 - 1.0) + 1.0, 2.0);
-}
-
-float visSchlickSmithMod(float NoL, float NoV, float r)
-{
-	float k = pow(r * 0.5 + 0.5, 2.0) * 0.5;
-	float l = NoL * (1.0 - k) + k;
-	float v = NoV * (1.0 - k) + k;
-	return 1.0 / (4.0 * l * v);
-}
-
-float fresSchlickSmith(float HoV, float f0)
-{
-	return f0 + (1.0 - f0) * pow(1.0 - HoV, 5.0);
-}
-
-float sphereLight(vec3 pos, vec3 N, vec3 V, vec3 r, float f0, float roughness, float NoV, out float NoL, vec3 L/*lightPos*/)
-{
-#define sphereRad 0.2//0.3
-
-	//vec3 L = normalize(lightPos - pos);
-	vec3 centerToRay = dot(L, r) * r - L;
-	vec3 closestPoint = L + centerToRay * clamp(sphereRad / length(centerToRay), 0.0, 1.0);
-	vec3 l = normalize(closestPoint);
-	vec3 h = normalize(V + l);
-
-
-	NoL = clamp(dot(N, l), 0.0, 1.0);
-	float HoN = clamp(dot(h, N), 0.0, 1.0);
-	float HoV = dot(h, V);
-
-	float distL = length(L);
-	float alpha = roughness * roughness;
-	float alphaPrime = clamp(sphereRad / (distL * 2.0) + alpha, 0.0, 1.0);
-
-	float specD = specTrowbridgeReitz(HoN, alpha, alphaPrime);
-	float specF = fresSchlickSmith(HoV, f0);
-	float specV = visSchlickSmithMod(NoL, NoV, roughness);
-
-	return specD * specF * specV * NoL;
-}
-
-float tubeLight(vec3 pos, vec3 N, vec3 V, vec3 r, float f0, float roughness, float NoV, out float NoL, vec3 tubeStart, vec3 tubeEnd)
-{
-	vec3 L0 = tubeStart - pos;
-	vec3 L1 = tubeEnd - pos;
-	float distL0 = length(L0);
-	float distL1 = length(L1);
-
-	float NoL0 = dot(L0, N) / (2.0 * distL0);
-	float NoL1 = dot(L1, N) / (2.0 * distL1);
-	NoL = (2.0 * clamp(NoL0 + NoL1, 0.0, 1.0))
-		/ (distL0 * distL1 + dot(L0, L1) + 2.0);
-
-	vec3 Ld = L1 - L0;
-	float RoL0 = dot(r, L0);
-	float RoLd = dot(r, Ld);
-	float L0oLd = dot(L0, Ld);
-	float distLd = length(Ld);
-	float t = (RoL0 * RoLd - L0oLd)
-		/ (distLd * distLd - RoLd * RoLd);
-
-	float tubeRad = distLd;// 0.2
-
-	vec3 closestPoint = L0 + Ld * clamp(t, 0.0, 1.0);
-	vec3 centerToRay = dot(closestPoint, r) * r - closestPoint;
-	closestPoint = closestPoint + centerToRay * clamp(tubeRad / length(centerToRay), 0.0, 1.0);
-	vec3 l = normalize(closestPoint);
-	vec3 h = normalize(V + l);
-
-	float HoN = clamp(dot(h, N), 0.0, 1.0);
-	float HoV = dot(h, V);
-
-	float distLight = length(closestPoint);
-	float alpha = roughness * roughness;
-	float alphaPrime = clamp(tubeRad / (distLight * 2.0) + alpha, 0.0, 1.0);
-
-	float specD = specTrowbridgeReitz(HoN, alpha, alphaPrime);
-	float specF = fresSchlickSmith(HoV, f0);
-	float specV = visSchlickSmithMod(NoL, NoV, roughness);
-
-	return specD * specF * specV * NoL;
-}
-
-float getdiffuse(vec3 n, vec3 l, float p) {
-	float ndotl = clamp(dot(n, l), 0.5, 0.9);
-	return pow(ndotl, p);
-}
-
-vec3 Lighting(vec4 pos, vec3 color, vec3 bump, vec3 flatNormal, vec3 view, vec3 light, vec3 lightColor, float specPower, vec3 lightPos, float wetness)
-{
-	/*
-	// White shift the light color a bit...
-	float lum = clamp(max(max(color.r, max(color.g, color.b)) * 0.5, length(color) / 3.0), 0.0, 1.0);
-	lightColor = mix(lightColor, vec3(lum), 0.15); // jka lights tend to be way too colored...
-	*/
-
-	float sauce = getSpecialSauce(color);
-	//float br = max(max(color.r, max(color.g, color.b)), length(color) / 3.0);
-	vec3 albedo = vec3(sauce);//vec3(br);//pow(color, vec3(2.2));
-	float roughness = 0.7 - clamp(0.5 - dot(albedo, albedo), 0.05, 0.95);
-	float f0 = 0.3;
-
-	// Ambient light.
-	float ambience = 0.0625;
-
-	// Diffuse lighting.
-	float ndotl = clamp(dot(bump, light), 0.0, 1.0);
-	float diff = pow(ndotl, 2.0);
-	diff *= sauce;
-
-	// Specular light.
-	vec3 v = view;
-	float NoV = clamp(dot(bump, v), 0.0, 1.0);
-	vec3 r = reflect(-v, bump);
-
-#if 1
-	float NdotLSphere;
-	float specSph = clamp(sphereLight(pos.xyz, bump, v, r, f0, roughness, NoV, NdotLSphere, light/*lightPos*/), 0.0, 1.0/*0.2*/);
-	float spec = clamp(/*0.3183 **/ NdotLSphere+specSph, 0.0, 1.0/*0.2*/);
-#else
-	float NdotLTube;
-	float specTube = clamp(tubeLight(pos.xyz, bump, v, r, f0, roughness, NoV, NdotLTube, lightPosStart, lightPosEnd), 0.0, 1.0/*0.2*/);
-	float spec = clamp(/*0.3183 **/ NdotLTube+specTube, 0.0, 1.0/*0.2*/);
-#endif
-	
-	spec = clamp(pow(spec, 1.0 / 2.2), 0.0, 1.0);
-
-	float wetSpec = 0.0;
-
-	if (wetness > 0.0)
-	{// Increase specular strength when the ground is wet during/after rain...
-		wetSpec = wetSpecular(bump, -light, view, 256.0) * wetness * 0.5;
-		wetSpec += wetSpecular(bump, -light, view, 4.0) * wetness * 8.0;
-		wetSpec *= 0.5;
-	}
-
-	return (lightColor * ambience) + (lightColor * diff * 0.333) + (lightColor * albedo * spec * 0.333) + (lightColor * albedo * wetSpec * 0.1);
-}
-#else //defined(LQ_MODE) || defined(_FAST_LIGHTING_)
 vec3 Lighting(vec4 pos, vec3 color, vec3 bump, vec3 flatNormal, vec3 view, vec3 light, vec3 lightColor, float specPower, vec3 lightPos, float wetness) {
 	float wetSpec = 0.0;
 
@@ -1014,39 +816,6 @@ vec3 Lighting(vec4 pos, vec3 color, vec3 bump, vec3 flatNormal, vec3 view, vec3 
 	float specialSauce = getSpecialSauce(color);
 	return ((lightColor * 0.24) + (lightColor * specialSauce) + (lightColor * specialSauce * wetSpec)) * 0.1;// * directionalMult; // 0.075
 }
-#endif //!defined(LQ_MODE) && !defined(_FAST_LIGHTING_)
-
-#if 0
-float rayTriangle(vec3 rayOrigin, vec3 rayDir, vec3 v0, vec3 v1, vec3 v2, float epsilon) {
-    vec3 e1 = v1 - v0;
-    vec3 e2 = v2 - v0;
-    vec3 pvec = cross(rayDir, e2);
-    float det = dot(e1, pvec);
-
-    if(abs(det) < epsilon)
-        return -1.0;
-
-    float invDet = 1.0 / det;
-    vec3 tvec = rayOrigin - v0;
-
-    float u = invDet * dot(tvec, pvec);
-    if(u < 0.0 || u > 1.0)
-        return -1.0;
-
-    vec3 qvec = cross(tvec, e1);
-    float v = invDet * dot(rayDir, qvec);
-
-    if(v < 0.0 || u + v > 1.0)
-        return -1.0;
-
-    return dot(e2, qvec) * invDet;
-}
-
-//Default epsilon = 1e-6
-float rayTriangle(vec3 rayOrigin, vec3 rayDir, vec3 v0, vec3 v1, vec3 v2) {
-    return rayTriangle(rayOrigin, rayDir, v0, v1, v2, 1e-6);
-}
-#endif
 
 void GetSSBOLighting(bool emissive, float origColorStrength, float lightsReflectionFactor, float specularReflectivePower, vec4 position, vec3 lightingNormal, vec3 flatNormal, vec3 E, float wetness, bool useOcclusion, vec4 occlusion, float PshadowValue, inout vec4 outColor)
 {
@@ -1060,7 +829,6 @@ void GetSSBOLighting(bool emissive, float origColorStrength, float lightsReflect
 	float pixelDistanceMult = 1.0 - (pixelDistance / MAX_DEFERRED_LIGHT_RANGE);
 
 	int lightCount = u_lightCount;
-
 	if (emissive) lightCount = u_emissiveLightCount;
 	
 	if (lightCount > 0.0 && pixelDistanceMult > 0.0)
@@ -1072,7 +840,7 @@ void GetSSBOLighting(bool emissive, float origColorStrength, float lightsReflect
 
 		if (power > 0.0)
 		{
-			// No pointins in GLSL, at least on AMD, what a bunch of crap...
+			// No pointers in GLSL, at least on AMD, what a bunch of crap...
 			for (int li = 0; li < lightCount; li++)
 			{
 				// WTB: Pointers...
@@ -1142,8 +910,6 @@ void GetSSBOLighting(bool emissive, float origColorStrength, float lightsReflect
 					if (lightFade > 0.0)
 					{
 						float lightStrength = lightDistMult * lightFade * specularReflectivePower * 0.5;
-						//float maxLightsScale = mix(0.01, 1.0, clamp(pow(1.0 - (lightPlayerDist / light.u_lightColors.w), 0.5), 0.0, 1.0));
-						//lightStrength *= maxLightsScale;
 
 						if (lightStrength > 0.0)
 						{
@@ -1163,14 +929,8 @@ void GetSSBOLighting(bool emissive, float origColorStrength, float lightsReflect
 								}
 							}
 
-							//vec3 lightDir = normalize(u_ViewOrigin.xyz - lightPos.xyz);
-							vec3 lightColor = light.u_lightColors.rgb;
-							//float selfShadow = clamp(pow(clamp(dot(-lightDir.rgb, lightingNormal.rgb), 0.0, 1.0), 8.0) * 0.6 + 0.6, 0.0, 1.0);
-
-							lightColor = lightColor * power * origColorStrength /** maxLightsScale*//* * MAP_EMISSIVE_COLOR_SCALE*/;
-
+							vec3 lightColor = light.u_lightColors.rgb * power * origColorStrength;
 							float lightSpecularPower = mix(0.1, 0.5, clamp(lightsReflectionFactor, 0.0, 1.0)) * clamp(lightStrength * 12.0, 0.0, 1.0);
-
 							float light_occlusion = 1.0;
 
 #ifndef LQ_MODE
@@ -1180,7 +940,9 @@ void GetSSBOLighting(bool emissive, float origColorStrength, float lightsReflect
 							}
 #endif //LQ_MODE
 
-							addedLight.rgb = max(addedLight.rgb, Lighting(position, outColor.rgb, lightingNormal, flatNormal, E, lightDir, lightColor, lightSpecularPower, lightPos, wetness) * lightFade /** selfShadow*/ * light_occlusion);
+							float selfShadow = clamp(pow(clamp(dot(-lightDir.rgb, lightingNormal.rgb), 0.0, 1.0), 8.0) * 0.6 + 0.6, 0.0, 1.0);
+
+							addedLight.rgb = max(addedLight.rgb, Lighting(position, outColor.rgb, lightingNormal, flatNormal, E, lightDir, lightColor, lightSpecularPower, lightPos, wetness) * lightFade * selfShadow * light_occlusion);
 						}
 					}
 				}

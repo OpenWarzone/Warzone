@@ -3596,7 +3596,7 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 						ri->Printf(PRINT_ALL, "Currently drawing %i emissive lights.\n", NUM_CURRENT_EMISSIVE_DRAW_LIGHTS);
 					}
 
-					emissiveUpdateTime = backEnd.refdef.time + 100; // update every 100 msec???
+					emissiveUpdateTime = backEnd.refdef.time + 1000; // update every 1000 msec???
 				}
 
 				GLSL_SetUniformInt(shader, UNIFORM_EMISSIVELIGHTCOUNT, NUM_CURRENT_EMISSIVE_DRAW_LIGHTS);

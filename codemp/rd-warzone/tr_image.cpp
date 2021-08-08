@@ -506,7 +506,7 @@ before or after.
 static void ResampleTexture( byte *in, int inwidth, int inheight, byte *out,  
 							int outwidth, int outheight ) {
 	int		i, j;
-	byte	*inrow, *inrow2;
+	//byte	*inrow, *inrow2;
 	int		frac, fracstep;
 	int		p1[16384], p2[16384];
 	byte	*pix1, *pix2, *pix3, *pix4;
@@ -526,28 +526,44 @@ static void ResampleTexture( byte *in, int inwidth, int inheight, byte *out,
 	fracstep = inwidth*0x10000/outwidth;
 
 	frac = fracstep>>2;
+
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for ( i=0 ; i<outwidth ; i++ ) {
 		p1[i] = 4*(frac>>16);
 		frac += fracstep;
 	}
+
 	frac = 3*(fracstep>>2);
+
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for ( i=0 ; i<outwidth ; i++ ) {
 		p2[i] = 4*(frac>>16);
 		frac += fracstep;
 	}
 
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for (i=0 ; i<outheight ; i++) {
-		inrow = in + 4*inwidth*(int)((i+0.25)*inheight/outheight);
-		inrow2 = in + 4*inwidth*(int)((i+0.75)*inheight/outheight);
+		byte	*inrow = in + 4*inwidth*(int)((i+0.25)*inheight/outheight);
+		byte	*inrow2 = in + 4*inwidth*(int)((i+0.75)*inheight/outheight);
+
 		for (j=0 ; j<outwidth ; j++) {
 			pix1 = inrow + p1[j];
 			pix2 = inrow + p2[j];
 			pix3 = inrow2 + p1[j];
 			pix4 = inrow2 + p2[j];
+			/*
 			*out++ = (pix1[0] + pix2[0] + pix3[0] + pix4[0])>>2;
 			*out++ = (pix1[1] + pix2[1] + pix3[1] + pix4[1])>>2;
 			*out++ = (pix1[2] + pix2[2] + pix3[2] + pix4[2])>>2;
 			*out++ = (pix1[3] + pix2[3] + pix3[3] + pix4[3])>>2;
+			*/
+
+			byte	*outPixel = &out[((i*outwidth) + j) * 4];
+
+			*outPixel++ = (pix1[0] + pix2[0] + pix3[0] + pix4[0]) >> 2;
+			*outPixel++ = (pix1[1] + pix2[1] + pix3[1] + pix4[1]) >> 2;
+			*outPixel++ = (pix1[2] + pix2[2] + pix3[2] + pix4[2]) >> 2;
+			*outPixel++ = (pix1[3] + pix2[3] + pix3[3] + pix4[3]) >> 2;
 		}
 	}
 }
@@ -556,6 +572,7 @@ static void RGBAtoYCoCgA(const byte *in, byte *out, int width, int height)
 {
 	int x, y;
 
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for (y = 0; y < height; y++)
 	{
 		const byte *inbyte  = in  + y * width * 4;
@@ -583,6 +600,7 @@ static void YCoCgAtoRGBA(const byte *in, byte *out, int width, int height)
 {
 	int x, y;
 
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for (y = 0; y < height; y++)
 	{
 		const byte *inbyte  = in  + y * width * 4;
@@ -614,6 +632,8 @@ static void RGBAtoNormal(const byte *in, byte *out, int width, int height, qbool
 	// convert to heightmap, storing in alpha
 	// same as converting to Y in YCoCg
 	max = 1;
+
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for (y = 0; y < height; y++)
 	{
 		const byte *inbyte  = in  + y * width * 4;
@@ -633,6 +653,7 @@ static void RGBAtoNormal(const byte *in, byte *out, int width, int height, qbool
 	// level out heights
 	if (max < 255)
 	{
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 		for (y = 0; y < height; y++)
 		{
 			byte *outbyte = out + y * width * 4 + 3;
@@ -648,6 +669,7 @@ static void RGBAtoNormal(const byte *in, byte *out, int width, int height, qbool
 
 	// now run sobel filter over height values to generate X and Y
 	// then normalize
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for (y = 0; y < height; y++)
 	{
 		byte *outbyte = out + y * width * 4;
@@ -727,13 +749,14 @@ static void RGBAtoNormal(const byte *in, byte *out, int width, int height, qbool
 static void DoFCBI(byte *in, byte *out, int width, int height, int component)
 {
 	int x, y;
-	byte *outbyte, *inbyte;
+	//byte *outbyte, *inbyte;
 
 	// copy in to out
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for (y = 2; y < height - 2; y += 2)
 	{
-		inbyte  = in  + (y * width + 2) * 4 + component;
-		outbyte = out + (y * width + 2) * 4 + component;
+		byte *inbyte  = in  + (y * width + 2) * 4 + component;
+		byte *outbyte = out + (y * width + 2) * 4 + component;
 
 		for (x = 2; x < width - 2; x += 2)
 		{
@@ -743,6 +766,7 @@ static void DoFCBI(byte *in, byte *out, int width, int height, int component)
 		}
 	}
 	
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for (y = 3; y < height - 3; y += 2)
 	{
 		// diagonals
@@ -809,7 +833,7 @@ static void DoFCBI(byte *in, byte *out, int width, int height, int component)
 		sg = *line3; line3 += 8; sh = *line3; line3 += 8; si = *line3; line3 += 8;
 		                         sk = *line4; line4 += 8;
 
-		outbyte = out + (y * width + x) * 4 + component;
+		byte *outbyte = out + (y * width + x) * 4 + component;
 
 		for ( ; x < width - 3; x += 2)
 		{
@@ -880,10 +904,11 @@ static void DoFCBI(byte *in, byte *out, int width, int height, int component)
 	}
 
 	// hack: copy out to in again
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for (y = 3; y < height - 3; y += 2)
 	{
-		inbyte = out + (y * width + 3) * 4 + component;
-		outbyte = in + (y * width + 3) * 4 + component;
+		byte *inbyte = out + (y * width + 3) * 4 + component;
+		byte *outbyte = in + (y * width + 3) * 4 + component;
 
 		for (x = 3; x < width - 3; x += 2)
 		{
@@ -893,6 +918,7 @@ static void DoFCBI(byte *in, byte *out, int width, int height, int component)
 		}
 	}
 	
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for (y = 2; y < height - 3; y++)
 	{
 		// horizontal & vertical
@@ -958,7 +984,7 @@ static void DoFCBI(byte *in, byte *out, int width, int height, int component)
 		sh = *line4; line4 += 8; si = *line4; line4 += 8;
 		             sk = *line5; line5 += 8;
 
-		outbyte = out + (y * width + x) * 4 + component;
+		byte *outbyte = out + (y * width + x) * 4 + component;
 
 		for ( ; x < width - 3; x+=2)
 		{
@@ -1037,13 +1063,14 @@ static void DoFCBI(byte *in, byte *out, int width, int height, int component)
 static void DoFCBIQuick(byte *in, byte *out, int width, int height, int component)
 {
 	int x, y;
-	byte *outbyte, *inbyte;
+	//byte *outbyte, *inbyte;
 
 	// copy in to out
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for (y = 2; y < height - 2; y += 2)
 	{
-		inbyte  = in  + (y * width + 2) * 4 + component;
-		outbyte = out + (y * width + 2) * 4 + component;
+		byte *inbyte  = in  + (y * width + 2) * 4 + component;
+		byte *outbyte = out + (y * width + 2) * 4 + component;
 
 		for (x = 2; x < width - 2; x += 2)
 		{
@@ -1053,6 +1080,7 @@ static void DoFCBIQuick(byte *in, byte *out, int width, int height, int componen
 		}
 	}
 
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for (y = 3; y < height - 4; y += 2)
 	{
 		byte sd, se, sh, si;
@@ -1066,7 +1094,7 @@ static void DoFCBIQuick(byte *in, byte *out, int width, int height, int componen
 		sd = *line2; line2 += 8;
 		sh = *line3; line3 += 8;
 
-		outbyte = out + (y * width + x) * 4 + component;
+		byte *outbyte = out + (y * width + x) * 4 + component;
 
 		for ( ; x < width - 4; x += 2)
 		{
@@ -1093,10 +1121,11 @@ static void DoFCBIQuick(byte *in, byte *out, int width, int height, int componen
 	}
 
 	// hack: copy out to in again
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for (y = 3; y < height - 3; y += 2)
 	{
-		inbyte  = out + (y * width + 3) * 4 + component;
-		outbyte = in  + (y * width + 3) * 4 + component;
+		byte *inbyte  = out + (y * width + 3) * 4 + component;
+		byte *outbyte = in  + (y * width + 3) * 4 + component;
 
 		for (x = 3; x < width - 3; x += 2)
 		{
@@ -1106,6 +1135,7 @@ static void DoFCBIQuick(byte *in, byte *out, int width, int height, int componen
 		}
 	}
 	
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for (y = 2; y < height - 3; y++)
 	{
 		byte sd, sf, sg, si;
@@ -1117,7 +1147,7 @@ static void DoFCBIQuick(byte *in, byte *out, int width, int height, int componen
 		line3 = in + ((y    ) * width + (x - 1)) * 4 + component;
 		line4 = in + ((y + 1) * width + (x    )) * 4 + component;
 
-		outbyte = out + (y * width + x) * 4 + component;
+		byte *outbyte = out + (y * width + x) * 4 + component;
 
 		sf = *line3; line3 += 8;
 
@@ -1151,15 +1181,16 @@ static void DoFCBIQuick(byte *in, byte *out, int width, int height, int componen
 static void DoLinear(byte *in, byte *out, int width, int height)
 {
 	int x, y, i;
-	byte *outbyte, *inbyte;
+	//byte *outbyte, *inbyte;
 
 	// copy in to out
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for (y = 2; y < height - 2; y += 2)
 	{
 		x = 2;
 
-		inbyte  = in  + (y * width + x) * 4;
-		outbyte = out + (y * width + x) * 4;
+		byte *inbyte  = in  + (y * width + x) * 4;
+		byte *outbyte = out + (y * width + x) * 4;
 
 		for ( ; x < width - 2; x += 2)
 		{
@@ -1169,6 +1200,7 @@ static void DoLinear(byte *in, byte *out, int width, int height)
 		}
 	}
 
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for (y = 1; y < height - 1; y += 2)
 	{
 		byte sd[4] = {0}, se[4] = {0}, sh[4] = {0}, si[4] = {0};
@@ -1182,7 +1214,7 @@ static void DoLinear(byte *in, byte *out, int width, int height)
 		COPYSAMPLE(sd, line2); line2 += 8;
 		COPYSAMPLE(sh, line3); line3 += 8;
 
-		outbyte = out + (y * width + x) * 4;
+		byte *outbyte = out + (y * width + x) * 4;
 
 		for ( ; x < width - 1; x += 2)
 		{
@@ -1202,12 +1234,13 @@ static void DoLinear(byte *in, byte *out, int width, int height)
 	}
 
 	// hack: copy out to in again
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for (y = 1; y < height - 1; y += 2)
 	{
 		x = 1;
 
-		inbyte  = out + (y * width + x) * 4;
-		outbyte = in  + (y * width + x) * 4;
+		byte *inbyte  = out + (y * width + x) * 4;
+		byte *outbyte = in  + (y * width + x) * 4;
 
 		for ( ; x < width - 1; x += 2)
 		{
@@ -1217,6 +1250,7 @@ static void DoLinear(byte *in, byte *out, int width, int height)
 		}
 	}
 	
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for (y = 1; y < height - 1; y++)
 	{
 		byte sd[4], sf[4], sg[4], si[4];
@@ -1230,7 +1264,7 @@ static void DoLinear(byte *in, byte *out, int width, int height)
 
 		COPYSAMPLE(sf, line3); line3 += 8;
 
-		outbyte = out + (y * width + x) * 4;
+		byte *outbyte = out + (y * width + x) * 4;
 
 		for ( ; x < width - 1; x += 2)
 		{
@@ -1253,6 +1287,7 @@ static void DoLinear(byte *in, byte *out, int width, int height)
 
 static void ExpandHalfTextureToGrid( byte *data, int width, int height)
 {
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for (int y = height / 2; y > 0; y--)
 	{
 		byte *outbyte = data + ((y * 2 - 1) * (width)     - 2) * 4;
@@ -1272,6 +1307,7 @@ static void FillInNormalizedZ(const byte *in, byte *out, int width, int height)
 {
 	int x, y;
 
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for (y = 0; y < height; y++)
 	{
 		const byte *inbyte  = in  + y * width * 4;
@@ -1316,12 +1352,13 @@ static void FCBIByBlock(byte *data, int width, int height, qboolean clampToEdge,
 {
 	byte workdata[WORKBLOCK_REALSIZE * WORKBLOCK_REALSIZE * 4];
 	byte outdata[WORKBLOCK_REALSIZE * WORKBLOCK_REALSIZE * 4];
-	byte *inbyte, *outbyte;
+	//byte *inbyte, *outbyte;
 	int x, y;
 	int srcx, srcy;
 
 	ExpandHalfTextureToGrid(data, width, height);
 
+//#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for (y = 0; y < height; y += WORKBLOCK_SIZE)
 	{
 		for (x = 0; x < width; x += WORKBLOCK_SIZE)
@@ -1351,8 +1388,8 @@ static void FCBIByBlock(byte *data, int width, int height, qboolean clampToEdge,
 					srcy = (srcy + height) % height;
 				}
 
-				outbyte = workdata + y2   * fullworkwidth * 4;
-				inbyte  = data     + srcy * width         * 4;		
+				byte *outbyte = workdata + y2   * fullworkwidth * 4;
+				byte *inbyte  = data     + srcy * width         * 4;
 
 				for (x2 = 0; x2 < fullworkwidth; x2 += 2)
 				{
@@ -1411,8 +1448,8 @@ static void FCBIByBlock(byte *data, int width, int height, qboolean clampToEdge,
 			// copy back work block
 			for (y2 = 0; y2 < workheight; y2++)
 			{
-				inbyte = outdata + ((y2 + WORKBLOCK_BORDER) * fullworkwidth + WORKBLOCK_BORDER) * 4;
-				outbyte = data +   ((y + y2)                * width         + x)                * 4;
+				byte *inbyte = outdata + ((y2 + WORKBLOCK_BORDER) * fullworkwidth + WORKBLOCK_BORDER) * 4;
+				byte *outbyte = data +   ((y + y2)                * width         + x)                * 4;
 				for (x2 = 0; x2 < workwidth; x2++)
 				{
 					COPYSAMPLE(outbyte, inbyte);
@@ -1495,7 +1532,7 @@ Proper linear filter
 */
 static void R_MipMap2( byte *in, int inWidth, int inHeight ) {
 	int			i, j, k;
-	byte		*outpix;
+	//byte		*outpix;
 	int			inWidthMask, inHeightMask;
 	int			total;
 	int			outWidth, outHeight;
@@ -1508,9 +1545,11 @@ static void R_MipMap2( byte *in, int inWidth, int inHeight ) {
 	inWidthMask = inWidth - 1;
 	inHeightMask = inHeight - 1;
 
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for ( i = 0 ; i < outHeight ; i++ ) {
 		for ( j = 0 ; j < outWidth ; j++ ) {
-			outpix = (byte *) ( temp + i * outWidth + j );
+			byte		*outpix = (byte *) ( temp + i * outWidth + j );
+
 			for ( k = 0 ; k < 4 ; k++ ) {
 				total = 
 					1 * (&in[ 4*(((i*2-1)&inHeightMask)*inWidth + ((j*2-1)&inWidthMask)) ])[k] +
@@ -1552,6 +1591,7 @@ static void R_MipMapsRGB( byte *in, int inWidth, int inHeight)
 	outHeight = inHeight >> 1;
 	temp = (byte *)ri->Hunk_AllocateTempMemory( outWidth * outHeight * 4 );
 
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for ( i = 0 ; i < outHeight ; i++ ) {
 		byte *outbyte = temp + (  i          * outWidth ) * 4;
 		byte *inbyte1 = in   + (  i * 2      * inWidth  ) * 4;
@@ -1591,6 +1631,9 @@ Operates in place, quartering the size of the texture
 ================
 */
 static void R_MipMap (byte *in, int width, int height) {
+#if 1
+	R_MipMap2(in, width, height);
+#else
 	int		i, j;
 	byte	*out;
 	int		row;
@@ -1628,6 +1671,7 @@ static void R_MipMap (byte *in, int width, int height) {
 			out[3] = (in[3] + in[7] + in[row+3] + in[row+7])>>2;
 		}
 	}
+#endif
 }
 
 
@@ -1663,7 +1707,6 @@ static void R_MipMapLuminanceAlpha (const byte *in, byte *out, int width, int he
 			out[3] = (in[3] + in[7] + in[row+3] + in[row+7]) >> 2;
 		}
 	}
-
 }
 
 
@@ -2007,25 +2050,57 @@ static void RawImage_ScaleToPower2( byte **data, int *inout_width, int *inout_he
 }
 
 
-static qboolean RawImage_HasAlpha(const byte *scan, int numPixels)
+static qboolean RawImage_HasAlpha(const byte *scan, int width, int height, qboolean log)
 {
-	int i;
+	if (scan == NULL)
+	{
+		return qfalse;// qtrue;
+	}
 
-	if (!scan)
-		return qtrue;
+	/*
+	int numPixels = width * height;
 
-	for ( i = 0; i < numPixels; i++ )
+	for ( int i = 0; i < numPixels; i+=4 )
 	{
 		if ( scan[i*4 + 3] != 255 ) 
 		{
+			if (log)
+				ri->Printf(PRINT_ALL, "Texture position %i alpha was %i.\n", i * 4 + 3, (int)scan[i * 4 + 3]);
+
 			return qtrue;
+		}
+	}
+	*/
+
+	byte *inByte = (byte *)&scan[0];
+
+	for (int y = 0; y < height; y++)
+	{
+		for (int x = 0; x < width; x++)
+		{
+			inByte++;
+			inByte++;
+			inByte++;
+/*#pragma omp parallel for schedule(dynamic) num_threads(8) // lol vis studio looses the plot when this one is enabled...
+	for (int y = 0; y < height; y++)
+	{
+		for (int x = 0; x < width; x++)
+		{
+			byte *inByte = (byte *)&scan[(y*width) + x + 3];*/
+
+			float currentA = ByteToFloat(*inByte++);
+
+			if (currentA < 1.0)
+			{
+				return qtrue;
+			}
 		}
 	}
 
 	return qfalse;
 }
 
-static GLenum RawImage_GetFormat(const byte *data, int numPixels, qboolean lightMap, imgType_t type, int flags)
+static GLenum RawImage_GetFormat(const byte *data, int numPixels, int width, int height, qboolean lightMap, imgType_t type, int flags)
 {
 	int samples = 3;
 	GLenum internalFormat = GL_RGB;
@@ -2034,7 +2109,7 @@ static GLenum RawImage_GetFormat(const byte *data, int numPixels, qboolean light
 
 	if(normalmap)
 	{
-		if ((!RawImage_HasAlpha(data, numPixels) || (type == IMGTYPE_NORMAL)) && !forceNoCompression && (glRefConfig.textureCompression & TCR_LATC))
+		if ((!RawImage_HasAlpha(data, width, height, qfalse) || (type == IMGTYPE_NORMAL)) && !forceNoCompression && (glRefConfig.textureCompression & TCR_LATC))
 		{
 			internalFormat = GL_COMPRESSED_LUMINANCE_ALPHA_LATC2_EXT;
 		}
@@ -2067,7 +2142,7 @@ static GLenum RawImage_GetFormat(const byte *data, int numPixels, qboolean light
 	}
 	else
 	{
-		if (RawImage_HasAlpha(data, numPixels))
+		if (RawImage_HasAlpha(data, width, height, qfalse))
 		{
 			samples = 4;
 		}
@@ -2413,6 +2488,7 @@ static void Upload32( byte *data, int width, int height, imgType_t type, int fla
 	
 	if( r_greyscale->integer )
 	{
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 		for ( i = 0; i < c; i++ )
 		{
 			byte luma = LUMA(scan[i*4], scan[i*4 + 1], scan[i*4 + 2]);
@@ -2743,7 +2819,7 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgT
 		else if (image->flags & IMGFLAG_CUBEMAP)
 			internalFormat = GL_RGBA8;
 		else
-			internalFormat = RawImage_GetFormat(pic, width * height, isLightmap, image->type, image->flags);
+			internalFormat = RawImage_GetFormat(pic, width * height, width, height, isLightmap, image->type, image->flags);
 	}
 
 	//ri->Printf(PRINT_WARNING, "R_CreateImage Debug: %s. Got raw format.\n", name);
@@ -3068,7 +3144,7 @@ image_t *R_CreateCubemapFromImageDatas(const char *name, byte **pic, int width, 
 		//if (image->flags & IMGFLAG_CUBEMAP)
 		//	internalFormat = GL_RGBA8;
 		//else
-			internalFormat = RawImage_GetFormat(pic[0], width * height, isLightmap, image->type, image->flags);
+			internalFormat = RawImage_GetFormat(pic[0], width * height, width, height, isLightmap, image->type, image->flags);
 	}
 
 	image->internalFormat = internalFormat;
@@ -3667,12 +3743,19 @@ void R_AdjustAlphaLevels(byte *in, int width, int height)
 {// For tree leaves, grasses, plants, etc... Alpha is either 0 or 1. No blends. For speed, and to stop bad blending around the edges.
 	if (!in) return;
 
-	byte *inByte = (byte *)&in[0];
+	/*byte *inByte = (byte *)&in[0];
 
 	for (int y = 0; y < height; y++)
 	{
 		for (int x = 0; x < width; x++)
+		{*/
+#pragma omp parallel for schedule(dynamic) num_threads(8)
+	for (int y = 0; y < height; y++)
+	{
+		for (int x = 0; x < width; x++)
 		{
+			byte *inByte = (byte *)&in[(y*width) + x];
+
 			float currentR = ByteToFloat(*inByte++);
 			float currentG = ByteToFloat(*inByte++);
 			float currentB = ByteToFloat(*inByte++);
@@ -3701,14 +3784,17 @@ void R_GetTextureAverageColor(const byte *in, int width, int height, qboolean US
 
 	//ri->Printf(PRINT_WARNING, "USE_ALPHA: %s\n", USE_ALPHA ? "true" : "false");
 
-	byte *inByte = (byte *)&in[0];
+	//byte *inByte = (byte *)&in[0];
 
 	if (USE_ALPHA)
 	{
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 		for (int y = 0; y < height; y++)
 		{
 			for (int x = 0; x < width; x++)
 			{
+				byte *inByte = (byte *)&in[(y*width) + x];
+
 				float currentR = ByteToFloat(*inByte++);
 				float currentG = ByteToFloat(*inByte++);
 				float currentB = ByteToFloat(*inByte++);
@@ -3726,12 +3812,15 @@ void R_GetTextureAverageColor(const byte *in, int width, int height, qboolean US
 
 		if (NUM_PIXELS == 0)
 		{// Backups, use all pixels...
-			inByte = (byte *)&in[0];
+			//inByte = (byte *)&in[0];
 
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 			for (int y = 0; y < height; y++)
 			{
 				for (int x = 0; x < width; x++)
 				{
+					byte *inByte = (byte *)&in[(y*width) + x];
+
 					float currentR = ByteToFloat(*inByte++);
 					float currentG = ByteToFloat(*inByte++);
 					float currentB = ByteToFloat(*inByte++);
@@ -3747,10 +3836,13 @@ void R_GetTextureAverageColor(const byte *in, int width, int height, qboolean US
 	}
 	else
 	{
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 		for (int y = 0; y < height; y++)
 		{
 			for (int x = 0; x < width; x++)
 			{
+				byte *inByte = (byte *)&in[(y*width) + x];
+
 				float currentR = ByteToFloat(*inByte++);
 				float currentG = ByteToFloat(*inByte++);
 				float currentB = ByteToFloat(*inByte++);
@@ -3768,12 +3860,15 @@ void R_GetTextureAverageColor(const byte *in, int width, int height, qboolean US
 
 		if (NUM_PIXELS == 0)
 		{// Backups, use all pixels...
-			inByte = (byte *)&in[0];
+			//inByte = (byte *)&in[0];
 
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 			for (int y = 0; y < height; y++)
 			{
 				for (int x = 0; x < width; x++)
 				{
+					byte *inByte = (byte *)&in[(y*width) + x];
+
 					float currentR = ByteToFloat(*inByte++);
 					float currentG = ByteToFloat(*inByte++);
 					float currentB = ByteToFloat(*inByte++);
@@ -3936,9 +4031,49 @@ char *R_TIL_TextureFileExists(const char *name)
 
 	char texName[MAX_IMAGE_PATH] = { 0 };
 	COM_StripExtension(name, texName, MAX_IMAGE_PATH);
-	sprintf(texName, "%s.dds", name);
+	sprintf(texName, "%s.jpg", name);
 
 	//ri->Printf(PRINT_WARNING, "trying: %s.\n", name);
+
+	if (ri->FS_FileExists(texName))
+	{
+		//ri->Printf(PRINT_WARNING, "found: %s.\n", texName);
+		return "jpg";
+	}
+
+	memset(&texName, 0, sizeof(char) * MAX_IMAGE_PATH);
+	COM_StripExtension(name, texName, MAX_IMAGE_PATH);
+	sprintf(texName, "%s.png", name);
+
+	if (ri->FS_FileExists(texName))
+	{
+		//ri->Printf(PRINT_WARNING, "found: %s.\n", texName);
+		return "png";
+	}
+
+	memset(&texName, 0, sizeof(char) * MAX_IMAGE_PATH);
+	COM_StripExtension(name, texName, MAX_IMAGE_PATH);
+	sprintf(texName, "%s.tga", name);
+
+	if (ri->FS_FileExists(texName))
+	{
+		//ri->Printf(PRINT_WARNING, "found: %s.\n", texName);
+		return "tga";
+	}
+
+	memset(&texName, 0, sizeof(char) * MAX_IMAGE_PATH);
+	COM_StripExtension(name, texName, MAX_IMAGE_PATH);
+	sprintf(texName, "%s.tif", name);
+
+	if (ri->FS_FileExists(texName))
+	{
+		//ri->Printf(PRINT_WARNING, "found: %s.\n", texName);
+		return "tif";
+	}
+
+	memset(&texName, 0, sizeof(char) * MAX_IMAGE_PATH);
+	COM_StripExtension(name, texName, MAX_IMAGE_PATH);
+	sprintf(texName, "%s.dds", name);
 
 	if (ri->FS_FileExists(texName))
 	{
@@ -4014,6 +4149,7 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 	image_t	*image = NULL;
 	int		width, height;
 	byte	*pic = NULL;
+	qboolean USE_ALPHA = qfalse;
 	long	hash;
 
 	if (!name || ri->Cvar_VariableIntegerValue( "dedicated" )) {
@@ -4066,7 +4202,7 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 	int picNumMips = 0;
 #endif
 
-	R_LoadImage(name, &pic, &width, &height);
+	const char *ext = R_LoadImage(name, &pic, &width, &height);
 
 #ifdef __TINY_IMAGE_LOADER__
 	qboolean isTIL = qfalse;
@@ -4094,6 +4230,32 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 				height = tImage->GetHeight();
 				pic = tImage->GetPixels();
 				isTIL = qtrue;
+
+				til::Image::BitDepth depth = tImage->GetBitDepth();
+
+/*
+#define TIL_DEPTH_MASK                    0x00FF0000
+#define TIL_DEPTH_A8R8G8B8                0x00010000 //!< 32-bit ARGB color depth
+#define TIL_DEPTH_A8B8G8R8                0x00020000 //!< 32-bit ABGR color depth
+#define TIL_DEPTH_R8G8B8A8                0x00030000 //!< 32-bit RGBA color depth
+#define TIL_DEPTH_B8G8R8A8                0x00040000 //!< 32-bit BGRA color depth
+#define TIL_DEPTH_R8G8B8                  0x00050000 //!< 32-bit RGB color depth
+#define TIL_DEPTH_B8G8R8                  0x00060000 //!< 32-bit BGR color depth
+#define TIL_DEPTH_R5G6B5                  0x00070000 //!< 16-bit RGB color depth
+#define TIL_DEPTH_B5G6R5                  0x00080000 //!< 16-bit BGR color depth
+*/
+				switch (depth)
+				{
+				case TIL_DEPTH_A8R8G8B8:
+				case TIL_DEPTH_A8B8G8R8:
+				case TIL_DEPTH_R8G8B8A8:
+				case TIL_DEPTH_B8G8R8A8:
+					USE_ALPHA = qtrue;
+					break;
+				default:
+					USE_ALPHA = qfalse;
+					break;
+				}
 				//ri->Printf(PRINT_WARNING, "TIL: Loaded image %s. Size %i x %i.\n", fullPath, width, height);
 			}
 		}
@@ -4120,8 +4282,88 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 	}
 
 	//ri->Printf(PRINT_WARNING, "FindImage Debug: Loaded image %s. width %ix%i.\n", name, width, height);
+	
+	//USE_ALPHA = RawImage_HasAlpha(pic, width, height, qfalse); // Ok, this is garbage...
 
-	qboolean USE_ALPHA = RawImage_HasAlpha(pic, width * height);
+	if (ext != NULL)
+	{
+		if (!Q_stricmp(ext, "jpg"))
+			USE_ALPHA = qfalse;
+		else if (!Q_stricmp(ext, "png"))
+			USE_ALPHA = qtrue;
+		else if (!Q_stricmp(ext, "tga"))
+			USE_ALPHA = qtrue;
+	}
+	else
+	{
+		USE_ALPHA = qtrue;// qfalse;
+	}
+
+	if (USE_ALPHA)
+	{// Check if it's even used... If not, we can optimize...
+		if (!RawImage_HasAlpha(pic, width, height, qfalse))
+		{
+			USE_ALPHA = qfalse;
+			ri->Printf(PRINT_WARNING, "FindImage Debug: %s is using an alpha supported texture format %s, but not using any alpha. Optimizing. (w: %i. h: %i.)\n", name, ext, width, height);
+
+			//RawImage_HasAlpha(pic, width, height, qtrue);
+
+			//
+			// Sigh, it seems all the other code assumes 4 channels regardless of if alpha is used, comments about checking alphas are complete bullshit, there are no checks...
+			// ... So fking hacky, and such a vram waste... Also, bye bye early vert based depth culling, culling will only work per pixel with all the alpha channels active...
+			//
+
+			/*
+			{
+				byte *pic2 = pic;
+				pic = NULL;
+
+				pic = (byte *)Z_Malloc(width * height * 3 * sizeof(byte), TAG_IMAGE_T, qfalse, 0);
+
+				byte *inByte = (byte *)&pic2[0];
+				byte *outByte = (byte *)&pic[0];
+
+				for (int y = 0; y < height; y++)
+				{
+					for (int x = 0; x < width; x++)
+					{
+						float currentR = ByteToFloat(*inByte++);
+						float currentG = ByteToFloat(*inByte++);
+						float currentB = ByteToFloat(*inByte++);
+						float currentA = ByteToFloat(*inByte++);
+
+						*outByte++ = FloatToByte(currentR);
+						*outByte++ = FloatToByte(currentG);
+						*outByte++ = FloatToByte(currentB);
+						//*outByte++ = FloatToByte(currentA);
+					}
+				}
+
+				if (r_mipMapTextures->integer)
+					flags |= IMGFLAG_MIPMAP;
+
+#ifdef __TINY_IMAGE_LOADER__
+				if (isTIL)
+				{
+					til::TIL_Release(tImage);
+					pic2 = NULL;
+					isTIL = qfalse;
+				}
+				else
+#endif
+					Z_Free(pic2);
+			}
+			*/
+		}
+		/*else
+		{
+			ri->Printf(PRINT_WARNING, "FindImage Debug: %s is using an alpha supported texture format %s, and using alpha.\n", name, ext);
+		}*/
+	}
+	/*else
+	{
+		ri->Printf(PRINT_WARNING, "FindImage Debug: %s is using RGB texture format %s, not using any alpha.\n", name, ext);
+	}*/
 
 	//ri->Printf(PRINT_WARNING, "FindImage Debug: %s. HAS_ALPHA %s.\n", name, USE_ALPHA ? "yes" : "no");
 
@@ -4236,18 +4478,26 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 
 			width = height = 2;
 
-			pic = (byte *)Z_Malloc(width * height * 4 * sizeof(byte), TAG_IMAGE_T, qfalse, 0);
+			//pic = (byte *)Z_Malloc(width * height * 4 * sizeof(byte), TAG_IMAGE_T, qfalse, 0);
+			pic = (byte *)Z_Malloc(width * height * 3 * sizeof(byte), TAG_IMAGE_T, qfalse, 0);
 
-			byte *inByte = (byte *)&pic[0];
+			/*byte *inByte = (byte *)&pic[0];
 
 			for (int y = 0; y < height; y++)
 			{
 				for (int x = 0; x < width; x++)
+				{*/
+#pragma omp parallel for schedule(dynamic) num_threads(8)
+			for (int y = 0; y < height; y++)
+			{
+				for (int x = 0; x < width; x++)
 				{
+					byte *inByte = (byte *)&pic[(y*width) + x];
+
 					*inByte++ = FloatToByte(avgColor[0]);
 					*inByte++ = FloatToByte(avgColor[1]);
 					*inByte++ = FloatToByte(avgColor[2]);
-					*inByte++ = FloatToByte(avgColor[3]);
+					//*inByte++ = FloatToByte(avgColor[3]);
 				}
 			}
 
@@ -4263,13 +4513,22 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 
 			pic = (byte *)Z_Malloc(width * height * 4 * sizeof(byte), TAG_IMAGE_T, qfalse, 0);
 
-			byte *inByte = (byte *)&pic2[0];
+			/*byte *inByte = (byte *)&pic2[0];
 			byte *outByte = (byte *)&pic[0];
 
 			for (int y = 0; y < height; y++)
 			{
 				for (int x = 0; x < width; x++)
+				{*/
+
+#pragma omp parallel for schedule(dynamic) num_threads(8)
+			for (int y = 0; y < height; y++)
+			{
+				for (int x = 0; x < width; x++)
 				{
+					byte *inByte = (byte *)&pic2[(y*width) + x];
+					byte *outByte = (byte *)&pic[(y*width) + x];
+
 					inByte+=3;
 					float currentA = ByteToFloat(*inByte++);
 
@@ -4528,7 +4787,7 @@ image_t	*R_BakeTextures(char names[16][512], int numNames, const char *outputNam
 		}
 #endif //__TINY_IMAGE_LOADER__
 
-		qboolean USE_ALPHA = RawImage_HasAlpha(pic, width * height);
+		qboolean USE_ALPHA = RawImage_HasAlpha(pic, width, height, qfalse);
 
 		vec4_t avgColor = { 0 };
 
@@ -4553,12 +4812,19 @@ image_t	*R_BakeTextures(char names[16][512], int numNames, const char *outputNam
 
 				pic = (byte *)Z_Malloc(width * height * 4 * sizeof(byte), TAG_IMAGE_T, qfalse, 0);
 
-				byte *inByte = (byte *)&pic[0];
+				/*byte *inByte = (byte *)&pic[0];
 
 				for (int y = 0; y < height; y++)
 				{
 					for (int x = 0; x < width; x++)
+					{*/
+#pragma omp parallel for schedule(dynamic) num_threads(8)
+				for (int y = 0; y < height; y++)
+				{
+					for (int x = 0; x < width; x++)
 					{
+						byte *inByte = (byte *)&pic[(y*width) + x];
+
 						*inByte++ = FloatToByte(avgColor[0]);
 						*inByte++ = FloatToByte(avgColor[1]);
 						*inByte++ = FloatToByte(avgColor[2]);
@@ -4578,13 +4844,22 @@ image_t	*R_BakeTextures(char names[16][512], int numNames, const char *outputNam
 
 				pic = (byte *)Z_Malloc(width * height * 4 * sizeof(byte), TAG_IMAGE_T, qfalse, 0);
 
-				byte *inByte = (byte *)&pic2[0];
+				/*byte *inByte = (byte *)&pic2[0];
 				byte *outByte = (byte *)&pic[0];
 
 				for (int y = 0; y < height; y++)
 				{
 					for (int x = 0; x < width; x++)
+					{*/
+
+#pragma omp parallel for schedule(dynamic) num_threads(8)
+				for (int y = 0; y < height; y++)
+				{
+					for (int x = 0; x < width; x++)
 					{
+						byte *inByte = (byte *)&pic2[(y*width) + x];
+						byte *outByte = (byte *)&pic[(y*width) + x];
+
 						inByte += 3;
 						float currentA = ByteToFloat(*inByte++);
 
@@ -4662,10 +4937,13 @@ image_t	*R_BakeTextures(char names[16][512], int numNames, const char *outputNam
 	// Add images to the texture alias...
 	byte *outByte = (byte *)&finalPic[0];
 
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for (int y = 0; y < 4096; ++y) 
 	{
 		for (int x = 0; x < 4096; ++x)
 		{
+			//byte *outByte = (byte *)&finalPic[(y * 4096) + x];
+
 			vec2_t offset;
 			offset[0] = float(x) / 4096.0;
 			offset[1] = float(y) / 4096.0;
@@ -4690,7 +4968,7 @@ image_t	*R_BakeTextures(char names[16][512], int numNames, const char *outputNam
 				byte *inPx = (byte *)&pics[thisTexNum][0] + (1024 * (y - int(finalOffsetStart[1] * 4096.0)) + (x - int(finalOffsetStart[0] * 4096.0))) * 4;
 
 				//byte *outPx = outByte + (4096 * (4095 - y) + (4095 - x)) * 4; // For debugging, turns alias image upside down...
-				byte *outPx = outByte + (4096 * y + x) * 4;
+				byte *outPx = outByte + ((4096 * y) + x) * 4;
 
 				*outPx++ = *inPx++;
 				*outPx++ = *inPx++;
@@ -4810,16 +5088,15 @@ static void R_CreateDlightImage( void ) {
 	{	// if we dont get a successful load
 		int		x,y;
 		byte	data[DLIGHT_SIZE][DLIGHT_SIZE][4];
-		int		b;
+		//int		b;
 
 		// make a centered inverse-square falloff blob for dynamic lighting
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 		for (x=0 ; x<DLIGHT_SIZE ; x++) {
 			for (y=0 ; y<DLIGHT_SIZE ; y++) {
-				float	d;
-
-				d = ( DLIGHT_SIZE/2 - 0.5f - x ) * ( DLIGHT_SIZE/2 - 0.5f - x ) +
+				float d = ( DLIGHT_SIZE/2 - 0.5f - x ) * ( DLIGHT_SIZE/2 - 0.5f - x ) +
 					( DLIGHT_SIZE/2 - 0.5f - y ) * ( DLIGHT_SIZE/2 - 0.5f - y );
-				b = 4000 / d;
+				int b = 4000 / d;
 				if (b > 255) {
 					b = 255;
 				} else if ( b < 75 ) {
@@ -4843,13 +5120,14 @@ R_InitFogTable
 */
 void R_InitFogTable( void ) {
 	int		i;
-	float	d;
+	//float	d;
 	float	exp;
 	
 	exp = 0.5;
 
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for ( i = 0 ; i < FOG_TABLE_SIZE ; i++ ) {
-		d = pow ( (float)i/(FOG_TABLE_SIZE-1), exp );
+		float d = pow ( (float)i/(FOG_TABLE_SIZE-1), exp );
 
 		tr.fogTable[i] = d;
 	}
@@ -4900,15 +5178,16 @@ R_CreateFogImage
 static void R_CreateFogImage( void ) {
 	int		x,y;
 	byte	*data;
-	float	d;
+	//float	d;
 	float	borderColor[4];
 
 	data = (byte *)ri->Hunk_AllocateTempMemory( FOG_S * FOG_T * 4 );
 
 	// S is distance, T is depth
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for (x=0 ; x<FOG_S ; x++) {
 		for (y=0 ; y<FOG_T ; y++) {
-			d = R_FogFactor( ( x + 0.5f ) / FOG_S, ( y + 0.5f ) / FOG_T );
+			float d = R_FogFactor( ( x + 0.5f ) / FOG_S, ( y + 0.5f ) / FOG_T );
 
 			data[(y*FOG_S+x)*4+0] = 
 			data[(y*FOG_S+x)*4+1] = 

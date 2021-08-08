@@ -3382,15 +3382,15 @@ void MAPPING_LoadMapInfo(void)
 
 	if (WATER_ENABLED)
 	{// Water...
-		tr.waterFoamImage[0] = R_FindImageFile("textures/water/waterFoamGrey.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
-		tr.waterFoamImage[1] = R_FindImageFile("textures/water/waterFoamGrey02.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
-		tr.waterFoamImage[2] = R_FindImageFile("textures/water/waterFoamGrey03.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
-		tr.waterFoamImage[3] = R_FindImageFile("textures/water/waterFoamGrey04.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
-		tr.waterCausicsImage = R_FindImageFile("textures/water/waterCausicsMap.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		tr.waterFoamImage[0] = R_FindImageFile("textures/water/waterFoamGrey", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		tr.waterFoamImage[1] = R_FindImageFile("textures/water/waterFoamGrey02", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		tr.waterFoamImage[2] = R_FindImageFile("textures/water/waterFoamGrey03", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		tr.waterFoamImage[3] = R_FindImageFile("textures/water/waterFoamGrey04", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		tr.waterCausicsImage = R_FindImageFile("textures/water/waterCausicsMap", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
 
 #ifdef __USE_WATER_MAPS__
-		tr.waterHeightImage[0] = R_FindImageFile("gfx/waves/lakewaves_d.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
-		tr.waterNormalImage[0] = R_FindImageFile("gfx/waves/lakewaves_n.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		tr.waterHeightImage[0] = R_FindImageFile("gfx/waves/lakewaves_d", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		tr.waterNormalImage[0] = R_FindImageFile("gfx/waves/lakewaves_n", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
 
 		/*if (!tr.waterHeightImage[0] || tr.waterHeightImage[0] == tr.defaultImage)
 		{
@@ -3411,15 +3411,15 @@ void MAPPING_LoadMapInfo(void)
 		}*/
 
 #ifdef __WATER_SPEC_AO_IMAGES__
-		tr.waterSpecularImage[0] = R_FindImageFile("gfx/waves/lakewaves_s.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
-		tr.waterAOImage[0] = R_FindImageFile("gfx/waves/lakewaves_ao.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		tr.waterSpecularImage[0] = R_FindImageFile("gfx/waves/lakewaves_s", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		tr.waterAOImage[0] = R_FindImageFile("gfx/waves/lakewaves_ao", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
 #endif //__WATER_SPEC_AO_IMAGES__
 
-		tr.waterHeightImage[1] = R_FindImageFile("gfx/waves/oceanwaves_d.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
-		tr.waterNormalImage[1] = R_FindImageFile("gfx/waves/oceanwaves_n.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		tr.waterHeightImage[1] = R_FindImageFile("gfx/waves/oceanwaves_d", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		tr.waterNormalImage[1] = R_FindImageFile("gfx/waves/oceanwaves_n", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
 #ifdef __WATER_SPEC_AO_IMAGES__
-		tr.waterSpecularImage[1] = R_FindImageFile("gfx/waves/oceanwaves_s.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
-		tr.waterAOImage[1] = R_FindImageFile("gfx/waves/oceanwaves_ao.jpg", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		tr.waterSpecularImage[1] = R_FindImageFile("gfx/waves/oceanwaves_s", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+		tr.waterAOImage[1] = R_FindImageFile("gfx/waves/oceanwaves_ao", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
 #endif //__WATER_SPEC_AO_IMAGES__
 
 
@@ -3444,8 +3444,8 @@ void MAPPING_LoadMapInfo(void)
 
 		{
 			// Water height maps... Try to load map based image first...
-			//ri->Printf(PRINT_ALL, "Loading waterHeightMap file %s.\n", va("maps/%s_waterHeightMap.tga", currentMapName));
-			tr.waterHeightMapImage = R_FindImageFile(va("maps/%s_waterHeightMap.tga", currentMapName), IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE);
+			//ri->Printf(PRINT_ALL, "Loading waterHeightMap file %s.\n", va("maps/%s_waterHeightMap", currentMapName));
+			tr.waterHeightMapImage = R_FindImageFile(va("maps/%s_waterHeightMap", currentMapName), IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE);
 
 			if (!tr.waterHeightMapImage || tr.waterHeightMapImage == tr.defaultImage)
 			{

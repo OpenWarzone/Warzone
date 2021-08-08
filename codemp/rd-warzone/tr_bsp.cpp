@@ -1072,7 +1072,8 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, float *hdrVertColors, 
 #endif //__Q3_FOG__
 
 	// get shader value
-	surf->shader = ShaderForShaderNum( ds->shaderNum, realLightmapNum, ds->lightmapStyles, ds->vertexStyles);
+	surf->shader = ShaderForShaderNum(ds->shaderNum, realLightmapNum, ds->lightmapStyles, ds->vertexStyles);
+
 	if (!surf->shader)
 	{
 		surf->shader = tr.defaultShader;
@@ -1378,7 +1379,8 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, float *hdrVertColor
 #endif //__Q3_FOG__
 
 	// get shader
-	surf->shader = ShaderForShaderNum( ds->shaderNum, lightmapsVertex, ds->lightmapStyles, ds->vertexStyles );
+	surf->shader = ShaderForShaderNum(ds->shaderNum, lightmapsVertex, ds->lightmapStyles, ds->vertexStyles);
+
 	if ( r_singleShader->integer && !surf->shader->isSky ) {
 		surf->shader = tr.defaultShader;
 	}
@@ -1439,7 +1441,7 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, float *hdrVertColor
 	ClearBounds(surf->cullinfo.bounds[0], surf->cullinfo.bounds[1]);
 	verts += LittleLong(ds->firstVert);
 
-//#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for(i = 0; i < numVerts; i++)
 	{
 		vec4_t color;
@@ -1506,6 +1508,8 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, float *hdrVertColor
 	// copy triangles
 	badTriangles = 0;
 	indexes += LittleLong(ds->firstIndex);
+
+#if 1
 	for(i = 0, tri = cv->indexes; i < numIndexes; i += 3, tri += 3)
 	{
 		for(int j = 0; j < 3; j++)
@@ -1534,6 +1538,7 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, float *hdrVertColor
 		cv->numIndexes -= badTriangles * 3;
 		numIndexes = cv->numIndexes; // UQ1: Need to also do this, since we use it just below.
 	}
+#endif
 
 	//R_OptimizeMesh((uint32_t *)&cv->numVerts, (uint32_t *)&cv->numIndexes, cv->indexes, NULL);
 
@@ -1719,7 +1724,8 @@ static void ParseFlare( dsurface_t *ds, drawVert_t *verts, msurface_t *surf, int
 #endif //__Q3_FOG__
 
 	// get shader
-	surf->shader = ShaderForShaderNum( ds->shaderNum, lightmapsVertex, ds->lightmapStyles, ds->vertexStyles );
+	surf->shader = ShaderForShaderNum(ds->shaderNum, lightmapsVertex, ds->lightmapStyles, ds->vertexStyles);
+
 	if ( r_singleShader->integer && !surf->shader->isSky ) {
 		surf->shader = tr.defaultShader;
 	}
@@ -2493,159 +2499,25 @@ static int BSPSurfaceCompare(const void *a, const void *b)
 	// First fill in the shader's hasAlphaTestBits and hasSplatMaps values...
 	//
 
-	// Set up a value to skip stage checks later... does this even run per frame? i shoud actually check probably...
-	if (aa->shader->hasAlphaTestBits == 0)
-	{
-		for (int stage = 0; stage <= aa->shader->maxStage && stage < MAX_SHADER_STAGES; stage++)
-		{
-			shaderStage_t *pStage = aa->shader->stages[stage];
+	/*
+	CheckAlphaBits(aa->shader);
+	CheckAlphaBits(bb->shader);
 
-			if (!pStage)
-			{// How does this happen???
-				continue;
-			}
-
-			if (!pStage->active)
-			{// Shouldn't this be here, just in case???
-				continue;
-			}
-
-			if (pStage->stateBits & GLS_ATEST_BITS)
-			{
-				aa->shader->hasAlphaTestBits = max(aa->shader->hasAlphaTestBits, 1);
-			}
-
-			if (pStage->alphaGen)
-			{
-				aa->shader->hasAlphaTestBits = max(aa->shader->hasAlphaTestBits, 2);
-			}
-
-			if (aa->shader->hasAlpha)
-			{
-				aa->shader->hasAlphaTestBits = max(aa->shader->hasAlphaTestBits, 3);
-			}
-		}
-
-		if (aa->shader->hasAlphaTestBits == 0)
-		{
-			aa->shader->hasAlphaTestBits = -1;
-		}
-	}
-
-	if (bb->shader->hasAlphaTestBits == 0)
-	{
-		for (int stage = 0; stage <= bb->shader->maxStage && stage < MAX_SHADER_STAGES; stage++)
-		{
-			shaderStage_t *pStage = bb->shader->stages[stage];
-
-			if (!pStage)
-			{// How does this happen???
-				continue;
-			}
-
-			if (!pStage->active)
-			{// Shouldn't this be here, just in case???
-				continue;
-			}
-
-			if (pStage->stateBits & GLS_ATEST_BITS)
-			{
-				bb->shader->hasAlphaTestBits = max(bb->shader->hasAlphaTestBits, 1);
-				break;
-			}
-
-			if (pStage->alphaGen)
-			{
-				bb->shader->hasAlphaTestBits = max(bb->shader->hasAlphaTestBits, 2);
-			}
-
-			if (bb->shader->hasAlpha)
-			{
-				bb->shader->hasAlphaTestBits = max(bb->shader->hasAlphaTestBits, 3);
-			}
-		}
-
-		if (bb->shader->hasAlphaTestBits == 0)
-		{
-			bb->shader->hasAlphaTestBits = -1;
-		}
-	}
-
-	if (aa->shader->hasSplatMaps == 0)
-	{
-		for (int stage = 0; stage <= aa->shader->maxStage && stage < MAX_SHADER_STAGES; stage++)
-		{
-			shaderStage_t *pStage = aa->shader->stages[stage];
-
-			if (!pStage)
-			{// How does this happen???
-				continue;
-			}
-
-			if (!pStage->active)
-			{// Shouldn't this be here, just in case???
-				continue;
-			}
-
-			if (pStage->bundle[TB_SPLATMAP1].image[0]
-				|| pStage->bundle[TB_SPLATMAP2].image[0]
-				|| pStage->bundle[TB_SPLATMAP3].image[0]
-				|| pStage->bundle[TB_WATER_EDGE_MAP].image[0]
-				|| pStage->bundle[TB_STEEPMAP1].image[0]
-				|| pStage->bundle[TB_STEEPMAP2].image[0]
-				|| pStage->bundle[TB_STEEPMAP3].image[0]
-				|| pStage->bundle[TB_ROOFMAP].image[0])
-			{
-				aa->shader->hasSplatMaps = 1;
-				break;
-			}
-		}
-
-		if (aa->shader->hasSplatMaps == 0)
-		{
-			aa->shader->hasSplatMaps = -1;
-		}
-	}
-
-	if (bb->shader->hasSplatMaps == 0)
-	{
-		for (int stage = 0; stage <= bb->shader->maxStage && stage < MAX_SHADER_STAGES; stage++)
-		{
-			shaderStage_t *pStage = bb->shader->stages[stage];
-
-			if (!pStage)
-			{// How does this happen???
-				continue;
-			}
-
-			if (!pStage->active)
-			{// Shouldn't this be here, just in case???
-				continue;
-			}
-
-			if (pStage->bundle[TB_SPLATMAP1].image[0]
-				|| pStage->bundle[TB_SPLATMAP2].image[0]
-				|| pStage->bundle[TB_SPLATMAP3].image[0]
-				|| pStage->bundle[TB_WATER_EDGE_MAP].image[0]
-				|| pStage->bundle[TB_STEEPMAP1].image[0]
-				|| pStage->bundle[TB_STEEPMAP2].image[0]
-				|| pStage->bundle[TB_STEEPMAP3].image[0]
-				|| pStage->bundle[TB_ROOFMAP].image[0])
-			{
-				bb->shader->hasSplatMaps = 1;
-				break;
-			}
-		}
-
-		if (bb->shader->hasSplatMaps == 0)
-		{
-			bb->shader->hasSplatMaps = -1;
-		}
-	}
+	CheckSplatMaps(aa->shader);
+	CheckSplatMaps(bb->shader);
+	*/
 
 	//
 	// The actual sorting...
 	//
+	extern double GetSurfaceWeight(int64_t entNum, shader_t *shader); // now shared with realtime sort weighting....
+	double weightA = GetSurfaceWeight(65535, aa->shader);
+	double weightB = GetSurfaceWeight(65535, bb->shader);
+
+	if (weightA < weightB)
+		return 1;
+	else if (weightA > weightB)
+		return -1;
 
 #ifdef __SPLATMAP_SORTING__
 	// Splat maps are always solid with no alpha, and nearly always terrain or large objects, so do them first, they should block a lot of pixels...
@@ -2927,7 +2799,7 @@ static void CopyVert(const srfVert_t * in, srfVert_t * out)
 }
 
 #ifdef __USE_VBO_AREAS__
-#define NUM_MAP_AREAS 4//16//256//64//16//9
+#define NUM_MAP_AREAS 32//4//16//256//64//16//9
 #define NUM_MAP_SECTIONS sqrt(NUM_MAP_AREAS)
 
 struct mapArea_t
@@ -3060,6 +2932,11 @@ extern int R_BoxOnPlaneSide(vec3_t emins, vec3_t emaxs, struct cplane_s *p);
 
 qboolean R_AreaInFOV(vec3_t spot, vec3_t from)
 {
+	if (Distance(spot, from) < 8192.0)
+	{
+		return qtrue;
+	}
+
 	vec3_t	deltaVector, angles, deltaAngles;
 	vec3_t	fromAnglesCopy;
 	vec3_t	fromAngles;
@@ -3067,7 +2944,7 @@ qboolean R_AreaInFOV(vec3_t spot, vec3_t from)
 	int vFOV = r_testvalue0->integer;//180;
 
 	extern void TR_AxisToAngles(const vec3_t axis[3], vec3_t angles);
-	TR_AxisToAngles(tr.refdef.viewaxis, fromAngles);
+	TR_AxisToAngles(backEnd.refdef.viewaxis, fromAngles);
 
 	VectorSubtract(spot, from, deltaVector);
 	vectoangles(deltaVector, angles);
@@ -3091,12 +2968,27 @@ qboolean VBOAreaVisible(int areanum)
 
 	mapArea_t *area = &MAP_AREAS.areas[areanum];
 
+#if 1
+	//if (r_testvalue2->integer)
+	{
+		if (!R_AreaInFOV(area->center, backEnd.refdef.vieworg))
+		{
+			//if (r_testvalue1->integer) ri->Printf(PRINT_WARNING, "Area %i culled by R_AreaInFOV.\n", areanum);
+			return qfalse;
+		}
+		else
+		{
+			return qtrue;
+		}
+	}
+#else
 	int r;
 	int planeBits = (tr.viewParms.flags & VPF_FARPLANEFRUSTUM) ? 31 : 15;
 
 	if (planeBits & 1) {
 		r = R_BoxOnPlaneSide(area->mins, area->maxs, &tr.viewParms.frustum[0]);
 		if (r == 2) {
+			//if (r_testvalue1->integer) ri->Printf(PRINT_WARNING, "Area %i culled by bit 1.\n", areanum);
 			return qfalse;				// culled
 		}
 		if (r == 1) {
@@ -3108,6 +3000,7 @@ qboolean VBOAreaVisible(int areanum)
 	if (planeBits & 2) {
 		r = R_BoxOnPlaneSide(area->mins, area->maxs, &tr.viewParms.frustum[1]);
 		if (r == 2) {
+			//if (r_testvalue1->integer) ri->Printf(PRINT_WARNING, "Area %i culled by bit 2.\n", areanum);
 			return qfalse;				// culled
 		}
 		if (r == 1) {
@@ -3118,6 +3011,7 @@ qboolean VBOAreaVisible(int areanum)
 	if (planeBits & 4) {
 		r = R_BoxOnPlaneSide(area->mins, area->maxs, &tr.viewParms.frustum[2]);
 		if (r == 2) {
+			//if (r_testvalue1->integer) ri->Printf(PRINT_WARNING, "Area %i culled by bit 4.\n", areanum);
 			return qfalse;				// culled
 		}
 		if (r == 1) {
@@ -3128,6 +3022,7 @@ qboolean VBOAreaVisible(int areanum)
 	if (planeBits & 8) {
 		r = R_BoxOnPlaneSide(area->mins, area->maxs, &tr.viewParms.frustum[3]);
 		if (r == 2) {
+			//if (r_testvalue1->integer) ri->Printf(PRINT_WARNING, "Area %i culled by bit 8.\n", areanum);
 			return qfalse;				// culled
 		}
 		if (r == 1) {
@@ -3138,18 +3033,21 @@ qboolean VBOAreaVisible(int areanum)
 	if (planeBits & 16) {
 		r = R_BoxOnPlaneSide(area->mins, area->maxs, &tr.viewParms.frustum[4]);
 		if (r == 2) {
+			//if (r_testvalue1->integer) ri->Printf(PRINT_WARNING, "Area %i culled by bit 16.\n", areanum);
 			return qfalse;				// culled
 		}
 		if (r == 1) {
 			planeBits &= ~16;			// all descendants will also be in front
 		}
 	}
-#endif
 
 	if (Distance(area->center, tr.refdef.vieworg) > tr.occlusionZfar * 2.0)
 	{// Too far away...
+		//if (r_testvalue1->integer) ri->Printf(PRINT_WARNING, "Area %i culled by zFar.\n", areanum);
 		return qfalse;
 	}
+#endif
+#endif
 
 	return qtrue;
 }
@@ -3161,9 +3059,9 @@ void SetVBOVisibleAreas(void)
 
 	for (int i = 0; i < MAP_AREAS.numAreas; i++)
 	{
-		if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer)
+		//if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer)
 		{
-			if (R_PointInBounds(tr.refdef.vieworg, MAP_AREAS.areas[i].mins, MAP_AREAS.areas[i].maxs))
+			if (R_PointInBounds(backEnd.refdef.vieworg, MAP_AREAS.areas[i].mins, MAP_AREAS.areas[i].maxs))
 			{// We are inside this area, always visible...
 				MAP_AREAS.areas[i].visible = qtrue;
 				numVisible++;
@@ -3179,11 +3077,11 @@ void SetVBOVisibleAreas(void)
 				numVisible++;
 			}
 		}
-		else
+		/*else
 		{
 			MAP_AREAS.areas[i].visible = qtrue;
 			numVisible++;
-		}
+		}*/
 	}
 
 	if (r_areaVisDebug->integer)
@@ -3350,17 +3248,54 @@ static void R_CreateWorldVBOs(void)
 		surfacesSorted[j++] = surface;
 	}
 
+	numSortedSurfaces = j;
+
+
 	qsort(surfacesSorted, numSortedSurfaces, sizeof(*surfacesSorted), BSPSurfaceCompare);
 
 	/*
 	// Debug surface sorting...
-	for (currSurf = surfacesSorted, k = 0; currSurf < &surfacesSorted[numSortedSurfaces]; currSurf++, k++)
+	for (k = 0; k < numSortedSurfaces; k++)
 	{
-		srfBspSurface_t *bspSurf = (srfBspSurface_t *)(*currSurf)->data;
-		shader_t *shader = (*currSurf)->shader;
-		ri->Printf(PRINT_WARNING, "QSORT DEBUG: %i - %s.\n", k, shader->name);
+		//srfBspSurface_t *bspSurf = (srfBspSurface_t *)&surfacesSorted[k]->data;
+		shader_t *shader = (*surfacesSorted[k]).shader;
+
+		ri->Printf(PRINT_WARNING, "%i.\n", k);
+
+		if (*surfacesSorted[k]->data == SF_BAD)
+			continue;
+
+		if (shader->isPortal || shader->isSky || ShaderRequiresCPUDeforms(shader))
+		{
+			continue;
+		}
+
+		// check for this now so we can use srfBspSurface_t* universally in the rest of the function
+		if (!(*surfacesSorted[k]->data == SF_FACE || *surfacesSorted[k]->data == SF_GRID || *surfacesSorted[k]->data == SF_TRIANGLES))
+		{
+			continue;
+		}
+
+		srfBspSurface_t *bspSurf = (srfBspSurface_t *)surfacesSorted[k]->data;
+
+		if (!bspSurf->numIndexes || !bspSurf->numVerts)
+			continue;
+		
+		//ri->Printf(PRINT_WARNING, "QSORT DEBUG: %i - %s.\n", k, shader->name);
+
+		extern double GetSurfaceWeight(int64_t entNum, shader_t *shader);
+
+		ri->Printf(PRINT_WARNING, "QSORT DEBUG: shader %s - weight %f - numStages %i - alphaTest %i - hasSplats %s - hasGlow %s.\n"
+			, k
+			, shader->name
+			, (float)GetSurfaceWeight(65535, shader)
+			, shader->numStages
+			, shader->hasAlphaTestBits
+			, (shader->hasSplatMaps > 0) ? "Y" : "N"
+			, shader->hasGlow ? "Y" : "N");
 	}
 	*/
+	
 
 #ifdef __USE_VBO_AREAS__
 	k = 0;

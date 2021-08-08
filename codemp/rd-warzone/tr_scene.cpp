@@ -127,7 +127,12 @@ void R_CheckIfOutside(void)
 		VectorCopy(trace.endpos, backEnd.viewIsOutdoorsHitPosition);
 		return;
 	}
+	else if (trace.fraction < 1.0)
+	{
+		backEnd.viewIsOutdoors = qfalse;
+	}
 
+#if 0
 	// Second attempt...
 	VectorCopy(backEnd.localPlayerOrigin, end);
 	end[2] += outside_check_max_height;
@@ -187,6 +192,7 @@ void R_CheckIfOutside(void)
 		VectorCopy(trace.endpos, backEnd.viewIsOutdoorsHitPosition);
 		return;
 	}
+#endif
 
 	// Didn't see any sky...
 	//ri->Printf(PRINT_WARNING, "You are inside.\n");
@@ -1411,6 +1417,7 @@ void RE_RenderScene(const refdef_t *fd) {
 		vec3_t lightOrigin;
 		VectorCopy(fd->vieworg, lightOrigin);
 
+#ifdef __INDOOR_OUTDOOR_CULLING__
 		if (!backEnd.viewIsOutdoors)
 		{
 			lightDir[0] = 0.0;
@@ -1427,6 +1434,7 @@ void RE_RenderScene(const refdef_t *fd) {
 			lightHeight = lightOrigin[2] - backEnd.localPlayerOrigin[2];
 		}
 		else
+#endif //__INDOOR_OUTDOOR_CULLING__
 		{
 			VectorCopy4(tr.refdef.sunDir, lightDir);
 		}

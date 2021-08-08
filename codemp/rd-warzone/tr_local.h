@@ -67,7 +67,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //#define __USE_QGL_FINISH__					// For testing...
 #define __USE_QGL_FLUSH__						// Use this one...
 
-#define __TINY_IMAGE_LOADER__					// Use TIL Image library when JKA fails to load an image (dds support, etc)
+//#define __TINY_IMAGE_LOADER__					// Use TIL Image library when JKA fails to load an image (dds support, etc)
 
 //#define __G2_LODS_ENABLED__						// No real speed boost with them, should we disable?
 //#define __RENDERER_FOLIAGE__					// A port of the cgame foliage system in the renderer, doesn't work, only just started porting the basic code...
@@ -182,7 +182,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define __MATERIAL_SORTING__
 //#define __INDOOR_SORTING__
 
-#define __INDOOR_OUTDOOR_CULLING__
+
+//#define __INDOOR_OUTDOOR_CULLING__
+
+
 
 //#define __REALTIME_SURFACE_SORTING__			// Meh, on big maps with lots of models, sorting is much slower then not sorting...
 #ifdef __REALTIME_SURFACE_SORTING__
@@ -635,6 +638,7 @@ extern int		max_polyverts;
 //
 extern cvar_t	*r_perf;
 extern cvar_t	*r_glslOptimize;
+extern cvar_t	*r_realtimeDrawSort;
 extern cvar_t	*r_useLowP;
 extern cvar_t	*r_lowQualityMode;
 extern cvar_t	*r_lowVram;
@@ -835,6 +839,7 @@ typedef struct image_s {
 	int			uploadWidth, uploadHeight;	// after power of two and picmip but not including clamp to MAX_TEXTURE_SIZE
 	GLuint		texnum;						// gl texture binding
 	GLuint64	bindlessHandle;				// bindless texture handle
+	qboolean	bindlessHandleIsResident = qfalse;
 
 	int			frameUsed;			// for texture usage in frame statistics
 
@@ -922,11 +927,12 @@ struct LightBlock_t
 };
 
 #ifdef __USE_MAP_EMMISSIVE_BLOCK__
-#define MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS 96//128//64
+//#define MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS 96//128//64
+#define MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS 32
 
 struct EmissiveLightBlock_t
 {
-	Lights_t lights[MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS/*MAX_EMISSIVE_LIGHTS*/];
+	Lights_t lights[MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS];
 };
 #endif //__USE_MAP_EMMISSIVE_BLOCK__
 
@@ -1482,8 +1488,8 @@ typedef struct shader_s {
 	qboolean	hasGlow;
 	qboolean	isIndoor;
 
-	int			hasAlphaTestBits;		// 0 - uninitialized. -1 no atest bits. 1 has atest bits... 2 has alphaGen... 3 has alpha in texture...
-	int			hasSplatMaps;			// 0 - uninitialized. -1 no splatmaps. 1 has splatmaps...
+	int			hasAlphaTestBits = 0;		// 0 - uninitialized. -1 no atest bits. 1 has atest bits... 2 has alphaGen... 3 has alpha in texture...
+	int			hasSplatMaps = 0;			// 0 - uninitialized. -1 no splatmaps. 1 has splatmaps...
 
 	qboolean	detailMapFromTC;		// 1:1 match to diffuse coordinates... (good for guns/models/etc for adding detail)
 	qboolean	detailMapFromWorld;		// From world... Using map coords like splatmaps... (good for splat mapping, etc for varying terrain shading)
@@ -3801,6 +3807,7 @@ extern cvar_t	*r_dynamicGlowSoft;
 //
 extern cvar_t	*r_perf;
 extern cvar_t	*r_glslOptimize;
+extern cvar_t	*r_realtimeDrawSort;
 extern cvar_t	*r_useLowP;
 extern cvar_t	*r_lowQualityMode;
 extern cvar_t	*r_lowVram;
@@ -4903,6 +4910,9 @@ int GetVBOArea(vec3_t origin);
 void GL_SetDepthRange(GLclampd zNear, GLclampd zFar);
 void GL_SetDepthFunc(GLenum func);
 
+
+void CheckAlphaBits(shader_t *shader);
+void CheckSplatMaps(shader_t *shader);
 
 /*
 tr_nuklear_gui.cpp

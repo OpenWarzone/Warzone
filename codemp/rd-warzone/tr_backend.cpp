@@ -1051,418 +1051,266 @@ int sSortFunc (const void * a, const void * b)
 
 extern qboolean DISABLE_LIFTS_AND_PORTALS_MERGE;
 
-#ifdef __REALTIME_SURFACE_SORTING__
-/*
-=================
-RealtimeSurfaceCompare
-compare function for qsort()
-=================
-*/
-static int RealtimeSurfaceCompare(const void *a, const void *b)
+bool SplatTextureIsValid(shader_t *shader, image_t *image, image_t *diffuseimage)
 {
-	drawSurf_t	 *dsa, *dsb;
+	if (!image)
+		return false;
 
-	dsa = (drawSurf_t *)a;
-	dsb = (drawSurf_t *)b;
-	
-	shader_t *shadera = tr.sortedShaders[(dsa->sort >> QSORT_SHADERNUM_SHIFT) & (MAX_SHADERS - 1)];
-	shader_t *shaderb = tr.sortedShaders[(dsb->sort >> QSORT_SHADERNUM_SHIFT) & (MAX_SHADERS - 1)];
-	
-#ifdef __REALTIME_DISTANCE_SORTING__
-	switch (*dsa->surface)
-	{
-	case SF_FACE:
-	case SF_GRID:
-	case SF_VBO_MESH:
-	case SF_TRIANGLES:
-	//case SF_POLY:
-		{
-			srfBspSurface_t   *aa, *bb;
+	if (image == tr.defaultImage)
+		return false;
 
-			aa = (srfBspSurface_t *)dsa->surface;
-			bb = (srfBspSurface_t *)dsa->surface;
+	if (image == diffuseimage)
+		return false;
 
-			float dista = Distance(aa->cullOrigin, tr.refdef.vieworg);
-			float distb = Distance(bb->cullOrigin, tr.refdef.vieworg);
+	//ri->Printf(PRINT_ERROR, "Shader %s has splatmap %s.\n", shader->name, image->imgName);
 
-			if (r_testvalue2->integer)
-			{
-				dista = Distance(aa->cullOrigin, backEnd.refdef.vieworg);
-				distb = Distance(bb->cullOrigin, backEnd.refdef.vieworg);
-			}
-
-			// Sort closest to furthest... Hopefully allow for faster pixel depth culling...
-			if (dista < distb)
-				return -1;
-
-			else if (dista > distb)
-				return 1;
-		}
-		break;
-	default:
-		{
-			int64_t entityNumA = (dsa->sort >> QSORT_REFENTITYNUM_SHIFT) & REFENTITYNUM_MASK;
-			int64_t entityNumB = (dsb->sort >> QSORT_REFENTITYNUM_SHIFT) & REFENTITYNUM_MASK;
-
-			if (entityNumA < entityNumB)
-				return -1;
-
-			else if (entityNumA > entityNumB)
-				return 1;
-
-			trRefEntity_t *entA = &backEnd.refdef.entities[entityNumA];
-			trRefEntity_t *entB = &backEnd.refdef.entities[entityNumB];
-
-			float dista = Distance(entA->e.origin, tr.refdef.vieworg);
-			float distb = Distance(entB->e.origin, tr.refdef.vieworg);
-
-			if (r_testvalue2->integer)
-			{
-				dista = Distance(entA->e.origin, backEnd.refdef.vieworg);
-				distb = Distance(entB->e.origin, backEnd.refdef.vieworg);
-			}
-
-			// Sort closest to furthest... Hopefully allow for faster pixel depth culling...
-			if (dista < distb)
-				return -1;
-
-			else if (dista > distb)
-				return 1;
-		}
-		break;
-	}
-#endif //__REALTIME_DISTANCE_SORTING__
-
-
-#ifdef __REALTIME_FX_SORTING__
-	if (qboolean(shadera == tr.sunShader) < qboolean(shaderb == tr.sunShader))
-		return -1;
-	else if (qboolean(shadera == tr.sunShader) > qboolean(shaderb == tr.sunShader))
-		return 1;
-
-	if (qboolean(shadera == tr.moonShader) < qboolean(shaderb == tr.moonShader))
-		return -1;
-	else if (qboolean(shadera == tr.moonShader) > qboolean(shaderb == tr.moonShader))
-		return 1;
-
-	if (qboolean(shadera->materialType == MATERIAL_MENU_BACKGROUND) < qboolean(shaderb->materialType == MATERIAL_MENU_BACKGROUND))
-		return -1;
-	else if (qboolean(shadera->materialType == MATERIAL_MENU_BACKGROUND) > qboolean(shaderb->materialType == MATERIAL_MENU_BACKGROUND))
-		return 1;
-
-	if (qboolean(shadera->materialType == MATERIAL_FIRE) < qboolean(shaderb->materialType == MATERIAL_FIRE))
-		return -1;
-	else if (qboolean(shadera->materialType == MATERIAL_FIRE) > qboolean(shaderb->materialType == MATERIAL_FIRE))
-		return 1;
-
-	if (qboolean(shadera->materialType == MATERIAL_SMOKE) < qboolean(shaderb->materialType == MATERIAL_SMOKE))
-		return -1;
-	else if (qboolean(shadera->materialType == MATERIAL_SMOKE) > qboolean(shaderb->materialType == MATERIAL_SMOKE))
-		return 1;
-
-	if (qboolean(shadera->materialType == MATERIAL_MAGIC_PARTICLES) < qboolean(shaderb->materialType == MATERIAL_MAGIC_PARTICLES))
-		return -1;
-	else if (qboolean(shadera->materialType == MATERIAL_MAGIC_PARTICLES) > qboolean(shaderb->materialType == MATERIAL_MAGIC_PARTICLES))
-		return 1;
-
-	if (qboolean(shadera->materialType == MATERIAL_MAGIC_PARTICLES_TREE) < qboolean(shaderb->materialType == MATERIAL_MAGIC_PARTICLES_TREE))
-		return -1;
-	else if (qboolean(shadera->materialType == MATERIAL_MAGIC_PARTICLES_TREE) > qboolean(shaderb->materialType == MATERIAL_MAGIC_PARTICLES_TREE))
-		return 1;
-
-	if (qboolean(shadera->materialType == MATERIAL_FIREFLIES) < qboolean(shaderb->materialType == MATERIAL_FIREFLIES))
-		return -1;
-	else if (qboolean(shadera->materialType == MATERIAL_FIREFLIES) > qboolean(shaderb->materialType == MATERIAL_FIREFLIES))
-		return 1;
-
-	if (qboolean(shadera->materialType == MATERIAL_PORTAL) < qboolean(shaderb->materialType == MATERIAL_PORTAL))
-		return -1;
-	else if (qboolean(shadera->materialType == MATERIAL_PORTAL) > qboolean(shaderb->materialType == MATERIAL_PORTAL))
-		return 1;
-#endif //__REALTIME_FX_SORTING__
-
-
-#ifdef __REALTIME_WATER_SORTING__
-	// Set up a value to skip stage checks later... does this even run per frame? i shoud actually check probably...
-	if (shadera->isWater < shaderb->isWater)
-		return -1;
-
-	else if (shadera->isWater > shaderb->isWater)
-		return 1;
-#endif //__REALTIME_WATER_SORTING__
-
-
-#ifdef __REALTIME_ALPHA_SORTING__
-	// Set up a value to skip stage checks later... does this even run per frame? i shoud actually check probably...
-	if (shadera->hasAlphaTestBits == 0)
-	{
-		for (int stage = 0; stage <= shadera->maxStage && stage < MAX_SHADER_STAGES; stage++)
-		{
-			shaderStage_t *pStage = shadera->stages[stage];
-
-			if (!pStage)
-			{// How does this happen???
-				continue;
-			}
-
-			if (!pStage->active)
-			{// Shouldn't this be here, just in case???
-				continue;
-			}
-
-			if (pStage->stateBits & GLS_ATEST_BITS)
-			{
-				shadera->hasAlphaTestBits = max(shadera->hasAlphaTestBits, 1);
-			}
-
-			if (pStage->alphaGen)
-			{
-				shadera->hasAlphaTestBits = max(shadera->hasAlphaTestBits, 2);
-			}
-
-			if (shadera->hasAlpha)
-			{
-				shadera->hasAlphaTestBits = max(shadera->hasAlphaTestBits, 3);
-			}
-		}
-
-		if (shadera->hasAlphaTestBits == 0)
-		{
-			shadera->hasAlphaTestBits = -1;
-		}
-	}
-
-	if (shaderb->hasAlphaTestBits == 0)
-	{
-		for (int stage = 0; stage <= shaderb->maxStage && stage < MAX_SHADER_STAGES; stage++)
-		{
-			shaderStage_t *pStage = shaderb->stages[stage];
-
-			if (!pStage)
-			{// How does this happen???
-				continue;
-			}
-
-			if (!pStage->active)
-			{// Shouldn't this be here, just in case???
-				continue;
-			}
-
-			if (pStage->stateBits & GLS_ATEST_BITS)
-			{
-				shaderb->hasAlphaTestBits = max(shaderb->hasAlphaTestBits, 1);
-				break;
-			}
-
-			if (pStage->alphaGen)
-			{
-				shaderb->hasAlphaTestBits = max(shaderb->hasAlphaTestBits, 2);
-			}
-
-			if (shaderb->hasAlpha)
-			{
-				shaderb->hasAlphaTestBits = max(shaderb->hasAlphaTestBits, 3);
-			}
-		}
-
-		if (shaderb->hasAlphaTestBits == 0)
-		{
-			shaderb->hasAlphaTestBits = -1;
-		}
-	}
-
-	// Non-alpha stage shaders should draw first... Hopefully allow for faster pixel depth culling...
-	if (shadera->hasAlphaTestBits < shaderb->hasAlphaTestBits)
-		return -1;
-
-	else if (shadera->hasAlphaTestBits > shaderb->hasAlphaTestBits)
-		return 1;
-#endif //__REALTIME_ALPHA_SORTING__
-
-#ifdef __REALTIME_SPLATMAP_SORTING__
-	// Set up a value to skip stage checks later... does this even run per frame? i shoud actually check probably...
-	if (shadera->hasSplatMaps == 0)
-	{
-		for (int stage = 0; stage <= shadera->maxStage && stage < MAX_SHADER_STAGES; stage++)
-		{
-			shaderStage_t *pStage = shadera->stages[stage];
-
-			if (!pStage)
-			{// How does this happen???
-				continue;
-			}
-
-			if (!pStage->active)
-			{// Shouldn't this be here, just in case???
-				continue;
-			}
-
-			if (pStage->bundle[TB_SPLATMAP1].image[0]
-				|| pStage->bundle[TB_SPLATMAP2].image[0]
-				|| pStage->bundle[TB_SPLATMAP3].image[0]
-				|| pStage->bundle[TB_WATER_EDGE_MAP].image[0]
-				|| pStage->bundle[TB_STEEPMAP1].image[0]
-				|| pStage->bundle[TB_STEEPMAP2].image[0]
-				|| pStage->bundle[TB_STEEPMAP3].image[0]
-				|| pStage->bundle[TB_ROOFMAP].image[0])
-			{
-				shadera->hasSplatMaps = 1;
-			}
-			else
-			{
-				shadera->hasSplatMaps = -1;
-			}
-		}
-	}
-
-	if (shaderb->hasSplatMaps == 0)
-	{
-		for (int stage = 0; stage <= shaderb->maxStage && stage < MAX_SHADER_STAGES; stage++)
-		{
-			shaderStage_t *pStage = shaderb->stages[stage];
-
-			if (!pStage)
-			{// How does this happen???
-				continue;
-			}
-
-			if (!pStage->active)
-			{// Shouldn't this be here, just in case???
-				continue;
-			}
-
-			if (pStage->bundle[TB_SPLATMAP1].image[0]
-				|| pStage->bundle[TB_SPLATMAP2].image[0]
-				|| pStage->bundle[TB_SPLATMAP3].image[0]
-				|| pStage->bundle[TB_WATER_EDGE_MAP].image[0]
-				|| pStage->bundle[TB_STEEPMAP1].image[0]
-				|| pStage->bundle[TB_STEEPMAP2].image[0]
-				|| pStage->bundle[TB_STEEPMAP3].image[0]
-				|| pStage->bundle[TB_ROOFMAP].image[0])
-			{
-			else
-			{
-				shaderb->hasSplatMaps = -1;
-			}
-		}
-
-		// Non-alpha stage shaders should draw first... Hopefully allow for faster pixel depth culling...
-		if (shadera->hasSplatMaps < shaderb->hasSplatMaps)
-			return -1;
-
-		else if (shadera->hasSplatMaps > shaderb->hasSplatMaps)
-			return 1;
-	}
-#endif //__REALTIME_SPLATMAP_SORTING__
-
-#ifdef __REALTIME_SORTINDEX_SORTING__
-	if (r_testvalue1->integer)
-	{
-		// sort by shader
-		if (shadera->sortedIndex < shaderb->sortedIndex)
-			return -1;
-
-		else if (shadera->sortedIndex > shaderb->sortedIndex)
-			return 1;
-	}
-#endif //__REALTIME_SORTINDEX_SORTING__
-
-#ifdef __REALTIME_NUMSTAGES_SORTING__
-	// Fewer stage shaders should draw first... Hopefully allow for faster pixel depth culling...
-	if (shadera->numStages < shaderb->numStages)
-		return -1;
-
-	else if (shadera->numStages > shaderb->numStages)
-		return 1;
-#endif //__REALTIME_NUMSTAGES_SORTING__
-
-
-
-#ifdef __REALTIME_GLOW_SORTING__
-	// Non-glow stage shaders should draw first... Hopefully allow for faster pixel depth culling...
-	if (shadera->hasGlow < shaderb->hasGlow)
-		return -1;
-
-	else if (shadera->hasGlow > shaderb->hasGlow)
-		return 1;
-#endif //__REALTIME_GLOW_SORTING__
-
-
-#ifdef __REALTIME_TESS_SORTING__
-	if (shadera->tesselation)
-	{// Check tesselation settings... Draw faster tesselation surfs first...
-		if (shadera->tesselationLevel < shaderb->tesselationLevel)
-			return -1;
-
-		else if (shadera->tesselationLevel > shaderb->tesselationLevel)
-			return 1;
-
-		if (shadera->tesselationAlpha < shaderb->tesselationAlpha)
-			return -1;
-
-		else if (shadera->tesselationAlpha > shaderb->tesselationAlpha)
-			return 1;
-	}
-#endif //__REALTIME_TESS_SORTING__
-
-#ifdef __REALTIME_MATERIAL_SORTING__
-	{// Material types.. To minimize changing between geom (grass) versions and non-grass shaders...
-		if (shadera->materialType < shaderb->materialType)
-			return -1;
-
-		else if (shadera->materialType > shaderb->materialType)
-			return 1;
-	}
-#endif //__REALTIME_MATERIAL_SORTING__
-
-	return 0;
+	return true;
 }
 
-#define MAX_LIST_SHADERS 1048576
-int					listShadersNum = 0;
-shader_t			*listShaders[MAX_LIST_SHADERS] = { NULL };
-int64_t				listEntityNums[MAX_LIST_SHADERS] = { 0 };
-int64_t				listPostProcesses[MAX_LIST_SHADERS] = { 0 };
-#endif //__REALTIME_SURFACE_SORTING__
+void CheckSplatMaps(shader_t *shader)
+{
+	if (shader->hasSplatMaps == 0)
+	{
+		for (int stage = 0; stage <= shader->maxStage && stage < MAX_SHADER_STAGES; stage++)
+		{
+			shaderStage_t *pStage = shader->stages[stage];
 
-#ifdef __REALTIME_SURFACE_SORTING2__
-static int RealtimeSurfaceCompare(const void *a, const void *b)
+			if (!pStage)
+			{// How does this happen???
+				continue;
+			}
+
+			if (!pStage->active)
+			{// Shouldn't this be here, just in case???
+				continue;
+			}
+
+			if (SplatTextureIsValid(shader, pStage->bundle[TB_SPLATMAP1].image[0], pStage->bundle[TB_DIFFUSEMAP].image[0])
+				|| SplatTextureIsValid(shader, pStage->bundle[TB_SPLATMAP2].image[0], pStage->bundle[TB_DIFFUSEMAP].image[0])
+				|| SplatTextureIsValid(shader, pStage->bundle[TB_SPLATMAP3].image[0], pStage->bundle[TB_DIFFUSEMAP].image[0])
+				|| SplatTextureIsValid(shader, pStage->bundle[TB_WATER_EDGE_MAP].image[0], pStage->bundle[TB_DIFFUSEMAP].image[0])
+				|| SplatTextureIsValid(shader, pStage->bundle[TB_STEEPMAP1].image[0], pStage->bundle[TB_DIFFUSEMAP].image[0])
+				|| SplatTextureIsValid(shader, pStage->bundle[TB_STEEPMAP2].image[0], pStage->bundle[TB_DIFFUSEMAP].image[0])
+				|| SplatTextureIsValid(shader, pStage->bundle[TB_STEEPMAP3].image[0], pStage->bundle[TB_DIFFUSEMAP].image[0])
+				|| SplatTextureIsValid(shader, pStage->bundle[TB_ROOFMAP].image[0], pStage->bundle[TB_DIFFUSEMAP].image[0]))
+			{
+				shader->hasSplatMaps = 1;
+				return;
+			}
+		}
+
+		if (shader->hasSplatMaps == 0)
+		{
+			shader->hasSplatMaps = -1;
+		}
+	}
+}
+
+void CheckAlphaBits(shader_t *shader)
+{
+	if (shader->hasAlphaTestBits == 0)
+	{
+		CheckSplatMaps(shader);
+
+		if (shader->hasSplatMaps > 0)
+		{// Splat maps don't use alpha... (ATM)
+			shader->hasAlphaTestBits = -1;
+			return;
+		}
+		
+		if (shader->hasAlpha)
+		{
+			qboolean foundTextureAlpha = qfalse;
+
+			for (int stage = 0; stage <= shader->maxStage && stage < MAX_SHADER_STAGES; stage++)
+			{
+				shaderStage_t *pStage = shader->stages[stage];
+
+				if (!pStage)
+				{// How does this happen???
+					continue;
+				}
+
+				if (!pStage->active)
+				{// Shouldn't this be here, just in case???
+					continue;
+				}
+
+				if (!pStage->bundle[TB_DIFFUSEMAP].image[0]->hasAlpha)
+				{
+					foundTextureAlpha = qtrue;
+					break;
+				}
+			}
+
+			if (foundTextureAlpha)
+			{
+				shader->hasAlphaTestBits = 1;
+			}
+			else
+			{
+				shader->hasAlpha = qfalse;
+				shader->hasAlphaTestBits = 0;
+			}
+		}
+		
+		if (shader->hasAlphaTestBits == 0)
+		{
+			// While we are doing this, check for alpha test bits that are not actually used, and remove them for optimization...
+			qboolean foundTextureAlpha = qfalse;
+
+			for (int stage = 0; stage <= shader->maxStage && stage < MAX_SHADER_STAGES; stage++)
+			{
+				shaderStage_t *pStage = shader->stages[stage];
+
+				if (!pStage)
+				{// How does this happen???
+					continue;
+				}
+
+				if (!pStage->active)
+				{// Shouldn't this be here, just in case???
+					continue;
+				}
+
+				if (pStage->alphaGen)
+				{
+					shader->hasAlphaTestBits = max(shader->hasAlphaTestBits, 2);
+					return;
+				}
+				
+				if (pStage->stateBits & GLS_ATEST_BITS)
+				{
+					shader->hasAlphaTestBits = max(shader->hasAlphaTestBits, 1);
+				}
+
+				if (!pStage->bundle[TB_DIFFUSEMAP].image[0]->hasAlpha)
+				{
+					foundTextureAlpha = qtrue;
+				}
+			}
+
+			if (shader->hasAlphaTestBits == 1 && !foundTextureAlpha)
+			{// Shader says use alpha, but the textures don't contain any, optimize!
+				ri->Printf(PRINT_WARNING, "CheckAlphaBits Debug: %s is using an alpha test bits, but not using any alpha. Optimizing.\n", shader->name);
+
+				shader->hasAlpha = qfalse;
+				shader->hasAlphaTestBits = -1;
+
+				for (int stage = 0; stage <= shader->maxStage && stage < MAX_SHADER_STAGES; stage++)
+				{
+					shaderStage_t *pStage = shader->stages[stage];
+
+					if (!pStage)
+					{// How does this happen???
+						continue;
+					}
+
+					if (!pStage->active)
+					{// Shouldn't this be here, just in case???
+						continue;
+					}
+
+					pStage->stateBits &= ~GLS_ATEST_BITS;
+				}
+			}
+		}
+
+		if (shader->hasAlphaTestBits == 0)
+		{
+			shader->hasAlpha = qfalse;
+			shader->hasAlphaTestBits = -1;
+		}
+	}
+}
+
+
+double GetSurfaceWeight(int64_t entNum, shader_t *shader)
+{
+	double weight = 0.0f;
+	bool isWorld = false;
+
+	trRefEntity_t *ent = &backEnd.refdef.entities[entNum];
+
+	if (entNum >= 65535)
+	{
+		weight = 65535.0f; // world gets priority, so that it draws first and hopefully we spend less time calculating matrices...
+		isWorld = true;
+	}
+	else
+	{
+		//weight = 65534.0f - (double)entNum;
+		weight = 16384.0f;
+	}
+
+	CheckSplatMaps(shader);
+	CheckAlphaBits(shader);
+
+	int alphaWeight = max(max(max(0.0, shader->hasAlphaTestBits), shader->isWater ? 3.0 : 0.0), shader->hasGlow ? 1.0 : 0.0);
+
+	if (shader->hasSplatMaps)
+	{// Splats are solid and should always should draw 1st...
+		weight += 1000.0f;
+		weight -= (shader->index / 16384.0) * 100.0f;
+		weight -= shader->numStages - 1;
+	}
+	else if (alphaWeight <= 0.0)
+	{// General solid surface with no alphas... Secondary priority...
+		weight += 500.0f;
+		weight -= (shader->index / 16384.0) * 100.0f;
+		weight -= shader->numStages - 1;
+	}
+	else if (alphaWeight == 3.0)
+	{// Generic alpha masked texture, do these next...
+		weight += 250.0f;
+		weight -= (shader->index / 16384.0) * 100.0f;
+		weight -= shader->numStages - 1;
+	}
+	else if (alphaWeight == 1.0)
+	{// Generic alpha test bits, do these next...
+		weight += 100.0f;
+		weight -= (shader->index / 16384.0) * 100.0f;
+		weight -= shader->numStages - 1;
+	}
+	else
+	{// AlphaGen, do these last...
+		weight -= (shader->index / 16384.0) * 100.0f;
+		weight -= shader->numStages - 1;
+	}
+
+	return weight;
+}
+
+static int DrawSurfaceCompare(const void *a, const void *b)
 {
 	drawSurf_t	 *dsa, *dsb;
 
 	dsa = (drawSurf_t *)a;
 	dsb = (drawSurf_t *)b;
 
-	shader_t *shadera = tr.sortedShaders[(dsa->sort >> QSORT_SHADERNUM_SHIFT) & (MAX_SHADERS - 1)];
-	shader_t *shaderb = tr.sortedShaders[(dsb->sort >> QSORT_SHADERNUM_SHIFT) & (MAX_SHADERS - 1)];
+	shader_t *shaderA = tr.sortedShaders[(dsa->sort >> QSORT_SHADERNUM_SHIFT) & (MAX_SHADERS - 1)];
+	shader_t *shaderB = tr.sortedShaders[(dsb->sort >> QSORT_SHADERNUM_SHIFT) & (MAX_SHADERS - 1)];
 
 	int64_t entNumA = (dsa->sort >> QSORT_REFENTITYNUM_SHIFT) & REFENTITYNUM_MASK;
 	int64_t entNumB = (dsb->sort >> QSORT_REFENTITYNUM_SHIFT) & REFENTITYNUM_MASK;
 
-	trRefEntity_t *entA = &backEnd.refdef.entities[entNumA];
-	trRefEntity_t *entB = &backEnd.refdef.entities[entNumB];
+	if (entNumA == 65535 || entNumB == 65535)
+	{// Skip BSP surface checks, already done at loading time...
+		return 0;
+	}
 
-	if (entA == &tr.worldEntity || entB == &tr.worldEntity)
-		return 0; // already pre-sorted...
+	double weightA = GetSurfaceWeight(entNumA, shaderA);
+	double weightB = GetSurfaceWeight(entNumB, shaderB);
 
-	if (dsa->depthDrawOnly < dsb->depthDrawOnly)
-		return -1;
-	else if (dsa->depthDrawOnly > dsb->depthDrawOnly)
+	if (weightA < weightB)
 		return 1;
-
-	if (shadera < shaderb)
+	else if (weightA > weightB)
 		return -1;
-	else if (shadera > shaderb)
-		return 1;
-
-	if (entA->e.reType < entB->e.reType)
-		return -1;
-	else if (entA->e.reType > entB->e.reType)
-		return 1;
 
 	return 0;
 }
-#endif //__REALTIME_SURFACE_SORTING2__
+
+int next_sort_debug_update = 0;
 
 void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQuery) {
 	int				i, max_threads_used = 0;
@@ -1543,19 +1391,41 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 	int numShaderDraws = 0;
 #endif //__DEBUG_MERGE__
 
-#ifdef __REALTIME_SURFACE_SORTING__
-	if (r_testvalue0->integer)
+	
+	if (r_realtimeDrawSort->integer)
 	{
-		qsort(drawSurfs, numDrawSurfs, sizeof(*drawSurfs), RealtimeSurfaceCompare);
-	}
-#endif //__REALTIME_SURFACE_SORTING__
+		qsort(drawSurfs, numDrawSurfs, sizeof(*drawSurfs), DrawSurfaceCompare);
+		
+		if (r_realtimeDrawSort->integer > 1)
+		{
+			if (next_sort_debug_update <= backEnd.refdef.time)
+			{
+				for (int i = 0; i < numDrawSurfs; ++i)
+				{
+					drawSurf_t	 *dsa;
 
-#ifdef __REALTIME_SURFACE_SORTING2__
-	if (r_testvalue0->integer)
-	{
-		qsort(drawSurfs, numDrawSurfs, sizeof(*drawSurfs), RealtimeSurfaceCompare);
+					dsa = (drawSurf_t *)&drawSurfs[i];
+
+					shader_t *shader = tr.sortedShaders[(dsa->sort >> QSORT_SHADERNUM_SHIFT) & (MAX_SHADERS - 1)];
+					int64_t entNum = (dsa->sort >> QSORT_REFENTITYNUM_SHIFT) & REFENTITYNUM_MASK;
+					//trRefEntity_t *ent = &backEnd.refdef.entities[entNum];
+
+					ri->Printf(PRINT_WARNING, "%i - entity %s - shader %s - weight %f - numStages %i - alphaTest %i - hasSplats %s - hasGlow %s.\n"
+						, i
+						, (entNum == 65535) ? "WORLD" : va("%i", entNum)
+						, shader->name
+						, (float)GetSurfaceWeight(entNum, shader)
+						, shader->numStages
+						, shader->hasAlphaTestBits
+						, (shader->hasSplatMaps > 0) ? "Y" : "N"
+						, shader->hasGlow ? "Y" : "N");
+				}
+
+				next_sort_debug_update = backEnd.refdef.time + 10000;
+			}
+		}
 	}
-#endif //__REALTIME_SURFACE_SORTING2__
+	
 
 	FBO_t *originalFBO = glState.currentFBO;
 
@@ -1590,11 +1460,14 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 
 		backEnd.renderPass = (renderPasses_t)type;
 
+#ifdef __INDOOR_OUTDOOR_CULLING__
 		if (backEnd.renderPass == RENDERPASS_PSHADOWS && !(!backEnd.viewIsOutdoors || !SHADOWS_ENABLED || RB_NightScale() == 1.0))
 		{// No shadows in the day, when outdoors...
 			continue;
 		}
-		else if (backEnd.renderPass == RENDERPASS_PSHADOWS)
+		else
+#endif //__INDOOR_OUTDOOR_CULLING__
+		if (backEnd.renderPass == RENDERPASS_PSHADOWS)
 		{
 			FBO_Bind(tr.renderPshadowsFbo);
 		}

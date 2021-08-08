@@ -2880,6 +2880,21 @@ qboolean G_SaberStanceIsValid(gentity_t *ent, int stance)
 		return qtrue;
 	}
 
+	if (ent->s.number >= MAX_CLIENTS && ent->s.eType != ET_NPC)
+	{// No point checking...
+		return qtrue;
+	}
+
+	if (ent->client->pers.connected != CON_CONNECTED)
+	{// No point checking...
+		return qtrue;
+	}
+
+	if (ent->client->sess.sessionTeam == FACTION_SPECTATOR)
+	{// No point checking...
+		return qtrue;
+	}
+
 	inventoryItem *saber = BG_EquippedWeapon(&ent->client->ps);
 
 	// Let staff be split into 2 sabers...
