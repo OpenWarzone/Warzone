@@ -592,8 +592,15 @@ static void RB_SurfaceOrientedQuad( void )
 RB_SurfacePolychain
 =============
 */
+int poly_debug_print_time = 0;
+
 static void RB_SurfacePolychain( srfPoly_t *p ) {
 	glState.vertexAnimation = qfalse;
+
+	if (backEnd.depthFill)
+	{// Don't even bother doing FX on depth and shadow passes...
+		return;
+	}
 
 	int		i;
 	int		numv;
@@ -623,16 +630,69 @@ static void RB_SurfacePolychain( srfPoly_t *p ) {
 
 		numv++;
 	}
+	
+	if (p->glType == GL_TRIANGLES)
+	{
+		// generate fan indexes into the tess array -- UQ1: WTF is this? This makes no sense...
+		for (i = 0; i < p->numVerts - 2; i++) {
+			tess.indexes[tess.numIndexes + 0] = tess.numVertexes + i;
+			tess.indexes[tess.numIndexes + 1] = tess.numVertexes + i + 1;
+			tess.indexes[tess.numIndexes + 2] = tess.numVertexes + i + 2;
+			tess.numIndexes += 3;
+		}
+	}
+	else
+	{
+		int ndx = tess.numVertexes;
 
-	// generate fan indexes into the tess array
-	for ( i = 0; i < p->numVerts-2; i++ ) {
-		tess.indexes[tess.numIndexes + 0] = tess.numVertexes;
-		tess.indexes[tess.numIndexes + 1] = tess.numVertexes + i + 1;
-		tess.indexes[tess.numIndexes + 2] = tess.numVertexes + i + 2;
-		tess.numIndexes += 3;
+		for (i = 0; i < p->numVerts; i += 4) {
+
+			//tess.indexes[tess.numIndexes] = ndx + i;
+			//tess.indexes[tess.numIndexes + 1] = ndx + i + 1;
+			//tess.indexes[tess.numIndexes + 2] = ndx + i + 3;
+
+			//tess.indexes[tess.numIndexes + 3] = ndx + i + 3;
+			//tess.indexes[tess.numIndexes + 4] = ndx + i + 1;
+			//tess.indexes[tess.numIndexes + 5] = ndx + i + 2;
+
+
+			tess.indexes[tess.numIndexes + 0] = ndx + i + 0;
+			tess.indexes[tess.numIndexes + 1] = ndx + i + 1;
+			tess.indexes[tess.numIndexes + 2] = ndx + i + 2;
+
+			tess.indexes[tess.numIndexes + 3] = ndx + i + 2;
+			tess.indexes[tess.numIndexes + 4] = ndx + i + 1;
+			tess.indexes[tess.numIndexes + 5] = ndx + i + 3;
+
+			tess.numIndexes += 6;
+		}
 	}
 
 	tess.numVertexes = numv;
+
+	if (r_testvalue3->integer && poly_debug_print_time <= backEnd.refdef.time)
+	{
+		ri->Printf(PRINT_ALL, "Idx: ");
+		for (i = 0; i < tess.numIndexes; i+=3)
+		{
+			ri->Printf(PRINT_ALL, "%i %i %i ", tess.indexes[i], tess.indexes[i+1], tess.indexes[i+2]);
+		}
+
+		ri->Printf(PRINT_ALL, "\n");
+
+		if (r_testvalue3->integer > 1)
+		{
+			ri->Printf(PRINT_ALL, "Verts: ");
+			for (i = 0; i < tess.numVertexes; i++)
+			{
+				ri->Printf(PRINT_ALL, "(%i) %i %i %i ", i, (int)tess.xyz[i][0], (int)tess.xyz[i][1], (int)tess.xyz[i][2]);
+			}
+
+			ri->Printf(PRINT_ALL, "\n");
+		}
+
+		poly_debug_print_time = backEnd.refdef.time + 10000;
+	}
 }
 
 static void RB_SurfaceVertsAndIndexes( int numVerts, srfVert_t *verts, int numIndexes, glIndex_t *indexes, int dlightBits, int pshadowBits)

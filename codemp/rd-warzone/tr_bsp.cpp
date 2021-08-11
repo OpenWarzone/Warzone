@@ -2799,7 +2799,7 @@ static void CopyVert(const srfVert_t * in, srfVert_t * out)
 }
 
 #ifdef __USE_VBO_AREAS__
-#define NUM_MAP_AREAS 32//4//16//256//64//16//9
+#define NUM_MAP_AREAS 16//4//16//256//64//16//9
 #define NUM_MAP_SECTIONS sqrt(NUM_MAP_AREAS)
 
 struct mapArea_t
@@ -2930,30 +2930,41 @@ int GetVBOArea(vec3_t origin)
 
 extern int R_BoxOnPlaneSide(vec3_t emins, vec3_t emaxs, struct cplane_s *p);
 
-qboolean R_AreaInFOV(vec3_t spot, vec3_t from)
+qboolean R_AreaInFOV(int areanum)
 {
-	if (Distance(spot, from) < 8192.0)
+	mapArea_t *area = &MAP_AREAS.areas[areanum];
+
+	if (R_PointInBounds(tr.refdef.vieworg, area->mins, area->maxs))
+	{// We are inside this area, always visible...
+		return qtrue;
+	}
+
+	vec3_t	dir;
+
+	// Get the direction to the view
+	VectorSubtract(area->center, tr.refdef.vieworg, dir);
+
+	// Check if it's in front of the viewer
+	if ((DotProduct(tr.refdef.viewaxis[0], dir)) >= 0)
 	{
 		return qtrue;
 	}
 
-	vec3_t	deltaVector, angles, deltaAngles;
-	vec3_t	fromAnglesCopy;
-	vec3_t	fromAngles;
-	int hFOV = r_testvalue0->integer;// 180;
-	int vFOV = r_testvalue0->integer;//180;
 
-	extern void TR_AxisToAngles(const vec3_t axis[3], vec3_t angles);
-	TR_AxisToAngles(backEnd.refdef.viewaxis, fromAngles);
+	// Get the direction to the view
+	VectorSubtract(area->mins, tr.refdef.vieworg, dir);
 
-	VectorSubtract(spot, from, deltaVector);
-	vectoangles(deltaVector, angles);
-	VectorCopy(fromAngles, fromAnglesCopy);
+	// Check if it's in front of the viewer
+	if ((DotProduct(tr.refdef.viewaxis[0], dir)) >= 0)
+	{
+		return qtrue;
+	}
 
-	deltaAngles[PITCH] = AngleDelta(fromAnglesCopy[PITCH], angles[PITCH]);
-	deltaAngles[YAW] = AngleDelta(fromAnglesCopy[YAW], angles[YAW]);
+	// Get the direction to the view
+	VectorSubtract(area->maxs, tr.refdef.vieworg, dir);
 
-	if (fabs(deltaAngles[PITCH]) <= vFOV && fabs(deltaAngles[YAW]) <= hFOV)
+	// Check if it's in front of the viewer
+	if ((DotProduct(tr.refdef.viewaxis[0], dir)) >= 0)
 	{
 		return qtrue;
 	}
@@ -2968,86 +2979,11 @@ qboolean VBOAreaVisible(int areanum)
 
 	mapArea_t *area = &MAP_AREAS.areas[areanum];
 
-#if 1
-	//if (r_testvalue2->integer)
+	if (!R_AreaInFOV(areanum))
 	{
-		if (!R_AreaInFOV(area->center, backEnd.refdef.vieworg))
-		{
-			//if (r_testvalue1->integer) ri->Printf(PRINT_WARNING, "Area %i culled by R_AreaInFOV.\n", areanum);
-			return qfalse;
-		}
-		else
-		{
-			return qtrue;
-		}
-	}
-#else
-	int r;
-	int planeBits = (tr.viewParms.flags & VPF_FARPLANEFRUSTUM) ? 31 : 15;
-
-	if (planeBits & 1) {
-		r = R_BoxOnPlaneSide(area->mins, area->maxs, &tr.viewParms.frustum[0]);
-		if (r == 2) {
-			//if (r_testvalue1->integer) ri->Printf(PRINT_WARNING, "Area %i culled by bit 1.\n", areanum);
-			return qfalse;				// culled
-		}
-		if (r == 1) {
-			planeBits &= ~1;			// all descendants will also be in front
-		}
-	}
-
-#if 0
-	if (planeBits & 2) {
-		r = R_BoxOnPlaneSide(area->mins, area->maxs, &tr.viewParms.frustum[1]);
-		if (r == 2) {
-			//if (r_testvalue1->integer) ri->Printf(PRINT_WARNING, "Area %i culled by bit 2.\n", areanum);
-			return qfalse;				// culled
-		}
-		if (r == 1) {
-			planeBits &= ~2;			// all descendants will also be in front
-		}
-	}
-
-	if (planeBits & 4) {
-		r = R_BoxOnPlaneSide(area->mins, area->maxs, &tr.viewParms.frustum[2]);
-		if (r == 2) {
-			//if (r_testvalue1->integer) ri->Printf(PRINT_WARNING, "Area %i culled by bit 4.\n", areanum);
-			return qfalse;				// culled
-		}
-		if (r == 1) {
-			planeBits &= ~4;			// all descendants will also be in front
-		}
-	}
-
-	if (planeBits & 8) {
-		r = R_BoxOnPlaneSide(area->mins, area->maxs, &tr.viewParms.frustum[3]);
-		if (r == 2) {
-			//if (r_testvalue1->integer) ri->Printf(PRINT_WARNING, "Area %i culled by bit 8.\n", areanum);
-			return qfalse;				// culled
-		}
-		if (r == 1) {
-			planeBits &= ~8;			// all descendants will also be in front
-		}
-	}
-
-	if (planeBits & 16) {
-		r = R_BoxOnPlaneSide(area->mins, area->maxs, &tr.viewParms.frustum[4]);
-		if (r == 2) {
-			//if (r_testvalue1->integer) ri->Printf(PRINT_WARNING, "Area %i culled by bit 16.\n", areanum);
-			return qfalse;				// culled
-		}
-		if (r == 1) {
-			planeBits &= ~16;			// all descendants will also be in front
-		}
-	}
-
-	if (Distance(area->center, tr.refdef.vieworg) > tr.occlusionZfar * 2.0)
-	{// Too far away...
-		//if (r_testvalue1->integer) ri->Printf(PRINT_WARNING, "Area %i culled by zFar.\n", areanum);
+		//if (r_testvalue1->integer) ri->Printf(PRINT_WARNING, "Area %i culled by R_AreaInFOV.\n", areanum);
 		return qfalse;
 	}
-#endif
-#endif
 
 	return qtrue;
 }
@@ -3059,29 +2995,16 @@ void SetVBOVisibleAreas(void)
 
 	for (int i = 0; i < MAP_AREAS.numAreas; i++)
 	{
-		//if (ENABLE_OCCLUSION_CULLING && r_occlusion->integer)
-		{
-			if (R_PointInBounds(backEnd.refdef.vieworg, MAP_AREAS.areas[i].mins, MAP_AREAS.areas[i].maxs))
-			{// We are inside this area, always visible...
-				MAP_AREAS.areas[i].visible = qtrue;
-				numVisible++;
-			}
-			else if (!VBOAreaVisible(i))
-			{// Not in view frustrum...
-				MAP_AREAS.areas[i].visible = qfalse;
-				numInVisible++;
-			}
-			else
-			{// Visible...
-				MAP_AREAS.areas[i].visible = qtrue;
-				numVisible++;
-			}
+		if (!VBOAreaVisible(i))
+		{// Not in view frustrum...
+			MAP_AREAS.areas[i].visible = qfalse;
+			numInVisible++;
 		}
-		/*else
-		{
+		else
+		{// Visible...
 			MAP_AREAS.areas[i].visible = qtrue;
 			numVisible++;
-		}*/
+		}
 	}
 
 	if (r_areaVisDebug->integer)

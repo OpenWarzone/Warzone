@@ -527,7 +527,7 @@ static void ResampleTexture( byte *in, int inwidth, int inheight, byte *out,
 
 	frac = fracstep>>2;
 
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(inwidth, inheight) >= 512)
 	for ( i=0 ; i<outwidth ; i++ ) {
 		p1[i] = 4*(frac>>16);
 		frac += fracstep;
@@ -535,13 +535,13 @@ static void ResampleTexture( byte *in, int inwidth, int inheight, byte *out,
 
 	frac = 3*(fracstep>>2);
 
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(inwidth, inheight) >= 512)
 	for ( i=0 ; i<outwidth ; i++ ) {
 		p2[i] = 4*(frac>>16);
 		frac += fracstep;
 	}
 
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(inwidth, inheight) >= 512)
 	for (i=0 ; i<outheight ; i++) {
 		byte	*inrow = in + 4*inwidth*(int)((i+0.25)*inheight/outheight);
 		byte	*inrow2 = in + 4*inwidth*(int)((i+0.75)*inheight/outheight);
@@ -572,7 +572,7 @@ static void RGBAtoYCoCgA(const byte *in, byte *out, int width, int height)
 {
 	int x, y;
 
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 	for (y = 0; y < height; y++)
 	{
 		const byte *inbyte  = in  + y * width * 4;
@@ -600,7 +600,7 @@ static void YCoCgAtoRGBA(const byte *in, byte *out, int width, int height)
 {
 	int x, y;
 
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 	for (y = 0; y < height; y++)
 	{
 		const byte *inbyte  = in  + y * width * 4;
@@ -633,7 +633,7 @@ static void RGBAtoNormal(const byte *in, byte *out, int width, int height, qbool
 	// same as converting to Y in YCoCg
 	max = 1;
 
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 	for (y = 0; y < height; y++)
 	{
 		const byte *inbyte  = in  + y * width * 4;
@@ -653,7 +653,7 @@ static void RGBAtoNormal(const byte *in, byte *out, int width, int height, qbool
 	// level out heights
 	if (max < 255)
 	{
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 		for (y = 0; y < height; y++)
 		{
 			byte *outbyte = out + y * width * 4 + 3;
@@ -669,7 +669,7 @@ static void RGBAtoNormal(const byte *in, byte *out, int width, int height, qbool
 
 	// now run sobel filter over height values to generate X and Y
 	// then normalize
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 	for (y = 0; y < height; y++)
 	{
 		byte *outbyte = out + y * width * 4;
@@ -752,7 +752,7 @@ static void DoFCBI(byte *in, byte *out, int width, int height, int component)
 	//byte *outbyte, *inbyte;
 
 	// copy in to out
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 	for (y = 2; y < height - 2; y += 2)
 	{
 		byte *inbyte  = in  + (y * width + 2) * 4 + component;
@@ -766,7 +766,7 @@ static void DoFCBI(byte *in, byte *out, int width, int height, int component)
 		}
 	}
 	
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 	for (y = 3; y < height - 3; y += 2)
 	{
 		// diagonals
@@ -904,7 +904,7 @@ static void DoFCBI(byte *in, byte *out, int width, int height, int component)
 	}
 
 	// hack: copy out to in again
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 	for (y = 3; y < height - 3; y += 2)
 	{
 		byte *inbyte = out + (y * width + 3) * 4 + component;
@@ -918,7 +918,7 @@ static void DoFCBI(byte *in, byte *out, int width, int height, int component)
 		}
 	}
 	
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 	for (y = 2; y < height - 3; y++)
 	{
 		// horizontal & vertical
@@ -1066,7 +1066,7 @@ static void DoFCBIQuick(byte *in, byte *out, int width, int height, int componen
 	//byte *outbyte, *inbyte;
 
 	// copy in to out
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 	for (y = 2; y < height - 2; y += 2)
 	{
 		byte *inbyte  = in  + (y * width + 2) * 4 + component;
@@ -1080,7 +1080,7 @@ static void DoFCBIQuick(byte *in, byte *out, int width, int height, int componen
 		}
 	}
 
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 	for (y = 3; y < height - 4; y += 2)
 	{
 		byte sd, se, sh, si;
@@ -1121,7 +1121,7 @@ static void DoFCBIQuick(byte *in, byte *out, int width, int height, int componen
 	}
 
 	// hack: copy out to in again
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 	for (y = 3; y < height - 3; y += 2)
 	{
 		byte *inbyte  = out + (y * width + 3) * 4 + component;
@@ -1135,7 +1135,7 @@ static void DoFCBIQuick(byte *in, byte *out, int width, int height, int componen
 		}
 	}
 	
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 	for (y = 2; y < height - 3; y++)
 	{
 		byte sd, sf, sg, si;
@@ -1184,7 +1184,7 @@ static void DoLinear(byte *in, byte *out, int width, int height)
 	//byte *outbyte, *inbyte;
 
 	// copy in to out
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 	for (y = 2; y < height - 2; y += 2)
 	{
 		x = 2;
@@ -1200,7 +1200,7 @@ static void DoLinear(byte *in, byte *out, int width, int height)
 		}
 	}
 
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 	for (y = 1; y < height - 1; y += 2)
 	{
 		byte sd[4] = {0}, se[4] = {0}, sh[4] = {0}, si[4] = {0};
@@ -1234,7 +1234,7 @@ static void DoLinear(byte *in, byte *out, int width, int height)
 	}
 
 	// hack: copy out to in again
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 	for (y = 1; y < height - 1; y += 2)
 	{
 		x = 1;
@@ -1250,7 +1250,7 @@ static void DoLinear(byte *in, byte *out, int width, int height)
 		}
 	}
 	
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 	for (y = 1; y < height - 1; y++)
 	{
 		byte sd[4], sf[4], sg[4], si[4];
@@ -1287,7 +1287,7 @@ static void DoLinear(byte *in, byte *out, int width, int height)
 
 static void ExpandHalfTextureToGrid( byte *data, int width, int height)
 {
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 	for (int y = height / 2; y > 0; y--)
 	{
 		byte *outbyte = data + ((y * 2 - 1) * (width)     - 2) * 4;
@@ -1307,7 +1307,7 @@ static void FillInNormalizedZ(const byte *in, byte *out, int width, int height)
 {
 	int x, y;
 
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 	for (y = 0; y < height; y++)
 	{
 		const byte *inbyte  = in  + y * width * 4;
@@ -1358,7 +1358,7 @@ static void FCBIByBlock(byte *data, int width, int height, qboolean clampToEdge,
 
 	ExpandHalfTextureToGrid(data, width, height);
 
-//#pragma omp parallel for schedule(dynamic) num_threads(8)
+//#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 	for (y = 0; y < height; y += WORKBLOCK_SIZE)
 	{
 		for (x = 0; x < width; x += WORKBLOCK_SIZE)
@@ -1545,7 +1545,7 @@ static void R_MipMap2( byte *in, int inWidth, int inHeight ) {
 	inWidthMask = inWidth - 1;
 	inHeightMask = inHeight - 1;
 
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(inWidth, inHeight) >= 512)
 	for ( i = 0 ; i < outHeight ; i++ ) {
 		for ( j = 0 ; j < outWidth ; j++ ) {
 			byte		*outpix = (byte *) ( temp + i * outWidth + j );
@@ -1591,7 +1591,7 @@ static void R_MipMapsRGB( byte *in, int inWidth, int inHeight)
 	outHeight = inHeight >> 1;
 	temp = (byte *)ri->Hunk_AllocateTempMemory( outWidth * outHeight * 4 );
 
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(inWidth, inHeight) >= 512)
 	for ( i = 0 ; i < outHeight ; i++ ) {
 		byte *outbyte = temp + (  i          * outWidth ) * 4;
 		byte *inbyte1 = in   + (  i * 2      * inWidth  ) * 4;
@@ -2081,7 +2081,7 @@ static qboolean RawImage_HasAlpha(const byte *scan, int width, int height, qbool
 			inByte++;
 			inByte++;
 			inByte++;
-/*#pragma omp parallel for schedule(dynamic) num_threads(8) // lol vis studio looses the plot when this one is enabled...
+/*#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512) // lol vis studio looses the plot when this one is enabled...
 	for (int y = 0; y < height; y++)
 	{
 		for (int x = 0; x < width; x++)
@@ -2488,7 +2488,7 @@ static void Upload32( byte *data, int width, int height, imgType_t type, int fla
 	
 	if( r_greyscale->integer )
 	{
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 		for ( i = 0; i < c; i++ )
 		{
 			byte luma = LUMA(scan[i*4], scan[i*4 + 1], scan[i*4 + 2]);
@@ -3749,7 +3749,7 @@ void R_AdjustAlphaLevels(byte *in, int width, int height)
 	{
 		for (int x = 0; x < width; x++)
 		{*/
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 	for (int y = 0; y < height; y++)
 	{
 		for (int x = 0; x < width; x++)
@@ -3788,7 +3788,7 @@ void R_GetTextureAverageColor(const byte *in, int width, int height, qboolean US
 
 	if (USE_ALPHA)
 	{
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 		for (int y = 0; y < height; y++)
 		{
 			for (int x = 0; x < width; x++)
@@ -3814,7 +3814,7 @@ void R_GetTextureAverageColor(const byte *in, int width, int height, qboolean US
 		{// Backups, use all pixels...
 			//inByte = (byte *)&in[0];
 
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 			for (int y = 0; y < height; y++)
 			{
 				for (int x = 0; x < width; x++)
@@ -3836,7 +3836,7 @@ void R_GetTextureAverageColor(const byte *in, int width, int height, qboolean US
 	}
 	else
 	{
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 		for (int y = 0; y < height; y++)
 		{
 			for (int x = 0; x < width; x++)
@@ -3862,7 +3862,7 @@ void R_GetTextureAverageColor(const byte *in, int width, int height, qboolean US
 		{// Backups, use all pixels...
 			//inByte = (byte *)&in[0];
 
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 			for (int y = 0; y < height; y++)
 			{
 				for (int x = 0; x < width; x++)
@@ -4487,7 +4487,7 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 			{
 				for (int x = 0; x < width; x++)
 				{*/
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 			for (int y = 0; y < height; y++)
 			{
 				for (int x = 0; x < width; x++)
@@ -4521,7 +4521,7 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 				for (int x = 0; x < width; x++)
 				{*/
 
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 			for (int y = 0; y < height; y++)
 			{
 				for (int x = 0; x < width; x++)
@@ -4818,7 +4818,7 @@ image_t	*R_BakeTextures(char names[16][512], int numNames, const char *outputNam
 				{
 					for (int x = 0; x < width; x++)
 					{*/
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 				for (int y = 0; y < height; y++)
 				{
 					for (int x = 0; x < width; x++)
@@ -4852,7 +4852,7 @@ image_t	*R_BakeTextures(char names[16][512], int numNames, const char *outputNam
 					for (int x = 0; x < width; x++)
 					{*/
 
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 				for (int y = 0; y < height; y++)
 				{
 					for (int x = 0; x < width; x++)
@@ -5091,7 +5091,7 @@ static void R_CreateDlightImage( void ) {
 		//int		b;
 
 		// make a centered inverse-square falloff blob for dynamic lighting
-#pragma omp parallel for schedule(dynamic) num_threads(8)
+#pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 		for (x=0 ; x<DLIGHT_SIZE ; x++) {
 			for (y=0 ; y<DLIGHT_SIZE ; y++) {
 				float d = ( DLIGHT_SIZE/2 - 0.5f - x ) * ( DLIGHT_SIZE/2 - 0.5f - x ) +
@@ -5125,7 +5125,6 @@ void R_InitFogTable( void ) {
 	
 	exp = 0.5;
 
-#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for ( i = 0 ; i < FOG_TABLE_SIZE ; i++ ) {
 		float d = pow ( (float)i/(FOG_TABLE_SIZE-1), exp );
 
@@ -5184,7 +5183,6 @@ static void R_CreateFogImage( void ) {
 	data = (byte *)ri->Hunk_AllocateTempMemory( FOG_S * FOG_T * 4 );
 
 	// S is distance, T is depth
-#pragma omp parallel for schedule(dynamic) num_threads(8)
 	for (x=0 ; x<FOG_S ; x++) {
 		for (y=0 ; y<FOG_T ; y++) {
 			float d = R_FogFactor( ( x + 0.5f ) / FOG_S, ( y + 0.5f ) / FOG_T );

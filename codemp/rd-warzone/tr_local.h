@@ -129,7 +129,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 //#define __CALCULATE_LIGHTDIR_FROM_LIGHT_AVERAGES__
 
-#define __CULL_BY_RANGE_AND_SIZE__				// Experimental culling of stuff at a range it wouldn't be big enough to see anyway...
+#define __CULL_BY_RANGE_AND_SIZE__				// Experimental culling of stuff at a range if it wouldn't be big enough to see anyway...
 
 #define __USE_REGIONS__
 
@@ -165,7 +165,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 // Optimization stuff...
 //
-//#define __SORT_POLYS__							// Sorts polys by shader so when they draw, they get merged...
+#define __MERGE_POLYS__							// Merges polys by shader s they are added, to draw all the same ones in the least total draw calls...
 //#define __MERGE_DEPTHPASS_DRAWS__				// Merges non-alpha draws in depth prepass by using defaultshader for them...
 #define __USE_DEPTHDRAWONLY__
 
@@ -629,8 +629,6 @@ extern cvar_t	*r_screenshotJpegQuality;
 
 extern cvar_t	*r_maxpolys;
 extern int		max_polys;
-extern cvar_t	*r_maxpolyverts;
-extern int		max_polyverts;
 
 
 //
@@ -2217,7 +2215,9 @@ typedef struct srfPoly_s {
 	int64_t			fogIndex;
 #endif //__Q3_FOG__
 	int				numVerts;
-	polyVert_t		*verts;
+	polyVert_t		verts[MAX_POLYVERTS];
+
+	int				glType = GL_TRIANGLES;
 } srfPoly_t;
 
 typedef struct srfDisplayList_s {
@@ -4651,17 +4651,6 @@ typedef enum {
 } renderCommand_t;
 
 
-// these are sort of arbitrary limits.
-// the limits apply to the sum of all scenes in a frame --
-// the main view, all the 3D icons, etc
-//#ifdef __MMO__
-//#define	MAX_POLYS		2400
-//#define	MAX_POLYVERTS	12000
-//#else //!__MMO__
-#define	MAX_POLYS		600
-#define	MAX_POLYVERTS	3000
-//#endif //__MMO__
-
 // all of the information needed by the back end must be
 // contained in a backEndData_t.
 typedef struct backEndData_s {
@@ -4670,7 +4659,6 @@ typedef struct backEndData_s {
 	dlight_t	dlights[MAX_DLIGHTS];
 	trRefEntity_t	entities[MAX_REFENTITIES];
 	srfPoly_t	*polys;//[MAX_POLYS];
-	polyVert_t	*polyVerts;//[MAX_POLYVERTS];
 #ifdef __PSHADOWS__
 	pshadow_t pshadows[MAX_CALC_PSHADOWS];
 #endif
@@ -4678,7 +4666,6 @@ typedef struct backEndData_s {
 } backEndData_t;
 
 extern	int		max_polys;
-extern	int		max_polyverts;
 
 extern	backEndData_t	*backEndData;
 

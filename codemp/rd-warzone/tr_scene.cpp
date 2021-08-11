@@ -33,8 +33,6 @@ int			r_firstSceneEntity;
 int			r_numpolys;
 int			r_firstScenePoly;
 
-int			r_numpolyverts;
-
 
 extern qboolean CURRENT_DRAW_DLIGHTS_UPDATE;
 
@@ -58,8 +56,6 @@ void R_InitNextFrame(void) {
 
 	r_numpolys = 0;
 	r_firstScenePoly = 0;
-
-	r_numpolyverts = 0;
 
 	backEnd.localPlayerValid = qfalse;
 	backEnd.humanoidOriginsNum = 0;
@@ -250,6 +246,11 @@ R_AddPolygonSurfaces
 Adds all the scene's polys into this view's drawsurf list
 =====================
 */
+
+#ifdef __MERGE_POLYS__
+int next_poly_debug_print = 0;
+#endif //__MERGE_POLYS__
+
 void R_AddPolygonSurfaces(void) {
 	int			i;
 	shader_t	*sh;
@@ -260,74 +261,20 @@ void R_AddPolygonSurfaces(void) {
 	tr.shiftedEntityNum = tr.currentEntityNum << QSORT_REFENTITYNUM_SHIFT;
 	fogMask = !((tr.refdef.rdflags & RDF_NOFOG) == 0);
 
-#ifdef __SORT_POLYS__
-	//
-	// Since polys are based on world matrix, we should be able to sort them by shader and allow them to merge with previous polys as much as possible...
-	//
-
-	// First make a list of shader usage...
 	poly = tr.refdef.polys;
 
-	int			numShaders = 0;
-	qhandle_t	shaders[65536];
-
-	for (i = 0; i < tr.refdef.numPolys; i++)
+#ifdef __MERGE_POLYS__
+	if (r_testvalue1->integer && next_poly_debug_print <= backEnd.refdef.time)
 	{
-		if (poly)
-		{
-			int found = -1;
-
-			for (int p = 0; p < numShaders; p++)
-			{
-				if (shaders[numShaders] == poly->hShader)
-				{
-					found = p;
-					break;
-				}
-			}
-
-			if (found < 0)
-			{
-				shaders[numShaders] = poly->hShader;
-			}
-		}
-
-		poly++;
-	}
-
-	// Now draw each shader in order, so they can be merged in drawing...
-	for (int p = 0; p < numShaders; p++)
-	{
-		poly = tr.refdef.polys;
-
 		for (i = 0; i < tr.refdef.numPolys; i++)
 		{
-			if (poly)
-			{
-				if (poly->hShader == shaders[p])
-				{
-					surfaceType_t *ply = (surfaceType_t *)poly;
-
-					if (Distance(poly->verts[0].xyz, backEnd.refdef.vieworg) <= backEnd.viewParms.zFar)
-					{
-						sh = R_GetShaderByHandle(poly->hShader);
-						
-						R_AddDrawSurf(ply, sh,
-#ifdef __Q3_FOG__
-							poly->fogIndex & fogMask,
-#else //!__Q3_FOG__
-							0,
-#endif //__Q3_FOG__
-							qfalse, R_IsPostRenderEntity(tr.currentEntityNum, tr.currentEntity), 0 /* cubemapIndex */, qfalse);
-					}
-				}
-			}
-
-			poly++;
+			sh = R_GetShaderByHandle(tr.refdef.polys[i].hShader);
+			ri->Printf(PRINT_ALL, "Poly %i - shader %s - numVerts %i.\n", i, sh->name, tr.refdef.polys[i].numVerts);
 		}
+
+		next_poly_debug_print = backEnd.refdef.time + 10000;
 	}
-#else //!__SORT_POLYS__
-	poly = tr.refdef.polys;
+#endif //__MERGE_POLYS__
 
 	for (i = 0; i < tr.refdef.numPolys; i++)
 	{
@@ -335,6 +282,16 @@ void R_AddPolygonSurfaces(void) {
 		{
 			if (Distance(poly->verts[0].xyz, backEnd.refdef.vieworg) <= backEnd.viewParms.zFar)
 			{
+/*#ifdef __USE_VBO_AREAS__
+				extern qboolean GetVBOAreaVisible(int area);
+				extern int GetVBOArea(vec3_t origin);
+
+				if (!GetVBOAreaVisible(GetVBOArea(poly->verts[0].xyz)))
+				{// Skip drawing. Not visible...
+					continue;
+				}
+#endif //__USE_VBO_AREAS__*/
+
 				sh = R_GetShaderByHandle(poly->hShader);
 				R_AddDrawSurf((surfaceType_t *)poly, sh,
 #ifdef __Q3_FOG__
@@ -348,37 +305,38 @@ void R_AddPolygonSurfaces(void) {
 
 		poly++;
 	}
-#endif //__SORT_POLYS__
 }
 
-//#define __MERGE_POLYS__
-
 #ifdef __MERGE_POLYS__
-srfPoly_t *RE_FindPolyForShader(qhandle_t shader)
-{// So, let's try to merge all these efx polys together...
+/*qboolean ModulationIsCloseEnoughForMerge(byte mod1, byte mod2)
+{
+	int diff = (int)mod1 - (int)mod2;
+
+	if (diff <= r_testvalue2->integer)
+	{
+		return qtrue;
+	}
+
+	return qfalse;
+}*/
+
+srfPoly_t *RE_FindPolyForShader(qhandle_t shader, int numNewVerts, int glType)
+{// So, let's try to merge all these efx polys together... Not sure if this will mess up rgbgen's or not, we will see...
 	for (int i = 0; i < r_numpolys; i++)
 	{
 		srfPoly_t *poly = &backEndData->polys[i];
 		
-		if (poly && poly->hShader == shader)
+		if (poly && poly->hShader == shader && poly->surfaceType == SF_POLY && poly->glType == glType && poly->numVerts + numNewVerts < MAX_POLYVERTS)
 		{
-			//ri->Printf(PRINT_WARNING, "Reused old poly cache for shader %s.\n", tr.shaders[shader]->name);
+			if (r_testvalue0->integer)
+			{
+				ri->Printf(PRINT_WARNING, "Merging %i new polys to poly structure %i (shader %s). %i old verts will become %i new verts.\n", numNewVerts, i, tr.shaders[shader]->name, poly->numVerts, poly->numVerts + numNewVerts);
+			}
 			return poly;
 		}
 	}
 
-	//ri->Printf(PRINT_WARNING, "Created new poly cache for shader %s.\n", tr.shaders[shader]->name);
-
-	srfPoly_t *poly = &backEndData->polys[r_numpolys];
-	poly->surfaceType = SF_POLY;
-	poly->hShader = shader;
-	poly->numVerts = 0;
-	poly->verts = &backEndData->polyVerts[r_numpolyverts];
-
-	// done.
-	r_numpolys++;
-
-	return poly;
+	return NULL;
 }
 #endif //__MERGE_POLYS__
 
@@ -407,43 +365,99 @@ void RE_AddPolyToScene(qhandle_t hShader, int numVerts, const polyVert_t *verts,
 	}
 
 	for (j = 0; j < numPolys; j++) {
-		if (r_numpolyverts + numVerts > max_polyverts || r_numpolys >= max_polys) {
+		if (r_numpolys >= max_polys) {
 			/*
 			NOTE TTimo this was initially a PRINT_WARNING
 			but it happens a lot with high fighting scenes and particles
 			since we don't plan on changing the const and making for room for those effects
 			simply cut this message to developer only
 			*/
-			ri->Printf(PRINT_WARNING, "WARNING: RE_AddPolyToScene: r_max_polys or r_max_polyverts reached\n");
+			ri->Printf(PRINT_WARNING, "WARNING: RE_AddPolyToScene: r_max_polys reached\n");
 			return;
 		}
 
 #ifdef __MERGE_POLYS__
-		poly = RE_FindPolyForShader(hShader);
+		poly = RE_FindPolyForShader(hShader, numVerts, GL_TRIANGLES);
 
-		/*for (int z = 0; z < numVerts; z++)
+		if (poly == NULL)
 		{
-			//poly->verts[poly->numVerts + z] = verts[(numVerts*j)+z];
-			Com_Memcpy(&poly->verts[poly->numVerts + z], &verts[(numVerts*j)+z], sizeof(*verts));
-		}*/
-		Com_Memcpy(&poly->verts[poly->numVerts], &verts[numVerts*j], numVerts * sizeof(*verts));
+			/*poly = &backEndData->polys[r_numpolys];
+			poly->surfaceType = SF_POLY;
+			poly->hShader = hShader;
+			poly->numVerts = numVerts;
 
-		poly->numVerts += numVerts;
-		
-		// done.
-		r_numpolyverts += numVerts;
+			Com_Memcpy(poly->verts, &verts[numVerts*j], numVerts * sizeof(*verts));
+
+			// done.
+			r_numpolys++;*/
+
+			poly = &backEndData->polys[r_numpolys];
+			poly->surfaceType = SF_POLY;
+			poly->glType = GL_TRIANGLES;
+			poly->hShader = hShader;
+			poly->numVerts = numVerts;
+
+			for (int v = 0; v < numVerts; v++)
+			{
+				VectorCopy(verts[v].xyz, poly->verts[v].xyz);
+				poly->verts[v].st[0] = verts[v].st[0];
+				poly->verts[v].st[1] = verts[v].st[1];
+				poly->verts[v].modulate[0] = verts[v].modulate[0];
+				poly->verts[v].modulate[1] = verts[v].modulate[1];
+				poly->verts[v].modulate[2] = verts[v].modulate[2];
+				poly->verts[v].modulate[3] = verts[v].modulate[3];
+			}
+
+			// done.
+			r_numpolys++;
+		}
+		else
+		{// We have one to merge with... Add the new verts to the old one...
+			/*int firstVert = poly->numVerts;
+
+			for (int v = 0; v < numVerts; v++)
+			{
+				const polyVert_t *addVert = &verts[v];
+				polyVert_t *newVert = &poly->verts[firstVert + v];
+
+				//memcpy(newVert, addVert, sizeof(polyVert_t));
+
+				VectorCopy(addVert->xyz, newVert->xyz);
+				newVert->st[0] = addVert->st[0];
+				newVert->st[1] = addVert->st[1];
+				newVert->modulate[0] = addVert->modulate[0];
+				newVert->modulate[1] = addVert->modulate[1];
+				newVert->modulate[2] = addVert->modulate[2];
+				newVert->modulate[3] = addVert->modulate[3];
+			}
+
+			poly->numVerts += numVerts;*/
+
+			int firstVert = poly->numVerts;
+
+			for (int v = 0; v < numVerts; v++)
+			{
+				VectorCopy(verts[v].xyz, poly->verts[firstVert + v].xyz);
+				poly->verts[firstVert + v].st[0] = verts[v].st[0];
+				poly->verts[firstVert + v].st[1] = verts[v].st[1];
+				poly->verts[firstVert + v].modulate[0] = verts[v].modulate[0];
+				poly->verts[firstVert + v].modulate[1] = verts[v].modulate[1];
+				poly->verts[firstVert + v].modulate[2] = verts[v].modulate[2];
+				poly->verts[firstVert + v].modulate[3] = verts[v].modulate[3];
+			}
+
+			poly->numVerts += numVerts;
+		}
 #else //!__MERGE_POLYS__
 		poly = &backEndData->polys[r_numpolys];
 		poly->surfaceType = SF_POLY;
 		poly->hShader = hShader;
 		poly->numVerts = numVerts;
-		poly->verts = &backEndData->polyVerts[r_numpolyverts];
 
 		Com_Memcpy(poly->verts, &verts[numVerts*j], numVerts * sizeof(*verts));
 
 		// done.
 		r_numpolys++;
-		r_numpolyverts += numVerts;
 #endif //__MERGE_POLYS__
 
 #ifndef __Q3_FOG__
@@ -618,6 +632,184 @@ void RE_AddRefEntityToScene(const refEntity_t *ent) {
 	r_numentities++;
 }
 
+#ifdef __MERGE_POLYS__
+/*
+=====================
+FX_MiniRefentMergeFunctions
+=====================
+*/
+void FX_AddQuadStamp( const vec3_t origin, vec3_t left, vec3_t up, const byte *color, polyVert_t *verts)
+{
+	float s1 = 0;
+	float t1 = 0;
+	float s2 = 1;
+	float t2 = 1;
+
+	int ndx = 0;
+
+	// triangle indexes for a simple quad
+	/*tess.indexes[tess.numIndexes] = ndx;
+	tess.indexes[tess.numIndexes + 1] = ndx + 1;
+	tess.indexes[tess.numIndexes + 2] = ndx + 3;
+
+	tess.indexes[tess.numIndexes + 3] = ndx + 3;
+	tess.indexes[tess.numIndexes + 4] = ndx + 1;
+	tess.indexes[tess.numIndexes + 5] = ndx + 2;*/
+
+	verts[ndx + 0].xyz[0] = origin[0] + left[0] + up[0];
+	verts[ndx + 0].xyz[1] = origin[1] + left[1] + up[1];
+	verts[ndx + 0].xyz[2] = origin[2] + left[2] + up[2];
+
+	verts[ndx + 1].xyz[0] = origin[0] - left[0] + up[0];
+	verts[ndx + 1].xyz[1] = origin[1] - left[1] + up[1];
+	verts[ndx + 1].xyz[2] = origin[2] - left[2] + up[2];
+
+	verts[ndx + 2].xyz[0] = origin[0] - left[0] - up[0];
+	verts[ndx + 2].xyz[1] = origin[1] - left[1] - up[1];
+	verts[ndx + 2].xyz[2] = origin[2] - left[2] - up[2];
+
+	verts[ndx + 3].xyz[0] = origin[0] + left[0] - up[0];
+	verts[ndx + 3].xyz[1] = origin[1] + left[1] - up[1];
+	verts[ndx + 3].xyz[2] = origin[2] + left[2] - up[2];
+
+	// standard square texture coordinates
+	VectorSet2(verts[ndx + 0].st, s1, t1);
+	VectorSet2(verts[ndx + 1].st, s2, t1);
+	VectorSet2(verts[ndx + 2].st, s2, t2);
+	VectorSet2(verts[ndx + 3].st, s1, t2);
+
+	// Set RGBA for each of them...
+	for (int i = 0; i < 4; i++)
+	{// Assign the same color to each vert
+		verts[i].modulate[0] = color[0];
+		verts[i].modulate[1] = color[1];
+		verts[i].modulate[2] = color[2];
+		verts[i].modulate[3] = color[3];
+	}
+}
+
+void FX_DoLine(const miniRefEntity_t *ent, const vec3_t start, const vec3_t end, const vec3_t up, float spanWidth, polyVert_t *verts)
+{
+	float		spanWidth2;
+	//int			vbase = 0;
+	int			numVerts = 0;
+
+	spanWidth2 = -spanWidth;
+
+	VectorMA(start, spanWidth, up, verts[numVerts].xyz);
+	verts[numVerts].st[0] = 0;
+	verts[numVerts].st[1] = 0;
+	VectorCopy((float *)ent->shaderRGBA, (float *)verts[numVerts].modulate);
+	numVerts++;
+
+	VectorMA(start, spanWidth2, up, verts[numVerts].xyz);
+	verts[numVerts].st[0] = 1;
+	verts[numVerts].st[1] = 0;
+	VectorCopy((float *)ent->shaderRGBA, (float *)verts[numVerts].modulate);
+	numVerts++;
+
+	VectorMA(end, spanWidth, up, verts[numVerts].xyz);
+
+	verts[numVerts].st[0] = 0;
+	verts[numVerts].st[1] = 1;
+	VectorCopy((float *)ent->shaderRGBA, (float *)verts[numVerts].modulate);
+	numVerts++;
+
+	VectorMA(end, spanWidth2, up, verts[numVerts].xyz);
+	verts[numVerts].st[0] = 1;
+	verts[numVerts].st[1] = 1;
+	VectorCopy((float *)ent->shaderRGBA, (float *)verts[numVerts].modulate);
+	numVerts++;
+
+	/*
+	tess.indexes[tess.numIndexes++] = vbase;
+	tess.indexes[tess.numIndexes++] = vbase + 1;
+	tess.indexes[tess.numIndexes++] = vbase + 2;
+
+	tess.indexes[tess.numIndexes++] = vbase + 2;
+	tess.indexes[tess.numIndexes++] = vbase + 1;
+	tess.indexes[tess.numIndexes++] = vbase + 3;
+	*/
+}
+
+void RE_AddEFXPolyToScene(qhandle_t hShader, int numVerts, polyVert_t *verts, int type) {
+	srfPoly_t	*poly = NULL;
+
+	if (!tr.registered) {
+		return;
+	}
+
+	if (!hShader) {
+		// This isn't a useful warning, and an hShader of zero isn't a null shader, it's
+		// the default shader.
+		//ri->Printf( PRINT_WARNING, "WARNING: RE_AddPolyToScene: NULL poly shader\n");
+		//return;
+	}
+
+	if (r_numpolys >= max_polys) {
+		/*
+		NOTE TTimo this was initially a PRINT_WARNING
+		but it happens a lot with high fighting scenes and particles
+		since we don't plan on changing the const and making for room for those effects
+		simply cut this message to developer only
+		*/
+		ri->Printf(PRINT_WARNING, "WARNING: RE_AddPolyToScene: r_max_polys reached\n");
+		return;
+	}
+
+	poly = RE_FindPolyForShader(hShader, numVerts, GL_QUADS);
+
+	if (poly == NULL)
+	{
+		poly = &backEndData->polys[r_numpolys];
+		poly->surfaceType = SF_POLY;
+		poly->glType = GL_QUADS;
+		poly->hShader = hShader;
+		poly->numVerts = numVerts;
+
+		//Com_Memcpy(poly->verts, verts, numVerts * sizeof(*verts));
+		for (int v = 0; v < numVerts; v++)
+		{
+			VectorCopy(verts[v].xyz, poly->verts[v].xyz);
+			poly->verts[v].st[0] = verts[v].st[0];
+			poly->verts[v].st[1] = verts[v].st[1];
+			poly->verts[v].modulate[0] = verts[v].modulate[0];
+			poly->verts[v].modulate[1] = verts[v].modulate[1];
+			poly->verts[v].modulate[2] = verts[v].modulate[2];
+			poly->verts[v].modulate[3] = verts[v].modulate[3];
+		}
+
+		// done.
+		r_numpolys++;
+	}
+	else
+	{// We have one to merge with... Add the new verts to the old one...
+		int firstVert = poly->numVerts;
+
+		for (int v = 0; v < numVerts; v++)
+		{
+			VectorCopy(verts[v].xyz, poly->verts[firstVert + v].xyz);
+			poly->verts[firstVert + v].st[0] = verts[v].st[0];
+			poly->verts[firstVert + v].st[1] = verts[v].st[1];
+			poly->verts[firstVert + v].modulate[0] = verts[v].modulate[0];
+			poly->verts[firstVert + v].modulate[1] = verts[v].modulate[1];
+			poly->verts[firstVert + v].modulate[2] = verts[v].modulate[2];
+			poly->verts[firstVert + v].modulate[3] = verts[v].modulate[3];
+		}
+
+		/*ri->Printf(PRINT_ALL, "Poly went from %i old verts to %i new verts.\n", poly->numVerts, poly->numVerts + numVerts);
+
+		for (int v = 0; v < poly->numVerts; v++)
+		{
+			ri->Printf(PRINT_ALL, "(%i %i %i) ", (int)poly->verts[v].xyz[0], (int)poly->verts[v].xyz[1], (int)poly->verts[v].xyz[2]);
+		}
+		ri->Printf(PRINT_ALL, "\n");*/
+
+		poly->numVerts += numVerts;
+	}
+}
+#endif //__MERGE_POLYS__
+
 /*
 =====================
 RE_AddMiniRefEntityToScene
@@ -626,11 +818,17 @@ RE_AddMiniRefEntityToScene
 =====================
 */
 void RE_AddMiniRefEntityToScene(const miniRefEntity_t *miniRefEnt) {
-	refEntity_t entity;
 	if (!tr.registered)
 		return;
 	if (!miniRefEnt)
 		return;
+
+	if (r_numentities >= MAX_REFENTITIES) {
+#ifdef __DEVELOPER_MODE__
+		ri->Printf(PRINT_DEVELOPER, "RE_AddMiniRefEntityToScene: Dropping refEntity, reached MAX_REFENTITIES\n");
+#endif //__DEVELOPER_MODE__
+		return;
+	}
 
 #ifdef __PVS_CULL__
 	{
@@ -643,9 +841,124 @@ void RE_AddMiniRefEntityToScene(const miniRefEntity_t *miniRefEnt) {
 	}
 #endif //__PVS_CULL__
 
+#ifdef __MERGE_POLYS__
+#if 1
+	if (miniRefEnt->reType == RT_ORIENTED_QUAD)
+	{
+		vec3_t	left, up;
+		float	radius;
+
+		// calculate the xyz locations for the four corners
+		radius = miniRefEnt->radius;
+		//	MakeNormalVectors( miniRefEnt->axis[0], left, up );
+		VectorCopy(miniRefEnt->axis[1], left);
+		VectorCopy(miniRefEnt->axis[2], up);
+
+		if (miniRefEnt->rotation == 0)
+		{
+			VectorScale(left, radius, left);
+			VectorScale(up, radius, up);
+		}
+		else
+		{
+			vec3_t	tempLeft, tempUp;
+			float	s, c;
+			float	ang;
+
+			ang = M_PI * miniRefEnt->rotation / 180;
+			s = sin(ang);
+			c = cos(ang);
+
+			// Use a temp so we don't trash the values we'll need later
+			VectorScale(left, c * radius, tempLeft);
+			VectorMA(tempLeft, -s * radius, up, tempLeft);
+
+			VectorScale(up, c * radius, tempUp);
+			VectorMA(tempUp, s * radius, left, up); // no need to use the temp anymore, so copy into the dest vector ( up )
+
+			// This was copied for safekeeping, we're done, so we can move it back to left
+			VectorCopy(tempLeft, left);
+		}
+
+		if (backEnd.viewParms.isMirror)
+		{
+			VectorSubtract(vec3_origin, left, left);
+		}
+
+		// Add this poly
+		polyVert_t	verts[4];
+		FX_AddQuadStamp(miniRefEnt->origin, left, up, miniRefEnt->shaderRGBA, verts);
+		RE_AddEFXPolyToScene(miniRefEnt->customShader, 4, verts, GL_QUADS);
+	}
+#endif
+#if 1 // sigh, not working yet...
+	/*else*/ if (miniRefEnt->reType == RT_SPRITE)
+	{
+		vec3_t		left, up;
+
+		// calculate the xyz locations for the four corners
+		if (miniRefEnt->rotation == 0) {
+			VectorScale(backEnd.viewParms.ori.axis[1], miniRefEnt->radius, left);
+			VectorScale(backEnd.viewParms.ori.axis[2], miniRefEnt->radius, up);
+		}
+		else
+		{
+			float ang = M_PI * miniRefEnt->rotation / 180;
+			float s = sin(ang);
+			float c = cos(ang);
+
+			VectorScale(backEnd.viewParms.ori.axis[1], c * miniRefEnt->radius, left);
+			VectorMA(left, -s * miniRefEnt->radius, backEnd.viewParms.ori.axis[2], left);
+
+			VectorScale(backEnd.viewParms.ori.axis[2], c * miniRefEnt->radius, up);
+			VectorMA(up, s * miniRefEnt->radius, backEnd.viewParms.ori.axis[1], up);
+		}
+
+		/*if (backEnd.viewParms.isMirror) {
+			VectorSubtract(vec3_origin, left, left);
+		}*/
+
+		// Add this poly
+		polyVert_t	verts[4];
+		FX_AddQuadStamp(miniRefEnt->origin, left, up, miniRefEnt->shaderRGBA, verts);
+		RE_AddEFXPolyToScene(miniRefEnt->customShader, 4, verts, GL_QUADS);
+	}
+#endif
+#if 1
+	else if (miniRefEnt->reType == RT_LINE)
+	{// These seem to use the refdef's axis...
+		vec3_t		right;
+		vec3_t		start, end;
+		vec3_t		v1, v2;
+
+		VectorCopy(miniRefEnt->oldorigin, end);
+		VectorCopy(miniRefEnt->origin, start);
+
+		// compute side vector
+		VectorSubtract(start, backEnd.viewParms.ori.origin, v1);
+		VectorSubtract(end, backEnd.viewParms.ori.origin, v2);
+		CrossProduct(v1, v2, right);
+		VectorNormalize(right);
+
+		// Add this poly
+		polyVert_t	verts[4];
+		FX_DoLine(miniRefEnt, miniRefEnt->origin, miniRefEnt->oldorigin, right, miniRefEnt->radius, verts);
+		RE_AddEFXPolyToScene(miniRefEnt->customShader, 4, verts, GL_QUADS);
+	}
+#endif
+	else
+	{
+		refEntity_t entity;
+		memset(&entity, 0, sizeof(entity));
+		memcpy(&entity, miniRefEnt, sizeof(*miniRefEnt));
+		RE_AddRefEntityToScene(&entity);
+	}
+#else //!__MERGE_POLYS__
+	refEntity_t entity;
 	memset(&entity, 0, sizeof(entity));
 	memcpy(&entity, miniRefEnt, sizeof(*miniRefEnt));
 	RE_AddRefEntityToScene(&entity);
+#endif //__MERGE_POLYS__
 }
 
 
@@ -1039,6 +1352,12 @@ void RE_BeginScene(const refdef_t *fd)
 		colorScale = 0.75;
 
 	tr.refdef.colorScale = colorScale;
+
+
+#ifdef __USE_VBO_AREAS__
+	extern void SetVBOVisibleAreas(void);
+	SetVBOVisibleAreas();
+#endif //__USE_VBO_AREAS__
 
 	if (r_sunlightMode->integer >= 1)
 	{

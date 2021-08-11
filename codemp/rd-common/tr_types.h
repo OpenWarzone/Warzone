@@ -71,6 +71,17 @@ extern int	drawskyboxportal;
 
 typedef byte color4ub_t[4];
 
+// these are sort of arbitrary limits.
+// the limits apply to the sum of all scenes in a frame --
+// the main view, all the 3D icons, etc
+//#ifdef __MMO__
+//#define	MAX_POLYS		2400
+//#define	MAX_POLYVERTS	12000
+//#else //!__MMO__
+#define	MAX_POLYS		1000//600
+#define	MAX_POLYVERTS	1000
+//#endif //__MMO__
+
 typedef struct polyVert_s {
 	vec3_t		xyz;
 	float		st[2];
@@ -80,7 +91,7 @@ typedef struct polyVert_s {
 typedef struct poly_s {
 	qhandle_t			hShader;
 	int					numVerts;
-	polyVert_t			*verts;
+	polyVert_t			verts[MAX_POLYVERTS];
 } poly_t;
 
 typedef enum {

@@ -1828,10 +1828,10 @@ void R_AddWorldSurfaces(void) {
 			RB_CheckOcclusions();
 		}
 
-#ifdef __USE_VBO_AREAS__
+/*#ifdef __USE_VBO_AREAS__
 		extern void SetVBOVisibleAreas(void);
 		SetVBOVisibleAreas();
-#endif //__USE_VBO_AREAS__
+#endif //__USE_VBO_AREAS__*/
 	}
 
 #ifdef __PSHADOWS__

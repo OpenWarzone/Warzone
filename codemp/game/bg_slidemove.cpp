@@ -655,6 +655,12 @@ qboolean	PM_SlideMove( qboolean gravity ) {
 	vec3_t		endClipVelocity;
 	//qboolean	damageSelf = qtrue;
 	vec3_t		maxs, mins;
+	qboolean	isNPC = qfalse;
+
+	if (pm_entSelf && pm_entSelf->s.eType == ET_NPC)
+	{
+		isNPC = qtrue;
+	}
 
 	/*if (pm_entSelf 
 		&& (((pm_entSelf->s.eType == ET_NPC || pm_entSelf->s.eType == ET_PLAYER) && pm_entSelf->s.NPC_class != CLASS_VEHICLE && pm_entSelf->s.NPC_class != CLASS_RANCOR && pm_entSelf->s.NPC_class != CLASS_ATST_OLD && !pm_entSelf->m_pVehicle) || (pm_entSelf->s.eFlags & EF_FAKE_NPC_BOT)))
@@ -725,11 +731,87 @@ qboolean	PM_SlideMove( qboolean gravity ) {
 
 	for ( bumpcount=0 ; bumpcount < numbumps ; bumpcount++ ) {
 
+		/*if (isNPC)
+		{// Testing... Allow NPCs to do anything, they should be on navmesh anyway...
+			break;
+		}*/
+
 		// calculate position we are trying to move to
 		VectorMA( pm->ps->origin, time_left, pm->ps->velocity, end );
 
+#if 0//defined (_GAME) && defined(__USE_NAVLIB__)
+		if (G_NavmeshIsLoaded())
+		{
+			gentity_t *NPC = &g_entities[pm->ps->clientNum];
+			NavlibSetNavMesh(NPC->s.number, 0);
+
+			if (isNPC)
+			{
+				memset(&trace, 0, sizeof(trace));
+
+#if 0
+				navlibTrace_t tr;
+				NavlibNavTrace(&tr, pm->ps->origin, end, pm->ps->clientNum);
+				trace.fraction = tr.frac;
+				VectorCopy(tr.normal, trace.plane.normal);
+
+				if (tr.frac > 0.0)
+				{
+					trace.startsolid = qfalse;
+					trace.allsolid = qfalse;
+					trace.contents = CONTENTS_NONE;
+
+					if (tr.frac >= 1.0)
+					{
+						VectorCopy(end, trace.endpos);
+					}
+					else
+					{
+						vec3_t diff;
+						trace.contents = CONTENTS_SOLID;
+						VectorSubtract(end, pm->ps->origin, diff);
+						VectorMA(pm->ps->origin, tr.frac, diff, trace.endpos);
+					}
+				}
+				else
+				{
+					trace.startsolid = qtrue;
+					trace.allsolid = qtrue;
+					trace.contents = CONTENTS_SOLID;
+				}
+#else
+				vec3_t point;
+				if (NavlibFindRandomPointInRadius(-1, end, point, 1.0))
+				{// Keep NPCs on navmesh and add some randomcy...
+					trace.startsolid = qfalse;
+					trace.allsolid = qfalse;
+					trace.contents = CONTENTS_NONE;
+					VectorCopy(point, trace.endpos);
+					trace.fraction = 1.0;
+					VectorSet(trace.plane.normal, 0.0, 0.0, 1.0);
+				}
+				else if (pm->ps->groundEntityNum == ENTITYNUM_NONE)
+				{// In air, allow falling...
+					// see if we can make it there
+					BG_MoveTrace(&trace, pm->ps->origin, mins, maxs, end, pm->ps->clientNum, pm->tracemask);
+				}
+#endif
+			}
+			else
+			{
+				// see if we can make it there
+				BG_MoveTrace(&trace, pm->ps->origin, mins, maxs, end, pm->ps->clientNum, pm->tracemask);
+			}
+		}
+		else
+		{
+			// see if we can make it there
+			BG_MoveTrace(&trace, pm->ps->origin, mins, maxs, end, pm->ps->clientNum, pm->tracemask);
+		}
+#else //!defined(__USE_NAVLIB__)
 		// see if we can make it there
-		BG_MoveTrace ( &trace, pm->ps->origin, mins, maxs, end, pm->ps->clientNum, pm->tracemask);
+		BG_MoveTrace(&trace, pm->ps->origin, mins, maxs, end, pm->ps->clientNum, pm->tracemask);
+#endif //defined(__USE_NAVLIB__)
 
 		if (trace.allsolid) {
 			// entity is completely trapped in another solid

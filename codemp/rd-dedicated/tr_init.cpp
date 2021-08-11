@@ -139,8 +139,6 @@ cvar_t	*r_debugSort;
 
 cvar_t	*r_maxpolys;
 int		max_polys;
-cvar_t	*r_maxpolyverts;
-int		max_polyverts;
 
 cvar_t	*r_modelpoolmegs;
 
@@ -381,7 +379,6 @@ void R_Register( void )
 	r_shadows							= ri->Cvar_Get( "cg_shadows",						"2",						CVAR_NONE );
 	r_shadowRange						= ri->Cvar_Get( "r_shadowRange",					"1000",						CVAR_NONE );
 	r_maxpolys							= ri->Cvar_Get( "r_maxpolys",						XSTRING( MAX_POLYS ),		CVAR_NONE );
-	r_maxpolyverts						= ri->Cvar_Get( "r_maxpolyverts",					XSTRING( MAX_POLYVERTS ),	CVAR_NONE );
 /*
 Ghoul2 Insert Start
 */
@@ -472,14 +469,9 @@ void R_Init( void ) {
 	if (max_polys < MAX_POLYS)
 		max_polys = MAX_POLYS;
 
-	max_polyverts = r_maxpolyverts->integer;
-	if (max_polyverts < MAX_POLYVERTS)
-		max_polyverts = MAX_POLYVERTS;
-
-	ptr = (byte *)Hunk_Alloc( sizeof( *backEndData ) + sizeof(srfPoly_t) * max_polys + sizeof(polyVert_t) * max_polyverts, h_low);
+	ptr = (byte*)ri->Hunk_Alloc(sizeof(*backEndData) + sizeof(srfPoly_t) * max_polys, h_low);
 	backEndData = (backEndData_t *) ptr;
 	backEndData->polys = (srfPoly_t *) ((char *) ptr + sizeof( *backEndData ));
-	backEndData->polyVerts = (polyVert_t *) ((char *) ptr + sizeof( *backEndData ) + sizeof(srfPoly_t) * max_polys);
 
 	R_ModelInit();
 

@@ -488,8 +488,6 @@ cvar_t	*r_screenshotJpegQuality;
 
 cvar_t	*r_maxpolys;
 int		max_polys;
-cvar_t	*r_maxpolyverts;
-int		max_polyverts;
 
 cvar_t	*r_dynamicGlow;
 cvar_t	*r_dynamicGlowPasses;
@@ -1997,7 +1995,6 @@ void R_Register( void )
 	r_screenshotJpegQuality = ri->Cvar_Get("r_screenshotJpegQuality", "90", CVAR_ARCHIVE);
 
 	r_maxpolys = ri->Cvar_Get( "r_maxpolys", va("%d", MAX_POLYS), 0);
-	r_maxpolyverts = ri->Cvar_Get( "r_maxpolyverts", va("%d", MAX_POLYVERTS), 0);
 
 	r_shadowMaxDepthError = ri->Cvar_Get("r_shadowMaxDepthError", "0.000000059604644775390625", CVAR_ARCHIVE);
 	r_shadowSolidityValue = ri->Cvar_Get("r_shadowSolidityValue", "0.5", CVAR_ARCHIVE);
@@ -2142,14 +2139,10 @@ void R_Init( void ) {
 	if (max_polys < MAX_POLYS)
 		max_polys = MAX_POLYS;
 
-	max_polyverts = r_maxpolyverts->integer;
-	if (max_polyverts < MAX_POLYVERTS)
-		max_polyverts = MAX_POLYVERTS;
 
-	ptr = (byte*)ri->Hunk_Alloc( sizeof( *backEndData ) + sizeof(srfPoly_t) * max_polys + sizeof(polyVert_t) * max_polyverts, h_low);
+	ptr = (byte*)ri->Hunk_Alloc(sizeof(*backEndData) + sizeof(srfPoly_t) * max_polys, h_low);
 	backEndData = (backEndData_t *) ptr;
 	backEndData->polys = (srfPoly_t *) ((char *) ptr + sizeof( *backEndData ));
-	backEndData->polyVerts = (polyVert_t *) ((char *) ptr + sizeof( *backEndData ) + sizeof(srfPoly_t) * max_polys);
 	R_InitNextFrame();
 
 	for ( int i = 0; i < MAXLIGHTMAPS; i++ )
