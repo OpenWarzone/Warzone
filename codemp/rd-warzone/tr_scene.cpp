@@ -264,7 +264,7 @@ void R_AddPolygonSurfaces(void) {
 	poly = tr.refdef.polys;
 
 #ifdef __MERGE_POLYS__
-	if (r_testvalue1->integer && next_poly_debug_print <= backEnd.refdef.time)
+	if (r_mergePolysDebug->integer && next_poly_debug_print <= backEnd.refdef.time)
 	{
 		for (i = 0; i < tr.refdef.numPolys; i++)
 		{
@@ -308,18 +308,6 @@ void R_AddPolygonSurfaces(void) {
 }
 
 #ifdef __MERGE_POLYS__
-/*qboolean ModulationIsCloseEnoughForMerge(byte mod1, byte mod2)
-{
-	int diff = (int)mod1 - (int)mod2;
-
-	if (diff <= r_testvalue2->integer)
-	{
-		return qtrue;
-	}
-
-	return qfalse;
-}*/
-
 srfPoly_t *RE_FindPolyForShader(qhandle_t shader, int numNewVerts, int glType)
 {// So, let's try to merge all these efx polys together... Not sure if this will mess up rgbgen's or not, we will see...
 	for (int i = 0; i < r_numpolys; i++)
@@ -328,7 +316,7 @@ srfPoly_t *RE_FindPolyForShader(qhandle_t shader, int numNewVerts, int glType)
 		
 		if (poly && poly->hShader == shader && poly->surfaceType == SF_POLY && poly->glType == glType && poly->numVerts + numNewVerts < MAX_POLYVERTS)
 		{
-			if (r_testvalue0->integer)
+			if (r_mergePolysDebug->integer >= 2)
 			{
 				ri->Printf(PRINT_WARNING, "Merging %i new polys to poly structure %i (shader %s). %i old verts will become %i new verts.\n", numNewVerts, i, tr.shaders[shader]->name, poly->numVerts, poly->numVerts + numNewVerts);
 			}
@@ -1061,8 +1049,8 @@ float RB_NightScale ( void )
 		return 0.0;
 	}
 
-#define SUNRISE_TIME 8.2//r_testvalue0->value
-#define SUNSET_TIME 21.8//r_testvalue1->value
+#define SUNRISE_TIME 8.2
+#define SUNSET_TIME 21.8
 
 	if (DAY_NIGHT_24H_TIME >= SUNRISE_TIME-2.0 && DAY_NIGHT_24H_TIME <= SUNRISE_TIME)
 	{// Sunrise...
@@ -1741,14 +1729,10 @@ void RE_RenderScene(const refdef_t *fd) {
 		{
 			lightDir[0] = 0.0;
 			lightDir[1] = 0.0;
-			//if (r_testvalue0->integer < 1) // UQ1: ancient debug cvar left in, think this one is right...
-				lightDir[2] = 1.0;
-			//else
-			//	lightDir[2] = -1.0;
+			lightDir[2] = 1.0;
 			lightDir[3] = 0.0;
 			
 			VectorCopy(backEnd.viewIsOutdoorsHitPosition, lightOrigin);
-			//lightOrigin[2] -= r_testvalue1->value;// 8.0;
 
 			lightHeight = lightOrigin[2] - backEnd.localPlayerOrigin[2];
 		}

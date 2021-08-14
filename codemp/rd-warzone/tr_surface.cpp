@@ -592,7 +592,9 @@ static void RB_SurfaceOrientedQuad( void )
 RB_SurfacePolychain
 =============
 */
+#ifdef __MERGE_POLYS__
 int poly_debug_print_time = 0;
+#endif //__MERGE_POLYS__
 
 static void RB_SurfacePolychain( srfPoly_t *p ) {
 	glState.vertexAnimation = qfalse;
@@ -631,31 +633,12 @@ static void RB_SurfacePolychain( srfPoly_t *p ) {
 		numv++;
 	}
 	
-	if (p->glType == GL_TRIANGLES)
-	{
-		// generate fan indexes into the tess array -- UQ1: WTF is this? This makes no sense...
-		for (i = 0; i < p->numVerts - 2; i++) {
-			tess.indexes[tess.numIndexes + 0] = tess.numVertexes + i;
-			tess.indexes[tess.numIndexes + 1] = tess.numVertexes + i + 1;
-			tess.indexes[tess.numIndexes + 2] = tess.numVertexes + i + 2;
-			tess.numIndexes += 3;
-		}
-	}
-	else
+#ifdef __MERGE_POLYS__
+	if (p->glType == GL_QUADS)
 	{
 		int ndx = tess.numVertexes;
 
 		for (i = 0; i < p->numVerts; i += 4) {
-
-			//tess.indexes[tess.numIndexes] = ndx + i;
-			//tess.indexes[tess.numIndexes + 1] = ndx + i + 1;
-			//tess.indexes[tess.numIndexes + 2] = ndx + i + 3;
-
-			//tess.indexes[tess.numIndexes + 3] = ndx + i + 3;
-			//tess.indexes[tess.numIndexes + 4] = ndx + i + 1;
-			//tess.indexes[tess.numIndexes + 5] = ndx + i + 2;
-
-
 			tess.indexes[tess.numIndexes + 0] = ndx + i + 0;
 			tess.indexes[tess.numIndexes + 1] = ndx + i + 1;
 			tess.indexes[tess.numIndexes + 2] = ndx + i + 2;
@@ -667,10 +650,22 @@ static void RB_SurfacePolychain( srfPoly_t *p ) {
 			tess.numIndexes += 6;
 		}
 	}
+	else
+#endif //__MERGE_POLYS__
+	{
+		// generate fan indexes into the tess array -- UQ1: WTF is this? This makes no sense...
+		for (i = 0; i < p->numVerts - 2; i++) {
+			tess.indexes[tess.numIndexes + 0] = tess.numVertexes + i;
+			tess.indexes[tess.numIndexes + 1] = tess.numVertexes + i + 1;
+			tess.indexes[tess.numIndexes + 2] = tess.numVertexes + i + 2;
+			tess.numIndexes += 3;
+		}
+	}
 
 	tess.numVertexes = numv;
 
-	if (r_testvalue3->integer && poly_debug_print_time <= backEnd.refdef.time)
+#ifdef __MERGE_POLYS__
+	if (r_mergePolysDebug->integer >= 3 && poly_debug_print_time <= backEnd.refdef.time)
 	{
 		ri->Printf(PRINT_ALL, "Idx: ");
 		for (i = 0; i < tess.numIndexes; i+=3)
@@ -680,7 +675,7 @@ static void RB_SurfacePolychain( srfPoly_t *p ) {
 
 		ri->Printf(PRINT_ALL, "\n");
 
-		if (r_testvalue3->integer > 1)
+		if (r_mergePolysDebug->integer >= 4)
 		{
 			ri->Printf(PRINT_ALL, "Verts: ");
 			for (i = 0; i < tess.numVertexes; i++)
@@ -693,6 +688,7 @@ static void RB_SurfacePolychain( srfPoly_t *p ) {
 
 		poly_debug_print_time = backEnd.refdef.time + 10000;
 	}
+#endif //__MERGE_POLYS__
 }
 
 static void RB_SurfaceVertsAndIndexes( int numVerts, srfVert_t *verts, int numIndexes, glIndex_t *indexes, int dlightBits, int pshadowBits)
