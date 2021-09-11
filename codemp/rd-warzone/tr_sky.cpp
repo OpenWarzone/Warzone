@@ -847,6 +847,8 @@ static void DrawSkyBox( shader_t *shader )
 
 		if (!merge)
 		{
+			R_DrawElementsVBOIndirectCheckFinish(&tess);
+
 			tess.numIndexes = 0;
 			tess.firstIndex = 0;
 			tess.numVertexes = 0;
@@ -866,7 +868,7 @@ static void DrawSkyBox( shader_t *shader )
 
 			backEnd.pc.c_skyDraws++;
 
-			R_DrawElementsVBO(tess.numIndexes - tess.firstIndex, tess.firstIndex, tess.minIndex, tess.maxIndex, tess.numVertexes, qfalse);
+			R_DrawElementsVBO(&tess, tess.numIndexes - tess.firstIndex, tess.firstIndex, tess.minIndex, tess.maxIndex, tess.numVertexes, qfalse);
 
 			tess.numIndexes = tess.firstIndex;
 			tess.numVertexes = firstVertex;
@@ -882,12 +884,14 @@ static void DrawSkyBox( shader_t *shader )
 
 	if (merge)
 	{
+		R_DrawElementsVBOIndirectCheckFinish(&tess);
+
 		backEnd.pc.c_skyDraws++;
 
 		tess.minIndex = firstVertex;
 		tess.maxIndex = tess.numVertexes;
 
-		R_DrawElementsVBO(tess.numIndexes - tess.firstIndex, tess.firstIndex, tess.minIndex, tess.maxIndex, tess.numVertexes, qfalse);
+		R_DrawElementsVBO(&tess, tess.numIndexes - tess.firstIndex, tess.firstIndex, tess.minIndex, tess.maxIndex, tess.numVertexes, qfalse);
 
 		tess.numIndexes = firstIndex;
 		tess.numVertexes = firstVertex;

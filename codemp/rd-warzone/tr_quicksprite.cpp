@@ -53,6 +53,8 @@ void CQuickSpriteSystem::Flush(void)
 		return;
 	}
 
+	R_DrawElementsVBOIndirectCheckFinish(&tess);
+
 	/*
 	if (mUseFog && r_drawfog->integer == 2 &&
 		mFogIndex == tr.world->globalFog)
@@ -111,7 +113,7 @@ void CQuickSpriteSystem::Flush(void)
 		{// Would go over the limit, render current queue and continue...
 			RB_UpdateVBOs(ATTR_POSITION | ATTR_TEXCOORD0);
 			GLSL_VertexAttribsState(ATTR_POSITION | ATTR_TEXCOORD0);
-			R_DrawElementsVBO(tess.numIndexes, tess.firstIndex, tess.minIndex, tess.maxIndex, tess.numVertexes, qfalse);
+			R_DrawElementsVBO(&tess, tess.numIndexes, tess.firstIndex, tess.minIndex, tess.maxIndex, tess.numVertexes, qfalse);
 
 			tess.numIndexes = 0;
 			tess.numVertexes = 0;
@@ -171,7 +173,7 @@ void CQuickSpriteSystem::Flush(void)
 
 	RB_UpdateVBOs(ATTR_POSITION | ATTR_TEXCOORD0);
 	GLSL_VertexAttribsState(ATTR_POSITION | ATTR_TEXCOORD0);
-	R_DrawElementsVBO(tess.numIndexes, tess.firstIndex, tess.minIndex, tess.maxIndex, tess.numVertexes, qfalse);
+	R_DrawElementsVBO(&tess, tess.numIndexes, tess.firstIndex, tess.minIndex, tess.maxIndex, tess.numVertexes, qfalse);
 
 
 	//

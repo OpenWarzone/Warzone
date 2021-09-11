@@ -1753,6 +1753,50 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 				{// Either a mover, or a portal... Don't allow merges...
 					dontMerge = qtrue;
 				}
+				else if (!	(entityNum != REFENTITYNUM_WORLD
+							&& (backEnd.currentEntity->e.reType == RT_MODEL
+								|| backEnd.currentEntity->e.reType == RT_ENT_CHAIN
+								|| backEnd.currentEntity->e.reType == RT_GRASS
+								|| backEnd.currentEntity->e.reType == RT_PLANT
+								|| backEnd.currentEntity->e.reType == RT_MODEL_INSTANCED
+								|| backEnd.currentEntity->e.reType == RT_PORTALSURFACE)))
+				{
+					shader->entityMergable = qtrue;
+				}
+			}
+			else
+			{
+				if (!	(entityNum != REFENTITYNUM_WORLD
+						&& (backEnd.currentEntity->e.reType == RT_MODEL
+							|| backEnd.currentEntity->e.reType == RT_ENT_CHAIN
+							|| backEnd.currentEntity->e.reType == RT_GRASS
+							|| backEnd.currentEntity->e.reType == RT_PLANT
+							|| backEnd.currentEntity->e.reType == RT_MODEL_INSTANCED
+							|| backEnd.currentEntity->e.reType == RT_PORTALSURFACE)))
+				{
+					shader->entityMergable = qtrue;
+				}
+				else
+				{
+					trRefEntity_t *ent = NULL;
+					trRefEntity_t *oldent = NULL;
+
+					if (entityNum >= 0) oldent = &backEnd.refdef.entities[entityNum];
+					if (oldEntityNum >= 0) oldent = &backEnd.refdef.entities[oldEntityNum];
+
+					if (ent && (ent->e.noMerge || (ent->e.renderfx & RF_SETANIMINDEX)))
+					{// Either a mover, or a portal... Don't allow merges...
+						dontMerge = qtrue;
+					}
+					else if (oldent && (oldent->e.noMerge || (oldent->e.renderfx & RF_SETANIMINDEX)))
+					{// Either a mover, or a portal... Don't allow merges...
+						dontMerge = qtrue;
+					}
+					else
+					{
+						shader->entityMergable = qtrue;
+					}
+				}
 			}
 
 			//
@@ -1795,7 +1839,31 @@ void RB_RenderDrawSurfList(drawSurf_t *drawSurfs, int numDrawSurfs, qboolean inQ
 				// from the wrong frame
 				tess.shaderTime = backEnd.refdef.floatTime - tess.shader->timeOffset;
 
-				if (entityNum != REFENTITYNUM_WORLD)
+				/*
+				RT_MODEL,
+				RT_POLY,
+				RT_SPRITE,
+				RT_ORIENTED_QUAD,
+				RT_BEAM,
+				RT_SABER_GLOW,
+				RT_ELECTRICITY,
+				RT_PORTALSURFACE,		// doesn't draw anything, just info for portals
+				RT_LINE,
+				RT_ORIENTEDLINE,
+				RT_CYLINDER,
+				RT_ENT_CHAIN,
+				RT_GRASS,
+				RT_PLANT,
+				RT_MODEL_INSTANCED,
+				*/
+
+				if (entityNum != REFENTITYNUM_WORLD 
+					&& (backEnd.currentEntity->e.reType == RT_MODEL 
+						|| backEnd.currentEntity->e.reType == RT_ENT_CHAIN 
+						|| backEnd.currentEntity->e.reType == RT_GRASS
+						|| backEnd.currentEntity->e.reType == RT_PLANT
+						|| backEnd.currentEntity->e.reType == RT_MODEL_INSTANCED
+						|| backEnd.currentEntity->e.reType == RT_PORTALSURFACE))
 				{
 					backEnd.currentEntity = &backEnd.refdef.entities[entityNum];
 					backEnd.refdef.floatTime = originalTime - backEnd.currentEntity->e.shaderTime;

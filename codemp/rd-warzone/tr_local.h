@@ -49,7 +49,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //#define __VBO_PACK_COLOR__					// Try to pack vert colors into a single float - BROKEN!
 //#define __VBO_HALF_FLOAT_COLOR__				// Try to pack vert colors into half floats - BROKEN!
 #define __HALF_FLOAT__							// Enable half float conversion code...
-#define __DRAW_INDIRECT__						// Use indirect draw calls...
+//#define __DRAW_INDIRECT__						// Use indirect draw calls...
 //#define __GLSL_OPTIMIZER__						// Enable GLSL optimization...
 //#define __DEBUG_SHADER_LOAD__					// Enable extra GLSL shader load debugging info...
 //#define __USE_GLSL_SHADER_CACHE__				// Enable GLSL shader binary caching...
@@ -3587,10 +3587,18 @@ typedef struct trGlobals_s {
 
 #ifdef __DRAW_INDIRECT__
 	GLuint indirectArraysBuffer = 0;
-	DrawArraysIndirectCommand drawArraysIndirectCommand[1];
+	//DrawArraysIndirectCommand		drawArraysIndirectCommand[1];
+	DrawArraysIndirectCommand		drawArraysIndirectCommand[1024];
+	uint32_t						drawArraysIndirectCommandCount = 0;
+	shader_t						*drawArraysIndirectShader = NULL;
+	qboolean						drawArraysIndirectTessellation = qfalse;
 
 	GLuint indirectElementsBuffer = 0;
-	DrawElementsIndirectCommand drawElementsIndirectCommand[1];
+	//DrawElementsIndirectCommand		drawElementsIndirectCommand[1];
+	DrawElementsIndirectCommand		drawElementsIndirectCommand[1024];
+	uint32_t						drawElementsIndirectCommandCount = 0;
+	shader_t						*drawElementsIndirectShader = NULL;
+	qboolean						drawElementsIndirectTessellation = qfalse;
 
 	GLuint indirectMultiElementsBuffer = 0;
 	DrawElementsIndirectCommand drawMultiElementsCommand[MAX_MULTIDRAW_PRIMITIVES];
@@ -4149,11 +4157,13 @@ void RB_EndSurface(void);
 void RB_CheckOverflow( int verts, int indexes );
 #define RB_CHECKOVERFLOW(v,i) if (tess.numVertexes + (v) >= SHADER_MAX_VERTEXES || tess.numIndexes + (i) >= SHADER_MAX_INDEXES ) {RB_CheckOverflow(v,i);}
 
-void R_DrawElementsVBO( int numIndexes, glIndex_t firstIndex, glIndex_t minIndex, glIndex_t maxIndex, glIndex_t numVerts, qboolean tesselation );
+void R_DrawElementsVBO( shaderCommands_t *input, int numIndexes, glIndex_t firstIndex, glIndex_t minIndex, glIndex_t maxIndex, glIndex_t numVerts, qboolean tesselation );
 void RB_StageIteratorGeneric( void );
 void RB_StageIteratorSky( void );
 void RB_StageIteratorVertexLitTexture( void );
 void RB_StageIteratorLightmappedMultitexture( void );
+
+extern void R_DrawElementsVBOIndirectCheckFinish(shaderCommands_t *input);
 
 void RB_AddQuadStamp( vec3_t origin, vec3_t left, vec3_t up, float color[4] );
 void RB_AddQuadStampExt( vec3_t origin, vec3_t left, vec3_t up, float color[4], float s1, float t1, float s2, float t2 );

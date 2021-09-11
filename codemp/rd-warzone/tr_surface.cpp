@@ -204,6 +204,8 @@ void RB_InstantTri2(vec4_t triVerts[3], vec2_t texCoords[3])
 {
 	//	GLimp_LogComment("--- RB_InstantTri2 ---\n");					// FIXME: REIMPLEMENT (wasn't implemented in ioq3 to begin with) --eez
 
+	R_DrawElementsVBOIndirectCheckFinish(&tess);
+
 	tess.numVertexes = 0;
 	tess.numIndexes = 0;
 	tess.firstIndex = 0;
@@ -233,7 +235,7 @@ void RB_InstantTri2(vec4_t triVerts[3], vec2_t texCoords[3])
 
 	GLSL_VertexAttribsState(ATTR_POSITION | ATTR_TEXCOORD0);
 
-	R_DrawElementsVBO(tess.numIndexes, tess.firstIndex, tess.minIndex, tess.maxIndex, tess.numVertexes, qfalse);
+	R_DrawElementsVBO(&tess, tess.numIndexes, tess.firstIndex, tess.minIndex, tess.maxIndex, tess.numVertexes, qfalse);
 
 	tess.numIndexes = 0;
 	tess.numVertexes = 0;
@@ -252,6 +254,8 @@ based on Tess_InstantQuad from xreal
 void RB_InstantQuad2(vec4_t quadVerts[4], vec2_t texCoords[4])
 {
 //	GLimp_LogComment("--- RB_InstantQuad2 ---\n");					// FIXME: REIMPLEMENT (wasn't implemented in ioq3 to begin with) --eez
+
+	R_DrawElementsVBOIndirectCheckFinish(&tess);
 
 	tess.numVertexes = 0;
 	tess.numIndexes = 0;
@@ -290,7 +294,7 @@ void RB_InstantQuad2(vec4_t quadVerts[4], vec2_t texCoords[4])
 
 	GLSL_VertexAttribsState(ATTR_POSITION | ATTR_TEXCOORD0);
 
-	R_DrawElementsVBO(tess.numIndexes, tess.firstIndex, tess.minIndex, tess.maxIndex, tess.numVertexes, qfalse);
+	R_DrawElementsVBO(&tess, tess.numIndexes, tess.firstIndex, tess.minIndex, tess.maxIndex, tess.numVertexes, qfalse);
 
 	tess.numIndexes = 0;
 	tess.numVertexes = 0;
@@ -1006,6 +1010,8 @@ RB_SurfaceBeam
 */
 static void RB_SurfaceBeam( void )
 {
+	R_DrawElementsVBOIndirectCheckFinish(&tess);
+
 #define NUM_BEAM_SEGS 6
 	refEntity_t *e;
 	shaderProgram_t *sp = &tr.textureColorShader;
@@ -1092,7 +1098,7 @@ static void RB_SurfaceBeam( void )
 	}
 #endif //__TEXTURECOLOR_SHADER_BINDLESS__
 
-	R_DrawElementsVBO(tess.numIndexes, tess.firstIndex, tess.minIndex, tess.maxIndex, tess.numVertexes, qfalse);
+	R_DrawElementsVBO(&tess, tess.numIndexes, tess.firstIndex, tess.minIndex, tess.maxIndex, tess.numVertexes, qfalse);
 
 	tess.numIndexes = 0;
 	tess.numVertexes = 0;

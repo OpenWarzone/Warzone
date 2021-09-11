@@ -1723,6 +1723,8 @@ public:
 		CWeatherParticle*	part=0;
 		int			particleNum;
 
+		R_DrawElementsVBOIndirectCheckFinish(&tess);
+
 		switch (mBlendMode)
 		{
 		case 2:
@@ -1937,7 +1939,7 @@ public:
 						break;
 					}
 					
-					R_DrawElementsVBO(tess.numIndexes, tess.firstIndex, tess.minIndex, tess.maxIndex, tess.numVertexes, qfalse);
+					R_DrawElementsVBO(&tess, tess.numIndexes, tess.firstIndex, tess.minIndex, tess.maxIndex, tess.numVertexes, qfalse);
 
 					tess.numIndexes = 0;
 					tess.numVertexes = 0;
@@ -2076,7 +2078,7 @@ public:
 						break;
 					}
 
-					R_DrawElementsVBO(tess.numIndexes, tess.firstIndex, tess.minIndex, tess.maxIndex, tess.numVertexes, qfalse);
+					R_DrawElementsVBO(&tess, tess.numIndexes, tess.firstIndex, tess.minIndex, tess.maxIndex, tess.numVertexes, qfalse);
 
 					tess.numIndexes = 0;
 					tess.numVertexes = 0;
@@ -2230,7 +2232,7 @@ public:
 			break;
 		}
 
-		R_DrawElementsVBO(tess.numIndexes, tess.firstIndex, tess.minIndex, tess.maxIndex, tess.numVertexes, qfalse);
+		R_DrawElementsVBO(&tess, tess.numIndexes, tess.firstIndex, tess.minIndex, tess.maxIndex, tess.numVertexes, qfalse);
 
 		//
 		tess.numIndexes = 0;

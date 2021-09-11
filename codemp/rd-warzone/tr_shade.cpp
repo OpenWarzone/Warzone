@@ -95,21 +95,72 @@ void R_CreateIndirectBuffers(void)
 	}
 }
 
-void R_DrawElementsVBOIndirect(int numIndexes, glIndex_t firstIndex, glIndex_t minIndex, glIndex_t maxIndex, glIndex_t numVerts, qboolean tesselation)
+void R_DrawElementsVBOIndirectFinish( void )
 {
+#ifdef __DRAW_INDIRECT__
 	R_CreateIndirectBuffers();
 
-	if (r_drawIndirect->integer == 1)
+	if (tr.drawElementsIndirectShader != NULL && tr.drawElementsIndirectCommandCount > 0)
 	{
-		tr.drawElementsIndirectCommand[0].count = numIndexes;       //1 triangle = 3 vertices
-		tr.drawElementsIndirectCommand[0].instanceCount = 1;     //Draw 1 instance
-		tr.drawElementsIndirectCommand[0].firstIndex = firstIndex;        //Draw from index 0 for this instance
-		tr.drawElementsIndirectCommand[0].baseVertex = 0; //Starting from baseVert
-		tr.drawElementsIndirectCommand[0].baseInstance = 0;      //gl_InstanceID
-
 		// feed the draw command data to the gpu via the IndirectBuffer
 		qglBindBuffer(GL_DRAW_INDIRECT_BUFFER, tr.indirectElementsBuffer);
-		qglBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawElementsIndirectCommand), &tr.drawElementsIndirectCommand);
+		qglBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawElementsIndirectCommand) * tr.drawElementsIndirectCommandCount, &tr.drawElementsIndirectCommand);
+
+		if (tr.drawElementsIndirectTessellation)
+		{
+			qglPatchParameteri(GL_PATCH_VERTICES, 3);
+			qglDrawElementsIndirect(GL_PATCHES, GL_INDEX_TYPE, (const GLvoid **)0);
+		}
+		else
+		{
+			qglDrawElementsIndirect(GL_TRIANGLES, GL_INDEX_TYPE, (const GLvoid **)0);
+		}
+
+		qglBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+
+		if (r_drawIndirect->integer > 1)
+		{// Debug info...
+			ri->Printf(PRINT_ALL, "Indirect draw shader: %s - %i commands.\n", tr.drawElementsIndirectShader->name, int(tr.drawElementsIndirectCommandCount));
+		}
+	}
+
+	tr.drawElementsIndirectTessellation = qfalse;
+	tr.drawElementsIndirectShader = NULL;
+	tr.drawElementsIndirectCommandCount = 0;
+#endif //__DRAW_INDIRECT__
+}
+
+void R_DrawElementsVBOIndirectCheckFinish(shaderCommands_t *input)
+{
+#ifdef __DRAW_INDIRECT__
+	R_CreateIndirectBuffers();
+
+	if (r_drawIndirect->integer
+		&& tr.drawElementsIndirectShader != NULL
+		&& tr.drawElementsIndirectCommandCount > 0
+		&& (tr.drawElementsIndirectCommandCount >= 1023 || tr.drawElementsIndirectShader != input->shader))
+	{// New shader, or need a new command buffer... Finish the previous draw first...
+		R_DrawElementsVBOIndirectFinish();
+	}
+#endif //__DRAW_INDIRECT__
+}
+
+void R_DrawElementsVBOIndirect(shaderCommands_t *input, int numIndexes, glIndex_t firstIndex, glIndex_t minIndex, glIndex_t maxIndex, glIndex_t numVerts, qboolean tesselation)
+{
+	R_CreateIndirectBuffers();
+	R_DrawElementsVBOIndirectCheckFinish(input);
+
+	if (r_drawIndirect->integer)
+	{// Let's try to do dynamic batching using a glDrawElementsIndirect command buffer, and merge draw calls...
+		tr.drawElementsIndirectCommand[tr.drawElementsIndirectCommandCount].count = numIndexes;       //1 triangle = 3 vertices
+		tr.drawElementsIndirectCommand[tr.drawElementsIndirectCommandCount].instanceCount = 1;     //Draw 1 instance
+		tr.drawElementsIndirectCommand[tr.drawElementsIndirectCommandCount].firstIndex = firstIndex;        //Draw from index 0 for this instance
+		tr.drawElementsIndirectCommand[tr.drawElementsIndirectCommandCount].baseVertex = 0; //Starting from baseVert
+		tr.drawElementsIndirectCommand[tr.drawElementsIndirectCommandCount].baseInstance = 0;      //gl_InstanceID
+		tr.drawElementsIndirectCommandCount++;
+
+		tr.drawElementsIndirectTessellation = tesselation;
+		return;
 	}
 	else
 	{
@@ -137,12 +188,12 @@ void R_DrawElementsVBOIndirect(int numIndexes, glIndex_t firstIndex, glIndex_t m
 	qglBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 }
 
-void R_DrawMultiElementsVBOIndirect(int multiDrawPrimitives, glIndex_t *multiDrawMinIndex, glIndex_t *multiDrawMaxIndex,
+void R_DrawMultiElementsVBOIndirect(shaderCommands_t *input, int multiDrawPrimitives, glIndex_t *multiDrawMinIndex, glIndex_t *multiDrawMaxIndex,
 	GLsizei *multiDrawNumIndexes, glIndex_t **multiDrawFirstIndex, glIndex_t numVerts, qboolean tesselation)
 {
 	R_CreateIndirectBuffers();
 
-	if (r_drawIndirect->integer == 1)
+	if (r_drawIndirect->integer)
 	{
 		for (int i = 0; i < multiDrawPrimitives; i++)
 		{
@@ -186,6 +237,11 @@ void R_DrawMultiElementsVBOIndirect(int multiDrawPrimitives, glIndex_t *multiDra
 
 	qglBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 }
+#else //!__DRAW_INDIRECT__
+void R_DrawElementsVBOIndirectCheckFinish(shaderCommands_t *input)
+{
+
+}
 #endif //__DRAW_INDIRECT__
 
 /*
@@ -195,7 +251,7 @@ R_DrawElements
 ==================
 */
 
-void R_DrawElementsVBO( int numIndexes, glIndex_t firstIndex, glIndex_t minIndex, glIndex_t maxIndex, glIndex_t numVerts, qboolean tesselation )
+void R_DrawElementsVBO(shaderCommands_t *input, int numIndexes, glIndex_t firstIndex, glIndex_t minIndex, glIndex_t maxIndex, glIndex_t numVerts, qboolean tesselation )
 {
 	if (minIndex == 0 && maxIndex == 0 /*&& numIndexes == 6*/)
 	{// Fix... Something did not set the corrext maxIndex...
@@ -205,7 +261,7 @@ void R_DrawElementsVBO( int numIndexes, glIndex_t firstIndex, glIndex_t minIndex
 #ifdef __DRAW_INDIRECT__
 	if (r_drawIndirect->integer)
 	{// Currently slower, without any extra batching...
-		R_DrawElementsVBOIndirect(numIndexes, firstIndex, minIndex, maxIndex, numVerts, tesselation);
+		R_DrawElementsVBOIndirect(input, numIndexes, firstIndex, minIndex, maxIndex, numVerts, tesselation);
 		return;
 	}
 #endif //!__DRAW_INDIRECT__
@@ -228,14 +284,14 @@ void R_DrawElementsVBO( int numIndexes, glIndex_t firstIndex, glIndex_t minIndex
 	}
 }
 
-void R_DrawMultiElementsVBO( int multiDrawPrimitives, glIndex_t *multiDrawMinIndex, glIndex_t *multiDrawMaxIndex,
+void R_DrawMultiElementsVBO(shaderCommands_t *input, int multiDrawPrimitives, glIndex_t *multiDrawMinIndex, glIndex_t *multiDrawMaxIndex,
 	GLsizei *multiDrawNumIndexes, glIndex_t **multiDrawFirstIndex, glIndex_t numVerts, qboolean tesselation)
 {
 #ifdef __DRAW_INDIRECT__
-	if (r_drawIndirect->integer)
+	/*if (r_drawIndirect->integer)
 	{// Currently slower, without any extra batching...
-		R_DrawMultiElementsVBOIndirect(multiDrawPrimitives, multiDrawMinIndex, multiDrawMaxIndex, multiDrawNumIndexes, multiDrawFirstIndex, numVerts, tesselation);
-	}
+		R_DrawMultiElementsVBOIndirect(input, multiDrawPrimitives, multiDrawMinIndex, multiDrawMaxIndex, multiDrawNumIndexes, multiDrawFirstIndex, numVerts, tesselation);
+	}*/
 #endif //__DRAW_INDIRECT__
 	
 	if (tesselation)
@@ -337,6 +393,8 @@ static void DrawTris (shaderCommands_t *input) {
 	GL_State( GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE );
 	GL_SetDepthRange( 0, 0 );
 
+	R_DrawElementsVBOIndirectCheckFinish(input);
+
 	{
 		shaderProgram_t *sp = &tr.textureColorShader;
 		//vec4_t color;
@@ -357,11 +415,11 @@ static void DrawTris (shaderCommands_t *input) {
 
 		if (input->multiDrawPrimitives)
 		{
-			R_DrawMultiElementsVBO(input->multiDrawPrimitives, input->multiDrawMinIndex, input->multiDrawMaxIndex, input->multiDrawNumIndexes, input->multiDrawFirstIndex, input->numVertexes, qfalse);
+			R_DrawMultiElementsVBO(input, input->multiDrawPrimitives, input->multiDrawMinIndex, input->multiDrawMaxIndex, input->multiDrawNumIndexes, input->multiDrawFirstIndex, input->numVertexes, qfalse);
 		}
 		else
 		{
-			R_DrawElementsVBO(input->numIndexes, input->firstIndex, input->minIndex, input->maxIndex, input->numVertexes, qfalse);
+			R_DrawElementsVBO(input, input->numIndexes, input->firstIndex, input->minIndex, input->maxIndex, input->numVertexes, qfalse);
 		}
 	}
 
@@ -1023,6 +1081,8 @@ static void ProjectPshadowVBOGLSL( void ) {
 
 	shaderCommands_t *input = &tess;
 
+	R_DrawElementsVBOIndirectCheckFinish(input);
+
 	if ( !backEnd.refdef.num_pshadows ) {
 		return;
 	}
@@ -1299,20 +1359,20 @@ static void ProjectPshadowVBOGLSL( void ) {
 #ifdef __PSHADOW_TESSELLATION__
 		if (input->multiDrawPrimitives)
 		{
-			R_DrawMultiElementsVBO(input->multiDrawPrimitives, input->multiDrawMinIndex, input->multiDrawMaxIndex, input->multiDrawNumIndexes, input->multiDrawFirstIndex, input->numVertexes, useTesselation > 0 ? qtrue : qfalse);
+			R_DrawMultiElementsVBO(input, input->multiDrawPrimitives, input->multiDrawMinIndex, input->multiDrawMaxIndex, input->multiDrawNumIndexes, input->multiDrawFirstIndex, input->numVertexes, useTesselation > 0 ? qtrue : qfalse);
 		}
 		else
 		{
-			R_DrawElementsVBO(input->numIndexes, input->firstIndex, input->minIndex, input->maxIndex, input->numVertexes, useTesselation > 0 ? qtrue : qfalse);
+			R_DrawElementsVBO(input, input->numIndexes, input->firstIndex, input->minIndex, input->maxIndex, input->numVertexes, useTesselation > 0 ? qtrue : qfalse);
 		}
 #else //!__PSHADOW_TESSELLATION__
 		if (input->multiDrawPrimitives)
 		{
-			R_DrawMultiElementsVBO(input->multiDrawPrimitives, input->multiDrawMinIndex, input->multiDrawMaxIndex, input->multiDrawNumIndexes, input->multiDrawFirstIndex, input->numVertexes, qfalse);
+			R_DrawMultiElementsVBO(input, input->multiDrawPrimitives, input->multiDrawMinIndex, input->multiDrawMaxIndex, input->multiDrawNumIndexes, input->multiDrawFirstIndex, input->numVertexes, qfalse);
 		}
 		else
 		{
-			R_DrawElementsVBO(input->numIndexes, input->firstIndex, input->minIndex, input->maxIndex, input->numVertexes, qfalse);
+			R_DrawElementsVBO(input, input->numIndexes, input->firstIndex, input->minIndex, input->maxIndex, input->numVertexes, qfalse);
 		}
 #endif //__PSHADOW_TESSELLATION__
 
@@ -2189,6 +2249,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 	float tessAlpha = 0.0;
 
 	int IS_DEPTH_PASS = 0;
+
+	R_DrawElementsVBOIndirectCheckFinish(input);
 
 	if ((tess.shader->isIndoor) && (tr.viewParms.flags & VPF_SHADOWPASS))
 	{// Don't draw stuff marked as inside to sun shadow map...
@@ -6267,11 +6329,11 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 
 		if (input->multiDrawPrimitives)
 		{
-			R_DrawMultiElementsVBO(input->multiDrawPrimitives, input->multiDrawMinIndex, input->multiDrawMaxIndex, input->multiDrawNumIndexes, input->multiDrawFirstIndex, input->numVertexes, (useTesselation || sp->tesselation) ? qtrue : qfalse);
+			R_DrawMultiElementsVBO(input, input->multiDrawPrimitives, input->multiDrawMinIndex, input->multiDrawMaxIndex, input->multiDrawNumIndexes, input->multiDrawFirstIndex, input->numVertexes, (useTesselation || sp->tesselation) ? qtrue : qfalse);
 		}
 		else
 		{
-			R_DrawElementsVBO(input->numIndexes, input->firstIndex, input->minIndex, input->maxIndex, input->numVertexes, (useTesselation || sp->tesselation) ? qtrue : qfalse);
+			R_DrawElementsVBO(input, input->numIndexes, input->firstIndex, input->minIndex, input->maxIndex, input->numVertexes, (useTesselation || sp->tesselation) ? qtrue : qfalse);
 		}
 
 
@@ -6328,6 +6390,8 @@ static void RB_RenderShadowmap(shaderCommands_t *input)
 	{
 		int deformGen;
 		float deformParams[7];
+
+		R_DrawElementsVBOIndirectCheckFinish(input);
 
 		ComputeDeformValues(&deformGen, deformParams);
 
@@ -6509,11 +6573,11 @@ static void RB_RenderShadowmap(shaderCommands_t *input)
 
 				if (input->multiDrawPrimitives)
 				{
-					R_DrawMultiElementsVBO(input->multiDrawPrimitives, input->multiDrawMinIndex, input->multiDrawMaxIndex, input->multiDrawNumIndexes, input->multiDrawFirstIndex, input->numVertexes, useTesselation > 0 ? qtrue : qfalse);
+					R_DrawMultiElementsVBO(input, input->multiDrawPrimitives, input->multiDrawMinIndex, input->multiDrawMaxIndex, input->multiDrawNumIndexes, input->multiDrawFirstIndex, input->numVertexes, useTesselation > 0 ? qtrue : qfalse);
 				}
 				else
 				{
-					R_DrawElementsVBO(input->numIndexes, input->firstIndex, input->minIndex, input->maxIndex, input->numVertexes, useTesselation > 0 ? qtrue : qfalse);
+					R_DrawElementsVBO(input, input->numIndexes, input->firstIndex, input->minIndex, input->maxIndex, input->numVertexes, useTesselation > 0 ? qtrue : qfalse);
 				}
 			}
 		}
