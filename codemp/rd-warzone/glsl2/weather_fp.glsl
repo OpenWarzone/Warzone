@@ -62,6 +62,12 @@ uniform vec4		u_Mins;					// MAP_MINS[0], MAP_MINS[1], MAP_MINS[2], 0.0
 uniform vec4		u_Maxs;					// MAP_MAXS[0], MAP_MAXS[1], MAP_MAXS[2], 0.0
 
 uniform vec4		u_Local0; // normals, outputBuffers
+uniform vec4		u_Local1; // HAVE_HEIGHTMAP, WEATHER_HEIGHTMAP_OFFSET, 0, 0
+
+
+#define		HAVE_HEIGHTMAP				u_Local1.r
+#define		WEATHER_HEIGHTMAP_OFFSET	u_Local1.b
+
 
 out vec4			out_Glow;
 out vec4			out_Position;
@@ -103,22 +109,28 @@ vec2 GetMapTC(vec3 pos)
 
 float GetHeightMap(vec3 pos)
 {
-	if (pos.x < u_Mins.x || pos.y < u_Mins.y || pos.z < u_Mins.z) return 65536.0;
-	if (pos.x > u_Maxs.x || pos.y > u_Maxs.y || pos.z > u_Maxs.z) return 65536.0;
+	if (pos.x < u_Mins.x || pos.y < u_Mins.y || pos.z < u_Mins.z) return -1048576.0;
+	if (pos.x > u_Maxs.x || pos.y > u_Maxs.y || pos.z > u_Maxs.z) return -1048576.0;
 
 	float h = textureLod(u_HeightMap, GetMapTC(pos), 1.0).r;
 	h = mix(u_Mins.z, u_Maxs.z, h);
-	return h + 64.0; // raise it up to correct loss of precision. it's only weather anyway...
+	return h + WEATHER_HEIGHTMAP_OFFSET; // raise it up to correct loss of precision. it's only weather anyway...
 }
 
 void main()
 {
-	float hMap = GetHeightMap(var_Position.xyz);
+	float hMap = -1048576.0;
+	
+	if (HAVE_HEIGHTMAP > 0.0)
+	{// We have a height map to use...
+		hMap = GetHeightMap(var_Position.xyz);
+	}
 
 	if (var_Position.z >= hMap)
 	{// Above heightmap, so draw the particle...
 		vec4 color = texture2D(u_DiffuseMap, var_Tex1);
 
+#if 0 // lights on rain
 		if (color.a > 0.0)
 		{
 			/*{// Add sunlight effect to particles in the direction of of the sun... Hmm ok forget this, it works but doesnt account for sun below horizon and i dont want to do a shadow lookup.
@@ -138,8 +150,10 @@ void main()
 				float l = max(dot(v3, v2), 0.0);
 				l = max(pow(l, (dist*0.25)), 0.0) * (8.0 / (dist*0.005));
 				color.rgb += l * u_lightColors[t];
+				color.rgb = clamp(color.rgb, 0.0, 1.0);
 			}
 		}
+#endif
 
 		gl_FragColor = color;
 		gl_FragColor.a = clamp(gl_FragColor.a * 3.0, 0.0, 1.0);

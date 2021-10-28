@@ -377,6 +377,7 @@ extern float			MATERIAL_SPECULAR_REFLECTIVENESS[MATERIAL_LAST];
 extern qboolean			JKA_WEATHER_ENABLED;
 extern qboolean			WZ_WEATHER_ENABLED;
 extern qboolean			WZ_WEATHER_SOUND_ONLY;
+extern float			WEATHER_HEIGHTMAP_OFFSET;
 
 extern float			TREE_BRANCH_HARDINESS;
 extern float			TREE_BRANCH_SIZE;

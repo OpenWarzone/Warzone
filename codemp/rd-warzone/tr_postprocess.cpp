@@ -3596,7 +3596,19 @@ void RB_DeferredLighting(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t l
 						ri->Printf(PRINT_ALL, "Currently drawing %i emissive lights.\n", NUM_CURRENT_EMISSIVE_DRAW_LIGHTS);
 					}
 
-					emissiveUpdateTime = backEnd.refdef.time + 1000; // update every 1000 msec???
+					if (r_debugEmissiveLights->integer >= 3)
+					{
+						for (int i = 0; i < NUM_CURRENT_EMISSIVE_DRAW_LIGHTS; i++)
+						{
+							ri->Printf(PRINT_ALL, "  %i - distance: %f. radius %f. color %f %f %f.\n"
+								, i
+								, Distance(EmissiveLightsBlock.lights[i].u_lightPositions2, backEnd.refdef.vieworg)
+								, EmissiveLightsBlock.lights[i].u_lightPositions2[3]
+								, EmissiveLightsBlock.lights[i].u_lightColors[0], EmissiveLightsBlock.lights[i].u_lightColors[1], EmissiveLightsBlock.lights[i].u_lightColors[2]);
+						}
+					}
+
+					emissiveUpdateTime = backEnd.refdef.time + 100; // update every 1000 msec???
 				}
 
 				GLSL_SetUniformInt(shader, UNIFORM_EMISSIVELIGHTCOUNT, NUM_CURRENT_EMISSIVE_DRAW_LIGHTS);

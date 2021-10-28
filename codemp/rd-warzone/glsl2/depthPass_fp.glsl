@@ -167,7 +167,7 @@ void main()
 		if (SHADER_MATERIAL_TYPE == MATERIAL_GREENLEAVES)
 #endif //LEAF_ALPHA_RANGE_LODS_ON_OTHERS
 		{// Amp up alphas on tree leafs, etc, so they draw at range instead of being blurred out...
-			float leafDistanceAlphaMod = 1.0;
+			/*float leafDistanceAlphaMod = 1.0;
 			float dist = distance(var_VertPos.xyz, u_ViewOrigin.xyz);
 
 			if (dist > LEAF_ALPHA_RANGE && gl_FragColor.a < 1.0)
@@ -177,9 +177,10 @@ void main()
 				float best = gl_FragColor.a > lodColor.a ? 0.0 : 1.0;
 				gl_FragColor = mix(gl_FragColor, lodColor, best);
 				leafDistanceAlphaMod = lod * 64.0;
-			}
+			}*/
 
-			gl_FragColor.a = clamp(gl_FragColor.a * LEAF_ALPHA_MULTIPLIER * leafDistanceAlphaMod, 0.0, 1.0);
+			//gl_FragColor.a = clamp(gl_FragColor.a * LEAF_ALPHA_MULTIPLIER * leafDistanceAlphaMod, 0.0, 1.0);
+			gl_FragColor.a = (gl_FragColor.a * LEAF_ALPHA_MULTIPLIER > 0.5) ? 1.0 : 0.0; // UQ1: Trying cutout method instead...
 		}
 
 		float alphaThreshold = (SHADER_MATERIAL_TYPE == MATERIAL_GREENLEAVES) ? SCREEN_MAPS_LEAFS_THRESHOLD : SCREEN_MAPS_ALPHA_THRESHOLD;

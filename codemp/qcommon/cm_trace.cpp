@@ -1639,28 +1639,31 @@ void CM_Trace( trace_t *trace, const vec3_t start, const vec3_t end,
 	VectorCopy(end, trace->endpos);
 	return;
 #endif //__TEST_NO_COLLISIONS__
-trace_lock.lock();
-							  
+					  
 	int			i;
 	traceWork_t	tw;
 	vec3_t		offset;
 	cmodel_t	*cmod;
 	clipMap_t	*local = 0;
 
+trace_lock.lock();
 	cmod = CM_ClipHandleToModel( model, &local );
+trace_lock.unlock();
 
 	local->checkcount++;		// for multi-check avoidance
 
 	c_traces++;				// for statistics, may be zeroed
 
+trace_lock.lock();
 	// fill in a default trace
 	Com_Memset( &tw, 0, sizeof(tw) );
 	memset(trace, 0, sizeof(*trace));
+trace_lock.unlock();
+
 	trace->fraction = 1;	// assume it goes the entire distance until shown otherwise
 	VectorCopy(origin, tw.modelOrigin);
 
 	if (!local->numNodes) {
-trace_lock.unlock();
 		return;	// map not loaded, shouldn't happen
 	}
 
@@ -1788,7 +1791,9 @@ trace_lock.unlock();
 				}
 				else
 				{
+//trace_lock.lock();
 					CM_TestBoundingBoxInCapsule( &tw, *trace, model );
+//trace_lock.unlock();
 				}
 			}
 			else
@@ -1798,11 +1803,15 @@ trace_lock.unlock();
 		}
 		else if (cmod->firstNode == -1)
 		{
+////trace_lock.lock();
 			CM_PositionTest( &tw, *trace );
+////trace_lock.unlock();
 		}
 		else
 		{
+//trace_lock.lock(); // ??
 			CM_TraceThroughTree( &tw, *trace, local, cmod->firstNode, 0, 1, tw.start, tw.end );
+//trace_lock.unlock();
 		}
 	}
 	else
@@ -1846,21 +1855,29 @@ trace_lock.unlock();
 			{
 				if ( tw.sphere.use )
 				{
+//trace_lock.lock();
 					CM_TraceCapsuleThroughCapsule( &tw, *trace, model );
+//trace_lock.unlock();
 				}
 				else
 				{
+trace_lock.lock();
 					CM_TraceBoundingBoxThroughCapsule( &tw, *trace, model );
+trace_lock.unlock();
 				}
 			}
 			else
 			{
+//trace_lock.lock(); // ??
 				CM_TraceThroughLeaf( &tw, *trace, local, &cmod->leaf );
+//trace_lock.unlock();
 			}
 		}
 		else
 		{
+//trace_lock.lock(); // ??
 			CM_TraceThroughTree( &tw, *trace, local, cmod->firstNode, 0, 1, tw.start, tw.end );
+//trace_lock.unlock();
 		}
 	}
 
@@ -1879,8 +1896,6 @@ trace_lock.unlock();
 	assert(trace->allsolid ||
 		trace->fraction == 1.0 ||
 		VectorLengthSquared(trace->plane.normal) > 0.9999);
-
-trace_lock.unlock();
 
 #ifdef TESSELLATED_TERRAIN_COLLISIONS
 	if (TERRAIN_TESSELLATION_ENABLED)

@@ -28,12 +28,15 @@ extern image_t	*R_FindImageFile(const char *name, imgType_t type, int flags);
 #define	MASK_ALL				(0xFFFFFFFFu)
 
 #define MAP_INFO_TRACEMAP_SIZE 2048//4096
+#define MAP_INFO_HEIGHTMAP_SIZE 8192
 
 vec3_t  MAP_INFO_MINS;
 vec3_t  MAP_INFO_MAXS;
 vec3_t	MAP_INFO_SIZE;
 vec3_t	MAP_INFO_PIXELSIZE;
 vec3_t	MAP_INFO_SCATTEROFFSET;
+vec3_t	MAP_INFO_HEIGHTMAP_PIXELSIZE;
+vec3_t	MAP_INFO_HEIGHTMAP_SCATTEROFFSET;
 float	MAP_INFO_MAXSIZE;
 vec3_t  MAP_INFO_PLAYABLE_MINS;
 vec3_t  MAP_INFO_PLAYABLE_MAXS;
@@ -163,6 +166,8 @@ void R_SetupMapInfo(void)
 	memset(MAP_INFO_SIZE, 0, sizeof(MAP_INFO_SIZE));
 	memset(MAP_INFO_PIXELSIZE, 0, sizeof(MAP_INFO_PIXELSIZE));
 	memset(MAP_INFO_SCATTEROFFSET, 0, sizeof(MAP_INFO_SCATTEROFFSET));
+	memset(MAP_INFO_HEIGHTMAP_PIXELSIZE, 0, sizeof(MAP_INFO_HEIGHTMAP_PIXELSIZE));
+	memset(MAP_INFO_HEIGHTMAP_SCATTEROFFSET, 0, sizeof(MAP_INFO_HEIGHTMAP_SCATTEROFFSET));
 	MAP_INFO_MAXSIZE = 0.0;
 
 	MAP_INFO_SIZE[0] = MAP_INFO_MAXS[0] - MAP_INFO_MINS[0];
@@ -172,6 +177,11 @@ void R_SetupMapInfo(void)
 	MAP_INFO_PIXELSIZE[1] = MAP_INFO_TRACEMAP_SIZE / MAP_INFO_SIZE[1];
 	MAP_INFO_SCATTEROFFSET[0] = MAP_INFO_SIZE[0] / MAP_INFO_TRACEMAP_SIZE;
 	MAP_INFO_SCATTEROFFSET[1] = MAP_INFO_SIZE[1] / MAP_INFO_TRACEMAP_SIZE;
+
+	MAP_INFO_HEIGHTMAP_PIXELSIZE[0] = MAP_INFO_HEIGHTMAP_SIZE / MAP_INFO_SIZE[0];
+	MAP_INFO_HEIGHTMAP_PIXELSIZE[1] = MAP_INFO_HEIGHTMAP_SIZE / MAP_INFO_SIZE[1];
+	MAP_INFO_HEIGHTMAP_SCATTEROFFSET[0] = MAP_INFO_SIZE[0] / MAP_INFO_HEIGHTMAP_SIZE;
+	MAP_INFO_HEIGHTMAP_SCATTEROFFSET[1] = MAP_INFO_SIZE[1] / MAP_INFO_HEIGHTMAP_SIZE;
 
 	MAP_INFO_PLAYABLE_SIZE[0] = MAP_INFO_PLAYABLE_MAXS[0] - MAP_INFO_PLAYABLE_MINS[0];
 	MAP_INFO_PLAYABLE_SIZE[1] = MAP_INFO_PLAYABLE_MAXS[1] - MAP_INFO_PLAYABLE_MINS[1];
@@ -819,29 +829,28 @@ void R_CreateHeightMapImage(void)
 
 	// Now we have a mins/maxs for map, we can generate a map image...
 	float	z;
-	UINT8	*red[MAP_INFO_TRACEMAP_SIZE];
-	UINT8	*green[MAP_INFO_TRACEMAP_SIZE];
-	UINT8	*blue[MAP_INFO_TRACEMAP_SIZE];
-	UINT8	*alpha[MAP_INFO_TRACEMAP_SIZE];
+	UINT8	*red[MAP_INFO_HEIGHTMAP_SIZE];
+	//UINT8	*green[MAP_INFO_HEIGHTMAP_SIZE];
+	//UINT8	*blue[MAP_INFO_HEIGHTMAP_SIZE];
+	UINT8	*alpha[MAP_INFO_HEIGHTMAP_SIZE];
 
-	for (int i = 0; i < MAP_INFO_TRACEMAP_SIZE; i++)
+	for (int i = 0; i < MAP_INFO_HEIGHTMAP_SIZE; i++)
 	{
-		red[i] = (UINT8*)malloc(sizeof(UINT8)*MAP_INFO_TRACEMAP_SIZE);
-		green[i] = (UINT8*)malloc(sizeof(UINT8)*MAP_INFO_TRACEMAP_SIZE);
-		blue[i] = (UINT8*)malloc(sizeof(UINT8)*MAP_INFO_TRACEMAP_SIZE);
-		alpha[i] = (UINT8*)malloc(sizeof(UINT8)*MAP_INFO_TRACEMAP_SIZE);
+		red[i] = (UINT8*)malloc(sizeof(UINT8)*MAP_INFO_HEIGHTMAP_SIZE);
+		//green[i] = (UINT8*)malloc(sizeof(UINT8)*MAP_INFO_HEIGHTMAP_SIZE);
+		//blue[i] = (UINT8*)malloc(sizeof(UINT8)*MAP_INFO_HEIGHTMAP_SIZE);
+		alpha[i] = (UINT8*)malloc(sizeof(UINT8)*MAP_INFO_HEIGHTMAP_SIZE);
 	}
 
 	// Create the map...
-	//#pragma omp parallel for schedule(dynamic) num_threads(8)
-	//for (int x = (int)MAP_INFO_MINS[0]; x < (int)MAP_INFO_MAXS[0]; x += MAP_INFO_SCATTEROFFSET[0])
-	for (int imageX = 0; imageX < MAP_INFO_TRACEMAP_SIZE; imageX++)
+#pragma omp parallel for schedule(dynamic) num_threads(8)
+	for (int imageX = 0; imageX < MAP_INFO_HEIGHTMAP_SIZE; imageX++)
 	{
-		int x = MAP_INFO_MINS[0] + (imageX * MAP_INFO_SCATTEROFFSET[0]);
+		int x = MAP_INFO_MINS[0] + (imageX * MAP_INFO_HEIGHTMAP_SCATTEROFFSET[0]);
 
-		for (int imageY = 0; imageY < MAP_INFO_TRACEMAP_SIZE; imageY++)
+		for (int imageY = 0; imageY < MAP_INFO_HEIGHTMAP_SIZE; imageY++)
 		{
-			int y = MAP_INFO_MINS[1] + (imageY * MAP_INFO_SCATTEROFFSET[1]);
+			int y = MAP_INFO_MINS[1] + (imageY * MAP_INFO_HEIGHTMAP_SCATTEROFFSET[1]);
 
 			//qboolean	HIT_WATER = qfalse;
 
@@ -861,37 +870,37 @@ void R_CreateHeightMapImage(void)
 
 				if (tr.startsolid || tr.allsolid)
 				{// Try again from below this spot...
-					red[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0;
-					green[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0;
-					blue[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0;
-					alpha[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0;
+					red[(MAP_INFO_HEIGHTMAP_SIZE -1)-imageY][imageX] = 0;
+					//green[(MAP_INFO_HEIGHTMAP_SIZE -1)-imageY][imageX] = 0;
+					//blue[(MAP_INFO_HEIGHTMAP_SIZE -1)-imageY][imageX] = 0;
+					alpha[(MAP_INFO_HEIGHTMAP_SIZE -1)-imageY][imageX] = 0;
 					continue;
 				}
 
 				if (tr.endpos[2] < MAP_INFO_MINS[2] - 256.0)
 				{// Went off map...
-					red[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0;
-					green[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0;
-					blue[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0;
-					alpha[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0;
+					red[(MAP_INFO_HEIGHTMAP_SIZE -1)-imageY][imageX] = 0;
+					//green[(MAP_INFO_HEIGHTMAP_SIZE -1)-imageY][imageX] = 0;
+					//blue[(MAP_INFO_HEIGHTMAP_SIZE -1)-imageY][imageX] = 0;
+					alpha[(MAP_INFO_HEIGHTMAP_SIZE -1)-imageY][imageX] = 0;
 					break;
 				}
 
 				if (tr.surfaceFlags & SURF_SKY)
 				{// Sky...
-					red[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0;
-					green[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0;
-					blue[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0;
-					alpha[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0;
+					red[(MAP_INFO_HEIGHTMAP_SIZE -1)-imageY][imageX] = 0;
+					//green[(MAP_INFO_HEIGHTMAP_SIZE -1)-imageY][imageX] = 0;
+					//blue[(MAP_INFO_HEIGHTMAP_SIZE -1)-imageY][imageX] = 0;
+					alpha[(MAP_INFO_HEIGHTMAP_SIZE -1)-imageY][imageX] = 0;
 					continue;
 				}
 
 				if (tr.surfaceFlags & SURF_NODRAW)
 				{// don't generate a drawsurface at all
-					red[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0;
-					green[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0;
-					blue[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0;
-					alpha[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 0;
+					red[(MAP_INFO_HEIGHTMAP_SIZE -1)-imageY][imageX] = 0;
+					//green[(MAP_INFO_HEIGHTMAP_SIZE -1)-imageY][imageX] = 0;
+					//blue[(MAP_INFO_HEIGHTMAP_SIZE -1)-imageY][imageX] = 0;
+					alpha[(MAP_INFO_HEIGHTMAP_SIZE -1)-imageY][imageX] = 0;
 					continue;
 				}
 
@@ -913,10 +922,10 @@ void R_CreateHeightMapImage(void)
 					isUnderWater = 1.0;
 				}*/
 
-				red[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = HEIGHT_COLOR_MULT * 255;		// height map
-				green[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = HEIGHT_COLOR_MULT * 255;		// height map
-				blue[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = HEIGHT_COLOR_MULT * 255;		// height map
-				alpha[(MAP_INFO_TRACEMAP_SIZE-1)-imageY][imageX] = 1.0/*isUnderWater*/ * 255;			// is under water
+				red[(MAP_INFO_HEIGHTMAP_SIZE -1)-imageY][imageX] = HEIGHT_COLOR_MULT * 255;		// height map
+				//green[(MAP_INFO_HEIGHTMAP_SIZE -1)-imageY][imageX] = HEIGHT_COLOR_MULT * 255;		// height map
+				//blue[(MAP_INFO_HEIGHTMAP_SIZE -1)-imageY][imageX] = HEIGHT_COLOR_MULT * 255;		// height map
+				alpha[(MAP_INFO_HEIGHTMAP_SIZE -1)-imageY][imageX] = 1.0/*isUnderWater*/ * 255;			// is under water
 
 				//HIT_WATER = qfalse;
 				break;
@@ -943,17 +952,17 @@ void R_CreateHeightMapImage(void)
 	data = 0; ri->FS_Write(&data, sizeof(data), f);	// 9
 	data = 0; ri->FS_Write(&data, sizeof(data), f);	// 10
 	data = 0; ri->FS_Write(&data, sizeof(data), f);	// 11
-	data = MAP_INFO_TRACEMAP_SIZE & 255; ri->FS_Write(&data, sizeof(data), f);	// 12 : width
-	data = MAP_INFO_TRACEMAP_SIZE >> 8; ri->FS_Write(&data, sizeof(data), f);	// 13 : width
-	data = MAP_INFO_TRACEMAP_SIZE & 255; ri->FS_Write(&data, sizeof(data), f);	// 14 : height
-	data = MAP_INFO_TRACEMAP_SIZE >> 8; ri->FS_Write(&data, sizeof(data), f);	// 15 : height
+	data = MAP_INFO_HEIGHTMAP_SIZE & 255; ri->FS_Write(&data, sizeof(data), f);	// 12 : width
+	data = MAP_INFO_HEIGHTMAP_SIZE >> 8; ri->FS_Write(&data, sizeof(data), f);	// 13 : width
+	data = MAP_INFO_HEIGHTMAP_SIZE & 255; ri->FS_Write(&data, sizeof(data), f);	// 14 : height
+	data = MAP_INFO_HEIGHTMAP_SIZE >> 8; ri->FS_Write(&data, sizeof(data), f);	// 15 : height
 	data = 32; ri->FS_Write(&data, sizeof(data), f);	// 16 : pixel size
 	data = 0; ri->FS_Write(&data, sizeof(data), f);	// 17
 
-	for (int i = 0; i < MAP_INFO_TRACEMAP_SIZE; i++) {
-		for (int j = 0; j < MAP_INFO_TRACEMAP_SIZE; j++) {
-			data = blue[i][j]; ri->FS_Write(&data, sizeof(data), f);	// b
-			data = green[i][j]; ri->FS_Write(&data, sizeof(data), f);	// g
+	for (int i = 0; i < MAP_INFO_HEIGHTMAP_SIZE; i++) {
+		for (int j = 0; j < MAP_INFO_HEIGHTMAP_SIZE; j++) {
+			data = red/*blue*/[i][j]; ri->FS_Write(&data, sizeof(data), f);	// b
+			data = red/*green*/[i][j]; ri->FS_Write(&data, sizeof(data), f);	// g
 			data = red[i][j]; ri->FS_Write(&data, sizeof(data), f);	// r
 			data = alpha[i][j]; ri->FS_Write(&data, sizeof(data), f);	// a
 		}
@@ -968,11 +977,11 @@ void R_CreateHeightMapImage(void)
 
 	ri->FS_FCloseFile(f);
 
-	for (int i = 0; i < MAP_INFO_TRACEMAP_SIZE; i++)
+	for (int i = 0; i < MAP_INFO_HEIGHTMAP_SIZE; i++)
 	{
 		free(red[i]);
-		free(green[i]);
-		free(blue[i]);
+		//free(green[i]);
+		//free(blue[i]);
 		free(alpha[i]);
 	}
 }
@@ -1765,6 +1774,7 @@ char		MAP_REPLACE_SHADERS_NEW[16][MAX_QPATH] = { { 0 } };
 qboolean	JKA_WEATHER_ENABLED = qfalse;
 qboolean	WZ_WEATHER_ENABLED = qfalse;
 qboolean	WZ_WEATHER_SOUND_ONLY = qfalse;
+float		WEATHER_HEIGHTMAP_OFFSET = 64.0;
 
 float		TREE_BRANCH_HARDINESS = 0.035;
 float		TREE_BRANCH_SIZE = 128.0;
@@ -2390,6 +2400,7 @@ void MAPPING_LoadMapInfo(void)
 	JKA_WEATHER_ENABLED = (atoi(IniRead(mapname, "ATMOSPHERICS", "JKA_WEATHER_ENABLED", "0")) > 0) ? qtrue : qfalse;
 	WZ_WEATHER_ENABLED = (atoi(IniRead(mapname, "ATMOSPHERICS", "WZ_WEATHER_ENABLED", "0")) > 0) ? qtrue : qfalse;
 	WZ_WEATHER_SOUND_ONLY = (atoi(IniRead(mapname, "ATMOSPHERICS", "WZ_WEATHER_SOUND_ONLY", "0")) > 0) ? qtrue : qfalse;
+	WEATHER_HEIGHTMAP_OFFSET = atof(IniRead(mapname, "ATMOSPHERICS", "WEATHER_HEIGHTMAP_OFFSET", "64.0"));
 	SetupWeather(mapname);
 	
 	//

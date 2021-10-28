@@ -345,7 +345,7 @@ vec3 Enhance(in sampler2D tex, in vec2 uv, vec3 color, float level)
 void main()
 {
 	float dist = distance(m_vertPos.xyz, u_ViewOrigin.xyz);
-	float leafDistanceAlphaMod = 1.0;
+	//float leafDistanceAlphaMod = 1.0;
 
 	if (USE_IS2D <= 0.0 && dist > u_zFar && USE_VERTEX_ANIM < 1.0)
 	{// Skip it all...
@@ -372,6 +372,7 @@ void main()
 		{
 			diffuse.rgb = Enhance(u_DiffuseMap, texCoords, diffuse.rgb, 16.0);
 		}
+		/*
 #ifdef LEAF_ALPHA_RANGE_LODS_ON_OTHERS
 		else if (dist > LEAF_ALPHA_RANGE && diffuse.a < 1.0)
 #else //!LEAF_ALPHA_RANGE_LODS_ON_OTHERS
@@ -383,13 +384,6 @@ void main()
 			float best = diffuse.a > lodColor.a ? 0.0 : 1.0;
 			diffuse = mix(diffuse, lodColor, best);
 			leafDistanceAlphaMod = lod * 64.0;
-		}
-		/*
-		else if (dist < 4096.0)
-		{
-			//vec2 lodInfo = textureQueryLod(u_DiffuseMap, texCoords);
-			float mixLevel = 1.0 - (dist / 4096.0);
-			diffuse.rgb = mix(diffuse.rgb, Enhance(u_DiffuseMap, texCoords, diffuse.rgb, 8.0 + (gl_FragCoord.z * 8.0)), mixLevel);
 		}
 		*/
 		else
@@ -570,7 +564,8 @@ void main()
 	if (SHADER_MATERIAL_TYPE == MATERIAL_GREENLEAVES)
 #endif //LEAF_ALPHA_RANGE_LODS_ON_OTHERS
 	{// Amp up alphas on tree leafs, etc, so they draw at range instead of being blurred out...
-		gl_FragColor.a = clamp(gl_FragColor.a * LEAF_ALPHA_MULTIPLIER * leafDistanceAlphaMod, 0.0, 1.0);
+		//gl_FragColor.a = clamp(gl_FragColor.a * LEAF_ALPHA_MULTIPLIER * leafDistanceAlphaMod, 0.0, 1.0);
+		gl_FragColor.a = (gl_FragColor.a * LEAF_ALPHA_MULTIPLIER > 0.5) ? 1.0 : 0.0; // UQ1: Trying cutout method instead...
 	}
 
 	float alphaThreshold = (SHADER_MATERIAL_TYPE == MATERIAL_GREENLEAVES) ? SCREEN_MAPS_LEAFS_THRESHOLD : SCREEN_MAPS_ALPHA_THRESHOLD;

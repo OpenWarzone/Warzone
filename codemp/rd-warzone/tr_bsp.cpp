@@ -5087,11 +5087,13 @@ static void R_SetupMapGlowsAndWaterPlane( world_t *world )
 #define __EMISSIVE_MERGE__
 
 #ifdef __EMISSIVE_MERGE__
-#define TEMP_LIGHTS_MAX 8192//4096
-#define EMISSIVE_MERGE_BASE_RADIUS 32.0//16.0//32.0
-#define EMISSIVE_MERGE_MAX_RADIUS 256.0//384.0//MAX_DEFERRED_LIGHT_RANGE//1024.0
-#define EMISSIVE_MERGE_MAX_COLOR_DIFF 0.2//0.1
-#define EMISSIVE_MERGE_MAX_NORMAL_DIFF 0.1//0.3//0.1
+#define TEMP_LIGHTS_MAX 8192
+#define EMISSIVE_MIN_RADIUS 512.0
+#define EMISSIVE_MAX_RADIUS 2048.0
+#define EMISSIVE_MERGE_BASE_RADIUS 32.0
+#define EMISSIVE_MERGE_MAX_RADIUS 256.0
+#define EMISSIVE_MERGE_MAX_COLOR_DIFF 0.2
+#define EMISSIVE_MERGE_MAX_NORMAL_DIFF 0.1
 
 	int		TEMP_LIGHTS_NUM = 0;
 	vec3_t	TEMP_LIGHTS_MINS[TEMP_LIGHTS_MAX];
@@ -5175,6 +5177,47 @@ static void R_SetupMapGlowsAndWaterPlane( world_t *world )
 						VectorCopy4(surf->shader->stages[stage]->bundle[TB_GLOWMAP].image[0]->lightColor, glowColor);
 					else
 						VectorCopy4(surf->shader->stages[stage]->bundle[0].image[0]->lightColor, glowColor);
+
+					if (VectorLength(glowColor) <= 0)
+					{// We need a color, check the shader for something usable...
+						if (surf->shader->stages[stage]->constantColor[0] / 255.0f > 0
+							|| surf->shader->stages[stage]->constantColor[1] / 255.0f > 0
+							|| surf->shader->stages[stage]->constantColor[2] / 255.0f > 0)
+						{
+							glowColor[0] = surf->shader->stages[stage]->constantColor[0] / 255.0f;
+							glowColor[1] = surf->shader->stages[stage]->constantColor[1] / 255.0f;
+							glowColor[2] = surf->shader->stages[stage]->constantColor[2] / 255.0f;
+							glowColor[3] = surf->shader->stages[stage]->constantColor[3] / 255.0f;
+						}
+						else if (VectorLength(surf->shader->stages[stage]->colorMod) > 0)
+						{
+							VectorCopy(surf->shader->stages[stage]->colorMod, glowColor);
+							glowColor[3] = 1.0;
+						}
+						else if (VectorLength(surf->shader->stages[stage]->particleColor) > 0)
+						{
+							VectorCopy(surf->shader->stages[stage]->particleColor, glowColor);
+							glowColor[3] = 1.0;
+						}
+
+						//
+						// Fill in the missing shader lightColor for other stuff to make use of...
+						//
+						if (isBuilding && VectorLength(surf->shader->stages[stage]->bundle[TB_STEEPMAP1].image[0]->lightColor) <= 0)
+						{
+							VectorCopy4(glowColor, surf->shader->stages[stage]->bundle[TB_STEEPMAP1].image[0]->lightColor);
+						}
+
+						if (surf->shader->stages[stage]->glowMapped && VectorLength(surf->shader->stages[stage]->bundle[TB_GLOWMAP].image[0]->lightColor) <= 0)
+						{
+							VectorCopy4(glowColor, surf->shader->stages[stage]->bundle[TB_GLOWMAP].image[0]->lightColor);
+						}
+
+						if (surf->shader->stages[stage]->glowMapped && VectorLength(surf->shader->stages[stage]->bundle[0].image[0]->lightColor) <= 0)
+						{
+							VectorCopy4(glowColor, surf->shader->stages[stage]->bundle[0].image[0]->lightColor);
+						}
+					}
 
 					emissiveRadiusScale = surf->shader->stages[stage]->emissiveRadiusScale * surf->shader->emissiveRadiusScale;
 					emissiveColorScale = surf->shader->stages[stage]->emissiveColorScale * surf->shader->emissiveColorScale;
@@ -5435,7 +5478,12 @@ static void R_SetupMapGlowsAndWaterPlane( world_t *world )
 				MAP_EMISSIVE_LIGHT_LOCATIONS[MAP_EMISSIVE_LIGHT_COUNT][1] = (TEMP_LIGHTS_MINS[l][1] + TEMP_LIGHTS_MAXS[l][1]) * 0.5;
 				MAP_EMISSIVE_LIGHT_LOCATIONS[MAP_EMISSIVE_LIGHT_COUNT][2] = (TEMP_LIGHTS_MINS[l][2] + TEMP_LIGHTS_MAXS[l][2]) * 0.5;
 				VectorCopy4(TEMP_LIGHTS_COLOR[l], MAP_EMISSIVE_LIGHT_COLORS[MAP_EMISSIVE_LIGHT_COUNT]);
-				MAP_EMISSIVE_LIGHT_RADIUSES[MAP_EMISSIVE_LIGHT_COUNT] = Q_max(EMISSIVE_MERGE_BASE_RADIUS * 8.0, Distance(TEMP_LIGHTS_MINS[l], TEMP_LIGHTS_MAXS[l]) /** 2.0*/);
+				
+				float calcRadius = Distance(TEMP_LIGHTS_MINS[l], TEMP_LIGHTS_MAXS[l]) * 8.0;
+				// Allow bright glows to increase the radius, if > 1.0...
+				calcRadius *= Q_max(Q_max(TEMP_LIGHTS_COLOR[l][0], Q_max(TEMP_LIGHTS_COLOR[l][1], TEMP_LIGHTS_COLOR[l][2])), 1.0);
+				MAP_EMISSIVE_LIGHT_RADIUSES[MAP_EMISSIVE_LIGHT_COUNT] = Q_min(EMISSIVE_MAX_RADIUS, Q_max(EMISSIVE_MIN_RADIUS, calcRadius));
+
 				MAP_EMISSIVE_LIGHT_HEIGHTSCALES[MAP_EMISSIVE_LIGHT_COUNT] = 0.0;
 				//MAP_EMISSIVE_LIGHT_CONEANGLE[MAP_EMISSIVE_LIGHT_COUNT] = 0.0;
 				//VectorClear(MAP_EMISSIVE_LIGHT_CONEDIRECTION[MAP_EMISSIVE_LIGHT_COUNT]);
@@ -5446,10 +5494,10 @@ static void R_SetupMapGlowsAndWaterPlane( world_t *world )
 
 				if (r_debugEmissiveLights->integer)
 				{
-					ri->Printf(PRINT_ALL, "Emissive light %i: Origin: %i %i %i. Radius: %f. Color: %f %f %f.\n"
+					ri->Printf(PRINT_ALL, "Emissive light %i: Origin: %i %i %i. Radius: %f (calculated radius %f). Color: %f %f %f.\n"
 						, MAP_EMISSIVE_LIGHT_COUNT
 						, (int)MAP_EMISSIVE_LIGHT_LOCATIONS[MAP_EMISSIVE_LIGHT_COUNT][0], (int)MAP_EMISSIVE_LIGHT_LOCATIONS[MAP_EMISSIVE_LIGHT_COUNT][1], (int)MAP_EMISSIVE_LIGHT_LOCATIONS[MAP_EMISSIVE_LIGHT_COUNT][2]
-						, MAP_EMISSIVE_LIGHT_RADIUSES[MAP_EMISSIVE_LIGHT_COUNT]
+						, MAP_EMISSIVE_LIGHT_RADIUSES[MAP_EMISSIVE_LIGHT_COUNT], calcRadius
 						, MAP_EMISSIVE_LIGHT_COLORS[MAP_EMISSIVE_LIGHT_COUNT][0], MAP_EMISSIVE_LIGHT_COLORS[MAP_EMISSIVE_LIGHT_COUNT][1], MAP_EMISSIVE_LIGHT_COLORS[MAP_EMISSIVE_LIGHT_COUNT][2]);
 				}
 

@@ -787,7 +787,34 @@ float getSpecialSauce(vec3 color)
 	return lum;
 }
 
+float orenNayar(in vec3 n, in vec3 v, in vec3 ldir, float specPower)
+{
+	float r2 = pow(specPower, 2.0);
+	float a = 1.0 - 0.5*(r2 / (r2 + 0.57));
+	float b = 0.45*(r2 / (r2 + 0.09));
+
+	float nl = dot(n, ldir);
+	float nv = dot(n, v);
+
+	float ga = dot(v - n * nv, n - n * nl);
+
+	return max(0.0, nl) * (a + b * max(0.0, ga) * sqrt((1.0 - nv * nv)*(1.0 - nl * nl)) / max(nl, nv));
+}
+
 vec3 Lighting(vec4 pos, vec3 color, vec3 bump, vec3 flatNormal, vec3 view, vec3 light, vec3 lightColor, float specPower, vec3 lightPos, float wetness) {
+	float ss = getSpecialSauce(color);
+
+	// Ambient light.
+	float directAmbience = 0.14;
+	float enhancedAmbience = 0.24;
+
+	// Nayar diffuse light.
+	float base = orenNayar(bump, view, light, specPower) * ss;
+
+	// Specular light.
+	vec3 reflection = normalize(reflect(-view, bump));
+	float specular = clamp(pow(clamp(dot(light, reflection), 0.0, 1.0), 15.0), 0.0, 1.0) * 0.25;
+
 	float wetSpec = 0.0;
 
 	if (wetness > 0.0)
@@ -797,24 +824,9 @@ vec3 Lighting(vec4 pos, vec3 color, vec3 bump, vec3 flatNormal, vec3 view, vec3 
 		wetSpec *= 0.5;
 	}
 
-	float ndotl = pow(dot(light, flatNormal/*bump*/), 2.0);
+	float selfShadow = max(dot(bump, -light), 0.0);
 
-	/*float directionalMult = 0.0;
-	
-	if (ndotl < 0.0)
-	{
-		if (pos.a - 1.0 == MATERIAL_GREENLEAVES || pos.a - 1.0 == MATERIAL_PROCEDURALFOLIAGE)
-		{// Light bleeding through tree leaves...
-			directionalMult = -ndotl;
-		}
-	}
-	else
-	{
-		directionalMult = ndotl;
-	}*/
-
-	float specialSauce = getSpecialSauce(color);
-	return ((lightColor * 0.24) + (lightColor * specialSauce) + (lightColor * specialSauce * wetSpec)) * 0.1;// * directionalMult; // 0.075
+	return (lightColor * directAmbience) + (lightColor * enhancedAmbience * ss) + (base * lightColor) + (lightColor * specular * ss) + (lightColor * wetSpec) * selfShadow;
 }
 
 void GetSSBOLighting(bool emissive, float origColorStrength, float lightsReflectionFactor, float specularReflectivePower, vec4 position, vec3 lightingNormal, vec3 flatNormal, vec3 E, float wetness, bool useOcclusion, vec4 occlusion, float PshadowValue, inout vec4 outColor)
@@ -1172,13 +1184,30 @@ vec3 GetScreenPixel(inout vec2 texCoords)
 	return color;
 }
 
+#if 0 // debug heightmap
+float GetHeightMap(vec3 pos)
+{
+	if (pos.x < u_Mins.x || pos.y < u_Mins.y || pos.z < u_Mins.z) return 65536.0;
+	if (pos.x > u_Maxs.x || pos.y > u_Maxs.y || pos.z > u_Maxs.z) return 65536.0;
+
+	float h = textureLod(u_HeightMap, GetMapTC(pos), 1.0).r;
+	//h = mix(u_Mins.z, u_Maxs.z, h);
+	return h; // raise it up to correct loss of precision. it's only weather anyway...
+}
+#endif
+
 void main(void)
 {
 	vec2 texCoords = var_TexCoords;
 	vec4 position = positionMapAtCoord(texCoords);
+
+#if 0 // debug heightmap
+	gl_FragColor = vec4(vec3(GetHeightMap(position.xyz)), 1.0);
+	return;
+#endif
+
 	vec4 color = vec4(GetScreenPixel(texCoords), 1.0);
 	vec4 outColor = color;
-
 
 	if (position.a - 1.0 >= MATERIAL_SKY
 		|| position.a - 1.0 == MATERIAL_SUN

@@ -3800,7 +3800,7 @@ void R_GetTextureAverageColor(const byte *in, int width, int height, qboolean US
 				float currentB = ByteToFloat(*inByte++);
 				float currentA = ByteToFloat(*inByte++);
 
-				if (currentA > 0.0 && (currentR > 0.1 || currentG > 0.1 || currentB > 0.1))
+				if (currentA > 0.0 && (currentR > 0.0 || currentG > 0.0 || currentB > 0.0))
 				{// Ignore black and zero-alpha pixels.
 					average[0] += currentR;
 					average[1] += currentG;
@@ -3848,7 +3848,7 @@ void R_GetTextureAverageColor(const byte *in, int width, int height, qboolean US
 				float currentB = ByteToFloat(*inByte++);
 				*inByte++;
 
-				if (currentR > 0.1 || currentG > 0.1 || currentB > 0.1)
+				if (currentR > 0.0 || currentG > 0.0 || currentB > 0.0)
 				{// Ignore black and zero-alpha pixels.
 					average[0] += currentR;
 					average[1] += currentG;
@@ -4426,8 +4426,8 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 	}
 	else
 	{
-		if (/*flags & IMGFLAG_GLOW
-			&&*/ (type == IMGTYPE_COLORALPHA || type == IMGTYPE_STEEPMAP))
+		if ((flags & IMGFLAG_GLOW)
+			|| (type == IMGTYPE_COLORALPHA || type == IMGTYPE_STEEPMAP))
 		{
 			R_GetTextureAverageColor(pic, width, height, USE_ALPHA, avgColor);
 		}
@@ -5472,9 +5472,16 @@ void R_CreateBuiltinImages( void ) {
 	tr.renderPshadowsImage = R_CreateImage("_renderPshadows", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
 
 	tr.renderGUIImage = R_CreateImage("_renderGUI", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
+
+#ifdef __HDR_POSTPROCESS_BUFFERS__
+	tr.genericFBOImage = R_CreateImage("_generic", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA32F);
+	tr.genericFBO2Image = R_CreateImage("_generic2", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA32F);
+	tr.genericFBO3Image = R_CreateImage("_generic3", NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA32F);
+#else //!__HDR_POSTPROCESS_BUFFERS__
 	tr.genericFBOImage  = R_CreateImage("_generic",  NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
 	tr.genericFBO2Image  = R_CreateImage("_generic2",  NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
 	tr.genericFBO3Image  = R_CreateImage("_generic3",  NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
+#endif //__HDR_POSTPROCESS_BUFFERS__
 
 	tr.dummyImage = R_CreateImage("_dummy",  NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, LINEAR_DEPTH_BITS/*hdrFormat*/);
 	tr.dummyImage2 = R_CreateImage("_dummy2",  NULL, width, height, IMGTYPE_COLORALPHA, IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, LINEAR_DEPTH_BITS/*hdrFormat*/);

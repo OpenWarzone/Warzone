@@ -1764,10 +1764,11 @@ public:
 		if (shader->isBindless)
 		{
 			GLSL_SetBindlessTexture(shader, UNIFORM_DIFFUSEMAP, &mImage, 0);
-			if (tr.waterHeightMapImage)
+			
+			if (tr.waterHeightMapImage && tr.waterHeightMapImage != tr.defaultImage)
 				GLSL_SetBindlessTexture(shader, UNIFORM_HEIGHTMAP, &tr.waterHeightMapImage, 0);
 			else
-				GLSL_SetBindlessTexture(shader, UNIFORM_HEIGHTMAP, &tr.whiteImage, 0);
+				GLSL_SetBindlessTexture(shader, UNIFORM_HEIGHTMAP, &tr.blackImage, 0);
 
 			GLSL_BindlessUpdate(shader);
 		}
@@ -1777,10 +1778,11 @@ public:
 			GL_BindToTMU(mImage, TB_DIFFUSEMAP);
 
 			GLSL_SetUniformInt(shader, UNIFORM_HEIGHTMAP, TB_HEIGHTMAP);
-			if (tr.waterHeightMapImage)
+			
+			if (tr.waterHeightMapImage && tr.waterHeightMapImage != tr.defaultImage)
 				GL_BindToTMU(tr.waterHeightMapImage, TB_HEIGHTMAP);
 			else
-				GL_BindToTMU(tr.whiteImage, TB_HEIGHTMAP);
+				GL_BindToTMU(tr.blackImage, TB_HEIGHTMAP);
 		}
 
 		{
@@ -1803,7 +1805,12 @@ public:
 		VectorSet4(l0, norm[0], norm[1], norm[2], (mBlendMode == 2) ? 1.0 : 0.0);
 		GLSL_SetUniformVec4(shader, UNIFORM_LOCAL0, l0);
 
+		vec4_t l1;
+		VectorSet4(l1, (tr.waterHeightMapImage && tr.waterHeightMapImage != tr.defaultImage) ? 1.0 : 0.0, WEATHER_HEIGHTMAP_OFFSET, 0.0, 0.0);
+		GLSL_SetUniformVec4(shader, UNIFORM_LOCAL1, l1);
 
+
+#if 0 // lights on rain. disabled in shader for now...
 		//
 		// For light effects...
 		//
@@ -1831,6 +1838,7 @@ public:
 		GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTPOSITIONS2, CURRENT_DRAW_DLIGHTS_POSITIONS, NUM_CURRENT_DRAW_DLIGHTS);
 		GLSL_SetUniformVec3xX(shader, UNIFORM_LIGHTCOLORS, CURRENT_DRAW_DLIGHTS_COLORS, NUM_CURRENT_DRAW_DLIGHTS);
 		GLSL_SetUniformFloatxX(shader, UNIFORM_LIGHTDISTANCES, CURRENT_DRAW_DLIGHTS_EMISSIVE_DISTANCE, NUM_CURRENT_DRAW_DLIGHTS);
+#endif
 
 #ifdef __USE_MAP_EMMISSIVE_BLOCK__
 		// TODO: Add new emissive system to particles...
@@ -1947,30 +1955,6 @@ public:
 					tess.minIndex = 0;
 					tess.maxIndex = 0;
 					tess.useInternalVBO = qfalse;
-
-					/* TESTING */
-					if (shader->isBindless)
-					{
-						GLSL_SetBindlessTexture(shader, UNIFORM_DIFFUSEMAP, &mImage, 0);
-						if (tr.waterHeightMapImage)
-							GLSL_SetBindlessTexture(shader, UNIFORM_HEIGHTMAP, &tr.waterHeightMapImage, 0);
-						else
-							GLSL_SetBindlessTexture(shader, UNIFORM_HEIGHTMAP, &tr.whiteImage, 0);
-
-						GLSL_BindlessUpdate(shader);
-					}
-					else
-					{
-						GLSL_SetUniformInt(shader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
-						GL_BindToTMU(mImage, TB_DIFFUSEMAP);
-
-						GLSL_SetUniformInt(shader, UNIFORM_HEIGHTMAP, TB_HEIGHTMAP);
-						if (tr.waterHeightMapImage)
-							GL_BindToTMU(tr.waterHeightMapImage, TB_HEIGHTMAP);
-						else
-							GL_BindToTMU(tr.whiteImage, TB_HEIGHTMAP);
-					}
-					/* TESTING */
 				}
 
 				int ndx = tess.numVertexes;
@@ -2086,30 +2070,6 @@ public:
 					tess.minIndex = 0;
 					tess.maxIndex = 0;
 					tess.useInternalVBO = qfalse;
-
-					/* TESTING */
-					if (shader->isBindless)
-					{
-						GLSL_SetBindlessTexture(shader, UNIFORM_DIFFUSEMAP, &mImage, 0);
-						if (tr.waterHeightMapImage)
-							GLSL_SetBindlessTexture(shader, UNIFORM_HEIGHTMAP, &tr.waterHeightMapImage, 0);
-						else
-							GLSL_SetBindlessTexture(shader, UNIFORM_HEIGHTMAP, &tr.whiteImage, 0);
-
-						GLSL_BindlessUpdate(shader);
-					}
-					else
-					{
-						GLSL_SetUniformInt(shader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
-						GL_BindToTMU(mImage, TB_DIFFUSEMAP);
-
-						GLSL_SetUniformInt(shader, UNIFORM_HEIGHTMAP, TB_HEIGHTMAP);
-						if (tr.waterHeightMapImage)
-							GL_BindToTMU(tr.waterHeightMapImage, TB_HEIGHTMAP);
-						else
-							GL_BindToTMU(tr.whiteImage, TB_HEIGHTMAP);
-					}
-					/* TESTING */
 				}
 
 				int ndx = tess.numVertexes;
