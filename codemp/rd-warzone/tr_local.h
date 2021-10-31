@@ -927,8 +927,11 @@ struct LightBlock_t
 };
 
 #ifdef __USE_MAP_EMMISSIVE_BLOCK__
-//#define MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS 96//128//64
-#define MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS 32
+//#define MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS 256
+#define MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS 128
+//#define MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS 96
+//#define MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS 64
+//#define MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS 32
 
 struct EmissiveLightBlock_t
 {
@@ -2030,6 +2033,8 @@ typedef struct shaderProgram_s
 
 #ifdef __USE_MAP_EMMISSIVE_BLOCK__
 	GLuint						EmissiveLightsBindingPoint = 0;
+	LightBlock_t				EmissiveLightsBlock;
+	LightBlock_t				EmissiveLightsBlockPrevious;
 	GLuint						EmissiveLightsBlockSSBO = 0;
 #endif //__USE_MAP_EMMISSIVE_BLOCK__
 } shaderProgram_t;

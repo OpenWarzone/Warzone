@@ -1271,7 +1271,7 @@ extern void TR_AxisToAngles(const vec3_t axis[3], vec3_t angles);
 extern void FOLIAGE_DrawGrass(void);
 #endif //__RENDERER_GROUND_FOLIAGE__
 
-extern void RB_AddGlowShaderLights(void);
+extern void RB_AddEmissiveShaderLights(void);
 extern void RB_UpdateCloseLights();
 
 extern vec3_t		SUN_COLOR_MAIN;
@@ -1480,7 +1480,7 @@ void RE_BeginScene(const refdef_t *fd)
 	backEnd.refdef.dlights = tr.refdef.dlights;
 	backEnd.refdef.num_dlights = tr.refdef.num_dlights;
 
-	RB_AddGlowShaderLights();
+	RB_AddEmissiveShaderLights();
 	RB_UpdateCloseLights();
 
 #ifdef __INDOOR_OUTDOOR_CULLING__

@@ -2658,8 +2658,6 @@ extern float		MAP_EMISSIVE_RADIUS_SCALE;
 #endif //__PSHADOW_USE_BEST_LIGHT__
 
 #ifdef __USE_MAP_EMMISSIVE_BLOCK__
-extern EmissiveLightBlock_t				EmissiveLightsBlock;
-extern EmissiveLightBlock_t				EmissiveLightsBlockPrevious;
 extern int								emissiveUpdateTime;
 extern int								NUM_CURRENT_EMISSIVE_DRAW_LIGHTS;
 #endif //__USE_MAP_EMMISSIVE_BLOCK__
@@ -2670,6 +2668,8 @@ void R_RenderPshadowMaps(const refdef_t *fd)
 	viewParms_t		shadowParms;
 	int i;
 	float invLightPower = 1.0;
+
+	shaderProgram_t *lightShader = &tr.deferredLightingShader[(MAP_LIGHTING_METHOD > 2) ? 2 : MAP_LIGHTING_METHOD];
 
 	vec3_t playerOrigin;
 
@@ -2726,8 +2726,8 @@ void R_RenderPshadowMaps(const refdef_t *fd)
 
 			for (int i = 0; i < NUM_CURRENT_EMISSIVE_DRAW_LIGHTS; i++)
 			{
-				float radius = EmissiveLightsBlock.lights[i].u_lightPositions2[3] * 3.0;
-				float dist = Distance(playerOrigin, EmissiveLightsBlock.lights[i].u_lightPositions2);
+				float radius = lightShader->EmissiveLightsBlock.lights[i].u_lightPositions2[3] * 3.0;
+				float dist = Distance(playerOrigin, lightShader->EmissiveLightsBlock.lights[i].u_lightPositions2);
 
 				if (dist > radius /*|| LIGHTS_POSITIONS(i)[2] < playerOrigin[2]*/)
 				{// Not in range of this light...
@@ -2751,10 +2751,10 @@ void R_RenderPshadowMaps(const refdef_t *fd)
 			{// Seems that we found an emissive light to use...
 				invLightPower = Q_clamp(0.0, 0.01*(1.0 - dLightFactor), 1.0);
 				if (invLightPower == 1.0) return;
-				bestLightPosition[0] = mix(EmissiveLightsBlock.lights[dLight].u_lightPositions2[0], playerOrigin[0], invLightPower);
-				bestLightPosition[1] = mix(EmissiveLightsBlock.lights[dLight].u_lightPositions2[1], playerOrigin[1], invLightPower);
+				bestLightPosition[0] = mix(lightShader->EmissiveLightsBlock.lights[dLight].u_lightPositions2[0], playerOrigin[0], invLightPower);
+				bestLightPosition[1] = mix(lightShader->EmissiveLightsBlock.lights[dLight].u_lightPositions2[1], playerOrigin[1], invLightPower);
 				bestLightPosition[2] = playerOrigin[2] + 64.0;
-				bestLightRadius = mix(EmissiveLightsBlock.lights[dLight].u_lightPositions2[3] * 3.0, 128.0, invLightPower);
+				bestLightRadius = mix(lightShader->EmissiveLightsBlock.lights[dLight].u_lightPositions2[3] * 3.0, 128.0, invLightPower);
 			}
 #else //!__USE_MAP_EMMISSIVE_BLOCK__
 			return;

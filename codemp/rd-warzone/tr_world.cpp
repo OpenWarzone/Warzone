@@ -897,67 +897,6 @@ static void R_RecursiveWorldNode(mnode_t *node, int planeBits, int dlightBits, i
 			{
 				return;
 			}
-			
-#if 0
-			if (r_testvalue0->integer && R_CullBoxMinsMaxs(node->mins, node->maxs) == CULL_OUT)
-			{
-				return;
-			}
-#endif
-
-#if 0
-			int		r;
-
-			if (planeBits & 1) {
-				r = R_BoxOnPlaneSide(node->mins, node->maxs, &tr.viewParms.frustum[0]);
-				if (r == 2) {
-					return;						// culled
-				}
-				if (r == 1) {
-					planeBits &= ~1;			// all descendants will also be in front
-				}
-			}
-
-			if (planeBits & 2) {
-				r = R_BoxOnPlaneSide(node->mins, node->maxs, &tr.viewParms.frustum[1]);
-				if (r == 2) {
-					return;						// culled
-				}
-				if (r == 1) {
-					planeBits &= ~2;			// all descendants will also be in front
-				}
-			}
-
-			if (planeBits & 4) {
-				r = R_BoxOnPlaneSide(node->mins, node->maxs, &tr.viewParms.frustum[2]);
-				if (r == 2) {
-					return;						// culled
-				}
-				if (r == 1) {
-					planeBits &= ~4;			// all descendants will also be in front
-				}
-			}
-
-			if (planeBits & 8) {
-				r = R_BoxOnPlaneSide(node->mins, node->maxs, &tr.viewParms.frustum[3]);
-				if (r == 2) {
-					return;						// culled
-				}
-				if (r == 1) {
-					planeBits &= ~8;			// all descendants will also be in front
-				}
-			}
-
-			if (planeBits & 16) {
-				r = R_BoxOnPlaneSide(node->mins, node->maxs, &tr.viewParms.frustum[4]);
-				if (r == 2) {
-					return;						// culled
-				}
-				if (r == 1) {
-					planeBits &= ~16;			// all descendants will also be in front
-				}
-			}
-#endif
 
 			int i;
 			int r;

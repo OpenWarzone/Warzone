@@ -4299,74 +4299,6 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 		USE_ALPHA = qtrue;// qfalse;
 	}
 
-	if (USE_ALPHA)
-	{// Check if it's even used... If not, we can optimize...
-		if (!RawImage_HasAlpha(pic, width, height, qfalse))
-		{
-			USE_ALPHA = qfalse;
-			ri->Printf(PRINT_WARNING, "FindImage Debug: %s is using an alpha supported texture format %s, but not using any alpha. Optimizing. (w: %i. h: %i.)\n", name, ext, width, height);
-
-			//RawImage_HasAlpha(pic, width, height, qtrue);
-
-			//
-			// Sigh, it seems all the other code assumes 4 channels regardless of if alpha is used, comments about checking alphas are complete bullshit, there are no checks...
-			// ... So fking hacky, and such a vram waste... Also, bye bye early vert based depth culling, culling will only work per pixel with all the alpha channels active...
-			//
-
-			/*
-			{
-				byte *pic2 = pic;
-				pic = NULL;
-
-				pic = (byte *)Z_Malloc(width * height * 3 * sizeof(byte), TAG_IMAGE_T, qfalse, 0);
-
-				byte *inByte = (byte *)&pic2[0];
-				byte *outByte = (byte *)&pic[0];
-
-				for (int y = 0; y < height; y++)
-				{
-					for (int x = 0; x < width; x++)
-					{
-						float currentR = ByteToFloat(*inByte++);
-						float currentG = ByteToFloat(*inByte++);
-						float currentB = ByteToFloat(*inByte++);
-						float currentA = ByteToFloat(*inByte++);
-
-						*outByte++ = FloatToByte(currentR);
-						*outByte++ = FloatToByte(currentG);
-						*outByte++ = FloatToByte(currentB);
-						//*outByte++ = FloatToByte(currentA);
-					}
-				}
-
-				if (r_mipMapTextures->integer)
-					flags |= IMGFLAG_MIPMAP;
-
-#ifdef __TINY_IMAGE_LOADER__
-				if (isTIL)
-				{
-					til::TIL_Release(tImage);
-					pic2 = NULL;
-					isTIL = qfalse;
-				}
-				else
-#endif
-					Z_Free(pic2);
-			}
-			*/
-		}
-		/*else
-		{
-			ri->Printf(PRINT_WARNING, "FindImage Debug: %s is using an alpha supported texture format %s, and using alpha.\n", name, ext);
-		}*/
-	}
-	/*else
-	{
-		ri->Printf(PRINT_WARNING, "FindImage Debug: %s is using RGB texture format %s, not using any alpha.\n", name, ext);
-	}*/
-
-	//ri->Printf(PRINT_WARNING, "FindImage Debug: %s. HAS_ALPHA %s.\n", name, USE_ALPHA ? "yes" : "no");
-
 #ifdef __CRC_IMAGE_HASHING__
 	size_t dataLen = width * height * 4 * sizeof(byte);
 	uint32_t crcHash = crc32c(0, pic, dataLen);
@@ -4426,14 +4358,24 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 	}
 	else
 	{
-		if ((flags & IMGFLAG_GLOW)
-			|| (type == IMGTYPE_COLORALPHA || type == IMGTYPE_STEEPMAP))
+		if ((flags & IMGFLAG_GLOW) || type == IMGTYPE_COLORALPHA || type == IMGTYPE_STEEPMAP)
 		{
 			R_GetTextureAverageColor(pic, width, height, USE_ALPHA, avgColor);
 		}
 	}
 
 	//ri->Printf(PRINT_WARNING, "FindImage Debug: %s. avgColor done!\n", name);
+
+	if (USE_ALPHA)
+	{// Check if it's even used... If not, we can optimize...
+		if (!RawImage_HasAlpha(pic, width, height, qfalse))
+		{
+			USE_ALPHA = qfalse;
+			ri->Printf(PRINT_WARNING, "FindImage Debug: %s is using an alpha supported texture format %s, but not using any alpha. Optimizing. (w: %i. h: %i.)\n", name, ext, width, height);
+		}
+
+		//ri->Printf(PRINT_WARNING, "FindImage Debug: %s. HAS_ALPHA %s.\n", name, USE_ALPHA ? "yes" : "no");
+	}
 
 #if 0
 	if (type == IMGTYPE_COLORALPHA)

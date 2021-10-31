@@ -105,31 +105,25 @@ uniform int									u_lightCount;
 uniform int									u_emissiveLightCount;
 
 
-#ifdef USE_LIGHTS_SSBO
-	struct Lights_t
-	{
-		vec4										u_lightPositions2;
-		vec4										u_lightColors;
-		vec4										u_coneDirection;
-	};
+struct Lights_t
+{
+	vec4									u_lightPositions2;
+	vec4									u_lightColors;
+	vec4									u_coneDirection;
+};
 
-	layout(std430, binding=2) buffer LightBlock
-	{ 
-		Lights_t lights[];
-	};
+layout(std430, binding=2) buffer LightBlock
+{ 
+	Lights_t lights[];
+};
 
-	#ifdef _USE_MAP_EMMISSIVE_BLOCK_
-		layout(std430, binding=3) buffer EmissiveLightBlock
-		{ 
-			Lights_t emissiveLights[];
-		};
-	#endif //_USE_MAP_EMMISSIVE_BLOCK_
-#else //!USE_LIGHTS_SSBO
-	uniform vec3								u_lightPositions2[MAX_DEFERRED_LIGHTS];
-	uniform float								u_lightDistances[MAX_DEFERRED_LIGHTS];
-	uniform vec3								u_lightColors[MAX_DEFERRED_LIGHTS];
-	uniform float								u_lightMaxDistance;
-#endif //USE_LIGHTS_SSBO
+#ifdef _USE_MAP_EMMISSIVE_BLOCK_
+layout(std430, binding=3) buffer EmissiveLightBlock
+{ 
+	Lights_t emissiveLights[];
+};
+#endif //_USE_MAP_EMMISSIVE_BLOCK_
+
 
 uniform mat4								u_ModelViewProjectionMatrix;
 
@@ -162,8 +156,10 @@ uniform vec4								u_CubeMapInfo;
 uniform float								u_CubeMapStrength;
 #endif //_CUBEMAPS_
 
+#if 0
 uniform float								u_MaterialSpeculars[MATERIAL_LAST];
 uniform float								u_MaterialReflectiveness[MATERIAL_LAST];
+#endif
 
 uniform vec4								u_Mins; // mins, mins, mins, WATER_ENABLED
 uniform vec4								u_Maxs;
@@ -252,6 +248,40 @@ vec3 DecodeNormal(vec2 enc)
 }
 
 
+// For all settings: 1.0 = 100% 0.5=50% 1.5 = 150%
+vec3 ContrastSaturationBrightness(vec3 color, float con, float sat, float brt)
+{
+	const float AvgLumR = 0.5;
+	const float AvgLumG = 0.5;
+	const float AvgLumB = 0.5;
+
+	const vec3 LumCoeff = vec3(0.2125, 0.7154, 0.0721);
+
+	vec3 AvgLumin = vec3(AvgLumR, AvgLumG, AvgLumB);
+	vec3 brtColor = color * brt;
+	vec3 intensity = vec3(dot(brtColor, LumCoeff));
+	vec3 satColor = mix(intensity, brtColor, sat);
+	vec3 conColor = mix(AvgLumin, satColor, con);
+	return conColor;
+}
+
+vec3 ColorGrade(vec3 vColor)
+{
+	vec3 vHue = vec3(1.0, .7, .2);
+
+	vec3 vGamma = 1.0 + vHue * 0.6;
+	vec3 vGain = vec3(.9) + vHue * vHue * 8.0;
+
+	vColor *= 1.5;
+
+	float fMaxLum = 100.0;
+	vColor /= fMaxLum;
+	vColor = pow(vColor, vGamma);
+	vColor *= vGain;
+	vColor *= fMaxLum;
+	return vColor;
+}
+
 
 vec4 positionMapAtCoord ( vec2 coord )
 {
@@ -268,133 +298,133 @@ vec2 RB_PBR_DefaultsForMaterial(float MATERIAL_TYPE)
 {// I probably should use an array of const's instead, but this will do for now...
 	vec2 settings = vec2(0.0);
 
-	float specularReflectionScale = 0.0;
-	float cubeReflectionScale = 0.0;
+	float smoothness = 0.0;
+	float metallicness = 0.0;
 
 	switch (int(MATERIAL_TYPE))
 	{
 	case MATERIAL_WATER:
-		specularReflectionScale = 0.1;
-		cubeReflectionScale = 0.775;
+		smoothness = 0.6;
+		metallicness = 0.6;
 		break;
 	case MATERIAL_SHORTGRASS:
-		specularReflectionScale = 0.0055;
-		cubeReflectionScale = 0.5125;
+		smoothness = 0.5;
+		metallicness = 0.2;
 		break;
 	case MATERIAL_LONGGRASS:
-		specularReflectionScale = 0.0065;
-		cubeReflectionScale = 0.5125;
+		smoothness = 0.5;
+		metallicness = 0.2;
 		break;
 	case MATERIAL_SAND:
-		specularReflectionScale = 0.0055;
-		cubeReflectionScale = 0.0;
+		smoothness = 0.2;
+		metallicness = 0.1;
 		break;
 	case MATERIAL_CARPET:
-		specularReflectionScale = 0.0015;
-		cubeReflectionScale = 0.0;
+		smoothness = 0.1;
+		metallicness = 0.1;
 		break;
 	case MATERIAL_GRAVEL:
-		specularReflectionScale = 0.0015;
-		cubeReflectionScale = 0.0;
+		smoothness = 0.1;
+		metallicness = 0.2;
 		break;
 	case MATERIAL_ROCK:
 	case MATERIAL_STONE:
-		specularReflectionScale = 0.002;
-		cubeReflectionScale = 0.0;
+		smoothness = 0.2;
+		metallicness = 0.1;
 		break;
 	case MATERIAL_TILES:
-		specularReflectionScale = 0.026;
-		cubeReflectionScale = 0.3625;
+		smoothness = 0.5;
+		metallicness = 0.4;
 		break;
 	case MATERIAL_SOLIDWOOD:
 	case MATERIAL_TREEBARK:
-		specularReflectionScale = 0.0015;
-		cubeReflectionScale = 0.0;
+		smoothness = 0.4;
+		metallicness = 0.1;
 		break;
 	case MATERIAL_HOLLOWWOOD:
-		specularReflectionScale = 0.00075;
-		cubeReflectionScale = 0.0;
+		smoothness = 0.2;
+		metallicness = 0.1;
 		break;
 	case MATERIAL_POLISHEDWOOD:
-		specularReflectionScale = 0.026;
-		cubeReflectionScale = 0.5125;
+		smoothness = 0.5;
+		metallicness = 0.3;
 		break;
 	case MATERIAL_SOLIDMETAL:
-		specularReflectionScale = 0.098;
-		cubeReflectionScale = 0.985;
+		smoothness = 1.0;
+		metallicness = 1.0;
 		break;
 	case MATERIAL_HOLLOWMETAL:
-		specularReflectionScale = 0.098;
-		cubeReflectionScale = 0.985;
+		smoothness = 0.9;
+		metallicness = 0.9;
 		break;
 	case MATERIAL_DRYLEAVES:
-		specularReflectionScale = 0.0026;
-		cubeReflectionScale = 0.0;
+		smoothness = 0.2;
+		metallicness = 0.1;
 		break;
 	case MATERIAL_GREENLEAVES:
-		specularReflectionScale = 0.0055;
-		cubeReflectionScale = 0.5125;
+		smoothness = 0.5;
+		metallicness = 0.2;
 		break;
 	case MATERIAL_PROCEDURALFOLIAGE:
-		specularReflectionScale = 0.0055;
-		cubeReflectionScale = 0.5125;
+		smoothness = 0.5;
+		metallicness = 0.2;
 		break;
 	case MATERIAL_BIRD:
 	case MATERIAL_FABRIC:
-		specularReflectionScale = 0.0055;
-		cubeReflectionScale = 0.5125;
+		smoothness = 0.2;
+		metallicness = 0.2;
 		break;
 	case MATERIAL_CANVAS:
-		specularReflectionScale = 0.0045;
-		cubeReflectionScale = 0.0;
+		smoothness = 0.2;
+		metallicness = 0.1;
 		break;
 	case MATERIAL_MARBLE:
-		specularReflectionScale = 0.025;
-		cubeReflectionScale = 0.595;
+		smoothness = 0.7;
+		metallicness = 0.8;
 		break;
 	case MATERIAL_SNOW:
-		specularReflectionScale = 0.025;
-		cubeReflectionScale = 0.7375;
+		smoothness = 0.5;
+		metallicness = 0.6;
 		break;
 	case MATERIAL_MUD:
-		specularReflectionScale = 0.003;
-		cubeReflectionScale = 0.0;
+		smoothness = 0.2;
+		metallicness = 0.3;
 		break;
 	case MATERIAL_DIRT:
-		specularReflectionScale = 0.002;
-		cubeReflectionScale = 0.0;
+		smoothness = 0.2;
+		metallicness = 0.1;
 		break;
 	case MATERIAL_CONCRETE:
-		specularReflectionScale = 0.00175;
-		cubeReflectionScale = 0.0;
+		smoothness = 0.3;
+		metallicness = 0.1;
 		break;
 	case MATERIAL_FLESH:
-		specularReflectionScale = 0.0045;
-		cubeReflectionScale = 0.0;
+		smoothness = 0.3;
+		metallicness = 0.3;
 		break;
 	case MATERIAL_RUBBER:
-		specularReflectionScale = 0.0015;
-		cubeReflectionScale = 0.0;
+		smoothness = 0.3;
+		metallicness = 0.1;
 		break;
 	case MATERIAL_PLASTIC:
-		specularReflectionScale = 0.028;
-		cubeReflectionScale = 0.7375;
+		smoothness = 0.4;
+		metallicness = 0.4;
 		break;
 	case MATERIAL_PLASTER:
-		specularReflectionScale = 0.0025;
-		cubeReflectionScale = 0.0;
+		smoothness = 0.5;
+		metallicness = 0.1;
 		break;
 	case MATERIAL_SHATTERGLASS:
-		specularReflectionScale = 0.025;
-		cubeReflectionScale = 0.7525;
+		smoothness = 0.6;
+		metallicness = 0.7;
 		break;
 	case MATERIAL_ARMOR:
-		specularReflectionScale = 0.055;
-		cubeReflectionScale = 0.745;
+		smoothness = 0.7;
+		metallicness = 0.8;
 		break;
 	case MATERIAL_ICE:
-		specularReflectionScale = 0.045;
-		cubeReflectionScale = 0.835;
+		smoothness = 0.9;
+		metallicness = 0.8;
 		break;
 	case MATERIAL_GLASS:
 	case MATERIAL_DISTORTEDGLASS:
@@ -402,24 +432,24 @@ vec2 RB_PBR_DefaultsForMaterial(float MATERIAL_TYPE)
 	case MATERIAL_DISTORTEDPULL:
 	case MATERIAL_CLOAK:
 	case MATERIAL_FORCEFIELD:
-		specularReflectionScale = 0.035;
-		cubeReflectionScale = 0.775;
+		smoothness = 0.6;
+		metallicness = 0.8;
 		break;
 	case MATERIAL_BPGLASS:
-		specularReflectionScale = 0.033;
-		cubeReflectionScale = 0.775;
+		smoothness = 0.5;
+		metallicness = 0.7;
 		break;
 	case MATERIAL_COMPUTER:
-		specularReflectionScale = 0.042;
-		cubeReflectionScale = 0.76;
+		smoothness = 0.7;
+		metallicness = 0.7;
 		break;
 	case MATERIAL_PUDDLE:
-		specularReflectionScale = 0.098;
-		cubeReflectionScale = 0.3235;
+		smoothness = 0.9;
+		metallicness = 0.9;
 		break;
 	case MATERIAL_LAVA:
-		specularReflectionScale = 0.002;
-		cubeReflectionScale = 0.0;
+		smoothness = 0.1;
+		metallicness = 0.1;
 		break;
 	case MATERIAL_EFX:
 	case MATERIAL_BLASTERBOLT:
@@ -430,34 +460,36 @@ vec2 RB_PBR_DefaultsForMaterial(float MATERIAL_TYPE)
 	case MATERIAL_FIREFLIES:
 	case MATERIAL_PORTAL:
 	case MATERIAL_MENU_BACKGROUND:
-		specularReflectionScale = 0.0;
-		cubeReflectionScale = 0.0;
+		smoothness = 0.0;
+		metallicness = 0.0;
 		break;
 	case MATERIAL_SKYSCRAPER:
-		specularReflectionScale = 0.055;
-		cubeReflectionScale = 0.745;
+		smoothness = 0.2;
+		metallicness = 0.3;
 		break;
 	default:
-		specularReflectionScale = 0.0075;
-		cubeReflectionScale = 0.4;
+		smoothness = 0.2;
+		metallicness = 0.2;
 		break;
 	}
 
+#if 0
 	if (int(MATERIAL_TYPE) < MATERIAL_LAST)
 	{// Check for game specified overrides...
 		if (u_MaterialSpeculars[int(MATERIAL_TYPE)] != 0.0)
 		{
-			specularReflectionScale = u_MaterialSpeculars[int(MATERIAL_TYPE)];
+			smoothness = u_MaterialSpeculars[int(MATERIAL_TYPE)];
 		}
 
 		if (u_MaterialReflectiveness[int(MATERIAL_TYPE)] != 0.0)
 		{
-			cubeReflectionScale = u_MaterialReflectiveness[int(MATERIAL_TYPE)];
+			metallicness = u_MaterialReflectiveness[int(MATERIAL_TYPE)];
 		}
 	}
+#endif
 
-	settings.x = specularReflectionScale;
-	settings.y = cubeReflectionScale;
+	settings.x = smoothness;
+	settings.y = metallicness;
 
 	return settings;
 }
@@ -783,7 +815,7 @@ float getSpecialSauce(vec3 color)
 	// Secret sauce diffuse adaption.
 	//float lum = clamp(length(clamp(color.rgb, 0.0, 1.0))/3.0, 0.0, 1.0);
 	float lum = clamp(max(max(color.r, max(color.g, color.b)) * 0.5, length(color) / 3.0), 0.0, 1.0);
-	lum = clamp(clamp(pow(lum, 3.5), 0.0, 1.0) * 512.0, 2.0, 4.0);
+	lum = clamp(clamp(pow(lum, 3.5), 0.0, 1.0) * 512.0, 2.0, 4.0) * 0.25;
 	return lum;
 }
 
@@ -801,35 +833,26 @@ float orenNayar(in vec3 n, in vec3 v, in vec3 ldir, float specPower)
 	return max(0.0, nl) * (a + b * max(0.0, ga) * sqrt((1.0 - nv * nv)*(1.0 - nl * nl)) / max(nl, nv));
 }
 
-vec3 Lighting(vec4 pos, vec3 color, vec3 bump, vec3 flatNormal, vec3 view, vec3 light, vec3 lightColor, float specPower, vec3 lightPos, float wetness) {
+vec3 Lighting(vec3 color, vec3 bump, vec3 view, vec3 light, vec3 lightColor, float smoothness, float metallicness) {
 	float ss = getSpecialSauce(color);
 
 	// Ambient light.
 	float directAmbience = 0.14;
-	float enhancedAmbience = 0.24;
 
 	// Nayar diffuse light.
-	float base = orenNayar(bump, view, light, specPower) * ss;
+	float base = orenNayar(bump, view, light, smoothness);
 
 	// Specular light.
-	vec3 reflection = normalize(reflect(-view, bump));
-	float specular = clamp(pow(clamp(dot(light, reflection), 0.0, 1.0), 15.0), 0.0, 1.0) * 0.25;
+	vec3 reflection = normalize(reflect(view, bump));
+	float specular = clamp(pow(clamp(dot(light, reflection), 0.0, 1.0), 15.0), 0.0, 1.0);
+	//float specular = getspecularLight(bump, light, view, metallicness);
 
-	float wetSpec = 0.0;
+	float selfShadow = 1.0;// max(dot(bump, -light), 0.0);
 
-	if (wetness > 0.0)
-	{// Increase specular strength when the ground is wet during/after rain...
-		wetSpec = wetSpecular(bump, -light, view, 256.0) * wetness * 0.5;
-		wetSpec += wetSpecular(bump, -light, view, 4.0) * wetness * 8.0;
-		wetSpec *= 0.5;
-	}
-
-	float selfShadow = max(dot(bump, -light), 0.0);
-
-	return (lightColor * directAmbience) + (lightColor * enhancedAmbience * ss) + (base * lightColor) + (lightColor * specular * ss) + (lightColor * wetSpec) * selfShadow;
+	return ((lightColor * directAmbience * ss) + (lightColor * ss * base) + (lightColor * specular * ss)) * color * selfShadow;
 }
 
-void GetSSBOLighting(bool emissive, float origColorStrength, float lightsReflectionFactor, float specularReflectivePower, vec4 position, vec3 lightingNormal, vec3 flatNormal, vec3 E, float wetness, bool useOcclusion, vec4 occlusion, float PshadowValue, inout vec4 outColor)
+void GetSSBOLighting(bool emissive, float smoothness, float metallicness, vec4 position, vec3 bump, vec3 E, float wetness, bool useOcclusion, vec4 occlusion, float PshadowValue, inout vec4 outColor)
 {
 	float pixelDistance = distance(position.xyz, u_ViewOrigin.xyz);
 
@@ -841,129 +864,287 @@ void GetSSBOLighting(bool emissive, float origColorStrength, float lightsReflect
 	float pixelDistanceMult = 1.0 - (pixelDistance / MAX_DEFERRED_LIGHT_RANGE);
 
 	int lightCount = u_lightCount;
+#ifdef _USE_MAP_EMMISSIVE_BLOCK_
 	if (emissive) lightCount = u_emissiveLightCount;
+#endif //_USE_MAP_EMMISSIVE_BLOCK_
 	
 	if (lightCount > 0.0 && pixelDistanceMult > 0.0)
 	{
 		vec3 addedLight = vec3(0.0);
-		float maxBright = clamp(max(outColor.r, max(outColor.g, outColor.b)), 0.0, 1.0);
-		float power = maxBright * 0.85;
-		power = clamp(pow(power, 4.0) + 0.5, 0.0, 1.0);
 
-		if (power > 0.0)
+		// No pointers in GLSL, at least on AMD, what a bunch of crap...
+		for (int li = 0; li < lightCount; li++)
 		{
-			// No pointers in GLSL, at least on AMD, what a bunch of crap...
-			for (int li = 0; li < lightCount; li++)
+			// WTB: Pointers...
+#ifdef _USE_MAP_EMMISSIVE_BLOCK_
+			Lights_t light;
+
+			if (emissive)
 			{
-				// WTB: Pointers...
-				Lights_t light;
-				
-				if (emissive)
-				{
-					light = emissiveLights[li];
-				}
-				else
-				{
-					light = lights[li];
-				}
+				light = emissiveLights[li];
+			}
+			else
+			{
+				light = lights[li];
+			}
+#else //!_USE_MAP_EMMISSIVE_BLOCK_
+			Lights_t light = lights[li];
+#endif //_USE_MAP_EMMISSIVE_BLOCK_
 
-				vec3 lightPos = light.u_lightPositions2.xyz;
-				float lightDist = distance(lightPos, position.xyz);
+			vec3 lightPos = light.u_lightPositions2.xyz;
+			float lightDist = distance(lightPos, position.xyz);
 
-				if (lightDist > light.u_lightPositions2.w)
-				{
-					continue;
-				}
+			if (lightDist > light.u_lightPositions2.w)
+			{
+				continue;
+			}
 
-				float lightPlayerDist = distance(lightPos.xyz, u_ViewOrigin.xyz);
+			float lightPlayerDist = distance(lightPos.xyz, u_ViewOrigin.xyz);
 
-				if (lightPlayerDist > MAX_DEFERRED_LIGHT_RANGE)
-				{
-					continue;
-				}
+			if (lightPlayerDist > MAX_DEFERRED_LIGHT_RANGE)
+			{
+				continue;
+			}
 
-				vec3 lightDir = normalize(lightPos - position.xyz);
+			//addedLight.rgb += light.u_lightColors.rgb;
+			//continue;
 
-				if (light.u_coneDirection.a > 0.0)
-				{
-					vec3 coneDir = -normalize(light.u_coneDirection.xyz * 2.0 - 1.0);
+			vec3 lightDir = normalize(lightPos.xyz - position.xyz);
 
-					float lightToSurfaceAngle = degrees(acos(dot(lightDir, coneDir)));
+			if (light.u_coneDirection.a > 0.0)
+			{
+				vec3 coneDir = normalize(light.u_coneDirection.xyz * 2.0 - 1.0);
+
+				float lightToSurfaceAngle = degrees(acos(dot(lightDir, coneDir)));
 					
-					if (lightToSurfaceAngle > light.u_coneDirection.a)
-					{// Outside of this light's cone...
-						continue;
-					}
-
-					/*if (u_Local3.r == 3.0)
-					{
-						addedLight.rgb += vec3((1.0 - (lightToSurfaceAngle / light.u_coneDirection.a)) * 0.1);
-						continue;
-					}*/
-
-					lightDir = coneDir;
+				if (lightToSurfaceAngle > light.u_coneDirection.a)
+				{// Outside of this light's cone...
+					continue;
 				}
 
-				float lightDistMult = 1.0 - clamp((lightPlayerDist / MAX_DEFERRED_LIGHT_RANGE), 0.0, 1.0);
-				lightDistMult = pow(lightDistMult, 2.0) * pixelDistanceMult;
-
-				if (lightDistMult > 0.0)
+				/*if (u_Local3.r == 3.0)
 				{
-					// Attenuation...
-					float lightFade = 1.0 - clamp((lightDist * lightDist) / (light.u_lightPositions2.w * light.u_lightPositions2.w), 0.0, 1.0);
-					lightFade = pow(lightFade, 2.0);
+					addedLight.rgb += vec3((1.0 - (lightToSurfaceAngle / light.u_coneDirection.a)) * 0.1);
+					continue;
+				}*/
 
-					if (emissive)
-					{// Fade out the most distant lights to stop "popping"...
-						float maxLightsFade = pow(1.0 - (float(li) / float(MAX_CONCURRENT_EMISSIVE_DRAW_LIGHTS)), 1.25);
-						lightFade *= maxLightsFade * lightDistMult;
-					}
+				lightDir = coneDir;
+			}
 
-					if (lightFade > 0.0)
+			float lightDistMult = 1.0 - clamp((lightPlayerDist / MAX_DEFERRED_LIGHT_RANGE), 0.0, 1.0);
+			lightDistMult = pow(lightDistMult, 2.0) * pixelDistanceMult;
+
+			if (lightDistMult > 0.0)
+			{
+				// Attenuation...
+				float lightFade = 1.0 - clamp((lightDist * lightDist) / (light.u_lightPositions2.w * light.u_lightPositions2.w), 0.0, 1.0);
+				lightFade = pow(lightFade, 2.0) * lightDistMult;
+
+				if (lightFade > 0.0)
+				{
+					float lightStrength = lightDistMult * lightFade;
+
+					if (lightStrength > 0.0)
 					{
-						float lightStrength = lightDistMult * lightFade * specularReflectivePower * 0.5;
 
-						if (lightStrength > 0.0)
-						{
-							if (emissive)
-							{// Move the light a little in the ray direction...
-								lightPos = lightPos + (lightDir * -4.0);
-
-								if (DEBUG_EMISSIVE_LIGHTS > 0.0)
-								{
-									float dbg = distance(normalize(u_ViewOrigin.xyz - lightPos.xyz), E);
-									if (dbg <= 0.01 && distance(lightPos.xyz, u_ViewOrigin.xyz) <= distance(position.xyz, u_ViewOrigin.xyz))
-									{
-										float alpha = (1.0 - pow(dbg * (1.0 / 0.01), 3.0));
-										outColor.rgb = mix(outColor.rgb, vec3(0.0, 0.0, 1.0) * alpha, alpha);
-										continue;
-									}
-								}
-							}
-
-							vec3 lightColor = light.u_lightColors.rgb * power * origColorStrength;
-							float lightSpecularPower = mix(0.1, 0.5, clamp(lightsReflectionFactor, 0.0, 1.0)) * clamp(lightStrength * 12.0, 0.0, 1.0);
-							float light_occlusion = 1.0;
+						float light_occlusion = 1.0;
 
 #ifndef LQ_MODE
-							if (useOcclusion)
-							{
-								light_occlusion = clamp(1.0 - clamp(dot(vec4(lightDir, 1.0), occlusion), 0.0, 1.0) * 0.4 + 0.6, 0.0, 1.0);
-							}
+						if (useOcclusion)
+						{
+							light_occlusion = clamp(1.0 - clamp(dot(vec4(lightDir, 1.0), occlusion), 0.0, 1.0) * 0.4 + 0.6, 0.0, 1.0);
+						}
 #endif //LQ_MODE
 
-							float selfShadow = clamp(pow(clamp(dot(-lightDir.rgb, lightingNormal.rgb), 0.0, 1.0), 8.0) * 0.6 + 0.6, 0.0, 1.0);
-
-							addedLight.rgb = max(addedLight.rgb, Lighting(position, outColor.rgb, lightingNormal, flatNormal, E, lightDir, lightColor, lightSpecularPower, lightPos, wetness) * lightFade * selfShadow * light_occlusion);
-						}
+						addedLight.rgb = clamp(max(addedLight.rgb, Lighting(outColor.rgb, bump, E, lightDir, light.u_lightColors.rgb, smoothness, max(metallicness, wetness)) * lightFade * light_occlusion), 0.0, 1.0);
 					}
 				}
 			}
+		}
 
-			addedLight.rgb *= lightsReflectionFactor; // More grey colors get more colorization from ..
-			outColor.rgb = outColor.rgb + max(addedLight * PshadowValue * MAP_EMISSIVE_COLOR_SCALE, vec3(0.0));
+		outColor.rgb += max(addedLight * PshadowValue * MAP_EMISSIVE_COLOR_SCALE * 3.0 /*2.0*/, vec3(0.0));
+	}
+}
+
+//
+// IBL
+//
+
+vec3 getIBLSkyMap(vec3 dir, float lod)
+{
+	vec3 skyColor = vec3(0.0);
+
+#ifdef _REALTIME_SKYCUBES_
+	skyColor = textureLod(u_SkyCubeMap, dir, lod).rgb;
+#else //!_REALTIME_SKYCUBES_
+	if (NIGHT_SCALE > 0.0 && NIGHT_SCALE < 1.0)
+	{// Mix between night and day colors...
+		vec3 skyColorDay = textureLod(u_SkyCubeMap, dir, lod).rgb;
+		vec3 skyColorNight = textureLod(u_SkyCubeMapNight, dir, lod).rgb;
+		skyColor = mix(skyColorDay, skyColorNight, NIGHT_SCALE);
+	}
+	else if (NIGHT_SCALE >= 1.0)
+	{// Night only colors...
+		skyColor = textureLod(u_SkyCubeMapNight, dir, lod).rgb;
+	}
+	else
+	{// Day only colors...
+		skyColor = textureLod(u_SkyCubeMap, dir, lod).rgb;
+	}
+#endif //_REALTIME_SKYCUBES_
+
+	return skyColor;
+}
+
+vec3 getIBLCubeMap(vec3 dir, float lod, vec4 position)
+{
+	vec3 skyColor = vec3(0.0);
+
+	vec3 N = dir;
+	vec3 E = normalize(u_ViewOrigin.xyz - position.xyz);
+	vec3 sunDir = normalize(u_ViewOrigin.xyz - u_PrimaryLightOrigin.xyz);
+	vec3 rayDir = reflect(E, N);
+	float NE = clamp(length(dot(N, E)), 0.0, 1.0);
+
+#ifdef _CUBEMAPS_
+	if (CUBEMAP_ENABLED > 0.0 && && NE > 0.0 && u_CubeMapStrength > 0.0)
+	{// Cubemaps enabled...
+		float curDist = distance(u_ViewOrigin.xyz, position.xyz);
+		float cubeDist = distance(u_CubeMapInfo.xyz, position.xyz);
+		float cubeRadius = min(CUBEMAP_CULLRANGE, u_CubeMapInfo.w);
+		float cubeFade = min(1.0 - clamp(curDist / CUBEMAP_CULLRANGE, 0.0, 1.0), 1.0 - clamp(cubeDist / u_CubeMapInfo.w, 0.0, 1.0));
+
+		// This used to be done in rend2 code, now done here because I need u_CubeMapInfo.xyz to be cube origin for distance checks above... u_CubeMapInfo.w is now radius.
+		vec4 cubeInfo = u_CubeMapInfo;
+		cubeInfo.xyz = cubeInfo.xyz - u_ViewOrigin.xyz;
+		cubeInfo.w = cubeDist;
+
+		cubeInfo.xyz *= 1.0 / cubeInfo.w;
+		cubeInfo.w = 1.0 / cubeInfo.w;
+
+		vec3 parallax = cubeInfo.xyz + cubeInfo.w * dir;
+		parallax.z *= -1.0;
+
+		if (cubeFade > 0.0)
+		{
+			skyColor = textureLod(u_CubeMap, rayDir + parallax, lod).rgb;
+			skyColor *= clamp(NE * cubeFade * u_CubeMapStrength, 0.0, 1.0));
+		}
+
+		if (length(skyColor) <= 0.0)
+		{// Fallback to sky cubes...
+			skyColor = getIBLSkyMap(dir, lod);
 		}
 	}
+	else
+#endif //_CUBEMAPS_
+	{// Only have sky cubes to use...
+		skyColor = getIBLSkyMap(dir, lod);
+	}
+
+	skyColor = clamp(ContrastSaturationBrightness(skyColor, 1.0, 2.0, 0.333), 0.0, 1.0);
+	skyColor = clamp(Vibrancy(skyColor, 0.4), 0.0, 1.0);
+
+	return skyColor;
+}
+
+#define IBL_USE_SPECULAR_DOMINANT_DIR
+#define IBL_MIN_BLUR 1.
+#define IBL_MAX_BLUR 64.
+#define IBL_GAMMA 2.2
+
+const vec3 IBL_DIELECTRIC_F0 = vec3(0.04);
+
+vec3 getIBLSpecularLightColor(vec3 rd, float roughness, bool enhanceHighlights, vec4 position)
+{
+	roughness = clamp(roughness, 0.0, 1.0);
+	float lod = log2(mix(IBL_MIN_BLUR, IBL_MAX_BLUR, roughness));
+	vec3 t0 = pow(getIBLCubeMap(rd/*.xzy*/, lod, position), vec3(IBL_GAMMA));
+	// The highlights of the "basilica" are pretty dull,
+	// intensify them for direct specular reflections
+	if (enhanceHighlights)
+		t0 *= mix(1.0, 5.0, pow(smoothstep(0.0, 3.0, t0.r + t0.g + t0.b), 2.0));
+	// The large cubemap's blurred versions do not capture well
+	// high-intensity lights, so mix it with the small version.
+	vec3 t1 = pow(getIBLCubeMap(rd/*.xzy*/, lod, position), vec3(IBL_GAMMA));
+	vec3 col = mix(t0, t1, roughness);
+	// White balance
+	vec3 wb = pow(vec3(205., 159., 147.) / 255., vec3(-IBL_GAMMA));
+	return 3.0*wb*col;
+}
+
+vec3 getIBLDominantDir(vec3 rd, vec3 n, float roughness)
+{
+	float smoothness = clamp(1. - roughness, 0., 1.);
+	float lerpFactor = smoothness * (sqrt(smoothness) + roughness);
+	return normalize(mix(n, reflect(rd, n), lerpFactor));
+}
+
+vec3 getIBLDiffuseLightColor(vec3 rd, vec4 position)
+{
+	// So yeah, we don't really have a diffuse model
+	return getIBLSpecularLightColor(rd, 1.0, false, position);
+}
+
+vec3 getIBL(vec3 rd, vec3 normal, vec3 baseColor, vec4 position, float smoothness, float metallicness)
+{
+	float mat_roughness = clamp(1. - smoothness, 0., 1.);
+	float mat_metallic = metallicness;
+
+#ifdef IBL_USE_SPECULAR_DOMINANT_DIR
+	vec3 rrd = getIBLDominantDir(rd, normal, mat_roughness);
+	vec3 h = normalize(-rd + rrd);
+#else
+	vec3 rrd = reflect(rd, normal);
+	vec3 h = normal;
+#endif
+
+	//float roughness = mix(mat_roughness, 1.0, smoothstep(0.0, 0.0001, length(fwidth(rrd))));
+	float roughness = clamp(0.1 + mat_roughness, 0.0, 1.0);
+
+	vec3 diffuseBaseColor = mix(baseColor, vec3(0.), metallicness);
+	vec3 diffuseCol = getIBLDiffuseLightColor(normal, position) * diffuseBaseColor;
+	vec3 specularCol = getIBLSpecularLightColor(rrd, roughness, false, position);
+	vec3 F0 = mix(IBL_DIELECTRIC_F0, baseColor, metallicness);
+	vec3 fre = F0 + (1.0 - F0)*pow(clamp(1.0 - dot(-rd, h), 0.0, 1.0), 5.0);
+	vec3 col = mix(diffuseCol, specularCol, fre);
+
+	/*
+	if (u_Local3.b >= 8.0)
+	{
+		return vec3(roughness);
+	}
+	else if (u_Local3.b >= 7.0)
+	{
+		return vec3(length(dFdy(rrd)));
+	}
+	else if (u_Local3.b >= 6.0)
+	{
+		return vec3(length(dFdx(rrd)));
+	}
+	else if (u_Local3.b >= 5.0)
+	{
+		return vec3(length(fwidth(rrd)));
+	}
+	else if (u_Local3.b >= 4.0)
+	{
+		return diffuseBaseColor;
+	}
+	else if (u_Local3.b >= 3.0)
+	{
+		return diffuseCol;
+	}
+	else if (u_Local3.b >= 2.0)
+	{
+		return specularCol;
+	}
+	else if (u_Local3.b >= 1.0)
+	{
+		return fre;
+	}
+	*/
+
+	return col;
 }
 
 #ifdef _CLOUD_SHADOWS_
@@ -1095,40 +1276,6 @@ float CloudShadows(vec3 position)
 	return (1.0 - (alpha*0.75));
 }
 #endif //_CLOUD_SHADOWS_
-
-// For all settings: 1.0 = 100% 0.5=50% 1.5 = 150%
-vec3 ContrastSaturationBrightness(vec3 color, float con, float sat, float brt)
-{
-	const float AvgLumR = 0.5;
-	const float AvgLumG = 0.5;
-	const float AvgLumB = 0.5;
-	
-	const vec3 LumCoeff = vec3(0.2125, 0.7154, 0.0721);
-	
-	vec3 AvgLumin = vec3(AvgLumR, AvgLumG, AvgLumB);
-	vec3 brtColor = color * brt;
-	vec3 intensity = vec3(dot(brtColor, LumCoeff));
-	vec3 satColor = mix(intensity, brtColor, sat);
-	vec3 conColor = mix(AvgLumin, satColor, con);
-	return conColor;
-}
-
-vec3 ColorGrade( vec3 vColor )
-{
-	vec3 vHue = vec3(1.0, .7, .2);
-	
-	vec3 vGamma = 1.0 + vHue * 0.6;
-	vec3 vGain = vec3(.9) + vHue * vHue * 8.0;
-	
-	vColor *= 1.5;
-	
-	float fMaxLum = 100.0;
-	vColor /= fMaxLum;
-	vColor = pow( vColor, vGamma );
-	vColor *= vGain;
-	vColor *= fMaxLum;  
-	return vColor;
-}
 
 vec3 GetScreenPixel(inout vec2 texCoords)
 {
@@ -1313,16 +1460,8 @@ void main(void)
 	vec3 E = normalize(u_ViewOrigin.xyz - position.xyz);
 	vec3 sunDir = normalize(u_ViewOrigin.xyz - u_PrimaryLightOrigin.xyz);
 	vec3 rayDir = reflect(E, N);
-	vec3 cubeRayDir = reflect(E, flatNorm);
-	float NE = clamp(length(dot(N, E)), 0.0, 1.0);
-
-	float b = clamp(length(outColor.rgb/3.0), 0.0, 1.0);
-	b = clamp(pow(b, 6.0/*64.0*/), 0.0, 1.0);
-	vec3 of = clamp(pow(vec3(b*65536.0), -N), 0.0, 1.0) * 0.333;//0.5;//0.25;
-	vec3 bump = normalize(N+of);
 
 	vec4 occlusion = vec4(0.0);
-	vec4 illumination = vec4(0.0);
 	float sun_occlusion = 1.0;
 	bool useOcclusion = false;
 
@@ -1331,26 +1470,12 @@ void main(void)
 	{
 		useOcclusion = true;
 		occlusion = texture(u_SplatControlMap, texCoords) * 2.0 - 1.0;
-		illumination = texture(u_SplatMap1, texCoords);
+		vec3 illumination = texture(u_SplatMap1, texCoords).rgb;
 
 		sun_occlusion = 1.0 - clamp(dot(vec4(-sunDir, 1.0), occlusion), 0.0, 1.0);
 		sun_occlusion = sun_occlusion * 0.4 + 0.6;
 
-		/*
-		if (u_Local3.r == 1.0)
-		{
-			gl_FragColor = vec4(sun_occlusion, sun_occlusion, sun_occlusion, 1.0);
-			return;
-		}
-
-		if (u_Local3.r == 2.0)
-		{
-			gl_FragColor = vec4(illumination.rgb, 1.0);
-			return;
-		}
-		*/
-
-		outColor.rgb += illumination.rgb * 0.25;
+		outColor.rgb += illumination * 0.25;
 	}
 #endif //_SSDO_
 
@@ -1377,7 +1502,7 @@ void main(void)
 				snowHeightFactor = clamp(pow(snowHeightFactor, PROCEDURAL_SNOW_HEIGHT_CURVE), 0.0, 1.0);
 			}
 
-			float snow = clamp(dot(normalize(bump.xyz), vec3(0.0, 0.0, 1.0)), 0.0, 1.0);
+			float snow = clamp(dot(normalize(N.xyz), vec3(0.0, 0.0, 1.0)), 0.0, 1.0);
 
 			if (position.a - 1.0 == MATERIAL_GREENLEAVES || position.a - 1.0 == MATERIAL_PROCEDURALFOLIAGE)
 				snow = pow(snow * 0.25 + 0.75, 1.333);
@@ -1426,35 +1551,20 @@ void main(void)
 		}
 	}
 
-#define specularReflectivePower		materialSettings.x
-#define reflectionPower				materialSettings.y
-
-	// This should give me roughly how close to grey this color is... For light colorization.. Highly colored stuff should get less color added to it...
-	float greynessFactor = 1.0 - clamp((length(outColor.r - outColor.g) + length(outColor.r - outColor.b) + length(outColor.g - outColor.b)) / 3.0, 0.0, 1.0);
-
-	// Also check how bright it is, so we can scale the lighting up/down...
-	float brightnessFactor = 1.0 - clamp(max(outColor.r, max(outColor.g, outColor.b)), 0.0, 1.0);
-	brightnessFactor = 1.0 - clamp(pow(brightnessFactor,  6.0), 0.0, 1.0);
-
-	// It looks better to use slightly different cube and light reflection multipliers... Lights should always add some light, cubes should allow none on some pixels..
-	float cubeReflectionFactor = clamp(greynessFactor * brightnessFactor, 0.5, 1.0) * reflectionPower;
-	float lightsReflectionFactor = (greynessFactor * brightnessFactor * specularReflectivePower) * 0.5 + 0.5;
+	float smoothness = materialSettings.x;
+	float metallicness = materialSettings.y;
 
 #if defined(_SCREEN_SPACE_REFLECTIONS_)
-	float ssrReflectivePower = lightsReflectionFactor * reflectionPower * ssReflection;
+	float ssrReflectivePower = metallicness * ssReflection;
 	if (isPuddle) ssrReflectivePower = WETNESS * 3.0; // 3x - 8x seems about right...
 	else if (wetness > 0.0) ssrReflectivePower = ssReflection * 0.333;
 	else if (ssrReflectivePower < 0.5) ssrReflectivePower = 0.0; // cull on non-wet stuff, when theres little point...
 #endif //defined(_SCREEN_SPACE_REFLECTIONS_)
 
 #if defined(_CUBEMAPS_) && defined(REALTIME_CUBEMAPS)
-	if (isPuddle) cubeReflectionFactor = WETNESS * 3.0; // 3x - 8x seems about right...
-	else if (wetness > 0.0) cubeReflectionFactor += cubeReflectionFactor*0.333;
+	if (isPuddle) metallicness = WETNESS * 3.0; // 3x - 8x seems about right...
+	else if (wetness > 0.0) metallicness += metallicness*0.333;
 #endif //defined(_CUBEMAPS_) && defined(REALTIME_CUBEMAPS)
-
-	vec3 lightingNormal = normalize(bump * vec3(1.0, 1.0, 0.25));
-	float origColorStrength = clamp(getSpecialSauce(color.rgb) * 0.25, 0.0, 1.0);
-
 
 	float finalShadow = 1.0;
 
@@ -1505,233 +1615,53 @@ void main(void)
 	}
 #endif //defined(USE_SHADOWMAP) && !defined(LQ_MODE)
 
-	vec3 specularColor = vec3(0.0);
-	vec3 skyColor = vec3(0.0);
-
 #ifndef LQ_MODE
-	if (SKY_LIGHT_CONTRIBUTION > 0.0 && (cubeReflectionFactor > 0.0 || reflectionPower > 0.0))
-	{// Sky cube light contributions... If enabled...
-		vec4 cubeInfo = vec4(0.0, 0.0, 0.0, 1.0);
-		cubeInfo.xyz -= u_ViewOrigin.xyz;
+	if (SKY_LIGHT_CONTRIBUTION > 0.0 && metallicness + metallicness > 0.0)
+	{// IBL... If enabled...
+		vec3 skyColor = getIBL(-sunDir, N.xyz, outColor.rgb, position, smoothness, metallicness);
+		float relectPower = clamp(metallicness + metallicness, 0.0, 1.0);
+		outColor.rgb = mix(outColor.rgb, outColor.rgb + skyColor, SKY_LIGHT_CONTRIBUTION * relectPower);
 
-		cubeInfo.w = pow(distance(u_ViewOrigin.xyz, vec3(0.0, 0.0, 0.0)), 3.0);
-
-		cubeInfo.xyz *= 1.0 / cubeInfo.w;
-		cubeInfo.w = 1.0 / cubeInfo.w;
-					
-		vec3 parallax = cubeInfo.xyz + cubeInfo.w * E;
-		parallax.z *= -1.0;
-		
-		vec3 reflected = cubeRayDir + parallax;
-
-		if (PROCEDURAL_SKY_ENABLED <= 0.0)
+		/*
+		if (u_Local3.a >= 2.0)
 		{
-			reflected = vec3(-reflected.y, -reflected.z, -reflected.x); // for old sky cubemap generation based on sky textures
+			gl_FragColor = vec4(vec3(relectPower), 1.0);
+			return;
 		}
-
-#ifdef _REALTIME_SKYCUBES_
-		skyColor = textureLod(u_SkyCubeMap, reflected, 4.0).rgb;
-#else //!_REALTIME_SKYCUBES_
-		if (NIGHT_SCALE > 0.0 && NIGHT_SCALE < 1.0)
-		{// Mix between night and day colors...
-			vec3 skyColorDay = textureLod(u_SkyCubeMap, reflected, 4.0).rgb;
-			vec3 skyColorNight = textureLod(u_SkyCubeMapNight, reflected, 4.0).rgb;
-			skyColor = mix(skyColorDay, skyColorNight, NIGHT_SCALE);
+		else if (u_Local3.a >= 1.0)
+		{
+			gl_FragColor = vec4(skyColor, 1.0);
+			return;
 		}
-		else if (NIGHT_SCALE >= 1.0)
-		{// Night only colors...
-			skyColor = textureLod(u_SkyCubeMapNight, reflected, 4.0).rgb;
-		}
-		else
-		{// Day only colors...
-			skyColor = textureLod(u_SkyCubeMap, reflected, 4.0).rgb;
-		}
-#endif //_REALTIME_SKYCUBES_
-
-		skyColor = clamp(ContrastSaturationBrightness(skyColor, 1.0, 2.0, 0.333), 0.0, 1.0);
-		skyColor = clamp(Vibrancy( skyColor, 0.4 ), 0.0, 1.0);
+		*/
 	}
 #endif //LQ_MODE
-
-	if (specularReflectivePower > 0.0)
-	{
-#ifndef LQ_MODE
-#if defined(_CUBEMAPS_)
-#ifdef REALTIME_CUBEMAPS
-		if (CUBEMAP_ENABLED > 0.0 && cubeReflectionFactor > 0.0 && NE > 0.0 && u_CubeMapStrength > 0.0)
-		{// Cubemaps enabled...
-			float curDist = distance(u_ViewOrigin.xyz, position.xyz);
-			float cubeFade = 1.0 - clamp(curDist / CUBEMAP_CULLRANGE, 0.0, 1.0);
-			cubeFade = pow(cubeFade, 1.5);
-			
-			if (cubeFade > 0.0)
-			{
-				vec3 cubeLightColor = textureLod(u_CubeMap, cubeRayDir, /*0.0*/7.0 - (cubeReflectionFactor * 7.0)).rgb;
-				outColor.rgb = mix(outColor.rgb, outColor.rgb + cubeLightColor.rgb, clamp(NE * cubeFade * (u_CubeMapStrength * 5.0) * cubeReflectionFactor, 0.0, 1.0));
-			}
-		}
-#else //!REALTIME_CUBEMAPS
-		if (CUBEMAP_ENABLED > 0.0 && cubeReflectionFactor > 0.0 && NE > 0.0 && u_CubeMapStrength > 0.0)
-		{// Cubemaps enabled...
-			vec3 cubeLightColor = vec3(0.0);
-			float curDist = distance(u_ViewOrigin.xyz, position.xyz);
-			float cubeDist = distance(u_CubeMapInfo.xyz, position.xyz);
-			float cubeRadius = min(CUBEMAP_CULLRANGE, u_CubeMapInfo.w);
-			float cubeFade = min(1.0 - clamp(curDist / CUBEMAP_CULLRANGE, 0.0, 1.0), 1.0 - clamp(cubeDist / u_CubeMapInfo.w, 0.0, 1.0));
-			
-			// This used to be done in rend2 code, now done here because I need u_CubeMapInfo.xyz to be cube origin for distance checks above... u_CubeMapInfo.w is now radius.
-			vec4 cubeInfo = u_CubeMapInfo;
-			cubeInfo.xyz = cubeInfo.xyz - u_ViewOrigin.xyz;
-			cubeInfo.w = cubeDist;
-
-			cubeInfo.xyz *= 1.0 / cubeInfo.w;
-			cubeInfo.w = 1.0 / cubeInfo.w;
-
-			vec3 parallax = cubeInfo.xyz + cubeInfo.w * E;
-			parallax.z *= -1.0;
-
-			if (cubeFade > 0.0)
-			{
-				cubeLightColor = (textureLod(u_CubeMap, cubeRayDir + parallax, 7.0 - (cubeReflectionFactor * 7.0)).rgb + texture(u_CubeMap, cubeRayDir + parallax).rgb) * 0.5;
-				outColor.rgb = mix(outColor.rgb, outColor.rgb + cubeLightColor.rgb, clamp(NE * cubeFade * (u_CubeMapStrength /** 20.0*/) * cubeReflectionFactor, 0.0, 1.0));
-			}
-		}
-#endif //REALTIME_CUBEMAPS
-		else
-		{
-			if (cubeReflectionFactor > 0.0 && NE > 0.0)
-			{
-				vec2 shinyTC = ((cubeRayDir.xy + cubeRayDir.z) / 2.0) * 0.5 + 0.5;
-
-				vec3 shiny = textureLod(u_WaterEdgeMap, shinyTC, 5.5 - (cubeReflectionFactor * 5.5)).rgb;
-				shiny = clamp(ContrastSaturationBrightness(shiny, 1.75, 1.0, 0.333), 0.0, 1.0);
-				outColor.rgb = mix(outColor.rgb, outColor.rgb + shiny.rgb, clamp(NE * cubeReflectionFactor * (origColorStrength * 0.75 + 0.25), 0.0, 1.0));
-			}
-		}
-#else //!defined(_CUBEMAPS_)
-		if (cubeReflectionFactor > 0.0 && NE > 0.0)
-		{
-			vec2 shinyTC = ((cubeRayDir.xy + cubeRayDir.z) / 2.0) * 0.5 + 0.5;
-
-			vec3 shiny = textureLod(u_WaterEdgeMap, shinyTC, 5.5 - (cubeReflectionFactor * 5.5)).rgb;
-			shiny = clamp(ContrastSaturationBrightness(shiny, 1.75, 1.0, 0.333), 0.0, 1.0);
-			outColor.rgb = mix(outColor.rgb, outColor.rgb + shiny.rgb, clamp(NE * cubeReflectionFactor * (origColorStrength * 0.75 + 0.25), 0.0, 1.0));
-		}
-#endif //defined(_CUBEMAPS_)
-#endif //!LQ_MODE
-	}
-
-	if (SKY_LIGHT_CONTRIBUTION > 0.0 && cubeReflectionFactor > 0.0)
-	{// Sky light contributions...
-#ifndef LQ_MODE
-		outColor.rgb = mix(outColor.rgb, outColor.rgb + skyColor, clamp(NE * SKY_LIGHT_CONTRIBUTION * cubeReflectionFactor * (origColorStrength * 0.75 + 0.25), 0.0, 1.0));
-#endif //LQ_MODE
-	}
 
 	float PshadowValue = 1.0;
 
-	if (lightsReflectionFactor > 0.0)
+	if (smoothness > 0.0)
 	{
 		PshadowValue = 1.0 - texture(u_RoadsControlMap, texCoords).a;
 	}
 
-	if (SUN_PHONG_SCALE > 0.0 && lightsReflectionFactor > 0.0)
+	if (SUN_PHONG_SCALE > 0.0 && smoothness > 0.0 && NIGHT_SCALE < 1.0 && finalShadow > 0.0)
 	{// If r_blinnPhong is <= 0.0 then this is pointless...
-		float phongFactor = (SUN_PHONG_SCALE * 12.0);
+		vec3 lightColor = Vibrancy(u_PrimaryLightColor.rgb, 1.0);
+		lightColor *= SUN_PHONG_SCALE;
+		lightColor *= 1.0 - NIGHT_SCALE; // Day->Night scaling of sunlight...
 
-		if (phongFactor > 0.0 && NIGHT_SCALE < 1.0 && finalShadow > 0.0)
-		{// this is blinn phong
-			float maxBright = clamp(max(outColor.r, max(outColor.g, outColor.b)), 0.0, 1.0);
-			vec3 lightColor = Vibrancy(u_PrimaryLightColor.rgb, 1.0);
-			float power = clamp(pow(maxBright * 0.75, 4.0) + 0.333, 0.0, 1.0);
-			float lightMult = clamp(specularReflectivePower * power, 0.0, 1.0);
+		vec3 addColor = Lighting(outColor.rgb, N.xyz, E, -sunDir, lightColor, smoothness, max(metallicness, wetness));
 
-			if (lightMult > 0.0)
-			{
-				lightColor *= lightMult;
-				lightColor *= 1.0 - NIGHT_SCALE; // Day->Night scaling of sunlight...
-
-				lightColor.rgb *= lightsReflectionFactor * phongFactor * origColorStrength * 8.0;
-
-				vec3 addColor = Lighting(position, outColor.rgb, lightingNormal, flatNorm, E, -sunDir, clamp(lightColor, 0.0, 1.0), 1.0, u_PrimaryLightOrigin.xyz, wetness);
-
-				addColor *= sun_occlusion;
-
-				if (position.a - 1.0 == MATERIAL_GREENLEAVES || position.a - 1.0 == MATERIAL_PROCEDURALFOLIAGE)
-				{// Light bleeding through tree leaves...
-					float ndotl = clamp(dot(lightingNormal, sunDir), 0.0, 1.0);
-					float diffuse = pow(ndotl, 2.0) * 1.25;
-
-					addColor += lightColor * diffuse;
-				}
-
-				float puddleMult = 1.0;
-				if (isPuddle) puddleMult = 0.25;
-				outColor.rgb = outColor.rgb + max(addColor * PshadowValue * finalShadow * puddleMult, vec3(0.0));
-			}
-		}
+		outColor.rgb += addColor * PshadowValue * finalShadow * sun_occlusion;// 0.25;
 	}
 
-	if (lightsReflectionFactor > 0.0)
+	if (smoothness > 0.0)
 	{
-#ifdef USE_LIGHTS_SSBO
-		GetSSBOLighting(false, origColorStrength, lightsReflectionFactor, specularReflectivePower, position, lightingNormal, flatNorm, E, wetness, useOcclusion, occlusion, PshadowValue, outColor);
+		GetSSBOLighting(false, smoothness, metallicness, position, N.xyz, E, wetness, useOcclusion, occlusion, PshadowValue, outColor);
 
-	#ifdef _USE_MAP_EMMISSIVE_BLOCK_
-		GetSSBOLighting(true, origColorStrength, lightsReflectionFactor, specularReflectivePower, position, lightingNormal, flatNorm, E, wetness, useOcclusion, occlusion, PshadowValue, outColor);
-	#endif //_USE_MAP_EMMISSIVE_BLOCK_
-#else //!USE_LIGHTS_SSBO
-		if (u_lightCount > 0.0)
-		{
-			vec3 addedLight = vec3(0.0);
-
-			for (int li = 0; li < u_lightCount; li++)
-			{
-				vec3 lightPos = u_lightPositions2[li].xyz;
-				vec3 lightDir = normalize(lightPos - position.xyz);
-				float lightDist = distance(lightPos, position.xyz);
-
-				float lightPlayerDist = distance(lightPos.xyz, u_ViewOrigin.xyz);
-
-				float lightDistMult = 1.0 - clamp((lightPlayerDist / MAX_DEFERRED_LIGHT_RANGE), 0.0, 1.0);
-				lightDistMult = pow(lightDistMult, 2.0);
-
-				if (lightDistMult > 0.0)
-				{
-					// Attenuation...
-					float lightFade = 1.0 - clamp((lightDist * lightDist) / (u_lightDistances[li] * u_lightDistances[li]), 0.0, 1.0);
-					lightFade = pow(lightFade, 2.0);
-
-					if (lightFade > 0.0)
-					{
-						float lightStrength = lightDistMult * lightFade * lightsReflectionFactor * 0.5;
-						float maxLightsScale = mix(0.01, 1.0, clamp(pow(1.0 - (lightPlayerDist / u_lightMaxDistance), 0.5), 0.0, 1.0));
-						lightStrength *= maxLightsScale;
-
-						if (lightStrength > 0.0)
-						{
-							vec3 lightColor = (u_lightColors[li].rgb / length(u_lightColors[li].rgb)) /** MAP_EMISSIVE_COLOR_SCALE*/ * maxLightsScale;
-							float selfShadow = clamp(pow(clamp(dot(-lightDir.rgb, bump.rgb), 0.0, 1.0), 8.0) * 0.6 + 0.6, 0.0, 1.0);
-
-							float lightSpecularPower = mix(0.1, 0.5, clamp(lightsReflectionFactor, 0.0, 1.0)) * clamp(lightStrength * 12.0, 0.0, 1.0);
-
-							addedLight.rgb += Lighting(position, outColor.rgb, bump, flatNorm, E, lightDir, lightColor/*clamp(lightColor, 0.0, 1.0)*/, lightSpecularPower, lightPos, wetness) * lightFade * selfShadow;
-
-							if (position.a - 1.0 == MATERIAL_GREENLEAVES || position.a - 1.0 == MATERIAL_PROCEDURALFOLIAGE)
-							{// Light bleeding through tree leaves...
-								float ndotl = clamp(dot(bump, -lightDir), 0.0, 1.0);
-								float diffuse = pow(ndotl, 2.0) * 4.0;
-
-								addedLight.rgb += lightColor * diffuse * lightFade * selfShadow * lightSpecularPower;
-							}
-						}
-					}
-				}
-			}
-
-			outColor.rgb = outColor.rgb + max(addedLight * 0.5 * PshadowValue * MAP_EMISSIVE_COLOR_SCALE, vec3(0.0));
-		}
-#endif //USE_LIGHTS_SSBO
+#ifdef _USE_MAP_EMMISSIVE_BLOCK_
+		GetSSBOLighting(true, smoothness, metallicness, position, N.xyz, E, wetness, useOcclusion, occlusion, PshadowValue, outColor);
+#endif //_USE_MAP_EMMISSIVE_BLOCK_
 	}
 
 #if defined(_SCREEN_SPACE_REFLECTIONS_)
@@ -1754,7 +1684,7 @@ void main(void)
 	#endif //defined(_ENHANCED_AO_)
 		{// Fast AO enabled...
 			float ao = calculateAO(sunDir, N * 10000.0, texCoords);
-			float selfShadow = clamp(pow(clamp(dot(-sunDir.rgb, bump.rgb), 0.0, 1.0), 8.0), 0.0, 1.0);
+			float selfShadow = clamp(pow(clamp(dot(-sunDir.rgb, N.xyz), 0.0, 1.0), 8.0), 0.0, 1.0);
 			ao = clamp(((ao + selfShadow) / 2.0) * AO_MULTBRIGHT + AO_MINBRIGHT, AO_MINBRIGHT, 1.0);
 			outColor.rgb *= ao;
 		}
@@ -1812,7 +1742,7 @@ void main(void)
 #if defined(_AMBIENT_OCCLUSION_)
 		// Fast AO enabled...
 		float fao = calculateAO(sunDir, N * 10000.0, texCoords);
-		float selfShadow = clamp(pow(clamp(dot(-sunDir.rgb, bump.rgb), 0.0, 1.0), 8.0), 0.0, 1.0);
+		float selfShadow = clamp(pow(clamp(dot(-sunDir.rgb, N.xyz), 0.0, 1.0), 8.0), 0.0, 1.0);
 		fao = (fao + selfShadow) / 2.0;
 		sao = min(sao, fao);
 #endif //defined(_AMBIENT_OCCLUSION_)
