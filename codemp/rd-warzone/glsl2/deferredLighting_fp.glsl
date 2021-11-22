@@ -852,15 +852,173 @@ vec3 Lighting(vec3 color, vec3 bump, vec3 view, vec3 light, vec3 lightColor, flo
 	return ((lightColor * directAmbience * ss) + (lightColor * ss * base) + (lightColor * specular * ss)) * color * selfShadow;
 }
 
+//#define _LIGHT_VOLUMETRICS_
+
+#ifdef _LIGHT_VOLUMETRICS_
+float RaySphereIntersection(vec3 rayPos, vec3 rayDir, vec3 spherePos, float sphereRadius, out vec3 hitpos, out vec3 normal)
+{
+	/*vec3 v = rayPos - spherePos;
+	float B = 2.0 * dot(rayDir, v);
+	float C = dot(v, v) - sphereRadius * sphereRadius;
+	float B2 = B * B;
+
+	float f = B2 - 4.0 * C;
+
+	if (f < 0.0)
+		return 0.0;
+
+	float t0 = -B + sqrt(f);
+	float t1 = -B - sqrt(f);
+	float t = min(max(t0, 0.0), max(t1, 0.0)) * 0.5;
+
+	if (t == 0.0)
+		return 0.0;
+
+	hitpos = rayPos + t * rayDir;
+	normal = normalize(hitpos - spherePos);
+
+	return t;*/
+
+	hitpos = vec3(0.0);
+	normal = vec3(0.0);
+
+	/*vec3 m = rayPos - spherePos;
+	float b = dot(m, rayDir);
+	float c = dot(m, m) - sphereRadius * sphereRadius;
+	// Exit if r’s origin outside s (c > 0) and r pointing away from s (b > 0)
+	if (c > 0.0 && b > 0.0) {
+		return 0.0;
+	}
+	float discr = b * b - c;
+	// A negative discriminant corresponds to ray missing sphere
+	if (discr < 0.0) {
+		return 0.0;
+	}
+	// Ray now found to intersect sphere, compute smallest t value of intersection
+	float t = -b - sqrt(discr);
+	
+	// If t is negative, ray started inside sphere so clamp t to zero
+	if (t < 0.0) {
+		t = 0.0;
+	}
+
+	hitpos = rayPos + (t * rayDir);
+	normal = normalize(hitpos - spherePos);
+
+	return t;*/
+
+	vec3 o_minus_c = rayPos - spherePos;
+
+	float p = dot(rayDir, o_minus_c);
+	float q = dot(o_minus_c, o_minus_c) - (sphereRadius * sphereRadius);
+
+	float discriminant = (p * p) - q;
+	if (discriminant < 0.0f)
+	{
+		return 0.0;
+	}
+
+	float dRoot = sqrt(discriminant);
+	float dist1 = -p - dRoot;
+	float dist2 = -p + dRoot;
+
+	//return (discriminant > 1e-7) ? 2 : 1;
+
+	float t = min(max(dist1, 0.0), max(dist2, 0.0));
+
+	hitpos = rayPos + (t * rayDir);
+	normal = normalize(hitpos - spherePos);
+
+	return t;
+}
+
+vec3 GetLightVolume(vec3 rayPos, vec3 rayDir, Lights_t light, float pixelDistance, float lightDistance)
+{
+	vec3 lighting = vec3(0.0);
+
+	if (lightDistance <= light.u_lightPositions2.w)
+	{// We are inside the light's sphere...
+		float attenuation = 1.0 - clamp((lightDistance * lightDistance) / (light.u_lightPositions2.w * light.u_lightPositions2.w), 0.0, 1.0);
+		attenuation = pow(attenuation, u_Local3.g);
+		lighting = light.u_lightColors.rgb * attenuation * u_Local3.r;
+	}
+	else
+	{
+		vec3 hitpos;
+		vec3 normal;
+
+		float hit = RaySphereIntersection(rayPos, rayDir, light.u_lightPositions2.xyz, light.u_lightPositions2.w, hitpos, normal);
+
+		if (hit != 0.0)
+		{// Our ray passed through the light, calculate some volume GI...
+			float hitDistance = distance(rayPos, hitpos);
+
+			//if (hitDistance <= pixelDistance)
+			{
+				float lightDistanceMult = 1.0 - clamp(/*hitDistance*/lightDistance / MAX_DEFERRED_LIGHT_RANGE, 0.0, 1.0);
+
+				//float attenuationDistance = distance(hitpos, light.u_lightPositions2.xyz);
+				//float attenuationDistanceMult = 1.0 - clamp((attenuationDistance * attenuationDistance) / (light.u_lightPositions2.w * light.u_lightPositions2.w), 0.0, 1.0);
+				float attenuationDistanceMult = 1.0;
+				attenuationDistanceMult = pow(attenuationDistanceMult, u_Local3.g);
+
+				/*if (u_Local3.g == 1.0)
+				{
+					attenuationDistanceMult = 1.0;
+				}*/
+
+				float attenuation = lightDistanceMult * attenuationDistanceMult;
+
+				vec3 light = light.u_lightColors.rgb * attenuation * u_Local3.r;
+
+				/*if (u_Local3.b > 0.0)
+				{
+					light *= hit;
+				}
+
+				if (u_Local3.a == 1.0)
+				{
+					light = vec3(lightDistanceMult);
+				}
+				else if (u_Local3.a == 2.0)
+				{
+					light = vec3(attenuationDistanceMult);
+				}
+				else if (u_Local3.a == 3.0)
+				{
+					light = vec3(attenuation);
+				}
+				else if (u_Local3.a == 4.0)
+				{
+					light = normal * 0.5 + 0.5;
+				}
+				else if (u_Local3.a == 5.0)
+				{
+					light = vec3(hit);
+				}
+				else if (u_Local3.a == 6.0)
+				{
+					vec3 hitdir = normalize(hitpos - rayPos);
+					float hitdist = distance(hitdir, rayDir);
+
+					if (hitdist < u_Local3.g)
+					{
+						light = vec3(1.0 - (hitdist / u_Local3.g));
+					}
+				}*/
+
+				lighting = light;
+			}
+		}
+	}
+
+	return lighting;
+}
+#endif //_LIGHT_VOLUMETRICS_
+
 void GetSSBOLighting(bool emissive, float smoothness, float metallicness, vec4 position, vec3 bump, vec3 E, float wetness, bool useOcclusion, vec4 occlusion, float PshadowValue, inout vec4 outColor)
 {
 	float pixelDistance = distance(position.xyz, u_ViewOrigin.xyz);
-
-	if (pixelDistance > MAX_DEFERRED_LIGHT_RANGE)
-	{
-		return;
-	}
-
 	float pixelDistanceMult = 1.0 - (pixelDistance / MAX_DEFERRED_LIGHT_RANGE);
 
 	int lightCount = u_lightCount;
@@ -868,7 +1026,7 @@ void GetSSBOLighting(bool emissive, float smoothness, float metallicness, vec4 p
 	if (emissive) lightCount = u_emissiveLightCount;
 #endif //_USE_MAP_EMMISSIVE_BLOCK_
 	
-	if (lightCount > 0.0 && pixelDistanceMult > 0.0)
+	if (lightCount > 0.0)
 	{
 		vec3 addedLight = vec3(0.0);
 
@@ -892,16 +1050,26 @@ void GetSSBOLighting(bool emissive, float smoothness, float metallicness, vec4 p
 #endif //_USE_MAP_EMMISSIVE_BLOCK_
 
 			vec3 lightPos = light.u_lightPositions2.xyz;
-			float lightDist = distance(lightPos, position.xyz);
-
-			if (lightDist > light.u_lightPositions2.w)
-			{
-				continue;
-			}
 
 			float lightPlayerDist = distance(lightPos.xyz, u_ViewOrigin.xyz);
 
 			if (lightPlayerDist > MAX_DEFERRED_LIGHT_RANGE)
+			{
+				continue;
+			}
+
+#ifdef _LIGHT_VOLUMETRICS_
+			outColor.rgb += GetLightVolume(u_ViewOrigin.xyz, normalize(position.xyz - u_ViewOrigin.xyz), light, pixelDistance, lightPlayerDist);
+#endif //_LIGHT_VOLUMETRICS_
+
+			if (pixelDistance > MAX_DEFERRED_LIGHT_RANGE || pixelDistanceMult <= 0.0)
+			{
+				continue;
+			}
+
+			float lightDist = distance(lightPos, position.xyz);
+
+			if (lightDist > light.u_lightPositions2.w)
 			{
 				continue;
 			}
