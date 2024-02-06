@@ -19,6 +19,13 @@ along with Quake III Arena source code; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
+
+#ifdef WIN32
+#include <io.h>
+#define F_OK 0
+#define access _access
+#endif
+
 // tr_image.c
 #include "tr_local.h"
 #include "glext.h"
@@ -3893,6 +3900,164 @@ void R_GetTextureAverageColor(const byte *in, int width, int height, qboolean US
 	avgColor[3] = 1.0;// average[3];
 }
 
+#define __AI_UPSCALE__
+
+#ifdef __AI_UPSCALE__
+/*
+===============
+R_ImageUpscale
+
+Upscales an image using AI.
+Returns NULL if it fails, not a default image.
+==============
+*/
+
+#define FORMAT_STR2(Buffer, ...)		sprintf_s(Buffer, sizeof(Buffer), ##__VA_ARGS__)
+
+qboolean R_ImageUpscale(char *originalFilename, char *newFilename, int scale, char *ext)
+{
+	char Command[1024] = { 0 };
+	
+
+	FORMAT_STR2(Command, "upscaler\\bin\\upscale.exe -i \"%s\" -o \"%s\" -s %i -m upscaler\\models\\ -n upscayl-ultrasharp-v2 -f %s", originalFilename, newFilename, scale, ext);
+	//FORMAT_STR2(Command, "upscaler\\bin\\upscale.exe -i \"%s\" -o \"%s\" -s %i -m upscaler\\models\\ -n xintao-realesrgan-x4plus -f %s", originalFilename, newFilename, scale, ext);
+	//FORMAT_STR2(Command, "upscaler\\bin\\upscale.exe -i \"%s\" -o \"%s\" -s %i -m upscaler\\models\\ -n upscayl-ultramix_balanced -f %s", originalFilename, newFilename, scale, ext);
+	//FORMAT_STR2(Command, "upscaler\\bin\\upscale.exe -i \"%s\" -o \"%s\" -s %i -m upscaler\\models\\ -n upscayl-remacri -f %s", originalFilename, newFilename, scale, ext);
+
+	STARTUPINFO si = { 0 };
+	si.cb = sizeof(si);
+
+	PROCESS_INFORMATION pi;
+	LPSTR cmd = Command;
+
+	BOOL res = CreateProcess(NULL,
+		cmd,
+		NULL, NULL,
+		FALSE, CREATE_NO_WINDOW,
+		NULL, NULL,
+		&si, &pi);
+	
+	if (!res)
+	{
+		ri->Printf(PRINT_WARNING, "FAILED to AI upscale image %s.\n", originalFilename);
+		return qfalse;
+	}
+	else if (true/*aSleepUntilDone*/) // maybe add threading later...
+	{
+		WaitForSingleObject(pi.hProcess, INFINITE);
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
+	}
+	else
+	{
+
+	}
+
+	return qtrue;
+}
+
+char upscaledTexName[MAX_IMAGE_PATH] = { 0 }; // not thread safe, but we are not threading anywhere here...
+
+char *FS_UpscaledTextureFileExists(const char *name)
+{
+	if (!name || !name[0] || name[0] == '\0' || strlen(name) <= 1) return NULL;
+
+	char strippedTexName[MAX_IMAGE_PATH] = { 0 };
+	memset(&strippedTexName, 0, sizeof(char) * MAX_IMAGE_PATH);
+	COM_StripExtension(name, strippedTexName, MAX_IMAGE_PATH);
+
+	sprintf(upscaledTexName, "%s_upscaled.png", strippedTexName);
+
+	if (ri->FS_FileExists(upscaledTexName))
+	{
+		return upscaledTexName;
+	}
+
+	sprintf(upscaledTexName, "%s_upscaled.tga", strippedTexName);
+
+	if (ri->FS_FileExists(upscaledTexName))
+	{
+		return upscaledTexName;
+	}
+
+	sprintf(upscaledTexName, "%s_upscaled.jpg", strippedTexName);
+
+	if (ri->FS_FileExists(upscaledTexName))
+	{
+		return upscaledTexName;
+	}
+
+	return NULL;
+}
+
+#include <windows.h>
+#include <iostream>
+#include <shlobj.h>
+
+#pragma comment(lib, "shell32.lib")
+
+std::string GetMyDocumentsFolderPath()
+{
+	wchar_t Folder[1024];
+	HRESULT hr = SHGetFolderPathW(0, CSIDL_MYDOCUMENTS, 0, 0, Folder);
+	if (SUCCEEDED(hr))
+	{
+		char str[1024];
+		wcstombs(str, Folder, 1023);
+		return str;
+	}
+	else return "";
+}
+
+void createDirectoryRecursively(const std::wstring &directory) {
+	static const std::wstring separators(L"\\/");
+
+	// If the specified directory name doesn't exist, do our thing
+	DWORD fileAttributes = ::GetFileAttributesW(directory.c_str());
+	if (fileAttributes == INVALID_FILE_ATTRIBUTES) {
+
+		// Recursively do it all again for the parent directory, if any
+		std::size_t slashIndex = directory.find_last_of(separators);
+		if (slashIndex != std::wstring::npos) {
+			createDirectoryRecursively(directory.substr(0, slashIndex));
+		}
+
+		// Create the last directory on the path (the recursive calls will have taken
+		// care of the parent directories by now)
+		BOOL result = ::CreateDirectoryW(directory.c_str(), nullptr);
+		if (result == FALSE) {
+			throw std::runtime_error("Could not create directory");
+		}
+
+	}
+	else { // Specified directory name already exists as a file or directory
+
+		bool isDirectoryOrJunction =
+			((fileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) ||
+			((fileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0);
+
+		if (!isDirectoryOrJunction) {
+			throw std::runtime_error(
+				"Could not create directory because a file with the same name exists"
+			);
+		}
+
+	}
+}
+
+std::wstring s2ws(const std::string& str)
+{
+	int size_needed = MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), NULL, 0);
+	std::wstring wstrTo(size_needed, 0);
+	MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &wstrTo[0], size_needed);
+	return wstrTo;
+}
+
+#include <filesystem>
+using namespace std;
+using namespace std::tr2::sys;
+#endif //__AI_UPSCALE__
+
 /*
 ===============
 R_FindImageFile
@@ -4144,7 +4309,7 @@ uint32_t crc32c(uint32_t crc, const unsigned char *buf, size_t len)
 extern int skyImageNum;
 extern byte *skyImagesData[6];
 
-image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
+image_t	*R_FindImageFile(const char *name, imgType_t type, int flags)
 {
 	image_t	*image = NULL;
 	int		width, height;
@@ -4152,7 +4317,7 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 	qboolean USE_ALPHA = qfalse;
 	long	hash;
 
-	if (!name || ri->Cvar_VariableIntegerValue( "dedicated" )) {
+	if (!name || ri->Cvar_VariableIntegerValue("dedicated")) {
 		return NULL;
 	}
 
@@ -4166,13 +4331,13 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 	//
 	// see if the image is already loaded
 	//
-	for (image=hashTable[hash]; image; image=image->next) {
-		if ( !strcmp( name, image->imgName ) ) {
+	for (image = hashTable[hash]; image; image = image->next) {
+		if (!strcmp(name, image->imgName)) {
 #ifdef __DEVELOPER_MODE__
 			// the white image can be used with any set of parms, but other mismatches are errors
-			if ( strcmp( name, "*white" ) ) {
-				if ( image->flags != flags ) {
-					ri->Printf( PRINT_DEVELOPER, "WARNING: reused image %s with mixed flags (%i vs %i)\n", name, image->flags, flags );
+			if (strcmp(name, "*white")) {
+				if (image->flags != flags) {
+					ri->Printf(PRINT_DEVELOPER, "WARNING: reused image %s with mixed flags (%i vs %i)\n", name, image->flags, flags);
 				}
 			}
 #endif //__DEVELOPER_MODE__
@@ -4180,13 +4345,13 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 		}
 	}
 
-	if (r_cartoon->integer 
-		&& type != IMGTYPE_COLORALPHA 
+	if (r_cartoon->integer
+		&& type != IMGTYPE_COLORALPHA
 		&& type != IMGTYPE_DETAILMAP
 		&& type != IMGTYPE_STEEPMAP
 		&& type != IMGTYPE_WATER_EDGE_MAP
-		/*&& type != IMGTYPE_SPLATMAP1 
-		&& type != IMGTYPE_SPLATMAP2 
+		/*&& type != IMGTYPE_SPLATMAP1
+		&& type != IMGTYPE_SPLATMAP2
 		&& type != IMGTYPE_SPLATMAP3*/
 		&& type != IMGTYPE_SPLATCONTROLMAP
 		&& type != IMGTYPE_ROOFMAP)
@@ -4202,7 +4367,177 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 	int picNumMips = 0;
 #endif
 
+#ifdef __AI_UPSCALE__
+	extern char *FS_TextureFileExists(const char *name);
+	char *ext;
+	char *fileExists = FS_UpscaledTextureFileExists(name);
+
+	if (fileExists)
+	{// Already upscaled this one...
+		ext = (char *)R_LoadImage(fileExists, &pic, &width, &height);
+		//ri->Printf(PRINT_WARNING, "AI upscaled texture found %s\n", fileExists);
+	}
+	/*else if (!(type == IMGTYPE_COLORALPHA
+		|| type == IMGTYPE_STEEPMAP
+		|| type == IMGTYPE_WATER_EDGE_MAP
+		|| type == IMGTYPE_SPLATMAP1
+		|| type == IMGTYPE_SPLATMAP2
+		|| type == IMGTYPE_SPLATMAP3))
+	{
+		ext = (char *)R_LoadImage(name, &pic, &width, &height);
+	}*/
+	else
+	{// Need to upscale???
+		ext = (char *)R_LoadImage(name, &pic, &width, &height);
+
+		if (pic == NULL) {
+			return NULL;
+		}
+
+		/*if (!Q_stricmp(name, "menu/splash"))
+		{
+			ri->Printf(PRINT_WARNING, "AI upscaler ignoring splash screen %s.\n", name);
+		}*/
+
+		if (ext != NULL && pic != NULL && Q_stricmp((char *)pic, "\0") /*&& Q_stricmp(name, "menu/splash")*/)
+		{
+			if (!Q_stricmp(ext, "jpg") || !Q_stricmp(ext, "png") || !Q_stricmp(ext, "tga"))
+			{
+				int maxPixels = (width >= height) ? width : height;
+
+				if (maxPixels < /*1024*/2048)
+				{
+					char *origName = FS_TextureFileExists(name);
+
+					char newFilename[MAX_IMAGE_PATH] = { 0 };
+					char strippedTexName[MAX_IMAGE_PATH] = { 0 };
+					COM_StripExtension(name, strippedTexName, MAX_IMAGE_PATH);
+					sprintf(newFilename, "%s_upscaled.%s", strippedTexName, ext);
+
+					int scale = 4;
+
+					float wantScale = 2048.0 / maxPixels;
+					scale = wantScale;
+					if (scale > 4) scale = 4;
+
+					/*
+					RE_SavePNG(va("%s_aliasMap.png", outputName), finalPic, 4096, 4096, 4);
+					RE_SavePNG( fileName, buffer, width, height, 3 );
+					RE_SaveJPG(fileName, 100, width, height, buffer + offset, padlen);
+					void RE_SaveJPG(const char * filename, int quality, int image_width, int image_height, byte *image_buffer, int padding);
+					*/
+
+					if (ext != NULL && scale > 1)
+					{
+						std::string myDocs = GetMyDocumentsFolderPath();
+						std::string wzDocs = myDocs;
+						wzDocs.append("\\My Games\\Warzone\\warzone\\");
+
+						char tempFilename[MAX_IMAGE_PATH] = { 0 };
+						//Com_sprintf(tempFilename, sizeof(tempFilename), "%TEMP%/upscaler_input.%s", ext);
+						//CreateDirectory("temp", NULL);
+						Com_sprintf(tempFilename, sizeof(tempFilename), "temp/upscaler_input.%s", "png"/*ext*/);
+
+						remove(tempFilename);
+
+						char realTempFilename[MAX_IMAGE_PATH] = { 0 };
+						Com_sprintf(realTempFilename, sizeof(realTempFilename), "%stemp\\upscaler_input.%s", wzDocs.c_str(), "png"/*ext*/);
+
+						char realNewFilename[MAX_IMAGE_PATH] = { 0 };
+						COM_StripExtension(newFilename, strippedTexName, MAX_IMAGE_PATH);
+						sprintf(realNewFilename, "%s%s.%s", wzDocs.c_str(), strippedTexName, "png"/*ext*/);
+
+
+						path p(realNewFilename);
+						p.remove_filename();
+						char *realNewFolder = (char *)p.c_str();
+
+
+						char strippedTexName[MAX_IMAGE_PATH] = { 0 };
+						std::wstring realNewFolderWS(s2ws(realNewFolder));
+						createDirectoryRecursively(realNewFolderWS);
+
+						ri->Printf(PRINT_WARNING, "AI upscaling texture %s by x%i (%ix%i -> %ix%i).\n", origName, scale, width, height, width*scale, height*scale);
+
+						int bitDepth = 4;
+
+						//if (!Q_stricmp(ext, "jpg"))
+						//	bitDepth = 3;
+
+						extern int RE_SavePNG_Flipped(const char *filename, byte *buf, size_t width, size_t height, int byteDepth);
+						/*if (!Q_stricmp(ext, "jpg"))
+						{
+							RE_SaveJPG(tempFilename, 100, width, height, pic, 0);
+						}
+						else if (!Q_stricmp(ext, "png"))
+						{*/
+						try
+						{
+							RE_SavePNG_Flipped(tempFilename, pic, width, height, bitDepth);
+						}
+						catch (exception & e) 
+						{
+							ri->Printf(PRINT_WARNING, "RE_SavePNG_Flipped Error: %s.\n", e.what());
+							remove(realTempFilename);
+						}
+						catch (...) 
+						{
+							ri->Printf(PRINT_WARNING, "RE_SavePNG_Flipped Error: Unknown Exception.\n");
+							remove(realTempFilename);
+						}
+						//}
+
+						Z_Free(pic);
+
+						//ri->Printf(PRINT_WARNING, "AI upscaling saved %s\n", tempFilename);
+
+						/*if (!Q_stricmp(ext, "jpg") || !Q_stricmp(ext, "tga"))
+						{// AI upscaler adds extentsion if it is changed...
+							COM_StripExtension(newFilename, strippedTexName, MAX_IMAGE_PATH);
+							sprintf(realNewFilename, "%s%s", wzDocs.c_str(), strippedTexName);
+						}*/
+						
+						if (/*ri->FS_FileExists(tempFilename)*/exists(realTempFilename))
+						{
+							//ri->Printf(PRINT_WARNING, "%s exists.\n", tempFilename);
+							//ri->Printf(PRINT_WARNING, "R_ImageUpscale: %s > %s\n", realTempFilename, realNewFilename);
+
+							if (R_ImageUpscale(realTempFilename, realNewFilename, scale, ext))
+							{
+								if (!Q_stricmp(ext, "jpg") || !Q_stricmp(ext, "tga"))
+								{// AI upscaler adds extentsion if it is changed...
+									char badFilename[MAX_IMAGE_PATH] = { 0 };
+									COM_StripExtension(newFilename, strippedTexName, MAX_IMAGE_PATH);
+									sprintf(badFilename, "%s%s.%s.%s", wzDocs.c_str(), strippedTexName, ext, "png");
+									rename(badFilename, realNewFilename);
+									//ri->Printf(PRINT_WARNING, "%s > %s\n", badFilename, realNewFilename);
+								}
+
+								ext = (char *)R_LoadImage(newFilename, &pic, &width, &height);
+
+								if (ext != NULL && pic != NULL)
+								{
+									ri->Printf(PRINT_WARNING, "AI upscaled texture %s successfully.\n", origName);
+								}
+								else
+								{
+									ri->Printf(PRINT_WARNING, "AI failed to upscale texture %s.\n", origName);
+									ext = (char *)R_LoadImage(name, &pic, &width, &height);
+								}
+							}
+						}
+						else
+						{
+							ri->Printf(PRINT_WARNING, "AI upscaler failed to save %s\n", tempFilename);
+						}
+					}
+				}
+			}
+		}
+	}
+#else //!__AI_UPSCALE__
 	const char *ext = R_LoadImage(name, &pic, &width, &height);
+#endif //__AI_UPSCALE__
 
 #ifdef __TINY_IMAGE_LOADER__
 	qboolean isTIL = qfalse;
@@ -4420,15 +4755,8 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 
 			width = height = 2;
 
-			//pic = (byte *)Z_Malloc(width * height * 4 * sizeof(byte), TAG_IMAGE_T, qfalse, 0);
 			pic = (byte *)Z_Malloc(width * height * 3 * sizeof(byte), TAG_IMAGE_T, qfalse, 0);
 
-			/*byte *inByte = (byte *)&pic[0];
-
-			for (int y = 0; y < height; y++)
-			{
-				for (int x = 0; x < width; x++)
-				{*/
 #pragma omp parallel for schedule(dynamic) num_threads(8) if (max(width, height) >= 512)
 			for (int y = 0; y < height; y++)
 			{
