@@ -1986,6 +1986,7 @@ void GUI_PostProcessMakeCvarList() {
 	GUI_PostProcessAddCvar(r_shownormals, 4);
 	GUI_PostProcessAddCvar(r_trueAnaglyph, 2);
 	GUI_PostProcessAddCvar(r_occlusion, 1);
+	GUI_PostProcessAddCvar(r_fsr, 1);
 }
 
 static void

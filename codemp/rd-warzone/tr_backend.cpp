@@ -4011,6 +4011,19 @@ const void *RB_PostProcess(const void *data)
 			DEBUG_EndTimer(qtrue);
 		}
 
+		if (r_fsr->integer)
+		{
+			DEBUG_StartTimer("FSR Upscale", qtrue);
+			RB_FSR_Upscale(currentFbo, srcBox, currentOutFbo, dstBox);
+			RB_SwapFBOs(&currentFbo, &currentOutFbo);
+			DEBUG_EndTimer(qtrue);
+
+			DEBUG_StartTimer("FSR Sharpen", qtrue);
+			RB_FSR_Upscale(currentFbo, srcBox, currentOutFbo, dstBox);
+			RB_SwapFBOs(&currentFbo, &currentOutFbo);
+			DEBUG_EndTimer(qtrue);
+		}
+
 #if 0 // FIXME: TXAA is broken atm...
 		if (!SCREEN_BLUR && r_txaa->integer) // meh. disabled. too blurry
 		{

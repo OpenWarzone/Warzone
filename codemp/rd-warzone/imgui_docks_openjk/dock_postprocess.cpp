@@ -194,6 +194,7 @@ void DockPostProcess::MakeCvarList() {
 	AddCvar(r_cubeMapping, 1);
 	AddCvar(r_toneMap, 1);
 	AddCvar(r_occlusion, 1);
+	AddCvar(r_fsr, 1);
 }
 
 void DockPostProcess::imgui() {

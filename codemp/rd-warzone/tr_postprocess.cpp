@@ -4753,6 +4753,66 @@ void RB_TXAA(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
 	FBO_FastBlit(ldrFbo, ldrBox, tr.txaaPreviousFBO, ldrBox, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 }
 
+void RB_FSR_Upscale(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
+{
+	shaderProgram_t *shader = &tr.fsrUpscaleShader;
+
+	GLSL_BindProgram(shader);
+
+	if (shader->isBindless)
+	{
+		GLSL_SetBindlessTexture(shader, UNIFORM_DIFFUSEMAP, &hdrFbo->colorImage[0], 0);
+		GLSL_BindlessUpdate(shader);
+	}
+	else
+	{
+		GLSL_SetUniformInt(shader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+		GL_BindToTMU(hdrFbo->colorImage[0], TB_DIFFUSEMAP);
+	}
+
+	GLSL_SetUniformMatrix16(shader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
+
+	{
+		vec2_t screensize;
+		screensize[0] = glConfig.vidWidth * r_superSampleMultiplier->value;
+		screensize[1] = glConfig.vidHeight * r_superSampleMultiplier->value;
+
+		GLSL_SetUniformVec2(shader, UNIFORM_DIMENSIONS, screensize);
+	}
+
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, shader, colorWhite, 0);
+}
+
+void RB_FSR_Sharpen(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox)
+{
+	shaderProgram_t *shader = &tr.fsrSharpenShader;
+
+	GLSL_BindProgram(shader);
+
+	if (shader->isBindless)
+	{
+		GLSL_SetBindlessTexture(shader, UNIFORM_DIFFUSEMAP, &hdrFbo->colorImage[0], 0);
+		GLSL_BindlessUpdate(shader);
+	}
+	else
+	{
+		GLSL_SetUniformInt(shader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+		GL_BindToTMU(hdrFbo->colorImage[0], TB_DIFFUSEMAP);
+	}
+
+	GLSL_SetUniformMatrix16(shader, UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection, 1);
+
+	{
+		vec2_t screensize;
+		screensize[0] = glConfig.vidWidth * r_superSampleMultiplier->value;
+		screensize[1] = glConfig.vidHeight * r_superSampleMultiplier->value;
+
+		GLSL_SetUniformVec2(shader, UNIFORM_DIMENSIONS, screensize);
+	}
+
+	FBO_Blit(hdrFbo, hdrBox, NULL, ldrFbo, ldrBox, shader, colorWhite, 0);
+}
+
 void RB_LinearizeDepth(void)
 {
 	shaderProgram_t *sp = &tr.linearizeDepthShader;

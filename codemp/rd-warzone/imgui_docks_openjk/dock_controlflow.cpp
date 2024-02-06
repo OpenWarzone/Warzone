@@ -61,6 +61,7 @@ void DockControlFlow::imgui() {
 		showCvar("Show Depth"                                                  , r_showdepth       );
 		showCvar("Show Normals"                                                , r_shownormals     );
 		showCvar("Anaglyph"                                                    , r_trueAnaglyph    );
+		showCvar("FSR", r_fsr);
 		ImGui::PopItemWidth();
 	}
 }

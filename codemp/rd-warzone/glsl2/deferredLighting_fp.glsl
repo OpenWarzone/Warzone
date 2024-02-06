@@ -833,28 +833,27 @@ float orenNayar(in vec3 n, in vec3 v, in vec3 ldir, float specPower)
 	return max(0.0, nl) * (a + b * max(0.0, ga) * sqrt((1.0 - nv * nv)*(1.0 - nl * nl)) / max(nl, nv));
 }
 
-vec3 Lighting(vec3 color, vec3 bump, vec3 view, vec3 light, vec3 lightColor, float smoothness, float metallicness) {
+vec3 Lighting(vec3 color, vec3 bump, vec3 view, vec3 light, vec3 lightColor, float smoothness, float metallicness, float attenuation) {
 	float ss = getSpecialSauce(color);
 
-	// Ambient light.
-	float directAmbience = 0.14;
+	vec3 lightingNormal = mix(bump, view, metallicness);
 
 	// Nayar diffuse light.
-	float base = orenNayar(bump, view, light, smoothness);
+	float diffuse = min(orenNayar(lightingNormal /*bump*/, view, light, smoothness), 0.14);
 
 	// Specular light.
 	vec3 reflection = normalize(reflect(view, bump));
-	float specular = clamp(pow(clamp(dot(light, reflection), 0.0, 1.0), 15.0), 0.0, 1.0);
-	//float specular = getspecularLight(bump, light, view, metallicness);
+	float specular = clamp(pow(clamp(dot(-light, reflection), 0.0, 1.0), 15.0), 0.0, 1.0);
 
-	float selfShadow = 1.0;// max(dot(bump, -light), 0.0);
-
-	return ((lightColor * directAmbience * ss) + (lightColor * ss * base) + (lightColor * specular * ss)) * color * selfShadow;
+	return ((lightColor * ss * diffuse) + (lightColor * ss * specular)) * color * attenuation;
 }
+
+#define _RAY_SPHERE_INTERSECTION_
+
+#ifdef _RAY_SPHERE_INTERSECTION_
 
 //#define _LIGHT_VOLUMETRICS_
 
-#ifdef _LIGHT_VOLUMETRICS_
 float RaySphereIntersection(vec3 rayPos, vec3 rayDir, vec3 spherePos, float sphereRadius, out vec3 hitpos, out vec3 normal)
 {
 	/*vec3 v = rayPos - spherePos;
@@ -931,7 +930,9 @@ float RaySphereIntersection(vec3 rayPos, vec3 rayDir, vec3 spherePos, float sphe
 
 	return t;
 }
+#endif //_RAY_SPHERE_INTERSECTION_
 
+#ifdef _LIGHT_VOLUMETRICS_
 vec3 GetLightVolume(vec3 rayPos, vec3 rayDir, Lights_t light, float pixelDistance, float lightDistance)
 {
 	vec3 lighting = vec3(0.0);
@@ -1069,13 +1070,10 @@ void GetSSBOLighting(bool emissive, float smoothness, float metallicness, vec4 p
 
 			float lightDist = distance(lightPos, position.xyz);
 
-			if (lightDist > light.u_lightPositions2.w)
+			/*if (lightDist > light.u_lightPositions2.w)
 			{
 				continue;
-			}
-
-			//addedLight.rgb += light.u_lightColors.rgb;
-			//continue;
+			}*/
 
 			vec3 lightDir = normalize(lightPos.xyz - position.xyz);
 
@@ -1090,12 +1088,6 @@ void GetSSBOLighting(bool emissive, float smoothness, float metallicness, vec4 p
 					continue;
 				}
 
-				/*if (u_Local3.r == 3.0)
-				{
-					addedLight.rgb += vec3((1.0 - (lightToSurfaceAngle / light.u_coneDirection.a)) * 0.1);
-					continue;
-				}*/
-
 				lightDir = coneDir;
 			}
 
@@ -1105,28 +1097,17 @@ void GetSSBOLighting(bool emissive, float smoothness, float metallicness, vec4 p
 			if (lightDistMult > 0.0)
 			{
 				// Attenuation...
-				float lightFade = 1.0 - clamp((lightDist * lightDist) / (light.u_lightPositions2.w * light.u_lightPositions2.w), 0.0, 1.0);
-				lightFade = pow(lightFade, 2.0) * lightDistMult;
-
-				if (lightFade > 0.0)
-				{
-					float lightStrength = lightDistMult * lightFade;
-
-					if (lightStrength > 0.0)
-					{
-
-						float light_occlusion = 1.0;
+				float attenuation = pow(1.0 - clamp((lightDist * lightDist) / (light.u_lightPositions2.w * light.u_lightPositions2.w), 0.0, 1.0), 2.0);
+				float light_occlusion = 1.0;
 
 #ifndef LQ_MODE
-						if (useOcclusion)
-						{
-							light_occlusion = clamp(1.0 - clamp(dot(vec4(lightDir, 1.0), occlusion), 0.0, 1.0) * 0.4 + 0.6, 0.0, 1.0);
-						}
+				if (useOcclusion)
+				{
+					light_occlusion = clamp(1.0 - clamp(dot(vec4(lightDir, 1.0), occlusion), 0.0, 1.0) * 0.4 + 0.6, 0.0, 1.0);
+				}
 #endif //LQ_MODE
 
-						addedLight.rgb = clamp(max(addedLight.rgb, Lighting(outColor.rgb, bump, E, lightDir, light.u_lightColors.rgb, smoothness, max(metallicness, wetness)) * lightFade * light_occlusion), 0.0, 1.0);
-					}
-				}
+				addedLight.rgb = clamp(max(addedLight.rgb, Lighting(outColor.rgb, bump, E, lightDir, light.u_lightColors.rgb, smoothness, max(metallicness, wetness), attenuation) * lightDistMult * light_occlusion), 0.0, 1.0);
 			}
 		}
 
@@ -1818,7 +1799,7 @@ void main(void)
 		lightColor *= SUN_PHONG_SCALE;
 		lightColor *= 1.0 - NIGHT_SCALE; // Day->Night scaling of sunlight...
 
-		vec3 addColor = Lighting(outColor.rgb, N.xyz, E, -sunDir, lightColor, smoothness, max(metallicness, wetness));
+		vec3 addColor = Lighting(outColor.rgb, N.xyz, E, -sunDir, lightColor, smoothness, max(metallicness, wetness), 1.0);
 
 		outColor.rgb += addColor * PshadowValue * finalShadow * sun_occlusion;// 0.25;
 	}

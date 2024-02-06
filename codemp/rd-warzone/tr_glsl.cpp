@@ -200,6 +200,10 @@ extern const char *fallbackShader_fxaa_vp;
 extern const char *fallbackShader_fxaa_fp;
 extern const char *fallbackShader_txaa_vp;
 extern const char *fallbackShader_txaa_fp;
+extern const char *fallbackShader_fsrUpscale_vp;
+extern const char *fallbackShader_fsrUpscale_fp;
+extern const char *fallbackShader_fsrSharpen_vp;
+extern const char *fallbackShader_fsrSharpen_fp;
 extern const char *fallbackShader_fastBlur_vp;
 extern const char *fallbackShader_fastBlur_fp;
 //extern const char *fallbackShader_shadowBlur_vp;
@@ -4462,6 +4466,22 @@ int GLSL_BeginLoadGPUShaders(void)
 	attribs = ATTR_POSITION | ATTR_TEXCOORD0;
 	extradefines[0] = '\0';
 
+	if (!GLSL_BeginLoadGPUShader(&tr.fsrUpscaleShader, "fsrUpscale", attribs, qtrue, qfalse, qfalse, qtrue/*qfalse*/, extradefines, qtrue, NULL, fallbackShader_fsrUpscale_vp, fallbackShader_fsrUpscale_fp, NULL, NULL, NULL))
+	{
+		ri->Error(ERR_FATAL, "Could not load fsrUpscale shader!");
+	}
+
+	attribs = ATTR_POSITION | ATTR_TEXCOORD0;
+	extradefines[0] = '\0';
+
+	if (!GLSL_BeginLoadGPUShader(&tr.fsrSharpenShader, "fsrUpscale", attribs, qtrue, qfalse, qfalse, qtrue/*qfalse*/, extradefines, qtrue, NULL, fallbackShader_fsrSharpen_vp, fallbackShader_fsrSharpen_fp, NULL, NULL, NULL))
+	{
+		ri->Error(ERR_FATAL, "Could not load fsrSharpen shader!");
+	}
+
+	attribs = ATTR_POSITION | ATTR_TEXCOORD0;
+	extradefines[0] = '\0';
+
 	if (!GLSL_BeginLoadGPUShader(&tr.generateNormalMapShader, "generateNormalMap", attribs, qtrue, qfalse, qfalse, qfalse, extradefines, qtrue, NULL, fallbackShader_generateNormalMap_vp, fallbackShader_generateNormalMap_fp, NULL, NULL, NULL))
 	{
 		ri->Error(ERR_FATAL, "Could not load generateNormalMap shader!");
@@ -6720,6 +6740,59 @@ void GLSL_EndLoadGPUShaders(int startTime)
 	numEtcShaders++;
 
 
+	if (!GLSL_EndLoadGPUShader(&tr.fsrUpscaleShader))
+	{
+		ri->Error(ERR_FATAL, "Could not load fsrUpscale shader!");
+	}
+
+	GLSL_InitUniforms(&tr.fsrUpscaleShader);
+
+	GLSL_BindProgram(&tr.fsrUpscaleShader);
+
+	GLSL_SetUniformInt(&tr.fsrUpscaleShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+
+	{
+		vec2_t screensize;
+		screensize[0] = glConfig.vidWidth * r_superSampleMultiplier->value;
+		screensize[1] = glConfig.vidHeight * r_superSampleMultiplier->value;
+
+		GLSL_SetUniformVec2(&tr.fsrUpscaleShader, UNIFORM_DIMENSIONS, screensize);
+	}
+
+#if defined(_DEBUG)
+	GLSL_FinishGPUShader(&tr.fsrUpscaleShader);
+#endif
+
+	numEtcShaders++;
+
+
+
+	if (!GLSL_EndLoadGPUShader(&tr.fsrSharpenShader))
+	{
+		ri->Error(ERR_FATAL, "Could not load fsrSharpen shader!");
+	}
+
+	GLSL_InitUniforms(&tr.fsrSharpenShader);
+
+	GLSL_BindProgram(&tr.fsrSharpenShader);
+
+	GLSL_SetUniformInt(&tr.fsrSharpenShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+
+	{
+		vec2_t screensize;
+		screensize[0] = glConfig.vidWidth * r_superSampleMultiplier->value;
+		screensize[1] = glConfig.vidHeight * r_superSampleMultiplier->value;
+
+		GLSL_SetUniformVec2(&tr.fsrSharpenShader, UNIFORM_DIMENSIONS, screensize);
+	}
+
+#if defined(_DEBUG)
+	GLSL_FinishGPUShader(&tr.fsrSharpenShader);
+#endif
+
+	numEtcShaders++;
+
+
 
 	//generateNormalMap
 	if (!GLSL_EndLoadGPUShader(&tr.generateNormalMapShader))
@@ -7268,6 +7341,8 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.dofShader[2]);
 	GLSL_DeleteGPUShader(&tr.fxaaShader);
 	GLSL_DeleteGPUShader(&tr.txaaShader);
+	GLSL_DeleteGPUShader(&tr.fsrUpscaleShader);
+	GLSL_DeleteGPUShader(&tr.fsrSharpenShader);
 	GLSL_DeleteGPUShader(&tr.underwaterShader);
 	GLSL_DeleteGPUShader(&tr.volumeLightShader[0]);
 	GLSL_DeleteGPUShader(&tr.volumeLightShader[1]);

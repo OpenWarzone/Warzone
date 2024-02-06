@@ -433,6 +433,7 @@ cvar_t  *r_trueAnaglyphParallax;
 cvar_t  *r_fxaa;
 cvar_t  *r_fxaaScanMod;
 cvar_t  *r_txaa;
+cvar_t  *r_fsr;
 cvar_t  *r_underwater;
 cvar_t  *r_distanceBlur;
 cvar_t  *r_fogPost;
@@ -1844,6 +1845,7 @@ void R_Register( void )
 	r_fxaa = ri->Cvar_Get( "r_fxaa", "false", CVAR_ARCHIVE );
 	r_fxaaScanMod = ri->Cvar_Get("r_fxaaScanMod", "1.0", CVAR_ARCHIVE);
 	r_txaa = ri->Cvar_Get("r_txaa", "true", CVAR_ARCHIVE);
+	r_fsr = ri->Cvar_Get("r_fsr", "false", CVAR_ARCHIVE);
 	r_cloudQuality = ri->Cvar_Get("r_cloudQuality", "1", CVAR_ARCHIVE);
 	r_cloudshadows = ri->Cvar_Get("r_cloudshadows", "1", CVAR_ARCHIVE);
 	r_underwater = ri->Cvar_Get( "r_underwater", "1", CVAR_ARCHIVE );
