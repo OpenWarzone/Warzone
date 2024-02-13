@@ -231,7 +231,7 @@ static DWORD WINAPI DoGenerateCrashDump( LPVOID pParams )
        
         MINIDUMP_EXCEPTION_INFORMATION excInfo;
         MINIDUMP_CALLBACK_INFORMATION cbInfo;
-        MINIDUMP_TYPE flags;
+        MINIDUMP_TYPE flags = MiniDumpNormal;
        
         excInfo.ThreadId = params->excThreadId;
         excInfo.ExceptionPointers = params->pExcPtrs;

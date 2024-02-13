@@ -1192,7 +1192,9 @@ void CheckAlphaBits(shader_t *shader)
 
 			if (shader->hasAlphaTestBits == 1 && !foundTextureAlpha)
 			{// Shader says use alpha, but the textures don't contain any, optimize!
+#ifdef _DEBUG
 				ri->Printf(PRINT_WARNING, "CheckAlphaBits Debug: %s is using an alpha test bits, but not using any alpha. Optimizing.\n", shader->name);
+#endif //_DEBUG
 
 				shader->hasAlpha = qfalse;
 				shader->hasAlphaTestBits = -1;

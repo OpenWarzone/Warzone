@@ -3912,17 +3912,31 @@ Returns NULL if it fails, not a default image.
 ==============
 */
 
+
+// TODO: INI file...
+const char *upscaleIgnoreList[] = {
+	"gfx/blasters",
+	"gfx/effects/sabers",
+	"gfx/effects/solidwhite",
+	"gfx/colors",
+	"gfx/misc/whiteLine2",
+	"gfx/random",
+	"textures/skies",
+	"mapImage",
+	"models/warzone/lasers",
+	"<EOF>" // keep this to mark the end of the list...
+};
+
 #define FORMAT_STR2(Buffer, ...)		sprintf_s(Buffer, sizeof(Buffer), ##__VA_ARGS__)
 
 qboolean R_ImageUpscale(char *originalFilename, char *newFilename, int scale, char *ext)
 {
 	char Command[1024] = { 0 };
-	
 
-	FORMAT_STR2(Command, "upscaler\\bin\\upscale.exe -i \"%s\" -o \"%s\" -s %i -m upscaler\\models\\ -n upscayl-ultrasharp-v2 -f %s", originalFilename, newFilename, scale, ext);
-	//FORMAT_STR2(Command, "upscaler\\bin\\upscale.exe -i \"%s\" -o \"%s\" -s %i -m upscaler\\models\\ -n xintao-realesrgan-x4plus -f %s", originalFilename, newFilename, scale, ext);
-	//FORMAT_STR2(Command, "upscaler\\bin\\upscale.exe -i \"%s\" -o \"%s\" -s %i -m upscaler\\models\\ -n upscayl-ultramix_balanced -f %s", originalFilename, newFilename, scale, ext);
-	//FORMAT_STR2(Command, "upscaler\\bin\\upscale.exe -i \"%s\" -o \"%s\" -s %i -m upscaler\\models\\ -n upscayl-remacri -f %s", originalFilename, newFilename, scale, ext);
+	//FORMAT_STR2(Command, "upscaler\\bin\\upscale.exe -i \"%s\" -o \"%s\" -s %i -m upscaler\\models\\ -n upscayl-ultrasharp-v2 -f %s", originalFilename, newFilename, scale, ext);
+	
+	//FORMAT_STR2(Command, "upscaler\\bin\\upscale.exe -i \"%s\" -o \"%s\" -s %i -m upscaler\\models\\ -n ultrasharp -f %s", originalFilename, newFilename, scale, ext);
+	FORMAT_STR2(Command, "upscaler\\bin\\upscale.exe -i \"%s\" -o \"%s\" -s %i -m upscaler\\models\\ -n realesrgan-x4plus-anime -f %s", originalFilename, newFilename, scale, ext);
 
 	STARTUPINFO si = { 0 };
 	si.cb = sizeof(si);
@@ -4368,11 +4382,39 @@ image_t	*R_FindImageFile(const char *name, imgType_t type, int flags)
 #endif
 
 #ifdef __AI_UPSCALE__
+	int ign = 0;
+	qboolean TRY_UPSCALE = qtrue;
+
+	while (true)
+	{
+		if (StringContainsWord(upscaleIgnoreList[ign], "<EOF>"))
+		{// End of list...
+			break;
+		}
+
+		if (strlen(upscaleIgnoreList[ign]) < 4)
+		{// This would not be a good idea... Also skips empty INI entries when I add them...
+			continue;
+		}
+
+		if (StringContainsWord(name, upscaleIgnoreList[ign]))
+		{
+			TRY_UPSCALE = qfalse;
+			break;
+		}
+
+		ign++;
+	}
+
 	extern char *FS_TextureFileExists(const char *name);
 	char *ext;
 	char *fileExists = FS_UpscaledTextureFileExists(name);
 
-	if (fileExists)
+	if (!TRY_UPSCALE)
+	{
+		ext = (char *)R_LoadImage(name, &pic, &width, &height);
+	}
+	else if (fileExists)
 	{// Already upscaled this one...
 		ext = (char *)R_LoadImage(fileExists, &pic, &width, &height);
 		//ri->Printf(PRINT_WARNING, "AI upscaled texture found %s\n", fileExists);
@@ -4706,7 +4748,9 @@ image_t	*R_FindImageFile(const char *name, imgType_t type, int flags)
 		if (!RawImage_HasAlpha(pic, width, height, qfalse))
 		{
 			USE_ALPHA = qfalse;
+#ifdef _DEBUG
 			ri->Printf(PRINT_WARNING, "FindImage Debug: %s is using an alpha supported texture format %s, but not using any alpha. Optimizing. (w: %i. h: %i.)\n", name, ext, width, height);
+#endif //_DEBUG
 		}
 
 		//ri->Printf(PRINT_WARNING, "FindImage Debug: %s. HAS_ALPHA %s.\n", name, USE_ALPHA ? "yes" : "no");
